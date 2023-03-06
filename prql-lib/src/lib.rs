@@ -19,6 +19,8 @@ use std::str::FromStr;
 /// # Safety
 ///
 /// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
 pub unsafe extern "C" fn compile(
     prql_query: *const c_char,
@@ -49,7 +51,9 @@ pub unsafe extern "C" fn compile(
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
 pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult {
     let prql_query: String = c_str_to_string(prql_query);
@@ -70,7 +74,9 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
 pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
     let pl_json: String = c_str_to_string(pl_json);
@@ -91,7 +97,9 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
 pub unsafe extern "C" fn rq_to_sql(rq_json: *const c_char) -> CompileResult {
     let rq_json: String = c_str_to_string(rq_json);
@@ -172,6 +180,45 @@ pub struct SourceLocation {
     pub end: (size_t, size_t),
 }
 
+/// Destroy a `CompileResult` once you are done with it.
+#[no_mangle]
+pub unsafe extern "C" fn result_destroy(res: CompileResult) {
+    // This is required because we are allocating memory for
+    // strings, vectors and options.
+    // For strings and vectors this is required, but options may be
+    // able to live entirely within the struct, instead of the heap.
+
+    for i in 0..res.errors_len {
+        let e = &*res.errors.add(i);
+
+        if !e.code.is_null() {
+            drop(CString::from_raw(*e.code as *mut i8));
+            drop(Box::from_raw(e.code as *mut *const i8));
+        }
+        drop(CString::from_raw(e.reason as *mut i8));
+        if !e.hint.is_null() {
+            drop(CString::from_raw(*e.hint as *mut i8));
+            drop(Box::from_raw(e.hint as *mut *const i8));
+        }
+        if !e.span.is_null() {
+            drop(Box::from_raw(e.span as *mut Span));
+        }
+        if !e.display.is_null() {
+            drop(CString::from_raw(*e.display as *mut i8));
+            drop(Box::from_raw(e.display as *mut *const i8));
+        }
+        if !e.location.is_null() {
+            drop(Box::from_raw(e.location as *mut SourceLocation));
+        }
+    }
+    drop(Vec::from_raw_parts(
+        res.errors as *mut i8,
+        res.errors_len,
+        res.errors_len,
+    ));
+    drop(CString::from_raw(res.output as *mut i8));
+}
+
 unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileResult {
     match result {
         Ok(output) => CompileResult {
@@ -198,12 +245,14 @@ unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileRes
     }
 }
 
+/// Allocates the value on the heap and returns a pointer to it.
+/// If the input is None, it returns null pointer.
 fn option_to_ptr<T>(o: Option<T>) -> *const T {
     match o {
         Some(x) => {
             let b = Box::new(x);
             Box::into_raw(b)
-        },
+        }
         None => ::std::ptr::null(),
     }
 }

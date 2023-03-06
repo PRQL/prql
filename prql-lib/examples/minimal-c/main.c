@@ -21,33 +21,16 @@ void print_result(CompileResult res) {
     }
 }
 
-void free_result(CompileResult res) {
-    for (int i = 0; i < res.errors_len; i++) {
-        ErrorMessage const* e = &res.errors[i];
-        free((void*) *e->code);
-        free((void*) e->code);
-        free((void*) *e->display);
-        free((void*) e->display);
-        free((void*) *e->hint);
-        free((void*) e->hint);
-        free((void*) e->location);
-        free((void*) e->reason);
-        free((void*) e->span);
-    }
-    free((void*) res.errors);
-    free((void*) res.output);
-}
-
-
 int main() {
     char *prql_query;
     prql_query = "from albums | select [album_id, title] | take 3";
     CompileResult res;
+    CompileResult res2;
 
     // default compile option
     res = compile(prql_query, NULL);
     print_result(res);
-    free_result(res);
+    result_destroy(res);
 
     // custom compile options
     Options opts;
@@ -56,25 +39,27 @@ int main() {
     opts.target = "sql.mssql";
     res = compile(prql_query, &opts);
     print_result(res);
-    free_result(res);
+    result_destroy(res);
 
     // error handling
     res = compile("from album | select [album_id] | select [title]", NULL);
     print_result(res);
-    free_result(res);
+    result_destroy(res);
 
     // error handling
     res = compile("let a = (from album)", NULL);
     print_result(res);
-    free_result(res);
+    result_destroy(res);
 
     // intermediate results
     res = prql_to_pl(prql_query);
     print_result(res);
-    free_result(res);
 
-    res = pl_to_rq(res.output);
-    print_result(res);
-    free_result(res);
+    res2 = pl_to_rq(res.output);
+    result_destroy(res);
+
+    print_result(res2);
+    result_destroy(res2);
+
     return 0;
 }

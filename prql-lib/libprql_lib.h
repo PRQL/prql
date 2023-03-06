@@ -54,6 +54,7 @@ typedef struct CompileResult {
   const int8_t *output;
   const struct ErrorMessage *errors;
   size_t errors_len;
+  size_t errors_capacity;
 } CompileResult;
 
 /**
@@ -93,6 +94,8 @@ typedef struct Options {
  * # Safety
  *
  * This function assumes zero-terminated input strings.
+ * Calling code is responsible for freeing memory allocated for `CompileResult`
+ * by calling `result_destroy`.
  */
 struct CompileResult compile(const char *prql_query, const struct Options *options);
 
@@ -106,7 +109,9 @@ struct CompileResult compile(const char *prql_query, const struct Options *optio
  *
  * # Safety
  *
- * This function assumes zero-terminated strings and sufficiently large output buffers.
+ * This function assumes zero-terminated input strings.
+ * Calling code is responsible for freeing memory allocated for `CompileResult`
+ * by calling `result_destroy`.
  */
 struct CompileResult prql_to_pl(const char *prql_query);
 
@@ -121,7 +126,9 @@ struct CompileResult prql_to_pl(const char *prql_query);
  *
  * # Safety
  *
- * This function assumes zero-terminated strings and sufficiently large output buffers.
+ * This function assumes zero-terminated input strings.
+ * Calling code is responsible for freeing memory allocated for `CompileResult`
+ * by calling `result_destroy`.
  */
 struct CompileResult pl_to_rq(const char *pl_json);
 
@@ -135,6 +142,13 @@ struct CompileResult pl_to_rq(const char *pl_json);
  *
  * # Safety
  *
- * This function assumes zero-terminated strings and sufficiently large output buffers.
+ * This function assumes zero-terminated input strings.
+ * Calling code is responsible for freeing memory allocated for `CompileResult`
+ * by calling `result_destroy`.
  */
 struct CompileResult rq_to_sql(const char *rq_json);
+
+/**
+ * Destroy a `CompileResult` once you are done with it.
+ */
+void result_destroy(struct CompileResult res);
