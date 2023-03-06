@@ -1,21 +1,16 @@
 #![cfg(not(target_family = "wasm"))]
-/// This test:
-/// - Extracts PRQL code blocks into files in the `examples` path, skipping
-///   where the matching example is already present.
-/// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
-///   there's a diff.
-///
-/// Then, when the book is built, the PRQL code block in the book is replaced
-/// with a comparison table.
-///
-/// We also use this test to run tests on our Display trait output, currently as
-/// another set of snapshots (more comments inline).
+//
+// Thoughts on the overall code:
 //
 // Overall, this is overengineered — it's complicated and took a long time to
 // write. The intention is good — have a version of the SQL that's committed
 // into the repo, and join our tests with our docs. But it feels like overly
 // custom code for quite a general problem, even if our preferences are slightly
 // different from the general case.
+//
+// Having an API for being able to read snapshots
+// (https://github.com/mitsuhiko/insta/issues/353) would significantly reduce the need for
+// custom code;
 //
 // Possibly we should be using something like pandoc /
 // https://github.com/gpoore/codebraid / which would run the transformation for
@@ -32,8 +27,16 @@ use std::{collections::HashMap, fs};
 use walkdir::WalkDir;
 
 #[test]
+/// This test:
+/// - Extracts PRQL code blocks into files in the `examples` path, skipping
+///   where the matching example is already present.
+/// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
+///   there's a diff.
+///
+/// Then, when the book is built, the PRQL code block in the book is replaced
+/// with a comparison table.
 fn test_examples() -> Result<()> {
-    // Note that on windows, markdown is read differently, and so we don't write
+    // Note that on Windows, markdown is read differently, and so we don't write
     // on Windows (we write from the same place we read as a workaround). ref
     // https://github.com/PRQL/prql/issues/356
 
@@ -137,7 +140,7 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
 // requires no dependencies.
 fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
     // If we have to modify any files, raise an error at the end, so it fails in CI.
-    let mut is_snapshots_updated = false;
+    let mut snapshots_updated = vec![];
 
     let mut existing_snapshots: HashMap<_, _> = collect_snapshot_examples()?;
     // Write any new snapshots, or update any that have changed
@@ -147,7 +150,7 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
             .map(|existing| existing != *example)
             .unwrap_or(true)
         {
-            is_snapshots_updated = true;
+            snapshots_updated.push(prql_path);
             fs::create_dir_all(Path::new(prql_path).parent().unwrap())?;
             fs::write(prql_path, example)?;
         }
@@ -155,17 +158,21 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
         Ok::<(), anyhow::Error>(())
     })?;
 
-    // If there are any files left in `existing_snapshots`, we remove them, since
-    // they don't reference anything.
+    // If there are any files left in `existing_snapshots`, we remove them,
+    // since they don't reference anything (like
+    // `--delete-unreferenced-snapshots` in insta).
     existing_snapshots.iter().for_each(|(path, _)| {
         trash::delete(path).unwrap_or_else(|e| {
             warn!("Failed to delete unreferenced example: {}", e);
         })
     });
 
-    if is_snapshots_updated {
+    if !snapshots_updated.is_empty() {
         bail!(r###"
-Some book snapshots were not consistent with the queries in the book.
+Some book snapshots were not consistent with the queries in the book:
+
+{snapshots_updated}
+
 The snapshots have now been updated. Subsequent runs of this test should now pass."###
             .trim());
     }
@@ -192,14 +199,15 @@ fn test_prql_examples() {
     });
 }
 
-/// Test that the formatted result (the `Display` result) of each example can be compiled.
+/// Test that the formatted result (the `Display` result) of each example can be
+/// compiled.
 //
-// We used to snapshot all the queries. But that was a lot of output, for
+// We previously snapshot all the queries. But that was a lot of output, for
 // something we weren't yet looking at.
 //
-// The ideal would be to auto-format the examples themselves, either in the book
-// source or a snapshot (the latter would be easier to do). For that to provide
-// a good output, we need to implement a proper autoformatter.
+// The ideal would be to auto-format the examples themselves, likely during the
+// compilation. For that to provide a good output, we need to implement a proper
+// autoformatter.
 #[test]
 fn test_display() -> Result<(), ErrorMessages> {
     collect_book_examples()?
