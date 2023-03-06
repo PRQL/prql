@@ -20,9 +20,9 @@
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
-- A new spacial compile target `"sql.any"`. When `"sql.any"` is used as the
-  target of the compile function's option, the target contained in the query
-  header will be used. (@aljazerzen, #1995)
+- A new compile target `"sql.any"`. When `"sql.any"` is used as the target of
+  the compile function's option, the target contained in the query header will
+  be used. (@aljazerzen, #1995)
 - Support for SQL parameters with similar syntax (#1957, @aljazerzen)
 - Allow `:` to be elided in timezones, such as `0800` in
   `@2020-01-01T13:19:55-0800` (@max-sixty, #1991).
