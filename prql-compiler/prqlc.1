@@ -1,0 +1,83 @@
+.\" prqlc man page.
+.\"
+.\" PRQL is a modern language for transforming data — a simple, powerful,
+.\" pipelined SQL replacement.
+.\"
+.\" https://prql-lang.org/
+.Dt prqlc 1
+.Os Linux
+.Sh NAME
+.Nm prqlc,
+.Nd PRQL compiler.
+.Sh SYNOPSIS
+.Pp
+.SY prqlc
+parse
+.Op Ar input
+.Op Ar output
+.YS
+.Pp
+.SY prqlc
+fmt
+.Op Ar input
+.Op Ar output
+.YS
+.Pp
+.SY prqlc
+annotate
+.Op Ar input
+.Op Ar output
+.YS
+.Pp
+.SY prqlc
+debug
+.Op Ar input
+.Op Ar output
+.YS
+.Pp
+.SY prqlc
+resolve
+.Op Ar input
+.Op Ar output
+.YS
+.Pp
+.SY prqlc
+compile
+.Op Ar options
+.Op Ar input
+.Op Ar output
+.YS
+.Pp
+.SY prqlc
+watch
+.Op Ar options
+path
+.YS
+.Pp
+.SY prqlc
+help
+.YS
+.Pp
+.Sh DESCRIPTION
+PRQL is a modern language for transforming data — a simple, powerful,
+pipelined SQL replacement.
+.Pp
+Flags:
+.Bl -tag
+.It Fl h
+Print help
+.It Fl v
+Print version
+.El
+.Pp
+Flags for the compile option:
+.Bl -tag
+.It Fl -no-format
+do not format the output
+.It Fl -no-signature
+do not print the PRQL signature
+.El
+.Sh FILES                \" File used or created by the topic of the man page
+.Bl -tag -width "/Users/joeuser/Library/really_long_file_name" -compact
+.It Pa /usr/bin/prqlc
+The prqlc executable.
