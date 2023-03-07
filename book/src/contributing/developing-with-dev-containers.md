@@ -1,4 +1,4 @@
-# Developing in Dev Containers
+# Developing with Dev Containers
 
 ```admonish note
 Currently the Dev Container included in this repository only supports the `amd64` platform.
