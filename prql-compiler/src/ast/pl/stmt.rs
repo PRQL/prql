@@ -27,6 +27,7 @@ pub enum StmtKind {
     QueryDef(QueryDef),
     FuncDef(FuncDef),
     VarDef(VarDef),
+    TypeDef(TypeDef),
     Main(Box<Expr>),
 }
 
@@ -61,6 +62,12 @@ pub struct FuncParam {
 pub struct VarDef {
     pub name: String,
     pub value: Box<Expr>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct TypeDef {
+    pub name: String,
+    pub value: Option<Expr>,
 }
 
 impl From<StmtKind> for Stmt {
@@ -126,6 +133,13 @@ impl Display for StmtKind {
                         write!(f, "let {} = {pipeline}\n\n", var.name)?;
                     }
                 };
+            }
+            StmtKind::TypeDef(ty_def) => {
+                if let Some(value) = &ty_def.value {
+                    write!(f, "type {} = {value}\n\n", ty_def.name)?;
+                } else {
+                    write!(f, "type {}\n\n", ty_def.name)?;
+                }
             }
         }
         Ok(())

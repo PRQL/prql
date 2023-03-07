@@ -69,11 +69,20 @@ impl AstFold for Resolver {
                 }
                 StmtKind::VarDef(var_def) => {
                     let var_def = self.fold_var_def(var_def)?;
+                    self.context.declare_var(var_def, stmt.id, stmt.span)?;
+                    continue;
+                }
+                StmtKind::TypeDef(ty_def) => {
                     let var_def = VarDef {
-                        value: Box::new(Flattener::fold(*var_def.value)),
-                        ..var_def
+                        name: ty_def.name,
+                        value: Box::new(ty_def.value.unwrap_or_else(|| {
+                            let mut e = Expr::null();
+                            e.ty = Some(Ty::Set);
+                            e
+                        })),
                     };
 
+                    let var_def = self.fold_var_def(var_def)?;
                     self.context.declare_var(var_def, stmt.id, stmt.span)?;
                     continue;
                 }
@@ -86,6 +95,13 @@ impl AstFold for Resolver {
             res.push(Stmt { kind, ..stmt })
         }
         Ok(res)
+    }
+
+    fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
+        Ok(VarDef {
+            name: var_def.name,
+            value: Box::new(Flattener::fold(self.fold_expr(*var_def.value)?)),
+        })
     }
 
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {

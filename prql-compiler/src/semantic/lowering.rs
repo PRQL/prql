@@ -32,13 +32,15 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     let mut main_pipeline = None;
 
     for statement in statements {
+        use pl::StmtKind::*;
+
         match statement.kind {
-            pl::StmtKind::QueryDef(def) => query_def = Some(def),
-            pl::StmtKind::Main(expr) => {
+            QueryDef(def) => query_def = Some(def),
+            Main(expr) => {
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
+            FuncDef(_) | VarDef(_) | TypeDef(_) => {}
         }
     }
 

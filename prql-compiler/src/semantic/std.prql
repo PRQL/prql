@@ -63,3 +63,12 @@ func from_text<table> text<string> `noresolve.format`:csv -> null
 # String functions
 func lower <string> column -> null
 func upper <string> column -> null
+
+# type primitives
+type int
+type float
+type bool
+type text
+type date
+type time
+type timestamp

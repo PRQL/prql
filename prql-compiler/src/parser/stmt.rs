@@ -13,8 +13,8 @@ pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
     query_def()
         .or_not()
         .chain::<Stmt, _, _>(
-            var_def()
-                .or(function_def())
+            choice((type_def(), var_def(), function_def()))
+                .map_with_span(into_stmt)
                 .separated_by(new_line().repeated())
                 .allow_leading()
                 .allow_trailing(),
@@ -70,18 +70,26 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
+fn var_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
     keyword("let")
         .ignore_then(ident_part())
         .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
         .map(|(name, value)| VarDef { name, value })
         .map(StmtKind::VarDef)
-        .map_with_span(into_stmt)
         .labelled("variable definition")
 }
 
-fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
+fn type_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
+    keyword("type")
+        .ignore_then(ident_part())
+        .then(ctrl('=').ignore_then(expr_call()).or_not())
+        .map(|(name, value)| TypeDef { name, value })
+        .map(StmtKind::TypeDef)
+        .labelled("type definition")
+}
+
+fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
     keyword("func")
         .ignore_then(
             // func name
@@ -116,7 +124,6 @@ fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
             }
         })
         .map(StmtKind::FuncDef)
-        .map_with_span(into_stmt)
         .labelled("function definition")
 }
 

@@ -36,10 +36,16 @@ pub trait AstFold {
     fn fold_exprs(&mut self, exprs: Vec<Expr>) -> Result<Vec<Expr>> {
         exprs.into_iter().map(|node| self.fold_expr(node)).collect()
     }
-    fn fold_var_def(&mut self, table: VarDef) -> Result<VarDef> {
+    fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
         Ok(VarDef {
-            name: table.name,
-            value: Box::new(self.fold_expr(*table.value)?),
+            name: var_def.name,
+            value: Box::new(self.fold_expr(*var_def.value)?),
+        })
+    }
+    fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
+        Ok(TypeDef {
+            name: ty_def.name,
+            value: ty_def.value.map(|x| self.fold_expr(x)).transpose()?,
         })
     }
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
@@ -122,6 +128,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
+        TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
         Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })

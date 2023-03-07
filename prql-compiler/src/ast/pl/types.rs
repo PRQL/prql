@@ -14,6 +14,9 @@ pub enum Ty {
 
     Table(Frame),
 
+    /// Expr that can be converted to SetExpr and then used as a Ty.
+    Set,
+
     /// Means that we have no information about the type of the variable and
     /// that it should be inferred from other usages.
     Infer,
@@ -120,6 +123,7 @@ impl Display for Ty {
                 Ok(())
             }
             Ty::Table(frame) => write!(f, "table<{frame}>"),
+            Ty::Set => write!(f, "set"),
             Ty::Infer => write!(f, "infer"),
             Ty::Function(func) => {
                 write!(f, "func")?;

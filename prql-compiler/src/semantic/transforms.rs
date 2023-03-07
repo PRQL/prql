@@ -1078,7 +1078,7 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        group date (aggregate average amount)
+        group issued_at (aggregate average amount)
         ",
         )
         .unwrap();
@@ -1089,7 +1089,7 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        group date (
+        group issued_at (
             aggregate (average amount)
         )
         ",
@@ -1139,7 +1139,7 @@ mod tests {
                   Ident:
                     - _frame
                     - c_invoice
-                    - date
+                    - issued_at
                   target_id: 4
                   ty: Infer
             ty:
@@ -1148,7 +1148,7 @@ mod tests {
                   - Single:
                       name:
                         - c_invoice
-                        - date
+                        - issued_at
                       expr_id: 8
                   - Single:
                       name: ~
