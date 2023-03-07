@@ -23,7 +23,7 @@ jobs:
       - name: 📁 Copy files into .msi package
         run: |
           mkdir application
-          cp target/release/prqlc application/prqlc
+          cp target/release/prqlc.exe application/
           mv prql-compiler/prqlc/wix.json .
       - name: 👷 Build Windows Installer MSI from exe file
         uses: AliceOh/CreateWindowsInstaller@1.0.0
