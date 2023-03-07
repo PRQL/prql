@@ -6,7 +6,7 @@ default_job = "check"
 [jobs.test-fast]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
 [jobs.test]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always"]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--unreferenced=auto"]
 
 # Standard tasks
 
