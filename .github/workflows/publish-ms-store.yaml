@@ -24,7 +24,7 @@ jobs:
         run: |
           mkdir application
           cp target/release/prqlc application/prqlc
-          mv prql-compile/prqlc/wix.json .
+          mv prql-compiler/prqlc/wix.json .
       - name: 👷 Build Windows Installer MSI from exe file
         uses: AliceOh/CreateWindowsInstaller@1.0.0
         with:
