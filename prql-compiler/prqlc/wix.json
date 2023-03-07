@@ -5,9 +5,7 @@
   "upgrade-code": "",
   "files": {
     "guid": "c5b8f3ad-49eb-4dd9-8af6-4b1b9eb94bff",
-    "items": [
-      "prqlc.exe"
-    ]
+    "items": ["prqlc.exe"]
   },
   "env": {
     "guid": "df29e843-7a23-4ee1-a760-bf4528ecf1b0",
