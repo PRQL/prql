@@ -1,0 +1,60 @@
+name: publish-microsoft-store
+
+on:
+  release:
+    types: [released]
+  pull_request:
+    paths:
+      - .github/workflows/publish-microsoft-store.yaml
+  workflow_call:
+
+jobs:
+  microsoft_store:
+    name: Publish Microsoft Store
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: 👷 Build prql-compiler
+        run: cargo build --release
+      - name: 📁 Copy files into .msi package
+        run: |
+          mkdir application
+          cp target/release/prqlc application/prqlc
+          mv prql-compile/prqlc/wix.json .
+      - name: 👷 Build Windows Installer MSI from exe file
+        uses: AliceOh/CreateWindowsInstaller@1.0.0
+        with:
+          exefile: target/release/prqlc.exe
+      - name: 🔑 Configure Store Credentials
+        uses: microsoft/store-submission@v1
+        with:
+          command: configure
+          type: win32
+          seller-id: ${{ secrets.MS_SELLER_ID }}
+          product-id: ${{ secrets.MS_PRODUCT_ID }}
+          tenant-id: ${{ secrets.MS_TENANT_ID }}
+          client-id: ${{ secrets.MS_CLIENT_ID }}
+          client-secret: ${{ secrets.MS_CLIENT_SECRET }}
+
+      - name: 🔄 Update Draft Submission
+        uses: microsoft/store-submission@v1
+        with:
+          command: update
+          product-update: |
+            {
+              "packages": [{
+                "packageUrl": "https://github.com/PRQL/prql/releases/download/v${{ github.event.inputs.version }}/prqlc.msi"
+                "languages": ["en"],
+                "architectures": ["X64"],
+                "isSilentInstall": true
+              }]
+            }
+
+      - name: 🆙 Publish Submission
+        uses: microsoft/store-submission@v1
+        with:
+          command: publish
