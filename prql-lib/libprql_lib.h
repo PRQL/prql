@@ -3,6 +3,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+typedef enum MessageKind {
+  Error,
+  Warning,
+  Lint,
+} MessageKind;
+
 /**
  * Location within the source file.
  * Tuples contain:
@@ -18,12 +24,16 @@ typedef struct Span {
 } Span;
 
 /**
- * An error message.
+ * Compile result message.
  *
  * Calling code is responsible for freeing all memory allocated
  * for fields as well as strings.
  */
-typedef struct ErrorMessage {
+typedef struct Message {
+  /**
+   * Message kind. Currently only Error is implemented.
+   */
+  enum MessageKind kind;
   /**
    * Machine-readable identifier of the error
    */
@@ -48,13 +58,12 @@ typedef struct ErrorMessage {
    * Line and column number of error origin within a source file
    */
   const struct SourceLocation *location;
-} ErrorMessage;
+} Message;
 
 typedef struct CompileResult {
   const int8_t *output;
-  const struct ErrorMessage *errors;
-  size_t errors_len;
-  size_t errors_capacity;
+  const struct Message *messages;
+  size_t messages_len;
 } CompileResult;
 
 /**

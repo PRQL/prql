@@ -134,17 +134,26 @@ pub struct Options {
 #[repr(C)]
 pub struct CompileResult {
     pub output: *const i8,
-    pub errors: *const ErrorMessage,
-    pub errors_len: size_t,
+    pub messages: *const Message,
+    pub messages_len: size_t,
 }
 
-/// An error message.
+#[repr(C)]
+pub enum MessageKind {
+    Error,
+    Warning,
+    Lint,
+}
+
+/// Compile result message.
 ///
 /// Calling code is responsible for freeing all memory allocated
 /// for fields as well as strings.
 // Make sure to keep in sync with prql_compiler::ErrorMessage
 #[repr(C)]
-pub struct ErrorMessage {
+pub struct Message {
+    /// Message kind. Currently only Error is implemented.
+    pub kind: MessageKind,
     /// Machine-readable identifier of the error
     pub code: *const *const i8,
     /// Plain text of the error
@@ -181,6 +190,11 @@ pub struct SourceLocation {
 }
 
 /// Destroy a `CompileResult` once you are done with it.
+///
+/// # Safety
+///
+/// This function expects to be called exactly once after the call of any the functions
+/// that return CompileResult. No fields should be freed manually.
 #[no_mangle]
 pub unsafe extern "C" fn result_destroy(res: CompileResult) {
     // This is required because we are allocating memory for
@@ -188,8 +202,8 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
     // For strings and vectors this is required, but options may be
     // able to live entirely within the struct, instead of the heap.
 
-    for i in 0..res.errors_len {
-        let e = &*res.errors.add(i);
+    for i in 0..res.messages_len {
+        let e = &*res.messages.add(i);
 
         if !e.code.is_null() {
             drop(CString::from_raw(*e.code as *mut i8));
@@ -212,9 +226,9 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
         }
     }
     drop(Vec::from_raw_parts(
-        res.errors as *mut i8,
-        res.errors_len,
-        res.errors_len,
+        res.messages as *mut i8,
+        res.messages_len,
+        res.messages_len,
     ));
     drop(CString::from_raw(res.output as *mut i8));
 }
@@ -223,12 +237,13 @@ unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileRes
     match result {
         Ok(output) => CompileResult {
             output: convert_string(output),
-            errors: ::std::ptr::null_mut(),
-            errors_len: 0,
+            messages: ::std::ptr::null_mut(),
+            messages_len: 0,
         },
         Err(err) => {
             let mut errors = Vec::with_capacity(err.inner.len());
-            errors.extend(err.inner.into_iter().map(|e| ErrorMessage {
+            errors.extend(err.inner.into_iter().map(|e| Message {
+                kind: MessageKind::Error,
                 code: option_to_ptr(e.code.map(convert_string)),
                 reason: convert_string(e.reason),
                 hint: option_to_ptr(e.hint.map(convert_string)),
@@ -238,8 +253,8 @@ unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileRes
             }));
             CompileResult {
                 output: CString::default().into_raw(),
-                errors_len: errors.len(),
-                errors: errors.leak().as_ptr(),
+                messages_len: errors.len(),
+                messages: errors.leak().as_ptr(),
             }
         }
     }

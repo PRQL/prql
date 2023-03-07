@@ -3,9 +3,9 @@
 #include <libprql_lib.h>
 
 void print_result(CompileResult res) {
-    printf("---- [ Compiled with %ld errors ]----\n", res.errors_len);
-    for (int i = 0; i < res.errors_len; i++) {
-        ErrorMessage const* e = &res.errors[i];
+    printf("---- [ Compiled with %ld errors ]----\n", res.messages_len);
+    for (int i = 0; i < res.messages_len; i++) {
+        Message const* e = &res.messages[i];
         if (e->display != NULL) {
             printf("%s", *e->display);
         } else if (e->code != NULL) {
