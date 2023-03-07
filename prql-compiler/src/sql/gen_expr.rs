@@ -94,7 +94,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
         ExprKind::Param(id) => sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("${id}"))),
         ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
         ExprKind::Literal(l) => translate_literal(l, ctx)?,
-        ExprKind::Switch(mut cases) => {
+        ExprKind::Case(mut cases) => {
             let default = cases
                 .last()
                 .filter(|last| {

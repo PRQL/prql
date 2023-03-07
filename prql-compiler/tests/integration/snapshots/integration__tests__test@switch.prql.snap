@@ -1,7 +1,7 @@
 ---
 source: prql-compiler/tests/integration/main.rs
 expression: sqlite_out
-input_file: prql-compiler/tests/integration/queries/switch.prql
+input_file: prql-compiler/tests/integration/queries/case.prql
 ---
 display,milliseconds
 Samuel Rosa,1071
