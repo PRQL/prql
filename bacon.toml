@@ -3,9 +3,9 @@
 default_job = "check"
 
 # PRQL additions
-[jobs.test-rust-fast]
+[jobs.test-fast]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
-[jobs.test-rust]
+[jobs.test]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always"]
 
 # Standard tasks
@@ -24,11 +24,6 @@ command = ["cargo", "clippy", "--all-targets", "--color", "always"]
 need_stdout = false
 watch = ["tests", "benches", "examples"]
 
-[jobs.test]
-command = ["cargo", "test", "--color", "always"]
-need_stdout = true
-watch = ["tests"]
-
 [jobs.doc]
 command = ["cargo", "doc", "--color", "always", "--no-deps"]
 need_stdout = false
@@ -36,8 +31,8 @@ need_stdout = false
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
-need_stdout = false
+command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"] 
+need_stdout = false 
 on_success = "back" # so that we don't open the browser at each change
 
 # You can run your application and have the result displayed in bacon,
@@ -59,7 +54,6 @@ need_stdout = true
 a = "job:check-all"
 c = "job:clippy"
 d = "job:doc-open"
-# i for `insta`
-i = "job:test-rust-fast"
+f = "job:test-fast"
 r = "job:run"
 t = "job:test"
