@@ -5,7 +5,7 @@ on:
     types: [released]
   pull_request:
     paths:
-      - .github/workflows/publish-microsoft-store.yaml
+      - .github/workflows/publish-ms-store.yaml
   workflow_call:
 
 jobs:
