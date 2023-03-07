@@ -28,6 +28,8 @@
   `@2020-01-01T13:19:55-0800` (@max-sixty, #1991).
 - Add `std.upper` and `std.lower` functions for changing string casing
   (@Jelenkee, #2019).
+- Rename the experimental `switch` to `case` given it more closely matches the
+  traditional semantics of `case`. (@max-sixty, #2036)
 
 **Fixes**:
 
