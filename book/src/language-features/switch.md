@@ -1,14 +1,14 @@
-# Switch
+# Case
 
 ```admonish note
-`switch` is currently experimental and may change behavior in the near future
+`case` is currently experimental and may change behavior in the near future
 ```
 
-PRQL uses `switch` for both SQL's `CASE` and `IF` statements. Here's an example:
+PRQL uses `case` for both SQL's `CASE` and `IF` statements. Here's an example:
 
 ```prql_no_fmt
 from employees
-derive distance = switch [
+derive distance = case [
   city == "Calgary" -> 0,
   city == "Edmonton" -> 300,
 ]
@@ -19,7 +19,7 @@ If no condition is met, the value takes a `null` value. To set a default, use a
 
 ```prql_no_fmt
 from employees
-derive distance = switch [
+derive distance = case [
   city == "Calgary" -> 0,
   city == "Edmonton" -> 300,
   true -> "Unknown",

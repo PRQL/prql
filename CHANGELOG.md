@@ -16,7 +16,7 @@
   - `and` now has a higher precedence than `or` (of same reason as the previous
     point).
   - Dates, times and timestamps have stricter parsing rules.
-  - `let`, `func`, `prql`, `switch` are now treated as keywords.
+  - `let`, `func`, `prql`, `case` are now treated as keywords.
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
@@ -214,7 +214,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 
 ## 0.4.0 — 2022-01-15
 
-0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
+0.4.0 brings lots of new features including `case`, `select ![]` and numbers
 with underscores. We have initial (unpublished) bindings to Elixir. And there's
 the usual improvements to fixes & documentation (only a minority are listed
 below in this release).
@@ -229,12 +229,12 @@ below in this release).
   [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
 - _Experimental:_ The
-  [`switch`](https://prql-lang.org/book/language-features/switch.html) function
-  sets a variable to a value based on one of several expressions (@aljazerzen,
+  [`case`](https://prql-lang.org/book/language-features/case.html) function sets
+  a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
   ```prql
-  derive var = switch [
+  derive var = case [
     score <= 10 -> "low",
     score <= 30 -> "medium",
     score <= 70 -> "high",
@@ -258,8 +258,8 @@ below in this release).
   ```
 
   Check out the
-  [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
-  more details.
+  [`case` docs](https://prql-lang.org/book/language-features/case.html) for more
+  details.
 
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
   #1329)

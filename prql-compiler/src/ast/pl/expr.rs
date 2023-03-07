@@ -72,7 +72,7 @@ pub enum ExprKind {
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
-    Switch(Vec<SwitchCase>),
+    Case(Vec<SwitchCase>),
     BuiltInFunction {
         name: String,
         args: Vec<Expr>,
@@ -573,8 +573,8 @@ impl Display for Expr {
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;
             }
-            ExprKind::Switch(cases) => {
-                f.write_str("switch [\n")?;
+            ExprKind::Case(cases) => {
+                f.write_str("case [\n")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }

@@ -31,7 +31,7 @@ Language design & development in the last year have been focused on these areas:
 
 - small quality-of-life language features (e.g. syntax for
   [f-strings, dates, coalesce operator](https://prql-lang.org/book/syntax.html),
-  [switch](https://github.com/PRQL/prql/issues/504)),
+  [case](https://github.com/PRQL/prql/issues/504)),
 
 PRQL is now in a state where it can greatly improve the developer experience for
 writing complex analytical queries, but it does require a bit of fiddling to set

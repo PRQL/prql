@@ -42,7 +42,7 @@
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)
-  - [Switch](./language-features/switch.md)
+  - [Case](./language-features/case.md)
   - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)

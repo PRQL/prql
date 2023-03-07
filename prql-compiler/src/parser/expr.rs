@@ -72,7 +72,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 }
             });
 
-        let switch = keyword("switch")
+        let case = keyword("case")
             .ignore_then(
                 func_call(expr.clone())
                     .then_ignore(just(Token::Arrow))
@@ -84,7 +84,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                     .then_ignore(new_line().repeated())
                     .delimited_by(ctrl('['), ctrl(']')),
             )
-            .map(ExprKind::Switch);
+            .map(ExprKind::Case);
 
         let param = select! { Token::Param(id) => ExprKind::Param(id) };
 
@@ -94,7 +94,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             pipeline,
             interpolation,
             ident_kind,
-            switch,
+            case,
             param,
         ))
         .map_with_span(into_expr)
