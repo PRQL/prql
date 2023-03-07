@@ -73,6 +73,7 @@
 
   - [Development](./contributing/development.md)
   - [Using Docker](./contributing/using-docker.md)
+  - [Develop in Dev Containers](./contributing/dev-container.md)
 
 - [Internals](./internals/README.md)
 
