@@ -29,8 +29,7 @@ tools.
 ## Using PRQL in a Dev Container
 
 [Task](https://taskfile.dev/) is installed in the container for quick access to
-tasks defined on the `Taskfiles.yml`. Autocompression works when using the `zsh`
-shell installed in the container.
+tasks defined on the `Taskfiles.yml`.
 
 Here are some useful commands available in the container.
 
