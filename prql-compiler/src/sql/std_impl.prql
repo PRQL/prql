@@ -23,5 +23,5 @@ func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
 func as<scalar> `noresolve.type` column ->  s"CAST({column} AS {type})"
 
 # String functions
-func lower <string> column -> s"LOWER({column})"
-func upper <string> column -> s"UPPER({column})"
+func lower <text> column -> s"LOWER({column})"
+func upper <text> column -> s"UPPER({column})"

@@ -16,7 +16,7 @@ use super::context::{Context, Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
-use super::type_resolver::{resolve_type, type_of_closure, validate_type};
+use super::type_resolver::{infer_type, type_of_closure, validate_type};
 
 /// Runs semantic analysis on the query, using current state.
 ///
@@ -306,7 +306,7 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(resolve_type(&r, &self.context)?);
+            r.ty = Some(infer_type(&r, &self.context)?);
         }
         if let Some(Ty::Table(frame)) = &mut r.ty {
             if let Some(alias) = r.alias.take() {

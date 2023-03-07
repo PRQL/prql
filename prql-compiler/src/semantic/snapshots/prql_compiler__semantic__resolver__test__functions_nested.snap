@@ -40,7 +40,7 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
           Literal:
             Integer: 1
           ty:
-            Literal: Integer
+            Literal: Int
       ty: Infer
     op: Add
     right:

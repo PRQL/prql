@@ -9,7 +9,7 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
       Literal:
         Integer: 2
       ty:
-        Literal: Integer
+        Literal: Int
     op: Add
     right:
       id: 20
@@ -33,7 +33,7 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
           Literal:
             Integer: 1
           ty:
-            Literal: Integer
+            Literal: Int
       ty: Infer
   ty:
     Literal: Column

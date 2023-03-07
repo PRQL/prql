@@ -8,7 +8,75 @@ use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::Context;
 
-pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
+/// Takes a resolved [Expr] and evaluates it a set expression that can be used to construct a type.
+pub fn eval_as_set(expr: Expr, context: &Context) -> Result<SetExpr, Error> {
+    eval_kind_as_set(expr.kind, context).map_err(|e| e.with_span(expr.span))
+}
+
+pub fn eval_kind_as_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Error> {
+    // primitives
+    if let ExprKind::Ident(fq_ident) = &expr {
+        if fq_ident.path == vec!["std"] {
+            let ty_lit = match fq_ident.name.as_str() {
+                "int" => Some(TyLit::Int),
+                "float" => Some(TyLit::Float),
+                "bool" => Some(TyLit::Bool),
+                "text" => Some(TyLit::Text),
+                "date" => Some(TyLit::Date),
+                "time" => Some(TyLit::Time),
+                "timestamp" => Some(TyLit::Timestamp),
+                _ => None,
+            };
+            if let Some(ty_lit) = ty_lit {
+                return Ok(SetExpr::Primitive(ty_lit));
+            }
+        }
+    }
+
+    // singletons
+    if let ExprKind::Literal(lit) = expr {
+        return Ok(SetExpr::Singleton(lit));
+    }
+
+    // tuples
+    if let ExprKind::List(elements) = expr {
+        let mut set_elements = Vec::with_capacity(elements.len());
+
+        for e in elements {
+            set_elements.push(eval_tuple_element(e, context)?);
+        }
+
+        return Ok(SetExpr::Tuple(set_elements));
+    }
+
+    // unions
+    if let ExprKind::Binary {
+        left,
+        op: BinOp::Or,
+        right,
+    } = expr
+    {
+        let left = eval_tuple_element(*left, context)?;
+        let right = eval_tuple_element(*right, context)?;
+
+        let mut options = Vec::with_capacity(2);
+        options.push(left);
+        options.push(right);
+
+        return Ok(SetExpr::Union(options));
+    }
+
+    Err(Error::new_simple("not a set expression"))
+}
+
+pub fn eval_tuple_element(expr: Expr, context: &Context) -> Result<TupleElement, Error> {
+    let name = expr.alias;
+    let expr = eval_kind_as_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
+
+    Ok(TupleElement { name, expr })
+}
+
+pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
     if let Some(ty) = &node.ty {
         return Ok(ty.clone());
     }
@@ -16,10 +84,10 @@ pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
     Ok(match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
             Literal::Null => Ty::Infer,
-            Literal::Integer(_) => TyLit::Integer.into(),
+            Literal::Integer(_) => TyLit::Int.into(),
             Literal::Float(_) => TyLit::Float.into(),
             Literal::Boolean(_) => TyLit::Bool.into(),
-            Literal::String(_) => TyLit::String.into(),
+            Literal::String(_) => TyLit::Text.into(),
             Literal::Date(_) => TyLit::Date.into(),
             Literal::Time(_) => TyLit::Time.into(),
             Literal::Timestamp(_) => TyLit::Timestamp.into(),
@@ -30,7 +98,7 @@ pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
         ExprKind::SString(_) => Ty::Infer,
-        ExprKind::FString(_) => TyLit::String.into(),
+        ExprKind::FString(_) => TyLit::Text.into(),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),

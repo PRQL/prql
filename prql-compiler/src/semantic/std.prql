@@ -58,11 +58,11 @@ func _eq<list> a<list> -> null
 func _is_null a -> _param.a == null
 
 # Misc
-func from_text<table> text<string> `noresolve.format`:csv -> null
+func from_text<table> input<text> `noresolve.format`:csv -> null
 
 # String functions
-func lower <string> column -> null
-func upper <string> column -> null
+func lower <text> column -> null
+func upper <text> column -> null
 
 # type primitives
 type int

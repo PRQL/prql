@@ -4,7 +4,31 @@ use std::fmt::{Debug, Display, Formatter, Result, Write};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::Frame;
+use super::{Frame, Literal};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
+pub enum SetExpr {
+    /// Set of a built-in primitive type
+    Primitive(TyLit),
+
+    /// Set that contains only a literal value
+    Singleton(Literal),
+
+    /// Union of sets (sum)
+    Union(Vec<TupleElement>),
+
+    /// Set of tuples (product)
+    Tuple(Vec<TupleElement>),
+
+    /// Set of arrays
+    Array(Box<SetExpr>),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TupleElement {
+    pub name: Option<String>,
+    pub expr: SetExpr,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
@@ -26,20 +50,23 @@ pub enum Ty {
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
 )]
 pub enum TyLit {
+    #[deprecated]
     #[strum(to_string = "list")]
     List,
+    #[deprecated]
     #[strum(to_string = "column")]
     Column,
+    #[deprecated]
     #[strum(to_string = "scalar")]
     Scalar,
-    #[strum(to_string = "integer")]
-    Integer,
+    #[strum(to_string = "int")]
+    Int,
     #[strum(to_string = "float")]
     Float,
     #[strum(to_string = "bool")]
     Bool,
-    #[strum(to_string = "string")]
-    String,
+    #[strum(to_string = "text")]
+    Text,
     #[strum(to_string = "date")]
     Date,
     #[strum(to_string = "time")]

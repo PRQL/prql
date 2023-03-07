@@ -18,7 +18,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
       Literal:
         Integer: 3
       ty:
-        Literal: Integer
+        Literal: Int
   ty:
     Literal: Column
   alias: added
@@ -38,7 +38,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
       Literal:
         Integer: 1
       ty:
-        Literal: Integer
+        Literal: Int
   ty:
     Literal: Column
   alias: added_default
