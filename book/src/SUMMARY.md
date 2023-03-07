@@ -72,7 +72,8 @@
 - [Contributing to PRQL](./contributing/README.md)
 
   - [Development](./contributing/development.md)
-  - [Using Docker](./contributing/using-docker.md)
+  - [Developing with Docker](./contributing/developing-with-docker.md)
+  - [Developing with Dev Containers](./contributing/developing-with-dev-containers.md)
 
 - [Internals](./internals/README.md)
 
