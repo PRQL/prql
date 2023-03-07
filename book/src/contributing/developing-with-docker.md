@@ -1,4 +1,4 @@
-# Using the Dockerfile
+# Developing with Docker
 
 The `Dockerfile` in this repo builds a Docker image that has current versions of
 our Rust development tools. This can be the lowest-effort way of setting up a
