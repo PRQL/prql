@@ -427,6 +427,3 @@ Currently we release in a semi-automated way:
    ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
-
-[^wrap]:
-[^perms]:
