@@ -619,12 +619,11 @@ impl Resolver {
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
-                if let Some(Ty::Table(frame)) = &arg.ty {
-                    if is_last {
-                        self.context.root_mod.insert_frame(frame, NS_FRAME);
-                    } else {
-                        self.context.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
-                    }
+                let frame = arg.ty.as_ref().unwrap().as_table().unwrap();
+                if is_last {
+                    self.context.root_mod.insert_frame(frame, NS_FRAME);
+                } else {
+                    self.context.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
                 }
 
                 closure.args[index] = arg;
