@@ -3,10 +3,10 @@
 default_job = "check"
 
 # PRQL additions
-[jobs.test-rust-fast]
+[jobs.test-fast]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
-[jobs.test-rust]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always"]
+[jobs.test]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--unreferenced=auto"]
 
 # Standard tasks
 
@@ -23,11 +23,6 @@ watch = ["tests", "benches", "examples"]
 command = ["cargo", "clippy", "--all-targets", "--color", "always"]
 need_stdout = false
 watch = ["tests", "benches", "examples"]
-
-[jobs.test]
-command = ["cargo", "test", "--color", "always"]
-need_stdout = true
-watch = ["tests"]
 
 [jobs.doc]
 command = ["cargo", "doc", "--color", "always", "--no-deps"]
@@ -59,7 +54,6 @@ need_stdout = true
 a = "job:check-all"
 c = "job:clippy"
 d = "job:doc-open"
-# i for `insta`
-i = "job:test-rust-fast"
+f = "job:test-fast"
 r = "job:run"
 t = "job:test"

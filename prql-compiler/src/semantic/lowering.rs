@@ -637,7 +637,7 @@ impl Lowerer {
             pl::ExprKind::FString(items) => {
                 rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
-            pl::ExprKind::Switch(cases) => rq::ExprKind::Switch(
+            pl::ExprKind::Case(cases) => rq::ExprKind::Case(
                 cases
                     .into_iter()
                     .map(|case| -> Result<_> {

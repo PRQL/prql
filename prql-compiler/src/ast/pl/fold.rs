@@ -100,7 +100,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
                 .map(|x| fold.fold_interpolate_item(x))
                 .try_collect()?,
         ),
-        Switch(cases) => Switch(fold_cases(fold, cases)?),
+        Case(cases) => Case(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),

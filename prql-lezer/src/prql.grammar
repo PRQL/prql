@@ -1,5 +1,5 @@
 // TODO:
-// - `switch` transform
+// - `case` transform
 // - Do we want to highlight built-in transforms like `from` differently to
 //   normal functions?
 // - A few small TODOs included below
