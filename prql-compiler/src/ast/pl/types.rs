@@ -8,10 +8,7 @@ use super::Frame;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
-    Empty,
     Literal(TyLit),
-    Named(String),
-    Parameterized(Box<Ty>, Box<Ty>),
     AnyOf(Vec<Ty>),
     Function(TyFunc),
 
@@ -55,21 +52,9 @@ pub struct TyFunc {
     pub return_ty: Box<Ty>,
 }
 
-impl Ty {
-    pub const fn column() -> Ty {
-        Ty::Literal(TyLit::Column)
-    }
-}
-
 impl From<TyLit> for Ty {
     fn from(lit: TyLit) -> Self {
         Ty::Literal(lit)
-    }
-}
-
-impl Default for Ty {
-    fn default() -> Self {
-        Ty::Infer
     }
 }
 
@@ -107,15 +92,6 @@ impl PartialOrd for Ty {
                     None
                 }
             }
-            (Ty::Parameterized(l_ty, l_param), Ty::Parameterized(r_ty, r_param)) => {
-                if l_ty == r_ty && l_param == r_param {
-                    Some(Ordering::Equal)
-                } else {
-                    None
-                }
-            }
-            (Ty::Parameterized(l_ty, _), r_ty) if **l_ty == *r_ty => Some(Ordering::Equal),
-            (l_ty, Ty::Parameterized(r_ty, _)) if *l_ty == **r_ty => Some(Ordering::Equal),
 
             (Ty::Table(_), Ty::Table(_)) => Some(Ordering::Equal),
 
@@ -133,12 +109,7 @@ impl PartialOrd for Ty {
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self {
-            Ty::Empty => write!(f, "()"),
             Ty::Literal(lit) => write!(f, "{:}", lit),
-            Ty::Named(name) => write!(f, "{:}", name),
-            Ty::Parameterized(t, param) => {
-                write!(f, "{t}<{}>", param)
-            }
             Ty::AnyOf(ts) => {
                 for (i, t) in ts.iter().enumerate() {
                     write!(f, "{t}")?;

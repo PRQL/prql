@@ -445,7 +445,7 @@ impl Resolver {
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
-            let needs_window = Some(Ty::column()) <= closure.body_ty;
+            let needs_window = Some(Ty::Literal(TyLit::Column)) <= closure.body_ty;
             let mut res = match self.cast_built_in_function(closure)? {
                 // this function call is a built-in function
                 Ok(transform) => transform,
@@ -772,7 +772,7 @@ mod test {
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {
-        Ok(parse_and_resolve(query)?.ty.unwrap_or_default())
+        Ok(parse_and_resolve(query)?.ty.unwrap_or(Ty::Infer))
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {

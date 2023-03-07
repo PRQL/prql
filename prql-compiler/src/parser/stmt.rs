@@ -121,34 +121,21 @@ fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 }
 
 pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
-    recursive(|type_expr| {
-        let type_term = ident_part().then(type_expr.or_not()).map(|(name, param)| {
-            let ty = match TyLit::from_str(&name) {
-                Ok(t) => Ty::from(t),
-                Err(_) if name == "table" => Ty::Table(Frame::default()),
-                Err(_) => {
-                    eprintln!("named type: {}", name);
-                    Ty::Named(name.to_string())
-                }
-            };
+    let type_term = ident_part().try_map(|name, span| match TyLit::from_str(&name) {
+        Ok(t) => Ok(Ty::from(t)),
+        Err(_) if name == "table" => Ok(Ty::Table(Frame::default())),
+        Err(_) => Err(Simple::custom(span, format!("unknown type `{name}`"))),
+    });
 
-            if let Some(param) = param {
-                Ty::Parameterized(Box::new(ty), Box::new(param))
+    type_term
+        .separated_by(ctrl('|'))
+        .delimited_by(ctrl('<'), ctrl('>'))
+        .map(|mut terms| {
+            if terms.len() == 1 {
+                terms.remove(0)
             } else {
-                ty
+                Ty::AnyOf(terms)
             }
-        });
-
-        type_term
-            .separated_by(ctrl('|'))
-            .delimited_by(ctrl('<'), ctrl('>'))
-            .map(|mut terms| {
-                if terms.len() == 1 {
-                    terms.remove(0)
-                } else {
-                    Ty::AnyOf(terms)
-                }
-            })
-    })
-    .labelled("type expression")
+        })
+        .labelled("type expression")
 }

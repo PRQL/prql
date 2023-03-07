@@ -318,9 +318,6 @@ pub fn fold_func_param<T: ?Sized + AstFold>(
 pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
     Ok(match t {
         Ty::Literal(_) => t,
-        Ty::Parameterized(t, p) => {
-            Ty::Parameterized(Box::new(fold.fold_type(*t)?), Box::new(fold.fold_type(*p)?))
-        }
         Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
         _ => t,
     })
