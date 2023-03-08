@@ -56,3 +56,11 @@ duckdb = {version = "0.7.0", features = ["bundled", "chrono"]}
 [[bench]]
 harness = false
 name = "bench"
+
+# Putting this in the workspace root causes it to refer to the path relative
+# to `prql-compiler`? We can place it there when that's fixed.
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../book/src/language-features/target.md"
+replace = 'prql version:"{{version}}"'
+search = 'prql version:"[\d.]+"'
