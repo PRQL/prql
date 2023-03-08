@@ -26,7 +26,7 @@ jobs:
         with:
           toolchain: stable
       - run: sh build.sh
-        working-directory: prql-lib
+        working-directory: prql-php
       - name: 📦 Install dependencies using Composer
         uses: php-actions/composer@v6
         with:
