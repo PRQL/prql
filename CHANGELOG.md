@@ -70,6 +70,9 @@ This release has 108 commits from 11 contributors. Selected changes:
 
 - Test that the output of our nascent autoformatter can be successfully compiled
   into SQL. Failing examples are now clearly labeled. (@max-sixty, #2016)
+- Definition files have been added to configure
+  [Dev Containers](https://containers.dev/) for Rust development environment.
+  (@eitsupi, #1893, #2025, #2028)
 
 **New Contributors**:
 
