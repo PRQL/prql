@@ -28,7 +28,7 @@ jobs:
       - name: 👷 Build Windows Installer MSI from exe file
         uses: AliceOh/CreateWindowsInstaller@1.0.0
         with:
-          exefile: target/release/prqlc.exe
+          exefile: prqlc.exe
       - name: 🔑 Configure Store Credentials
         uses: microsoft/store-submission@v1
         with:
