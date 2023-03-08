@@ -178,7 +178,7 @@ Some book snapshots were not consistent with the queries in the book:
 
 {snapshots_updated}
 
-The snapshots have now been updated. Subsequent runs of this test should now pass."###
+The snapshots have now been updated. Subsequent runs of this test should now pass.\n\n"###
         ));
     }
     Ok(())
