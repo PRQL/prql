@@ -162,7 +162,7 @@ change!
   - This means PRs almost always need a test to demonstrate incremental
     progress.
   - If a change breaks functionality without breaking tests, our tests were
-    insufficient.
+    probably insufficient.
   - If a change breaks existing tests (for example, changing an external API),
     that indicates we should be careful about merging a change, including
     soliciting others' views.
@@ -183,8 +183,36 @@ change!
   with our expectations, or there isn't as much consensus on a decision as we
   had hoped. It's very easy to revert code and then re-revert when we've
   resolved the issue; it's a sign of moving quickly. Other options which resolve
-  the build immediately are also fine, such as commenting out an incorrect test
-  or adding a quick fix for the underlying issue.
+  issues immediately are also fine, such as commenting out an incorrect test or
+  adding a quick fix for the underlying issue.
+
+## Docs
+
+We're very keen on contributions to improve our documentation.
+
+This includes our docs in the book, on the website, in our code, or in a Readme.
+We also appreciate issues pointing out that our documentation was confusing,
+incorrect, or stale — if it's confusing for you, it's probably confusing for
+others.
+
+Some principles for ensuring our docs remain maintainable:
+
+- Docs should be as close as possible to the code. Doctests are ideal on this
+  dimension — they're literally very close to the code and they can't drift
+  apart since they're tested on every commit. Or, for example, it's better to
+  add text to a `--help` message, rather than write a paragraph in the Redame
+  explaining the CLI.
+- We should have some visualization of how to maintain docs when we add them.
+  Docs have a habit of falling out of date — the folks reading them are often
+  different from those writing them, they're sparse from the code, generally not
+  possible to test, and are rarely the by-product of other contributions. Docs
+  that are concise & specific are easier to maintain.
+- Docs should be specifically relevant to PRQL; anything else we can instead
+  link to.
+
+If something doesn't fit into one of these categories, there are still lots of
+ways of getting the word out there — a blog post / gist / etc. Let us know and
+we're happy to link to it / tweet it.
 
 ## Components of PRQL
 
