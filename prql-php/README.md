@@ -30,9 +30,9 @@ echo($result->output);
 
 ### Environment
 
-A way to establish a dev environment with php, extension ext-ffi and composer is
-to use a [nix flake](https://github.com/loophp/nix-shell). After installing nix,
-enable experimental flakes feature:
+A way to establish a dev environment with PHP, the ext-ffi extension and
+Composer is to use a [nix flake](https://github.com/loophp/nix-shell). After
+installing nix, enable experimental flakes feature:
 
 ```
 mkdir -p ~/.config/nix

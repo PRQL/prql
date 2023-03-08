@@ -66,9 +66,10 @@ final class Compiler
      * Compile a PRQL string into a SQL string.
      *
      * @param string       $prql_query A PRQL query.
-     * @param Options|null $options    PRQL compiler options.
+     * @param Options|null $options Compile options.
      *
-     * @return Result compilation result containing SQL query.
+     * @throws \InvalidArgumentException On NULL input.
+     * @return Result Compilation result containing SQL query.
      */
     function compile(string $prql_query, ?Options $options = null): Result
     {
@@ -90,6 +91,7 @@ final class Compiler
      *
      * @param string $prql_query PRQL query.
      *
+     * @throws \InvalidArgumentException On NULL input.
      * @return Result compilation result containing PL serialized as JSON.
      * @api
      */
@@ -109,6 +111,7 @@ final class Compiler
      *
      * @param string $pl_json PL serialized as JSON.
      *
+     * @throws \InvalidArgumentException On NULL input.
      * @return Result compilation result containing RQ serialized as JSON.
      * @api
      */
@@ -126,9 +129,11 @@ final class Compiler
     /**
      * Converts RQ to SQL.
      *
-     * @param string $rq_json PL in JSON format.
+     * @param string       $rq_json RQ serialized as JSON.
+     * @param Options|null $options Compile options.
      *
-     * @return Result compilation result containing SQL query.
+     * @throws \InvalidArgumentException On NULL input.
+     * @return Result Compilation result containing SQL query.
      * @api
      */
     function rqToSQL(string $rq_json, ?Options $options = null): Result
@@ -139,7 +144,7 @@ final class Compiler
 
         $ffi_options = $this->options_init($options);
 
-        $res = $this->_libprql->rq_to_sql($rq_json, $out);
+        $res = $this->_libprql->rq_to_sql($rq_json, \FFI::addr($ffi_options));
 
         $this->options_destroy($ffi_options);
 
