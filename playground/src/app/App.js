@@ -2,6 +2,7 @@ import "./App.css";
 import Workbench from "../workbench/Workbench";
 import Sidebar from "../sidebar/Sidebar";
 import examples from "../examples";
+import book from "../book.json";
 import * as duckdb from "../workbench/duckdb";
 
 import React from "react";
@@ -25,6 +26,7 @@ class App extends React.Component {
   state = {
     library: {
       examples,
+      book,
       chinook,
       "local storage": loadLocalStorage(),
     },

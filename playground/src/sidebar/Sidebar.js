@@ -1,24 +1,52 @@
 import "./Sidebar.css";
 import React from "react";
+import { useState } from "react";
 
 function Sidebar({ library, onLoadFile }) {
   function loadFile(section, file) {
     onLoadFile(file, library[section][file]);
   }
 
+  function toggleFolder(id) {
+    openFolders[id] = !Boolean(openFolders[id]);
+    console.log(openFolders);
+    setOpenFolders(() => openFolders)
+  }
+
+  function handleClick(section, file, id) {
+    if (isFile(file)) {
+      loadFile(section, file);
+    } else {
+      toggleFolder(id);
+    }
+    sv($ => $ + 1);
+  }
+
+  function isFile(path) {
+    return path.endsWith(".prql");
+  }
+
   const sections = [];
+  const [openFolders, setOpenFolders] = useState({});
+  const [v, sv] = useState(1);
 
   for (const [section, files] of Object.entries(library)) {
     const fileRows = [];
     for (const [index, filename] of Object.keys(files).entries()) {
+      const array = files[filename];
+      const parent = array[3];
+      const depth = array[2];
+      const id = array[4];
       fileRows.push(
-        <div
-          key={index}
-          className="fileRow"
-          onClick={() => loadFile(section, filename)}
-        >
-          {filename}
-        </div>
+        <React.Fragment key={index}>
+          {(parent == null || openFolders[parent] || depth === 0) && <div
+            className={"fileRow " + (isFile(filename) ? "" : "folderRow")}
+            style={{ marginLeft: `${10 * depth}px` }}
+            onClick={() => handleClick(section, filename, id)}
+          >
+            {filename}
+          </div>}
+        </React.Fragment>
       );
     }
 

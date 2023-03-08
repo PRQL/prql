@@ -1,5 +1,6 @@
 .sidebar {
   padding-top: 1rem;
+  min-width: fit-content;
 }
 section:not(:last-child) {
   border-bottom: 1px solid #666;
@@ -18,6 +19,11 @@ section h2 {
 .fileRow:hover {
   cursor: pointer;
   background-color: #ffffff1f;
+}
+
+.folderRow {
+  color: yellow;
+  font-weight: bold;
 }
 
 section h1,
