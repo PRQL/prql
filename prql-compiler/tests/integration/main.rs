@@ -34,7 +34,9 @@ mod tests {
             let opts = Options::default()
                 .with_target(Target::Sql(Some(Dialect::SQLite)))
                 .no_format();
-            let sql = prql_compiler::compile(&prql, &opts).unwrap();
+            let sql = prql_compiler::compile(&prql, &opts)
+                .unwrap_or_else(|e| panic!("Failed to compile\n\n{prql}\n\n{e}"));
+
             let sqlite_out = sqlite::query_csv(&sqlite_conn, &sql);
 
             // save both csv files as same snapshot

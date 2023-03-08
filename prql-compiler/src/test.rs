@@ -2670,8 +2670,8 @@ fn test_case() {
         r###"
     from employees
     derive display_name = case [
-        nickname != null -> nickname,
-        true -> f'{first_name} {last_name}'
+        nickname != null => nickname,
+        true => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2690,8 +2690,8 @@ fn test_case() {
         r###"
     from employees
     derive display_name = case [
-        nickname != null -> nickname,
-        first_name != null -> f'{first_name} {last_name}'
+        nickname != null => nickname,
+        first_name != null => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2711,7 +2711,7 @@ fn test_case() {
         r###"
     from tracks
     select category = case [
-        length > avg_length -> 'long'
+        length > avg_length => 'long'
     ]
     group category (aggregate count)
         "###).unwrap(),
@@ -2782,12 +2782,12 @@ fn test_static_analysis() {
         a3 = null ?? y,
 
         a3 = case [
-            false == true -> 1,
-            7 == 3 -> 2,
-            7 == y -> 3,
-            7.3 == 7.3 -> 4,
-            z -> 5,
-            true -> 6
+            false == true => 1,
+            7 == 3 => 2,
+            7 == y => 3,
+            7.3 == 7.3 => 4,
+            z => 5,
+            true => 6
         ]
     ]
         "###).unwrap(),

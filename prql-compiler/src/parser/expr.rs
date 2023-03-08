@@ -75,7 +75,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let case = keyword("case")
             .ignore_then(
                 func_call(expr.clone())
-                    .then_ignore(just(Token::Arrow))
+                    .then_ignore(just(Token::ArrowDouble))
                     .then(func_call(expr))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
