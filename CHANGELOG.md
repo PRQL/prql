@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.6.1 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.6.0 — 2022-03-07
 
 0.6.0 introduces `loop` as an experimental feature, which compiles to
