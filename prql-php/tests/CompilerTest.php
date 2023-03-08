@@ -13,22 +13,20 @@ final class CompilerTest extends TestCase
 
     public function testPrqlLibraryFileExists(): void
     {
-        $this->assertFileExists("src/libprql_lib.so");
+        $this->assertFileExists("lib/libprql_lib.so");
     }
 
-    public function testPrqlLibraryLoads(): void
+    public function testPrqlHeaderFileExists(): void
     {
-        $code = "int prql_to_pl(const char *prql_query, char *out);";
-        $ffi = FFI::cdef($code, "src/libprql_lib.so");
-        $this->assertInstanceOf(FFI::class, $ffi);
+        $this->assertFileExists("lib/libprql_lib.h");
     }
 
-    public function testInvalidQueryThrows(): void
+    public function testInvalidQuery(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-
         $prql = new Compiler();
-        $prql->compile("invalid");
+        $res = $prql->compile("invalid");
+
+        $this->assertCount(1, $res->messages);
     }
 
     public function testCompileWorks(): void
@@ -39,18 +37,24 @@ final class CompilerTest extends TestCase
         $options->target = "sql.mssql";
         $prql = new Compiler();
 
-        $expected = "SELECT * FROM employees";
-        $actual = $prql->compile("from employees", $options);
+        $actual = $prql->compile("from employees | take 10", $options);
+        $expected = "SELECT TOP (10) * FROM employees";
 
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($expected, $actual->output);
     }
 
-    public function testPrqlToPLWorks(): void
+    public function testOtherFunctions(): void
     {
         $prql = new Compiler();
 
-        $pl = $prql->prqlToPL("from employees");
+        $query = "let a = (from employees | take 10)\n\nfrom a | select [first_name]";
 
-        $this->assertNotNull($pl);
+        $pl = $prql->prqlToPL($query);
+        $rq = $prql->plToRQ($pl->output);
+        $though_json = $prql->rqToSQL($rq->output);
+
+        $direct = $prql->compile($query);
+
+        $this->assertEquals($though_json, $direct);
     }
 }

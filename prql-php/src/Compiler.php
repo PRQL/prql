@@ -39,34 +39,27 @@ final class Compiler
      */
     function __construct(?string $lib_path = null)
     {
-        $library = $lib_path;
-
         if ($lib_path === null) {
-            $library = __DIR__;
+            $lib_path = __DIR__ . "/../lib";
         }
+
+        $header = $lib_path . "/libprql_lib.h";
 
         if (PHP_OS_FAMILY === "Windows") {
-            $library .= "\libprql_lib.dll";
+            $library = $lib_path . "\libprql_lib.dll";
         } elseif (PHP_OS_FAMILY === "Darwin") {
-            $library .= "/libprql_lib.dylib";
+            $library = $lib_path . "/libprql_lib.dylib";
         } else {
-            $library .= "/libprql_lib.so";
+            $library = $lib_path . "/libprql_lib.so";
         }
 
-        $this->_libprql = \FFI::cdef(
-            "
-            typedef struct Options {
-                bool format;
-                char *target;
-                bool signature_comment;
-            } Options;
+        $header_source = file_get_contents($header, false, null, 0, 1024 * 1024);
 
-            int compile(const char *prql_query, const struct Options *options, char *out);
-            int prql_to_pl(const char *prql_query, char *out);
-            int pl_to_rq(const char *pl_json, char *out);
-            int rq_to_sql(const char *rq_json, char *out);
-        ", $library
-        );
+        if ($header_source === false) {
+            throw new \InvalidArgumentException("Cannot load header file.");
+        }
+
+        $this->_libprql = \FFI::cdef($header_source, $library);
     }
 
     /**
@@ -75,19 +68,85 @@ final class Compiler
      * @param string       $prql_query A PRQL query.
      * @param Options|null $options    PRQL compiler options.
      *
-     * @return string SQL query.
-     * @throws \InvalidArgumentException If no query is given or the query canno
-     * be compiled.
-     * @api
-     * @todo   FIX THIS. THIS DOES NOT WORK!
-     * @ignore Ignore this function until fixed.
+     * @return Result compilation result containing SQL query.
      */
-    function compile(string $prql_query, ?Options $options = null): string
+    function compile(string $prql_query, ?Options $options = null): Result
     {
         if (!$prql_query) {
             throw new \InvalidArgumentException("No query given.");
         }
 
+        $ffi_options = $this->options_init($options);
+
+        $res = $this->_libprql->compile($prql_query, \FFI::addr($ffi_options));
+        
+        $this->options_destroy($ffi_options);
+
+        return $this->convert_result($res);
+    }
+
+    /**
+     * Compile a PRQL string into PL.
+     *
+     * @param string $prql_query PRQL query.
+     *
+     * @return Result compilation result containing PL serialized as JSON.
+     * @api
+     */
+    function prqlToPL(string $prql_query): Result
+    {
+        if (!$prql_query) {
+            throw new \InvalidArgumentException("No query given.");
+        }
+
+        $res = $this->_libprql->prql_to_pl($prql_query);
+
+        return $this->convert_result($res);
+    }
+
+    /**
+     * Converts PL to RQ.
+     *
+     * @param string $pl_json PL serialized as JSON.
+     *
+     * @return Result compilation result containing RQ serialized as JSON.
+     * @api
+     */
+    function plToRQ(string $pl_json): Result
+    {
+        if (!$pl_json) {
+            throw new \InvalidArgumentException("No query given.");
+        }
+
+        $res = $this->_libprql->pl_to_rq($pl_json);
+
+        return $this->convert_result($res);
+    }
+
+    /**
+     * Converts RQ to SQL.
+     *
+     * @param string $rq_json PL in JSON format.
+     *
+     * @return Result compilation result containing SQL query.
+     * @api
+     */
+    function rqToSQL(string $rq_json, ?Options $options = null): Result
+    {
+        if (!$rq_json) {
+            throw new \InvalidArgumentException("No query given.");
+        }
+
+        $ffi_options = $this->options_init($options);
+        
+        $res = $this->_libprql->rq_to_sql($rq_json, $out);
+
+        $this->options_destroy($ffi_options);
+
+        return $this->convert_result($res);
+    }
+
+    private function options_init(?Options $options = null) {
         if ($options === null) {
             $options = new Options();
         }
@@ -97,91 +156,91 @@ final class Compiler
         $ffi_options->signature_comment = $options->signature_comment;
 
         if (isset($options->target)) {
-            $target_len = strlen($options->target);
-            $ffi_options->target = \FFI::new("char[$target_len]", false);
-            \FFI::memcpy($ffi_options->target, $options->target, $target_len);
+            $len = strlen($options->target) + 1;
+            $ffi_options->target = \FFI::new("char[$len]", false);
+            \FFI::memcpy($ffi_options->target, $options->target, $len - 1);
+        }
+
+        return $ffi_options;
+    }
+
+    private function options_destroy($ffi_options) {
+        if (!\FFI::isNull($ffi_options->target)) {
             \FFI::free($ffi_options->target);
         }
-
-        $out = str_pad("", 1024);
-        if ($this->_libprql->compile($prql_query, \FFI::addr($ffi_options), $out) !== 0) {
-            throw new \InvalidArgumentException("Could not compile query.");
-        }
-
         unset($ffi_options);
-
-        return trim($out);
     }
 
-    /**
-     * Compile a PRQL string into PL.
-     *
-     * @param string $prql_query A PRQL query.
-     *
-     * @return string Pipelined Language (PL) JSON string.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * be compiled.
-     * @api
-     */
-    function prqlToPL(string $prql_query): string
-    {
-        if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+    private function convert_result($ffi_res): Result {
+        $res = new Result();
+
+        // convert string
+        $res->output = $this->convert_string($ffi_res->output);
+
+        $res->messages = array();
+        for ($i = 0; $i < $ffi_res->messages_len; $i++) {
+            $res->messages[$i] = $this->convert_message($ffi_res->messages[$i]);
         }
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->prql_to_pl($prql_query, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not compile query.");
-        }
-
-        return trim($out);
+        // free the ffi_result
+        $this->_libprql->result_destroy($ffi_res);
+        return $res;
     }
 
-    /**
-     * Converts PL to RQ.
-     *
-     * @param string $pl_json PL in JSON format.
-     *
-     * @return string RQ string.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * be compiled.
-     * @api
-     */
-    function plToRQ(string $pl_json): string
-    {
-        if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+    private function convert_message($ffi_msg): Message {
+        $msg = new Message();
+
+        // I'm using numbers here, I cannot find a way to refer to MessageKind.Error
+        if ($ffi_msg->kind == 0) {
+            $msg->kind = MessageKind::Error;
+        } else if ($ffi_msg->kind == 1) {
+            $msg->kind = MessageKind::Warning;
+        } else if ($ffi_msg->kind == 2) {
+            $msg->kind = MessageKind::Lint;
         }
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->pl_to_rq($pl_json, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not convert PL.");
-        }
+        $msg->code = $this->convert_nullable_string($ffi_msg->code);
+        $msg->reason = $this->convert_string($ffi_msg->reason);
+        $msg->span = $this->convert_span($ffi_msg->span);
+        $msg->hint = $this->convert_nullable_string($ffi_msg->hint);
+        
+        $msg->display = $this->convert_nullable_string($ffi_msg->display);
+        $msg->location = $this->convert_location($ffi_msg->location);
 
-        return trim($out);
+        return $msg;
     }
 
-    /**
-     * Converts RQ to SQL.
-     *
-     * @param string $rq_json PL in JSON format.
-     *
-     * @return string SQL string.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * be compiled.
-     * @api
-     */
-    function rQToSql(string $rq_json): string
-    {
-        if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+    private function convert_span($ffi_ptr): ?Span {
+        if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
+            return null;
         }
+        $span = new Span();
+        $span->start = $ffi_ptr[0]->start;
+        $span->end = $ffi_ptr[0]->end;
+        return $span;
+    }
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->rq_to_sql($rq_json, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not convert RQ.");
+    private function convert_location($ffi_ptr): ?SourceLocation {
+        if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
+            return null;
         }
+        $location = new SourceLocation();
+        $location->start_line = $ffi_ptr[0]->start_line;
+        $location->start_col = $ffi_ptr[0]->start_col;
+        $location->end_line = $ffi_ptr[0]->end_line;
+        $location->end_col = $ffi_ptr[0]->end_col;
+        return $location;
+    }
 
-        return trim($out);
+    private function convert_nullable_string($ffi_ptr): ?string {
+        if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
+            return null;
+        }
+        // dereference
+        return $this->convert_string($ffi_ptr[0]);
+    }
+
+    private function convert_string($ffi_ptr): string {
+        return \FFI::string(\FFI::cast(\FFI::type('char*'), $ffi_ptr));
     }
 }

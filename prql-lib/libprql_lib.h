@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/**
+ * Compile message kind. Currently only Error is implemented.
+ */
 typedef enum MessageKind {
   Error,
   Warning,
@@ -10,18 +13,23 @@ typedef enum MessageKind {
 } MessageKind;
 
 /**
- * Location within the source file.
- * Tuples contain:
- * - line number (0-based),
- * - column number within that line (0-based),
- *
+ * Identifier of a location in source.
+ * Contains offsets in terms of chars.
  */
-typedef struct SourceLocation SourceLocation;
-
 typedef struct Span {
   size_t start;
   size_t end;
 } Span;
+
+/**
+ * Location within a source file.
+ */
+typedef struct SourceLocation {
+  size_t start_line;
+  size_t start_col;
+  size_t end_line;
+  size_t end_col;
+} SourceLocation;
 
 /**
  * Compile result message.
@@ -60,6 +68,9 @@ typedef struct Message {
   const struct SourceLocation *location;
 } Message;
 
+/**
+ * Result of compilation.
+ */
 typedef struct CompileResult {
   const int8_t *output;
   const struct Message *messages;
@@ -155,9 +166,14 @@ struct CompileResult pl_to_rq(const char *pl_json);
  * Calling code is responsible for freeing memory allocated for `CompileResult`
  * by calling `result_destroy`.
  */
-struct CompileResult rq_to_sql(const char *rq_json);
+struct CompileResult rq_to_sql(const char *rq_json, const struct Options *options);
 
 /**
  * Destroy a `CompileResult` once you are done with it.
+ *
+ * # Safety
+ *
+ * This function expects to be called exactly once after the call of any the functions
+ * that return CompileResult. No fields should be freed manually.
  */
 void result_destroy(struct CompileResult res);

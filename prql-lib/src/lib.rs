@@ -101,12 +101,19 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
 /// Calling code is responsible for freeing memory allocated for `CompileResult`
 /// by calling `result_destroy`.
 #[no_mangle]
-pub unsafe extern "C" fn rq_to_sql(rq_json: *const c_char) -> CompileResult {
+pub unsafe extern "C" fn rq_to_sql(
+    rq_json: *const c_char,
+    options: *const Options,
+) -> CompileResult {
     let rq_json: String = c_str_to_string(rq_json);
 
-    let result = Ok(rq_json.as_str())
-        .and_then(prql_compiler::json::to_rq)
-        .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default()));
+    let options = options.as_ref().map(convert_options).transpose();
+
+    let result = options.and_then(|options| {
+        Ok(rq_json.as_str())
+            .and_then(prql_compiler::json::to_rq)
+            .and_then(|x| prql_compiler::rq_to_sql(x, &options.unwrap_or_default()))
+    });
     result_into_c_str(result)
 }
 
@@ -131,6 +138,7 @@ pub struct Options {
     pub signature_comment: bool,
 }
 
+/// Result of compilation.
 #[repr(C)]
 pub struct CompileResult {
     pub output: *const i8,
@@ -138,6 +146,7 @@ pub struct CompileResult {
     pub messages_len: size_t,
 }
 
+/// Compile message kind. Currently only Error is implemented.
 #[repr(C)]
 pub enum MessageKind {
     Error,
@@ -169,6 +178,8 @@ pub struct Message {
     pub location: *const SourceLocation,
 }
 
+/// Identifier of a location in source.
+/// Contains offsets in terms of chars.
 // Make sure to keep in sync with prql_compiler::Span
 #[repr(C)]
 pub struct Span {
@@ -176,17 +187,15 @@ pub struct Span {
     pub end: size_t,
 }
 
-/// Location within the source file.
-/// Tuples contain:
-/// - line number (0-based),
-/// - column number within that line (0-based),
-///
+/// Location within a source file.
 // Make sure to keep in sync with prql_compiler::SourceLocation
 #[repr(C)]
 pub struct SourceLocation {
-    pub start: (size_t, size_t),
+    pub start_line: size_t,
+    pub start_col: size_t,
 
-    pub end: (size_t, size_t),
+    pub end_line: size_t,
+    pub end_col: size_t,
 }
 
 /// Destroy a `CompileResult` once you are done with it.
@@ -285,8 +294,10 @@ fn convert_span(x: prql_compiler::Span) -> Span {
 
 fn convert_source_location(x: prql_compiler::SourceLocation) -> SourceLocation {
     SourceLocation {
-        start: x.start,
-        end: x.end,
+        start_line: x.start.0,
+        start_col: x.start.1,
+        end_line: x.end.0,
+        end_col: x.end.1,
     }
 }
 
@@ -296,7 +307,7 @@ unsafe fn c_str_to_string(c_str: *const c_char) -> String {
 }
 
 fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
-    let target = if o.target.is_null() {
+    let target = if !o.target.is_null() {
         Some(unsafe { c_str_to_string(o.target) })
     } else {
         None
