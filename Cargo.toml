@@ -31,3 +31,9 @@ opt-level = "s"
 allow-branch = ["*"]
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"
+
+[[workspace.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "book/src/language-features/target.md"
+replace = 'prql version:"{{version}}"'
+search = 'prql version:"[\d.]+"'
