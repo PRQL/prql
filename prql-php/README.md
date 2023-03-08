@@ -61,3 +61,9 @@ There is a `build.sh` script that:
 sh build.sh
 ./vendor/bin/phpunit tests
 ```
+
+### Code style
+
+```
+./vendor/bin/phpcs --standard=PSR12 src tests
+```

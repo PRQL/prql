@@ -1,4 +1,8 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
+namespace Prql\Compiler\Test;
 
 use Prql\Compiler\Compiler;
 use Prql\Compiler\Options;
@@ -38,23 +42,33 @@ final class CompilerTest extends TestCase
         $prql = new Compiler();
 
         $actual = $prql->compile("from employees | take 10", $options);
-        $expected = "SELECT TOP (10) * FROM employees";
+        $this->assertCount(0, $actual->messages);
 
-        $this->assertEquals($expected, $actual->output);
+        $this->assertEquals("SELECT TOP (10) * FROM employees", $actual->output);
     }
 
     public function testOtherFunctions(): void
     {
         $prql = new Compiler();
 
-        $query = "let a = (from employees | take 10)\n\nfrom a | select [first_name]";
+        $query = "
+            let a = (from employees | take 10)
+
+            from a | select [first_name]
+        ";
 
         $pl = $prql->prqlToPL($query);
+        $this->assertCount(0, $pl->messages);
+
         $rq = $prql->plToRQ($pl->output);
-        $though_json = $prql->rqToSQL($rq->output);
+        $this->assertCount(0, $rq->messages);
+
+        $via_json = $prql->rqToSQL($rq->output);
+        $this->assertCount(0, $via_json->messages);
 
         $direct = $prql->compile($query);
+        $this->assertCount(0, $direct->messages);
 
-        $this->assertEquals($though_json, $direct);
+        $this->assertEquals($via_json, $direct);
     }
 }
