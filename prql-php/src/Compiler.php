@@ -9,11 +9,12 @@
  * PHP version 8.0
  *
  * @api
- * @package   Prql\Compiler
+ *
  * @author    PRQL
  * @copyright 2023 PRQL
  * @license   https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
- * @link      https://prql-lang.org/
+ *
+ * @see      https://prql-lang.org/
  */
 
 declare(strict_types=1);
@@ -21,10 +22,10 @@ declare(strict_types=1);
 namespace Prql\Compiler;
 
 /**
- * @package Prql\Compiler
  * @author  PRQL
  * @license https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
- * @link    https://prql-lang.org/
+ *
+ * @see    https://prql-lang.org/
  */
 final class Compiler
 {
@@ -33,28 +34,28 @@ final class Compiler
     /**
      * Initializes a new instance of the Compiler.
      *
-     * @param ?string|null $lib_path Path to the libprql library.
+     * @param ?string|null $lib_path path to the libprql library
      */
     public function __construct(?string $lib_path = null)
     {
         if ($lib_path === null) {
-            $lib_path = __DIR__ . "/../lib";
+            $lib_path = __DIR__.'/../lib';
         }
 
-        $header = $lib_path . "/libprql_lib.h";
+        $header = $lib_path.'/libprql_lib.h';
 
-        if (PHP_OS_FAMILY === "Windows") {
-            $library = $lib_path . "\libprql_lib.dll";
-        } elseif (PHP_OS_FAMILY === "Darwin") {
-            $library = $lib_path . "/libprql_lib.dylib";
+        if (PHP_OS_FAMILY === 'Windows') {
+            $library = $lib_path."\libprql_lib.dll";
+        } elseif (PHP_OS_FAMILY === 'Darwin') {
+            $library = $lib_path.'/libprql_lib.dylib';
         } else {
-            $library = $lib_path . "/libprql_lib.so";
+            $library = $lib_path.'/libprql_lib.so';
         }
 
         $header_source = file_get_contents($header, false, null, 0, 1024 * 1024);
 
         if ($header_source === false) {
-            throw new \InvalidArgumentException("Cannot load header file.");
+            throw new \InvalidArgumentException('Cannot load header file.');
         }
 
         $this->ffi = \FFI::cdef($header_source, $library);
@@ -63,16 +64,17 @@ final class Compiler
     /**
      * Compile a PRQL string into a SQL string.
      *
-     * @param string       $prql_query A PRQL query.
-     * @param Options|null $options    Compile options.
+     * @param string       $prql_query a PRQL query
+     * @param Options|null $options    compile options
      *
-     * @throws \InvalidArgumentException On NULL input.
-     * @return Result Compilation result containing SQL query.
+     * @return Result compilation result containing SQL query
+     *
+     * @throws \InvalidArgumentException on NULL input
      */
     public function compile(string $prql_query, ?Options $options = null): Result
     {
         if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+            throw new \InvalidArgumentException('No query given.');
         }
 
         $ffi_options = $this->optionsInit($options);
@@ -87,16 +89,18 @@ final class Compiler
     /**
      * Compile a PRQL string into PL.
      *
-     * @param string $prql_query PRQL query.
+     * @param string $prql_query PRQL query
      *
-     * @throws \InvalidArgumentException On NULL input.
-     * @return Result compilation result containing PL serialized as JSON.
+     * @return Result compilation result containing PL serialized as JSON
+     *
+     * @throws \InvalidArgumentException on NULL input
+     *
      * @api
      */
     public function prqlToPL(string $prql_query): Result
     {
         if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+            throw new \InvalidArgumentException('No query given.');
         }
 
         $res = $this->ffi->prql_to_pl($prql_query);
@@ -107,16 +111,18 @@ final class Compiler
     /**
      * Converts PL to RQ.
      *
-     * @param string $pl_json PL serialized as JSON.
+     * @param string $pl_json PL serialized as JSON
      *
-     * @throws \InvalidArgumentException On NULL input.
-     * @return Result compilation result containing RQ serialized as JSON.
+     * @return Result compilation result containing RQ serialized as JSON
+     *
+     * @throws \InvalidArgumentException on NULL input
+     *
      * @api
      */
     public function plToRQ(string $pl_json): Result
     {
         if (!$pl_json) {
-            throw new \InvalidArgumentException("No query given.");
+            throw new \InvalidArgumentException('No query given.');
         }
 
         $res = $this->ffi->pl_to_rq($pl_json);
@@ -127,17 +133,19 @@ final class Compiler
     /**
      * Converts RQ to SQL.
      *
-     * @param string       $rq_json RQ serialized as JSON.
-     * @param Options|null $options Compile options.
+     * @param string       $rq_json RQ serialized as JSON
+     * @param Options|null $options compile options
      *
-     * @throws \InvalidArgumentException On NULL input.
-     * @return Result Compilation result containing SQL query.
+     * @return Result compilation result containing SQL query
+     *
+     * @throws \InvalidArgumentException on NULL input
+     *
      * @api
      */
     public function rqToSQL(string $rq_json, ?Options $options = null): Result
     {
         if (!$rq_json) {
-            throw new \InvalidArgumentException("No query given.");
+            throw new \InvalidArgumentException('No query given.');
         }
 
         $ffi_options = $this->optionsInit($options);
@@ -155,7 +163,7 @@ final class Compiler
             $options = new Options();
         }
 
-        $ffi_options = $this->ffi->new("struct Options");
+        $ffi_options = $this->ffi->new('struct Options');
         $ffi_options->format = $options->format;
         $ffi_options->signature_comment = $options->signature_comment;
 
@@ -183,8 +191,8 @@ final class Compiler
         // convert string
         $res->output = $this->convertString($ffi_res->output);
 
-        $res->messages = array();
-        for ($i = 0; $i < $ffi_res->messages_len; $i++) {
+        $res->messages = [];
+        for ($i = 0; $i < $ffi_res->messages_len; ++$i) {
             $res->messages[$i] = $this->convertMessage($ffi_res->messages[$i]);
         }
 
@@ -226,6 +234,7 @@ final class Compiler
         $span = new Span();
         $span->start = $ffi_ptr[0]->start;
         $span->end = $ffi_ptr[0]->end;
+
         return $span;
     }
 

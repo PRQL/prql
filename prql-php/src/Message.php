@@ -22,11 +22,11 @@ final class Message
      */
     public string $reason;
     /**
-     * A list of suggestions of how to fix the error
+     * A list of suggestions of how to fix the error.
      */
     public ?string $hint;
     /**
-     * Character offset of error origin within a source file
+     * Character offset of error origin within a source file.
      */
     public ?Span $span;
     /**
@@ -34,7 +34,7 @@ final class Message
      */
     public ?string $display;
     /**
-     * Line and column number of error origin within a source file
+     * Line and column number of error origin within a source file.
      */
     public ?SourceLocation $location;
 }
