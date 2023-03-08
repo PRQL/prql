@@ -19,7 +19,7 @@ env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
 minijinja = {version = "0.30.4", features = ["unstable_machinery"]}
 notify = "^5.1.0"
-prql-compiler = {path = '..', version = "0.5.2"}
+prql-compiler = {path = '..', version = "0.6.0" }
 regex = {version = "1.7.1", features = ["std", "unicode"]}
 serde = "^1"
 serde_json = "1.0.81"
