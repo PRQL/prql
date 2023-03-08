@@ -25,6 +25,9 @@ namespace Prql\Compiler;
  */
 final class Result
 {
+    /**
+     * @var string
+     */
     public string $output;
 
     /**
@@ -36,17 +39,18 @@ final class Result
 /**
  * Compile result message.
  */
-final class Message {
+final class Message
+{
     /**
      * Message kind. Currently only Error is implemented.
      */
     public MessageKind $kind;
     /**
-     * Machine-readable identifier of the error
+     * Machine-readable identifier of the error.
      */
     public ?string $code;
     /**
-     * Plain text of the error
+     * Plain text of the error.
      */
     public string $reason;
     /**
@@ -90,7 +94,8 @@ final class Span
 /**
  * Location within a source file.
  */
-final class SourceLocation {
+final class SourceLocation
+{
     public int $start_line;
     public int $start_col;
     public int $end_line;

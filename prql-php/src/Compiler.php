@@ -164,14 +164,16 @@ final class Compiler
         return $ffi_options;
     }
 
-    private function options_destroy($ffi_options) {
+    private function options_destroy($ffi_options)
+    {
         if (!\FFI::isNull($ffi_options->target)) {
             \FFI::free($ffi_options->target);
         }
         unset($ffi_options);
     }
 
-    private function convert_result($ffi_res): Result {
+    private function convert_result($ffi_res): Result
+    {
         $res = new Result();
 
         // convert string
@@ -184,10 +186,12 @@ final class Compiler
 
         // free the ffi_result
         $this->_libprql->result_destroy($ffi_res);
+
         return $res;
     }
 
-    private function convert_message($ffi_msg): Message {
+    private function convert_message($ffi_msg): Message
+    {
         $msg = new Message();
 
         // I'm using numbers here, I cannot find a way to refer to MessageKind.Error
@@ -210,7 +214,8 @@ final class Compiler
         return $msg;
     }
 
-    private function convert_span($ffi_ptr): ?Span {
+    private function convert_span($ffi_ptr): ?Span
+    {
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
         }
@@ -220,19 +225,23 @@ final class Compiler
         return $span;
     }
 
-    private function convert_location($ffi_ptr): ?SourceLocation {
+    private function convert_location($ffi_ptr): ?SourceLocation
+    {
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
         }
+
         $location = new SourceLocation();
         $location->start_line = $ffi_ptr[0]->start_line;
         $location->start_col = $ffi_ptr[0]->start_col;
         $location->end_line = $ffi_ptr[0]->end_line;
         $location->end_col = $ffi_ptr[0]->end_col;
+
         return $location;
     }
 
-    private function convert_nullable_string($ffi_ptr): ?string {
+    private function convert_nullable_string($ffi_ptr): ?string
+    {
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
         }
@@ -240,7 +249,8 @@ final class Compiler
         return $this->convert_string($ffi_ptr[0]);
     }
 
-    private function convert_string($ffi_ptr): string {
+    private function convert_string($ffi_ptr): string
+    {
         return \FFI::string(\FFI::cast(\FFI::type('char*'), $ffi_ptr));
     }
 }
