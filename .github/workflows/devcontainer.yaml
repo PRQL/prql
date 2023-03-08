@@ -1,6 +1,10 @@
 name: devcontainer
 
 on:
+  # TODO: adopt our standard hierarchy for these, as per
+  # https://github.com/PRQL/prql/pull/1893#discussion_r1125736478, possibly only
+  # publishing on releases or on the `web` branch (which possibly should be
+  # renamed back to `stable` if we use it more for this)
   push:
     paths:
       - .devcontainer/base-image/Dockerfile
