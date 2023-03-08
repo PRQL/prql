@@ -20,21 +20,3 @@ is on developing with VS Code in a container by
 To use a Dev Container on a local computer with VS Code, install the
 [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 and its system requirements. Then refer to the links above to get started.
-
-## Using PRQL in a Dev Container
-
-[Task](https://taskfile.dev/) is installed in the container for quick access to
-tasks defined on the `Taskfiles.yml`.
-
-Here are some useful commands available in the container.
-
-- `task -l` lists all the available tasks.
-- `task run-book` starts an `mdbook` server. As you edit the files of the
-  Language Book (in the `book` directory), `mdbook` rebuilds those pages.
-  (Port 3000)
-- `task run-website` starts a `hugo` server. As you edit the files (in the
-  `website` directory), `hugo` rebuilds those pages. (Port 1313)
-- `task run-playground` starts a Node server to build the Playground. As you
-  edit the files (in the `playground` directory), the server rebuilds those
-  pages. (Port 3000)
-- `task WHAT ELSE?` _Provide explanation of other useful commands._
