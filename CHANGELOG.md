@@ -1,10 +1,25 @@
 # PRQL Changelog
 
-## 0.5.3 — [unreleased]
+## 0.6.0 — 2022-03-07
+
+0.6.0 introduces `loop` as an experimental feature, which compiles to
+`WITH RECURSIVE`, renames `switch` to `case`, and introduces a rewritten parser,
+giving us the ability to dramatically improve error messages.
+
+There are a few cases of breaking changes, including switching `switch` to
+`case`, in case that's confusing. There are also some minor parsing changes
+outlined below.
+
+This release has 108 commits from 11 contributors. Selected changes:
 
 **Features**:
 
-- `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
+- Add an experimental `loop` language feature, which translates to
+  `WITH RECURSIVE` (#1642, @aljazerzen)
+- Rename the experimental `switch` function to `case` given it more closely
+  matches the traditional semantics of `case`. (@max-sixty, #2036)
+- Change the `case` syntax to use `=>` instead of `->` to distinguish it from
+  function syntax.
 - Convert parser from pest to Chumsky (@aljazerzen, #1818)
   - Improved error messages, and the potential to make even better in the
     future. Many of these improvements come from error recovery.
@@ -28,8 +43,6 @@
   `@2020-01-01T13:19:55-0800` (@max-sixty, #1991).
 - Add `std.upper` and `std.lower` functions for changing string casing
   (@Jelenkee, #2019).
-- Rename the experimental `switch` to `case` given it more closely matches the
-  traditional semantics of `case`. (@max-sixty, #2036)
 
 **Fixes**:
 
@@ -43,8 +56,6 @@
 - Error messages for invalid queries are displayed in the book (@max-sixty,
   #2015)
 
-**Web**:
-
 **Integrations**:
 
 - [prql-php] Added PHP bindings. (@vanillajonathan, #1860)
@@ -57,10 +68,13 @@
 
 **Internal changes**:
 
-- Test that the code our nascent autoformatter generates can be compiled into
-  SQL. Examples where it can't are now labeled. (@max-sixty, #2016)
+- Test that the output of our nascent autoformatter can be successfully compiled
+  into SQL. Failing examples are now clearly labeled. (@max-sixty, #2016)
 
 **New Contributors**:
+
+- @linux-china, with #1971
+- @Jelenkee, with #2019
 
 ## 0.5.2 — 2022-02-18
 
