@@ -20,7 +20,9 @@ pub enum Token {
     /// single-char control tokens
     Control(char),
 
-    Arrow,       // ->
+    // TODO: rename to ArrowThin
+    Arrow, // ->
+    // TODO: rename to ArrowFat
     ArrowDouble, // =>
     Eq,          // ==
     Ne,          // !=
