@@ -200,7 +200,7 @@ Some principles for ensuring our docs remain maintainable:
 - Docs should be as close as possible to the code. Doctests are ideal on this
   dimension — they're literally very close to the code and they can't drift
   apart since they're tested on every commit. Or, for example, it's better to
-  add text to a `--help` message, rather than write a paragraph in the Redame
+  add text to a `--help` message, rather than write a paragraph in the Readme
   explaining the CLI.
 - We should have some visualization of how to maintain docs when we add them.
   Docs have a habit of falling out of date — the folks reading them are often
