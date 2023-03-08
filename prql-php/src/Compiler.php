@@ -79,7 +79,7 @@ final class Compiler
         $ffi_options = $this->options_init($options);
 
         $res = $this->_libprql->compile($prql_query, \FFI::addr($ffi_options));
-        
+
         $this->options_destroy($ffi_options);
 
         return $this->convert_result($res);
@@ -138,7 +138,7 @@ final class Compiler
         }
 
         $ffi_options = $this->options_init($options);
-        
+
         $res = $this->_libprql->rq_to_sql($rq_json, $out);
 
         $this->options_destroy($ffi_options);
@@ -203,7 +203,7 @@ final class Compiler
         $msg->reason = $this->convert_string($ffi_msg->reason);
         $msg->span = $this->convert_span($ffi_msg->span);
         $msg->hint = $this->convert_nullable_string($ffi_msg->hint);
-        
+
         $msg->display = $this->convert_nullable_string($ffi_msg->display);
         $msg->location = $this->convert_location($ffi_msg->location);
 
