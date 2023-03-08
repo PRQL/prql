@@ -6,10 +6,10 @@ target*
 
 lcov.info
 
-**/.vscode/settings.json
-**/.vscode/launch.json
-**/.vscode/tasks.json
-**/.idea
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea
 
 /*.prql
 _*.prql
@@ -25,4 +25,5 @@ _*.prql
 # created, which we don't want. That said, if ignoring them causes confusion
 # (e.g. folks look at their git status to assess whether there are pending
 # snapshots), we can adjust.
-**/*.pending-snap
+*.pending-snap
+*.snap.new
