@@ -9,7 +9,6 @@ function Sidebar({ library, onLoadFile }) {
 
   function toggleFolder(id) {
     openFolders[id] = !Boolean(openFolders[id]);
-    console.log(openFolders);
     setOpenFolders(() => openFolders)
   }
 
