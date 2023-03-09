@@ -1,10 +1,11 @@
 # PRQL Changelog
 
-## 0.6.0 — 2022-03-07
+## 0.6.0 — 2022-03-08
 
-0.6.0 introduces `loop` as an experimental feature, which compiles to
-`WITH RECURSIVE`, renames `switch` to `case`, and introduces a rewritten parser,
-giving us the ability to dramatically improve error messages.
+0.6.0 introduces a rewritten parser, giving us the ability to dramatically
+improve error messages, renames `switch` to `case` and includes lots of minor
+improvements and fixes. It also introduces `loop`, which compiles to
+`WITH RECURSIVE`, as a highly experimental feature.
 
 There are a few cases of breaking changes, including switching `switch` to
 `case`, in case that's confusing. There are also some minor parsing changes
@@ -14,8 +15,9 @@ This release has 108 commits from 11 contributors. Selected changes:
 
 **Features**:
 
-- Add an experimental `loop` language feature, which translates to
-  `WITH RECURSIVE` (#1642, @aljazerzen)
+- Add a (highly experimental) `loop` language feature, which translates to
+  `WITH RECURSIVE`. We expect changes and refinements in upcoming releases.
+  (#1642, @aljazerzen)
 - Rename the experimental `switch` function to `case` given it more closely
   matches the traditional semantics of `case`. (@max-sixty, #2036)
 - Change the `case` syntax to use `=>` instead of `->` to distinguish it from
