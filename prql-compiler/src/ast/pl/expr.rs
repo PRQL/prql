@@ -77,6 +77,7 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
+    Set(SetExpr),
 
     /// a placeholder for values provided after query is compiled
     Param(String),
@@ -176,8 +177,8 @@ pub struct Closure {
     pub body_ty: Option<Ty>,
 
     pub args: Vec<Expr>,
-    pub params: Vec<FuncParam>,
-    pub named_params: Vec<FuncParam>,
+    pub params: Vec<ClosureParam>,
+    pub named_params: Vec<ClosureParam>,
 
     pub env: HashMap<String, Expr>,
 }
@@ -188,6 +189,16 @@ impl Closure {
 
         ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ClosureParam {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+
+    pub default_value: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -582,6 +593,9 @@ impl Display for Expr {
             }
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
+            }
+            ExprKind::Set(_) => {
+                writeln!(f, "<set-expr>")?;
             }
             ExprKind::Param(id) => {
                 writeln!(f, "${id}")?;
