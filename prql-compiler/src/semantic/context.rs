@@ -390,7 +390,7 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
             // TODO: this is just a dummy that gets intercepted when resolving types
             return Some(ExprKind::Set(SetExpr::Array(Box::new(SetExpr::Singleton(
                 Literal::Null,
-            )))))
+            )))));
         }
         "column" => TyLit::Column,
         "list" => TyLit::List,

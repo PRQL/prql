@@ -53,11 +53,18 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Erro
         let left = coerce_to_named_set(*left, context)?;
         let right = coerce_to_named_set(*right, context)?;
 
+        // flatten nested unions
         let mut options = Vec::with_capacity(2);
-        // TODO: unpack left if it's a union itself
-        options.push(left);
-        // TODO: unpack right if it's a union itself
-        options.push(right);
+        if let SetExpr::Union(parts) = left.1 {
+            options.extend(parts);
+        } else {
+            options.push(left);
+        }
+        if let SetExpr::Union(parts) = right.1 {
+            options.extend(parts);
+        } else {
+            options.push(right);
+        }
 
         return Ok(SetExpr::Union(options));
     }
