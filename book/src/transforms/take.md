@@ -18,6 +18,6 @@ take 10
 
 ```prql
 from orders
-sort [-value, date]
+sort [-value, created_at]
 take 101..110
 ```

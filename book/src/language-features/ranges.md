@@ -8,7 +8,7 @@ including dates:
 
 ```prql
 from events
-filter (date | in @1776-07-04..@1787-09-17)
+filter (created_at | in @1776-07-04..@1787-09-17)
 filter (magnitude | in 50..100)
 derive is_northern = (latitude | in 0..)
 ```
@@ -20,7 +20,7 @@ in `take`:
 
 ```prql
 from orders
-sort [-value, date]
+sort [-value, created_at]
 take 101..110
 ```
 
