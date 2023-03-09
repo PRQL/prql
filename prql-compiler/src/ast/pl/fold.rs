@@ -36,10 +36,16 @@ pub trait AstFold {
     fn fold_exprs(&mut self, exprs: Vec<Expr>) -> Result<Vec<Expr>> {
         exprs.into_iter().map(|node| self.fold_expr(node)).collect()
     }
-    fn fold_var_def(&mut self, table: VarDef) -> Result<VarDef> {
+    fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
         Ok(VarDef {
-            name: table.name,
-            value: Box::new(self.fold_expr(*table.value)?),
+            name: var_def.name,
+            value: Box::new(self.fold_expr(*var_def.value)?),
+        })
+    }
+    fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
+        Ok(TypeDef {
+            name: ty_def.name,
+            value: ty_def.value.map(|x| self.fold_expr(x)).transpose()?,
         })
     }
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
@@ -61,7 +67,7 @@ pub trait AstFold {
         fold_interpolate_item(self, sstring_item)
     }
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
-        fold_type(self, t)
+        Ok(t)
     }
     fn fold_window(&mut self, window: WindowFrame) -> Result<WindowFrame> {
         fold_window(self, window)
@@ -113,7 +119,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) => expr_kind,
+        Literal(_) | Set(_) => expr_kind,
     })
 }
 
@@ -122,6 +128,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
+        TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
         Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })
@@ -313,15 +320,4 @@ pub fn fold_func_param<T: ?Sized + AstFold>(
             })
         })
         .try_collect()
-}
-
-pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
-    Ok(match t {
-        Ty::Literal(_) => t,
-        Ty::Parameterized(t, p) => {
-            Ty::Parameterized(Box::new(fold.fold_type(*t)?), Box::new(fold.fold_type(*p)?))
-        }
-        Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
-        _ => t,
-    })
 }

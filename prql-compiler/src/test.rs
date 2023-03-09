@@ -2232,7 +2232,7 @@ fn test_double_aggregate() {
 
     let query = r###"
     from numbers
-    group [type] (
+    group [`type`] (
         aggregate [
             total_amt = sum amount,
             max amount
@@ -2308,7 +2308,7 @@ fn test_inline_tables() {
     assert_display_snapshot!(compile(r###"
     (
         from employees
-        select [emp_id, name, surname, type, amount]
+        select [emp_id, name, surname, `type`, amount]
     )
     join s = (from salaries | select [emp_id, salary]) [==emp_id]
     "###).unwrap(),

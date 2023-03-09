@@ -135,7 +135,16 @@ impl Context {
                 let expr = TableExpr::RelationVar(value);
                 DeclKind::TableDecl(TableDecl { columns, expr })
             }
-            Some(_) => DeclKind::Expr(var_def.value),
+            Some(_) => {
+                let mut value = var_def.value;
+
+                // TODO: check that declaring module is std
+                if let Some(kind) = get_stdlib_decl(name.as_str()) {
+                    value.kind = kind;
+                }
+
+                DeclKind::Expr(value)
+            }
             None => {
                 return Err(
                     Error::new_simple("Cannot infer type. Type annotations needed.")
@@ -366,6 +375,29 @@ impl Context {
 
         Ok(())
     }
+}
+
+fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
+    let ty_lit = match name {
+        "int" => TyLit::Int,
+        "float" => TyLit::Float,
+        "bool" => TyLit::Bool,
+        "text" => TyLit::Text,
+        "date" => TyLit::Date,
+        "time" => TyLit::Time,
+        "timestamp" => TyLit::Timestamp,
+        "table" => {
+            // TODO: this is just a dummy that gets intercepted when resolving types
+            return Some(ExprKind::Set(SetExpr::Array(Box::new(SetExpr::Singleton(
+                Literal::Null,
+            )))));
+        }
+        "column" => TyLit::Column,
+        "list" => TyLit::List,
+        "scalar" => TyLit::Scalar,
+        _ => return None,
+    };
+    Some(ExprKind::Set(SetExpr::Primitive(ty_lit)))
 }
 
 impl Default for DeclKind {

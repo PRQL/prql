@@ -195,7 +195,7 @@ where
         .labelled("pipeline")
 }
 
-fn binary_op_parser<'a, Term, Op>(
+pub fn binary_op_parser<'a, Term, Op>(
     term: Term,
     op: Op,
 ) -> impl Parser<Token, Expr, Error = Simple<Token>> + 'a
@@ -307,7 +307,7 @@ fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
 fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     just(Token::And).to(BinOp::And)
 }
-fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+pub fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     just(Token::Or).to(BinOp::Or)
 }
 fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {

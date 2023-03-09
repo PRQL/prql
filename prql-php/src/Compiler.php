@@ -9,11 +9,12 @@
  * PHP version 8.0
  *
  * @api
- * @package   Prql\Compiler
+ *
  * @author    PRQL
  * @copyright 2023 PRQL
  * @license   https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
- * @link      https://prql-lang.org/
+ *
+ * @see      https://prql-lang.org/
  */
 
 declare(strict_types=1);
@@ -21,167 +22,248 @@ declare(strict_types=1);
 namespace Prql\Compiler;
 
 /**
- * The PRQL compiler transpiles PRQL queries.
- *
- * @package Prql\Compiler
  * @author  PRQL
  * @license https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
- * @link    https://prql-lang.org/
+ *
+ * @see    https://prql-lang.org/
  */
 final class Compiler
 {
-    private \FFI $_libprql;
+    private \FFI $ffi;
 
     /**
      * Initializes a new instance of the Compiler.
      *
-     * @param ?string|null $lib_path Path to the libprql library.
+     * @param ?string|null $lib_path path to the libprql library
      */
-    function __construct(?string $lib_path = null)
+    public function __construct(?string $lib_path = null)
     {
-        $library = $lib_path;
-
         if ($lib_path === null) {
-            $library = __DIR__;
+            $lib_path = __DIR__.'/../lib';
         }
 
-        if (PHP_OS_FAMILY === "Windows") {
-            $library .= "\libprql_lib.dll";
-        } elseif (PHP_OS_FAMILY === "Darwin") {
-            $library .= "/libprql_lib.dylib";
+        $header = $lib_path.'/libprql_lib.h';
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            $library = $lib_path."\libprql_lib.dll";
+        } elseif (PHP_OS_FAMILY === 'Darwin') {
+            $library = $lib_path.'/libprql_lib.dylib';
         } else {
-            $library .= "/libprql_lib.so";
+            $library = $lib_path.'/libprql_lib.so';
         }
 
-        $this->_libprql = \FFI::cdef(
-            "
-            typedef struct Options {
-                bool format;
-                char *target;
-                bool signature_comment;
-            } Options;
+        $header_source = file_get_contents($header, false, null, 0, 1024 * 1024);
 
-            int compile(const char *prql_query, const struct Options *options, char *out);
-            int prql_to_pl(const char *prql_query, char *out);
-            int pl_to_rq(const char *pl_json, char *out);
-            int rq_to_sql(const char *rq_json, char *out);
-        ", $library
-        );
+        if ($header_source === false) {
+            throw new \InvalidArgumentException('Cannot load header file.');
+        }
+
+        $this->ffi = \FFI::cdef($header_source, $library);
     }
 
     /**
      * Compile a PRQL string into a SQL string.
      *
-     * @param string       $prql_query A PRQL query.
-     * @param Options|null $options    PRQL compiler options.
+     * @param string       $prql_query a PRQL query
+     * @param Options|null $options    compile options
      *
-     * @return string SQL query.
-     * @throws \InvalidArgumentException If no query is given or the query canno
-     * be compiled.
-     * @api
-     * @todo   FIX THIS. THIS DOES NOT WORK!
-     * @ignore Ignore this function until fixed.
+     * @return Result compilation result containing SQL query
+     *
+     * @throws \InvalidArgumentException on NULL input
      */
-    function compile(string $prql_query, ?Options $options = null): string
+    public function compile(string $prql_query, ?Options $options = null): Result
     {
         if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+            throw new \InvalidArgumentException('No query given.');
         }
 
-        if ($options === null) {
-            $options = new Options();
-        }
+        $ffi_options = $this->optionsInit($options);
 
-        $ffi_options = $this->_libprql->new("struct Options");
-        $ffi_options->format = $options->format;
-        $ffi_options->signature_comment = $options->signature_comment;
+        $res = $this->ffi->compile($prql_query, \FFI::addr($ffi_options));
 
-        if (isset($options->target)) {
-            $target_len = strlen($options->target);
-            $ffi_options->target = \FFI::new("char[$target_len]", false);
-            \FFI::memcpy($ffi_options->target, $options->target, $target_len);
-            \FFI::free($ffi_options->target);
-        }
+        $this->optionsDestroy($ffi_options);
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->compile($prql_query, \FFI::addr($ffi_options), $out) !== 0) {
-            throw new \InvalidArgumentException("Could not compile query.");
-        }
-
-        unset($ffi_options);
-
-        return trim($out);
+        return $this->convertResult($res);
     }
 
     /**
      * Compile a PRQL string into PL.
      *
-     * @param string $prql_query A PRQL query.
+     * @param string $prql_query PRQL query
      *
-     * @return string Pipelined Language (PL) JSON string.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * be compiled.
+     * @return Result compilation result containing PL serialized as JSON
+     *
+     * @throws \InvalidArgumentException on NULL input
+     *
      * @api
      */
-    function prqlToPL(string $prql_query): string
+    public function prqlToPL(string $prql_query): Result
     {
         if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+            throw new \InvalidArgumentException('No query given.');
         }
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->prql_to_pl($prql_query, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not compile query.");
-        }
+        $res = $this->ffi->prql_to_pl($prql_query);
 
-        return trim($out);
+        return $this->convertResult($res);
     }
 
     /**
      * Converts PL to RQ.
      *
-     * @param string $pl_json PL in JSON format.
+     * @param string $pl_json PL serialized as JSON
      *
-     * @return string RQ string.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * be compiled.
+     * @return Result compilation result containing RQ serialized as JSON
+     *
+     * @throws \InvalidArgumentException on NULL input
+     *
      * @api
      */
-    function plToRQ(string $pl_json): string
+    public function plToRQ(string $pl_json): Result
     {
-        if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+        if (!$pl_json) {
+            throw new \InvalidArgumentException('No query given.');
         }
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->pl_to_rq($pl_json, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not convert PL.");
-        }
+        $res = $this->ffi->pl_to_rq($pl_json);
 
-        return trim($out);
+        return $this->convertResult($res);
     }
 
     /**
      * Converts RQ to SQL.
      *
-     * @param string $rq_json PL in JSON format.
+     * @param string       $rq_json RQ serialized as JSON
+     * @param Options|null $options compile options
      *
-     * @return string SQL string.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * be compiled.
+     * @return Result compilation result containing SQL query
+     *
+     * @throws \InvalidArgumentException on NULL input
+     *
      * @api
      */
-    function rQToSql(string $rq_json): string
+    public function rqToSQL(string $rq_json, ?Options $options = null): Result
     {
-        if (!$prql_query) {
-            throw new \InvalidArgumentException("No query given.");
+        if (!$rq_json) {
+            throw new \InvalidArgumentException('No query given.');
         }
 
-        $out = str_pad("", 1024);
-        if ($this->_libprql->rq_to_sql($rq_json, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not convert RQ.");
+        $ffi_options = $this->optionsInit($options);
+
+        $res = $this->ffi->rq_to_sql($rq_json, \FFI::addr($ffi_options));
+
+        $this->optionsDestroy($ffi_options);
+
+        return $this->convertResult($res);
+    }
+
+    private function optionsInit(?Options $options = null)
+    {
+        if ($options === null) {
+            $options = new Options();
         }
 
-        return trim($out);
+        $ffi_options = $this->ffi->new('struct Options');
+        $ffi_options->format = $options->format;
+        $ffi_options->signature_comment = $options->signature_comment;
+
+        if (isset($options->target)) {
+            $len = strlen($options->target) + 1;
+            $ffi_options->target = \FFI::new("char[$len]", false);
+            \FFI::memcpy($ffi_options->target, $options->target, $len - 1);
+        }
+
+        return $ffi_options;
+    }
+
+    private function optionsDestroy($ffi_options)
+    {
+        if (!\FFI::isNull($ffi_options->target)) {
+            \FFI::free($ffi_options->target);
+        }
+        unset($ffi_options);
+    }
+
+    private function convertResult($ffi_res): Result
+    {
+        $res = new Result();
+
+        // convert string
+        $res->output = $this->convertString($ffi_res->output);
+
+        $res->messages = [];
+        for ($i = 0; $i < $ffi_res->messages_len; ++$i) {
+            $res->messages[$i] = $this->convertMessage($ffi_res->messages[$i]);
+        }
+
+        // free the ffi_result
+        $this->ffi->result_destroy($ffi_res);
+
+        return $res;
+    }
+
+    private function convertMessage($ffi_msg): Message
+    {
+        $msg = new Message();
+
+        // I'm using numbers here, I cannot find a way to refer to MessageKind.Error
+        if ($ffi_msg->kind == 0) {
+            $msg->kind = MessageKind::Error;
+        } elseif ($ffi_msg->kind == 1) {
+            $msg->kind = MessageKind::Warning;
+        } elseif ($ffi_msg->kind == 2) {
+            $msg->kind = MessageKind::Lint;
+        }
+
+        $msg->code = $this->convertNullableString($ffi_msg->code);
+        $msg->reason = $this->convertString($ffi_msg->reason);
+        $msg->span = $this->convertSpan($ffi_msg->span);
+        $msg->hint = $this->convertNullableString($ffi_msg->hint);
+
+        $msg->display = $this->convertNullableString($ffi_msg->display);
+        $msg->location = $this->convertLocation($ffi_msg->location);
+
+        return $msg;
+    }
+
+    private function convertSpan($ffi_ptr): ?Span
+    {
+        if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
+            return null;
+        }
+        $span = new Span();
+        $span->start = $ffi_ptr[0]->start;
+        $span->end = $ffi_ptr[0]->end;
+
+        return $span;
+    }
+
+    private function convertLocation($ffi_ptr): ?SourceLocation
+    {
+        if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
+            return null;
+        }
+
+        $location = new SourceLocation();
+        $location->start_line = $ffi_ptr[0]->start_line;
+        $location->start_col = $ffi_ptr[0]->start_col;
+        $location->end_line = $ffi_ptr[0]->end_line;
+        $location->end_col = $ffi_ptr[0]->end_col;
+
+        return $location;
+    }
+
+    private function convertNullableString($ffi_ptr): ?string
+    {
+        if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
+            return null;
+        }
+        // dereference
+        return $this->convertString($ffi_ptr[0]);
+    }
+
+    private function convertString($ffi_ptr): string
+    {
+        return \FFI::string(\FFI::cast(\FFI::type('char*'), $ffi_ptr));
     }
 }

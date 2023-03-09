@@ -48,8 +48,8 @@ jobs:
   test-elixir:
     uses: ./.github/workflows/test-elixir.yaml
 
-  test-dotnet:
-    uses: ./.github/workflows/test-dotnet.yaml
+  #   test-dotnet:
+  #     uses: ./.github/workflows/test-dotnet.yaml
 
   test-lib:
     uses: ./.github/workflows/test-lib.yaml

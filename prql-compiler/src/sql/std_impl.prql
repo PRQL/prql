@@ -1,13 +1,13 @@
-func min <scalar|column> column ->  s"MIN({column})"
-func max <scalar|column> column ->  s"MAX({column})"
-func sum <scalar|column> column ->  s"SUM({column})"
-func avg <scalar|column> column ->  s"AVG({column})"
-func stddev <scalar|column> column ->  s"STDDEV({column})"
-func average <scalar|column> column ->  s"AVG({column})"
-func count <scalar|column> non_null:s"*" ->  s"COUNT({non_null})"
+func min <scalar or column> column ->  s"MIN({column})"
+func max <scalar or column> column ->  s"MAX({column})"
+func sum <scalar or column> column ->  s"SUM({column})"
+func avg <scalar or column> column ->  s"AVG({column})"
+func stddev <scalar or column> column ->  s"STDDEV({column})"
+func average <scalar or column> column ->  s"AVG({column})"
+func count <scalar or column> non_null:s"*" ->  s"COUNT({non_null})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func count_distinct <scalar|column> column ->  s"COUNT(DISTINCT {column})"
+func count_distinct <scalar or column> column ->  s"COUNT(DISTINCT {column})"
 
 # Window functions
 func lag<column> offset column ->  s"LAG({column}, {offset})"
@@ -23,5 +23,5 @@ func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
 func as<scalar> `noresolve.type` column ->  s"CAST({column} AS {type})"
 
 # String functions
-func lower <string> column -> s"LOWER({column})"
-func upper <string> column -> s"UPPER({column})"
+func lower <text> column -> s"LOWER({column})"
+func upper <text> column -> s"UPPER({column})"

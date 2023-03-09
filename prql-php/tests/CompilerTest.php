@@ -1,4 +1,8 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
+namespace Prql\Compiler\Test;
 
 use Prql\Compiler\Compiler;
 use Prql\Compiler\Options;
@@ -13,22 +17,20 @@ final class CompilerTest extends TestCase
 
     public function testPrqlLibraryFileExists(): void
     {
-        $this->assertFileExists("src/libprql_lib.so");
+        $this->assertFileExists("lib/libprql_lib.so");
     }
 
-    public function testPrqlLibraryLoads(): void
+    public function testPrqlHeaderFileExists(): void
     {
-        $code = "int prql_to_pl(const char *prql_query, char *out);";
-        $ffi = FFI::cdef($code, "src/libprql_lib.so");
-        $this->assertInstanceOf(FFI::class, $ffi);
+        $this->assertFileExists("lib/libprql_lib.h");
     }
 
-    public function testInvalidQueryThrows(): void
+    public function testInvalidQuery(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-
         $prql = new Compiler();
-        $prql->compile("invalid");
+        $res = $prql->compile("invalid");
+
+        $this->assertCount(1, $res->messages);
     }
 
     public function testCompileWorks(): void
@@ -39,18 +41,34 @@ final class CompilerTest extends TestCase
         $options->target = "sql.mssql";
         $prql = new Compiler();
 
-        $expected = "SELECT * FROM employees";
-        $actual = $prql->compile("from employees", $options);
+        $actual = $prql->compile("from employees | take 10", $options);
+        $this->assertCount(0, $actual->messages);
 
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals("SELECT TOP (10) * FROM employees", $actual->output);
     }
 
-    public function testPrqlToPLWorks(): void
+    public function testOtherFunctions(): void
     {
         $prql = new Compiler();
 
-        $pl = $prql->prqlToPL("from employees");
+        $query = "
+            let a = (from employees | take 10)
 
-        $this->assertNotNull($pl);
+            from a | select [first_name]
+        ";
+
+        $pl = $prql->prqlToPL($query);
+        $this->assertCount(0, $pl->messages);
+
+        $rq = $prql->plToRQ($pl->output);
+        $this->assertCount(0, $rq->messages);
+
+        $via_json = $prql->rqToSQL($rq->output);
+        $this->assertCount(0, $via_json->messages);
+
+        $direct = $prql->compile($query);
+        $this->assertCount(0, $direct->messages);
+
+        $this->assertEquals($via_json, $direct);
     }
 }
