@@ -16,7 +16,7 @@ use super::context::{Context, Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
-use super::type_resolver::{infer_type, type_of_closure, validate_type};
+use super::type_resolver::{self, infer_type, type_of_closure, validate_type};
 
 /// Runs semantic analysis on the query, using current state.
 ///
@@ -77,7 +77,7 @@ impl AstFold for Resolver {
                         name: ty_def.name,
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
                             let mut e = Expr::null();
-                            e.ty = Some(Ty::Set);
+                            e.ty = Some(Ty::SetExpr(SetExpr::Set));
                             e
                         })),
                     };
@@ -130,7 +130,7 @@ impl AstFold for Resolver {
                 match &entry.kind {
                     // convert ident to function without args
                     DeclKind::FuncDef(func_def) => {
-                        let closure = closure_of_func_def(func_def, fq_ident);
+                        let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
 
                         if self.in_func_call_name {
                             Expr::from(ExprKind::Closure(Box::new(closure)))
@@ -318,21 +318,6 @@ impl AstFold for Resolver {
     }
 }
 
-fn closure_of_func_def(func_def: &FuncDef, fq_ident: Ident) -> Closure {
-    Closure {
-        name: Some(fq_ident),
-        body: func_def.body.clone(),
-        body_ty: func_def.return_ty.clone(),
-
-        params: func_def.positional_params.clone(),
-        named_params: func_def.named_params.clone(),
-
-        args: vec![],
-
-        env: HashMap::default(),
-    }
-}
-
 impl Resolver {
     fn resolve_pipeline(&mut self, Pipeline { mut exprs }: Pipeline) -> Result<Expr> {
         let mut value = exprs.remove(0);
@@ -378,7 +363,7 @@ impl Resolver {
                 body_ty: None,
 
                 args: vec![],
-                params: vec![FuncParam {
+                params: vec![ClosureParam {
                     name: closure_param.to_string(),
                     default_value: None,
                     ty: None,
@@ -461,7 +446,11 @@ impl Resolver {
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
-            let needs_window = Some(Ty::Literal(TyLit::Column)) <= closure.body_ty;
+            let needs_window = (closure.body_ty)
+                .as_ref()
+                .map(|ty| ty.is_superset_of(&Ty::SetExpr(SetExpr::Primitive(TyLit::Column))))
+                .unwrap_or_default();
+
             let mut res = match self.cast_built_in_function(closure)? {
                 // this function call is a built-in function
                 Ok(transform) => transform,
@@ -670,7 +659,7 @@ impl Resolver {
     fn fold_and_type_check(
         &mut self,
         arg: Expr,
-        param: &FuncParam,
+        param: &ClosureParam,
         func_name: &Option<Ident>,
     ) -> Result<Expr> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
@@ -752,6 +741,53 @@ impl Resolver {
             within: Ident::from_name(NS_FRAME),
             except,
         }))
+    }
+
+    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
+        let body_ty = self.fold_type_expr(func_def.return_ty)?;
+
+        Ok(Closure {
+            name: Some(fq_ident),
+            body: func_def.body,
+            body_ty,
+
+            params: self.fold_func_params(&func_def.positional_params)?,
+            named_params: self.fold_func_params(&func_def.named_params)?,
+
+            args: vec![],
+
+            env: HashMap::default(),
+        })
+    }
+
+    fn fold_func_params(&mut self, func_params: &[FuncParam]) -> Result<Vec<ClosureParam>> {
+        let mut params = Vec::with_capacity(func_params.len());
+        for p in func_params.iter().cloned() {
+            params.push(ClosureParam {
+                name: p.name,
+                ty: self.fold_type_expr(p.ty_expr)?,
+                default_value: p.default_value,
+            })
+        }
+        Ok(params)
+    }
+
+    fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
+        Ok(match expr {
+            Some(expr) => {
+                let expr = self.fold_expr(expr)?;
+
+                let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
+
+                // TODO: workaround
+                if let SetExpr::Array(_) = set_expr {
+                    return Ok(Some(Ty::Table(Frame::default())));
+                }
+
+                Some(Ty::SetExpr(set_expr))
+            }
+            None => None,
+        })
     }
 }
 

@@ -247,6 +247,8 @@ impl ErrorMessage {
 
         let span = Range::from(self.span?);
 
+        dbg!(self);
+
         let mut report = Report::build(ReportKind::Error, source_id, span.start)
             .with_config(config)
             .with_label(Label::new((source_id, span)).with_message(&self.reason));

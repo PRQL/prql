@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use chumsky::prelude::*;
 use semver::VersionReq;
@@ -108,9 +108,9 @@ fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
         .map(|(((name, return_ty), params), body)| {
             let (pos, nam) = params
                 .into_iter()
-                .map(|((name, ty), default_value)| FuncParam {
+                .map(|((name, ty_expr), default_value)| FuncParam {
                     name,
-                    ty,
+                    ty_expr,
                     default_value,
                 })
                 .partition(|p| p.default_value.is_none());
@@ -127,22 +127,14 @@ fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
         .labelled("function definition")
 }
 
-pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
-    let type_term = ident_part().try_map(|name, span| match TyLit::from_str(&name) {
-        Ok(t) => Ok(Ty::from(t)),
-        Err(_) if name == "table" => Ok(Ty::Table(Frame::default())),
-        Err(_) => Err(Simple::custom(span, format!("unknown type `{name}`"))),
-    });
+pub fn type_expr() -> impl Parser<Token, Expr, Error = Simple<Token>> {
+    let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
-    type_term
-        .separated_by(ctrl('|'))
+    let ident = ident().map(ExprKind::Ident);
+
+    let term = literal.or(ident).map_with_span(into_expr);
+
+    binary_op_parser(term, operator_or())
         .delimited_by(ctrl('<'), ctrl('>'))
-        .map(|mut terms| {
-            if terms.len() == 1 {
-                terms.remove(0)
-            } else {
-                Ty::AnyOf(terms)
-            }
-        })
         .labelled("type expression")
 }

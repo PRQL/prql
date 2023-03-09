@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::HashSet;
 
 use anyhow::Result;
@@ -9,28 +8,21 @@ use crate::error::{Error, Reason, WithErrorInfo};
 use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a set expression that can be used to construct a type.
-pub fn eval_as_set(expr: Expr, context: &Context) -> Result<SetExpr, Error> {
-    eval_kind_as_set(expr.kind, context).map_err(|e| e.with_span(expr.span))
+pub fn coerce_to_set(expr: Expr, context: &Context) -> Result<SetExpr, Error> {
+    coerce_to_named_set(expr, context).map(|(_, s)| s)
 }
 
-pub fn eval_kind_as_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Error> {
+fn coerce_to_named_set(expr: Expr, context: &Context) -> Result<(Option<String>, SetExpr), Error> {
+    let name = expr.alias;
+    let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
+
+    Ok((name, expr))
+}
+
+fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Error> {
     // primitives
-    if let ExprKind::Ident(fq_ident) = &expr {
-        if fq_ident.path == vec!["std"] {
-            let ty_lit = match fq_ident.name.as_str() {
-                "int" => Some(TyLit::Int),
-                "float" => Some(TyLit::Float),
-                "bool" => Some(TyLit::Bool),
-                "text" => Some(TyLit::Text),
-                "date" => Some(TyLit::Date),
-                "time" => Some(TyLit::Time),
-                "timestamp" => Some(TyLit::Timestamp),
-                _ => None,
-            };
-            if let Some(ty_lit) = ty_lit {
-                return Ok(SetExpr::Primitive(ty_lit));
-            }
-        }
+    if let ExprKind::Set(set_expr) = expr {
+        return Ok(set_expr);
     }
 
     // singletons
@@ -43,7 +35,9 @@ pub fn eval_kind_as_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Er
         let mut set_elements = Vec::with_capacity(elements.len());
 
         for e in elements {
-            set_elements.push(eval_tuple_element(e, context)?);
+            let (name, set) = coerce_to_named_set(e, context)?;
+
+            set_elements.push(TupleElement::Single(name, set));
         }
 
         return Ok(SetExpr::Tuple(set_elements));
@@ -56,24 +50,22 @@ pub fn eval_kind_as_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Er
         right,
     } = expr
     {
-        let left = eval_tuple_element(*left, context)?;
-        let right = eval_tuple_element(*right, context)?;
+        let left = coerce_to_named_set(*left, context)?;
+        let right = coerce_to_named_set(*right, context)?;
 
         let mut options = Vec::with_capacity(2);
+        // TODO: unpack left if it's a union itself
         options.push(left);
+        // TODO: unpack right if it's a union itself
         options.push(right);
 
         return Ok(SetExpr::Union(options));
     }
 
-    Err(Error::new_simple("not a set expression"))
-}
-
-pub fn eval_tuple_element(expr: Expr, context: &Context) -> Result<TupleElement, Error> {
-    let name = expr.alias;
-    let expr = eval_kind_as_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
-
-    Ok(TupleElement { name, expr })
+    Err(Error::new_simple(format!(
+        "not a set expression: {}",
+        Expr::from(expr)
+    )))
 }
 
 pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
@@ -84,13 +76,13 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
     Ok(match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
             Literal::Null => Ty::Infer,
-            Literal::Integer(_) => TyLit::Int.into(),
-            Literal::Float(_) => TyLit::Float.into(),
-            Literal::Boolean(_) => TyLit::Bool.into(),
-            Literal::String(_) => TyLit::Text.into(),
-            Literal::Date(_) => TyLit::Date.into(),
-            Literal::Time(_) => TyLit::Time.into(),
-            Literal::Timestamp(_) => TyLit::Timestamp.into(),
+            Literal::Integer(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Int)),
+            Literal::Float(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Float)),
+            Literal::Boolean(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Bool)),
+            Literal::String(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Text)),
+            Literal::Date(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Date)),
+            Literal::Time(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Time)),
+            Literal::Timestamp(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Timestamp)),
             Literal::ValueAndUnit(_) => Ty::Infer, // TODO
             Literal::Relation(_) => unreachable!(),
         },
@@ -98,11 +90,11 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
         ExprKind::SString(_) => Ty::Infer,
-        ExprKind::FString(_) => TyLit::Text.into(),
+        ExprKind::FString(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Text)),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
-        ExprKind::List(_) => Ty::Literal(TyLit::List),
+        ExprKind::List(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::List)),
 
         _ => Ty::Infer,
     })
@@ -162,10 +154,7 @@ where
         });
     }
 
-    let expected_is_above = matches!(
-        expected.partial_cmp(&found_ty),
-        Some(Ordering::Equal | Ordering::Greater)
-    );
+    let expected_is_above = expected.is_superset_of(&found_ty);
     if !expected_is_above {
         let e = Err(Error::new(Reason::Expected {
             who: who(),

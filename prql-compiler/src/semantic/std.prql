@@ -1,14 +1,14 @@
 # Aggregate Functions
-func min <scalar|column> column -> null
-func max <scalar|column> column -> null
-func sum <scalar|column> column -> null
-func avg <scalar|column> column -> null
-func stddev <scalar|column> column -> null
-func average <scalar|column> column -> null
-func count <scalar|column> non_null:s"*" -> null
+func min <scalar or column> column -> null
+func max <scalar or column> column -> null
+func sum <scalar or column> column -> null
+func avg <scalar or column> column -> null
+func stddev <scalar or column> column -> null
+func average <scalar or column> column -> null
+func count <scalar or column> non_null:s"*" -> null
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func count_distinct <scalar|column> column -> null
+func count_distinct <scalar or column> column -> null
 
 # Window functions
 func lag<column> offset column -> null
@@ -72,3 +72,7 @@ type text
 type date
 type time
 type timestamp
+type table
+type column
+type list
+type scalar

@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter, Result, Write};
 
 use enum_as_inner::EnumAsInner;
@@ -15,31 +14,37 @@ pub enum SetExpr {
     Singleton(Literal),
 
     /// Union of sets (sum)
-    Union(Vec<TupleElement>),
+    Union(Vec<(Option<String>, SetExpr)>),
 
     /// Set of tuples (product)
     Tuple(Vec<TupleElement>),
 
     /// Set of arrays
     Array(Box<SetExpr>),
+
+    /// Set of sets.
+    /// Used for exprs that can be converted to SetExpr and then used as a Ty.
+    Set,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct TupleElement {
-    pub name: Option<String>,
-    pub expr: SetExpr,
+pub enum TupleElement {
+    Single(Option<String>, SetExpr),
+    Wildcard,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
-    Literal(TyLit),
-    AnyOf(Vec<Ty>),
+    /// Value is an element of this [SetExpr]
+    SetExpr(SetExpr),
+
+    /// Value is a function described by [TyFunc]
+    // TODO: convert into [Ty::Domain].
     Function(TyFunc),
 
+    /// Special type for relations.
+    // TODO: convert into [Ty::Domain].
     Table(Frame),
-
-    /// Expr that can be converted to SetExpr and then used as a Ty.
-    Set,
 
     /// Means that we have no information about the type of the variable and
     /// that it should be inferred from other usages.
@@ -50,13 +55,13 @@ pub enum Ty {
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
 )]
 pub enum TyLit {
-    #[deprecated]
+    // TODO: convert to a named expression
     #[strum(to_string = "list")]
     List,
-    #[deprecated]
+    // TODO: convert to a named expression
     #[strum(to_string = "column")]
     Column,
-    #[deprecated]
+    // TODO: convert to a named expression
     #[strum(to_string = "scalar")]
     Scalar,
     #[strum(to_string = "int")]
@@ -82,56 +87,34 @@ pub struct TyFunc {
     pub return_ty: Box<Ty>,
 }
 
-impl From<TyLit> for Ty {
-    fn from(lit: TyLit) -> Self {
-        Ty::Literal(lit)
+impl Ty {
+    pub fn is_superset_of(&self, subset: &Ty) -> bool {
+        match (self, subset) {
+            // Not handled here. See type_resolver.
+            (Ty::Infer, _) | (_, Ty::Infer) => false,
+
+            (Ty::SetExpr(left), Ty::SetExpr(right)) => left.is_superset_of(right),
+
+            (Ty::Table(_), Ty::Table(_)) => true,
+
+            (l, r) => l == r,
+        }
     }
 }
 
-/// Implements a partial ordering or types:
-/// - higher up are types that include many others (AnyOf, Any) and
-/// - on the bottom are the atomic types (bool, string).
-impl PartialOrd for Ty {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            // Not handled here. See type_resolver.
-            (Ty::Infer, _) | (_, Ty::Infer) => None,
+impl SetExpr {
+    fn is_superset_of(&self, subset: &SetExpr) -> bool {
+        match (self, subset) {
+            // TODO: convert these to array
+            (SetExpr::Primitive(TyLit::Column), SetExpr::Primitive(TyLit::Column)) => true,
+            (SetExpr::Primitive(TyLit::Column), SetExpr::Primitive(_)) => true,
+            (SetExpr::Primitive(_), SetExpr::Primitive(TyLit::Column)) => false,
 
-            (Ty::Literal(TyLit::Column), Ty::Literal(TyLit::Column)) => Some(Ordering::Equal),
-            (Ty::Literal(TyLit::Column), Ty::Literal(_)) => Some(Ordering::Greater),
-            (Ty::Literal(_), Ty::Literal(TyLit::Column)) => Some(Ordering::Less),
+            (SetExpr::Primitive(l0), SetExpr::Primitive(r0)) => l0 == r0,
+            (SetExpr::Union(many), one) => many.iter().any(|(_, any)| any.is_superset_of(one)),
+            (one, SetExpr::Union(many)) => many.iter().all(|(_, each)| one.is_superset_of(each)),
 
-            (Ty::Literal(l0), Ty::Literal(r0)) => {
-                if l0 == r0 {
-                    Some(Ordering::Equal)
-                } else {
-                    None
-                }
-            }
-            (Ty::AnyOf(many), one) => {
-                if many.iter().any(|m| m >= one) {
-                    Some(Ordering::Greater)
-                } else {
-                    None
-                }
-            }
-            (one, Ty::AnyOf(many)) => {
-                if many.iter().any(|m| m >= one) {
-                    Some(Ordering::Less)
-                } else {
-                    None
-                }
-            }
-
-            (Ty::Table(_), Ty::Table(_)) => Some(Ordering::Equal),
-
-            (l, r) => {
-                if l == r {
-                    Some(Ordering::Equal)
-                } else {
-                    None
-                }
-            }
+            (l, r) => l == r,
         }
     }
 }
@@ -139,18 +122,8 @@ impl PartialOrd for Ty {
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self {
-            Ty::Literal(lit) => write!(f, "{:}", lit),
-            Ty::AnyOf(ts) => {
-                for (i, t) in ts.iter().enumerate() {
-                    write!(f, "{t}")?;
-                    if i < ts.len() - 1 {
-                        f.write_char('|')?;
-                    }
-                }
-                Ok(())
-            }
+            Ty::SetExpr(lit) => write!(f, "{:}", lit),
             Ty::Table(frame) => write!(f, "table<{frame}>"),
-            Ty::Set => write!(f, "set"),
             Ty::Infer => write!(f, "infer"),
             Ty::Function(func) => {
                 write!(f, "func")?;
@@ -161,6 +134,44 @@ impl Display for Ty {
                 write!(f, " -> {}", func.return_ty)?;
                 Ok(())
             }
+        }
+    }
+}
+
+impl Display for SetExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match &self {
+            SetExpr::Primitive(lit) => write!(f, "{:}", lit),
+            SetExpr::Union(ts) => {
+                for (i, (_, e)) in ts.iter().enumerate() {
+                    write!(f, "{e}")?;
+                    if i < ts.len() - 1 {
+                        f.write_char('|')?;
+                    }
+                }
+                Ok(())
+            }
+            SetExpr::Singleton(lit) => write!(f, "{:}", lit),
+            SetExpr::Tuple(elements) => {
+                write!(f, "[")?;
+                for e in elements {
+                    match e {
+                        TupleElement::Wildcard => {
+                            write!(f, "*")?;
+                        }
+                        TupleElement::Single(name, expr) => {
+                            if let Some(name) = name {
+                                write!(f, "{name} = ")?
+                            }
+                            write!(f, "{expr}")?
+                        }
+                    }
+                    write!(f, ",")?
+                }
+                Ok(())
+            }
+            SetExpr::Set => write!(f, "set"),
+            SetExpr::Array(_) => todo!(),
         }
     }
 }

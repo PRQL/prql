@@ -67,7 +67,7 @@ pub trait AstFold {
         fold_interpolate_item(self, sstring_item)
     }
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
-        fold_type(self, t)
+        Ok(t)
     }
     fn fold_window(&mut self, window: WindowFrame) -> Result<WindowFrame> {
         fold_window(self, window)
@@ -119,7 +119,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) => expr_kind,
+        Literal(_) | Set(_) => expr_kind,
     })
 }
 
@@ -320,12 +320,4 @@ pub fn fold_func_param<T: ?Sized + AstFold>(
             })
         })
         .try_collect()
-}
-
-pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
-    Ok(match t {
-        Ty::Literal(_) => t,
-        Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
-        _ => t,
-    })
 }

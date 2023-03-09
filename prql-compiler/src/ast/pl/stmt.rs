@@ -45,15 +45,16 @@ pub struct FuncDef {
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,
-    pub return_ty: Option<Ty>,
+    pub return_ty: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncParam {
     pub name: String,
 
+    /// Parsed expression that will be resolved to a type
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Ty>,
+    pub ty_expr: Option<Expr>,
 
     pub default_value: Option<Expr>,
 }

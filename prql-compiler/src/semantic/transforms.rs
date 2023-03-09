@@ -469,7 +469,7 @@ fn fold_by_simulating_eval(
         body_ty: None,
 
         args: vec![],
-        params: vec![FuncParam {
+        params: vec![ClosureParam {
             name: param_id.to_string(),
             ty: None,
             default_value: None,
@@ -1099,10 +1099,10 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Main:
-            id: 18
+            id: 28
             TransformCall:
               input:
-                id: 4
+                id: 6
                 Ident:
                   - default_db
                   - c_invoice
@@ -1113,7 +1113,7 @@ mod tests {
                           input_name: c_invoice
                           except: []
                     inputs:
-                      - id: 4
+                      - id: 6
                         name: c_invoice
                         table:
                           - default_db
@@ -1121,26 +1121,27 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 15
+                    - id: 22
                       BuiltInFunction:
                         name: std.average
                         args:
-                          - id: 17
+                          - id: 27
                             Ident:
                               - _frame
                               - c_invoice
                               - amount
-                            target_id: 4
+                            target_id: 6
                             ty: Infer
                       ty:
-                        Literal: Column
+                        SetExpr:
+                          Primitive: Column
               partition:
-                - id: 8
+                - id: 12
                   Ident:
                     - _frame
                     - c_invoice
                     - issued_at
-                  target_id: 4
+                  target_id: 6
                   ty: Infer
             ty:
               Table:
@@ -1149,12 +1150,12 @@ mod tests {
                       name:
                         - c_invoice
                         - issued_at
-                      expr_id: 8
+                      expr_id: 12
                   - Single:
                       name: ~
-                      expr_id: 15
+                      expr_id: 22
                 inputs:
-                  - id: 4
+                  - id: 6
                     name: c_invoice
                     table:
                       - default_db
