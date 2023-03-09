@@ -34,17 +34,20 @@ function Sidebar({ library, onLoadFile }) {
     const fileRows = [];
     for (const [index, filename] of Object.keys(files).entries()) {
       const array = files[filename];
-      const parent = array[3];
       const depth = array[2];
+      const parent = array[3];
       const id = array[4];
+      const name = array[5];
       fileRows.push(
         <React.Fragment key={index}>
           {(parent == null || openFolders[parent] || depth === 0) && <div
-            className={"fileRow " + (isFile(filename) ? "" : "folderRow")}
+            className={"fileRow " +
+              (isFile(filename) ? " " : " folderRow ") +
+              (openFolders[id] ? " open " : " ")}
             style={{ marginLeft: `${10 * depth}px` }}
             onClick={() => handleClick(section, filename, id)}
           >
-            {filename}
+            {name ?? filename}
           </div>}
         </React.Fragment>
       );
