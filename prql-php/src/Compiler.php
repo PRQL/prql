@@ -39,17 +39,27 @@ final class Compiler
     public function __construct(?string $lib_path = null)
     {
         if ($lib_path === null) {
+            // phpcs:disable PSR12.Operators.OperatorSpacing
             $lib_path = __DIR__.'/../lib';
+            // phpcs:enable
         }
 
+        // phpcs:disable PSR12.Operators.OperatorSpacing
         $header = $lib_path.'/libprql_lib.h';
+        // phpcs:enable
 
         if (PHP_OS_FAMILY === 'Windows') {
+            // phpcs:disable PSR12.Operators.OperatorSpacing
             $library = $lib_path."\libprql_lib.dll";
+            // phpcs:enable
         } elseif (PHP_OS_FAMILY === 'Darwin') {
+            // phpcs:disable PSR12.Operators.OperatorSpacing
             $library = $lib_path.'/libprql_lib.dylib';
+            // phpcs:enable
         } else {
+            // phpcs:disable PSR12.Operators.OperatorSpacing
             $library = $lib_path.'/libprql_lib.so';
+            // phpcs:enable
         }
 
         $header_source = file_get_contents($header, false, null, 0, 1024 * 1024);
