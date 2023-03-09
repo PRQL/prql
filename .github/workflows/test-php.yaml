@@ -25,21 +25,13 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo build
-        working-directory: prql-lib
-      - run: |
-          mv ../target/debug/libprql_lib.so ../prql-php/src/libprql_lib.so
-          ls -l ../target/debug/
-          uname -a
-          ls -lR ../prql-php/
-        working-directory: prql-lib
+      - run: sh build.sh
+        working-directory: prql-php
       - name: 📦 Install dependencies using Composer
         uses: php-actions/composer@v6
         with:
           args: --working-dir=prql-php
           php_extensions: FFI
       - name: 🧪 Run tests using PHPUnit
-        # TODO: enable when aligned with https://github.com/PRQL/prql/pull/1941
-        if: false
         run: vendor/bin/phpunit tests
         working-directory: prql-php

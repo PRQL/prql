@@ -83,7 +83,7 @@ impl Error {
 
 #[derive(Clone, Serialize)]
 pub struct ErrorMessage {
-    /// Plain text of the error
+    /// Machine-readable identifier of the error
     pub code: Option<String>,
     /// Plain text of the error
     pub reason: String,

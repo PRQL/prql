@@ -2,7 +2,7 @@
 
 extern crate libc;
 
-use libc::{c_char, c_int};
+use libc::{c_char, size_t};
 use prql_compiler::ErrorMessages;
 use prql_compiler::Target;
 use std::ffi::CStr;
@@ -18,13 +18,14 @@ use std::str::FromStr;
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
 pub unsafe extern "C" fn compile(
     prql_query: *const c_char,
     options: *const Options,
-    out: *mut c_char,
-) -> c_int {
+) -> CompileResult {
     let prql_query: String = c_str_to_string(prql_query);
 
     let options = options.as_ref().map(convert_options).transpose();
@@ -38,7 +39,7 @@ pub unsafe extern "C" fn compile(
         })
         .map_err(|e| e.composed("", &prql_query, false));
 
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Build PL AST from a PRQL string. PL in documented in the
@@ -50,15 +51,17 @@ pub unsafe extern "C" fn compile(
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
-pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char, out: *mut c_char) -> c_int {
+pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult {
     let prql_query: String = c_str_to_string(prql_query);
 
     let result = Ok(prql_query.as_str())
         .and_then(prql_compiler::prql_to_pl)
         .and_then(prql_compiler::json::from_pl);
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
@@ -71,16 +74,18 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char, out: *mut c_char)
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
-pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char, out: *mut c_char) -> c_int {
+pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
     let pl_json: String = c_str_to_string(pl_json);
 
     let result = Ok(pl_json.as_str())
         .and_then(prql_compiler::json::to_pl)
         .and_then(prql_compiler::pl_to_rq)
         .and_then(prql_compiler::json::from_rq);
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Convert RQ AST into an SQL string. RQ is documented in the
@@ -92,15 +97,24 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char, out: *mut c_char) -> c
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
+/// Calling code is responsible for freeing memory allocated for `CompileResult`
+/// by calling `result_destroy`.
 #[no_mangle]
-pub unsafe extern "C" fn rq_to_sql(rq_json: *const c_char, out: *mut c_char) -> c_int {
+pub unsafe extern "C" fn rq_to_sql(
+    rq_json: *const c_char,
+    options: *const Options,
+) -> CompileResult {
     let rq_json: String = c_str_to_string(rq_json);
 
-    let result = Ok(rq_json.as_str())
-        .and_then(prql_compiler::json::to_rq)
-        .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default()));
-    result_into_c_str(result, out)
+    let options = options.as_ref().map(convert_options).transpose();
+
+    let result = options.and_then(|options| {
+        Ok(rq_json.as_str())
+            .and_then(prql_compiler::json::to_rq)
+            .and_then(|x| prql_compiler::rq_to_sql(x, &options.unwrap_or_default()))
+    });
+    result_into_c_str(result)
 }
 
 /// Compilation options
@@ -124,22 +138,166 @@ pub struct Options {
     pub signature_comment: bool,
 }
 
-unsafe fn result_into_c_str(result: Result<String, ErrorMessages>, out: *mut c_char) -> i32 {
-    let (is_err, string) = match result {
-        Ok(string) => (false, string),
-        Err(err) => (true, err.to_string()),
-    };
+/// Result of compilation.
+#[repr(C)]
+pub struct CompileResult {
+    pub output: *const i8,
+    pub messages: *const Message,
+    pub messages_len: size_t,
+}
 
-    let copy_len = string.bytes().len();
-    let c_str = CString::new(string).unwrap();
+/// Compile message kind. Currently only Error is implemented.
+#[repr(C)]
+pub enum MessageKind {
+    Error,
+    Warning,
+    Lint,
+}
 
-    out.copy_from(c_str.as_ptr(), copy_len);
-    let end_of_string_ptr = out.add(copy_len);
-    *end_of_string_ptr = 0;
+/// Compile result message.
+///
+/// Calling code is responsible for freeing all memory allocated
+/// for fields as well as strings.
+// Make sure to keep in sync with prql_compiler::ErrorMessage
+#[repr(C)]
+pub struct Message {
+    /// Message kind. Currently only Error is implemented.
+    pub kind: MessageKind,
+    /// Machine-readable identifier of the error
+    pub code: *const *const i8,
+    /// Plain text of the error
+    pub reason: *const i8,
+    /// A list of suggestions of how to fix the error
+    pub hint: *const *const i8,
+    /// Character offset of error origin within a source file
+    pub span: *const Span,
 
-    match is_err {
-        true => -1,
-        false => 0,
+    /// Annotated code, containing cause and hints.
+    pub display: *const *const i8,
+    /// Line and column number of error origin within a source file
+    pub location: *const SourceLocation,
+}
+
+/// Identifier of a location in source.
+/// Contains offsets in terms of chars.
+// Make sure to keep in sync with prql_compiler::Span
+#[repr(C)]
+pub struct Span {
+    pub start: size_t,
+    pub end: size_t,
+}
+
+/// Location within a source file.
+// Make sure to keep in sync with prql_compiler::SourceLocation
+#[repr(C)]
+pub struct SourceLocation {
+    pub start_line: size_t,
+    pub start_col: size_t,
+
+    pub end_line: size_t,
+    pub end_col: size_t,
+}
+
+/// Destroy a `CompileResult` once you are done with it.
+///
+/// # Safety
+///
+/// This function expects to be called exactly once after the call of any the functions
+/// that return CompileResult. No fields should be freed manually.
+#[no_mangle]
+pub unsafe extern "C" fn result_destroy(res: CompileResult) {
+    // This is required because we are allocating memory for
+    // strings, vectors and options.
+    // For strings and vectors this is required, but options may be
+    // able to live entirely within the struct, instead of the heap.
+
+    for i in 0..res.messages_len {
+        let e = &*res.messages.add(i);
+
+        if !e.code.is_null() {
+            drop(CString::from_raw(*e.code as *mut i8));
+            drop(Box::from_raw(e.code as *mut *const i8));
+        }
+        drop(CString::from_raw(e.reason as *mut i8));
+        if !e.hint.is_null() {
+            drop(CString::from_raw(*e.hint as *mut i8));
+            drop(Box::from_raw(e.hint as *mut *const i8));
+        }
+        if !e.span.is_null() {
+            drop(Box::from_raw(e.span as *mut Span));
+        }
+        if !e.display.is_null() {
+            drop(CString::from_raw(*e.display as *mut i8));
+            drop(Box::from_raw(e.display as *mut *const i8));
+        }
+        if !e.location.is_null() {
+            drop(Box::from_raw(e.location as *mut SourceLocation));
+        }
+    }
+    drop(Vec::from_raw_parts(
+        res.messages as *mut i8,
+        res.messages_len,
+        res.messages_len,
+    ));
+    drop(CString::from_raw(res.output as *mut i8));
+}
+
+unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileResult {
+    match result {
+        Ok(output) => CompileResult {
+            output: convert_string(output),
+            messages: ::std::ptr::null_mut(),
+            messages_len: 0,
+        },
+        Err(err) => {
+            let mut errors = Vec::with_capacity(err.inner.len());
+            errors.extend(err.inner.into_iter().map(|e| Message {
+                kind: MessageKind::Error,
+                code: option_to_ptr(e.code.map(convert_string)),
+                reason: convert_string(e.reason),
+                hint: option_to_ptr(e.hint.map(convert_string)),
+                span: option_to_ptr(e.span.map(convert_span)),
+                display: option_to_ptr(e.display.map(convert_string)),
+                location: option_to_ptr(e.location.map(convert_source_location)),
+            }));
+            CompileResult {
+                output: CString::default().into_raw(),
+                messages_len: errors.len(),
+                messages: errors.leak().as_ptr(),
+            }
+        }
+    }
+}
+
+/// Allocates the value on the heap and returns a pointer to it.
+/// If the input is None, it returns null pointer.
+fn option_to_ptr<T>(o: Option<T>) -> *const T {
+    match o {
+        Some(x) => {
+            let b = Box::new(x);
+            Box::into_raw(b)
+        }
+        None => ::std::ptr::null(),
+    }
+}
+
+fn convert_string(x: String) -> *const i8 {
+    CString::new(x).unwrap_or_default().into_raw()
+}
+
+fn convert_span(x: prql_compiler::Span) -> Span {
+    Span {
+        start: x.start,
+        end: x.end,
+    }
+}
+
+fn convert_source_location(x: prql_compiler::SourceLocation) -> SourceLocation {
+    SourceLocation {
+        start_line: x.start.0,
+        start_col: x.start.1,
+        end_line: x.end.0,
+        end_col: x.end.1,
     }
 }
 
@@ -149,7 +307,7 @@ unsafe fn c_str_to_string(c_str: *const c_char) -> String {
 }
 
 fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
-    let target = if o.target.is_null() {
+    let target = if !o.target.is_null() {
         Some(unsafe { c_str_to_string(o.target) })
     } else {
         None

@@ -1,10 +1,10 @@
 name: test-elixir
 
 on:
-  pull_request:
-    paths:
-      - "prql-elixir/**"
-      - ".github/workflows/test-elixir.yaml"
+  #   pull_request:
+  #     paths:
+  #       - "prql-elixir/**"
+  #       - ".github/workflows/test-elixir.yaml"
   workflow_call:
 
 concurrency:

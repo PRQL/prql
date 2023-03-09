@@ -12,3 +12,6 @@ build: main.c build-prql
 
 run: build
 	./main.out
+
+valgrind: build
+	valgrind ./main.out
