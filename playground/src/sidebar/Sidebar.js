@@ -9,7 +9,7 @@ function Sidebar({ library, onLoadFile }) {
 
   function toggleFolder(id) {
     openFolders[id] = !Boolean(openFolders[id]);
-    setOpenFolders(() => openFolders)
+    setOpenFolders(() => openFolders);
   }
 
   function handleClick(section, file, id) {
@@ -18,7 +18,7 @@ function Sidebar({ library, onLoadFile }) {
     } else {
       toggleFolder(id);
     }
-    sv($ => $ + 1);
+    sv(($) => $ + 1);
   }
 
   function isFile(path) {
@@ -39,15 +39,19 @@ function Sidebar({ library, onLoadFile }) {
       const name = array[5];
       fileRows.push(
         <React.Fragment key={index}>
-          {(parent == null || openFolders[parent] || depth === 0) && <div
-            className={"fileRow " +
-              (isFile(filename) ? " " : " folderRow ") +
-              (openFolders[id] ? " open " : " ")}
-            style={{ marginLeft: `${10 * depth}px` }}
-            onClick={() => handleClick(section, filename, id)}
-          >
-            {name ?? filename}
-          </div>}
+          {(parent == null || openFolders[parent] || depth === 0) && (
+            <div
+              className={
+                "fileRow " +
+                (isFile(filename) ? " " : " folderRow ") +
+                (openFolders[id] ? " open " : " ")
+              }
+              style={{ marginLeft: `${10 * depth}px` }}
+              onClick={() => handleClick(section, filename, id)}
+            >
+              {name ?? filename}
+            </div>
+          )}
         </React.Fragment>
       );
     }
