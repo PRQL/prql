@@ -2,6 +2,6 @@
 
 from employees
 derive distance = case [
-  city == "Calgary" -> 0,
-  city == "Edmonton" -> 300,
+  city == "Calgary" => 0,
+  city == "Edmonton" => 300,
 ]

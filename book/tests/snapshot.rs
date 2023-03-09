@@ -178,7 +178,7 @@ Some book snapshots were not consistent with the queries in the book:
 
 {snapshots_updated}
 
-The snapshots have now been updated. Subsequent runs of this test should now pass."###
+The snapshots have now been updated. Subsequent runs of this test should now pass.\n\n"###
         ));
     }
     Ok(())
@@ -190,6 +190,7 @@ fn test_prql_examples() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
+        // TODO: I don't think we use this and can remove it?
         if prql.contains("skip_test") {
             return;
         }
