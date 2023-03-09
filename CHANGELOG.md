@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.6.1 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.6.0 — 2022-03-08
 
 0.6.0 introduces a rewritten parser, giving us the ability to dramatically
