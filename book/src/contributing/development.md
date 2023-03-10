@@ -345,7 +345,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run the tests described up to this point on every commit to a pull
-  request. These are designed to run in under two minutes, and we should be
+  request. These are designed to run in under five minutes, and we should be
   reassessing their scope if they grow beyond that. Once these pass, a pull
   request can be merged.
 
