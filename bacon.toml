@@ -5,14 +5,18 @@ default_job = "check"
 # PRQL additions
 [jobs.test-fast]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
+watch = ["tests", "benches", "examples"]
+
 [jobs.test]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--unreferenced=auto"]
+watch = ["tests", "benches", "examples"]
 
 # Standard tasks
 
 [jobs.check]
 command = ["cargo", "check", "--color", "always"]
 need_stdout = false
+watch = ["tests", "benches", "examples"]
 
 [jobs.check-all]
 command = ["cargo", "check", "--all-targets", "--color", "always"]
@@ -31,8 +35,8 @@ need_stdout = false
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
-need_stdout = false
+command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"] 
+need_stdout = false 
 on_success = "back" # so that we don't open the browser at each change
 
 # You can run your application and have the result displayed in bacon,
