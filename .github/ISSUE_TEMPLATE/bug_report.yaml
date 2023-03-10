@@ -14,7 +14,7 @@ body:
     attributes:
       label: PRQL — Minimal Complete Verifiable Example
       description: |
-        Minimal, self-contained example that demonstrates the issue.      
+        Minimal, self-contained example that demonstrates the issue.
 
         This will be automatically formatted into code, so no need for markdown backticks.
       render: elm
