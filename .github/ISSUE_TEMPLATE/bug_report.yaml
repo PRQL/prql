@@ -49,10 +49,11 @@ body:
         Please confirm that the bug report is minimal and doesn't exist already.
 
       options:
-        - label:
-            Minimal example — the example is as focused as reasonably possible
-            to demonstrate the underlying issue in PRQL. For example, it's not
-            possible to exclude any line and still observe the bug.
+        - label: "*Minimal example* — the example is as focused as reasonably
+            possible to demonstrate the underlying issue in PRQL.
+
+            For example, it's not possible to exclude any line and still observe
+            the bug."
         - label:
             New issue — a search of GitHub Issues suggests this is not a
             duplicate.
