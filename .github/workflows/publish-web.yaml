@@ -6,23 +6,23 @@ on:
   # Called by pull-request when specifically requested
   workflow_call:
 
+# Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+permissions:
+  pages: write
+  id-token: write
+
 jobs:
-  publish-web:
+  build-web:
     runs-on: ubuntu-latest
 
     # Skip running workflow on forks
     if: github.repository_owner == 'prql'
 
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v1
+
       - name: 📂 Checkout code
         uses: actions/checkout@v3
 
@@ -50,17 +50,26 @@ jobs:
       - uses: arduino/setup-task@v1
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
       - name: 🕷️ Build website
         run: task build-web
 
-      - name: Prepare tar for upload
-        uses: actions/upload-pages-artifact@v1.0.7
+      - uses: actions/upload-pages-artifact@v1.0.7
         with:
           path: website/public/
 
+  deploy-web:
+    needs: build-web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy to GitHub Pages
-        # Even if called by another workflow, don't try and actually publish if
-        # on a fork (it'll fail the workflow even if it otherwise builds successfully)
+        # TDOO: is this repetitive for the `if: github.repository_owner == 'prql'` check above?
+        # # Even if called by another workflow, don't try and actually publish if
+        # # on a fork (it'll fail the workflow even if it otherwise builds successfully)
         if: "!github.event.pull_request.head.repo.fork"
         id: deployment
         uses: actions/deploy-pages@v1.2.4
