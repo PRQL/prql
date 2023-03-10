@@ -9,6 +9,9 @@ namespace Prql\Compiler;
  */
 final class Result
 {
+    /**
+     * @var string
+     */
     public string $output;
 
     /**
