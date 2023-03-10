@@ -12,6 +12,10 @@ on:
 jobs:
   cargo-audit:
     runs-on: ubuntu-latest
+    # We can't read PRQL repo security events on forks, which causes this to
+    # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
+    # could move this to `pull-request-target`.
+    if: "!github.event.pull_request.head.repo.fork"
     permissions:
       actions: read
       contents: read
