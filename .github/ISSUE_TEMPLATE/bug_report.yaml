@@ -14,7 +14,7 @@ body:
     attributes:
       label: PRQL input
       description: |
-        Minimal, self-contained example that demonstrates the issue.
+        A minimal, self-contained example that demonstrates the issue.
 
         This will be automatically formatted into code, so no need for markdown backticks.
       render: elm
@@ -38,7 +38,8 @@ body:
     attributes:
       label: Expected SQL output
 
-      description: optional (no need to write if the problem is obvious)
+      description:
+        Optional; no need to write out if it's obvious from the context
       render: SQL
 
   - type: checkboxes
@@ -46,17 +47,20 @@ body:
     attributes:
       label: MVCE confirmation
       description: |
-        Please confirm that the bug report is minimal and doesn't exist already.
+        Please confirm that the bug report is minimal and doesn't exist already:
 
+        - **Minimal example** — the example is as focused as reasonably
+          possible to demonstrate the underlying issue in PRQL.
+
+          For example, it's not possible to exclude any line and still observe
+          the bug.
+
+        - **New issue** — a search of GitHub Issues suggests this is not a
+          duplicate.
       options:
-        - label: "**Minimal example** — the example is as focused as reasonably
-            possible to demonstrate the underlying issue in PRQL.
+        - label: Minimal example
 
-            For example, it's not possible to exclude any line and still observe
-            the bug."
-        - label:
-            "**New issue** — a search of GitHub Issues suggests this is not a
-            duplicate."
+        - label: New issue
 
   - type: textarea
     id: extra
