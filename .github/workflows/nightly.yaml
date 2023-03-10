@@ -54,8 +54,7 @@ jobs:
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
-          # Move this up until 3, so the next upgrade is at 1.66 once 1.69 is released.
-          minor-version-delta: 2
+          minor-version-delta: 3
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
 
