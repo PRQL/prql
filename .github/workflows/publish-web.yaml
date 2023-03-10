@@ -15,7 +15,8 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
 
-    # Skip running workflow on forks
+    # Skip running workflow on forks. This still runs on PRs, but then below we
+    # disable it from attempting to publish.
     if: github.repository_owner == 'prql'
 
     steps:
@@ -65,12 +66,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
-    # Commenting out as I think it's duplicative with the check below; TODO:
-    # delete assuming everything works OK.
-    #
-    # Don't attempt to publish if on a fork (it'll fail the workflow even if it
-    # otherwise builds successfully)
-    # if: "!github.event.pull_request.head.repo.fork"
+    # Don't attempt to publish if on a fork, including a PR.
+    if: "!github.event.pull_request.head.repo.fork"
 
     steps:
       - name: Deploy to GitHub Pages
