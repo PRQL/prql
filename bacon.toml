@@ -5,14 +5,18 @@ default_job = "check"
 # PRQL additions
 [jobs.test-fast]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
+watch = ["tests", "benches", "examples"]
+
 [jobs.test]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--unreferenced=auto"]
+watch = ["tests", "benches", "examples"]
 
 # Standard tasks
 
 [jobs.check]
 command = ["cargo", "check", "--color", "always"]
 need_stdout = false
+watch = ["tests", "benches", "examples"]
 
 [jobs.check-all]
 command = ["cargo", "check", "--all-targets", "--color", "always"]
