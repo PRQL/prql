@@ -15,8 +15,11 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
 
-    # Skip running workflow on forks
-    if: github.repository_owner == 'prql'
+    # Commenting out as I think it's duplicative with the check below; TODO:
+    # delete assuming everything works OK.
+    #
+    # # Skip running workflow on forks
+    # if: github.repository_owner == 'prql'
 
     steps:
       - name: Setup Pages
@@ -65,11 +68,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
+    # Don't attempt to publish if on a fork (it'll fail the workflow even if it
+    # otherwise builds successfully)
+    if: "!github.event.pull_request.head.repo.fork"
+
     steps:
       - name: Deploy to GitHub Pages
-        # TDOO: is this repetitive for the `if: github.repository_owner == 'prql'` check above?
-        # # Even if called by another workflow, don't try and actually publish if
-        # # on a fork (it'll fail the workflow even if it otherwise builds successfully)
-        if: "!github.event.pull_request.head.repo.fork"
         id: deployment
         uses: actions/deploy-pages@v1.2.4
