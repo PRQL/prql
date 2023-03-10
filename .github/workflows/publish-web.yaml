@@ -15,11 +15,8 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
 
-    # Commenting out as I think it's duplicative with the check below; TODO:
-    # delete assuming everything works OK.
-    #
-    # # Skip running workflow on forks
-    # if: github.repository_owner == 'prql'
+    # Skip running workflow on forks
+    if: github.repository_owner == 'prql'
 
     steps:
       - name: Setup Pages
@@ -68,9 +65,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
+    # Commenting out as I think it's duplicative with the check below; TODO:
+    # delete assuming everything works OK.
+    #
     # Don't attempt to publish if on a fork (it'll fail the workflow even if it
     # otherwise builds successfully)
-    if: "!github.event.pull_request.head.repo.fork"
+    # if: "!github.event.pull_request.head.repo.fork"
 
     steps:
       - name: Deploy to GitHub Pages
