@@ -12,7 +12,7 @@ body:
   - type: textarea
     id: prql-input
     attributes:
-      label: PRQL — Minimal Complete Verifiable Example
+      label: PRQL input
       description: |
         Minimal, self-contained example that demonstrates the issue.
 
@@ -26,8 +26,7 @@ body:
     attributes:
       label: SQL output
       description: |
-        The SQL that PRQL currently compiles to. Feel free to use the
-        [playground](https://prql-lang.org/playground/) to generate.
+        The SQL that PRQL currently compiles to. Feel free to use the [playground](https://prql-lang.org/playground/) to generate the SQL.
 
         This will be automatically formatted into code, so no need for markdown backticks.
       render: SQL
@@ -37,9 +36,9 @@ body:
   - type: textarea
     id: expected-output
     attributes:
-      label:
-        Expected SQL output, optional (no need to write if the problem is
-        obvious)
+      label: Expected SQL output
+
+      description: optional (no need to write if the problem is obvious)
       render: SQL
 
   - type: checkboxes
@@ -53,7 +52,7 @@ body:
         - label:
             Minimal example — the example is as focused as reasonably possible
             to demonstrate the underlying issue in PRQL. For example, it's not
-            possible to remove a line and still see the bug.
+            possible to exclude any line and still observe the bug.
         - label:
             New issue — a search of GitHub Issues suggests this is not a
             duplicate.
@@ -61,6 +60,4 @@ body:
   - type: textarea
     id: extra
     attributes:
-      label: Anything else we need to know?
-      description: |
-        Please describe any other information you want to share.
+      label: Anything else?
