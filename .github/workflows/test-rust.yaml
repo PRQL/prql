@@ -9,6 +9,9 @@ on:
       target_option:
         type: string
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   test:
     runs-on: ${{ inputs.os }}
