@@ -22,7 +22,6 @@ use globset::Glob;
 use insta::{assert_snapshot, glob};
 use itertools::Itertools;
 use log::warn;
-use mdbook_prql::code_block_lang;
 use prql_compiler::*;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -70,7 +69,7 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
             let mut parser = Parser::new(&text);
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
-                match code_block_lang(&event) {
+                match mdbook_prql::code_block_lang(&event) {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
                     // this is disabled on windows.
