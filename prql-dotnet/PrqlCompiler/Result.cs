@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Prql.Compiler
 {
@@ -10,19 +11,27 @@ namespace Prql.Compiler
     {
         private readonly IReadOnlyCollection<Message> _messages;
 
-        internal Result(string output, IEnumerable<Message> messages)
+        internal Result(NativeResult result)
         {
-            Output = output;
+            Output = result.Output;
+
+            var messages = new List<Message>();
+
+            for (var i = 0; i < result.MessagesLen; i++)
+            {
+                messages.Add(Marshal.PtrToStructure<Message>(result.Messages));
+            }
+
             _messages = messages.ToList().AsReadOnly();
         }
 
         /// <summary>
-        /// @var string
+        /// The compiler output.
         /// </summary>
         public string Output { get; }
 
         /// <summary>
-        /// @var array<Message>
+        /// Error, warning and lint messages.
         /// </summary>
         public IReadOnlyCollection<Message> Messages => _messages;
     }
