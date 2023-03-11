@@ -34,6 +34,14 @@ group department (
 )
 ```
 
+Note that we can't always compile to `DISTINCT`; when the columns in the `group`
+aren't all the available columns, we need to use a window function:
+
+```prql
+from employees
+group [first_name, last_name] (take 1)
+```
+
 ## Roadmap
 
 When using Postgres dialect, we are planning to compile:
