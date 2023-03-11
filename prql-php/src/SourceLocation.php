@@ -9,8 +9,23 @@ namespace Prql\Compiler;
  */
 final class SourceLocation
 {
+    /**
+     * Start line.
+     */
     public int $start_line;
+
+    /**
+     * Start column.
+     */
     public int $start_col;
+
+    /**
+     * End line.
+     */
     public int $end_line;
+
+    /**
+     * End column.
+     */
     public int $end_col;
 }

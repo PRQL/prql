@@ -56,6 +56,7 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
     Ok(sql)
 }
 
+#[derive(Debug)]
 struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
@@ -69,7 +70,7 @@ struct Context {
     pub ctes: Vec<sqlparser::ast::Cte>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct QueryOpts {
     /// When true, column references will not include table names prefixes.
     pub omit_ident_prefix: bool,

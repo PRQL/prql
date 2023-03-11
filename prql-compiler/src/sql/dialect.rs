@@ -94,15 +94,23 @@ impl Default for Dialect {
     }
 }
 
+#[derive(Debug)]
 pub struct GenericDialect;
+#[derive(Debug)]
 pub struct SQLiteDialect;
+#[derive(Debug)]
 pub struct MySqlDialect;
+#[derive(Debug)]
 pub struct MsSqlDialect;
+#[derive(Debug)]
 pub struct BigQueryDialect;
+#[derive(Debug)]
 pub struct ClickHouseDialect;
-
+#[derive(Debug)]
 pub struct SnowflakeDialect;
+#[derive(Debug)]
 pub struct DuckDbDialect;
+#[derive(Debug)]
 pub struct PostgresDialect;
 
 pub(super) enum ColumnExclude {
@@ -110,7 +118,7 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
-pub(super) trait DialectHandler: Any {
+pub(super) trait DialectHandler: Any + Debug {
     fn use_top(&self) -> bool {
         false
     }

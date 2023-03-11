@@ -10,6 +10,13 @@ namespace Prql\Compiler;
  */
 final class Span
 {
+    /**
+     * Start offset.
+     */
     public int $start;
+
+    /**
+     * End offset.
+     */
     public int $end;
 }

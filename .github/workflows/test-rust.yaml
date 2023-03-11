@@ -9,8 +9,11 @@ on:
       target_option:
         type: string
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  test:
+  test-rust:
     runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
@@ -22,8 +25,7 @@ jobs:
           # reset the cache. If necessary, we could do this on each release and
           # have this update automatically (there's no variable that contains
           # the current version unfortunately, though).
-          prefix-key: "0.5.2"
-          key: ${{ inputs.target_option }}
+          key: 0.6.0-${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: baptiste0928/cargo-install@next
         with:
@@ -51,10 +53,12 @@ jobs:
       - uses: baptiste0928/cargo-install@next
         with:
           crate: cargo-insta
-      # Only check unreferenced snapshots on the default target tests on ubuntu (maybe
-      # there's a nicer approach where we can parameterize one step rather than
-      # have two different ones; we welcome a change to simplify this)
-      - name: 📋 Test
+      # Only check unreferenced snapshots on the default target tests on ubuntu
+      #
+      # (Maybe there's a nicer approach where we can parameterize one step
+      # rather than have two different ones? We welcome a change to simplify
+      # this.)
+      - name: 📋 Test default
         uses: richb-hanover/cargo@v1.1.0
         if:
           ${{ (inputs.target_option != '--target=wasm32-unknown-unknown' &&
@@ -62,7 +66,7 @@ jobs:
         with:
           command: insta
           args: test --unreferenced=auto ${{ inputs.target_option }}
-      - name: 📋 Test
+      - name: 📋 Test wasm
         uses: richb-hanover/cargo@v1.1.0
         if:
           ${{ ! (inputs.target_option != '--target=wasm32-unknown-unknown' &&

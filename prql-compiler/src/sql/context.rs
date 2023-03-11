@@ -17,7 +17,7 @@ use crate::utils::{IdGenerator, NameGenerator};
 
 use super::preprocess::{SqlRelation, SqlTransform};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct AnchorContext {
     pub(super) column_decls: HashMap<CId, ColumnDecl>,
     pub(super) column_names: HashMap<CId, String>,

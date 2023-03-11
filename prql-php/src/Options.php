@@ -14,7 +14,7 @@
  * @copyright 2023 PRQL
  * @license   https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
  *
- * @see      https://prql-lang.org/
+ * @see https://prql-lang.org/
  */
 
 declare(strict_types=1);
@@ -27,7 +27,7 @@ namespace Prql\Compiler;
  * @author  PRQL
  * @license https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
  *
- * @see    https://prql-lang.org/
+ * @see https://prql-lang.org/
  */
 final class Options
 {

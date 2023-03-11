@@ -34,12 +34,14 @@ use walkdir::WalkDir;
 /// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
 ///   there's a diff.
 ///
-/// Then, when the book is built, the PRQL code block in the book is replaced
-/// with a comparison table.
+/// This mirrors the process in [replace_examples], which inserts a
+/// comparison table of SQL into the book, and so serves as a snapshot test of
+/// those examples.
 fn test_examples() -> Result<()> {
-    // Note that on Windows, markdown is read differently, and so we don't write
-    // on Windows (we write from the same place we read as a workaround). ref
-    // https://github.com/PRQL/prql/issues/356
+    // Note that on Windows, markdown is read differently, and so we don't yet
+    // write on Windows (we write from the same place we read as a workaround,
+    // and would welcome a fix).
+    // ref https://github.com/PRQL/prql/issues/356
 
     write_prql_examples(collect_book_examples()?)?;
     test_prql_examples();
@@ -52,7 +54,7 @@ const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
 #[cfg(not(target_family = "windows"))]
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
-    use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
+    use pulldown_cmark::{Event, Parser};
     let glob = Glob::new("**/*.md")?.compile_matcher();
     let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
         .into_iter()
@@ -60,31 +62,26 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
         .filter(|x| glob.is_match(x.path()))
         .flat_map(|dir_entry| {
             let text = fs::read_to_string(dir_entry.path())?;
-            // TODO: Duplicative logic here and in [lib.rs/replace_examples];
-            // could we unify?
+            // TODO: Still slightly duplicative logic here and in
+            // [lib.rs/replace_examples], but not sure how to avoid it.
             //
-            // Could we have a function that takes text and returns a
-            // Vec<prql_string, result, expected>, where expected is whether it
-            // should succeed or fail?
             let mut parser = Parser::new(&text);
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
-                match event.clone() {
+                match mdbook_prql::code_block_lang(&event) {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
                     // this is disabled on windows.
                     // https://github.com/PRQL/prql/issues/356
-                    Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                        if lang.starts_with("prql") =>
-                    {
+                    Some(lang) if lang.starts_with("prql") => {
                         let Some(Event::Text(text)) = parser.next() else {
                             bail!("Expected text after PRQL code block")
                         };
-                        if lang == "prql".into() {
+                        if lang == "prql" {
                             prql_blocks.push(text.to_string());
-                        } else if lang == "prql_error".into() {
+                        } else if lang == "prql_error" {
                             prql_blocks.push(format!("# Error expected\n\n{text}"));
-                        } else if lang == "prql_no_fmt".into() {
+                        } else if lang == "prql_no_fmt" {
                             prql_blocks.push(format!("# Can't yet format & compile\n\n{text}"));
                         }
                     }
@@ -167,6 +164,7 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
         })
     });
 
+    // TODO: Not actually sure we want this; not consistent with `cargo insta --accept`.
     if !snapshots_updated.is_empty() {
         let snapshots_updated = snapshots_updated
             .iter()
