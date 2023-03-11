@@ -155,8 +155,9 @@ pre ::-webkit-scrollbar-thumb:hover {
   border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
-#header .logo img {
+#header .logo {
   max-height: 50px;
+  text-decoration: none;
 }
 
 #header .logo h1 {
