@@ -1,0 +1,18 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nfilter salary < (average salary)\n"
+---
+WITH table_1 AS (
+  SELECT
+    *,
+    AVG(salary) OVER () AS _expr_0
+  FROM
+    employees
+)
+SELECT
+  *
+FROM
+  table_1 AS table_0
+WHERE
+  salary < _expr_0
+

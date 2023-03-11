@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "# Can't yet format & compile\n\nfunc fahrenheit_to_celsius temp -> (temp - 32) / 1.8\n\nfrom cities\nderive temp_c = (fahrenheit_to_celsius temp_f)\n"
+---
+SELECT
+  *,
+  (temp_f - 32) / 1.8 AS temp_c
+FROM
+  cities
+

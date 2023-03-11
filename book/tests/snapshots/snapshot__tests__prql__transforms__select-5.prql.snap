@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "# Can't yet format & compile\n\nfrom tracks\nselect [track_id, title, composer, bytes]\nselect ![title, composer]\n"
+---
+SELECT
+  track_id,
+  bytes
+FROM
+  tracks
+

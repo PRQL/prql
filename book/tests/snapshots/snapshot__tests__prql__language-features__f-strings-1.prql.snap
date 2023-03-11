@@ -1,0 +1,18 @@
+---
+source: book/tests/snapshot.rs
+expression: "from web\nselect url = f\"http{tls}://www.{domain}.{tld}/{page}\"\n"
+---
+SELECT
+  CONCAT(
+    'http',
+    tls,
+    '://www.',
+    domain,
+    '.',
+    tld,
+    '/',
+    page
+  ) AS url
+FROM
+  web
+
