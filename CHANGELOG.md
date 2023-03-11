@@ -9,6 +9,8 @@
 - No longer incorrectly compile to `DISTINCT` when a `take 1` refers to a
   different set of columns than are in the `group`. (@max-sixty, with thanks to
   @cottrell, #2109)
+- The version specification of the dependent Chumsky was bumped from `0.9.0` to
+  `0.9.2`. `0.9.0` has a bug that causes an infinite loop. (@eitsupi, #2110)
 
 **Documentation**:
 
