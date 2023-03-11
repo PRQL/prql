@@ -269,3 +269,4 @@ final class Compiler
         return \FFI::string(\FFI::cast(\FFI::type('char*'), $ffi_ptr));
     }
 }
+// update for test
