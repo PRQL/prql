@@ -8,7 +8,7 @@
 
 - No longer incorrectly compile to `DISTINCT` when a `take 1` refers to a
   different set of columns than are in the `group`. (@max-sixty, with thanks to
-  @cottrell, #2058)
+  @cottrell, #2109)
 
 **Documentation**:
 
