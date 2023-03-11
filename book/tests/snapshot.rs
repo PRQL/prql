@@ -17,11 +17,9 @@
 // us. They introduce a bunch of non-rust dependencies, which is not ideal, but
 // passable. They don't let us customize our formatting (e.g. in a table).
 //
-use anyhow::{bail, Error, Result};
+use anyhow::{bail, Result};
 use globset::Glob;
-use insta::{assert_snapshot, glob};
-use itertools::Itertools;
-use log::warn;
+use insta::{assert_snapshot};
 use prql_compiler::*;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -38,12 +36,6 @@ use walkdir::WalkDir;
 /// comparison table of SQL into the book, and so serves as a snapshot test of
 /// those examples.
 fn test_examples() -> Result<()> {
-    // Note that on Windows, markdown is read differently, and so we don't yet
-    // write on Windows (we write from the same place we read as a workaround,
-    // and would welcome a fix).
-    // ref https://github.com/PRQL/prql/issues/356
-
-    write_prql_examples(collect_book_examples()?)?;
     test_prql_examples();
 
     Ok(())
@@ -52,7 +44,6 @@ fn test_examples() -> Result<()> {
 const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
-#[cfg(not(target_family = "windows"))]
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
     use pulldown_cmark::{Event, Parser};
     let glob = Glob::new("**/*.md")?.compile_matcher();
@@ -69,14 +60,14 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
                 match mdbook_prql::code_block_lang(&event) {
-                    // At the start of a PRQL code block, push the _next_ item.
-                    // Note that on windows, we only get the next _line_, and so
-                    // this is disabled on windows.
-                    // https://github.com/PRQL/prql/issues/356
                     Some(lang) if lang.starts_with("prql") => {
-                        let Some(Event::Text(text)) = parser.next() else {
-                            bail!("Expected text after PRQL code block")
-                        };
+                        let mut text = String::new();
+                        while let Some(Event::Text(line)) = parser.next() {
+                            text.push_str(line.to_string().as_str());
+                        }
+                        if text.is_empty() {
+                            bail!("Expected text after PRQL code block");
+                        }
                         if lang == "prql" {
                             prql_blocks.push(text.to_string());
                         } else if lang == "prql_error" {
@@ -112,82 +103,12 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
     Ok(examples_in_book)
 }
 
-/// Collect examples which we've already written to disk, as a map of <Path, PRQL>.
-fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
-    let glob = Glob::new("**/*.prql")?.compile_matcher();
-    let existing_examples = WalkDir::new(Path::new(ROOT_EXAMPLES_PATH))
-        .into_iter()
-        .flatten()
-        .filter(|x| glob.is_match(x.path()))
-        .map(|x| Ok::<_, Error>((x.clone().into_path(), fs::read_to_string(x.path())?)))
-        .try_collect()?;
-
-    Ok(existing_examples)
-}
-
-// On Windows, we grab them from the written files, because of the markdown issue.
-#[cfg(target_family = "windows")]
-fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
-    collect_snapshot_examples()
-}
-
-/// Write the passed examples as snapshots to the `tests/prql` path, one in each file.
-// We could alternatively have used something like
-// https://github.com/earldouglas/codedown, but it's not much code, and it
-// requires no dependencies.
-fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
-    // If we have to modify any files, raise an error at the end, so it fails in CI.
-    let mut snapshots_updated = vec![];
-
-    let mut existing_snapshots: HashMap<_, _> = collect_snapshot_examples()?;
-    // Write any new snapshots, or update any that have changed
-    examples.iter().try_for_each(|(prql_path, example)| {
-        if existing_snapshots
-            .remove(prql_path)
-            .map(|existing| existing != *example)
-            .unwrap_or(true)
-        {
-            snapshots_updated.push(prql_path);
-            fs::create_dir_all(Path::new(prql_path).parent().unwrap())?;
-            fs::write(prql_path, example)?;
-        }
-
-        Ok::<(), anyhow::Error>(())
-    })?;
-
-    // If there are any files left in `existing_snapshots`, we remove them,
-    // since they don't reference anything (like
-    // `--delete-unreferenced-snapshots` in insta).
-    existing_snapshots.iter().for_each(|(path, _)| {
-        trash::delete(path).unwrap_or_else(|e| {
-            warn!("Failed to delete unreferenced example: {}", e);
-        })
-    });
-
-    // TODO: Not actually sure we want this; not consistent with `cargo insta --accept`.
-    if !snapshots_updated.is_empty() {
-        let snapshots_updated = snapshots_updated
-            .iter()
-            .map(|x| format!("  - {}", x.to_str().unwrap()))
-            .join("\n");
-        bail!(format!(
-            r###"
-Some book snapshots were not consistent with the queries in the book:
-
-{snapshots_updated}
-
-The snapshots have now been updated. Subsequent runs of this test should now pass.\n\n"###
-        ));
-    }
-    Ok(())
-}
-
 /// Snapshot the SQL output of each example.
 fn test_prql_examples() {
     let opts = Options::default().no_signature();
-    glob!("prql/**/*.prql", |path| {
-        let prql = fs::read_to_string(path).unwrap();
+    let examples = collect_book_examples().unwrap();
 
+    for (path, prql) in examples{
         // TODO: I don't think we use this and can remove it?
         if prql.contains("skip_test") {
             return;
@@ -195,12 +116,8 @@ fn test_prql_examples() {
 
         // Whether it's a success or a failure, get the string.
         let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
-        // `glob!` gives us the file path in the test name anyway, so we pass an
-        // empty name. We pass `&prql` so the prql is in the snapshot (albeit in
-        // a single line, and, in the rare case that the SQL doesn't change, the
-        // PRQL only updates on running cargo insta with `--force-update-snapshots`).
-        assert_snapshot!("", &sql, &prql);
-    });
+        assert_snapshot!(path.to_str().unwrap(), &sql, &prql);
+    }
 }
 
 /// Test that the formatted result (the `Display` result) of each example can be

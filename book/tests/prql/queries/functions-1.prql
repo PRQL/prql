@@ -1,7 +1,0 @@
-func interp low:0 high x -> (x - low) / (high - low)
-
-from students
-derive [
-  sat_proportion_1 = (interp 1600 sat_score),
-  sat_proportion_2 = (interp low:0 1600 sat_score),
-]
