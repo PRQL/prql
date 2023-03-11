@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::HashSet;
 
 use anyhow::Result;
@@ -8,7 +7,75 @@ use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::Context;
 
-pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
+/// Takes a resolved [Expr] and evaluates it a set expression that can be used to construct a type.
+pub fn coerce_to_set(expr: Expr, context: &Context) -> Result<SetExpr, Error> {
+    coerce_to_named_set(expr, context).map(|(_, s)| s)
+}
+
+fn coerce_to_named_set(expr: Expr, context: &Context) -> Result<(Option<String>, SetExpr), Error> {
+    let name = expr.alias;
+    let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
+
+    Ok((name, expr))
+}
+
+fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Error> {
+    // primitives
+    if let ExprKind::Set(set_expr) = expr {
+        return Ok(set_expr);
+    }
+
+    // singletons
+    if let ExprKind::Literal(lit) = expr {
+        return Ok(SetExpr::Singleton(lit));
+    }
+
+    // tuples
+    if let ExprKind::List(elements) = expr {
+        let mut set_elements = Vec::with_capacity(elements.len());
+
+        for e in elements {
+            let (name, set) = coerce_to_named_set(e, context)?;
+
+            set_elements.push(TupleElement::Single(name, set));
+        }
+
+        return Ok(SetExpr::Tuple(set_elements));
+    }
+
+    // unions
+    if let ExprKind::Binary {
+        left,
+        op: BinOp::Or,
+        right,
+    } = expr
+    {
+        let left = coerce_to_named_set(*left, context)?;
+        let right = coerce_to_named_set(*right, context)?;
+
+        // flatten nested unions
+        let mut options = Vec::with_capacity(2);
+        if let SetExpr::Union(parts) = left.1 {
+            options.extend(parts);
+        } else {
+            options.push(left);
+        }
+        if let SetExpr::Union(parts) = right.1 {
+            options.extend(parts);
+        } else {
+            options.push(right);
+        }
+
+        return Ok(SetExpr::Union(options));
+    }
+
+    Err(Error::new_simple(format!(
+        "not a set expression: {}",
+        Expr::from(expr)
+    )))
+}
+
+pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
     if let Some(ty) = &node.ty {
         return Ok(ty.clone());
     }
@@ -16,13 +83,13 @@ pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
     Ok(match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
             Literal::Null => Ty::Infer,
-            Literal::Integer(_) => TyLit::Integer.into(),
-            Literal::Float(_) => TyLit::Float.into(),
-            Literal::Boolean(_) => TyLit::Bool.into(),
-            Literal::String(_) => TyLit::String.into(),
-            Literal::Date(_) => TyLit::Date.into(),
-            Literal::Time(_) => TyLit::Time.into(),
-            Literal::Timestamp(_) => TyLit::Timestamp.into(),
+            Literal::Integer(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Int)),
+            Literal::Float(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Float)),
+            Literal::Boolean(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Bool)),
+            Literal::String(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Text)),
+            Literal::Date(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Date)),
+            Literal::Time(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Time)),
+            Literal::Timestamp(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Timestamp)),
             Literal::ValueAndUnit(_) => Ty::Infer, // TODO
             Literal::Relation(_) => unreachable!(),
         },
@@ -30,11 +97,11 @@ pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
         ExprKind::SString(_) => Ty::Infer,
-        ExprKind::FString(_) => TyLit::String.into(),
+        ExprKind::FString(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Text)),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
-        ExprKind::List(_) => Ty::Literal(TyLit::List),
+        ExprKind::List(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::List)),
 
         _ => Ty::Infer,
     })
@@ -94,10 +161,7 @@ where
         });
     }
 
-    let expected_is_above = matches!(
-        expected.partial_cmp(&found_ty),
-        Some(Ordering::Equal | Ordering::Greater)
-    );
+    let expected_is_above = expected.is_superset_of(&found_ty);
     if !expected_is_above {
         let e = Err(Error::new(Reason::Expected {
             who: who(),

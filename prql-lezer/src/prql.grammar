@@ -1,5 +1,5 @@
 // TODO:
-// - `switch` transform
+// - `case` transform
 // - Do we want to highlight built-in transforms like `from` differently to
 //   normal functions?
 // - A few small TODOs included below
@@ -19,7 +19,7 @@ pipe { "|" | ~ambig_newline newline }
 
 List { "[" newline? list_item (("," newline? ) list_item)* ","? newline? "]" }
 
-list_item { Assign_call | expr_call }
+list_item { Assign_call | expr_call | Case_branch }
 
 expr_call { Expr | Func_call }
 // Ideally we would force a space after `Ident` to prevent an invalid s-string
@@ -37,6 +37,7 @@ Expr { !term term (( Op_bin) term)* }
 Named_arg { ident_part ":" Expr }
 Assign { ident_part "=" Expr }
 Assign_call { ident_part "=" expr_call }
+Case_branch { Expr "=>" Expr }
 
 Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
 
@@ -46,7 +47,8 @@ Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
 // It's outside tokens because otherwise it conflicts with Ident
 Ident { ident_part ( "." ident_part)* }
 
-// I don't think it's possible to have `Op_bin` & `Op_unary` as tokens — that would mean `-` can't be both unary & bin.
+// I don't think it's possible to have `Op_bin` & `Op_unary` as tokens — that
+// would mean `-` can't be both unary & bin.
 Op_bin { Op_bin_only | Op_unary }
 
 @tokens {

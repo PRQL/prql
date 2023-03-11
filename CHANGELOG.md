@@ -1,10 +1,43 @@
 # PRQL Changelog
 
-## 0.5.3 — [unreleased]
+## 0.6.1 — [unreleased]
 
 **Features**:
 
-- `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.6.0 — 2022-03-08
+
+0.6.0 introduces a rewritten parser, giving us the ability to dramatically
+improve error messages, renames `switch` to `case` and includes lots of minor
+improvements and fixes. It also introduces `loop`, which compiles to
+`WITH RECURSIVE`, as a highly experimental feature.
+
+There are a few cases of breaking changes, including switching `switch` to
+`case`, in case that's confusing. There are also some minor parsing changes
+outlined below.
+
+This release has 108 commits from 11 contributors. Selected changes:
+
+**Features**:
+
+- Add a (highly experimental) `loop` language feature, which translates to
+  `WITH RECURSIVE`. We expect changes and refinements in upcoming releases.
+  (#1642, @aljazerzen)
+- Rename the experimental `switch` function to `case` given it more closely
+  matches the traditional semantics of `case`. (@max-sixty, #2036)
+- Change the `case` syntax to use `=>` instead of `->` to distinguish it from
+  function syntax.
 - Convert parser from pest to Chumsky (@aljazerzen, #1818)
   - Improved error messages, and the potential to make even better in the
     future. Many of these improvements come from error recovery.
@@ -16,7 +49,7 @@
   - `and` now has a higher precedence than `or` (of same reason as the previous
     point).
   - Dates, times and timestamps have stricter parsing rules.
-  - `let`, `func`, `prql`, `switch` are now treated as keywords.
+  - `let`, `func`, `prql`, `case` are now treated as keywords.
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
@@ -41,8 +74,6 @@
 - Error messages for invalid queries are displayed in the book (@max-sixty,
   #2015)
 
-**Web**:
-
 **Integrations**:
 
 - [prql-php] Added PHP bindings. (@vanillajonathan, #1860)
@@ -55,10 +86,16 @@
 
 **Internal changes**:
 
-- Test that the code our nascent autoformatter generates can be compiled into
-  SQL. Examples where it can't are now labeled. (@max-sixty, #2016)
+- Test that the output of our nascent autoformatter can be successfully compiled
+  into SQL. Failing examples are now clearly labeled. (@max-sixty, #2016)
+- Definition files have been added to configure
+  [Dev Containers](https://containers.dev/) for Rust development environment.
+  (@eitsupi, #1893, #2025, #2028)
 
 **New Contributors**:
+
+- @linux-china, with #1971
+- @Jelenkee, with #2019
 
 ## 0.5.2 — 2022-02-18
 
@@ -214,7 +251,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 
 ## 0.4.0 — 2022-01-15
 
-0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
+0.4.0 brings lots of new features including `case`, `select ![]` and numbers
 with underscores. We have initial (unpublished) bindings to Elixir. And there's
 the usual improvements to fixes & documentation (only a minority are listed
 below in this release).
@@ -229,12 +266,12 @@ below in this release).
   [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
 - _Experimental:_ The
-  [`switch`](https://prql-lang.org/book/language-features/switch.html) function
-  sets a variable to a value based on one of several expressions (@aljazerzen,
+  [`case`](https://prql-lang.org/book/language-features/case.html) function sets
+  a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
   ```prql
-  derive var = switch [
+  derive var = case [
     score <= 10 -> "low",
     score <= 30 -> "medium",
     score <= 70 -> "high",
@@ -258,8 +295,8 @@ below in this release).
   ```
 
   Check out the
-  [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
-  more details.
+  [`case` docs](https://prql-lang.org/book/language-features/case.html) for more
+  details.
 
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
   #1329)

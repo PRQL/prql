@@ -169,40 +169,6 @@ mod test {
             - Wildcard
         "### );
 
-        assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql target:sql.bigquery version:"0.5"
-
-        from employees
-        "###).unwrap(), @r###"
-        ---
-        def:
-          version: ^0.5
-          other:
-            target: sql.bigquery
-        tables:
-          - id: 0
-            name: ~
-            relation:
-              kind:
-                ExternRef:
-                  LocalTable: employees
-              columns:
-                - Wildcard
-        relation:
-          kind:
-            Pipeline:
-              - From:
-                  source: 0
-                  columns:
-                    - - Wildcard
-                      - 0
-                  name: employees
-              - Select:
-                  - 0
-          columns:
-            - Wildcard
-        "### );
-
         assert!(parse_and_resolve(
             r###"
         prql target:sql.bigquery version:foo

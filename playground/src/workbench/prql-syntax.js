@@ -13,7 +13,7 @@ const TRANSFORMS = [
   "union",
   "window",
 ];
-const BUILTIN_FUNCTIONS = ["switch"]; // "in", "as"
+const BUILTIN_FUNCTIONS = ["case"]; // "in", "as"
 const KEYWORDS = ["func", "let", "prql"];
 const LITERALS = ["null", "true", "false"];
 const OPERATORS = ["and", "or"]; // "not"
@@ -39,6 +39,8 @@ const def = {
     "-",
     "==",
     "!=",
+    "->",
+    "=>",
     ">",
     "<",
     ">=",

@@ -294,9 +294,9 @@ At the moment, PRQL uses only four keywords:
 - `prql`
 - `let`
 - `func`
-- `switch`
+- `case`
 
-To use these names as columns or relations, use backticks: `` `switch` ``.
+To use these names as columns or relations, use backticks: `` `case` ``.
 
 It may seem that transforms are also keywords, but they are normal function
 within std namespace:

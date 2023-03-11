@@ -42,7 +42,7 @@
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)
-  - [Switch](./language-features/switch.md)
+  - [Case](./language-features/case.md)
   - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)
@@ -72,7 +72,8 @@
 - [Contributing to PRQL](./contributing/README.md)
 
   - [Development](./contributing/development.md)
-  - [Using Docker](./contributing/using-docker.md)
+  - [Developing with Docker](./contributing/developing-with-docker.md)
+  - [Developing with Dev Containers](./contributing/developing-with-dev-containers.md)
 
 - [Internals](./internals/README.md)
 

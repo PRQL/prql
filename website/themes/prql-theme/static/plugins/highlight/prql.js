@@ -23,7 +23,7 @@ formatting = function (hljs) {
     "union",
     "window",
   ];
-  const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
+  const BUILTIN_FUNCTIONS = ["case", "in", "as"];
   const KEYWORDS = ["func", "let", "prql"];
   return {
     name: "PRQL",
@@ -152,7 +152,7 @@ formatting = function (hljs) {
       {
         scope: "operator",
         match:
-          /(>)|(<)|(==)|(\+)|(\-)|(\/)|(\*)|(!=)|(<=)|(>=)|(\band\b)|(\bor\b)/,
+          /(>)|(<)|(==)|(\+)|(\-)|(\/)|(\*)|(!=)|(->)|(=>)|(<=)|(>=)|(\band\b)|(\bor\b)/,
         relevance: 10,
       },
       {

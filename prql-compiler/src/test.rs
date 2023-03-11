@@ -2232,7 +2232,7 @@ fn test_double_aggregate() {
 
     let query = r###"
     from numbers
-    group [type] (
+    group [`type`] (
         aggregate [
             total_amt = sum amount,
             max amount
@@ -2308,7 +2308,7 @@ fn test_inline_tables() {
     assert_display_snapshot!(compile(r###"
     (
         from employees
-        select [emp_id, name, surname, type, amount]
+        select [emp_id, name, surname, `type`, amount]
     )
     join s = (from salaries | select [emp_id, salary]) [==emp_id]
     "###).unwrap(),
@@ -2665,13 +2665,13 @@ fn test_output_column_deduplication() {
 }
 
 #[test]
-fn test_switch() {
+fn test_case() {
     assert_display_snapshot!(compile(
         r###"
     from employees
-    derive display_name = switch [
-        nickname != null -> nickname,
-        true -> f'{first_name} {last_name}'
+    derive display_name = case [
+        nickname != null => nickname,
+        true => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2689,9 +2689,9 @@ fn test_switch() {
     assert_display_snapshot!(compile(
         r###"
     from employees
-    derive display_name = switch [
-        nickname != null -> nickname,
-        first_name != null -> f'{first_name} {last_name}'
+    derive display_name = case [
+        nickname != null => nickname,
+        first_name != null => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2710,8 +2710,8 @@ fn test_switch() {
     assert_display_snapshot!(compile(
         r###"
     from tracks
-    select category = switch [
-        length > avg_length -> 'long'
+    select category = case [
+        length > avg_length => 'long'
     ]
     group category (aggregate count)
         "###).unwrap(),
@@ -2781,13 +2781,13 @@ fn test_static_analysis() {
 
         a3 = null ?? y,
 
-        a3 = switch [
-            false == true -> 1,
-            7 == 3 -> 2,
-            7 == y -> 3,
-            7.3 == 7.3 -> 4,
-            z -> 5,
-            true -> 6
+        a3 = case [
+            false == true => 1,
+            7 == 3 => 2,
+            7 == y => 3,
+            7.3 == 7.3 => 4,
+            z => 5,
+            true => 6
         ]
     ]
         "###).unwrap(),

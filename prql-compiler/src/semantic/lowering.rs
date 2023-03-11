@@ -32,13 +32,15 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     let mut main_pipeline = None;
 
     for statement in statements {
+        use pl::StmtKind::*;
+
         match statement.kind {
-            pl::StmtKind::QueryDef(def) => query_def = Some(def),
-            pl::StmtKind::Main(expr) => {
+            QueryDef(def) => query_def = Some(def),
+            Main(expr) => {
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
+            FuncDef(_) | VarDef(_) | TypeDef(_) => {}
         }
     }
 
@@ -637,7 +639,7 @@ impl Lowerer {
             pl::ExprKind::FString(items) => {
                 rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
-            pl::ExprKind::Switch(cases) => rq::ExprKind::Switch(
+            pl::ExprKind::Case(cases) => rq::ExprKind::Case(
                 cases
                     .into_iter()
                     .map(|case| -> Result<_> {
@@ -660,6 +662,7 @@ impl Lowerer {
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
+            | pl::ExprKind::Set(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {

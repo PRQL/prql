@@ -1,8 +1,8 @@
 from tracks
 sort milliseconds
-select display = switch [
-    composer != null -> composer,
-    genre_id < 17 -> 'no composer',
-    true -> f'unknown composer'
+select display = case [
+    composer != null => composer,
+    genre_id < 17 => 'no composer',
+    true => f'unknown composer'
 ]
 take 10

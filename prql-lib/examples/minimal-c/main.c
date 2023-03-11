@@ -2,46 +2,64 @@
 
 #include <libprql_lib.h>
 
+void print_result(CompileResult res) {
+    printf("---- [ Compiled with %ld errors ]----\n", res.messages_len);
+    for (int i = 0; i < res.messages_len; i++) {
+        Message const* e = &res.messages[i];
+        if (e->display != NULL) {
+            printf("%s", *e->display);
+        } else if (e->code != NULL) {
+            printf("[%s] Error: %s\n", *e->code, e->reason);
+        } else {
+            printf("Error: %s", e->reason);
+        }
+    }
+    if (*res.output == '\0') {
+        printf("Output: <empty>\n\n");
+    } else {
+        printf("Output:\n%s\n\n", res.output);
+    }
+}
+
 int main() {
     char *prql_query;
     prql_query = "from albums | select [album_id, title] | take 3";
-
-    int res;
-    char res_buffer[256];
+    CompileResult res;
+    CompileResult res2;
 
     // default compile option
-    res = compile(prql_query, NULL, res_buffer);
-    printf("%s\n\n", res_buffer);
+    res = compile(prql_query, NULL);
+    print_result(res);
+    result_destroy(res);
 
     // custom compile options
     Options opts;
     opts.format = false;
     opts.signature_comment = false;
     opts.target = "sql.mssql";
-    res = compile(prql_query, &opts, res_buffer);
-    printf("%s\n\n", res_buffer);
+    res = compile(prql_query, &opts);
+    print_result(res);
+    result_destroy(res);
 
     // error handling
-    res = compile("from album | select [album_id] | select [title]", NULL, res_buffer);
-    if (res == 0) {
-        printf("success\n\n");
-    }
-    if (res < 0) {
-        printf("error with code %d!\n%s\n\n", res, res_buffer);
-    }
+    res = compile("from album | select [album_id] | select [title]", NULL);
+    print_result(res);
+    result_destroy(res);
+
+    // error handling
+    res = compile("let a = (from album)", NULL);
+    print_result(res);
+    result_destroy(res);
 
     // intermediate results
-    char* pl_buffer = (char*) malloc(sizeof(char) * 512);
-    char* rq_buffer = (char*) malloc(sizeof(char) * 512);
+    res = prql_to_pl(prql_query);
+    print_result(res);
 
-    res = prql_to_pl(prql_query, pl_buffer);
-    printf("PL JSON: %s\n\n", pl_buffer);
+    res2 = pl_to_rq(res.output);
+    result_destroy(res);
 
-    res = pl_to_rq(pl_buffer, rq_buffer);
-    printf("RQ JSON: %s\n\n", rq_buffer);
-
-    free(pl_buffer);
-    free(rq_buffer);
+    print_result(res2);
+    result_destroy(res2);
 
     return 0;
 }

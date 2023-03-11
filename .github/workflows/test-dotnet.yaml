@@ -1,11 +1,11 @@
 name: test-dotnet
 
 on:
-  pull_request:
-    paths:
-      - "prql-dotnet/**"
-      - "prql-lib/**"
-      - ".github/workflows/test-dotnet.yaml"
+  #  pull_request:
+  #    paths:
+  #      - "prql-dotnet/**"
+  #      - "prql-lib/**"
+  #      - ".github/workflows/test-dotnet.yaml"
   workflow_call:
 
 concurrency:
