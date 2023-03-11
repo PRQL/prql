@@ -52,6 +52,8 @@ jobs:
 
   update-rust-toolchain:
     runs-on: ubuntu-latest
+    # Don't run on forks; will attempt to create a PR into the fork...
+    if: "!github.event.pull_request.head.repo.fork"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
