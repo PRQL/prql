@@ -201,9 +201,9 @@ mod test {
 
     #[test]
     fn test_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse(
-            include_str!("../../examples/compile-files/queries/variables.prql"),
-        )
+        assert_yaml_snapshot!(parse(include_str!(
+            "../../examples/compile-files/queries/variables.prql"
+        ))
         .unwrap());
     }
 
