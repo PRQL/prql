@@ -31,7 +31,7 @@ namespace Prql\Compiler;
  */
 final class Compiler
 {
-    private \FFI $_ffi;
+    private \FFI $ffi;
 
     /**
      * Initializes a new instance of the Compiler.
@@ -60,7 +60,7 @@ final class Compiler
             throw new \InvalidArgumentException('Cannot load header file.');
         }
 
-        $this->_ffi = \FFI::cdef($header_source, $library);
+        $this->ffi = \FFI::cdef($header_source, $library);
     }
 
     /**
@@ -79,13 +79,13 @@ final class Compiler
             throw new \InvalidArgumentException('No query given.');
         }
 
-        $ffi_options = $this->_optionsInit($options);
+        $ffi_options = $this->optionsInit($options);
 
-        $res = $this->_ffi->compile($prql_query, \FFI::addr($ffi_options));
+        $res = $this->ffi->compile($prql_query, \FFI::addr($ffi_options));
 
-        $this->_optionsDestroy($ffi_options);
+        $this->optionsDestroy($ffi_options);
 
-        return $this->_convertResult($res);
+        return $this->convertResult($res);
     }
 
     /**
@@ -105,9 +105,9 @@ final class Compiler
             throw new \InvalidArgumentException('No query given.');
         }
 
-        $res = $this->_ffi->prql_to_pl($prql_query);
+        $res = $this->ffi->prql_to_pl($prql_query);
 
-        return $this->_convertResult($res);
+        return $this->convertResult($res);
     }
 
     /**
@@ -127,9 +127,9 @@ final class Compiler
             throw new \InvalidArgumentException('No query given.');
         }
 
-        $res = $this->_ffi->pl_to_rq($pl_json);
+        $res = $this->ffi->pl_to_rq($pl_json);
 
-        return $this->_convertResult($res);
+        return $this->convertResult($res);
     }
 
     /**
@@ -150,22 +150,22 @@ final class Compiler
             throw new \InvalidArgumentException('No query given.');
         }
 
-        $ffi_options = $this->_optionsInit($options);
+        $ffi_options = $this->optionsInit($options);
 
-        $res = $this->_ffi->rq_to_sql($rq_json, \FFI::addr($ffi_options));
+        $res = $this->ffi->rq_to_sql($rq_json, \FFI::addr($ffi_options));
 
-        $this->_optionsDestroy($ffi_options);
+        $this->optionsDestroy($ffi_options);
 
-        return $this->_convertResult($res);
+        return $this->convertResult($res);
     }
 
-    private function _optionsInit(?Options $options = null)
+    private function optionsInit(?Options $options = null)
     {
         if ($options === null) {
             $options = new Options();
         }
 
-        $ffi_options = $this->_ffi->new('struct Options');
+        $ffi_options = $this->ffi->new('struct Options');
         $ffi_options->format = $options->format;
         $ffi_options->signature_comment = $options->signature_comment;
 
@@ -178,33 +178,34 @@ final class Compiler
         return $ffi_options;
     }
 
-    private function _optionsDestroy($ffi_options)
+    private function optionsDestroy($ffi_options)
     {
         if (!\FFI::isNull($ffi_options->target)) {
             \FFI::free($ffi_options->target);
         }
+
         unset($ffi_options);
     }
 
-    private function _convertResult($ffi_res): Result
+    private function convertResult($ffi_res): Result
     {
         $res = new Result();
 
         // convert string
-        $res->output = $this->_convertString($ffi_res->output);
+        $res->output = $this->convertString($ffi_res->output);
 
         $res->messages = [];
         for ($i = 0; $i < $ffi_res->messages_len; ++$i) {
-            $res->messages[$i] = $this->_convertMessage($ffi_res->messages[$i]);
+            $res->messages[$i] = $this->convertMessage($ffi_res->messages[$i]);
         }
 
         // free the ffi_result
-        $this->_ffi->result_destroy($ffi_res);
+        $this->ffi->result_destroy($ffi_res);
 
         return $res;
     }
 
-    private function _convertMessage($ffi_msg): Message
+    private function convertMessage($ffi_msg): Message
     {
         $msg = new Message();
 
@@ -217,22 +218,23 @@ final class Compiler
             $msg->kind = MessageKind::Lint;
         }
 
-        $msg->code = $this->_convertNullableString($ffi_msg->code);
-        $msg->reason = $this->_convertString($ffi_msg->reason);
-        $msg->span = $this->_convertSpan($ffi_msg->span);
-        $msg->hint = $this->_convertNullableString($ffi_msg->hint);
+        $msg->code = $this->convertNullableString($ffi_msg->code);
+        $msg->reason = $this->convertString($ffi_msg->reason);
+        $msg->span = $this->convertSpan($ffi_msg->span);
+        $msg->hint = $this->convertNullableString($ffi_msg->hint);
 
-        $msg->display = $this->_convertNullableString($ffi_msg->display);
-        $msg->location = $this->_convertLocation($ffi_msg->location);
+        $msg->display = $this->convertNullableString($ffi_msg->display);
+        $msg->location = $this->convertLocation($ffi_msg->location);
 
         return $msg;
     }
 
-    private function _convertSpan($ffi_ptr): ?Span
+    private function convertSpan($ffi_ptr): ?Span
     {
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
         }
+
         $span = new Span();
         $span->start = $ffi_ptr[0]->start;
         $span->end = $ffi_ptr[0]->end;
@@ -240,7 +242,7 @@ final class Compiler
         return $span;
     }
 
-    private function _convertLocation($ffi_ptr): ?SourceLocation
+    private function convertLocation($ffi_ptr): ?SourceLocation
     {
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
@@ -255,16 +257,16 @@ final class Compiler
         return $location;
     }
 
-    private function _convertNullableString($ffi_ptr): ?string
+    private function convertNullableString($ffi_ptr): ?string
     {
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
         }
         // dereference
-        return $this->_convertString($ffi_ptr[0]);
+        return $this->convertString($ffi_ptr[0]);
     }
 
-    private function _convertString($ffi_ptr): string
+    private function convertString($ffi_ptr): string
     {
         return \FFI::string(\FFI::cast(\FFI::type('char*'), $ffi_ptr));
     }
