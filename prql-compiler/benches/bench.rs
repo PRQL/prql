@@ -16,7 +16,7 @@ cfg_if::cfg_if! {
         use criterion::{criterion_group, criterion_main, Criterion};
         use prql_compiler::*;
 
-        const CONTENT: &str = include_str!("../../book/tests/prql/examples/variables-0.prql");
+        const CONTENT: &str = include_str!("../examples/compile-files/queries/variables.prql");
         fn compile_query() -> Result<String, ErrorMessages> {
             compile(CONTENT, &Options::default())
         }

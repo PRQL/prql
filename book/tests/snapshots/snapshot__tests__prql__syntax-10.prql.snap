@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "prql target:sql.mysql\nfrom employees\nselect `first name`\n"
+---
+SELECT
+  `first name`
+FROM
+  employees
+

@@ -1,5 +1,0 @@
-# Can't yet format & compile
-
-prql target:sql.bigquery
-from tracks
-select ![milliseconds,bytes]

@@ -201,23 +201,9 @@ mod test {
 
     #[test]
     fn test_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse(
-            // It's useful to have canonical examples rather than copy-pasting
-            // everything, so we reference the prql file here. But a downside of
-            // this implementation is: if there's an error in extracting the
-            // example from the docs into the file specified here, this test
-            // won't compile. Because `cargo insta test --accept` on the
-            // workspace — which extracts the example — requires compiling this,
-            // we can get stuck.
-            //
-            // Breaking out of that requires running this `cargo insta test
-            // --accept` within `book`, and then running it on the workspace.
-            // `task test-all` does this.
-            //
-            // If we change this, it would great if we can retain having
-            // examples tested in the docs.
-            include_str!("../../../book/tests/prql/examples/variables-0.prql"),
-        )
+        assert_yaml_snapshot!(parse(include_str!(
+            "../../examples/compile-files/queries/variables.prql"
+        ))
         .unwrap());
     }
 

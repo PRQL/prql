@@ -1,4 +1,0 @@
-# Can't yet format & compile
-
-from my_table
-select x = "\t\tline ends here\n \\ "

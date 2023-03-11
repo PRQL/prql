@@ -1,0 +1,14 @@
+---
+source: book/tests/snapshot.rs
+expression: "# Can't yet format & compile\n\nfrom employees\nderive distance = case [\n  city == \"Calgary\" => 0,\n  city == \"Edmonton\" => 300,\n]\n"
+---
+SELECT
+  *,
+  CASE
+    WHEN city = 'Calgary' THEN 0
+    WHEN city = 'Edmonton' THEN 300
+    ELSE NULL
+  END AS distance
+FROM
+  employees
+

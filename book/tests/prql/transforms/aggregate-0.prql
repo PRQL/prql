@@ -1,5 +1,0 @@
-from employees
-aggregate [
-  average salary,
-  ct = count
-]
