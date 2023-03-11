@@ -19,7 +19,7 @@
 //
 use anyhow::{bail, Result};
 use globset::Glob;
-use insta::{assert_snapshot};
+use insta::assert_snapshot;
 use prql_compiler::*;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -108,7 +108,7 @@ fn test_prql_examples() {
     let opts = Options::default().no_signature();
     let examples = collect_book_examples().unwrap();
 
-    for (path, prql) in examples{
+    for (path, prql) in examples {
         // TODO: I don't think we use this and can remove it?
         if prql.contains("skip_test") {
             return;

@@ -202,7 +202,7 @@ mod test {
     #[test]
     fn test_pipeline_parse_tree() {
         assert_yaml_snapshot!(parse(
-r#"""
+            r#"""
 from employees
 filter country == "USA"                       # Each line transforms the previous result.
 derive [                                     # This adds columns / variables.
