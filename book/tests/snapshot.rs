@@ -22,7 +22,6 @@ use globset::Glob;
 use insta::{assert_snapshot, glob};
 use itertools::Itertools;
 use log::warn;
-use mdbook_prql::code_block_lang;
 use prql_compiler::*;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -35,12 +34,14 @@ use walkdir::WalkDir;
 /// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
 ///   there's a diff.
 ///
-/// Then, when the book is built, the PRQL code block in the book is replaced
-/// with a comparison table.
+/// This mirrors the process in [replace_examples], which inserts a
+/// comparison table of SQL into the book, and so serves as a snapshot test of
+/// those examples.
 fn test_examples() -> Result<()> {
-    // Note that on Windows, markdown is read differently, and so we don't write
-    // on Windows (we write from the same place we read as a workaround). ref
-    // https://github.com/PRQL/prql/issues/356
+    // Note that on Windows, markdown is read differently, and so we don't yet
+    // write on Windows (we write from the same place we read as a workaround,
+    // and would welcome a fix).
+    // ref https://github.com/PRQL/prql/issues/356
 
     write_prql_examples(collect_book_examples()?)?;
     test_prql_examples();
@@ -61,16 +62,13 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
         .filter(|x| glob.is_match(x.path()))
         .flat_map(|dir_entry| {
             let text = fs::read_to_string(dir_entry.path())?;
-            // TODO: Duplicative logic here and in [lib.rs/replace_examples];
-            // could we unify?
+            // TODO: Still slightly duplicative logic here and in
+            // [lib.rs/replace_examples], but not sure how to avoid it.
             //
-            // Could we have a function that takes text and returns a
-            // Vec<prql_string, result, expected>, where expected is whether it
-            // should succeed or fail?
             let mut parser = Parser::new(&text);
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
-                match code_block_lang(&event) {
+                match mdbook_prql::code_block_lang(&event) {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
                     // this is disabled on windows.
@@ -166,6 +164,7 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
         })
     });
 
+    // TODO: Not actually sure we want this; not consistent with `cargo insta --accept`.
     if !snapshots_updated.is_empty() {
         let snapshots_updated = snapshots_updated
             .iter()
