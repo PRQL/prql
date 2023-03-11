@@ -1,7 +1,5 @@
 using System;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Prql.Compiler
 {
@@ -47,47 +45,86 @@ namespace Prql.Compiler
 
             var nativeOptions = new NativePrqlCompilerOptions(options);
             var nativeResult = CompileExtern(prqlQuery, ref nativeOptions);
-            var messages = new List<Message>();
-
-            for (var i = 0; i < nativeResult.MessagesLen; i++)
-            {
-                messages.Add(Marshal.PtrToStructure<Message>(nativeResult.Messages));
-            }
-
-            var result = new Result(nativeResult.Output, messages);
+            var result = new Result(nativeResult);
 
             return result;
         }
 
         /// <summary>
-        /// Compile a PRQL string into a JSON string.
+        /// Build PL AST from a PRQL string.
         /// </summary>
         /// <param name="prqlQuery">A PRQL query.</param>
         /// <returns>JSON.</returns>
         /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
         /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
-        public static string ToJson(string prqlQuery)
+        /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ast/pl</remarks>
+        public static Result PrqlToPl(string prqlQuery)
         {
             if (string.IsNullOrEmpty(prqlQuery))
             {
                 throw new ArgumentException(nameof(prqlQuery));
             }
 
-            byte[] bytes = new byte[1024];
-            if (ToJsonExtern(prqlQuery, bytes) != 0)
+            var nativeResult = PrqlToPlExtern(prqlQuery);
+            var result = new Result(nativeResult);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
+        /// </summary>
+        /// <param name="plJson">A PRQL query.</param>
+        /// <returns>JSON.</returns>
+        /// <exception cref="ArgumentException"><paramref name="plJson"/> is null or empty.</exception>
+        /// <exception cref="FormatException"><paramref name="plJson"/> cannot be compiled.</exception>
+        /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ast</remarks>
+        public static Result PlToRq(string plJson)
+        {
+            if (string.IsNullOrEmpty(plJson))
             {
-                throw new FormatException("Could not compile query.");
+                throw new ArgumentException(nameof(plJson));
             }
 
-            bytes = bytes.TakeWhile(x => ((char)x) != '\0').ToArray();
+            var nativeResult = PlToRqExtern(plJson);
+            var result = new Result(nativeResult);
 
-            return Encoding.UTF8.GetString(bytes);
+            return result;
+        }
+
+        /// <summary>
+        /// Convert RQ AST into an SQL string.
+        /// </summary>
+        /// <param name="rqJson">RQ string in JSON format.</param>
+        /// <param name="options">PRQL compiler options.</param>
+        /// <returns>JSON.</returns>
+        /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
+        /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
+        /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ast/rq</remarks>
+        public static Result RqToSql(string rqJson, PrqlCompilerOptions options)
+        {
+            if (string.IsNullOrEmpty(rqJson))
+            {
+                throw new ArgumentException(nameof(rqJson));
+            }
+
+            var nativeOptions = new NativePrqlCompilerOptions(options);
+            var nativeResult = RqToSqlExtern(rqJson, ref nativeOptions);
+            var result = new Result(nativeResult);
+
+            return result;
         }
 
         [DllImport("libprql_lib", EntryPoint = "compile")]
-        private static extern NativeResult CompileExtern(string prql_query, ref NativePrqlCompilerOptions options);
+        private static extern NativeResult CompileExtern(string prqlQuery, ref NativePrqlCompilerOptions options);
 
-        [DllImport("libprql_lib", EntryPoint = "to_json")]
-        private static extern int ToJsonExtern(string prql_query, byte[] json);
+        [DllImport("libprql_lib", EntryPoint = "prql_to_pl")]
+        private static extern NativeResult PrqlToPlExtern(string prqlQuery);
+
+        [DllImport("libprql_lib", EntryPoint = "pl_to_rq")]
+        private static extern NativeResult PlToRqExtern(string plJson);
+
+        [DllImport("libprql_lib", EntryPoint = "rq_to_sql")]
+        private static extern NativeResult RqToSqlExtern(string rqJson, ref NativePrqlCompilerOptions options);
     }
 }
