@@ -23,8 +23,6 @@ section h2 {
 }
 
 .folderRow {
-  color: yellow;
-  font-weight: bold;
   text-transform: capitalize;
 }
 
@@ -33,11 +31,12 @@ section h2 {
   margin-left: 5px;
   display: inline-block;
   transition: transform 0.3s ease;
+  transform-origin: center;
+  transform: scale(1.25, 1.25);
 }
 
 .folderRow.open::after {
-  transform-origin: center;
-  transform: rotate(90deg);
+  transform: scale(1.25, 1.25) rotate(90deg);
 }
 
 section h1,
