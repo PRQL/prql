@@ -99,6 +99,12 @@ pub(super) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform> {
         .collect()
 }
 
+fn vecs_contain_same_elements<T: Eq + std::hash::Hash>(a: &[T], b: &[T]) -> bool {
+    let a: HashSet<&T, RandomState> = a.iter().collect();
+    let b: HashSet<&T, RandomState> = b.iter().collect();
+    a == b
+}
+
 /// Creates [SqlTransform::Distinct] from [Transform::Take]
 pub(super) fn distinct(
     pipeline: Vec<SqlTransform>,
@@ -108,7 +114,7 @@ pub(super) fn distinct(
     use Transform::*;
 
     let mut res = Vec::new();
-    for transform in pipeline {
+    for transform in pipeline.clone() {
         match transform {
             Super(Take(rq::Take { ref partition, .. })) if partition.is_empty() => {
                 res.push(transform);
@@ -126,8 +132,13 @@ pub(super) fn distinct(
 
                 let take_only_first =
                     range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));
-                if take_only_first && sort.is_empty() {
-                    // TODO: use distinct only if `by == all columns in frame`
+
+                // Check whether the columns within the partition are the same
+                // as the columns in the table; otherwise we can't use DISTINCT.
+                let columns_in_frame = AnchorContext::determine_select_columns(&pipeline.clone());
+                let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
+
+                if take_only_first && sort.is_empty() && matching_columns {
                     res.push(Distinct);
                     continue;
                 }
