@@ -9,16 +9,17 @@ sealed public class CompilerTest
     {
     	// Arrange
         var expected = "SELECT * FROM employees";
-
-        // Act
         var options = new PrqlCompilerOptions
         {
             Format = false,
             SignatureComment = false,
+            Target = "sql.mssql"
         };
-        var sqlQuery = PrqlCompiler.Compile("from employees", options);
+
+        // Act
+        var result = PrqlCompiler.Compile("from employees", options);
 
         // Assert
-        Assert.Equal(expected, sqlQuery);
+        Assert.Equal(expected, result.Output);
     }
 }
