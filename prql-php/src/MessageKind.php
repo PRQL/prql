@@ -9,7 +9,16 @@ namespace Prql\Compiler;
  */
 enum MessageKind
 {
+    /**
+     * Error message.
+     */
     case Error;
+    /**
+     * Warning message.
+     */
     case Warning;
+    /**
+     * Lint message.
+     */
     case Lint;
 }

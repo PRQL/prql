@@ -12,7 +12,7 @@ relation and all intermediate relations.
 
 This behavior could be expressed with following pseudo-code:
 
-```
+```python
 def loop(step, initial):
     result = []
     current = initial
