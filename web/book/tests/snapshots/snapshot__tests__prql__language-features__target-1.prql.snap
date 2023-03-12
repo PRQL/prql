@@ -1,5 +1,5 @@
 ---
-source: book/tests/snapshot.rs
+source: web/book/tests/snapshot.rs
 expression: "# Can't yet format & compile\n\nprql target:sql.mssql\n\nfrom employees\nsort age\ntake 10\n"
 ---
 SELECT
