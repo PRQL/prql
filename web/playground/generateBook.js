@@ -80,7 +80,7 @@ function getSnippets(content, file) {
 
 (async () => {
   const fileObject = {};
-  const dir = join(__dirname, "..", "..", "book", "src");
+  const dir = join(__dirname, "..", "book", "src");
   const files = [];
   let minDepth = 1e10;
   for await (const file of getAllFiles(dir)) {

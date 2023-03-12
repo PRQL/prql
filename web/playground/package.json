@@ -44,7 +44,7 @@
     "preinstall": "cp -r ../../prql-compiler/tests/integration/data public && cd ../../bindings/prql-js && npm run build:bundler",
     "start": "npm run genBook && react-scripts start",
     "test": "npm run genBook && react-scripts test",
-    "genBook": "node src/generateBook.js"
+    "genBook": "node generateBook.js"
   },
   "version": "0.1.0"
 }
