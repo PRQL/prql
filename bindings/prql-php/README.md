@@ -23,7 +23,7 @@ use Prql\Compiler\Compiler;
 $prql = new Compiler();
 $result = $prql->compile("from employees");
 
-echo($result->output);
+echo $result->output;
 ```
 
 ## Development
