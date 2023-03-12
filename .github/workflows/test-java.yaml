@@ -22,5 +22,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Maven test
-        working-directory: prql-java/java/
+        working-directory: bindings/prql-java/java/
         run: ./mvnw test
