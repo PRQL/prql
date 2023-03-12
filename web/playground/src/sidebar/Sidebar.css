@@ -22,7 +22,7 @@ section h2 {
   background-color: #ffffff1f;
 }
 
-.folderRow~.fileRow:not(.folderRow)::before {
+.folderRow ~ .fileRow:not(.folderRow)::before {
   content: "";
   margin-right: 5px;
 }
