@@ -70,10 +70,10 @@ PRQL's type system should also be able to express relations as composed from
 primitive types, but have only one idiomatic way of doing so.
 
 In practice this means that builtin types include only primitives (int, text,
-bool, float), struct (for product), enum (for sum) and list (for repeating).
+bool, float), tuple (for product), enum (for sum) and array (for repeating).
 
-An SQL row would translate to struct, and a relation would translate to a list
-of structs.
+An SQL row would translate to tuple, and a relation would translate to an array
+of tuples.
 
 I would also strive for the type system to be minimal - don't differentiate
 between tuples, objects and structs. Choose one and stick to it.
@@ -94,6 +94,100 @@ derive is_red = switch [color == 'red' => true, color == 'green' => false]
 It should be possible to infer that `color` is of type `text`, but only when
 equal to `'red'` or `'green'`. This means that the second switch covers all
 possible cases and `is_red` cannot be `null`.
+
+## Theory
+
+> For any undefined terms used in this section, refer to set theory and
+> mathematical definitions in general.
+
+A "type of a variable" is a "set of all possible values of that variable". This
+means that terms "type" and "set" are equivalent.
+
+Expressions can evaluate to a type. For example, a union of two types is a type
+itself. This means a type expression is equivalent to any other expression whose
+type is a "set of sets".
+
+Let's introduce a "set" as a PRQL expression construct (alongside existing
+idents, literals, ranges and so on). For now, it does not need any special
+syntax. Because sets are normal expressions, existing syntax can be repurposed
+to define operations on sets:
+
+- Binary operation `or` of two sets represents a union of those two sets:
+  ```
+  let number = int or float
+  ```
+  With algebraic types, this is named "a sum type".
+- Literals can be coerced into a singleton set (i.e. `false` is converted into a
+  set with only one element `false`):
+  ```
+  let int_or_null = int or null
+  ```
+- A list of set expressions can be coerced into a set of tuples, where entries
+  of the tuples correspond to elements of the set expressions:
+  ```
+  let my_row = [id = int, bool, name = str]
+  ```
+- An array of set expressions with exactly one element can be coerced into a set
+  of arrays of that set expression:
+  ```
+  let array_of_int = {int} # proposed syntax for arrays
+  ```
+
+Module `std` defines built-in sets `int`, `float`, `bool`, `text` and `set`
+(others will be added in the future).
+
+## Type annotations
+
+Let's extend variable definition syntax as follows:
+
+```
+let a <t> = x
+```
+
+It represents a definition of variable `a`. It's value can be computed by
+evaluating `x` and is guaranteed to be in the set `t`. The syntax also implies
+two conditions:
+
+- `t` can be evaluated statically (at compile time),
+- `t` can be coerced into a set.
+
+Similar rules apply to return types of functions and function parameter
+definitions.
+
+## Type definitions
+
+Similar to how both `func` and `let` can be used to define functions (when we
+introduce lambda function syntax), let's also define syntactic sugar for type
+definitions:
+
+```
+# these two are equivalent
+let my_type <set> = set_expr
+type my_type = set_expr
+```
+
+## Container types
+
+> Terminology under discussion
+
+**Tuple** is the only product type in PTS. It contains n ordered fields, where n
+is known at compile-time. Each field has a type itself and an optional name.
+Fields are not necessarily of the same type.
+
+In other languages, similar constructs are named struct, tuple, named tuple or
+(data)class.
+
+**Array** is a container type that contains n ordered fields, where n is not
+known at compile-time. All fields are of the same type and cannot be named.
+
+**Relation** is an array of tuples.
+
+The first argument of transforms `select` and `derive` contains a known number
+of entries, which can be of different types. Thus, it is a tuple.
+
+```
+select [1.4, false, "foo"]
+```
 
 ## Physical layout
 
@@ -129,24 +223,6 @@ Apache Arrow.
 ## Syntax
 
 ```
-# built-in types
-type int
-type float
-type bool
-type text
-type char
-type null
-
-# users-defined types
-type my_int = int
-
-# sum type (union or enum)
-type number = int | float
-type scalar = number | bool | str | char
-
-# by default types are not nullable
-type my_nullable_int = int | null
-
 # user-defined enum
 type open
 type pending
