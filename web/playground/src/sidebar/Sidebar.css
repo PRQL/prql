@@ -22,20 +22,25 @@ section h2 {
   background-color: #ffffff1f;
 }
 
+.folderRow~.fileRow:not(.folderRow)::before {
+  content: "";
+  margin-right: 5px;
+}
+
 .folderRow {
   text-transform: capitalize;
 }
 
-.folderRow::after {
-  content: " \1F892";
-  margin-left: 5px;
+.folderRow::before {
+  content: "\1F892 ";
+  margin-right: 5px;
   display: inline-block;
   transition: transform 0.3s ease;
   transform-origin: center;
   transform: scale(1.25, 1.25);
 }
 
-.folderRow.open::after {
+.folderRow.open::before {
   transform: scale(1.25, 1.25) rotate(90deg);
 }
 
