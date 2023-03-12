@@ -39,10 +39,14 @@ function getSnippets(content, file) {
   const arr = [];
   let index = 1;
   const titles = new Set();
-  content.split(/\r\n|\n/).forEach(line => {
+  content.split(/\r\n|\n/).forEach((line) => {
     if (prql == null && line.startsWith("#") && line.includes("# ")) {
       const spaceIndex = line.indexOf("# ");
-      heading = line.slice(spaceIndex + 2).trim().toLowerCase().replace(/\s/g, "_");
+      heading = line
+        .slice(spaceIndex + 2)
+        .trim()
+        .toLowerCase()
+        .replace(/\s/g, "_");
       return;
     }
     if (line.trim() === "```prql") {
@@ -86,7 +90,12 @@ function getSnippets(content, file) {
 
   for (const filePath of files) {
     const relativeFile = relative(dir, filePath);
-    const snippets = isFile(filePath) ? getSnippets((await readFile(filePath)).toString(), basename(filePath).replace(/\..+/g, "").trim()) : [];
+    const snippets = isFile(filePath)
+      ? getSnippets(
+          (await readFile(filePath)).toString(),
+          basename(filePath).replace(/\..+/g, "").trim()
+        )
+      : [];
     if (!snippets.length && isFile(filePath)) {
       continue;
     }
@@ -108,14 +117,14 @@ function getSnippets(content, file) {
         relativeFile,
         id,
         snippet.title,
-      ]
+      ];
     }
   }
 
   // remove empty folders
   const keys = Object.keys(fileObject);
   const parents = new Set();
-  Object.values(fileObject).forEach(v => parents.add(v[3]));
+  Object.values(fileObject).forEach((v) => parents.add(v[3]));
   for (const key of keys) {
     if (!parents.has(key) && !fileObject[key][0]) {
       delete fileObject[key];
