@@ -57,7 +57,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 🔨 Build
         run: mdbook build
-        working-directory: book/
+        working-directory: web/book/
 
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meanting a breaking change) in the PR title. (We also run on other
