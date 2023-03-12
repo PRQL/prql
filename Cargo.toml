@@ -8,7 +8,7 @@ members = [
   "prql-lib",
   "prql-js",
   "prql-python",
-  "book",
+  "web/book",
   "prql-elixir/native/prql",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes

@@ -194,7 +194,7 @@ tasks:
       - cargo insta test --accept --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
       # We build the book too, because that acts as a test
-      - cd book && mdbook build
+      - cd web/book && mdbook build
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
@@ -223,6 +223,7 @@ tasks:
 
   build-web:
     desc: Build the website, including the book & playground.
+    dir: web
     cmds:
       - cd website && hugo --minify
       - cd book && mdbook build
@@ -259,19 +260,19 @@ tasks:
 
   run-website:
     desc: Build & serve the static website.
-    dir: website
+    dir: web/website
     cmds:
       - hugo server
 
   run-book:
     desc: Build & serve the book.
-    dir: book
+    dir: web/book
     cmds:
       - mdbook serve --port=3000
 
   run-playground:
     desc: Build & serve the playground.
-    dir: playground
+    dir: web/playground
     cmds:
       # Must set `install-links=false` in the playground's `npm install` to
       # install prql-js as the regular dependency, instead of creating a

@@ -19,7 +19,7 @@ test = false
 anyhow = "1.0.57"
 globset = "0.4.8"
 itertools = "0.10.3"
-prql-compiler = {path = "../prql-compiler", default-features = false}
+prql-compiler = {path = "../../prql-compiler", default-features = false}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 semver = "1.0.9"
