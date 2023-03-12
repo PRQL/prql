@@ -43,6 +43,11 @@ namespace Prql.Compiler
                 throw new ArgumentException(nameof(prqlQuery));
             }
 
+            if (options is null)
+            {
+                throw new ArgumentException(nameof(options));
+            }
+
             var nativeOptions = new NativePrqlCompilerOptions(options);
             var nativeResult = CompileExtern(prqlQuery, ref nativeOptions);
             var result = new Result(nativeResult);
@@ -99,6 +104,7 @@ namespace Prql.Compiler
         /// <param name="options">PRQL compiler options.</param>
         /// <returns>JSON.</returns>
         /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
         /// <remarks>https://docs.rs/prql-compiler/latest/prql_compiler/ast/rq</remarks>
         public static Result RqToSql(string rqJson, PrqlCompilerOptions options)
@@ -106,6 +112,11 @@ namespace Prql.Compiler
             if (string.IsNullOrEmpty(rqJson))
             {
                 throw new ArgumentException(nameof(rqJson));
+            }
+
+            if (options is null)
+            {
+                throw new ArgumentException(nameof(options));
             }
 
             var nativeOptions = new NativePrqlCompilerOptions(options);
