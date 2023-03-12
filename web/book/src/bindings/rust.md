@@ -1,1 +1,1 @@
-{{#include ../../../../prql-compiler/README.md}}
+{{#include ../../../../bindings/prql-compiler/README.md}}

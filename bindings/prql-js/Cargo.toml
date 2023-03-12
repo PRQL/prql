@@ -22,7 +22,7 @@ test = false
 default = ["console_error_panic_hook"]
 
 [dependencies]
-prql-compiler = {path = "../prql-compiler", default-features = false}
+prql-compiler = {path = "../../prql-compiler", default-features = false}
 # This was preventing the playground from working. It's possibly
 # https://github.com/rustwasm/wasm-bindgen/issues/3276
 # If the playground works with a later version, we can unpin this. It's likely
