@@ -3,8 +3,8 @@ name: test-dotnet
 on:
   #  pull_request:
   #    paths:
-  #      - "prql-dotnet/**"
-  #      - "prql-lib/**"
+  #      - "bindings/prql-dotnet/**"
+  #      - "bindings/prql-lib/**"
   #      - ".github/workflows/test-dotnet.yaml"
   workflow_call:
 
