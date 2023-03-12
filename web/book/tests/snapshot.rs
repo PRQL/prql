@@ -1,22 +1,4 @@
 #![cfg(not(target_family = "wasm"))]
-//
-// Thoughts on the overall code:
-//
-// Overall, this is overengineered — it's complicated and took a long time to
-// write. The intention is good — have a version of the SQL that's committed
-// into the repo, and join our tests with our docs. But it feels like overly
-// custom code for quite a general problem, even if our preferences are slightly
-// different from the general case.
-//
-// Having an API for being able to read snapshots
-// (https://github.com/mitsuhiko/insta/issues/353) would significantly reduce the need for
-// custom code;
-//
-// Possibly we should be using something like pandoc /
-// https://github.com/gpoore/codebraid / which would run the transformation for
-// us. They introduce a bunch of non-rust dependencies, which is not ideal, but
-// passable. They don't let us customize our formatting (e.g. in a table).
-//
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
@@ -27,18 +9,23 @@ use walkdir::WalkDir;
 
 #[test]
 /// This test:
-/// - Extracts PRQL code blocks into files in the `examples` path, skipping
-///   where the matching example is already present.
+/// - Extracts PRQL code blocks from the book
 /// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
 ///   there's a diff.
 ///
 /// This mirrors the process in [replace_examples], which inserts a
 /// comparison table of SQL into the book, and so serves as a snapshot test of
 /// those examples.
-fn test_examples() -> Result<()> {
-    test_prql_examples();
+/// Snapshot the SQL output of each example.
+fn test_prql_examples() {
+    let opts = Options::default().no_signature();
+    let examples = collect_book_examples().unwrap();
 
-    Ok(())
+    for (path, prql) in examples {
+        // Whether it's a success or a failure, get the string.
+        let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
+        assert_snapshot!(path.to_str().unwrap(), &sql, &prql);
+    }
 }
 
 const ROOT_EXAMPLES_PATH: &str = "tests/prql";
@@ -101,23 +88,6 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
         .collect();
 
     Ok(examples_in_book)
-}
-
-/// Snapshot the SQL output of each example.
-fn test_prql_examples() {
-    let opts = Options::default().no_signature();
-    let examples = collect_book_examples().unwrap();
-
-    for (path, prql) in examples {
-        // TODO: I don't think we use this and can remove it?
-        if prql.contains("skip_test") {
-            return;
-        }
-
-        // Whether it's a success or a failure, get the string.
-        let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
-        assert_snapshot!(path.to_str().unwrap(), &sql, &prql);
-    }
 }
 
 /// Test that the formatted result (the `Display` result) of each example can be
