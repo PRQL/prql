@@ -18,6 +18,8 @@
 
 **Integrations**:
 
+- [prql-lib] Added C++ header file. (@vanillajonathan)
+
 **Internal changes**:
 
 **New Contributors**:
