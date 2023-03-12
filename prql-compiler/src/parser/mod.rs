@@ -1,7 +1,3 @@
-//! This module contains the parser, which is responsible for converting a tree
-//! of pest pairs into a tree of AST Items. It has a small function to call into
-//! pest to get the parse tree / concrete syntax tree, and then a large
-//! function for turning that into PRQL AST.
 mod expr;
 mod interpolation;
 mod lexer;

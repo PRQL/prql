@@ -4,7 +4,7 @@ Compiler works in the following stages:
 
 1. Lexing & parsing - split PRQL text into tokens, build parse tree and convert
    into our AST (Abstract Syntax Tree, see `ast` module). Parsing is done using
-   PEST parser (`prql.pest`), AST is constructed in `parser.rs`.
+   the chumsky parser, AST is constructed in `parser.rs`.
 
 2. Semantic analysis - resolves names (identifiers), extracts declarations,
    determines frames (columns of the table in each step). It declares `Context`
