@@ -31,15 +31,19 @@ namespace Prql\Compiler;
  */
 final class Compiler
 {
-    private \FFI $ffi;
+    private static \FFI $ffi;
 
     /**
      * Initializes a new instance of the Compiler.
      *
-     * @param ?string|null $lib_path path to the libprql library
+     * @param string|null $lib_path path to the libprql library
      */
     public function __construct(?string $lib_path = null)
     {
+        if (isset(self::$ffi)) {
+            return;
+        }
+
         if ($lib_path === null) {
             $lib_path = __DIR__ . '/../lib';
         }
@@ -60,7 +64,7 @@ final class Compiler
             throw new \InvalidArgumentException('Cannot load header file.');
         }
 
-        $this->ffi = \FFI::cdef($header_source, $library);
+        self::$ffi = \FFI::cdef($header_source, $library);
     }
 
     /**
@@ -81,7 +85,7 @@ final class Compiler
 
         $ffi_options = $this->optionsInit($options);
 
-        $res = $this->ffi->compile($prql_query, \FFI::addr($ffi_options));
+        $res = self::$ffi->compile($prql_query, \FFI::addr($ffi_options));
 
         $this->optionsDestroy($ffi_options);
 
@@ -105,7 +109,7 @@ final class Compiler
             throw new \InvalidArgumentException('No query given.');
         }
 
-        $res = $this->ffi->prql_to_pl($prql_query);
+        $res = self::$ffi->prql_to_pl($prql_query);
 
         return $this->convertResult($res);
     }
@@ -127,7 +131,7 @@ final class Compiler
             throw new \InvalidArgumentException('No query given.');
         }
 
-        $res = $this->ffi->pl_to_rq($pl_json);
+        $res = self::$ffi->pl_to_rq($pl_json);
 
         return $this->convertResult($res);
     }
@@ -152,7 +156,7 @@ final class Compiler
 
         $ffi_options = $this->optionsInit($options);
 
-        $res = $this->ffi->rq_to_sql($rq_json, \FFI::addr($ffi_options));
+        $res = self::$ffi->rq_to_sql($rq_json, \FFI::addr($ffi_options));
 
         $this->optionsDestroy($ffi_options);
 
@@ -165,7 +169,7 @@ final class Compiler
             $options = new Options();
         }
 
-        $ffi_options = $this->ffi->new('struct Options');
+        $ffi_options = self::$ffi->new('struct Options');
         $ffi_options->format = $options->format;
         $ffi_options->signature_comment = $options->signature_comment;
 
@@ -200,7 +204,7 @@ final class Compiler
         }
 
         // free the ffi_result
-        $this->ffi->result_destroy($ffi_res);
+        self::$ffi->result_destroy($ffi_res);
 
         return $res;
     }
