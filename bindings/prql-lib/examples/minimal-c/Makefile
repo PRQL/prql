@@ -1,4 +1,4 @@
-PRQL_PROJECT=../../..
+PRQL_PROJECT=../../../..
 
 build-prql:
 	cargo build -p prql-lib --release
