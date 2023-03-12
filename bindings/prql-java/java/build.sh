@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+# TODO: use a task file for these build scripts
+
 JAVA_SRC_HOME=$1
 ARCH="$(uname -m)"
 KERNEL_NAME="$(uname -s)"
@@ -9,7 +11,6 @@ KERNEL_VERSION="$(uname -r)"
 echo JAVA_SRC_HOME="$JAVA_SRC_HOME"
 
 cd "$JAVA_SRC_HOME"
-# cd prql-java/
 cd ../
 
 echo Platform Info: "$ARCH" "$KERNEL_NAME" "$KERNEL_VERSION"
