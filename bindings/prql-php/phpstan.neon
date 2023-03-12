@@ -1,0 +1,16 @@
+parameters:
+    level: 9
+    paths:
+        - src
+        - tests
+    ignoreErrors:
+        # Since PHPStan doesn't know about the existence of the functions in libprql,
+        # it complains since they get dynamically invoked on the FFI object instance
+        # without being statically defined, so they're unknown.
+        - '#Call to an undefined method FFI::compile\(\)\.#'
+        - '#Call to an undefined method FFI::prql_to_pl\(\)\.#'
+        - '#Call to an undefined method FFI::pl_to_rq\(\)\.#'
+        - '#Call to an undefined method FFI::rq_to_sql\(\)\.#'
+        - '#Cannot access property \$format on FFI\\CData\|null\.#'
+        - '#Cannot access property \$signature_comment on FFI\\CData\|null\.#'
+        - '#Cannot access property \$target on FFI\\CData\|null\.#'
