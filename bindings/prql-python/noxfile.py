@@ -22,7 +22,7 @@ def tests(session: Session) -> None:
     """Run the test suite with pytest."""
     print("CWD", os.getcwd())
     session.install(
-        "-v", "--no-index", f"--find-links={Path('..', 'dist')}", "prql_python"
+        "-v", "--no-index", f"--find-links={Path('..', '..', 'dist')}", "prql_python"
     )
     session.install("-v", "-r", "requirements.txt")
     session.run("pytest", str(Path("python", "tests")))
