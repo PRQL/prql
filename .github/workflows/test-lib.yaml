@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       # We also run the tests for the libraries that depend on this, from their workflow files.
-      - "prql-lib/**"
+      - "bindings/prql-lib/**"
       - ".github/workflows/test-lib.yaml"
   workflow_call:
 

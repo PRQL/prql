@@ -3,8 +3,8 @@ name: test-java
 on:
   pull_request:
     paths:
-      - "prql-java/**"
-      - "prql-lib/**"
+      - "bindings/prql-java/**"
+      - "bindings/prql-lib/**"
       - ".github/workflows/test-java.yaml"
   workflow_call:
 

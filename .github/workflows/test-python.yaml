@@ -3,7 +3,7 @@ name: test-python
 on:
   pull_request:
     paths:
-      - "prql-python/**"
+      - "bindings/prql-python/**"
       - ".github/workflows/test-python.yaml"
   workflow_call:
 
