@@ -1,5 +1,5 @@
 /*
- * PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement 
+ * PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement
  *
  * License: Apache-2.0
  * Website: https://prql-lang.org/

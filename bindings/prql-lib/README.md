@@ -100,7 +100,7 @@ The C header file `libprql_lib.h` was generated using
 
 ### C++ header file
 
-The C++ header file `libprql_lib.hpp` was generated using cbindgen.
-To generate a new one run:
+The C++ header file `libprql_lib.hpp` was generated using cbindgen. To generate
+a new one run:
 
     cbindgen --crate prql-lib --lang C++ --output libprql_lib.hpp
