@@ -26,12 +26,12 @@ jobs:
         with:
           toolchain: stable
       - run: sh build.sh
-        working-directory: prql-php
+        working-directory: bindings/prql-php
       - name: 📦 Install dependencies using Composer
         uses: php-actions/composer@v6
         with:
-          args: --working-dir=prql-php
+          args: --working-dir=bindings/prql-php
           php_extensions: FFI
       - name: 🧪 Run tests using PHPUnit
         run: vendor/bin/phpunit tests
-        working-directory: prql-php
+        working-directory: bindings/prql-php

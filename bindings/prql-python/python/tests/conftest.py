@@ -5,7 +5,7 @@ import yaml
 
 @pytest.fixture()
 def example_queries():
-    website_path = "../website/content/_index.md"
+    website_path = "../../web/website/content/_index.md"
     with open(website_path, "r") as f:
         website = f.read()
     website_yaml = yaml.safe_load(website.replace("---", ""))

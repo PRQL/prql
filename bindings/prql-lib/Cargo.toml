@@ -1,5 +1,5 @@
 [package]
-name = "prql-java"
+name = "prql-lib"
 publish = false
 
 edition.workspace = true
@@ -9,13 +9,14 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
-crate_type = ["cdylib"]
+crate_type = ["staticlib", "cdylib"]
 doctest = false
 test = false
 
 [dependencies]
-jni = "0.20.0"
-prql-compiler = {path = "../prql-compiler", default-features = false}
+libc = "0.2"
+prql-compiler = {path = "../../prql-compiler", default-features = false}
+serde_json = "1.0"
 
 [package.metadata.release]
 tag-name = "{{version}}"

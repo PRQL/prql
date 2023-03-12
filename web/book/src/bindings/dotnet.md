@@ -1,1 +1,1 @@
-{{#include ../../../../prql-dotnet/README.md}}
+{{#include ../../../../bindings/prql-dotnet/README.md}}
