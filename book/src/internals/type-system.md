@@ -252,7 +252,7 @@ Apache Arrow.
 type open
 type pending
 type closed
-type status = open | pending | closed
+type status = open or pending or closed
 ``` -->
 
 ## Examples
@@ -274,7 +274,7 @@ type invoices = {[
         article_id = int64,
         count = int16 where x -> x >= 1,
     }],
-    paid_by_user_id = int64 | null,
+    paid_by_user_id = int64 or null,
     status = status,
 ]}
 ```
@@ -287,7 +287,7 @@ This document mentions `int32` and `int64` as distinct types, but there is no
 need for that in the initial implementation. The built-in `int` can associate
 with all operations on integers and translate PRQL to valid SQL regardless of
 the size of the integer. Later, `int` be replaced by
-`type int = int8 | int16 | int32 | int64`.
+`type int = int8 or int16 or int32 or int64`.
 
 The general rule for "when to make a distinction between types" would be "as
 soon as the types carry different information and we find an operation that
