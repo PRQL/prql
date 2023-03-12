@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\njoin positions [==emp_no]\n"
+---
+SELECT
+  employees.*,
+  positions.*
+FROM
+  employees
+  JOIN positions ON employees.emp_no = positions.emp_no
+

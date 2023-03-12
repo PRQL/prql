@@ -18,6 +18,13 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-bindgen-cli
+        if: inputs.target_option == '--target=wasm32-unknown-unknown'
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: cargo-insta
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -27,10 +34,6 @@ jobs:
           # the current version unfortunately, though).
           key: 0.6.0-${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: wasm-bindgen-cli
-        if: inputs.target_option == '--target=wasm32-unknown-unknown'
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -50,9 +53,6 @@ jobs:
         with:
           command: test
           args: ${{ inputs.target_option }} --no-run --locked
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: cargo-insta
       # Only check unreferenced snapshots on the default target tests on ubuntu
       #
       # (Maybe there's a nicer approach where we can parameterize one step

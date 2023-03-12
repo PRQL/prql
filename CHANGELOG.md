@@ -6,6 +6,12 @@
 
 **Fixes**:
 
+- No longer incorrectly compile to `DISTINCT` when a `take 1` refers to a
+  different set of columns than are in the `group`. (@max-sixty, with thanks to
+  @cottrell, #2109)
+- The version specification of the dependent Chumsky was bumped from `0.9.0` to
+  `0.9.2`. `0.9.0` has a bug that causes an infinite loop. (@eitsupi, #2110)
+
 **Documentation**:
 
 **Web**:
@@ -81,6 +87,8 @@ This release has 108 commits from 11 contributors. Selected changes:
 - [prql-lib] Added C header file. (@vanillajonathan, #1879)
 - Added a workflow building a `.deb` on each release. (Note that it's not yet
   published on each release). (@vanillajonathan, #1883)
+- Added a workflow building a `.rpm` on each release. (Note that it's not yet
+  published on each release). (@vanillajonathan, #1918)
 - Added a workflow building a Snap package on each release. (@vanillajonathan,
   #1881)
 

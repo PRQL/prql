@@ -1,0 +1,50 @@
+[package]
+name = "mdbook-prql"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+doctest = false
+
+[[bin]]
+name = "mdbook-prql"
+test = false
+
+[dependencies]
+anyhow = "1.0.57"
+globset = "0.4.8"
+itertools = "0.10.3"
+prql-compiler = {path = "../../prql-compiler", default-features = false}
+pulldown-cmark = "0.9.1"
+pulldown-cmark-to-cmark = "10.0.1"
+semver = "1.0.9"
+serde_json = "1.0.81"
+similar = "2.2.0"
+walkdir = "2.3.2"
+
+# Possibly we should just put all dependencies as excluded from wasm? Currently
+# we only put the ones that break the build.
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+clap = {version = "4.1.1", default-features = false}
+mdbook = {version = "0.4.21", default-features = false}
+
+[dev-dependencies]
+globset = "0.4.8"
+insta = {version = "1.28", features = ["colors", "glob"]}
+log = "0.4.17"
+pulldown-cmark = "0.9.1"
+pulldown-cmark-to-cmark = "10.0.1"
+similar = "2.2.0"
+walkdir = "2.3.2"
+
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+trash = "3.0.0"
+
+[package.metadata.release]
+tag-name = "{{version}}"
+tag-prefix = ""

@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "# Can't yet format & compile\n\nprql target:sql.bigquery\nfrom tracks\nselect ![milliseconds,bytes]\n"
+---
+SELECT
+  *
+EXCEPT
+  (milliseconds, bytes)
+FROM
+  tracks
+

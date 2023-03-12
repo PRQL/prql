@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser/mod.rs
-expression: "parse(&include_str!(\"../../../book/tests/prql/examples/variables-0.prql\")).unwrap()"
+expression: "parse(include_str!(\"../../examples/compile-files/queries/variables.prql\")).unwrap()"
 ---
 - Main:
     Pipeline:

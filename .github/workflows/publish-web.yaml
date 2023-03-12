@@ -32,10 +32,6 @@ jobs:
         uses: peaceiris/actions-hugo@v2.6.0
 
       # Book setup, duplicated from `pull-request.yaml`
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/web' }}
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook
@@ -45,6 +41,10 @@ jobs:
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/web' }}
 
       - uses: ./.github/actions/build-prql-js
 
