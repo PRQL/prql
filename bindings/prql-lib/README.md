@@ -97,3 +97,10 @@ The C header file `libprql_lib.h` was generated using
 
     cargo install --force cbindgen
     cbindgen --crate prql-lib --output libprql_lib.h
+
+### C++ header file
+
+The C++ header file `libprql_lib.hpp` was generated using cbindgen. To generate
+a new one run:
+
+    cbindgen --crate prql-lib --lang C++ --output libprql_lib.hpp
