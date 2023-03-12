@@ -130,7 +130,7 @@ jobs:
       - uses: ./.github/actions/build-prql-js
       - name: Publish package on npm
         run: npm publish
-        working-directory: prql-js/
+        working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

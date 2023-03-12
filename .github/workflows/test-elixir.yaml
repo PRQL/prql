@@ -13,7 +13,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: prql-elixir
+    working-directory: bindings/prql-elixir
 
 env:
   MIX_ENV: test

@@ -1,1 +1,1 @@
-{{#include ../../../../prql-elixir/README.md}}
+{{#include ../../../../bindings/prql-elixir/README.md}}
