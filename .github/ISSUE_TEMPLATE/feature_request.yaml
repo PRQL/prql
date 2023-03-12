@@ -1,8 +1,0 @@
-name: Something else
-description: Anything that's not a bug report
-labels: [bug]
-body:
-  - type: textarea
-    id: what-happened
-    attributes:
-      label: What's up?

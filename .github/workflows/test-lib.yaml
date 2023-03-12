@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       # We also run the tests for the libraries that depend on this, from their workflow files.
-      - "prql-lib/**"
+      - "bindings/prql-lib/**"
       - ".github/workflows/test-lib.yaml"
   workflow_call:
 
@@ -31,5 +31,5 @@ jobs:
           # Currently requires a release build; would be useful to allow a debug build.
           args: --release -p prql-lib
       - name: Run basic C example
-        working-directory: prql-lib/examples/minimal-c
+        working-directory: bindings/prql-lib/examples/minimal-c
         run: make run

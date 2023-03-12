@@ -19,4 +19,4 @@ runs:
     - name: Run wasm-pack for node, bundler, & web
       run: npm run build
       shell: bash
-      working-directory: prql-js/
+      working-directory: bindings/prql-js/

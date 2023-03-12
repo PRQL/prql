@@ -4,12 +4,12 @@ members = [
   "prql-compiler/examples/compile-files",
   "prql-compiler/prql-compiler-macros",
   "prql-compiler/prqlc",
-  "prql-java",
-  "prql-lib",
-  "prql-js",
-  "prql-python",
-  "book",
-  "prql-elixir/native/prql",
+  "bindings/prql-java",
+  "bindings/prql-lib",
+  "bindings/prql-js",
+  "bindings/prql-python",
+  "web/book",
+  "bindings/prql-elixir/native/prql",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And

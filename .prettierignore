@@ -1,10 +1,9 @@
 *.min.*
-/book/theme/highlight.js
+/web/book/theme/highlight.js
 
 # TODO: move these into content out of layouts
-/website/themes/prql-theme/layouts/partials/codes/
-
-/website/themes/prql-theme/layouts/_default/_markup/render-link.html
+/web/website/themes/prql-theme/layouts/partials/codes/
+/web/website/themes/prql-theme/layouts/_default/_markup/render-link.html
 
 # Ideally prettier would allow blanket gitignores, https://github.com/prettier/prettier/issues/8048
 
@@ -14,5 +13,5 @@ target/
 .mypy_cache
 **/build
 **/dist
-/book/book
-/website/public
+/web/book/book
+/web/website/public

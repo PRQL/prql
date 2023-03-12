@@ -167,7 +167,6 @@ fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<T
         },
         args: None,
         with_hints: vec![],
-        columns_definition: None,
     })
 }
 
@@ -461,7 +460,6 @@ fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sql
                     alias: None,
                     args: None,
                     with_hints: Vec::new(),
-                    columns_definition: None,
                 },
                 joins: vec![],
             }],

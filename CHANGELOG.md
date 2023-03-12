@@ -6,11 +6,19 @@
 
 **Fixes**:
 
+- No longer incorrectly compile to `DISTINCT` when a `take 1` refers to a
+  different set of columns than are in the `group`. (@max-sixty, with thanks to
+  @cottrell, #2109)
+- The version specification of the dependent Chumsky was bumped from `0.9.0` to
+  `0.9.2`. `0.9.0` has a bug that causes an infinite loop. (@eitsupi, #2110)
+
 **Documentation**:
 
 **Web**:
 
 **Integrations**:
+
+- [prql-lib] Added C++ header file. (@vanillajonathan, #2126)
 
 **Internal changes**:
 
@@ -81,6 +89,8 @@ This release has 108 commits from 11 contributors. Selected changes:
 - [prql-lib] Added C header file. (@vanillajonathan, #1879)
 - Added a workflow building a `.deb` on each release. (Note that it's not yet
   published on each release). (@vanillajonathan, #1883)
+- Added a workflow building a `.rpm` on each release. (Note that it's not yet
+  published on each release). (@vanillajonathan, #1918)
 - Added a workflow building a Snap package on each release. (@vanillajonathan,
   #1881)
 
@@ -735,8 +745,8 @@ improvements:
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
 - Automated releases to homebrew (@roG0d )
-- [prql-js](https://github.com/PRQL/prql/tree/main/prql-js) is now a single
-  package for node, browsers & webpack (@charlie-sanders )
+- [prql-js](https://github.com/PRQL/prql/tree/main/bindings/prql-js) is now a
+  single package for Node, browsers & webpack (@charlie-sanders )
 - Parsing has some fixes, including `>=` and leading underscores in idents
   (@mklopets )
 - Ranges receive correct syntax highlighting (@max-sixty )

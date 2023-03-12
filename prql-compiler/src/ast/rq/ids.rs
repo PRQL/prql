@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Column id
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Ord, PartialOrd)]
 pub struct CId(usize);
 
 impl CId {

@@ -1,0 +1,9 @@
+---
+source: web/book/tests/snapshot.rs
+expression: "# Can't yet format & compile\n\nprql version:\"0.6.0\"\n\nfrom employees\n"
+---
+SELECT
+  *
+FROM
+  employees
+

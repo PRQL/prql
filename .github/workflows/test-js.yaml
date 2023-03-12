@@ -3,7 +3,7 @@ name: test-js
 on:
   pull_request:
     paths:
-      - "prql-js/**"
+      - "bindings/prql-js/**"
       - ".github/workflows/test-js.yaml"
   workflow_call:
 
@@ -23,4 +23,4 @@ jobs:
         uses: actions/checkout@v3
       - uses: ./.github/actions/build-prql-js
       - run: npm cit
-        working-directory: prql-js
+        working-directory: bindings/prql-js

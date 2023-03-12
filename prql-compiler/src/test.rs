@@ -1357,17 +1357,33 @@ fn test_distinct() {
       employees
     "###);
 
-    // TODO: this should not use DISTINCT but ROW_NUMBER and WHERE, because we want
-    // row  distinct only over first_name and last_name.
+    // We want distinct only over first_name and last_name, so we can't use a
+    // `DISTINCT *` here.
     assert_display_snapshot!((compile(r###"
     from employees
     group [first_name, last_name] (take 1)
     "###).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY first_name, last_name) AS _expr_0
+      FROM
+        employees
+    )
     SELECT
-      DISTINCT *
+      *
     FROM
-      employees
+      table_1 AS table_0
+    WHERE
+      _expr_0 <= 1
     "###);
+
+    // Check that a different order doesn't stop distinct from being used.
+    assert!(compile(
+        "from employees | select [first_name, last_name] | group [last_name, first_name] (take 1)"
+    )
+    .unwrap()
+    .contains("DISTINCT"));
 
     // head
     assert_display_snapshot!((compile(r###"
@@ -1433,6 +1449,33 @@ fn test_distinct() {
       table_1 AS table_0
     WHERE
       _expr_0 = 4
+    "###);
+
+    assert_display_snapshot!(compile("
+    from invoices
+    select [billing_country, billing_city]
+    group [billing_city] (
+      take 1
+    )
+    sort billing_city
+    ").unwrap(), @r###"
+    WITH table_1 AS (
+      SELECT
+        billing_country,
+        billing_city,
+        ROW_NUMBER() OVER (PARTITION BY billing_city) AS _expr_0
+      FROM
+        invoices
+    )
+    SELECT
+      billing_country,
+      billing_city
+    FROM
+      table_1 AS table_0
+    WHERE
+      _expr_0 <= 1
+    ORDER BY
+      billing_city
     "###);
 }
 
