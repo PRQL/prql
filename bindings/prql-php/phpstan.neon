@@ -4,6 +4,7 @@ parameters:
         - src
         - tests
     ignoreErrors:
+    # Since [PHPStan](https://phpstan.org/) doesn't know about the existence of the functions in libprql, it complains since they get dynamically invoked on the FFI object instance without being statically defined, so they're unknown.
         - '#Call to an undefined method FFI::compile\(\)\.#'
         - '#Call to an undefined method FFI::prql_to_pl\(\)\.#'
         - '#Call to an undefined method FFI::pl_to_rq\(\)\.#'
