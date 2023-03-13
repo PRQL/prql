@@ -17,8 +17,9 @@ This release has 54 commits from 6 contributors. Selected changes:
 
 **Documentation**:
 
-- Add a policy for which bindings are supported / unsupported / nascent
-  (@max-sixty, #2062)
+- Add a policy for which bindings are supported / unsupported / nascent. See
+  <https://prql-lang.org/book/bindings/index.html> for more details (@max-sixty,
+  #2062) (@max-sixty, #2062)
 
 **Integrations**:
 
