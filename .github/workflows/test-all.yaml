@@ -110,7 +110,7 @@ jobs:
           # Only save cache on `main``
           # "type=local,dest=/dev/null" }}
           cache-to:
-            ${{ github.ref_name == "main" && "type=gha,mode=max" || "" }}
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
   test-min-rust-version:
     runs-on: ubuntu-latest
