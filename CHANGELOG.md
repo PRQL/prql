@@ -1,8 +1,11 @@
 # PRQL Changelog
 
-## 0.6.1 — [unreleased]
+## 0.6.1 — 2022-03-12
 
-**Features**:
+0.6.1 is a small release containing an internal refactoring and improved
+bindings for C, PHP & .NET.
+
+This release has 54 commits from 6 contributors. Selected changes:
 
 **Fixes**:
 
@@ -14,7 +17,8 @@
 
 **Documentation**:
 
-**Web**:
+- Add a policy for which bindings are supported / unsupported / nascent
+  (@max-sixty, #2062)
 
 **Integrations**:
 
@@ -25,8 +29,6 @@
 - Many of the items that were in the root of the repo have been aggregated into
   `web` & `bindings`, simplifying the repo's structure. There's also `grammars`
   & `packages` (@max-sixty, #2135, #2117, #2121).
-
-**New Contributors**:
 
 ## 0.6.0 — 2022-03-08
 
