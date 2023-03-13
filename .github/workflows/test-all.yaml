@@ -108,7 +108,6 @@ jobs:
           load: true
           cache-from: type=gha
           # Only save cache on `main``
-          # "type=local,dest=/dev/null" }}
           cache-to:
             ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
