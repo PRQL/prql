@@ -9,7 +9,7 @@
 - No longer incorrectly compile to `DISTINCT` when a `take 1` refers to a
   different set of columns than are in the `group`. (@max-sixty, with thanks to
   @cottrell, #2109)
-- The version specification of the dependent Chumsky was bumped from `0.9.0` to
+- The version specification of the dependency Chumsky was bumped from `0.9.0` to
   `0.9.2`. `0.9.0` has a bug that causes an infinite loop. (@eitsupi, #2110)
 
 **Documentation**:
@@ -21,6 +21,10 @@
 - [prql-lib] Added C++ header file. (@vanillajonathan, #2126)
 
 **Internal changes**:
+
+- Many of the items that were in the root of the repo have been aggregated into
+  `web` & `bindings`, simplifying the repo's structure. There's also `grammars`
+  & `packages` (@max-sixty, #2135, #2117, #2121).
 
 **New Contributors**:
 
