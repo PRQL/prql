@@ -10,7 +10,7 @@ version.workspace = true
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {version = "1.0.57"}
-ariadne = "0.1.5"
+ariadne = "0.2.0"
 atty = "0.2.14"
 clap = {version = "4.1.1", features = ["derive"]}
 clio = {version = "0.2.4", features = ['clap-parse']}
