@@ -132,9 +132,7 @@ fn replace_examples(text: &str) -> Result<String> {
                 table_of_comparison(
                     &prql,
                     result
-                        .unwrap_or_else(|_| {
-                            panic!("{}", format!("Query raised an error:\n\n {prql}\n\n"))
-                        })
+                        .map_err(|_| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n"))?
                         .as_str(),
                 )
                 .into(),
