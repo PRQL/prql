@@ -96,7 +96,7 @@ impl Preprocessor for ComparisonPreprocessor {
     }
 }
 
-fn code_block_lang<'a>(event: &'a Event) -> Option<&'a str> {
+pub fn code_block_lang<'a>(event: &'a Event) -> Option<&'a str> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
         Some(lang.as_ref())
     } else {
