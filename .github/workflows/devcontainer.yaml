@@ -43,14 +43,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - id: set-options
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "push=true" >>$GITHUB_OUTPUT
-          else
-            echo "push=false" >>$GITHUB_OUTPUT
-          fi
-
       - name: Build
         uses: docker/build-push-action@v4
         with:
@@ -58,10 +50,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           # TODO: add linux/arm64
           platforms: linux/amd64
-          push: ${{ steps.set-options.outputs.push }}
+          push: ${{ github.ref_name == 'main' && 'true' || 'false' }}
           cache-from: |
             ${{ env.IMAGE_NAME }}
             type=gha
           cache-to: |
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
             type=inline
-            type=gha,mode=max
