@@ -219,31 +219,31 @@ we're happy to link to it / tweet it.
 The PRQL project has several components. Instructions for working with them are
 in the **README.md** file in their respective paths. Here's an overview:
 
-**[book](https://github.com/PRQL/prql/blob/main/book/README.md)**: The PRQL
+**[book](https://github.com/PRQL/prql/blob/main/web/book/README.md)**: The PRQL
 language book, which documents the language.
 
-**[playground](https://github.com/PRQL/prql/blob/main/playground/README.md)**: A
-web GUI for the PRQL compiler. It shows the PRQL source beside the resulting SQL
-output.
+**[playground](https://github.com/PRQL/prql/blob/main/web/playground/README.md)**:
+A web GUI for the PRQL compiler. It shows the PRQL source beside the resulting
+SQL output.
 
-**[prql-compiler](https://github.com/PRQL/prql/blob/main/prql-compiler/README.md)**:
+**[prql-compiler](https://github.com/PRQL/prql/blob/main/bindings/prql-compiler/README.md)**:
 Installation and usage instructions for building and running the
 `prql-compiler`.
 
-**[prql-java](https://github.com/PRQL/prql/blob/main/prql-java/README.md)**:
+**[prql-java](https://github.com/PRQL/prql/blob/main/bindings/prql-java/README.md)**:
 Rust bindings to the `prql-compiler` Rust library.
 
-**[prql-js](https://github.com/PRQL/prql/blob/main/prql-js/README.md)**:
+**[prql-js](https://github.com/PRQL/prql/blob/main/bindings/prql-js/README.md)**:
 Javascript bindings to the `prql-compiler` Rust library.
 
-**[prql-lib](https://github.com/PRQL/prql/blob/main/prql-lib/README.md)**:
+**[prql-lib](https://github.com/PRQL/prql/blob/main/bindings/prql-lib/README.md)**:
 Generates `.a` and `.so` libraries from the `prql-compiler` Rust library for
 bindings to other languages
 
-**[prql-python](https://github.com/PRQL/prql/blob/main/prql-python/README.md)**:
+**[prql-python](https://github.com/PRQL/prql/blob/main/bindings/prql-python/README.md)**:
 Python bindings to the `prql-compiler` Rust library.
 
-**[website](https://github.com/PRQL/prql/blob/main/website/README.md)**: Our
+**[website](https://github.com/PRQL/prql/blob/main/web/website/README.md)**: Our
 website, hosted at <https://prql-lang.org>, built with `hugo`.
 
 ## How we test
@@ -334,12 +334,12 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       get into a loop of writing snapshot files, triggering a change, writing a
       snapshot file, etc. -->
 
-- **[Examples](https://github.com/PRQL/prql/blob/main/book/tests/snapshot.rs)**
+- **[Examples](https://github.com/PRQL/prql/blob/main/web/book/tests/snapshot.rs)**
   — we compile all examples in the PRQL Book, to test that they produce the SQL
   we expect, and that changes to our code don't cause any unexpected
   regressions.
 
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/book/src/integrations/README.md)**
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/web/book/src/integrations/README.md)**
   — these run tests against real databases, to ensure we're producing correct
   SQL.
 
