@@ -7,7 +7,7 @@ public class PrqlCompiler {
     /**
      * compile PRQL to SQL
      * @param query PRQL query
-     * @param target target dialect, such as sql.mysql etc. Please refer <a href="https://github.com/PRQL/prql/blob/main/book/src/language-features/target.md">PRQL Target and Version</a>
+     * @param target target dialect, such as sql.mysql etc. Please refer <a href="https://github.com/PRQL/prql/blob/main/web/book/src/language-features/target.md">PRQL Target and Version</a>
      * @param format format SQL or not
      * @param signature comment signature or not
      * @return SQL
