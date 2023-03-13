@@ -226,7 +226,7 @@ language book, which documents the language.
 A web GUI for the PRQL compiler. It shows the PRQL source beside the resulting
 SQL output.
 
-**[prql-compiler](https://github.com/PRQL/prql/blob/main/bindings/prql-compiler/README.md)**:
+**[prql-compiler](https://github.com/PRQL/prql/blob/main/prql-compiler/README.md)**:
 Installation and usage instructions for building and running the
 `prql-compiler`.
 
