@@ -232,6 +232,93 @@ fn table_of_error(prql: &str, error: &str) -> String {
 }
 
 #[test]
+fn test_replace_examples() -> Result<()> {
+    use insta::assert_display_snapshot;
+
+    let md = r###"
+# PRQL Doc
+
+```prql
+from x
+```
+
+```python
+import sys
+```
+
+```prql_error
+this is an error
+```
+    "###;
+
+    assert_display_snapshot!(replace_examples(md)?, @r###"
+    # PRQL Doc
+
+    <div class="comparison">
+
+    <div>
+    <h4>PRQL</h4>
+
+    ```prql
+    from x
+    ```
+
+    </div>
+
+    <div>
+    <h4>SQL</h4>
+
+    ```sql
+    SELECT
+      *
+    FROM
+      x
+
+    ```
+
+    </div>
+
+    </div>
+
+
+    ````python
+    import sys
+    ````
+
+    <div class="comparison">
+
+    <div>
+    <h4>PRQL</h4>
+
+    ```prql
+    this is an error
+    ```
+
+    </div>
+
+    <div>
+    <h4>Error</h4>
+
+    ```
+    Error:
+       ╭─[:1:1]
+       │
+     1 │ this is an error
+       · ──┬─
+       ·   ╰─── Unknown name this
+    ───╯
+
+    ```
+
+    </div>
+
+    </div>
+    "###);
+
+    Ok(())
+}
+
+#[test]
 fn test_table() -> Result<()> {
     use insta::assert_display_snapshot;
     let table = r###"
