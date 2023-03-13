@@ -44,5 +44,5 @@ nascent.
 
 Nascent bindings are in development, and may not yet fully work.
 
-- [.NET](./net.md)
+- [.NET](./dotnet.md)
 - [PHP](./php.md)
