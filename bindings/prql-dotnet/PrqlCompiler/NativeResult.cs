@@ -4,10 +4,10 @@ namespace Prql.Compiler
 {
     internal struct NativeResult
     {
-#pragma warning disable CS2141
+#pragma warning disable CS0649
         public string Output;
         public IntPtr Messages;
         public int MessagesLen;
-#pragma warning restore CS2141
+#pragma warning restore CS0649
     }
 }
