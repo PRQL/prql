@@ -62,6 +62,6 @@ search = '(\s+"prql-js",)\n(\s+"version": )"[\d\.]+"'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../playground/package-lock.json"
+file = "../../web/playground/package-lock.json"
 replace = '''$1"{{version}}"'''
 search = '(    "../prql-js": \{\n      "version": )"[\d\.]+"'

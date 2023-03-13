@@ -1,15 +1,21 @@
 [workspace]
 members = [
-  "prql-compiler",
-  "prql-compiler/examples/compile-files",
-  "prql-compiler/prql-compiler-macros",
-  "prql-compiler/prqlc",
-  "bindings/prql-java",
-  "bindings/prql-lib",
-  "bindings/prql-js",
-  "bindings/prql-python",
-  "web/book",
+  # The main crate
+  "prql-compiler", #
+  # The CLI
+  "prql-compiler/prqlc", #
+  # Macros
+  "prql-compiler/prql-compiler-macros", #
+  # An example
+  "prql-compiler/examples/compile-files", #
+  # Bindings
   "bindings/prql-elixir/native/prql",
+  "bindings/prql-java",
+  "bindings/prql-js",
+  "bindings/prql-lib",
+  "bindings/prql-python", #
+  # The book / docs
+  "web/book",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And
@@ -21,7 +27,7 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.6.0"
+version = "0.6.1"
 
 [profile.release.package.prql-js]
 # Tell `rust-js` to optimize for small code size.
@@ -30,4 +36,3 @@ opt-level = "s"
 [workspace.metadata.release]
 allow-branch = ["*"]
 consolidate-commits = true
-pre-release-commit-message = "chore: Release {{version}}"
