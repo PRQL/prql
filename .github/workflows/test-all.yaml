@@ -107,7 +107,7 @@ jobs:
           # Use the GHA cache
           load: true
           cache-from: type=gha
-          # Only save cache on `main``
+          # Only save cache on `main`
           cache-to:
             ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
