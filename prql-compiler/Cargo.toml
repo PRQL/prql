@@ -61,6 +61,6 @@ name = "bench"
 # to `prql-compiler`? We can place it there when that's fixed.
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../book/src/language-features/target.md"
+file = "../web/book/src/language-features/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
