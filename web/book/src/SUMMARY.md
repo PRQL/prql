@@ -47,6 +47,7 @@
 
 - [Bindings](./bindings/README.md)
 
+  - [.NET](./bindings/dotnet.md)
   - [Elixir](./bindings/elixir.md)
   - [Java](./bindings/java.md)
   - [JavaScript](./bindings/javascript.md)
