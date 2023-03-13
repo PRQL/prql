@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.6.2 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.6.1 — 2022-03-12
 
 0.6.1 is a small release containing an internal refactoring and improved

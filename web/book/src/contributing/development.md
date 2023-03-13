@@ -437,7 +437,7 @@ Currently we release in a semi-automated way:
 6. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.5.X — [unreleased]
+   ## 0.6.X — [unreleased]
 
    **Features**:
 
