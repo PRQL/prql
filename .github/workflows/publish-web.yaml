@@ -57,7 +57,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v1.0.7
         with:
-          path: website/public/
+          path: web/website/public/
 
   deploy-web:
     needs: build-web
