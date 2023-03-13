@@ -252,7 +252,7 @@ join `project-bar.dataset.table` [==col_bax]
 
 ### Quoting schemas
 
-```note admonish
+```admonish note
 This is currently not great and we are working on improving it; see
 https://github.com/PRQL/prql/issues/1535 for progress.
 ```
