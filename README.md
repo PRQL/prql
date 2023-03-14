@@ -111,19 +111,15 @@ To stay in touch with PRQL:
 
 This repo is composed of:
 
-**[prql-compiler](./prql-compiler/)** — the compiler, written in rust, whose
-main role is to compile PRQL into SQL. It also includes `prqlc`, the CLI.
-
-**[web](./web/)** — our web content: the Book at <prql-lang.org/book>, Website
-at <prql-lang.org>, and Playground at <prql-lang.org/playground>.
-
-**[bindings](./bindings/)** — bindings from various languages to
-`prql-compiler`.
+- **[prql-compiler](./prql-compiler/)** — the compiler, written in rust, whose
+  main role is to compile PRQL into SQL. It also includes `prqlc`, the CLI.
+- **[web](./web/)** — our web content: the [Book][prql book],
+  [Website][prql website], and [Playground][prql playground].
+- **[bindings](./bindings/)** — bindings from various languages to
+  `prql-compiler`.
 
 It also contains our testing / CI infrastructure and development tools. Check
-out our
-[development docs](https://prql-lang.org/book/contributing/development.html) for
-more details.
+out our [development docs][development] for more details.
 
 ## Contributors
 
