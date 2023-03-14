@@ -150,11 +150,13 @@ to define operations on sets:
 
 - An array of set expressions with exactly one entry can be coerced into a set
   of arrays of that set expression:
+
   ```
   let array_of_int = {int} # proposed syntax for arrays
   ```
 
-- A function that takes set as params and returns a set is converted into a set of functions.
+- A function that takes set as params and returns a set is converted into a set
+  of functions.
 
   ```
   let floor_signature = (float -> int)
