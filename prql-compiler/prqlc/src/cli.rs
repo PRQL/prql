@@ -327,8 +327,8 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
            ╭─[:1:1]
            │
          1 │ asdf
-           · ──┬─
-           ·   ╰─── Unknown name asdf
+           │ ──┬─
+           │   ╰─── Unknown name asdf
         ───╯
         "###);
     }

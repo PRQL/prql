@@ -304,8 +304,8 @@ this is an error
        ╭─[:1:1]
        │
      1 │ this is an error
-       · ──┬─
-       ·   ╰─── Unknown name this
+       │ ──┬─
+       │   ╰─── Unknown name this
     ───╯
 
     ```
