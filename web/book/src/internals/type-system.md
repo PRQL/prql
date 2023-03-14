@@ -154,6 +154,13 @@ to define operations on sets:
   let array_of_int = {int} # proposed syntax for arrays
   ```
 
+- A function that takes set as params and returns a set is converted into a set of functions.
+
+  ```
+  let floor_signature = (float -> int)
+  # using a proposed syntax for lambda functions
+  ```
+
 Module `std` defines built-in sets `int`, `float`, `bool`, `text` and `set`.
 Other built-in sets will be added in the future.
 
