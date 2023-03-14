@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - web
+  # Even though releases push to `web` branch, that doesn't cause this workflow
+  # to run, because GHA can't start workflows itself. So we also run on
+  # releases.
+  release:
+    types: [released]
   # Called by pull-request when specifically requested
   workflow_call:
 
@@ -15,8 +20,9 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
 
-    # Skip running workflow on forks. This still runs on PRs, but then below we
-    # disable it from attempting to publish.
+    # Skip running workflow on forks. Checking the repository owner still allows
+    # this to be run on PRs, and then below we disable it from attempting to
+    # publish.
     if: github.repository_owner == 'prql'
 
     steps:
@@ -57,7 +63,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v1.0.7
         with:
-          path: website/public/
+          path: web/website/public/
 
   deploy-web:
     needs: build-web

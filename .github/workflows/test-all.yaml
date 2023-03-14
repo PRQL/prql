@@ -107,7 +107,9 @@ jobs:
           # Use the GHA cache
           load: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Only save cache on `main`
+          cache-to:
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
   test-min-rust-version:
     runs-on: ubuntu-latest
