@@ -214,38 +214,6 @@ If something doesn't fit into one of these categories, there are still lots of
 ways of getting the word out there — a blog post / gist / etc. Let us know and
 we're happy to link to it / tweet it.
 
-## Components of PRQL
-
-The PRQL project has several components. Instructions for working with them are
-in the **README.md** file in their respective paths. Here's an overview:
-
-**[book](https://github.com/PRQL/prql/blob/main/web/book/README.md)**: The PRQL
-language book, which documents the language.
-
-**[playground](https://github.com/PRQL/prql/blob/main/web/playground/README.md)**:
-A web GUI for the PRQL compiler. It shows the PRQL source beside the resulting
-SQL output.
-
-**[prql-compiler](https://github.com/PRQL/prql/blob/main/prql-compiler/README.md)**:
-Installation and usage instructions for building and running the
-`prql-compiler`.
-
-**[prql-java](https://github.com/PRQL/prql/blob/main/bindings/prql-java/README.md)**:
-Rust bindings to the `prql-compiler` Rust library.
-
-**[prql-js](https://github.com/PRQL/prql/blob/main/bindings/prql-js/README.md)**:
-Javascript bindings to the `prql-compiler` Rust library.
-
-**[prql-lib](https://github.com/PRQL/prql/blob/main/bindings/prql-lib/README.md)**:
-Generates `.a` and `.so` libraries from the `prql-compiler` Rust library for
-bindings to other languages
-
-**[prql-python](https://github.com/PRQL/prql/blob/main/bindings/prql-python/README.md)**:
-Python bindings to the `prql-compiler` Rust library.
-
-**[website](https://github.com/PRQL/prql/blob/main/web/website/README.md)**: Our
-website, hosted at <https://prql-lang.org>, built with `hugo`.
-
 ## How we test
 
 We use a pyramid of tests — we have fast, focused tests at the bottom of the
