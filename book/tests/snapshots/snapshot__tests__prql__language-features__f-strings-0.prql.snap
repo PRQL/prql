@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\nselect full_name = f\"{first_name} {last_name}\"\n"
----
-from employees
-select full_name = f"{first_name} {last_name}"
-
-
-

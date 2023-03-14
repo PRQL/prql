@@ -72,11 +72,15 @@ pub enum ExprKind {
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
-    Switch(Vec<SwitchCase>),
+    Case(Vec<SwitchCase>),
     BuiltInFunction {
         name: String,
         args: Vec<Expr>,
     },
+    Set(SetExpr),
+
+    /// a placeholder for values provided after query is compiled
+    Param(String),
 }
 
 impl ExprKind {
@@ -89,7 +93,16 @@ impl ExprKind {
 }
 
 #[derive(
-    Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::Display, strum::EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]
@@ -122,12 +135,12 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
     #[strum(to_string = "+")]
-    Add,
+    Add, // TODO: rename to Pos
     #[strum(to_string = "!")]
     Not,
     #[strum(to_string = "==")]
@@ -142,6 +155,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub named_args: HashMap<String, Expr>,
 }
 
@@ -163,8 +177,8 @@ pub struct Closure {
     pub body_ty: Option<Ty>,
 
     pub args: Vec<Expr>,
-    pub params: Vec<FuncParam>,
-    pub named_params: Vec<FuncParam>,
+    pub params: Vec<ClosureParam>,
+    pub named_params: Vec<ClosureParam>,
 
     pub env: HashMap<String, Expr>,
 }
@@ -175,6 +189,16 @@ impl Closure {
 
         ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ClosureParam {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+
+    pub default_value: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -328,7 +352,7 @@ pub enum TableExternRef {
     /// Placeholder for a relation that will be provided later.
     /// This is very similar to relational s-strings and may not even be needed for now, so
     /// it's not documented anywhere. But it will be used in the future.
-    Anchor(String),
+    Param(String),
     // TODO: add other sources such as files, URLs
 }
 
@@ -560,8 +584,8 @@ impl Display for Expr {
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;
             }
-            ExprKind::Switch(cases) => {
-                f.write_str("switch [\n")?;
+            ExprKind::Case(cases) => {
+                f.write_str("case [\n")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }
@@ -569,6 +593,12 @@ impl Display for Expr {
             }
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
+            }
+            ExprKind::Set(_) => {
+                writeln!(f, "<set-expr>")?;
+            }
+            ExprKind::Param(id) => {
+                writeln!(f, "${id}")?;
             }
         }
 

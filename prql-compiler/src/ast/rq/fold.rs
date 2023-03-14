@@ -223,7 +223,7 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
 
         ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
         ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),
-        ExprKind::Switch(cases) => ExprKind::Switch(
+        ExprKind::Case(cases) => ExprKind::Case(
             cases
                 .into_iter()
                 .map(|c| fold_switch_case(fold, c))
@@ -233,6 +233,7 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
             name,
             args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
         },
+        ExprKind::Param(id) => ExprKind::Param(id),
 
         ExprKind::Literal(_) => kind,
     })

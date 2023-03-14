@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nselect first_name\n"
+---
+SELECT
+  first_name
+FROM
+  employees
+

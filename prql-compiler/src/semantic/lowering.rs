@@ -32,20 +32,23 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     let mut main_pipeline = None;
 
     for statement in statements {
+        use pl::StmtKind::*;
+
         match statement.kind {
-            pl::StmtKind::QueryDef(def) => query_def = Some(def),
-            pl::StmtKind::Main(expr) => {
+            QueryDef(def) => query_def = Some(def),
+            Main(expr) => {
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
+            FuncDef(_) | VarDef(_) | TypeDef(_) => {}
         }
     }
 
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables: l.table_buffer,
-        relation: main_pipeline.ok_or_else(|| Error::new_simple("missing main pipeline"))?,
+        relation: main_pipeline
+            .ok_or_else(|| Error::new_simple("Missing query").with_code("E0001"))?,
     })
 }
 
@@ -636,7 +639,7 @@ impl Lowerer {
             pl::ExprKind::FString(items) => {
                 rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
-            pl::ExprKind::Switch(cases) => rq::ExprKind::Switch(
+            pl::ExprKind::Case(cases) => rq::ExprKind::Case(
                 cases
                     .into_iter()
                     .map(|case| -> Result<_> {
@@ -653,12 +656,13 @@ impl Lowerer {
 
                 rq::ExprKind::BuiltInFunction { name, args }
             }
-
+            pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
+            | pl::ExprKind::Set(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {
@@ -820,7 +824,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
         TableExpr::LocalTable => {
             extern_ref_to_relation(columns, TableExternRef::LocalTable(fq_ident.name))
         }
-        TableExpr::Anchor(id) => extern_ref_to_relation(columns, TableExternRef::Anchor(id)),
+        TableExpr::Param(id) => extern_ref_to_relation(columns, TableExternRef::Param(id)),
     };
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);

@@ -36,31 +36,8 @@ jobs:
       os: ${{ matrix.os }}
       target_option: ${{ matrix.target_option }}
 
-  test-book:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-        # Duplicated in `publish-web.yaml`
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook-footnote
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook-admonish
-      - name: 🔨 Build
-        run: mdbook build
-        working-directory: book/
-
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
-  # (meanting a breaking change) in the PR title. (We also run on other
+  # (meaning a breaking change) in the PR title. (We also run on other
   # conditions defined in `test-all.yaml`; the conditions defined here aren't
   # possible to use as conditions for running a workflow, only a job, so we use
   # this approach.)

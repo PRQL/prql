@@ -1,5 +1,0 @@
-from employees
-group department (
-  sort age
-  derive rnk = rank
-)

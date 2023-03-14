@@ -10,7 +10,7 @@ use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
-use super::context::{Decl, DeclKind, TableDecl, TableExpr};
+use super::context::{Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_PARAM};
 use super::resolver::Resolver;
 use super::{Context, Frame};
@@ -375,40 +375,6 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             return Ok(Ok(res));
         }
 
-        "std.anchor" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
-
-            let [id_expr] = unpack::<1>(closure);
-
-            let id = match id_expr.kind {
-                ExprKind::Literal(Literal::String(text)) => text,
-                _ => {
-                    return Err(Error::new(Reason::Expected {
-                        who: Some("std.anchor".to_string()),
-                        expected: "a string literal".to_string(),
-                        found: format!("`{id_expr}`"),
-                    })
-                    .with_span(id_expr.span)
-                    .into());
-                }
-            };
-
-            let ident = Ident::from_path(vec!["_anchor".to_string(), id.clone()]);
-            let entry = Decl {
-                declared_at: id_expr.id,
-                kind: DeclKind::TableDecl(TableDecl {
-                    columns: vec![RelationColumn::Wildcard],
-                    expr: TableExpr::Anchor(id),
-                }),
-                order: 0,
-            };
-            resolver.context.root_mod.insert(ident.clone(), entry)?;
-
-            let mut res = Expr::from(ExprKind::Ident(ident));
-            res.alias = Some("anchor".to_string());
-            return Ok(Ok(res));
-        }
-
         _ => return Ok(Err(closure)),
     };
 
@@ -503,7 +469,7 @@ fn fold_by_simulating_eval(
         body_ty: None,
 
         args: vec![],
-        params: vec![FuncParam {
+        params: vec![ClosureParam {
             name: param_id.to_string(),
             ty: None,
             default_value: None,
@@ -1112,7 +1078,7 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        group date (aggregate average amount)
+        group issued_at (aggregate average amount)
         ",
         )
         .unwrap();
@@ -1123,7 +1089,7 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        group date (
+        group issued_at (
             aggregate (average amount)
         )
         ",
@@ -1133,10 +1099,10 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Main:
-            id: 18
+            id: 28
             TransformCall:
               input:
-                id: 4
+                id: 6
                 Ident:
                   - default_db
                   - c_invoice
@@ -1147,7 +1113,7 @@ mod tests {
                           input_name: c_invoice
                           except: []
                     inputs:
-                      - id: 4
+                      - id: 6
                         name: c_invoice
                         table:
                           - default_db
@@ -1155,26 +1121,27 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 15
+                    - id: 22
                       BuiltInFunction:
                         name: std.average
                         args:
-                          - id: 17
+                          - id: 27
                             Ident:
                               - _frame
                               - c_invoice
                               - amount
-                            target_id: 4
+                            target_id: 6
                             ty: Infer
                       ty:
-                        Literal: Column
+                        SetExpr:
+                          Primitive: Column
               partition:
-                - id: 8
+                - id: 12
                   Ident:
                     - _frame
                     - c_invoice
-                    - date
-                  target_id: 4
+                    - issued_at
+                  target_id: 6
                   ty: Infer
             ty:
               Table:
@@ -1182,13 +1149,13 @@ mod tests {
                   - Single:
                       name:
                         - c_invoice
-                        - date
-                      expr_id: 8
+                        - issued_at
+                      expr_id: 12
                   - Single:
                       name: ~
-                      expr_id: 15
+                      expr_id: 22
                 inputs:
-                  - id: 4
+                  - id: 6
                     name: c_invoice
                     table:
                       - default_db

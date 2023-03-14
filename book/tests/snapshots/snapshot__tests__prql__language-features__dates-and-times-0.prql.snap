@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\nderive age_at_year_end = (@2022-12-31 - dob)\n"
----
-from employees
-derive age_at_year_end = @2022-12-31 - dob
-
-
-

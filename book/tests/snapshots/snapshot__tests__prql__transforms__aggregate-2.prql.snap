@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\nderive [avg_sal = average salary]\n"
----
-from employees
-derive [avg_sal = average salary]
-
-
-

@@ -1,15 +1,15 @@
 .DS_Store
 
 dist
-target*
+target*/
 *.out
 
 lcov.info
 
-**/.vscode/settings.json
-**/.vscode/launch.json
-**/.vscode/tasks.json
-**/.idea
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea
 
 /*.prql
 _*.prql
@@ -21,5 +21,9 @@ _*.prql
 
 .task
 
-prql-dotnet/**/bin
-prql-dotnet/**/obj
+# These shouldn't be committed, and cause watchers to re-run when they're
+# created, which we don't want. That said, if ignoring them causes confusion
+# (e.g. folks look at their git status to assess whether there are pending
+# snapshots), we can adjust.
+*.pending-snap
+*.snap.new

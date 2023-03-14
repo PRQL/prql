@@ -19,13 +19,31 @@ updates:
       prefix: "chore: "
 
   - package-ecosystem: "npm"
-    directory: "/playground"
+    directory: "/bindings/prql-js"
     schedule:
       interval: daily
     ignore:
       - dependency-name: "*"
         update-types:
           - version-update:semver-patch
+    commit-message:
+      prefix: "chore: "
+
+  - package-ecosystem: "npm"
+    directory: "/web/playground"
+    schedule:
+      interval: daily
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
+    commit-message:
+      prefix: "chore: "
+
+  - package-ecosystem: docker
+    directory: .devcontainer/base-image
+    schedule:
+      interval: daily
     commit-message:
       prefix: "chore: "
 

@@ -1,7 +1,0 @@
-from_text format:json '[{"n": 1 }]'
-loop (
-    filter n<4
-    select n = n+1
-)
-
-# returns [1, 2, 3, 4]

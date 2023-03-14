@@ -23,33 +23,35 @@ pub(super) fn try_into_exprs(
 ) -> Result<Vec<sql_ast::Expr>> {
     let (cids, excluded) = translate_wildcards(&ctx.anchor, cids);
 
-    cids.into_iter()
-        .map(|cid| {
-            let decl = ctx.anchor.column_decls.get(&cid).unwrap();
+    let mut res = Vec::new();
+    for cid in cids {
+        let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-            let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
-                // base case
-                return translate_cid(cid, ctx)
-            };
+        let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
+            // base case
+            res.push(translate_cid(cid, ctx)?);
+            continue;
+        };
 
-            // wildcard
-            let t = &ctx.anchor.table_instances[tiid];
-            let table_name = t.name.clone();
+        // star
+        let t = &ctx.anchor.table_instances[tiid];
+        let table_name = t.name.clone();
 
-            let ident = translate_ident(table_name, Some("*".to_string()), ctx);
-            if let Some(excluded) = excluded.get(&cid) {
-                if !excluded.is_empty() {
-                    return Err(Error::new_simple(
-                        "Excluding columns not supported as this position",
-                    )
-                    .with_span(span)
-                    .into());
-                }
+        let ident = translate_star(ctx, span)?;
+        if let Some(excluded) = excluded.get(&cid) {
+            if !excluded.is_empty() {
+                return Err(
+                    Error::new_simple("Excluding columns not supported as this position")
+                        .with_span(span)
+                        .into(),
+                );
             }
+        }
+        let ident = translate_ident(table_name, Some(ident), ctx);
 
-            Ok(sql_ast::Expr::CompoundIdentifier(ident))
-        })
-        .try_collect()
+        res.push(sql_ast::Expr::CompoundIdentifier(ident));
+    }
+    Ok(res)
 }
 
 type Excluded = HashMap<CId, HashSet<CId>>;

@@ -1,0 +1,12 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nfilter (age > 25 or department != \"IT\")\n"
+---
+SELECT
+  *
+FROM
+  employees
+WHERE
+  age > 25
+  OR department <> 'IT'
+
