@@ -53,7 +53,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           # TODO: add linux/arm64
           platforms: linux/amd64
-          push: ${{ github.ref_name == 'main' && 'true' || 'false' }}
+          push: ${{ github.ref == 'refs/heads/main'}}
           cache-from: |
             ${{ env.IMAGE_NAME }}
             type=gha
