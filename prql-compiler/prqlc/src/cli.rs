@@ -74,11 +74,6 @@ pub struct IoArgs {
 
     #[clap(value_parser, default_value = "-")]
     output: Output,
-
-    // TODO: This should be only on some commands, is there an elegant way of
-    // doing that in Clap without lots of duplication?
-    #[arg(value_enum, long)]
-    format: Option<Format>,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
