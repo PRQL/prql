@@ -22,6 +22,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-web:
+    uses: ./.github/workflows/build-web.yaml
+
   test-rust:
     strategy:
       matrix:
