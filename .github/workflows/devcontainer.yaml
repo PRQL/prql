@@ -5,6 +5,9 @@ on:
   # https://github.com/PRQL/prql/pull/1893#discussion_r1125736478, possibly only
   # publishing on releases or on the `web` branch (which possibly should be
   # renamed back to `stable` if we use it more for this)
+  #
+  # TODO: integrate the Taskfiles — the extra complication of multiple files is
+  # not worth reducing the number of workflows we run
   push:
     paths:
       - .devcontainer/base-image/Dockerfile
@@ -43,14 +46,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - id: set-options
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "push=true" >>$GITHUB_OUTPUT
-          else
-            echo "push=false" >>$GITHUB_OUTPUT
-          fi
-
       - name: Build
         uses: docker/build-push-action@v4
         with:
@@ -58,10 +53,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           # TODO: add linux/arm64
           platforms: linux/amd64
-          push: ${{ steps.set-options.outputs.push }}
+          push: ${{ github.ref == 'refs/heads/main'}}
           cache-from: |
             ${{ env.IMAGE_NAME }}
             type=gha
           cache-to: |
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
             type=inline
-            type=gha,mode=max
