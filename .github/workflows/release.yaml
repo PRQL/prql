@@ -44,11 +44,13 @@ jobs:
           package: prqlc
           package_root: .debpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref }}
-          desc: |
-            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+          version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
+          desc: >
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
+            offers various diagnostics.
 
-            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+            PRQL is a modern language for transforming data — a simple,
+            powerful, pipelined SQL replacement.
 
   build-rpm-package:
     # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
@@ -70,11 +72,14 @@ jobs:
           package: prqlc
           package_root: .rpmpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref }}
-          desc: |
-            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+          vendor: The PRQL Project
+          version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
+          desc: >
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
+            offers various diagnostics.
 
-            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+            PRQL is a modern language for transforming data — a simple,
+            powerful, pipelined SQL replacement.
           license: Apache-2.0
 
   build-and-publish-snap:
@@ -86,6 +91,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - name: Move Snap to project root directory
+        run: cp -r packages/snap/ .
       - name: 📦 Build Snap
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap

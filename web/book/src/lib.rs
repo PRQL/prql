@@ -109,56 +109,56 @@ fn replace_examples(text: &str) -> Result<String> {
     let mut cmark_acc = vec![];
 
     while let Some(event) = parser.next() {
-        if let Some(lang) = code_block_lang(&event) {
-            let Some(Event::Text(text)) = parser.next()
-            else {
-                bail!("Expected text within code block")
-            };
-            let prql = text.to_string();
-            let options = prql_compiler::Options::default().no_signature();
-            let result = compile(&prql, &options);
-
-            match lang {
-                "prql" | "prql_no_fmt" => cmark_acc.push(Event::Html(
-                    table_of_comparison(
-                        &prql,
-                        result
-                            .unwrap_or_else(|_| {
-                                panic!("{}", format!("Query raised an error:\n\n {prql}\n\n"))
-                            })
-                            .as_str(),
-                    )
-                    .into(),
-                )),
-                "prql_error" => cmark_acc.push(Event::Html(
-                    table_of_error(
-                        &prql,
-                        result
-                            .expect_err(
-                                &format!(
-                                    "Query was labeled to raise an error, but succeeded.\n {prql}\n\n"
-                                )
-                                .to_string(),
-                            )
-                            .to_string()
-                            .as_str(),
-                    )
-                    .into(),
-                )),
-                "prql_no_test" => {}
-                _ => {
-                    if lang.starts_with("prql") {
-                        bail!("Unknown code block language: {}", lang)
-                    } else {
-                        cmark_acc.push(event.to_owned())
-                    }
-                }
-            };
-            // Skip ending tag
-            parser.next();
-        } else {
-            cmark_acc.push(event.to_owned())
+        // If it's not PRQL, just push it and continue
+        let Some(lang) = code_block_lang(&event) else {
+            cmark_acc.push(event.to_owned());
+            continue;
+        };
+        if !lang.starts_with("prql") {
+            cmark_acc.push(event.to_owned());
+            continue;
         }
+
+        let Some(Event::Text(text)) = parser.next() else {
+            bail!("Expected text within code block")
+        };
+
+        let prql = text.to_string();
+        let options = prql_compiler::Options::default().no_signature();
+        let result = compile(&prql, &options);
+
+        match lang {
+            "prql" | "prql_no_fmt" => cmark_acc.push(Event::Html(
+                table_of_comparison(
+                    &prql,
+                    result
+                        .map_err(|_| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n"))?
+                        .as_str(),
+                )
+                .into(),
+            )),
+            "prql_error" => cmark_acc.push(Event::Html(
+                table_of_error(
+                    &prql,
+                    result
+                        .expect_err(
+                            &format!(
+                                "Query was labeled to raise an error, but succeeded.\n {prql}\n\n"
+                            )
+                            .to_string(),
+                        )
+                        .to_string()
+                        .as_str(),
+                )
+                .into(),
+            )),
+            "prql_no_test" => {}
+            _ => {
+                bail!("Unknown code block language: {}", lang)
+            }
+        };
+        // Skip ending tag
+        parser.next();
     }
     let mut buf = String::new();
     cmark(cmark_acc.into_iter(), &mut buf)?;
@@ -229,6 +229,93 @@ fn table_of_error(prql: &str, error: &str) -> String {
     )
     .trim_start()
     .to_string()
+}
+
+#[test]
+fn test_replace_examples() -> Result<()> {
+    use insta::assert_display_snapshot;
+
+    let md = r###"
+# PRQL Doc
+
+```prql
+from x
+```
+
+```python
+import sys
+```
+
+```prql_error
+this is an error
+```
+    "###;
+
+    assert_display_snapshot!(replace_examples(md)?, @r###"
+    # PRQL Doc
+
+    <div class="comparison">
+
+    <div>
+    <h4>PRQL</h4>
+
+    ```prql
+    from x
+    ```
+
+    </div>
+
+    <div>
+    <h4>SQL</h4>
+
+    ```sql
+    SELECT
+      *
+    FROM
+      x
+
+    ```
+
+    </div>
+
+    </div>
+
+
+    ````python
+    import sys
+    ````
+
+    <div class="comparison">
+
+    <div>
+    <h4>PRQL</h4>
+
+    ```prql
+    this is an error
+    ```
+
+    </div>
+
+    <div>
+    <h4>Error</h4>
+
+    ```
+    Error:
+       ╭─[:1:1]
+       │
+     1 │ this is an error
+       │ ──┬─
+       │   ╰─── Unknown name this
+    ───╯
+
+    ```
+
+    </div>
+
+    </div>
+    "###);
+
+    Ok(())
 }
 
 #[test]

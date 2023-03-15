@@ -3,7 +3,7 @@ name: test-elixir
 on:
   #   pull_request:
   #     paths:
-  #       - "prql-elixir/**"
+  #       - "bindings/prql-elixir/**"
   #       - ".github/workflows/test-elixir.yaml"
   workflow_call:
 

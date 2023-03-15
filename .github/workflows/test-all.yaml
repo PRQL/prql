@@ -22,11 +22,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-web:
+    uses: ./.github/workflows/build-web.yaml
+
   test-rust:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        target_option: ["", --target=wasm32-unknown-unknown]
+        include:
+          - os: ubuntu-latest
+            target_option: --target=wasm32-unknown-unknown
 
     uses: ./.github/workflows/test-rust.yaml
     with:
@@ -48,8 +53,8 @@ jobs:
   test-elixir:
     uses: ./.github/workflows/test-elixir.yaml
 
-  #   test-dotnet:
-  #     uses: ./.github/workflows/test-dotnet.yaml
+  test-dotnet:
+    uses: ./.github/workflows/test-dotnet.yaml
 
   test-lib:
     uses: ./.github/workflows/test-lib.yaml
@@ -107,7 +112,9 @@ jobs:
           # Use the GHA cache
           load: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Only save cache on `main`
+          cache-to:
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
   test-min-rust-version:
     runs-on: ubuntu-latest

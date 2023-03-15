@@ -3,8 +3,8 @@ name: test-php
 on:
   pull_request:
     paths:
-      - "prql-php/**"
-      - "prql-lib/**"
+      - "bindings/prql-php/**"
+      - "bindings/prql-lib/**"
       - ".github/workflows/test-php.yaml"
   workflow_call:
 

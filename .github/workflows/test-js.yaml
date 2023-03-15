@@ -3,7 +3,7 @@ name: test-js
 on:
   pull_request:
     paths:
-      - "prql-js/**"
+      - "bindings/prql-js/**"
       - ".github/workflows/test-js.yaml"
   workflow_call:
 
