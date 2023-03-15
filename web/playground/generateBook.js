@@ -4,7 +4,7 @@ const { EOL } = require("os");
 
 /**
  * Get all markdown files in given dir
- * @param {string} dirPath 
+ * @param {string} dirPath
  */
 async function* getAllFiles(dirPath) {
   const files = await readdir(dirPath);
@@ -97,9 +97,9 @@ function getSnippets(content, file) {
     const relativeFile = relative(dir, filePath);
     const snippets = isFile(filePath)
       ? getSnippets(
-        (await readFile(filePath)).toString(),
-        basename(filePath).replace(/\..+/g, "").trim()
-      )
+          (await readFile(filePath)).toString(),
+          basename(filePath).replace(/\..+/g, "").trim()
+        )
       : [];
     if (!snippets.length && isFile(filePath)) {
       continue;
