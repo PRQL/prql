@@ -75,6 +75,7 @@ jobs:
           package: prqlc
           package_root: .rpmpkg
           maintainer: The PRQL Project
+          vendor: The PRQL Project
           version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
