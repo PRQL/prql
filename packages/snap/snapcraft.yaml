@@ -19,7 +19,7 @@ icon: web/website/static/img/icon.svg
 parts:
   prqlc:
     plugin: rust
-    source: ..
+    source: .
     rust-path: [prql-compiler/prqlc]
 
 apps:
