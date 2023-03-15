@@ -242,7 +242,6 @@ tasks:
         website/public/playground/playground
 
   test-js:
-    # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-js
     cmds:
       - npm run build

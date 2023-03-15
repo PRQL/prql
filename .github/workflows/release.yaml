@@ -134,7 +134,19 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/build-prql-js
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-pack
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm run build
+        working-directory: bindings/prql-js
+
       - name: Publish package on npm
         run: npm publish
         working-directory: bindings/prql-js/
