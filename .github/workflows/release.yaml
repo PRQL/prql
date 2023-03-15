@@ -51,9 +51,11 @@ jobs:
           maintainer: The PRQL Project
           version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
           desc: >
-            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
+            offers various diagnostics.
 
-            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+            PRQL is a modern language for transforming data — a simple,
+            powerful, pipelined SQL replacement.
 
   build-rpm-package:
     # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
@@ -78,9 +80,11 @@ jobs:
           vendor: The PRQL Project
           version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
           desc: >
-            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
+            offers various diagnostics.
 
-            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+            PRQL is a modern language for transforming data — a simple,
+            powerful, pipelined SQL replacement.
           license: Apache-2.0
 
   build-and-publish-snap:
