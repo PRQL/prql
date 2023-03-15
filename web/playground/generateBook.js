@@ -2,6 +2,10 @@ const { readdir, stat, readFile, writeFile } = require("fs/promises");
 const { join, relative, sep, normalize, basename } = require("path");
 const { EOL } = require("os");
 
+/**
+ * Get all markdown files in given dir
+ * @param {string} dirPath 
+ */
 async function* getAllFiles(dirPath) {
   const files = await readdir(dirPath);
   files.sort((a, b) => +isFile(a) - +isFile(b));
@@ -28,6 +32,7 @@ function isFile(path) {
 }
 
 /**
+ * Get all prql code snippets from a markdown file
  * @param {string} content
  * @param {string} file
  * @returns {{title:string, prql:string}[]}
@@ -92,9 +97,9 @@ function getSnippets(content, file) {
     const relativeFile = relative(dir, filePath);
     const snippets = isFile(filePath)
       ? getSnippets(
-          (await readFile(filePath)).toString(),
-          basename(filePath).replace(/\..+/g, "").trim()
-        )
+        (await readFile(filePath)).toString(),
+        basename(filePath).replace(/\..+/g, "").trim()
+      )
       : [];
     if (!snippets.length && isFile(filePath)) {
       continue;
