@@ -69,3 +69,21 @@ jobs:
           # We also run without this in the nightly workflow (maybe there's a
           # better way of organizing these so we DRY)
           check-modified-files-only: "yes"
+
+  pr-tests-pass:
+    # This doesn't run anything, but offers a task for us to tell GitHub
+    # everything in this workflow has passed and, unlikely including each task
+    # in repo's settings, will pass when a task is skipped. Note that this
+    # _doesn't_ cover other workflows, such as `test-js.yaml`. (and is strictly
+    # inferior to a GitHub feature that would just say "don't allow merging on
+    # any failing test")
+    #
+    # We don't include `check-links`, since occasionally we'll want to merge
+    # something which temporarily fails that, such as if we're changing the
+    # location of a file in this repo which is linked to.
+    needs:
+      - test-all
+      - test-rust
+      - publish
+      - nightly
+    runs-on: ubuntu-latest
