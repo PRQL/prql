@@ -1,0 +1,12 @@
+---
+source: book/tests/snapshot.rs
+expression: "# Error expected\n\nfrom employees\nderive total_distance = sum distance\n"
+---
+Error:
+   ╭─[:4:29]
+   │
+ 4 │ derive total_distance = sum distance
+   ·                             ────┬───
+   ·                                 ╰───── Unknown name distance
+───╯
+

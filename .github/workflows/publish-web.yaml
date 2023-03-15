@@ -6,23 +6,24 @@ on:
   # Called by pull-request when specifically requested
   workflow_call:
 
+# Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+permissions:
+  pages: write
+  id-token: write
+
 jobs:
-  publish-web:
+  build-web:
     runs-on: ubuntu-latest
 
-    # Skip running workflow on forks
+    # Skip running workflow on forks. This still runs on PRs, but then below we
+    # disable it from attempting to publish.
     if: github.repository_owner == 'prql'
 
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v3
+
       - name: 📂 Checkout code
         uses: actions/checkout@v3
 
@@ -31,10 +32,6 @@ jobs:
         uses: peaceiris/actions-hugo@v2.6.0
 
       # Book setup, duplicated from `pull-request.yaml`
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/web' }}
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook
@@ -44,23 +41,35 @@ jobs:
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/web' }}
 
       - uses: ./.github/actions/build-prql-js
 
       - uses: arduino/setup-task@v1
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
       - name: 🕷️ Build website
         run: task build-web
 
-      - name: Prepare tar for upload
-        uses: actions/upload-pages-artifact@v1.0.7
+      - uses: actions/upload-pages-artifact@v1.0.7
         with:
           path: website/public/
 
+  deploy-web:
+    needs: build-web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Don't attempt to publish if on a fork, including a PR.
+    if: "!github.event.pull_request.head.repo.fork"
+
+    steps:
       - name: Deploy to GitHub Pages
-        # Even if called by another workflow, don't try and actually publish if
-        # on a fork (it'll fail the workflow even if it otherwise builds successfully)
-        if: "!github.event.pull_request.head.repo.fork"
         id: deployment
-        uses: actions/deploy-pages@v1.2.4
+        uses: actions/deploy-pages@v1.2.5

@@ -24,6 +24,81 @@ jobs:
               }
             })
 
+  build-deb-package:
+    # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
+    # to add that (and eventually as a release asset)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 👷 Build prql-compiler
+        run: cargo build --release
+      - name: Copy files into .deb package
+        run: |
+          mkdir -p .debpkg/usr/bin
+          cp target/release/prqlc .debpkg/usr/bin/prqlc
+          chmod +x .debpkg/usr/bin/prqlc
+      - name: 📦 Build .deb package
+        uses: jiro4989/build-deb-action@v2
+        with:
+          package: prqlc
+          package_root: .debpkg
+          maintainer: The PRQL Project
+          version: ${{ github.ref }}
+          desc: |
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+
+            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+
+  build-rpm-package:
+    # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 👷 Build prqlc
+        run: cargo build --bin prqlc --release
+      - name: Copy files into .rpm package
+        run: |
+          mkdir -p .rpmpkg/usr/bin
+          cp target/release/prqlc .rpmpkg/usr/bin/prqlc
+          chmod +x .rpmpkg/usr/bin/prqlc
+      - name: 📦 Build .rpm package
+        uses: jiro4989/build-rpm-action@v2
+        with:
+          summary: CLI for PRQL, a modern language for transforming data
+          package: prqlc
+          package_root: .rpmpkg
+          maintainer: The PRQL Project
+          version: ${{ github.ref }}
+          desc: |
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+
+            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+          license: Apache-2.0
+
+  build-and-publish-snap:
+    runs-on: ubuntu-latest
+
+    # Skip running workflow on forks
+    if: github.repository_owner == 'prql'
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 📦 Build Snap
+        uses: snapcore/action-build@v1
+        with:
+          path: packages/
+      - name: 🆙 Publish Snap
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS:
+            ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
+
   build-python-wheels:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -57,7 +132,7 @@ jobs:
       - uses: ./.github/actions/build-prql-js
       - name: Publish package on npm
         run: npm publish
-        working-directory: prql-js/
+        working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -72,7 +147,7 @@ jobs:
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: release
-          args: publish -x
+          args: publish --no-confirm -x
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 

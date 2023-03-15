@@ -11,6 +11,9 @@
 
 version: "3"
 
+includes:
+  cargo-tools: ./Taskfile.cargo-tools.yml
+
 vars:
   # Keep in sync with .vscode/extensions.json
   vscode_extensions: |
@@ -38,7 +41,7 @@ tasks:
 
     desc: Install tools for PRQL development.
     cmds:
-      - task: install-cargo-tools
+      - task: cargo-tools:install
       - task: install-brew-dependencies
       - task: install-maturin
       - task: install-pre-commit
@@ -54,18 +57,9 @@ tasks:
 
   install-cargo-tools:
     # factored this out because it takes a long time to build
-    desc: Install cargo tools for PRQL development.
-    cmds:
-      # `--locked` installs from the underlying lock files (which is not the
-      # default?!)
-      - cargo install --locked cargo-audit cargo-insta cargo-release
-        default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
-        wasm-pack
-        # Can't install atm with `--locked`
-      - cargo install mdbook-footnote
-      - cmd: |
-          [ "$(which default-target)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
-        silent: true
+    desc: Alias of `cargo-tools:install`
+    deps:
+      - cargo-tools:install
 
   install-maturin:
     desc: Install maturin.
@@ -151,17 +145,9 @@ tasks:
       Build everything.
 
       Running this isn't required when developing; it's for caching or as a reference.
-    vars:
-      default_target:
-        sh: default-target
-      targets: |
-        {{ .default_target }}
-        wasm32-unknown-unknown
     cmds:
-      - |
-        {{ range ( .targets | trim | splitLines ) -}}
-        cargo build --all-targets --target={{.}}
-        {{ end -}}
+      - cargo build --all-targets --target=wasm32-unknown-unknown
+      - cargo build --all-targets
       - task: build-web
 
   test-all:
@@ -177,14 +163,10 @@ tasks:
       - task: test-rust
       - task: build-all
       - task: test-js
-      - task: test-elixir
       - pre-commit run -a
 
   test-rust:
     desc: Test all rust code, accepting snapshots.
-    vars:
-      default_target:
-        sh: default-target
     # Commenting out the ability to watch, since Task seems to trip over itself,
     # starting a new process before the old one has finished when a process
     # changes output files.
@@ -203,25 +185,16 @@ tasks:
     #   - "**/*.md"
     #   - "**/*.toml"
     #   - "**/*.lock"
-    #   - "**/*.pest"
     #   - "**/*.snap"
     cmds:
-      # We run this `snapshot` first for the reasons given in
-      # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
-      # examples in the documentation (inc. tested), b) not rely on falliable
-      # tests to extract them, which include compiling prql-compiler, c) not
-      # fail other compilation steps if they can't be extracted.
-      - cargo insta test --accept -p mdbook-prql --test snapshot
-        --target={{.default_target}}
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm. Note that this will also over-delete on Windows.
       # Note that we need to pass the target explicitly to manage
       # https://github.com/rust-lang/cargo/issues/8899
-      - cargo insta test --accept --target={{.default_target}}
-        --unreferenced=auto
+      - cargo insta test --accept --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
       # We build the book too, because that acts as a test
-      - cd book && mdbook build
+      - cd web/book && mdbook build
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
@@ -244,14 +217,13 @@ tasks:
       # by `--accept` and task not interrupting existing runs, so all files go
       # to `.snap`s which match the generated output?).
       - "prql-compiler/**/*.rs"
-      - "prql-compiler/**/*.pest"
       - "prql-compiler/**/*.snap"
     cmds:
-      - cargo insta test --accept -p prql-compiler --lib
-        --target=$(default-target)
+      - cargo insta test --accept -p prql-compiler --lib -- --quiet
 
   build-web:
     desc: Build the website, including the book & playground.
+    dir: web
     cmds:
       - cd website && hugo --minify
       - cd book && mdbook build
@@ -276,30 +248,31 @@ tasks:
       - npm run build
       - npm cit
 
-  test-elixir:
-    dir: prql-elixir
-    cmds:
-      # We could move this line into an `install` task
-      - mix local.hex --force
-      - mix deps.get --force
-      - mix compile
-      - mix test
+  # Currently disabled; see prql-elixir/README.md for details
+  # test-elixir:
+  #   dir: prql-elixir
+  #   cmds:
+  #     # We could move this line into an `install` task
+  #     - mix local.hex --force
+  #     - mix deps.get --force
+  #     - mix compile
+  #     - mix test
 
   run-website:
     desc: Build & serve the static website.
-    dir: website
+    dir: web/website
     cmds:
       - hugo server
 
   run-book:
     desc: Build & serve the book.
-    dir: book
+    dir: web/book
     cmds:
       - mdbook serve --port=3000
 
   run-playground:
     desc: Build & serve the playground.
-    dir: playground
+    dir: web/playground
     cmds:
       # Must set `install-links=false` in the playground's `npm install` to
       # install prql-js as the regular dependency, instead of creating a

@@ -12,6 +12,10 @@ on:
 jobs:
   cargo-audit:
     runs-on: ubuntu-latest
+    # We can't read PRQL repo security events on forks, which causes this to
+    # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
+    # could move this to `pull-request-target`.
+    if: "!github.event.pull_request.head.repo.fork"
     permissions:
       actions: read
       contents: read
@@ -48,14 +52,15 @@ jobs:
 
   update-rust-toolchain:
     runs-on: ubuntu-latest
+    # Don't run on forks; will attempt to create a PR into the fork...
+    if: "!github.event.pull_request.head.repo.fork"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
-          # Move this up until 3, so the next upgrade is at 1.66 once 1.69 is released.
-          minor-version-delta: 2
+          minor-version-delta: 3
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
 

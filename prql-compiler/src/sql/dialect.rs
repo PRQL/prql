@@ -14,6 +14,7 @@
 
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
+use std::any::{Any, TypeId};
 use strum::{EnumMessage, IntoEnumIterator};
 
 /// SQL dialect.
@@ -28,6 +29,7 @@ use strum::{EnumMessage, IntoEnumIterator};
     PartialEq,
     Eq,
     Clone,
+    Copy,
     Serialize,
     Deserialize,
     strum::Display,
@@ -92,15 +94,23 @@ impl Default for Dialect {
     }
 }
 
+#[derive(Debug)]
 pub struct GenericDialect;
+#[derive(Debug)]
 pub struct SQLiteDialect;
+#[derive(Debug)]
 pub struct MySqlDialect;
+#[derive(Debug)]
 pub struct MsSqlDialect;
+#[derive(Debug)]
 pub struct BigQueryDialect;
+#[derive(Debug)]
 pub struct ClickHouseDialect;
-
+#[derive(Debug)]
 pub struct SnowflakeDialect;
+#[derive(Debug)]
 pub struct DuckDbDialect;
+#[derive(Debug)]
 pub struct PostgresDialect;
 
 pub(super) enum ColumnExclude {
@@ -108,7 +118,7 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
-pub(super) trait DialectHandler {
+pub(super) trait DialectHandler: Any + Debug {
     fn use_top(&self) -> bool {
         false
     }
@@ -152,6 +162,18 @@ pub(super) trait DialectHandler {
     fn requires_quotes_intervals(&self) -> bool {
         false
     }
+
+    /// Support for GROUP BY *
+    fn stars_in_group(&self) -> bool {
+        true
+    }
+}
+
+impl dyn DialectHandler {
+    #[inline]
+    pub fn is<T: DialectHandler + 'static>(&self) -> bool {
+        TypeId::of::<T>() == self.type_id()
+    }
 }
 
 impl DialectHandler for GenericDialect {}
@@ -172,6 +194,10 @@ impl DialectHandler for SQLiteDialect {
     }
 
     fn has_concat_function(&self) -> bool {
+        false
+    }
+
+    fn stars_in_group(&self) -> bool {
         false
     }
 }

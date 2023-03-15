@@ -1,0 +1,33 @@
+// Dev Container for Rust, website, prql-js and prql-python
+{
+  "image": "ghcr.io/prql/prql-devcontainer-base:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/hugo:1": {},
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Keep in sync with Taskfile.yml
+        "prql-lang.prql-vscode",
+        "rust-lang.rust-analyzer",
+        "mitsuhiko.insta",
+        "esbenp.prettier-vscode",
+        "budparr.language-hugo-vscode"
+      ]
+    }
+  },
+  "mounts": [
+    {
+      "source": "devcontainer-cargo-cache",
+      "target": "/usr/local/cargo",
+      "type": "volume"
+    }
+  ],
+  "postCreateCommand": {
+    "install-maturin": "task install-maturin",
+    "install-npm-dependencies": "task install-npm-dependencies"
+  }
+}

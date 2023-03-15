@@ -8,22 +8,22 @@ Table:
         name:
           - orders
           - customer_no
-        expr_id: 11
+        expr_id: 18
     - Single:
         name:
           - orders
           - gross
-        expr_id: 12
+        expr_id: 19
     - Single:
         name:
           - orders
           - tax
-        expr_id: 13
+        expr_id: 20
     - Single:
         name: ~
-        expr_id: 14
+        expr_id: 21
   inputs:
-    - id: 4
+    - id: 6
       name: orders
       table:
         - default_db

@@ -45,10 +45,10 @@ RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/loc
 
 # ========= Set up workdir & copy the taskfile =========
 WORKDIR /src
-COPY Taskfile.yml .
+COPY Taskfile.cargo-tools.yml .
 
 # ========= Install cargo-tools =========
-RUN task install-cargo-tools
+RUN task -t Taskfile.cargo-tools.yml install
 
 # TODO: currently this doesn't support doing things like running the playground,
 # since we don't install hugo & node. Default `apt` doesn't install up-to-date

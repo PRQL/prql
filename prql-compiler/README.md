@@ -8,7 +8,7 @@ For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
 For more usage examples and the library documentation, check out the
 [`prql-compiler` documentation](https://docs.rs/prql-compiler/latest/prql_compiler/).
 
-# Installation
+## Installation
 
 ```shell
 cargo add prql-compiler
@@ -24,12 +24,12 @@ Compile a PRQL string to a SQLite dialect string.
 use prql_compiler::{compile, Options, Target, sql::Dialect};
 
 let prql = "from employees | select [name, age]";
-let opt = Options {
+let opts = &Options {
     format: false,
     target: Target::Sql(Some(Dialect::SQLite)),
     signature_comment: false
 };
-let sql = compile(&prql, opt).unwrap();
+let sql = compile(&prql, opts).unwrap();
 assert_eq!("SELECT name, age FROM employees", sql);
 ```
 

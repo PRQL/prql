@@ -42,7 +42,7 @@
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
 //!     let sql = prql_compiler::compile(
 //!         "from albums | select [title, artist_id]",
-//!          prql_compiler::Options::default().no_format()
+//!          &prql_compiler::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
 //!     # Ok(())
@@ -87,7 +87,6 @@ mod test;
 mod utils;
 
 pub use error::{downcast, Error, ErrorMessage, ErrorMessages, Reason, SourceLocation, Span};
-pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;
 use semver::Version;
@@ -109,19 +108,19 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// ```
 /// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from employees | select [name,age] ";
-/// let opt = Options {
+/// let prql = "from employees | select [name,age]";
+/// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
 ///     signature_comment: false
 /// };
-/// let sql = compile(&prql, opt).unwrap();
+/// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
 /// assert_eq!("SELECT name, age FROM employees", sql)
 ///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
-pub fn compile(prql: &str, options: Options) -> Result<String, ErrorMessages> {
+pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
@@ -143,10 +142,12 @@ impl Default for Target {
 
 impl Target {
     pub fn names() -> Vec<String> {
-        sql::Dialect::names()
-            .into_iter()
-            .map(|d| format!("sql.{d}"))
-            .collect()
+        let mut names = vec!["sql.any".to_string()];
+
+        let dialects = sql::Dialect::names();
+        names.extend(dialects.into_iter().map(|d| format!("sql.{d}")));
+
+        names
     }
 }
 
@@ -154,20 +155,20 @@ impl FromStr for Target {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
-        // We have a closure here because we can't create the error in the
-        // pipeline, since it needs to be in two places, and we'd need to clone.
-        // (Though possibly it's too optimize-y.)
-        let not_found_error = |s| {
-            Error::new(Reason::NotFound {
-                name: format!("{s:?}"),
-                namespace: "target".to_string(),
-            })
-        };
-        s.strip_prefix("sql.")
-            .ok_or_else(|| not_found_error(s))
-            .map(sql::Dialect::from_str)?
-            .map(|x| Target::Sql(Some(x)))
-            .map_err(|_| not_found_error(s))
+        if let Some(dialect) = s.strip_prefix("sql.") {
+            if dialect == "any" {
+                return Ok(Target::Sql(None));
+            }
+
+            if let Ok(dialect) = sql::Dialect::from_str(dialect) {
+                return Ok(Target::Sql(Some(dialect)));
+            }
+        }
+
+        Err(Error::new(Reason::NotFound {
+            name: format!("{s:?}"),
+            namespace: "target".to_string(),
+        }))
     }
 }
 
@@ -233,12 +234,12 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve(pl).map_err(error::downcast)
+    semantic::resolve(pl).map_err(|e| e.into())
 }
 
 /// Generate SQL from RQ.
-pub fn rq_to_sql(rq: ast::rq::Query, options: Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(error::downcast)
+pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
+    sql::compile(rq, options).map_err(|e| e.into())
 }
 
 /// Generate PRQL code from PL AST
@@ -252,22 +253,22 @@ pub mod json {
 
     /// JSON serialization
     pub fn from_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&pl).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
     pub fn to_pl(json: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
-        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON serialization
     pub fn from_rq(rq: ast::rq::Query) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&rq).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::to_string(&rq).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
     pub fn to_rq(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
-        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 }
 
@@ -298,6 +299,7 @@ mod tests {
                     namespace: "target",
                 },
                 help: None,
+                code: None,
             },
         )
         "###);
@@ -311,6 +313,7 @@ mod tests {
                     namespace: "target",
                 },
                 help: None,
+                code: None,
             },
         )
         "###);

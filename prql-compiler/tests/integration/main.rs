@@ -34,14 +34,16 @@ mod tests {
             let opts = Options::default()
                 .with_target(Target::Sql(Some(Dialect::SQLite)))
                 .no_format();
-            let sql = prql_compiler::compile(&prql, opts).unwrap();
+            let sql = prql_compiler::compile(&prql, &opts)
+                .unwrap_or_else(|e| panic!("Failed to compile\n\n{prql}\n\n{e}"));
+
             let sqlite_out = sqlite::query_csv(&sqlite_conn, &sql);
 
             // save both csv files as same snapshot
             let opts = Options::default()
                 .with_target(Target::Sql(Some(Dialect::DuckDb)))
                 .no_format();
-            let sql = prql_compiler::compile(&prql, opts).unwrap();
+            let sql = prql_compiler::compile(&prql, &opts).unwrap();
             let duckdb_out = duckdb::query_csv(&duckdb_conn, &sql);
             pretty_assertions::assert_eq!(sqlite_out, duckdb_out, "SQLite == DuckDB: {test_name}");
 
@@ -49,7 +51,7 @@ mod tests {
                 let opts = Options::default()
                     .with_target(Target::Sql(Some(Dialect::PostgreSql)))
                     .no_format();
-                let sql = prql_compiler::compile(&prql, opts).unwrap();
+                let sql = prql_compiler::compile(&prql, &opts).unwrap();
                 let pg_out = postgres::query_csv(pg_client, &sql);
                 pretty_assertions::assert_eq!(sqlite_out, pg_out, "SQLite == PG: {test_name}");
             }
@@ -86,7 +88,13 @@ mod tests {
         }
 
         pub fn query_csv(conn: &Connection, sql: &str) -> String {
-            let mut statement = conn.prepare(sql).unwrap();
+            let mut statement = conn
+                .prepare(sql)
+                .map_err(|e| {
+                    println!("{e}");
+                    e
+                })
+                .unwrap();
 
             let csv_header = statement.column_names().join(",");
             let column_count = statement.column_count();
@@ -172,6 +180,13 @@ mod tests {
                                 ValueRef::Timestamp(_, _) => {
                                     let dt = DateTime::<Utc>::column_result(value).unwrap();
                                     dt.format("%Y-%m-%d %H:%M:%S").to_string()
+                                }
+                                ValueRef::Boolean(b) => {
+                                    if b {
+                                        "1".to_string()
+                                    } else {
+                                        "0".to_string()
+                                    }
                                 }
                                 t => unimplemented!("{t:?}"),
                             }

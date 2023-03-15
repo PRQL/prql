@@ -1,22 +1,19 @@
 name: test-elixir
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "prql-elixir/**"
-      - ".github/workflows/test-elixir.yaml"
+  #   pull_request:
+  #     paths:
+  #       - "bindings/prql-elixir/**"
+  #       - ".github/workflows/test-elixir.yaml"
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-elixir
   cancel-in-progress: true
 
 defaults:
   run:
-    working-directory: prql-elixir
+    working-directory: bindings/prql-elixir
 
 env:
   MIX_ENV: test
@@ -25,7 +22,8 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Currently disabling mac tests, see prql-elixir/readme.md for more details.
+        os: [ubuntu-latest, windows-latest]
         otp: ["25.1.2"]
         elixir: ["1.14.2"]
     runs-on: ${{matrix.os}}

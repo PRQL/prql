@@ -18,9 +18,9 @@ use crate::{ast::rq::Query, Options, PRQL_VERSION};
 use self::{context::AnchorContext, dialect::DialectHandler};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn compile(query: Query, options: Options) -> Result<String> {
+pub fn compile(query: Query, options: &Options) -> Result<String> {
     let crate::Target::Sql(dialect) = options.target;
-    let sql_ast = gen_query::translate_query(query, dialect.clone())?;
+    let sql_ast = gen_query::translate_query(query, dialect)?;
 
     let sql = sql_ast.to_string();
 
@@ -32,10 +32,7 @@ pub fn compile(query: Query, options: Options) -> Result<String> {
             sqlformat::FormatOptions::default(),
         );
 
-        // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
-        // we want to allow jinja expressions through. So we (somewhat hackily) replace
-        // any `{ {` with `{{`.
-        formatted.replace("{ {", "{{").replace("} }", "}}") + "\n"
+        formatted + "\n"
     } else {
         sql
     };
@@ -59,10 +56,23 @@ pub fn compile(query: Query, options: Options) -> Result<String> {
     Ok(sql)
 }
 
+#[derive(Debug)]
 struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
 
+    // stuff regarding current query
+    query: QueryOpts,
+
+    // stuff regarding parent queries
+    query_stack: Vec<QueryOpts>,
+
+    pub ctes: Vec<sqlparser::ast::Cte>,
+}
+
+#[derive(Clone, Debug)]
+struct QueryOpts {
+    /// When true, column references will not include table names prefixes.
     pub omit_ident_prefix: bool,
 
     /// True iff codegen should generate expressions before SELECT's projection is applied.
@@ -70,6 +80,43 @@ struct Context {
     /// - WHERE needs `pre_projection=true`, but
     /// - ORDER BY needs `pre_projection=false`.
     pub pre_projection: bool,
+
+    /// When false, queries will contain nested sub-queries instead of WITH CTEs.
+    pub allow_ctes: bool,
+
+    /// When false, * are not allowed.
+    pub allow_stars: bool,
+}
+
+impl Default for QueryOpts {
+    fn default() -> Self {
+        QueryOpts {
+            omit_ident_prefix: false,
+            pre_projection: false,
+            allow_ctes: true,
+            allow_stars: true,
+        }
+    }
+}
+
+impl Context {
+    fn new(dialect: Box<dyn DialectHandler>, anchor: AnchorContext) -> Self {
+        Context {
+            dialect,
+            anchor,
+            query: QueryOpts::default(),
+            query_stack: Vec::new(),
+            ctes: Vec::new(),
+        }
+    }
+
+    fn push_query(&mut self) {
+        self.query_stack.push(self.query.clone());
+    }
+
+    fn pop_query(&mut self) {
+        self.query = self.query_stack.pop().unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -79,7 +126,7 @@ mod test {
 
     #[test]
     fn test_end_with_new_line() {
-        let sql = compile("from a", Options::default().no_signature()).unwrap();
+        let sql = compile("from a", &Options::default().no_signature()).unwrap();
         assert_eq!(sql, "SELECT\n  *\nFROM\n  a\n")
     }
 }
