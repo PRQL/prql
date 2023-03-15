@@ -6,13 +6,17 @@ target*/
 
 lcov.info
 
-.vscode/settings.json
-.vscode/launch.json
-.vscode/tasks.json
+**/.vscode/settings.json
+**/.vscode/launch.json
+**/.vscode/tasks.json
 .idea
 
 /*.prql
 _*.prql
+/*.rq
+_*.rq
+/*.pl
+_*.pl
 
 # Appears when using Docker container
 .Trash-0
