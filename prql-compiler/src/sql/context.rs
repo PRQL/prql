@@ -8,7 +8,6 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-
 use crate::ast::rq::{
     fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
     TableDecl, TableRef, Transform,

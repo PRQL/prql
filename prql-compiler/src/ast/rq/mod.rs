@@ -17,8 +17,8 @@ pub use utils::*;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use super::pl::InterpolateItem;
 use super::pl::{ColumnSort, QueryDef, Range, RelationLiteral, WindowFrame};
-use super::pl::{InterpolateItem};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
