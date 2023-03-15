@@ -28,5 +28,7 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
+      - run: npm run build
+        working-directory: bindings/prql-js
       - run: npm cit
         working-directory: bindings/prql-js
