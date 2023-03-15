@@ -59,6 +59,9 @@ jobs:
   test-lib:
     uses: ./.github/workflows/test-lib.yaml
 
+  test-taskfile:
+    uses: ./.github/workflows/test-taskfile.yaml
+
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
     if: false
