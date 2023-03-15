@@ -87,3 +87,5 @@ jobs:
       - publish
       - nightly
     runs-on: ubuntu-latest
+    steps:
+      - run: echo "Tests have passed"
