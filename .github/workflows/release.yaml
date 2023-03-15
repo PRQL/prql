@@ -92,10 +92,10 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - name: Move Snap to project root directory
+        run: cp -r packages/snap/ .
       - name: 📦 Build Snap
         uses: snapcore/action-build@v1
-        with:
-          path: packages/
       - name: 🆙 Publish Snap
         uses: snapcore/action-publish@v1
         env:
