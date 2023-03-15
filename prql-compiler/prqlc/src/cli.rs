@@ -64,7 +64,7 @@ enum Command {
         #[clap(value_parser, default_value = "-")]
         output: Output,
         #[arg(value_enum, long)]
-        format: Option<Format>,
+        format: Format,
     },
 
     /// Parse, resolve, lower into RQ & compile to SQL
@@ -163,8 +163,8 @@ impl Command {
                 let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
                 match format {
-                    Some(Format::Json) | None => serde_json::to_string_pretty(&ir)?.into_bytes(),
-                    Some(Format::Yaml) => serde_yaml::to_string(&ir)?.into_bytes(),
+                    Format::Json => serde_json::to_string_pretty(&ir)?.into_bytes(),
+                    Format::Yaml => serde_yaml::to_string(&ir)?.into_bytes(),
                 }
             }
             // TODO: Allow passing the `Options` to the CLI; map those through.
@@ -371,7 +371,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
             &Command::Resolve {
                 input: IoArgs::default().input,
                 output: IoArgs::default().output,
-                format: Some(Format::Yaml),
+                format: Format::Yaml,
             },
             "from x | select y",
         )
