@@ -8,7 +8,6 @@ on:
         type: string
       target_option:
         type: string
-        default: ""
 
 env:
   CARGO_TERM_COLOR: always
