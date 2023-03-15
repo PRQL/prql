@@ -1,0 +1,56 @@
+name: build-web
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/build-web.yaml"
+  workflow_call:
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+
+    # Skip running workflow on forks. Checking the repository owner still allows
+    # this to be run on PRs, and then below we disable it from attempting to
+    # publish.
+    if: github.repository_owner == 'prql'
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+
+      # Website requires hugo
+      - name: Setup hugo
+        uses: peaceiris/actions-hugo@v2.6.0
+
+      # Book setup, duplicated from `pull-request.yaml`
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook-footnote
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook-admonish
+
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if:
+            ${{ github.ref == 'refs/heads/web' || github.ref ==
+            'refs/heads/main' }}
+
+      - uses: ./.github/actions/build-prql-js
+
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: 🕷️ Build website
+        run: task build-web
+
+      - uses: actions/upload-pages-artifact@v1.0.7
+        with:
+          path: web/website/public/

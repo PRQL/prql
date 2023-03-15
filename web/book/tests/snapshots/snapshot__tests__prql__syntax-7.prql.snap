@@ -6,7 +6,7 @@ Error:
    ╭─[:4:29]
    │
  4 │ derive total_distance = sum distance
-   ·                             ────┬───
-   ·                                 ╰───── Unknown name distance
+   │                             ────┬───
+   │                                 ╰───── Unknown name distance
 ───╯
 

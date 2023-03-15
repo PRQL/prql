@@ -392,13 +392,6 @@ integrations_section:
   enable: true
   title: "Integrations"
   sections:
-    - label: dbt
-      link: https://github.com/prql/dbt-prql
-      text:
-        Allows writing PRQL in dbt models. This combines the benefits of PRQL's
-        power & simplicity within queries; with dbt's version control, lineage &
-        testing across queries.
-
     - label: "Jupyter/IPython"
       link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
       text:
@@ -413,6 +406,17 @@ integrations_section:
     - label: "Prefect"
       link: https://prql-lang.org/book/integrations/prefect.html
       text: Add PRQL models to your Prefect workflows with a single function.
+
+    - label: "DuckDB"
+      link: https://github.com/ywelsch/duckdb-prql
+      text: A DuckDB extension to execute PRQL
+
+    - label: dbt
+      link: https://github.com/prql/dbt-prql
+      text:
+        Allows writing PRQL in dbt models. This combines the benefits of PRQL's
+        power & simplicity within queries; with dbt's version control, lineage &
+        testing across queries.
 
 bindings_section:
   enable: true

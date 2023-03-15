@@ -20,6 +20,8 @@ Supported bindings require:
 - A script in `Taskfile.yml` to bootstrap a development environment.
 - Any dev tools, such as a linter & formatter, in pre-commit or MegaLinter.
 
+The currently supported bindings are:
+
 - [JavaScript](./javascript.md)
 - [Python](./python.md)
 - [R](./r.md)
@@ -42,5 +44,5 @@ nascent.
 
 Nascent bindings are in development, and may not yet fully work.
 
-- [.NET](./net.md)
+- [.NET](./dotnet.md)
 - [PHP](./php.md)

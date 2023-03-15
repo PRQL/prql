@@ -63,51 +63,58 @@ fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
 }
 
 fn convert_parser_error(e: Simple<Token>) -> Error {
-    let span = common::into_span(e.span());
+    let mut span = common::into_span(e.span());
+
+    if e.found().is_none() {
+        // found end of file
+        // fix for span outside of source
+        if let Some(span) = &mut span {
+            if span.start > 0 && span.end > 0 {
+                span.start -= 1;
+                span.end -= 1;
+            }
+        }
+    }
 
     if let SimpleReason::Custom(message) = e.reason() {
         return Error::new_simple(message).with_span(span);
     }
 
+    fn token_to_string(t: Option<Token>) -> String {
+        t.map(|t| t.to_string())
+            .unwrap_or_else(|| "end of input".to_string())
+    }
+
     let is_all_whitespace = e
         .expected()
         .all(|t| matches!(t, None | Some(Token::NewLine)));
-    let expecteds = e
+    let expected = e
         .expected()
         // TODO: could we collapse this into a `filter_map`? (though semantically
         // identical)
         //
         // Only include whitespace if we're _only_ expecting whitespace
         .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
-        .map(|t| {
-            t.clone()
-                .map(|t| t.to_string())
-                .unwrap_or_else(|| "end of input".to_string())
-        })
+        .cloned()
+        .map(token_to_string)
         .collect_vec();
 
-    let expected = if expecteds.is_empty() || expecteds.len() > 10 {
+    if expected.is_empty() || expected.len() > 10 {
         return Error::new(Reason::Unexpected {
-            found: e
-                .found()
-                .map(|c| c.to_string())
-                // I think a rare case where we have both no `expected` and no `found`.
-                // Would be good to know how often this happens; can improve if we are
-                // hitting it.
-                .unwrap_or_else(|| "end of input".to_string()),
+            found: token_to_string(e.found().cloned()),
         })
         .with_span(span);
-    } else {
-        let mut expecteds = expecteds;
-        expecteds.sort();
+    }
 
-        match expecteds.len() {
-            1 => expecteds.remove(0),
-            2 => expecteds.join(" or "),
-            _ => {
-                let last = expecteds.pop().unwrap();
-                format!("one of {} or {last}", expecteds.join(", "))
-            }
+    let mut expected = expected;
+    expected.sort();
+
+    let expected = match expected.len() {
+        1 => expected.remove(0),
+        2 => expected.join(" or "),
+        _ => {
+            let last = expected.pop().unwrap();
+            format!("one of {} or {last}", expected.join(", "))
         }
     };
 
@@ -2262,7 +2269,7 @@ join s=salaries [==id]
                 },
                 Error {
                     span: Some(
-                        span-chars-38-39,
+                        span-chars-37-38,
                     ),
                     reason: Simple(
                         "Expected * or an identifier, but didn't find anything before the end.",

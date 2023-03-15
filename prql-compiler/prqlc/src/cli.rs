@@ -43,8 +43,8 @@ enum Command {
         input: Input,
         #[clap(value_parser, default_value = "-")]
         output: Output,
-        #[arg(value_enum, long)]
-        format: Option<Format>,
+        #[arg(value_enum, long, default_value = "yaml")]
+        format: Format,
     },
 
     /// Parse & generate PRQL code back
@@ -74,11 +74,6 @@ pub struct IoArgs {
 
     #[clap(value_parser, default_value = "-")]
     output: Output,
-
-    // TODO: This should be only on some commands, is there an elegant way of
-    // doing that in Clap without lots of duplication?
-    #[arg(value_enum, long)]
-    format: Option<Format>,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -124,8 +119,8 @@ impl Command {
             Command::Parse { format, .. } => {
                 let ast = prql_to_pl(source)?;
                 match format {
-                    Some(Format::Json) | None => serde_json::to_string_pretty(&ast)?.into_bytes(),
-                    Some(Format::Yaml) => serde_yaml::to_string(&ast)?.into_bytes(),
+                    Format::Json => serde_json::to_string_pretty(&ast)?.into_bytes(),
+                    Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
             Command::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
@@ -327,8 +322,8 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
            ╭─[:1:1]
            │
          1 │ asdf
-           · ──┬─
-           ·   ╰─── Unknown name asdf
+           │ ──┬─
+           │   ╰─── Unknown name asdf
         ───╯
         "###);
     }
@@ -339,7 +334,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
             &Command::Parse {
                 input: IoArgs::default().input,
                 output: IoArgs::default().output,
-                format: Some(Format::Yaml),
+                format: Format::Yaml,
             },
             "from x | select y",
         )

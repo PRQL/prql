@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.6.2 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.6.1 — 2022-03-12
 
 0.6.1 is a small release containing an internal refactoring and improved
@@ -17,8 +33,9 @@ This release has 54 commits from 6 contributors. Selected changes:
 
 **Documentation**:
 
-- Add a policy for which bindings are supported / unsupported / nascent
-  (@max-sixty, #2062)
+- Add a policy for which bindings are supported / unsupported / nascent. See
+  <https://prql-lang.org/book/bindings/index.html> for more details (@max-sixty,
+  #2062) (@max-sixty, #2062)
 
 **Integrations**:
 
