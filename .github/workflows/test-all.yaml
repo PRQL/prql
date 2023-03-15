@@ -29,9 +29,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            target_option: --target=wasm32-unknown-unknown
+        target_option: ["", --target=wasm32-unknown-unknown]
 
     uses: ./.github/workflows/test-rust.yaml
     with:
