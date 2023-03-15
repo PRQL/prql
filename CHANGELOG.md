@@ -10,6 +10,9 @@
 
 **Web**:
 
+- Added the PRQL-snippets from the book to the
+  [Playground](https://prql-lang.org/playground/)
+
 **Integrations**:
 
 **Internal changes**:
