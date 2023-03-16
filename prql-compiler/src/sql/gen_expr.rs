@@ -328,54 +328,6 @@ pub(super) fn translate_sstring(
         .join(""))
 }
 
-pub(super) fn translate_query_sstring(
-    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
-    context: &mut Context,
-) -> Result<sql_ast::Query> {
-    let string = translate_sstring(items, context)?;
-
-    let prefix = if let Some(string) = string.trim().get(0..7) {
-        string
-    } else {
-        ""
-    };
-
-    if prefix.eq_ignore_ascii_case("SELECT ") {
-        if let Some(string) = string.trim().strip_prefix(prefix) {
-            return Ok(sql_ast::Query {
-                body: Box::new(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-                    projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
-                        sql_ast::Ident::new(string),
-                    ))],
-                    distinct: false,
-                    top: None,
-                    into: None,
-                    from: Vec::new(),
-                    lateral_views: Vec::new(),
-                    selection: None,
-                    group_by: Vec::new(),
-                    cluster_by: Vec::new(),
-                    distribute_by: Vec::new(),
-                    sort_by: Vec::new(),
-                    having: None,
-                    qualify: None,
-                }))),
-                with: None,
-                order_by: Vec::new(),
-                limit: None,
-                offset: None,
-                fetch: None,
-                locks: vec![],
-            });
-        }
-    }
-
-    bail!(
-        Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
-            .with_help("this is a limitation by current compiler implementation")
-    )
-}
-
 fn translate_fstring_with_concat_function(
     items: Vec<InterpolateItem<Expr>>,
     ctx: &mut Context,

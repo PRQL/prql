@@ -41,7 +41,7 @@ pub enum ExprKind {
         args: Vec<Expr>,
     },
 
-    /// Placeholder for
+    /// Placeholder for expressions provided after compilation
     Param(String),
 }
 

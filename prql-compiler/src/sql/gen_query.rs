@@ -18,7 +18,7 @@ use crate::sql::anchor::anchor_split;
 use crate::sql::preprocess::SqlRelationKind;
 use crate::utils::{BreakUp, Pluck};
 
-use crate::Target;
+use crate::{Error, Target};
 
 use super::context::AnchorContext;
 use super::gen_expr::*;
@@ -523,6 +523,34 @@ fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Q
     }
 
     Ok(default_query(body))
+}
+
+fn translate_query_sstring(
+    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
+    context: &mut Context,
+) -> Result<sql_ast::Query> {
+    let string = translate_sstring(items, context)?;
+
+    let prefix = string.get(0..7).unwrap_or("");
+
+    if !prefix.eq_ignore_ascii_case("SELECT ") {
+        return Err(Error::new_simple(
+            "s-strings representing a table must start with `SELECT `".to_string(),
+        )
+        .with_help("this is a limitation by current compiler implementation")
+        .into());
+    }
+
+    let rem = string.get(7..).unwrap_or("").to_string();
+
+    Ok(default_query(sql_ast::SetExpr::Select(Box::new(
+        sql_ast::Select {
+            projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
+                sql_ast::Ident::new(rem),
+            ))],
+            ..default_select()
+        },
+    ))))
 }
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.

@@ -8,6 +8,7 @@ mod gen_projection;
 mod gen_query;
 mod preprocess;
 mod std;
+mod s_strings;
 
 pub use dialect::Dialect;
 
@@ -20,11 +21,15 @@ use self::{context::AnchorContext, dialect::DialectHandler};
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: Query, options: &Options) -> Result<String> {
     let crate::Target::Sql(dialect) = options.target;
+
+    let (query, s_strings) = s_strings::extract(query);
+
     let sql_ast = gen_query::translate_query(query, dialect)?;
 
+    // use sql_parser's impl of Display to generate SQL string
     let sql = sql_ast.to_string();
 
-    // formatting
+    // format
     let sql = if options.format {
         let formatted = sqlformat::format(
             &sql,
@@ -36,6 +41,9 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
     } else {
         sql
     };
+
+    // substitute s-strings
+    let sql = s_strings::substitute(sql, s_strings);
 
     // signature
     let sql = if options.signature_comment {

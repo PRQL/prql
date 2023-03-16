@@ -836,17 +836,17 @@ fn test_window_functions_02() {
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     WITH table_1 AS (
       SELECT
-        TO_CHAR(co.order_date, '%Y-%m') AS order_month,
-        TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
-        COUNT(DISTINCT co.order_id) AS num_orders,
+        TO_CHAR( co.order_date , '%Y-%m') AS order_month,
+        TO_CHAR( co.order_date , '%Y-%m-%d') AS order_day,
+        COUNT(DISTINCT  co.order_id ) AS num_orders,
         COUNT(ol.book_id) AS num_books,
         SUM(ol.price) AS total_price
       FROM
         cust_order AS co
         JOIN order_line AS ol ON co.order_id = ol.order_id
       GROUP BY
-        TO_CHAR(co.order_date, '%Y-%m'),
-        TO_CHAR(co.order_date, '%Y-%m-%d')
+        TO_CHAR( co.order_date , '%Y-%m'),
+        TO_CHAR( co.order_date , '%Y-%m-%d')
     )
     SELECT
       order_month,
@@ -1558,7 +1558,11 @@ fn test_f_string() {
         ' ',
         last_name
       ),
-      CONCAT('and I am ', year_born - now(), ' years old.')
+      CONCAT(
+        'and I am ',
+        year_born - now(),
+        ' years old.'
+      )
     FROM
       employees
     "###
@@ -1748,11 +1752,11 @@ fn test_sql_of_ast_2() {
     let sql = compile(query).unwrap();
     assert_snapshot!(sql, @r###"
     SELECT
-      sum(salary) AS sum_salary
+      sum( salary ) AS sum_salary
     FROM
       employees
     HAVING
-      sum(salary) > 100
+      sum( salary ) > 100
     "###);
     assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
 }
@@ -2880,7 +2884,7 @@ fn test_closures_and_pipelines() {
         "###).unwrap(),
         @r###"
     SELECT
-      'apples' || 'bananas' || 'citrus' AS x
+      'apples'  ||  'bananas'  ||  'citrus' AS x
     FROM
       y
     "###
