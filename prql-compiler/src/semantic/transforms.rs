@@ -932,7 +932,6 @@ mod from_text {
             rows: rdr
                 .records()
                 .into_iter()
-                // .map(|row_result| row_result.map(|r| r.map(parse_row)))
                 .map(|row_result| row_result.map(parse_row)?)
                 .try_collect()?,
         })
