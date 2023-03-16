@@ -58,7 +58,14 @@ enum Command {
     Debug(IoArgs),
 
     /// Parse, resolve & lower into RQ
-    Resolve(IoArgs),
+    Resolve {
+        #[clap(value_parser, default_value = "-")]
+        input: Input,
+        #[clap(value_parser, default_value = "-")]
+        output: Output,
+        #[arg(value_enum, long)]
+        format: Format,
+    },
 
     /// Parse, resolve, lower into RQ & compile to SQL
     Compile(IoArgs),
@@ -152,13 +159,13 @@ impl Command {
                 // combine with source
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
-            Command::Resolve(_) => {
-                // We can't currently have `--format=yaml` here, because
-                //  serde_yaml is unable to serialize an Enum of an Enum; from
-                // https://github.com/dtolnay/serde-yaml/blob/68a9e95c9fd639498c85f55b5485f446b3f8465c/tests/test_error.rs#L175
+            Command::Resolve { format, .. } => {
                 let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
-                serde_json::to_string_pretty(&ir)?.into_bytes()
+                match format {
+                    Format::Json => serde_json::to_string_pretty(&ir)?.into_bytes(),
+                    Format::Yaml => serde_yaml::to_string(&ir)?.into_bytes(),
+                }
             }
             // TODO: Allow passing the `Options` to the CLI; map those through.
             // We already do this in Watch.
@@ -173,8 +180,8 @@ impl Command {
         // from `self`.
         use Command::*;
         let mut input = match self {
-            Parse { input, .. } => input.clone(),
-            Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => io.input.clone(),
+            Parse { input, .. } | Resolve { input, .. } => input.clone(),
+            Format(io) | Debug(io) | Annotate(io) | Compile(io) => io.input.clone(),
             Watch(_) => unreachable!(),
         };
         // Don't wait without a prompt when running `prqlc compile` —
@@ -194,10 +201,8 @@ impl Command {
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
         use Command::*;
         let mut output = match self {
-            Parse { output, .. } => output.to_owned(),
-            Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
-                io.output.to_owned()
-            }
+            Parse { output, .. } | Resolve { output, .. } => output.to_owned(),
+            Format(io) | Debug(io) | Annotate(io) | Compile(io) => io.output.to_owned(),
             Watch(_) => unreachable!(),
         };
         output.write_all(data)
@@ -358,6 +363,48 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
                   args:
                   - Ident:
                     - y
+        "###);
+    }
+    #[test]
+    fn resolve() {
+        let output = Command::execute(
+            &Command::Resolve {
+                input: IoArgs::default().input,
+                output: IoArgs::default().output,
+                format: Format::Yaml,
+            },
+            "from x | select y",
+        )
+        .unwrap();
+
+        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        def:
+          version: null
+          other: {}
+        tables:
+        - id: 0
+          name: null
+          relation:
+            kind: !ExternRef x
+            columns:
+            - !Single y
+            - Wildcard
+        relation:
+          kind: !Pipeline
+          - !From
+            source: 0
+            columns:
+            - - !Single y
+              - 0
+            - - Wildcard
+              - 1
+            name: x
+          - !Select
+            - 0
+          - !Select
+            - 0
+          columns:
+          - !Single y
         "###);
     }
 }
