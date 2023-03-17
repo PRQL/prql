@@ -1,6 +1,6 @@
 # Loop
 
-> _experimental_
+> _Experimental_
 
 ```prql_no_test
 loop {step_function} {initial_relation}
@@ -35,16 +35,16 @@ loop (
 # returns [1, 2, 3, 4]
 ```
 
-```admonish
-Behavior of WITH RECURSIVE may depend on database configuration (MySQL).
-prql-compiler assumes behavior described by
-[Postgres documentation](https://www.postgresql.org/docs/15/queries-with.html#QUERIES-WITH-RECURSIVE)
+```admonish note
+The behavior of `WITH RECURSIVE` may depend on the database configuration in MySQL.
+The compiler assumes the behavior described by
+the [Postgres documentation](https://www.postgresql.org/docs/15/queries-with.html#QUERIES-WITH-RECURSIVE)
 and will not produce correct results for
 [alternative configurations of MySQL](https://dev.mysql.com/doc/refman/8.0/en/with.html#common-table-expressions-recursive).
 ```
 
-```admonish
+```admonish note
 Currently, `loop` may produce references to the recursive CTE in sub-queries,
-which is not supported by some database engines (SQLite). For now, we suggest you keep step
-functions simple enough to fit into a single SELECT statement.
+which is not supported by some database engines, e.g. SQLite. For now, we suggest step
+functions are kept simple enough to fit into a single SELECT statement.
 ```
