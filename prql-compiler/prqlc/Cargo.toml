@@ -10,7 +10,7 @@ version.workspace = true
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {version = "1.0.57"}
-ariadne = "0.1.5"
+ariadne = "0.2.0"
 atty = "0.2.14"
 clap = {version = "4.1.1", features = ["derive"]}
 clio = {version = "0.2.4", features = ['clap-parse']}
@@ -19,7 +19,7 @@ env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
 minijinja = {version = "0.30.4", features = ["unstable_machinery"]}
 notify = "^5.1.0"
-prql-compiler = {path = '..', version = "0.6.0" }
+prql-compiler = {path = '..', version = "0.6.1" }
 regex = {version = "1.7.1", features = ["std", "unicode"]}
 serde = "^1"
 serde_json = "1.0.81"

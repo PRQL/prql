@@ -150,8 +150,7 @@ mod test {
             name: ~
             relation:
               kind:
-                ExternRef:
-                  LocalTable: employees
+                ExternRef: employees
               columns:
                 - Wildcard
         relation:

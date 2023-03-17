@@ -1,3 +1,0 @@
-from employees
-sort tenure
-derive name = f"{first_name} {last_name}"

@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees  # Comment 1\n# Comment 2\naggregate [average salary]\n"
+---
+SELECT
+  AVG(salary)
+FROM
+  employees
+

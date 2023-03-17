@@ -1,0 +1,27 @@
+---
+source: book/tests/snapshot.rs
+expression: "from s\"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC\"\njoin s = s\"SELECT * FROM salaries\" [==id]\n"
+---
+WITH table_0 AS (
+  SELECT
+    DISTINCT ON first_name,
+    id,
+    age
+  FROM
+    employees
+  ORDER BY
+    age ASC
+),
+table_1 AS (
+  SELECT
+    *
+  FROM
+    salaries
+)
+SELECT
+  table_2.*,
+  table_3.*
+FROM
+  table_0 AS table_2
+  JOIN table_1 AS table_3 ON table_2.id = table_3.id
+

@@ -344,6 +344,11 @@ pub enum WindowKind {
 }
 
 /// A reference to a table that is not in scope of this query.
+///
+/// > Note: We're not using this at the moment in
+/// > [crate::ast::rq::RelationKind], since we wanted to avoid nested enums,
+/// > since they can't be serialized to YAML at the moment. We may add this back
+/// > in the future, or flatten it up to [crate::ast::rq::RelationKind]
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableExternRef {
     /// Actual table in a database, that we can refer to by name in SQL

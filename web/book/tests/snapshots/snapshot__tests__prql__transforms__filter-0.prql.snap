@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nfilter age > 25\n"
+---
+SELECT
+  *
+FROM
+  employees
+WHERE
+  age > 25
+

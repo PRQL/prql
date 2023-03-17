@@ -1263,8 +1263,8 @@ fn test_take() {
        ╭─[:3:5]
        │
      3 │     take 0..1
-       ·     ────┬────
-       ·         ╰────── take expected a positive int range, but found 0..1
+       │     ────┬────
+       │         ╰────── take expected a positive int range, but found 0..1
     ───╯
     "###);
 
@@ -1276,8 +1276,8 @@ fn test_take() {
        ╭─[:3:5]
        │
      3 │     take (-1..)
-       ·     ─────┬─────
-       ·          ╰─────── take expected a positive int range, but found -1..
+       │     ─────┬─────
+       │          ╰─────── take expected a positive int range, but found -1..
     ───╯
     "###);
 
@@ -1290,8 +1290,8 @@ fn test_take() {
        ╭─[:4:5]
        │
      4 │     take 5..5.6
-       ·     ─────┬─────
-       ·          ╰─────── take expected a positive int range, but found 5..?
+       │     ─────┬─────
+       │          ╰─────── take expected a positive int range, but found 5..?
     ───╯
     "###);
 
@@ -1303,8 +1303,8 @@ fn test_take() {
        ╭─[:3:5]
        │
      3 │     take (-1)
-       ·     ────┬────
-       ·         ╰────── take expected a positive int range, but found ..-1
+       │     ────┬────
+       │         ╰────── take expected a positive int range, but found ..-1
     ───╯
     "###);
 }
@@ -1357,17 +1357,33 @@ fn test_distinct() {
       employees
     "###);
 
-    // TODO: this should not use DISTINCT but ROW_NUMBER and WHERE, because we want
-    // row  distinct only over first_name and last_name.
+    // We want distinct only over first_name and last_name, so we can't use a
+    // `DISTINCT *` here.
     assert_display_snapshot!((compile(r###"
     from employees
     group [first_name, last_name] (take 1)
     "###).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY first_name, last_name) AS _expr_0
+      FROM
+        employees
+    )
     SELECT
-      DISTINCT *
+      *
     FROM
-      employees
+      table_1 AS table_0
+    WHERE
+      _expr_0 <= 1
     "###);
+
+    // Check that a different order doesn't stop distinct from being used.
+    assert!(compile(
+        "from employees | select [first_name, last_name] | group [last_name, first_name] (take 1)"
+    )
+    .unwrap()
+    .contains("DISTINCT"));
 
     // head
     assert_display_snapshot!((compile(r###"
@@ -1433,6 +1449,33 @@ fn test_distinct() {
       table_1 AS table_0
     WHERE
       _expr_0 = 4
+    "###);
+
+    assert_display_snapshot!(compile("
+    from invoices
+    select [billing_country, billing_city]
+    group [billing_city] (
+      take 1
+    )
+    sort billing_city
+    ").unwrap(), @r###"
+    WITH table_1 AS (
+      SELECT
+        billing_country,
+        billing_city,
+        ROW_NUMBER() OVER (PARTITION BY billing_city) AS _expr_0
+      FROM
+        invoices
+    )
+    SELECT
+      billing_country,
+      billing_city
+    FROM
+      table_1 AS table_0
+    WHERE
+      _expr_0 <= 1
+    ORDER BY
+      billing_city
     "###);
 }
 
@@ -2401,10 +2444,10 @@ fn test_unused_alias() {
        ╭─[:3:16]
        │
      3 │     select n = [account.name]
-       ·                ───────┬──────
-       ·                       ╰──────── unexpected assign to `n`
-       ·
-       · Help: move assign into the list: `[n = ...]`
+       │                ───────┬──────
+       │                       ╰──────── unexpected assign to `n`
+       │
+       │ Help: move assign into the list: `[n = ...]`
     ───╯
     "###)
 }
@@ -2553,10 +2596,10 @@ fn test_direct_table_references() {
        ╭─[:3:14]
        │
      3 │     select s"{x}.field"
-       ·              ─┬─
-       ·               ╰─── table instance cannot be referenced directly
-       ·
-       · Help: did you forget to specify the column name?
+       │              ─┬─
+       │               ╰─── table instance cannot be referenced directly
+       │
+       │ Help: did you forget to specify the column name?
     ───╯
     "###);
 
@@ -2571,10 +2614,10 @@ fn test_direct_table_references() {
        ╭─[:3:12]
        │
      3 │     select x
-       ·            ┬
-       ·            ╰── table instance cannot be referenced directly
-       ·
-       · Help: did you forget to specify the column name?
+       │            ┬
+       │            ╰── table instance cannot be referenced directly
+       │
+       │ Help: did you forget to specify the column name?
     ───╯
     "###);
 }
@@ -2859,8 +2902,8 @@ fn test_errors() {
        ╭─[:5:16]
        │
      5 │     derive y = (addadd 4 5 6)
-       ·                ───────┬──────
-       ·                       ╰──────── Too many arguments to function `addadd`
+       │                ───────┬──────
+       │                       ╰──────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -2872,8 +2915,8 @@ fn test_errors() {
        ╭─[:2:5]
        │
      2 │     from a select b
-       ·     ────────┬───────
-       ·             ╰───────── Too many arguments to function `from`
+       │     ────────┬───────
+       │             ╰───────── Too many arguments to function `from`
     ───╯
     "###);
 
@@ -2887,8 +2930,8 @@ fn test_errors() {
        ╭─[:4:12]
        │
      4 │     select b
-       ·            ┬
-       ·            ╰── Unknown name b
+       │            ┬
+       │            ╰── Unknown name b
     ───╯
     "###);
 
@@ -2901,8 +2944,8 @@ fn test_errors() {
        ╭─[:3:10]
        │
      3 │     take 1.8
-       ·          ─┬─
-       ·           ╰─── `take` expected int or range, but found 1.8
+       │          ─┬─
+       │           ╰─── `take` expected int or range, but found 1.8
     ───╯
     "###);
 
@@ -2911,22 +2954,22 @@ fn test_errors() {
        ╭─[:1:23]
        │
      1 │ Mississippi has four S’s and four I’s.
-       ·                       ┬
-       ·                       ╰── unexpected ’
+       │                       ┬
+       │                       ╰── unexpected ’
     ───╯
     Error:
        ╭─[:1:36]
        │
      1 │ Mississippi has four S’s and four I’s.
-       ·                                    ┬
-       ·                                    ╰── unexpected ’
+       │                                    ┬
+       │                                    ╰── unexpected ’
     ───╯
     Error:
-       ╭─[:1:39]
+       ╭─[:1:38]
        │
      1 │ Mississippi has four S’s and four I’s.
-       ·                                       ┬
-       ·                                       ╰── Expected * or an identifier, but didn't find anything before the end.
+       │                                      ┬
+       │                                      ╰── Expected * or an identifier, but didn't find anything before the end.
     ───╯
     "###);
 
@@ -2943,8 +2986,8 @@ fn test_errors() {
        ╭─[:1:7]
        │
      1 │ Answer: T-H-A-T!
-       ·       ┬
-       ·       ╰── unexpected :
+       │       ┬
+       │       ╰── unexpected :
     ───╯
     "###);
 }
@@ -2959,10 +3002,10 @@ fn test_hint_missing_args() {
        ╭─[:3:22]
        │
      3 │     select [film_id, lag film_id]
-       ·                      ─────┬─────
-       ·                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
-       ·
-       · Help: Have you forgotten an argument to function std.lag?
+       │                      ─────┬─────
+       │                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
+       │
+       │ Help: Have you forgotten an argument to function std.lag?
     ───╯
     "###)
 }
