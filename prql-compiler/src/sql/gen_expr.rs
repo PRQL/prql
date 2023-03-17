@@ -6,8 +6,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
-    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias,
-    TableFactor, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
@@ -15,8 +14,7 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, WindowFrame,
-    WindowKind,
+    BinOp, ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span};
@@ -93,28 +91,10 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
 
             sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
         }
-        ExprKind::FString(f_string_items) => {
-            let args = f_string_items
-                .into_iter()
-                .map(|item| match item {
-                    InterpolateItem::String(string) => {
-                        Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
-                    }
-                    InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
-                })
-                .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
-                .collect::<Result<Vec<_>>>()?;
-
-            sql_ast::Expr::Function(Function {
-                name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
-                args,
-                distinct: false,
-                over: None,
-                special: false,
-            })
-        }
-        ExprKind::Literal(l) => translate_literal(l)?,
-        ExprKind::Switch(mut cases) => {
+        ExprKind::Param(id) => sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("${id}"))),
+        ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
+        ExprKind::Literal(l) => translate_literal(l, ctx)?,
+        ExprKind::Case(mut cases) => {
             let default = cases
                 .last()
                 .filter(|last| {
@@ -157,25 +137,24 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
     })
 }
 
-pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
+pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
     Ok(match l {
         Literal::Null => sql_ast::Expr::Value(Value::Null),
         Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
         Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false)),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),
-        Literal::Date(value) => sql_ast::Expr::TypedString {
-            data_type: sql_ast::DataType::Date,
+        Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
+        Literal::Time(value) => translate_datetime_literal(
+            sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
             value,
-        },
-        Literal::Time(value) => sql_ast::Expr::TypedString {
-            data_type: sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+            ctx,
+        ),
+        Literal::Timestamp(value) => translate_datetime_literal(
+            sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
             value,
-        },
-        Literal::Timestamp(value) => sql_ast::Expr::TypedString {
-            data_type: sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-            value,
-        },
+            ctx,
+        ),
         Literal::ValueAndUnit(vau) => {
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
@@ -186,8 +165,15 @@ pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
                 "seconds" => DateTimeField::Second,
                 _ => bail!("Unsupported interval unit: {}", vau.unit),
             };
+            let value = if ctx.dialect.requires_quotes_intervals() {
+                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
+                    vau.n.to_string(),
+                )))
+            } else {
+                Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
+            };
             sql_ast::Expr::Interval {
-                value: Box::new(translate_literal(Literal::Integer(vau.n))?),
+                value,
                 leading_field: Some(sql_parser_datetime),
                 leading_precision: None,
                 last_field: None,
@@ -198,8 +184,64 @@ pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
     })
 }
 
+fn translate_datetime_literal(
+    data_type: sql_ast::DataType,
+    value: String,
+    ctx: &Context,
+) -> sql_ast::Expr {
+    if ctx.dialect.is::<crate::sql::dialect::SQLiteDialect>() {
+        translate_datetime_literal_with_sqlite_function(data_type, value)
+    } else {
+        translate_datetime_literal_with_typed_string(data_type, value)
+    }
+}
+
+fn translate_datetime_literal_with_typed_string(
+    data_type: sql_ast::DataType,
+    value: String,
+) -> sql_ast::Expr {
+    sql_ast::Expr::TypedString { data_type, value }
+}
+
+fn translate_datetime_literal_with_sqlite_function(
+    data_type: sql_ast::DataType,
+    value: String,
+) -> sql_ast::Expr {
+    // TODO: promote parsing timezone handling to the parser; we should be storing
+    // structured data rather than strings in the AST
+    let timezone_indicator_regex = Regex::new(r"([+-]\d{2}):?(\d{2})$").unwrap();
+    let time_value = if let Some(groups) = timezone_indicator_regex.captures(value.as_str()) {
+        // formalize the timezone indicator to be [+-]HH:MM
+        // ref: https://www.sqlite.org/lang_datefunc.html
+        timezone_indicator_regex
+            .replace(&value, format!("{}:{}", &groups[1], &groups[2]).as_str())
+            .to_string()
+    } else {
+        value
+    };
+
+    let arg = FunctionArg::Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
+        Value::SingleQuotedString(time_value),
+    )));
+
+    let func_name = match data_type {
+        sql_ast::DataType::Date => data_type.to_string(),
+        sql_ast::DataType::Time(..) => data_type.to_string(),
+        sql_ast::DataType::Timestamp(..) => "DATETIME".to_string(),
+        _ => unreachable!(),
+    };
+
+    sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new(func_name)]),
+        args: vec![arg],
+        over: None,
+        distinct: false,
+        special: false,
+    })
+}
+
 pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    if ctx.pre_projection {
+    if ctx.query.pre_projection {
         log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
 
@@ -218,7 +260,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
             }
             ColumnDecl::RelationColumn(tiid, _, col) => {
                 let column = match col.clone() {
-                    RelationColumn::Wildcard => "*".to_string(),
+                    RelationColumn::Wildcard => translate_star(ctx, None)?,
                     RelationColumn::Single(name) => name.unwrap(),
                 };
                 let t = &ctx.anchor.table_instances[tiid];
@@ -239,11 +281,13 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
         };
 
         let column = match &column_decl {
-            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => "*".to_string(),
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
+                translate_star(ctx, None)?
+            }
 
             _ => {
                 let name = ctx.anchor.column_names.get(&cid).cloned();
-                name.expect("a name of this column to be set before generating SQL")
+                name.expect("name of this column has not been to be set before generating SQL")
             }
         };
 
@@ -256,22 +300,15 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
     }
 }
 
-pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
-    let decl = ctx.anchor.table_decls.get(&table_ref.source).unwrap();
-
-    let relation_name = decl.name.clone().unwrap();
-    TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(Some(relation_name), None, ctx)),
-        alias: if decl.name == table_ref.name {
-            None
-        } else {
-            table_ref.name.map(|ident| TableAlias {
-                name: translate_ident_part(ident, ctx),
-                columns: vec![],
-            })
-        },
-        args: None,
-        with_hints: vec![],
+pub(super) fn translate_star(ctx: &Context, span: Option<Span>) -> Result<String> {
+    if !ctx.query.allow_stars {
+        Err(
+            Error::new_simple("Target dialect does not support * in this position.")
+                .with_span(span)
+                .into(),
+        )
+    } else {
+        Ok("*".to_string())
     }
 }
 
@@ -337,6 +374,59 @@ pub(super) fn translate_query_sstring(
         Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
             .with_help("this is a limitation by current compiler implementation")
     )
+}
+
+fn translate_fstring_with_concat_function(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let args = items
+        .into_iter()
+        .map(|item| match item {
+            InterpolateItem::String(string) => {
+                Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
+            }
+            InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
+        })
+        .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+        args,
+        distinct: false,
+        over: None,
+        special: false,
+    }))
+}
+
+fn translate_fstring_with_concat_operator(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let string = items
+        .into_iter()
+        .map(|f_string_item| match f_string_item {
+            InterpolateItem::String(string) => Ok(Value::SingleQuotedString(string).to_string()),
+            InterpolateItem::Expr(node) => {
+                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
+            }
+        })
+        .collect::<Result<Vec<String>>>()?
+        .join("||");
+
+    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(string)))
+}
+
+pub(super) fn translate_fstring(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    if ctx.dialect.has_concat_function() {
+        translate_fstring_with_concat_function(items, ctx)
+    } else {
+        translate_fstring_with_concat_operator(items, ctx)
+    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -569,41 +659,24 @@ pub(super) fn translate_column_sort(
     })
 }
 
-pub(super) fn translate_join(
-    (side, with, filter): (JoinSide, TableRef, Expr),
-    ctx: &mut Context,
-) -> Result<Join> {
-    let constraint = JoinConstraint::On(translate_expr_kind(filter.kind, ctx)?);
-
-    Ok(Join {
-        relation: table_factor_of_tid(with, ctx),
-        join_operator: match side {
-            JoinSide::Inner => JoinOperator::Inner(constraint),
-            JoinSide::Left => JoinOperator::LeftOuter(constraint),
-            JoinSide::Right => JoinOperator::RightOuter(constraint),
-            JoinSide::Full => JoinOperator::FullOuter(constraint),
-        },
-    })
-}
-
 /// Translate a PRQL Ident to a Vec of SQL Idents.
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
 // [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
 pub(super) fn translate_ident(
-    relation_name: Option<String>,
+    table_name: Option<String>,
     column: Option<String>,
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
-    if !ctx.omit_ident_prefix || column.is_none() {
-        if let Some(relation) = relation_name {
+    if !ctx.query.omit_ident_prefix || column.is_none() {
+        if let Some(table) = table_name {
             #[allow(clippy::if_same_then_else)]
             if ctx.dialect.big_query_quoting() {
                 // Special-case this for BigQuery, Ref #852
-                parts.push(relation);
-            } else if relation.contains('*') {
+                parts.push(table);
+            } else if table.contains('*') {
                 // This messy and could be cleaned up a lot.
                 // If `parts` is (includung the backticks)
                 //
@@ -621,9 +694,9 @@ pub(super) fn translate_ident(
                 // I think probably we should interpret `schema.table` as a
                 // namespace when it's passed to `from` or `join`, but that
                 // requires handling the types in those transforms.
-                parts.push(relation);
+                parts.push(table);
             } else {
-                parts.extend(relation.split('.').map(|s| s.to_string()));
+                parts.extend(table.split('.').map(|s| s.to_string()));
             }
         }
     }
@@ -661,9 +734,6 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    // We'll remove this when we get the new dbt plugin working (so no need to
-    // integrate into the regex)
-    let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
     lazy_static! {
         // One of:
         // - `*`
@@ -676,7 +746,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 
     let is_bare = VALID_BARE_IDENT.is_match(&ident);
 
-    if is_jinja || is_bare && !is_keyword(&ident) {
+    if is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
     } else {
         sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
@@ -803,6 +873,10 @@ impl SQLExpression for UnaryOperator {
 mod test {
     use super::*;
     use crate::ast::pl::Range;
+    use crate::sql::context::AnchorContext;
+    use crate::{
+        parser::parse, semantic::resolve, sql::dialect::GenericDialect, sql::dialect::SQLiteDialect,
+    };
     use insta::assert_yaml_snapshot;
 
     #[test]
@@ -887,6 +961,179 @@ mod test {
         start: 5
         end: 5
         "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_translate_fstring() -> Result<()> {
+        let mut context_with_concat_function: Context;
+        let mut context_without_concat_function: Context;
+
+        {
+            let query = resolve(parse("from foo")?)?;
+            let (anchor, _) = AnchorContext::of(query);
+            context_with_concat_function = Context::new(Box::new(GenericDialect {}), anchor);
+        }
+        {
+            let query = resolve(parse("from foo")?)?;
+            let (anchor, _) = AnchorContext::of(query);
+            context_without_concat_function = Context::new(Box::new(SQLiteDialect {}), anchor);
+        }
+
+        fn str_lit(s: &str) -> InterpolateItem<Expr> {
+            InterpolateItem::String(s.to_string())
+        }
+
+        assert_yaml_snapshot!(translate_fstring(vec![
+            str_lit("hello"),
+            str_lit("world"),
+            ], &mut context_with_concat_function)?.to_string(), @r###"
+    ---
+    "CONCAT('hello', 'world')"
+    "###);
+
+        assert_yaml_snapshot!(translate_fstring(vec![str_lit("hello"), str_lit("world")], &mut context_without_concat_function)?.to_string(), @r###"
+    ---
+    "'hello'||'world'"
+    "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_translate_datetime_literal_with_sqlite_function() -> Result<()> {
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Date,
+                "2020-01-01".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: DATE
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: 2020-01-01
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+                "03:05".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: TIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "03:05"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+                "03:05+08:00".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: TIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+                "03:05+0800".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: TIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
+                "2021-03-14T03:05+0800".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: DATETIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "2021-03-14T03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
+                "2021-03-14T03:05+08:00".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: DATETIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "2021-03-14T03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
 
         Ok(())
     }

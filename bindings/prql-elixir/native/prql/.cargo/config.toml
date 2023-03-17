@@ -1,0 +1,8 @@
+# Note that this doesn't apply when compiling from the workspace root. Because
+# we're not currently compiling for Mac, it's also impotent for now.
+
+[target.'cfg(target_os = "macos")']
+rustflags = [
+    "-C", "link-arg=-undefined",
+    "-C", "link-arg=dynamic_lookup",
+]

@@ -63,9 +63,19 @@ pub struct TableDecl {
     /// Columns layout
     pub columns: Vec<RelationColumn>,
 
-    /// None means that this is an extern table (actual table in database)
-    /// Some means a CTE
-    pub expr: Option<Box<Expr>>,
+    pub expr: TableExpr,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+pub enum TableExpr {
+    /// In SQL, this is a CTE
+    RelationVar(Box<Expr>),
+
+    /// Actual table in a database, that we can refer to by name in SQL
+    LocalTable,
+
+    /// A placeholder for a relation that will be provided later.
+    Param(String),
 }
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
@@ -122,10 +132,19 @@ impl Context {
                     })
                     .collect();
 
-                let expr = Some(value);
+                let expr = TableExpr::RelationVar(value);
                 DeclKind::TableDecl(TableDecl { columns, expr })
             }
-            Some(_) => DeclKind::Expr(var_def.value),
+            Some(_) => {
+                let mut value = var_def.value;
+
+                // TODO: check that declaring module is std
+                if let Some(kind) = get_stdlib_decl(name.as_str()) {
+                    value.kind = kind;
+                }
+
+                DeclKind::Expr(value)
+            }
             None => {
                 return Err(
                     Error::new_simple("Cannot infer type. Type annotations needed.")
@@ -331,7 +350,7 @@ impl Context {
         table_decl.columns.push(col);
 
         // also add into input tables of this table expression
-        if let Some(expr) = &table_decl.expr {
+        if let TableExpr::RelationVar(expr) = &table_decl.expr {
             if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_all())
@@ -356,6 +375,29 @@ impl Context {
 
         Ok(())
     }
+}
+
+fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
+    let ty_lit = match name {
+        "int" => TyLit::Int,
+        "float" => TyLit::Float,
+        "bool" => TyLit::Bool,
+        "text" => TyLit::Text,
+        "date" => TyLit::Date,
+        "time" => TyLit::Time,
+        "timestamp" => TyLit::Timestamp,
+        "table" => {
+            // TODO: this is just a dummy that gets intercepted when resolving types
+            return Some(ExprKind::Set(SetExpr::Array(Box::new(SetExpr::Singleton(
+                Literal::Null,
+            )))));
+        }
+        "column" => TyLit::Column,
+        "list" => TyLit::List,
+        "scalar" => TyLit::Scalar,
+        _ => return None,
+    };
+    Some(ExprKind::Set(SetExpr::Primitive(ty_lit)))
 }
 
 impl Default for DeclKind {

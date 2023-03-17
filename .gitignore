@@ -1,17 +1,22 @@
 .DS_Store
 
 dist
-target*
+target*/
+*.out
 
 lcov.info
 
 **/.vscode/settings.json
 **/.vscode/launch.json
 **/.vscode/tasks.json
-**/.idea
+.idea
 
 /*.prql
 _*.prql
+/*.rq
+_*.rq
+/*.pl
+_*.pl
 
 # Appears when using Docker container
 .Trash-0
@@ -19,3 +24,10 @@ _*.prql
 **/node_modules/
 
 .task
+
+# These shouldn't be committed, and cause watchers to re-run when they're
+# created, which we don't want. That said, if ignoring them causes confusion
+# (e.g. folks look at their git status to assess whether there are pending
+# snapshots), we can adjust.
+*.pending-snap
+*.snap.new

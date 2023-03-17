@@ -1,0 +1,37 @@
+name: test-php
+
+on:
+  pull_request:
+    paths:
+      - "bindings/prql-php/**"
+      - "bindings/prql-lib/**"
+      - ".github/workflows/test-php.yaml"
+  workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-php
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: sh build.sh
+        working-directory: bindings/prql-php
+      - name: 📦 Install dependencies using Composer
+        uses: php-actions/composer@v6
+        with:
+          args: --working-dir=bindings/prql-php
+          php_extensions: FFI
+      - name: 🧪 Run tests using PHPUnit
+        run: vendor/bin/phpunit tests
+        working-directory: bindings/prql-php

@@ -1,29 +1,36 @@
 name: test-js
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
-      - "prql-js/**"
+      - "bindings/prql-js/**"
       - ".github/workflows/test-js.yaml"
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-js
   cancel-in-progress: true
 
 jobs:
   test:
-    # This is copy & pasted into test-all.yaml
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/build-prql-js
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-pack
+
       - run: npm cit
-        working-directory: prql-js
+        working-directory: bindings/prql-js

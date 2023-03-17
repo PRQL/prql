@@ -2,40 +2,43 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n            func plus x y -> x + y\n\n            from a\n            derive [b = (sum foo | plus_one | plus 2)]\n            \"#).unwrap()"
 ---
-- id: 23
+- id: 31
   Binary:
     left:
-      id: 17
+      id: 25
       Literal:
         Integer: 2
       ty:
-        Literal: Integer
+        SetExpr:
+          Primitive: Int
     op: Add
     right:
-      id: 20
+      id: 28
       Binary:
         left:
-          id: 11
+          id: 16
           BuiltInFunction:
             name: std.sum
             args:
-              - id: 13
+              - id: 21
                 Ident:
                   - _frame
                   - a
                   - foo
-                target_id: 6
+                target_id: 8
                 ty: Infer
           ty: Infer
         op: Add
         right:
-          id: 22
+          id: 30
           Literal:
             Integer: 1
           ty:
-            Literal: Integer
+            SetExpr:
+              Primitive: Int
       ty: Infer
   ty:
-    Literal: Column
+    SetExpr:
+      Primitive: Column
   alias: b
 

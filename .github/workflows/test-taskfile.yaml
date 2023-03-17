@@ -1,18 +1,15 @@
 # Workflow to check that the workflows in Taskfile pass.
-name: taskfile
+name: test-taskfile
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    types: [opened, reopened, synchronize, labeled]
     paths:
       - Taskfile.yml
       - .github/workflows/test-taskfile.yaml
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-taskfile
   cancel-in-progress: true
 
 jobs:
@@ -35,3 +32,4 @@ jobs:
       - run: task setup-dev
       # This also encompasses `build-all`
       - run: task test-all
+      - run: task test-rust-fast

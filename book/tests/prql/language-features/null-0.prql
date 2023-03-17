@@ -1,3 +1,0 @@
-from employees
-filter first_name == null
-filter null != last_name

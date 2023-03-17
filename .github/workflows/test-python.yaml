@@ -1,12 +1,9 @@
 name: test-python
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
-      - "prql-python/**"
+      - "bindings/prql-python/**"
       - ".github/workflows/test-python.yaml"
   workflow_call:
 
@@ -28,9 +25,6 @@ jobs:
       - run: pip install maturin
       - name: Build wheel
         run: task build-python-wheel
-      # - uses: actions/setup-python@v4
-      #   with:
-      #     python-version: "3.7"
       # - uses: actions/setup-python@v4
       #   with:
       #     python-version: "3.9"

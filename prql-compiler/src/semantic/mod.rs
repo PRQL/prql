@@ -147,45 +147,10 @@ mod test {
             target: sql.mssql
         tables:
           - id: 0
-            name: employees
+            name: ~
             relation:
               kind:
-                ExternRef:
-                  LocalTable: employees
-              columns:
-                - Wildcard
-        relation:
-          kind:
-            Pipeline:
-              - From:
-                  source: 0
-                  columns:
-                    - - Wildcard
-                      - 0
-                  name: employees
-              - Select:
-                  - 0
-          columns:
-            - Wildcard
-        "### );
-
-        assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql target:sql.bigquery version:"0.4"
-
-        from employees
-        "###).unwrap(), @r###"
-        ---
-        def:
-          version: ^0.4
-          other:
-            target: sql.bigquery
-        tables:
-          - id: 0
-            name: employees
-            relation:
-              kind:
-                ExternRef:
-                  LocalTable: employees
+                ExternRef: employees
               columns:
                 - Wildcard
         relation:

@@ -10,7 +10,8 @@ use crate::ast::pl::{
     BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
 use crate::ast::rq::{
-    self, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
+    self, new_binop, CId, Compute, Expr, ExprKind, Relation, RelationColumn, RelationKind, RqFold,
+    TableRef, Transform, Window,
 };
 use crate::error::Error;
 use crate::sql::context::AnchorContext;
@@ -18,31 +19,45 @@ use crate::sql::context::AnchorContext;
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::Context;
 
-#[derive(Debug, EnumAsInner, strum::AsRefStr)]
+#[derive(Debug, Clone, EnumAsInner)]
+pub(super) enum SqlRelationKind {
+    Super(RelationKind),
+    PreprocessedPipeline(Vec<SqlTransform>),
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct SqlRelation {
+    pub kind: SqlRelationKind,
+    pub columns: Vec<RelationColumn>,
+}
+
+#[derive(Debug, Clone, EnumAsInner, strum::AsRefStr)]
 pub(super) enum SqlTransform {
     Super(Transform),
     Distinct,
     Except { bottom: TableRef, distinct: bool },
     Intersect { bottom: TableRef, distinct: bool },
     Union { bottom: TableRef, distinct: bool },
+    Loop(Vec<SqlTransform>),
 }
 
-/// Pushes all [Transform::Select]s to the back of the pipeline.
-pub(super) fn push_down_selects(pipeline: Vec<Transform>) -> Vec<Transform> {
-    let mut select = None;
-    let mut res = Vec::with_capacity(pipeline.len());
-    for t in pipeline {
-        if let Transform::Select(_) = t {
-            select = Some(t);
-        } else {
-            res.push(t);
-        }
-    }
-    if let Some(select) = select {
-        res.push(select);
-    }
-    res
-}
+// This function was disabled because it changes semantics of the pipeline in some cases.
+// /// Pushes all [Transform::Select]s to the back of the pipeline.
+// pub(super) fn push_down_selects(pipeline: Vec<Transform>) -> Vec<Transform> {
+//     let mut select = None;
+//     let mut res = Vec::with_capacity(pipeline.len());
+//     for t in pipeline {
+//         if let Transform::Select(_) = t {
+//             select = Some(t);
+//         } else {
+//             res.push(t);
+//         }
+//     }
+//     if let Some(select) = select {
+//         res.push(select);
+//     }
+//     res
+// }
 
 /// Removes unused relation inputs
 pub(super) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
@@ -76,7 +91,18 @@ pub(super) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
 }
 
 pub(super) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform> {
-    pipe.into_iter().map(SqlTransform::Super).collect()
+    pipe.into_iter()
+        .map(|t| match t {
+            Transform::Loop(pipeline) => SqlTransform::Loop(wrap(pipeline)),
+            _ => SqlTransform::Super(t),
+        })
+        .collect()
+}
+
+fn vecs_contain_same_elements<T: Eq + std::hash::Hash>(a: &[T], b: &[T]) -> bool {
+    let a: HashSet<&T, RandomState> = a.iter().collect();
+    let b: HashSet<&T, RandomState> = b.iter().collect();
+    a == b
 }
 
 /// Creates [SqlTransform::Distinct] from [Transform::Take]
@@ -88,7 +114,7 @@ pub(super) fn distinct(
     use Transform::*;
 
     let mut res = Vec::new();
-    for transform in pipeline {
+    for transform in pipeline.clone() {
         match transform {
             Super(Take(rq::Take { ref partition, .. })) if partition.is_empty() => {
                 res.push(transform);
@@ -106,8 +132,13 @@ pub(super) fn distinct(
 
                 let take_only_first =
                     range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));
-                if take_only_first && sort.is_empty() {
-                    // TODO: use distinct only if `by == all columns in frame`
+
+                // Check whether the columns within the partition are the same
+                // as the columns in the table; otherwise we can't use DISTINCT.
+                let columns_in_frame = AnchorContext::determine_select_columns(&pipeline.clone());
+                let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
+
+                if take_only_first && sort.is_empty() && matching_columns {
                     res.push(Distinct);
                     continue;
                 }
@@ -557,6 +588,15 @@ impl SqlTransform {
     }
 }
 
+impl From<Relation> for SqlRelation {
+    fn from(rel: Relation) -> Self {
+        SqlRelation {
+            kind: SqlRelationKind::Super(rel.kind),
+            columns: rel.columns,
+        }
+    }
+}
+
 pub(super) trait SqlFold: RqFold {
     fn fold_sql_transforms(&mut self, transforms: Vec<SqlTransform>) -> Result<Vec<SqlTransform>> {
         transforms
@@ -581,6 +621,7 @@ pub(super) trait SqlFold: RqFold {
                 bottom: self.fold_table_ref(bottom)?,
                 distinct,
             },
+            SqlTransform::Loop(pipeline) => SqlTransform::Loop(self.fold_sql_transforms(pipeline)?),
         })
     }
 }

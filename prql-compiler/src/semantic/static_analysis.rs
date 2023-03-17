@@ -60,9 +60,10 @@ fn eval(kind: ExprKind) -> ExprKind {
                     (BinOp::Mul, Literal::Float(left), Literal::Float(right)) => {
                         Some(Literal::Float(left * right))
                     }
-                    (BinOp::Div, Literal::Integer(left), Literal::Integer(right)) => {
-                        Some(Literal::Integer(left / right))
-                    }
+                    // Don't do int division yet; https://github.com/PRQL/prql/issues/1733
+                    // (BinOp::Div, Literal::Integer(left), Literal::Integer(right)) => {
+                    //     Some(Literal::Integer(left / right))
+                    // }
                     (BinOp::Div, Literal::Float(left), Literal::Float(right)) => {
                         Some(Literal::Float(left / right))
                     }
@@ -130,7 +131,7 @@ fn eval(kind: ExprKind) -> ExprKind {
             }
         }
 
-        ExprKind::Switch(items) => {
+        ExprKind::Case(items) => {
             let mut res = Vec::with_capacity(items.len());
             for item in items {
                 if let ExprKind::Literal(Literal::Boolean(condition)) = item.condition.kind {
@@ -159,7 +160,7 @@ fn eval(kind: ExprKind) -> ExprKind {
                 }
             }
 
-            ExprKind::Switch(res)
+            ExprKind::Case(res)
         }
 
         k => k,

@@ -1,14 +1,228 @@
 # PRQL Changelog
 
-## 0.4.2 — [unreleased]
+## 0.6.2 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+- Added the PRQL-snippets from the book to the
+  [Playground](https://prql-lang.org/playground/)
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.6.1 — 2022-03-12
+
+0.6.1 is a small release containing an internal refactoring and improved
+bindings for C, PHP & .NET.
+
+This release has 54 commits from 6 contributors. Selected changes:
+
+**Fixes**:
+
+- No longer incorrectly compile to `DISTINCT` when a `take 1` refers to a
+  different set of columns than are in the `group`. (@max-sixty, with thanks to
+  @cottrell, #2109)
+- The version specification of the dependency Chumsky was bumped from `0.9.0` to
+  `0.9.2`. `0.9.0` has a bug that causes an infinite loop. (@eitsupi, #2110)
+
+**Documentation**:
+
+- Add a policy for which bindings are supported / unsupported / nascent. See
+  <https://prql-lang.org/book/bindings/index.html> for more details (@max-sixty,
+  #2062) (@max-sixty, #2062)
+
+**Integrations**:
+
+- [prql-lib] Added C++ header file. (@vanillajonathan, #2126)
+
+**Internal changes**:
+
+- Many of the items that were in the root of the repo have been aggregated into
+  `web` & `bindings`, simplifying the repo's structure. There's also `grammars`
+  & `packages` (@max-sixty, #2135, #2117, #2121).
+
+## 0.6.0 — 2022-03-08
+
+0.6.0 introduces a rewritten parser, giving us the ability to dramatically
+improve error messages, renames `switch` to `case` and includes lots of minor
+improvements and fixes. It also introduces `loop`, which compiles to
+`WITH RECURSIVE`, as a highly experimental feature.
+
+There are a few cases of breaking changes, including switching `switch` to
+`case`, in case that's confusing. There are also some minor parsing changes
+outlined below.
+
+This release has 108 commits from 11 contributors. Selected changes:
+
+**Features**:
+
+- Add a (highly experimental) `loop` language feature, which translates to
+  `WITH RECURSIVE`. We expect changes and refinements in upcoming releases.
+  (#1642, @aljazerzen)
+- Rename the experimental `switch` function to `case` given it more closely
+  matches the traditional semantics of `case`. (@max-sixty, #2036)
+- Change the `case` syntax to use `=>` instead of `->` to distinguish it from
+  function syntax.
+- Convert parser from pest to Chumsky (@aljazerzen, #1818)
+  - Improved error messages, and the potential to make even better in the
+    future. Many of these improvements come from error recovery.
+  - String escapes (`\n \t`).
+  - Raw strings that don't escape backslashes.
+  - String interpolations can only contain identifiers and not any expression.
+  - Operator associativity has been changed from right-to-left to left-to-right
+    to be more similar to other conventional languages.
+  - `and` now has a higher precedence than `or` (of same reason as the previous
+    point).
+  - Dates, times and timestamps have stricter parsing rules.
+  - `let`, `func`, `prql`, `case` are now treated as keywords.
+  - Float literals without fraction part are not allowed anymore (`1.`).
+- Add a `--format` option to `prqlc parse` which can return the AST in YAML
+  (@max-sixty, #1962)
+- A new compile target `"sql.any"`. When `"sql.any"` is used as the target of
+  the compile function's option, the target contained in the query header will
+  be used. (@aljazerzen, #1995)
+- Support for SQL parameters with similar syntax (#1957, @aljazerzen)
+- Allow `:` to be elided in timezones, such as `0800` in
+  `@2020-01-01T13:19:55-0800` (@max-sixty, #1991).
+- Add `std.upper` and `std.lower` functions for changing string casing
+  (@Jelenkee, #2019).
+
+**Fixes**:
+
+- `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,
+  #1924)
+- Identifiers can contain any alphabetic unicode characters (@max-sixty, #2003)
+
+**Documentation**:
+
+- Operator precedence (@aljazerzen, #1818)
+- Error messages for invalid queries are displayed in the book (@max-sixty,
+  #2015)
+
+**Integrations**:
+
+- [prql-php] Added PHP bindings. (@vanillajonathan, #1860)
+- [prql-dotnet] Added .NET bindings. (@vanillajonathan, #1917)
+- [prql-lib] Added C header file. (@vanillajonathan, #1879)
+- Added a workflow building a `.deb` on each release. (Note that it's not yet
+  published on each release). (@vanillajonathan, #1883)
+- Added a workflow building a `.rpm` on each release. (Note that it's not yet
+  published on each release). (@vanillajonathan, #1918)
+- Added a workflow building a Snap package on each release. (@vanillajonathan,
+  #1881)
+
+**Internal changes**:
+
+- Test that the output of our nascent autoformatter can be successfully compiled
+  into SQL. Failing examples are now clearly labeled. (@max-sixty, #2016)
+- Definition files have been added to configure
+  [Dev Containers](https://containers.dev/) for Rust development environment.
+  (@eitsupi, #1893, #2025, #2028)
+
+**New Contributors**:
+
+- @linux-china, with #1971
+- @Jelenkee, with #2019
+
+## 0.5.2 — 2022-02-18
+
+0.5.2 is a tiny release to fix an build issue in yesterday's `prql-js` 0.5.1
+release.
+
+This release has 7 commits from 2 contributors.
+
+**New Contributors**:
+
+- @matthias-Q, with #1873
+
+## 0.5.1 — 2022-02-17
+
+0.5.1 contains a few fixes, and another change to how bindings handle default
+target / dialects.
+
+This release has 53 commits from 7 contributors. Selected changes:
+
+**Fixes**:
+
+- Delegate dividing literal integers to the DB. Previously integer division was
+  executed during PRQL compilation, which could be confusing given that behavior
+  is different across DBs. Other arithmetic operations are still executed during
+  compilation. (@max-sixty, #1747)
+
+**Documentation**:
+
+- Add docs on the `from_text` transform (@max-sixty, #1756)
+
+**Integrations**:
+
+- [prql-js] Default compile target changed from `Sql(Generic)` to `Sql(None)`.
+  (@eitsupi, #1856)
+- [prql-python] Compilation options can now be specified from Python. (@eitsupi,
+  #1807)
+- [prql-python] Default compile target changed from `Sql(Generic)` to
+  `Sql(None)`. (@eitsupi, #1861)
+
+**New Contributors**:
+
+- @vanillajonathan, with #1766
+
+## 0.5.0 — 2022-02-08
+
+0.5.0 contains a few fixes, some improvements to bindings, lots of docs
+improvements, and some work on forthcoming features. It contains one breaking
+change in the compiler's `Options` interface.
+
+This release has 74 commits from 12 contributors. Selected changes:
+
+**Features**:
+
+- Change public API to use target instead of dialect in preparation for feature
+  work (@aljazerzen, #1684)
+
+- `prqlc watch` command which watches filesystem for changes and compiles .prql
+  files to .sql (@aljazerzen, #1708)
+
+**Fixes**:
+
+- Support double brackets in s-strings which aren't symmetric (@max-sixty,
+  #1650)
+- Support Postgres's Interval syntax (@max-sixty, #1649)
+- Fixed tests for `prql-elixir` with MacOS (@kasvith, #1707)
+
+**Documentation**:
+
+- Add a documentation test for prql-compiler, update prql-compiler README, and
+  include the README in the prql book section for Rust bindings. The code
+  examples in the README are included and tested as doctests in the
+  prql-compiler (@nkicg6, #1679)
+
+**Internal changes**:
+
+- Add tests for all PRQL website examples to prql-python to ensure compiled
+  results match expected SQL (@nkicg6, #1719)
+
+**New Contributors**:
+
+- @ruslandoga, with #1628
+- @RalfNorthman, with #1632
+- @nicot, with #1662
+
+## 0.4.2 — 2022-01-25
 
 **Features**:
 
 - New `from_text format-arg string-arg` function that supports JSON and CSV
   formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
-  be a string in any format. See discussion in
-  https://github.com/PRQL/prql/pull/1514 (@aljazerzen, @snth) _(Implemented in
-  Playground)_
+  be a string in any format. (@aljazerzen & @snth, #1514)
 
   ```prql
   from_text format:csv """
@@ -31,6 +245,16 @@
   ```
 
   For now, the argument is limited to string constants.
+
+**Fixes**
+
+- Export constructor for SQLCompileOptions (@bcho, #1621)
+- Remove backticks in count_distinct (@aljazerzen, #1611)
+
+**New Contributors**
+
+- @1Kinoti, with #1596
+- @veenaamb, with #1614
 
 ## 0.4.1 — 2022-01-18
 
@@ -63,7 +287,7 @@
 
 ## 0.4.0 — 2022-01-15
 
-0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
+0.4.0 brings lots of new features including `case`, `select ![]` and numbers
 with underscores. We have initial (unpublished) bindings to Elixir. And there's
 the usual improvements to fixes & documentation (only a minority are listed
 below in this release).
@@ -75,15 +299,15 @@ below in this release).
 
 - Defining a temporary table is now expressed as `let` rather than `table`
   (@aljazerzen, #1315). See the
-  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
+  [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
 - _Experimental:_ The
-  [`switch`](https://prql-lang.org/book/language-features/switch.html) function
-  sets a variable to a value based on one of several expressions (@aljazerzen,
+  [`case`](https://prql-lang.org/book/language-features/case.html) function sets
+  a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
   ```prql
-  derive var = switch [
+  derive var = case [
     score <= 10 -> "low",
     score <= 30 -> "medium",
     score <= 70 -> "high",
@@ -107,8 +331,8 @@ below in this release).
   ```
 
   Check out the
-  [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
-  more details.
+  [`case` docs](https://prql-lang.org/book/language-features/case.html) for more
+  details.
 
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
   #1329)
@@ -397,12 +621,12 @@ fix rather than a breaking change in semantic versioning.
 
 **Integrations**:
 
-- Expose a shortened error message, in particular for the VSCode extension
+- Expose a shortened error message, in particular for the VS Code extension
   (@aljazerzen, #1005)
 
 **Internal changes**:
 
-- Specify 1.60.0 as minimum rust version (@max-sixty, #1011)
+- Specify 1.60.0 as minimum Rust version (@max-sixty, #1011)
 - Remove old `wee-alloc` code (@max-sixty, #1013)
 - Upgrade clap to version 4 (@aj-bagwell, #1004)
 - Improve book-building script in Taskfile (@max-sixty, #989)
@@ -416,7 +640,7 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the
-[VSCode extension](https://github.com/PRQL/prql-code), courtesy of
+[VS Code extension](https://github.com/PRQL/prql-code), courtesy of
 @jiripospisil, including a live output panel.
 
 **Fixes**:
@@ -482,7 +706,7 @@ includes:
   columns in generated SQL (@charlie-sanders )
 - Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty )
 - Some internal changes — reorganize top-level functions (@aljazerzen ), add a
-  workflow to track our rust compilation time (@max-sixty ), simplify our simple
+  workflow to track our Rust compilation time (@max-sixty ), simplify our simple
   prql-to-sql tests (@max-sixty )
 
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
@@ -547,8 +771,8 @@ improvements:
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
 - Automated releases to homebrew (@roG0d )
-- [prql-js](https://github.com/PRQL/prql/tree/main/prql-js) is now a single
-  package for node, browsers & webpack (@charlie-sanders )
+- [prql-js](https://github.com/PRQL/prql/tree/main/bindings/prql-js) is now a
+  single package for Node, browsers & webpack (@charlie-sanders )
 - Parsing has some fixes, including `>=` and leading underscores in idents
   (@mklopets )
 - Ranges receive correct syntax highlighting (@max-sixty )
@@ -616,8 +840,8 @@ Keep in touch with PRQL by following the project on
 
 [Contribute](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md) to the
 project — we're a really friendly community, whether you're a recent SQL user or
-an advanced rust programmer. We need bug reports, documentation tweaks & feature
-requests — just as much as we need compiler improvements written in rust.
+an advanced Rust programmer. We need bug reports, documentation tweaks & feature
+requests — just as much as we need compiler improvements written in Rust.
 
 ---
 

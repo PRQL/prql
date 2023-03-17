@@ -1,0 +1,12 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees | filter department == \"Product\" | select [first_name, last_name]\n"
+---
+SELECT
+  first_name,
+  last_name
+FROM
+  employees
+WHERE
+  department = 'Product'
+

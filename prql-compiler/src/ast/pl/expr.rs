@@ -72,11 +72,15 @@ pub enum ExprKind {
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
-    Switch(Vec<SwitchCase>),
+    Case(Vec<SwitchCase>),
     BuiltInFunction {
         name: String,
         args: Vec<Expr>,
     },
+    Set(SetExpr),
+
+    /// a placeholder for values provided after query is compiled
+    Param(String),
 }
 
 impl ExprKind {
@@ -89,7 +93,16 @@ impl ExprKind {
 }
 
 #[derive(
-    Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::Display, strum::EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]
@@ -122,12 +135,12 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
     #[strum(to_string = "+")]
-    Add,
+    Add, // TODO: rename to Pos
     #[strum(to_string = "!")]
     Not,
     #[strum(to_string = "==")]
@@ -142,6 +155,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub named_args: HashMap<String, Expr>,
 }
 
@@ -163,8 +177,8 @@ pub struct Closure {
     pub body_ty: Option<Ty>,
 
     pub args: Vec<Expr>,
-    pub params: Vec<FuncParam>,
-    pub named_params: Vec<FuncParam>,
+    pub params: Vec<ClosureParam>,
+    pub named_params: Vec<ClosureParam>,
 
     pub env: HashMap<String, Expr>,
 }
@@ -175,6 +189,16 @@ impl Closure {
 
         ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ClosureParam {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+
+    pub default_value: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -310,6 +334,7 @@ pub enum TransformKind {
         pipeline: Box<Expr>,
     },
     Append(Box<Expr>),
+    Loop(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -318,9 +343,21 @@ pub enum WindowKind {
     Range,
 }
 
+/// A reference to a table that is not in scope of this query.
+///
+/// > Note: We're not using this at the moment in
+/// > [crate::ast::rq::RelationKind], since we wanted to avoid nested enums,
+/// > since they can't be serialized to YAML at the moment. We may add this back
+/// > in the future, or flatten it up to [crate::ast::rq::RelationKind]
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableExternRef {
+    /// Actual table in a database, that we can refer to by name in SQL
     LocalTable(String),
+
+    /// Placeholder for a relation that will be provided later.
+    /// This is very similar to relational s-strings and may not even be needed for now, so
+    /// it's not documented anywhere. But it will be used in the future.
+    Param(String),
     // TODO: add other sources such as files, URLs
 }
 
@@ -423,7 +460,6 @@ impl From<ExprKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
     fn from(kind: ExprKind) -> Self {
-        // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{}`", Expr::from(kind))
     }
 }
@@ -432,7 +468,6 @@ impl From<TransformKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
     fn from(kind: TransformKind) -> Self {
-        // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{kind:?}`")
     }
 }
@@ -554,8 +589,8 @@ impl Display for Expr {
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;
             }
-            ExprKind::Switch(cases) => {
-                f.write_str("switch [\n")?;
+            ExprKind::Case(cases) => {
+                f.write_str("case [\n")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }
@@ -563,6 +598,12 @@ impl Display for Expr {
             }
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
+            }
+            ExprKind::Set(_) => {
+                writeln!(f, "<set-expr>")?;
+            }
+            ExprKind::Param(id) => {
+                writeln!(f, "${id}")?;
             }
         }
 

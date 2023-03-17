@@ -1,0 +1,12 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: sqlite_out
+input_file: prql-compiler/tests/integration/queries/pipelines.prql
+---
+is_in_range,track_id
+0,20
+0,21
+0,22
+1,23
+1,24
+1,25

@@ -1,0 +1,19 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nsort tenure\njoin locations [==employee_id]\n"
+---
+WITH table_1 AS (
+  SELECT
+    *
+  FROM
+    employees
+  ORDER BY
+    tenure
+)
+SELECT
+  table_0.*,
+  locations.*
+FROM
+  table_1 AS table_0
+  JOIN locations ON table_0.employee_id = locations.employee_id
+
