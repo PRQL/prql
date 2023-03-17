@@ -152,7 +152,9 @@ fn replace_examples(text: &str) -> Result<String> {
                 )
                 .into(),
             )),
-            "prql_no_test" => {}
+            "prql_no_test" => {
+                cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
+            }
             _ => {
                 bail!("Unknown code block language: {}", lang)
             }
@@ -193,6 +195,27 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 "#,
         prql = prql.trim(),
         sql = sql,
+    )
+    .trim_start()
+    .to_string()
+}
+
+// Similar to `table_of_comparison`, but without a second column.
+fn table_of_prql_only(prql: &str) -> String {
+    format!(
+        r#"
+<div class="comparison">
+
+<div>
+<h4>PRQL</h4>
+
+```prql
+{prql}
+```
+
+</div>
+"#,
+        prql = prql.trim(),
     )
     .trim_start()
     .to_string()
