@@ -31,9 +31,8 @@ section h2 {
   text-transform: capitalize;
 }
 
-.folderRow::before,
-.fileRow::before {
-  content: "\00a0"; /* non-breaking space */
+.folderRow::before {
+  content: "\1F892 ";
   margin-right: 5px;
   display: inline-block;
   transition: transform 0.3s ease;
