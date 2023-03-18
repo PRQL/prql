@@ -70,22 +70,24 @@ function Sidebar({ library, onLoadFile }) {
       </section>
       <section>
         <h2>External links</h2>
-        <a
-          className="fileRow"
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://prql-lang.org"
-        >
-          PRQL Website &#8599;
-        </a>
-        <a
-          className="fileRow"
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://prql-lang.org/book/"
-        >
-          Book &#8599;
-        </a>
+        <div className="fileRow">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://prql-lang.org"
+          >
+            PRQL Website &#8599;
+          </a>
+        </div>
+        <div className="fileRow">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://prql-lang.org/book/"
+          >
+            Book &#8599;
+          </a>
+        </div>
       </section>
 
       {sections}
