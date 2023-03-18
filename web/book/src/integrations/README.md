@@ -2,8 +2,9 @@
 
 PRQL is building integrations with lots of external tools, including:
 
-- [VS Code](./vscode.md)
+- [dbt](./dbt.md)
+- [Jupyter](./jupyter.md)
 - [DuckDB](./duckdb.md)
 - [Prefect](./prefect.md)
+- [VS Code](./vscode.md)
 - [Rill](./rill.md)
-- [dbt](./dbt.md)
