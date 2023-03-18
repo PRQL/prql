@@ -2,7 +2,7 @@
 
 > Original docs at <https://github.com/prql/dbt-prql>
 
-```note admonish
+```admonish note
 As of Feb 2022, we're again considering how to best integrate with
 dbt more closely. Ideally a file with a `.prql` extension will just work™.
 
