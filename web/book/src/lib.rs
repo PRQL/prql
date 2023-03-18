@@ -214,6 +214,7 @@ fn table_of_prql_only(prql: &str) -> String {
 ```
 
 </div>
+</div>
 "#,
         prql = prql.trim(),
     )
