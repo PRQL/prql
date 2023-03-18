@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::time::SystemTime;
+    use std::time::{Duration, SystemTime};
 
     use chrono::{DateTime, Utc};
     use mysql::prelude::Queryable;
@@ -8,6 +8,11 @@ mod tests {
     use pg_bigdecimal::PgNumeric;
     use postgres::types::Type;
     use postgres::NoTls;
+    use tiberius::numeric::BigDecimal;
+    use tiberius::*;
+    use tokio::net::TcpStream;
+    use tokio::runtime::Runtime;
+    use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
     use prql_compiler::sql::Dialect;
     use prql_compiler::Options;
@@ -29,12 +34,32 @@ mod tests {
         let mut sqlite = SQLiteConnection(rusqlite::Connection::open_in_memory().unwrap());
         let mut pg = PostgresConnection(
             postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
-                .unwrap()
+                .unwrap(),
         );
         let mut my =
             MysqlConnection(mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap());
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let mut ms = {
+            let mut config = Config::new();
+            config.host("127.0.0.1");
+            config.port(1433);
+            config.trust_cert();
+            config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
+
+            let client = rt.block_on(get_client(config.clone()));
+
+            async fn get_client(config: Config) -> Client<Compat<TcpStream>> {
+                let tcp = TcpStream::connect(config.get_addr()).await.unwrap();
+                tcp.set_nodelay(true).unwrap();
+                tiberius::Client::connect(config, tcp.compat_write())
+                    .await
+                    .unwrap()
+            }
+            MssqlConnection(client)
+        };
+
         let connections: Vec<&mut dyn DBConnection> =
-            vec![&mut duck, &mut sqlite, &mut pg, &mut my];
+            vec![&mut duck, &mut sqlite, &mut pg, &mut my, &mut ms];
 
         for con in connections {
             let setup = include_str!("setup.sql");
@@ -43,13 +68,20 @@ mod tests {
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
                 .for_each(|s| {
-                    con.run_query(s);
+                    let sql = match con.get_dialect() {
+                        Dialect::MsSql => s
+                            .replace(" boolean ", " bit ")
+                            .replace("TRUE", "1")
+                            .replace("FALSE", "0"),
+                        _ => s.to_string(),
+                    };
+                    con.run_query(sql.as_str(), Some(&rt));
                 });
 
             for (prql, expected_rows) in test_cases.iter() {
                 let options = Options::default().with_target(Sql(Some(con.get_dialect())));
                 let sql = prql_compiler::compile(prql, &options).unwrap();
-                let mut actual_rows = con.run_query(sql.as_str());
+                let mut actual_rows = con.run_query(sql.as_str(), Some(&rt));
                 replace_booleans(&mut actual_rows);
                 assert_eq!(
                     *expected_rows,
@@ -74,7 +106,7 @@ mod tests {
     }
 
     trait DBConnection {
-        fn run_query(&mut self, sql: &str) -> Vec<Row>;
+        fn run_query(&mut self, sql: &str, rt: Option<&Runtime>) -> Vec<Row>;
 
         fn get_dialect(&self) -> Dialect;
     }
@@ -87,8 +119,10 @@ mod tests {
 
     struct MysqlConnection(mysql::Pool);
 
+    struct MssqlConnection(tiberius::Client<Compat<TcpStream>>);
+
     impl DBConnection for DuckDBConnection {
-        fn run_query(&mut self, sql: &str) -> Vec<Row> {
+        fn run_query(&mut self, sql: &str, rt: Option<&Runtime>) -> Vec<Row> {
             let mut statement = self.0.prepare(sql).unwrap();
             let mut rows = statement.query([]).unwrap();
             let mut vec = vec![];
@@ -135,7 +169,7 @@ mod tests {
     }
 
     impl DBConnection for SQLiteConnection {
-        fn run_query(&mut self, sql: &str) -> Vec<Row> {
+        fn run_query(&mut self, sql: &str, rt: Option<&Runtime>) -> Vec<Row> {
             let mut statement = self.0.prepare(sql).unwrap();
             let mut rows = statement.query([]).unwrap();
             let mut vec = vec![];
@@ -170,7 +204,7 @@ mod tests {
     }
 
     impl DBConnection for PostgresConnection {
-        fn run_query(&mut self, sql: &str) -> Vec<Row> {
+        fn run_query(&mut self, sql: &str, rt: Option<&Runtime>) -> Vec<Row> {
             let rows = self.0.query(sql, &[]).unwrap();
             let mut vec = vec![];
             for row in rows.into_iter() {
@@ -197,7 +231,7 @@ mod tests {
                             let date_time: DateTime<Utc> = time.into();
                             date_time.to_rfc3339()
                         }
-                        t => unimplemented!("postgres type {t}"),
+                        typ => unimplemented!("postgres type {:?}", typ),
                     };
                     columns.push(value);
                 }
@@ -212,7 +246,7 @@ mod tests {
     }
 
     impl DBConnection for MysqlConnection {
-        fn run_query(&mut self, sql: &str) -> Vec<Row> {
+        fn run_query(&mut self, sql: &str, rt: Option<&Runtime>) -> Vec<Row> {
             let mut conn = self.0.get_conn().unwrap();
             let rows: Vec<mysql::Row> = conn.query(sql).unwrap();
             let mut vec = vec![];
@@ -221,15 +255,12 @@ mod tests {
                 for v in row.unwrap() {
                     let value = match v {
                         Value::NULL => "".to_string(),
-                        Value::Bytes(v) =>
-                            String::from_utf8(v).unwrap_or("BLOB".to_string()),
-
+                        Value::Bytes(v) => String::from_utf8(v).unwrap_or("BLOB".to_string()),
                         Value::Int(v) => v.to_string(),
                         Value::UInt(v) => v.to_string(),
                         Value::Float(v) => v.to_string(),
                         Value::Double(v) => v.to_string(),
-                        Value::Date(_, _, _, _, _, _, _) => todo!(),
-                        Value::Time(_, _, _, _, _, _) => todo!()
+                        typ => unimplemented!("mysql type {:?}", typ),
                     };
                     columns.push(value);
                 }
@@ -240,6 +271,52 @@ mod tests {
 
         fn get_dialect(&self) -> Dialect {
             Dialect::MySql
+        }
+    }
+
+    impl DBConnection for MssqlConnection {
+        fn run_query(&mut self, sql: &str, rt: Option<&Runtime>) -> Vec<Row> {
+            let runtime = rt.unwrap();
+            runtime.block_on(self.query(sql))
+        }
+
+        fn get_dialect(&self) -> Dialect {
+            Dialect::MsSql
+        }
+    }
+
+    impl MssqlConnection {
+        async fn query(&mut self, sql: &str) -> Vec<Row> {
+            let mut stream = self.0.query(sql, &[]).await.unwrap();
+            let mut vec = vec![];
+            let cols_option = (&mut stream).columns().await.unwrap();
+            if cols_option.is_none() {
+                return vec![];
+            }
+            let cols = cols_option.unwrap().to_vec();
+            for row in stream.into_first_result().await.unwrap() {
+                let mut columns = vec![];
+                for i in 0..row.len() {
+                    let col = &cols[i];
+                    let value = match col.column_type() {
+                        ColumnType::Null => "".to_string(),
+                        ColumnType::Bit => String::from(row.get::<&str, usize>(i).unwrap()),
+                        ColumnType::Intn => row
+                            .get::<i32, usize>(i)
+                            .map(|i| i.to_string())
+                            .unwrap_or("".to_string()),
+                        ColumnType::Numericn => {
+                            row.get::<BigDecimal, usize>(i).unwrap().to_string()
+                        }
+                        ColumnType::BigVarChar => String::from(row.get::<&str, usize>(i).unwrap()),
+                        typ => unimplemented!("mssql type {:?}", typ),
+                    };
+                    columns.push(value);
+                }
+                vec.push(columns);
+            }
+
+            vec
         }
     }
 }
