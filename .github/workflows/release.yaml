@@ -44,11 +44,13 @@ jobs:
           package: prqlc
           package_root: .debpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref }}
-          desc: |
-            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+          version: ${{ github.ref_type == 'tag' && github.ref_name || 0 }}
+          desc: >
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
+            offers various diagnostics.
 
-            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+            PRQL is a modern language for transforming data — a simple,
+            powerful, pipelined SQL replacement.
 
   build-rpm-package:
     # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
@@ -70,11 +72,14 @@ jobs:
           package: prqlc
           package_root: .rpmpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref }}
-          desc: |
-            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+          vendor: The PRQL Project
+          version: ${{ github.ref_type == 'tag' && github.ref_name || 0 }}
+          desc: >
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
+            offers various diagnostics.
 
-            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+            PRQL is a modern language for transforming data — a simple,
+            powerful, pipelined SQL replacement.
           license: Apache-2.0
 
   build-and-publish-snap:
@@ -86,12 +91,16 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - name: Move Snap to project root directory
+        run: cp -r packages/snap/ .
       - name: 📦 Build Snap
+        id: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
         uses: snapcore/action-publish@v1
         env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+          SNAPCRAFT_STORE_CREDENTIALS:
+            ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         with:
           snap: ${{ steps.build.outputs.snap }}
           release: edge
@@ -126,10 +135,19 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/build-prql-js
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-pack
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Publish package on npm
         run: npm publish
-        working-directory: prql-js/
+        working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -173,3 +191,6 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
+
+  push-devcontainer-base-image:
+    uses: ./.github/workflows/devcontainer.yaml

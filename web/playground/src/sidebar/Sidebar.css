@@ -1,0 +1,70 @@
+.sidebar {
+  padding-top: 1rem;
+  min-width: fit-content;
+  overflow-y: auto;
+}
+section:not(:last-child) {
+  border-bottom: 1px solid #666;
+  padding-bottom: 1rem;
+}
+section h1 {
+  font-size: 16px;
+  margin: 0;
+}
+section h2 {
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0;
+}
+
+.fileRow::before {
+  content: "\00a0"; /* non-breaking space to indent fileRows */
+  margin-right: 5px;
+}
+.fileRow:hover {
+  cursor: pointer;
+  background-color: #ffffff1f;
+}
+
+.folderRow ~ .fileRow:not(.folderRow)::before {
+  content: "";
+  margin-right: 5px;
+}
+
+.folderRow {
+  text-transform: capitalize;
+}
+
+.folderRow::before {
+  /* disclosure triangle to show hierarchy */
+  content: "\00a0\00a0\25b7"; /* two non-breaking spaces and a white right triangle */
+  font-size: 0.75em; /* a little smaller */
+  margin-right: 5px;
+  display: inline-block;
+  transition: transform 0.3s ease;
+  transform-origin: center;
+}
+
+.folderRow.open::before {
+  transform: rotate(90deg);
+}
+
+section h1,
+section h2,
+section p,
+.fileRow {
+  padding: 2px 1rem 2px 1rem;
+  display: block;
+  line-height: 1;
+}
+
+section ul {
+  padding-left: 2px;
+}
+section a {
+  color: lightblue;
+}
+section a:visited {
+  color: plum;
+}

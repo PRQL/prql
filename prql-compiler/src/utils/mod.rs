@@ -3,11 +3,11 @@ mod only;
 mod toposort;
 
 pub use id_gen::{IdGenerator, NameGenerator};
-use itertools::Itertools;
 pub use only::*;
 pub use toposort::toposort;
 
 use anyhow::Result;
+use itertools::Itertools;
 
 pub trait OrMap<T> {
     /// Merges two options into one using `f`.

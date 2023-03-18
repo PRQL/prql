@@ -20,7 +20,9 @@ pub enum Token {
     /// single-char control tokens
     Control(char),
 
-    Arrow,       // ->
+    // TODO: rename to ArrowThin
+    Arrow, // ->
+    // TODO: rename to ArrowFat
     ArrowDouble, // =>
     Eq,          // ==
     Ne,          // !=
@@ -51,10 +53,16 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let ident = ident_part().map(Token::Ident);
 
-    let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
-        .then_ignore(end_expr())
-        .map(|x| x.to_string())
-        .map(Token::Keyword);
+    let keyword = choice((
+        just("func"),
+        just("let"),
+        just("case"),
+        just("prql"),
+        just("type"),
+    ))
+    .then_ignore(end_expr())
+    .map(|x| x.to_string())
+    .map(Token::Keyword);
 
     let literal = literal().map(Token::Literal);
 
@@ -113,11 +121,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
-    let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_')
+    let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
-        )
+        .chain::<char, Vec<_>, _>(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
         .collect();
 
     let backticks = just('`')
@@ -228,9 +234,15 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(
             one_of("-+")
                 .chain(
-                    digits(2)
-                        .chain(just(':'))
-                        .chain(digits(2))
+                    // TODO: This is repeated without the `:`~ with an `or`
+                    // because using `.or_not` triggers a request for
+                    // type hints, which seems difficult to provide... Is there
+                    // an easier way?
+                    //
+                    //   (digits(2).chain(just(':').or_not()).chain(digits(2)))
+                    //
+                    (digits(2).chain(just(':')).chain(digits(2)))
+                        .or(digits(2).chain(digits(2)))
                         .or(just('Z').map(|x| vec![x])),
                 )
                 .or_not()

@@ -43,7 +43,7 @@ struct Labeler<'a> {
     context: &'a Context,
     source: &'a Source,
     source_id: &'a str,
-    report: &'a mut ReportBuilder<(String, Range<usize>)>,
+    report: &'a mut ReportBuilder<'static, (String, Range<usize>)>,
 }
 
 impl<'a> Labeler<'a> {

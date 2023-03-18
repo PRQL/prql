@@ -6,8 +6,6 @@ use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
 
-use crate::utils::IntoOnly;
-
 #[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
@@ -19,6 +17,7 @@ pub struct Error {
     pub span: Option<Span>,
     pub reason: Reason,
     pub help: Option<String>,
+    pub code: Option<&'static str>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,6 +57,7 @@ impl Error {
             span: None,
             reason,
             help: None,
+            code: None,
         }
     }
 
@@ -74,10 +74,17 @@ impl Error {
         self.span = span;
         self
     }
+
+    pub fn with_code(mut self, code: &'static str) -> Self {
+        self.code = Some(code);
+        self
+    }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ErrorMessage {
+    /// Machine-readable identifier of the error
+    pub code: Option<String>,
     /// Plain text of the error
     pub reason: String,
     /// A list of suggestions of how to fix the error
@@ -102,9 +109,19 @@ impl Display for ErrorMessage {
                 .join("\n");
             f.write_str(&message_without_trailing_spaces)?;
         } else {
-            f.write_str(&self.reason)?;
+            let code = (self.code.as_ref())
+                .map(|c| format!("[{c}] "))
+                .unwrap_or_default();
+
+            writeln!(f, "{}Error: {}", code, &self.reason)?;
         }
         Ok(())
+    }
+}
+
+impl Debug for ErrorMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self, f)
     }
 }
 
@@ -150,6 +167,7 @@ impl Display for ErrorMessages {
 }
 
 pub fn downcast(error: anyhow::Error) -> ErrorMessages {
+    let mut code = None;
     let mut span = None;
     let mut hint = None;
 
@@ -173,6 +191,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
 
     let reason = match error.downcast::<Error>() {
         Ok(error) => {
+            code = error.code.map(|x| x.to_string());
             span = error.span;
             hint = error.help;
 
@@ -185,6 +204,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
     };
 
     ErrorMessage {
+        code,
         reason,
         hint,
         span,
@@ -218,14 +238,6 @@ impl ErrorMessages {
     }
 }
 
-impl IntoOnly for ErrorMessages {
-    type Item = ErrorMessage;
-
-    fn into_only(self) -> Result<Self::Item> {
-        self.inner.into_only()
-    }
-}
-
 impl ErrorMessage {
     fn compose_display<'a, C>(&self, source_id: &'a str, cache: C, color: bool) -> Option<String>
     where
@@ -237,8 +249,11 @@ impl ErrorMessage {
 
         let mut report = Report::build(ReportKind::Error, source_id, span.start)
             .with_config(config)
-            .with_message("")
             .with_label(Label::new((source_id, span)).with_message(&self.reason));
+
+        if let Some(code) = &self.code {
+            report = report.with_code(code);
+        }
 
         if let Some(hint) = &self.hint {
             report.set_help(hint);

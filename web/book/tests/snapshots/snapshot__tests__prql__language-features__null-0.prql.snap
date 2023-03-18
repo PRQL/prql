@@ -1,0 +1,12 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nfilter first_name == null\nfilter null != last_name\n"
+---
+SELECT
+  *
+FROM
+  employees
+WHERE
+  first_name IS NULL
+  AND last_name IS NOT NULL
+

@@ -34,7 +34,7 @@ pub enum ExprKind {
 
     // TODO: convert this into built-in function
     FString(Vec<InterpolateItem<Expr>>),
-    Switch(Vec<SwitchCase<Expr>>),
+    Case(Vec<SwitchCase<Expr>>),
 
     BuiltInFunction {
         name: String,

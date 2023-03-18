@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\njoin positions [==emp_no]\n"
----
-from employees
-join positions [==emp_no]
-
-
-

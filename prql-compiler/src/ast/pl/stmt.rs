@@ -27,6 +27,7 @@ pub enum StmtKind {
     QueryDef(QueryDef),
     FuncDef(FuncDef),
     VarDef(VarDef),
+    TypeDef(TypeDef),
     Main(Box<Expr>),
 }
 
@@ -44,15 +45,16 @@ pub struct FuncDef {
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,
-    pub return_ty: Option<Ty>,
+    pub return_ty: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncParam {
     pub name: String,
 
+    /// Parsed expression that will be resolved to a type
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Ty>,
+    pub ty_expr: Option<Expr>,
 
     pub default_value: Option<Expr>,
 }
@@ -61,6 +63,12 @@ pub struct FuncParam {
 pub struct VarDef {
     pub name: String,
     pub value: Box<Expr>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct TypeDef {
+    pub name: String,
+    pub value: Option<Expr>,
 }
 
 impl From<StmtKind> for Stmt {
@@ -126,6 +134,13 @@ impl Display for StmtKind {
                         write!(f, "let {} = {pipeline}\n\n", var.name)?;
                     }
                 };
+            }
+            StmtKind::TypeDef(ty_def) => {
+                if let Some(value) = &ty_def.value {
+                    write!(f, "type {} = {value}\n\n", ty_def.name)?;
+                } else {
+                    write!(f, "type {}\n\n", ty_def.name)?;
+                }
             }
         }
         Ok(())

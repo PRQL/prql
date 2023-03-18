@@ -1,7 +1,3 @@
-//! This module contains the parser, which is responsible for converting a tree
-//! of pest pairs into a tree of AST Items. It has a small function to call into
-//! pest to get the parse tree / concrete syntax tree, and then a large
-//! function for turning that into PRQL AST.
 mod expr;
 mod interpolation;
 mod lexer;
@@ -54,57 +50,84 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
 }
 
 fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
-    let found = source[e.span()].to_string();
+    // TODO: is there a neater way of taking a span? We want to take it based on
+    // the chars, not the bytes, so can't just index into the str.
+    let found = source
+        .chars()
+        .skip(e.span().start)
+        .take(e.span().end() - e.span().start)
+        .collect();
     let span = common::into_span(e.span());
 
     Error::new(Reason::Unexpected { found }).with_span(span)
 }
 
 fn convert_parser_error(e: Simple<Token>) -> Error {
-    let just_whitespace = e
-        .expected()
-        .all(|t| matches!(t, None | Some(Token::NewLine)));
-    let expected = e
-        .expected()
-        .filter(|t| {
-            if just_whitespace {
-                true
-            } else {
-                !matches!(t, None | Some(Token::NewLine))
+    let mut span = common::into_span(e.span());
+
+    if e.found().is_none() {
+        // found end of file
+        // fix for span outside of source
+        if let Some(span) = &mut span {
+            if span.start > 0 && span.end > 0 {
+                span.start -= 1;
+                span.end -= 1;
             }
-        })
-        .map(|t| match t {
-            Some(t) => t.to_string(),
-            None => "end of input".to_string(),
-        })
-        .collect_vec();
-
-    let found = e.found().map(|c| c.to_string()).unwrap_or_default();
-
-    let span = common::into_span(e.span());
+        }
+    }
 
     if let SimpleReason::Custom(message) = e.reason() {
         return Error::new_simple(message).with_span(span);
     }
 
-    if expected.is_empty() || expected.len() > 10 {
-        Error::new(Reason::Unexpected { found })
-    } else {
-        let mut expected = expected;
-        let expected = match expected.len() {
-            1 => expected.remove(0),
-            2 => expected.join(" or "),
-            _ => {
-                let last = expected.pop().unwrap();
-                format!("one of {} or {last}", expected.join(", "))
-            }
-        };
+    fn token_to_string(t: Option<Token>) -> String {
+        t.map(|t| t.to_string())
+            .unwrap_or_else(|| "end of input".to_string())
+    }
 
-        Error::new(Reason::Expected {
+    let is_all_whitespace = e
+        .expected()
+        .all(|t| matches!(t, None | Some(Token::NewLine)));
+    let expected = e
+        .expected()
+        // TODO: could we collapse this into a `filter_map`? (though semantically
+        // identical)
+        //
+        // Only include whitespace if we're _only_ expecting whitespace
+        .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
+        .cloned()
+        .map(token_to_string)
+        .collect_vec();
+
+    if expected.is_empty() || expected.len() > 10 {
+        return Error::new(Reason::Unexpected {
+            found: token_to_string(e.found().cloned()),
+        })
+        .with_span(span);
+    }
+
+    let mut expected = expected;
+    expected.sort();
+
+    let expected = match expected.len() {
+        1 => expected.remove(0),
+        2 => expected.join(" or "),
+        _ => {
+            let last = expected.pop().unwrap();
+            format!("one of {} or {last}", expected.join(", "))
+        }
+    };
+
+    match e.found() {
+        Some(found) => Error::new(Reason::Expected {
             who: e.label().map(|x| x.to_string()),
             expected,
-            found,
-        })
+            found: found.to_string(),
+        }),
+        // We want a friendlier message than "found end of input"...
+        None => Error::new(Reason::Simple(format!(
+            "Expected {expected}, but didn't find anything before the end."
+        ))),
     }
     .with_span(span)
 }
@@ -164,7 +187,7 @@ mod test {
 
     use super::*;
     use anyhow::anyhow;
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     fn parse_expr(source: &str) -> Result<Expr, Vec<anyhow::Error>> {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
@@ -181,23 +204,9 @@ mod test {
 
     #[test]
     fn test_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse(
-            // It's useful to have canonical examples rather than copy-pasting
-            // everything, so we reference the prql file here. But a downside of
-            // this implementation is: if there's an error in extracting the
-            // example from the docs into the file specified here, this test
-            // won't compile. Because `cargo insta test --accept` on the
-            // workspace — which extracts the example — requires compiling this,
-            // we can get stuck.
-            //
-            // Breaking out of that requires running this `cargo insta test
-            // --accept` within `book`, and then running it on the workspace.
-            // `task test-all` does this.
-            //
-            // If we change this, it would great if we can retain having
-            // examples tested in the docs.
-            include_str!("../../../book/tests/prql/examples/variables-0.prql"),
-        )
+        assert_yaml_snapshot!(parse(include_str!(
+            "../../examples/compile-files/queries/variables.prql"
+        ))
         .unwrap());
     }
 
@@ -2168,13 +2177,13 @@ join s=salaries [==id]
     }
 
     #[test]
-    fn test_switch() {
-        assert_yaml_snapshot!(parse_expr(r#"switch [
-            nickname != null -> nickname,
-            true -> null
+    fn test_case() {
+        assert_yaml_snapshot!(parse_expr(r#"case [
+            nickname != null => nickname,
+            true => null
         ]"#).unwrap(), @r###"
         ---
-        Switch:
+        Case:
           - condition:
               Binary:
                 left:
@@ -2204,6 +2213,92 @@ join s=salaries [==id]
         assert_yaml_snapshot!(parse_expr(r#"$2_any_text"#).unwrap(), @r###"
         ---
         Param: 2_any_text
+        "###);
+    }
+
+    #[test]
+    fn test_unicode() {
+        let source = "from tète";
+        assert_yaml_snapshot!(parse(source).unwrap(), @r###"
+        ---
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - from
+              args:
+                - Ident:
+                    - tète
+        "###);
+    }
+
+    #[test]
+    fn test_error_unicode_string() {
+        // Test various unicode strings successfully parse errors. We were
+        // getting loops in the lexer before.
+        parse("s’ ").unwrap_err();
+        parse("s’").unwrap_err();
+        parse(" s’").unwrap_err();
+        parse(" ’ s").unwrap_err();
+        parse("’s").unwrap_err();
+        parse("👍 s’").unwrap_err();
+
+        let source = "Mississippi has four S’s and four I’s.";
+        assert_debug_snapshot!(parse(source).unwrap_err(), @r###"
+        Errors(
+            [
+                Error {
+                    span: Some(
+                        span-chars-22-23,
+                    ),
+                    reason: Unexpected {
+                        found: "’",
+                    },
+                    help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-35-36,
+                    ),
+                    reason: Unexpected {
+                        found: "’",
+                    },
+                    help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-37-38,
+                    ),
+                    reason: Simple(
+                        "Expected * or an identifier, but didn't find anything before the end.",
+                    ),
+                    help: None,
+                    code: None,
+                },
+            ],
+        )
+        "###);
+    }
+
+    #[test]
+    fn test_error_unexpected() {
+        assert_debug_snapshot!(parse("Answer: T-H-A-T!").unwrap_err(), @r###"
+        Errors(
+            [
+                Error {
+                    span: Some(
+                        span-chars-6-7,
+                    ),
+                    reason: Unexpected {
+                        found: ":",
+                    },
+                    help: None,
+                    code: None,
+                },
+            ],
+        )
         "###);
     }
 }

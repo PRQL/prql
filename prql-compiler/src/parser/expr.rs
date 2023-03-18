@@ -72,10 +72,10 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 }
             });
 
-        let switch = keyword("switch")
+        let case = keyword("case")
             .ignore_then(
                 func_call(expr.clone())
-                    .then_ignore(just(Token::Arrow))
+                    .then_ignore(just(Token::ArrowDouble))
                     .then(func_call(expr))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
@@ -84,7 +84,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                     .then_ignore(new_line().repeated())
                     .delimited_by(ctrl('['), ctrl(']')),
             )
-            .map(ExprKind::Switch);
+            .map(ExprKind::Case);
 
         let param = select! { Token::Param(id) => ExprKind::Param(id) };
 
@@ -94,7 +94,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             pipeline,
             interpolation,
             ident_kind,
-            switch,
+            case,
             param,
         ))
         .map_with_span(into_expr)
@@ -195,7 +195,7 @@ where
         .labelled("pipeline")
 }
 
-fn binary_op_parser<'a, Term, Op>(
+pub fn binary_op_parser<'a, Term, Op>(
     term: Term,
     op: Op,
 ) -> impl Parser<Token, Expr, Error = Simple<Token>> + 'a
@@ -307,7 +307,7 @@ fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
 fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     just(Token::And).to(BinOp::And)
 }
-fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+pub fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     just(Token::Or).to(BinOp::Or)
 }
 fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {

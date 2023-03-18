@@ -1,0 +1,4 @@
+from tracks
+sort track_id
+take 20..25
+select [is_in_range = album_id | in 5..10]

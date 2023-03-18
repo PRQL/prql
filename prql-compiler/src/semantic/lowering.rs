@@ -8,8 +8,7 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, TableExternRef,
-    Ty, WindowFrame,
+    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
@@ -32,20 +31,23 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     let mut main_pipeline = None;
 
     for statement in statements {
+        use pl::StmtKind::*;
+
         match statement.kind {
-            pl::StmtKind::QueryDef(def) => query_def = Some(def),
-            pl::StmtKind::Main(expr) => {
+            QueryDef(def) => query_def = Some(def),
+            Main(expr) => {
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
+            FuncDef(_) | VarDef(_) | TypeDef(_) => {}
         }
     }
 
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables: l.table_buffer,
-        relation: main_pipeline.ok_or_else(|| Error::new_simple("missing main pipeline"))?,
+        relation: main_pipeline
+            .ok_or_else(|| Error::new_simple("Missing query").with_code("E0001"))?,
     })
 }
 
@@ -636,7 +638,7 @@ impl Lowerer {
             pl::ExprKind::FString(items) => {
                 rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
-            pl::ExprKind::Switch(cases) => rq::ExprKind::Switch(
+            pl::ExprKind::Case(cases) => rq::ExprKind::Case(
                 cases
                     .into_iter()
                     .map(|case| -> Result<_> {
@@ -659,6 +661,7 @@ impl Lowerer {
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
+            | pl::ExprKind::Set(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {
@@ -817,10 +820,8 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
             // a CTE
             (lowerer.lower_relation(*expr)?, Some(fq_ident.name))
         }
-        TableExpr::LocalTable => {
-            extern_ref_to_relation(columns, TableExternRef::LocalTable(fq_ident.name))
-        }
-        TableExpr::Param(id) => extern_ref_to_relation(columns, TableExternRef::Param(id)),
+        TableExpr::LocalTable => extern_ref_to_relation(columns, fq_ident.name),
+        TableExpr::Param(_) => unreachable!(),
     };
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
@@ -832,7 +833,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
 
 fn extern_ref_to_relation(
     mut columns: Vec<RelationColumn>,
-    extern_ref: TableExternRef,
+    extern_ref: String,
 ) -> (rq::Relation, Option<String>) {
     // put wildcards last
     columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));

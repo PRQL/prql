@@ -94,7 +94,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
         ExprKind::Param(id) => sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("${id}"))),
         ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
         ExprKind::Literal(l) => translate_literal(l, ctx)?,
-        ExprKind::Switch(mut cases) => {
+        ExprKind::Case(mut cases) => {
             let default = cases
                 .last()
                 .filter(|last| {
@@ -144,18 +144,17 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
         Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
         Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false)),
         Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),
-        Literal::Date(value) => sql_ast::Expr::TypedString {
-            data_type: sql_ast::DataType::Date,
+        Literal::Date(value) => translate_datetime_literal(sql_ast::DataType::Date, value, ctx),
+        Literal::Time(value) => translate_datetime_literal(
+            sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
             value,
-        },
-        Literal::Time(value) => sql_ast::Expr::TypedString {
-            data_type: sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+            ctx,
+        ),
+        Literal::Timestamp(value) => translate_datetime_literal(
+            sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
             value,
-        },
-        Literal::Timestamp(value) => sql_ast::Expr::TypedString {
-            data_type: sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-            value,
-        },
+            ctx,
+        ),
         Literal::ValueAndUnit(vau) => {
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
@@ -185,6 +184,62 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
     })
 }
 
+fn translate_datetime_literal(
+    data_type: sql_ast::DataType,
+    value: String,
+    ctx: &Context,
+) -> sql_ast::Expr {
+    if ctx.dialect.is::<crate::sql::dialect::SQLiteDialect>() {
+        translate_datetime_literal_with_sqlite_function(data_type, value)
+    } else {
+        translate_datetime_literal_with_typed_string(data_type, value)
+    }
+}
+
+fn translate_datetime_literal_with_typed_string(
+    data_type: sql_ast::DataType,
+    value: String,
+) -> sql_ast::Expr {
+    sql_ast::Expr::TypedString { data_type, value }
+}
+
+fn translate_datetime_literal_with_sqlite_function(
+    data_type: sql_ast::DataType,
+    value: String,
+) -> sql_ast::Expr {
+    // TODO: promote parsing timezone handling to the parser; we should be storing
+    // structured data rather than strings in the AST
+    let timezone_indicator_regex = Regex::new(r"([+-]\d{2}):?(\d{2})$").unwrap();
+    let time_value = if let Some(groups) = timezone_indicator_regex.captures(value.as_str()) {
+        // formalize the timezone indicator to be [+-]HH:MM
+        // ref: https://www.sqlite.org/lang_datefunc.html
+        timezone_indicator_regex
+            .replace(&value, format!("{}:{}", &groups[1], &groups[2]).as_str())
+            .to_string()
+    } else {
+        value
+    };
+
+    let arg = FunctionArg::Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
+        Value::SingleQuotedString(time_value),
+    )));
+
+    let func_name = match data_type {
+        sql_ast::DataType::Date => data_type.to_string(),
+        sql_ast::DataType::Time(..) => data_type.to_string(),
+        sql_ast::DataType::Timestamp(..) => "DATETIME".to_string(),
+        _ => unreachable!(),
+    };
+
+    sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new(func_name)]),
+        args: vec![arg],
+        over: None,
+        distinct: false,
+        special: false,
+    })
+}
+
 pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.query.pre_projection {
         log::debug!("translating {cid:?} pre projection");
@@ -205,7 +260,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
             }
             ColumnDecl::RelationColumn(tiid, _, col) => {
                 let column = match col.clone() {
-                    RelationColumn::Wildcard => "*".to_string(),
+                    RelationColumn::Wildcard => translate_star(ctx, None)?,
                     RelationColumn::Single(name) => name.unwrap(),
                 };
                 let t = &ctx.anchor.table_instances[tiid];
@@ -226,7 +281,9 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
         };
 
         let column = match &column_decl {
-            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => "*".to_string(),
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
+                translate_star(ctx, None)?
+            }
 
             _ => {
                 let name = ctx.anchor.column_names.get(&cid).cloned();
@@ -240,6 +297,18 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 
         let ident = sql_ast::Expr::CompoundIdentifier(ident);
         Ok(ident)
+    }
+}
+
+pub(super) fn translate_star(ctx: &Context, span: Option<Span>) -> Result<String> {
+    if !ctx.query.allow_stars {
+        Err(
+            Error::new_simple("Target dialect does not support * in this position.")
+                .with_span(span)
+                .into(),
+        )
+    } else {
+        Ok("*".to_string())
     }
 }
 
@@ -928,6 +997,143 @@ mod test {
     ---
     "'hello'||'world'"
     "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_translate_datetime_literal_with_sqlite_function() -> Result<()> {
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Date,
+                "2020-01-01".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: DATE
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: 2020-01-01
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+                "03:05".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: TIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "03:05"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+                "03:05+08:00".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: TIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+                "03:05+0800".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: TIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
+                "2021-03-14T03:05+0800".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: DATETIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "2021-03-14T03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
+
+        assert_yaml_snapshot!(
+                translate_datetime_literal_with_sqlite_function(
+                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
+                "2021-03-14T03:05+08:00".to_string(),
+            ),
+            @r###"
+---
+Function:
+  name:
+    - value: DATETIME
+      quote_style: ~
+  args:
+    - Unnamed:
+        Expr:
+          Value:
+            SingleQuotedString: "2021-03-14T03:05+08:00"
+  over: ~
+  distinct: false
+  special: false
+"###
+        );
 
         Ok(())
     }

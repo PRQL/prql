@@ -11,12 +11,12 @@ Table:
         input_name: customers
         except: []
   inputs:
-    - id: 4
+    - id: 6
       name: table_1
       table:
         - default_db
         - table_1
-    - id: 8
+    - id: 13
       name: customers
       table:
         - default_db

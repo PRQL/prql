@@ -3,7 +3,7 @@ name: test-js
 on:
   pull_request:
     paths:
-      - "prql-js/**"
+      - "bindings/prql-js/**"
       - ".github/workflows/test-js.yaml"
   workflow_call:
 
@@ -21,6 +21,16 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/build-prql-js
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-pack
+
       - run: npm cit
-        working-directory: prql-js
+        working-directory: bindings/prql-js

@@ -16,7 +16,8 @@ use crate::ast::pl::{BinOp, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationKind, TableRef, Transform};
 use crate::sql::anchor::anchor_split;
 use crate::sql::preprocess::SqlRelationKind;
-use crate::utils::{BreakUp, IntoOnly, Pluck};
+use crate::utils::{BreakUp, Pluck};
+
 use crate::Target;
 
 use super::context::AnchorContext;
@@ -116,7 +117,7 @@ fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<T
     // ensure that the table is declared
     if let Some(sql_relation) = decl.relation.take() {
         // if we cannot use CTEs
-        if ctx.query.forbid_ctes {
+        if !ctx.query.allow_ctes {
             // restore relation for other references
             decl.relation = Some(sql_relation.clone());
 
@@ -249,7 +250,8 @@ fn sql_select_query_of_pipeline(
 
     let projection = pipeline
         .pluck(|t| t.into_super_and(|t| t.into_select()))
-        .into_only()
+        .into_iter()
+        .exactly_one()
         .unwrap();
     let projection = translate_wildcards(&ctx.anchor, projection);
     let projection = translate_select_items(projection.0, projection.1, ctx)?;
@@ -282,7 +284,9 @@ fn sql_select_query_of_pipeline(
         .into_iter()
         .next();
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
+    ctx.query.allow_stars = ctx.dialect.stars_in_group();
     let group_by = try_into_exprs(group_by, ctx, None)?;
+    ctx.query.allow_stars = true;
 
     ctx.query.pre_projection = false;
 
@@ -424,7 +428,7 @@ fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sql
 
     // compile step (without producing CTEs)
     ctx.push_query();
-    ctx.query.forbid_ctes = true;
+    ctx.query.allow_ctes = false;
 
     let step = query_to_set_expr(sql_query_of_pipeline(step, ctx)?, ctx);
 

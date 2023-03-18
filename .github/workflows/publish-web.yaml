@@ -3,15 +3,24 @@ on:
   push:
     branches:
       - web
+  # Even though releases push to `web` branch, that doesn't cause this workflow
+  # to run, because GHA can't start workflows itself. So we also run on
+  # releases.
+  release:
+    types: [released]
   # Called by pull-request when specifically requested
   workflow_call:
 
 jobs:
-  publish-web:
+  build-web:
+    uses: ./.github/workflows/build-web.yaml
+
+  deploy-web:
+    needs: build-web
     runs-on: ubuntu-latest
 
-    # Skip running workflow on forks
-    if: github.repository_owner == 'prql'
+    # Don't attempt to publish if on a fork, including a PR.
+    if: "!github.event.pull_request.head.repo.fork"
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
@@ -23,44 +32,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-
-      # Website setup
-      - name: Setup hugo
-        uses: peaceiris/actions-hugo@v2.6.0
-
-      # Book setup, duplicated from `pull-request.yaml`
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/web' }}
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook-footnote
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook-admonish
-
-      - uses: ./.github/actions/build-prql-js
-
-      - uses: arduino/setup-task@v1
-        with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: 🕷️ Build website
-        run: task build-web
-
-      - name: Prepare tar for upload
-        uses: actions/upload-pages-artifact@v1.0.7
-        with:
-          path: website/public/
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v3
 
       - name: Deploy to GitHub Pages
-        # Even if called by another workflow, don't try and actually publish if
-        # on a fork (it'll fail the workflow even if it otherwise builds successfully)
-        if: "!github.event.pull_request.head.repo.fork"
         id: deployment
-        uses: actions/deploy-pages@v1.2.4
+        uses: actions/deploy-pages@v2.0.0

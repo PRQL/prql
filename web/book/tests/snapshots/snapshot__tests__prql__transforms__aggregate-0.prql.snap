@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\naggregate [\n  average salary,\n  ct = count\n]\n"
+---
+SELECT
+  AVG(salary),
+  COUNT(*) AS ct
+FROM
+  employees
+

@@ -155,29 +155,6 @@ fn test_precedence() {
 }
 
 #[test]
-fn test_pipelines() {
-    assert_display_snapshot!((compile(r###"
-    from employees
-    group dept (take 1)
-    "###).unwrap()), @r###"
-    SELECT
-      DISTINCT *
-    FROM
-      employees
-    "###);
-
-    assert_display_snapshot!((compile(r###"
-    from employees
-    select [age | in 5..10]
-    "###).unwrap()), @r###"
-    SELECT
-      age BETWEEN 5 AND 10
-    FROM
-      employees
-    "###);
-}
-
-#[test]
 fn test_append() {
     assert_display_snapshot!(compile(r###"
     from employees
@@ -360,7 +337,9 @@ fn test_remove() {
     from album
     remove artist
     "#).unwrap_err(),
-        @"Your dialect does not support EXCEPT ALL"
+        @r###"
+    Error: Your dialect does not support EXCEPT ALL
+    "###
     );
 
     assert_display_snapshot!(compile(r#"
@@ -571,7 +550,9 @@ fn test_intersect() {
     from album
     intersect artist
     "#).unwrap_err(),
-        @"Your dialect does not support INTERCEPT ALL"
+        @r###"
+    Error: Your dialect does not support INTERCEPT ALL
+    "###
     );
 }
 
@@ -1282,8 +1263,8 @@ fn test_take() {
        ╭─[:3:5]
        │
      3 │     take 0..1
-       ·     ────┬────
-       ·         ╰────── take expected a positive int range, but found 0..1
+       │     ────┬────
+       │         ╰────── take expected a positive int range, but found 0..1
     ───╯
     "###);
 
@@ -1295,8 +1276,8 @@ fn test_take() {
        ╭─[:3:5]
        │
      3 │     take (-1..)
-       ·     ─────┬─────
-       ·          ╰─────── take expected a positive int range, but found -1..
+       │     ─────┬─────
+       │          ╰─────── take expected a positive int range, but found -1..
     ───╯
     "###);
 
@@ -1309,8 +1290,8 @@ fn test_take() {
        ╭─[:4:5]
        │
      4 │     take 5..5.6
-       ·     ─────┬─────
-       ·          ╰─────── take expected a positive int range, but found 5..?
+       │     ─────┬─────
+       │          ╰─────── take expected a positive int range, but found 5..?
     ───╯
     "###);
 
@@ -1322,8 +1303,8 @@ fn test_take() {
        ╭─[:3:5]
        │
      3 │     take (-1)
-       ·     ────┬────
-       ·         ╰────── take expected a positive int range, but found ..-1
+       │     ────┬────
+       │         ╰────── take expected a positive int range, but found ..-1
     ───╯
     "###);
 }
@@ -1376,17 +1357,33 @@ fn test_distinct() {
       employees
     "###);
 
-    // TODO: this should not use DISTINCT but ROW_NUMBER and WHERE, because we want
-    // row  distinct only over first_name and last_name.
+    // We want distinct only over first_name and last_name, so we can't use a
+    // `DISTINCT *` here.
     assert_display_snapshot!((compile(r###"
     from employees
     group [first_name, last_name] (take 1)
     "###).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY first_name, last_name) AS _expr_0
+      FROM
+        employees
+    )
     SELECT
-      DISTINCT *
+      *
     FROM
-      employees
+      table_1 AS table_0
+    WHERE
+      _expr_0 <= 1
     "###);
+
+    // Check that a different order doesn't stop distinct from being used.
+    assert!(compile(
+        "from employees | select [first_name, last_name] | group [last_name, first_name] (take 1)"
+    )
+    .unwrap()
+    .contains("DISTINCT"));
 
     // head
     assert_display_snapshot!((compile(r###"
@@ -1452,6 +1449,33 @@ fn test_distinct() {
       table_1 AS table_0
     WHERE
       _expr_0 = 4
+    "###);
+
+    assert_display_snapshot!(compile("
+    from invoices
+    select [billing_country, billing_city]
+    group [billing_city] (
+      take 1
+    )
+    sort billing_city
+    ").unwrap(), @r###"
+    WITH table_1 AS (
+      SELECT
+        billing_country,
+        billing_city,
+        ROW_NUMBER() OVER (PARTITION BY billing_city) AS _expr_0
+      FROM
+        invoices
+    )
+    SELECT
+      billing_country,
+      billing_city
+    FROM
+      table_1 AS table_0
+    WHERE
+      _expr_0 <= 1
+    ORDER BY
+      billing_city
     "###);
 }
 
@@ -2251,7 +2275,7 @@ fn test_double_aggregate() {
 
     let query = r###"
     from numbers
-    group [type] (
+    group [`type`] (
         aggregate [
             total_amt = sum amount,
             max amount
@@ -2327,7 +2351,7 @@ fn test_inline_tables() {
     assert_display_snapshot!(compile(r###"
     (
         from employees
-        select [emp_id, name, surname, type, amount]
+        select [emp_id, name, surname, `type`, amount]
     )
     join s = (from salaries | select [emp_id, salary]) [==emp_id]
     "###).unwrap(),
@@ -2420,10 +2444,10 @@ fn test_unused_alias() {
        ╭─[:3:16]
        │
      3 │     select n = [account.name]
-       ·                ───────┬──────
-       ·                       ╰──────── unexpected assign to `n`
-       ·
-       · Help: move assign into the list: `[n = ...]`
+       │                ───────┬──────
+       │                       ╰──────── unexpected assign to `n`
+       │
+       │ Help: move assign into the list: `[n = ...]`
     ───╯
     "###)
 }
@@ -2572,10 +2596,10 @@ fn test_direct_table_references() {
        ╭─[:3:14]
        │
      3 │     select s"{x}.field"
-       ·              ─┬─
-       ·               ╰─── table instance cannot be referenced directly
-       ·
-       · Help: did you forget to specify the column name?
+       │              ─┬─
+       │               ╰─── table instance cannot be referenced directly
+       │
+       │ Help: did you forget to specify the column name?
     ───╯
     "###);
 
@@ -2590,10 +2614,10 @@ fn test_direct_table_references() {
        ╭─[:3:12]
        │
      3 │     select x
-       ·            ┬
-       ·            ╰── table instance cannot be referenced directly
-       ·
-       · Help: did you forget to specify the column name?
+       │            ┬
+       │            ╰── table instance cannot be referenced directly
+       │
+       │ Help: did you forget to specify the column name?
     ───╯
     "###);
 }
@@ -2639,36 +2663,21 @@ fn test_name_shadowing() {
 fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
-    from e=employees
-    take 10
-    join salaries [==emp_no]
-    group [e.*] (aggregate sal = (sum salaries.salary))
-        "###).unwrap(),
-        @r###"
-    WITH table_1 AS (
-      SELECT
-        *
-      FROM
-        employees AS e
-      LIMIT
-        10
-    )
-    SELECT
-      table_0.*,
-      SUM(salaries.salary) AS sal
-    FROM
-      table_1 AS table_0
-      JOIN salaries ON table_0.emp_no = salaries.emp_no
-    GROUP BY
-      table_0.*
-    "###
-    );
+    prql target:sql.sqlite
+
+    from a=albums
+    group a.* (aggregate count)
+        "###).unwrap_err(), @r###"
+    Error: Target dialect does not support * in this position.
+    "###);
 
     assert_display_snapshot!(compile(
         r###"
     from e=albums
     group ![genre_id] (aggregate count)
-        "###).unwrap_err(), @"Excluding columns not supported as this position");
+        "###).unwrap_err(), @r###"
+    Error: Excluding columns not supported as this position
+    "###);
 }
 
 #[test]
@@ -2699,13 +2708,13 @@ fn test_output_column_deduplication() {
 }
 
 #[test]
-fn test_switch() {
+fn test_case() {
     assert_display_snapshot!(compile(
         r###"
     from employees
-    derive display_name = switch [
-        nickname != null -> nickname,
-        true -> f'{first_name} {last_name}'
+    derive display_name = case [
+        nickname != null => nickname,
+        true => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2723,9 +2732,9 @@ fn test_switch() {
     assert_display_snapshot!(compile(
         r###"
     from employees
-    derive display_name = switch [
-        nickname != null -> nickname,
-        first_name != null -> f'{first_name} {last_name}'
+    derive display_name = case [
+        nickname != null => nickname,
+        first_name != null => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2744,8 +2753,8 @@ fn test_switch() {
     assert_display_snapshot!(compile(
         r###"
     from tracks
-    select category = switch [
-        length > avg_length -> 'long'
+    select category = case [
+        length > avg_length => 'long'
     ]
     group category (aggregate count)
         "###).unwrap(),
@@ -2815,13 +2824,13 @@ fn test_static_analysis() {
 
         a3 = null ?? y,
 
-        a3 = switch [
-            false == true -> 1,
-            7 == 3 -> 2,
-            7 == y -> 3,
-            7.3 == 7.3 -> 4,
-            z -> 5,
-            true -> 6
+        a3 = case [
+            false == true => 1,
+            7 == 3 => 2,
+            7 == y => 3,
+            7.3 == 7.3 => 4,
+            z => 5,
+            true => 6
         ]
     ]
         "###).unwrap(),
@@ -2893,8 +2902,8 @@ fn test_errors() {
        ╭─[:5:16]
        │
      5 │     derive y = (addadd 4 5 6)
-       ·                ───────┬──────
-       ·                       ╰──────── Too many arguments to function `addadd`
+       │                ───────┬──────
+       │                       ╰──────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -2906,8 +2915,8 @@ fn test_errors() {
        ╭─[:2:5]
        │
      2 │     from a select b
-       ·     ────────┬───────
-       ·             ╰───────── Too many arguments to function `from`
+       │     ────────┬───────
+       │             ╰───────── Too many arguments to function `from`
     ───╯
     "###);
 
@@ -2921,8 +2930,8 @@ fn test_errors() {
        ╭─[:4:12]
        │
      4 │     select b
-       ·            ┬
-       ·            ╰── Unknown name b
+       │            ┬
+       │            ╰── Unknown name b
     ───╯
     "###);
 
@@ -2935,8 +2944,50 @@ fn test_errors() {
        ╭─[:3:10]
        │
      3 │     take 1.8
-       ·          ─┬─
-       ·           ╰─── `take` expected int or range, but found 1.8
+       │          ─┬─
+       │           ╰─── `take` expected int or range, but found 1.8
+    ───╯
+    "###);
+
+    assert_display_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:23]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       │                       ┬
+       │                       ╰── unexpected ’
+    ───╯
+    Error:
+       ╭─[:1:36]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       │                                    ┬
+       │                                    ╰── unexpected ’
+    ───╯
+    Error:
+       ╭─[:1:38]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       │                                      ┬
+       │                                      ╰── Expected * or an identifier, but didn't find anything before the end.
+    ───╯
+    "###);
+
+    let err = compile(
+        r###"
+    let a = (from x)
+    "###,
+    )
+    .unwrap_err();
+    assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
+
+    assert_display_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:7]
+       │
+     1 │ Answer: T-H-A-T!
+       │       ┬
+       │       ╰── unexpected :
     ───╯
     "###);
 }
@@ -2951,10 +3002,10 @@ fn test_hint_missing_args() {
        ╭─[:3:22]
        │
      3 │     select [film_id, lag film_id]
-       ·                      ─────┬─────
-       ·                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
-       ·
-       · Help: Have you forgotten an argument to function std.lag?
+       │                      ─────┬─────
+       │                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
+       │
+       │ Help: Have you forgotten an argument to function std.lag?
     ───╯
     "###)
 }
@@ -3234,12 +3285,23 @@ fn test_header_target_error() {
     assert_display_snapshot!(compile(r#"
     prql target:foo
     from a
-    "#).unwrap_err(),@r###"target `"foo"` not found"###);
+    "#).unwrap_err(),@r###"
+    Error: target `"foo"` not found
+    "###);
 
     assert_display_snapshot!(compile(r#"
     prql target:sql.foo
     from a
-    "#).unwrap_err(),@r###"target `"sql.foo"` not found"###)
+    "#).unwrap_err(),@r###"
+    Error: target `"sql.foo"` not found
+    "###);
+
+    assert_display_snapshot!(compile(r#"
+    prql target:foo.bar
+    from a
+    "#).unwrap_err(),@r###"
+    Error: target `"foo.bar"` not found
+    "###);
 }
 
 #[test]
@@ -3318,24 +3380,98 @@ fn test_params() {
       )
       AND total > $3
     "###
+    )
+}
+
+// for #1969
+#[test]
+fn test_datetime() {
+    let query = &r#"
+        from test_table
+        select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+        "#;
+
+    assert_snapshot!(
+                compile(query).unwrap(),
+                @r###"SELECT
+  DATE '2022-12-31' AS date,
+  TIME '08:30' AS time,
+  TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+FROM
+  test_table
+"###
+    )
+}
+
+// for #1969
+#[test]
+fn test_datetime_sqlite() {
+    let query = &r#"
+        from test_table
+        select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+        "#;
+
+    let opts = Options::default()
+        .no_signature()
+        .with_target(Target::Sql(Some(sql::Dialect::SQLite)));
+
+    assert_snapshot!(
+        crate::compile(query, &opts).unwrap(),
+        @r###"SELECT
+  DATE('2022-12-31') AS date,
+  TIME('08:30') AS time,
+  DATETIME('2020-01-01T13:19:55-08:00') AS timestamp
+FROM
+  test_table
+"###
     );
 }
 
-// TODO: fix this based on https://github.com/PRQL/prql/pull/1818
 #[test]
-#[should_panic]
 fn test_datetime_parsing() {
     assert_display_snapshot!(compile(r#"
     from test_tables
     select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
     "#).unwrap(),
         @r###"
-      SELECT
-        DATE '2022-12-31' AS date,
-        TIME '08:30' AS time,
-        TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
-      FROM
-        test_table
+    SELECT
+      DATE '2022-12-31' AS date,
+      TIME '08:30' AS time,
+      TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+    FROM
+      test_tables
+    "###
+    );
+}
+
+#[test]
+fn test_lower() {
+    assert_display_snapshot!(compile(r#"
+    from test_tables
+    derive [lower_name = (name | lower)]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *,
+      LOWER(name) AS lower_name
+    FROM
+      test_tables
+    "###
+    );
+}
+
+#[test]
+fn test_upper() {
+    assert_display_snapshot!(compile(r#"
+    from test_tables
+    derive [upper_name = upper name]
+    select [upper_name]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      UPPER(name) AS upper_name
+    FROM
+      test_tables
     "###
     );
 }

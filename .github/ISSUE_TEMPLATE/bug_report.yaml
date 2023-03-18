@@ -1,0 +1,62 @@
+name: 🐛 Bug report
+description: File a bug report to help us improve
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: |
+        Thanks for reporting a bug! Feel free to add any initial context here.
+
+  - type: textarea
+    id: prql-input
+    attributes:
+      label: PRQL input
+      description: |
+        A minimal, self-contained example that demonstrates the issue.
+
+        This will be automatically formatted into code, so no need for markdown backticks.
+      render: elm
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: SQL output
+      description: |
+        The SQL that PRQL currently compiles to. Feel free to use the [playground](https://prql-lang.org/playground/) to generate the SQL.
+
+        This will be automatically formatted into code, so no need for markdown backticks.
+      render: SQL
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-output
+    attributes:
+      label: Expected SQL output
+
+      description:
+        Optional; no need to write out if it's obvious from the context
+      render: SQL
+
+  - type: checkboxes
+    id: mvce-checkboxes
+    attributes:
+      label: MVCE confirmation
+      description: |
+        Please confirm that the bug report is minimal and doesn't exist already:
+
+        - **Minimal example** — the example is as focused as reasonably possible to demonstrate the underlying issue in PRQL. For example, it's not possible to exclude any line and still observe the bug.
+
+        - **New issue** — a search of GitHub Issues suggests this is not a duplicate.
+      options:
+        - label: Minimal example
+        - label: New issue
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?

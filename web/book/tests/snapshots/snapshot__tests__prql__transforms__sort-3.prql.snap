@@ -1,0 +1,12 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nsort [s\"substr({first_name}, 2, 5)\"]\n"
+---
+SELECT
+  *,
+  substr(first_name, 2, 5) AS _expr_0
+FROM
+  employees
+ORDER BY
+  _expr_0
+
