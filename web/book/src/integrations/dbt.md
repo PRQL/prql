@@ -117,34 +117,35 @@ live feedback around any errors, on every keystroke. Though there's much more to
 come, check out the current version on
 [PRQL Playground](https://prql-lang.org/playground/).
 
-[^1]: Note that when <https://github.com/prql/prql/issues/82> is implemented, we
-can dispense with the s-string, and optionally dispense with the function.
+[^1]:
+    Note that when <https://github.com/prql/prql/issues/82> is implemented, we
+    can dispense with the s-string, and optionally dispense with the function.
 
-  ```elm
-  from {{ ref('raw_payments') }}
-  group order_id (
-    aggregate [
-      bank_transfer_amount = amount | filter payment_method == 'bank'        | sum,
-      credit_card_amount = amount   | filter payment_method == 'credit_card' | sum,
-      gift_amount = amount          | filter payment_method == 'gift_card'   | sum,
-    ]
-  )
-  ```
+```elm
+from {{ ref('raw_payments') }}
+group order_id (
+  aggregate [
+    bank_transfer_amount = amount | filter payment_method == 'bank'        | sum,
+    credit_card_amount = amount   | filter payment_method == 'credit_card' | sum,
+    gift_amount = amount          | filter payment_method == 'gift_card'   | sum,
+  ]
+)
+```
 
-  or
+or
 
-  ```elm
-  func filter_amount method -> amount | filter payment_method == method | sum
+```elm
+func filter_amount method -> amount | filter payment_method == method | sum
 
-  from {{ ref('raw_payments') }}
-  group order_id (
-    aggregate [
-      bank_transfer_amount = filter_amount 'bank'
-      credit_card_amount   = filter_amount 'credit_card'
-      gift_amount          = filter_amount 'gift_card'
-    ]
-  )
-  ```
+from {{ ref('raw_payments') }}
+group order_id (
+  aggregate [
+    bank_transfer_amount = filter_amount 'bank'
+    credit_card_amount   = filter_amount 'credit_card'
+    gift_amount          = filter_amount 'gift_card'
+  ]
+)
+```
 
 ## What it does
 
@@ -181,9 +182,10 @@ dbt doesn't allow adding behavior beyond the database adapters (e.g.
 the Python import system to monkeypatch dbt's Jinja environment with an
 additional Jinja extension on Python's startup[^2].
 
-[^2]: Thanks to
-  [mtkennerly/poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
-  for the technique.
+[^2]:
+    Thanks to
+    [mtkennerly/poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
+    for the technique.
 
 This approach was discussed with the dbt team
 [here](https://github.com/prql/prql/issues/375) and
