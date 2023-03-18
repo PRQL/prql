@@ -59,6 +59,7 @@
 
   - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
+  - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
   - [VS Code](./integrations/vscode.md)
   - [Rill](./integrations/rill.md)
