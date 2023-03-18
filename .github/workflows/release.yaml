@@ -190,3 +190,6 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
+
+  push-devcontainer-base-image:
+    uses: ./.github/workflows/devcontainer.yaml
