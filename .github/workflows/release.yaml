@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Move Snap to project root directory
         run: cp -r packages/snap/ .
-      - name: 📦 Build Snap
+      - name: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
         uses: snapcore/action-publish@v1
