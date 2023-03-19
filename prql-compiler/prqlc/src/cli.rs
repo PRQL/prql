@@ -63,7 +63,7 @@ enum Command {
         input: Input,
         #[clap(value_parser, default_value = "-")]
         output: Output,
-        #[arg(value_enum, long)]
+        #[arg(value_enum, long, default_value = "yaml")]
         format: Format,
     },
 
