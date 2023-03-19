@@ -1,0 +1,32 @@
+from c=customers
+join ca=cars [ca.customer==c.id]
+filter ca.name=='Bugatti'
+select c.name
+---
+Tony Stark
+
+###
+
+from cars
+filter (id | in 4..5)
+sort [-name]
+select name
+---
+Toyota
+Lamborghini
+
+###
+
+from customers
+join cars [cars.customer==customers.id]
+group [customers.name](
+    aggregate [
+        c = count,
+    ]
+)
+sort c
+---
+Wade Wilson,1
+Bruce Wayne,2
+Tony Stark,3
+
