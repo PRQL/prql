@@ -121,31 +121,31 @@ come, check out the current version on
     Note that when <https://github.com/prql/prql/issues/82> is implemented, we
     can dispense with the s-string, and optionally dispense with the function.
 
-```elm
-from {{ ref('raw_payments') }}
-group order_id (
-  aggregate [
-    bank_transfer_amount = amount | filter payment_method == 'bank'        | sum,
-    credit_card_amount = amount   | filter payment_method == 'credit_card' | sum,
-    gift_amount = amount          | filter payment_method == 'gift_card'   | sum,
-  ]
-)
-```
+    ```elm
+    from {{ ref('raw_payments') }}
+    group order_id (
+      aggregate [
+        bank_transfer_amount = amount | filter payment_method == 'bank'        | sum,
+        credit_card_amount = amount   | filter payment_method == 'credit_card' | sum,
+        gift_amount = amount          | filter payment_method == 'gift_card'   | sum,
+      ]
+    )
+    ```
 
-or
+    or
 
-```elm
-func filter_amount method -> amount | filter payment_method == method | sum
+    ```elm
+    func filter_amount method -> amount | filter payment_method == method | sum
 
-from {{ ref('raw_payments') }}
-group order_id (
-  aggregate [
-    bank_transfer_amount = filter_amount 'bank'
-    credit_card_amount   = filter_amount 'credit_card'
-    gift_amount          = filter_amount 'gift_card'
-  ]
-)
-```
+    from {{ ref('raw_payments') }}
+    group order_id (
+      aggregate [
+        bank_transfer_amount = filter_amount 'bank'
+        credit_card_amount   = filter_amount 'credit_card'
+        gift_amount          = filter_amount 'gift_card'
+      ]
+    )
+    ```
 
 ## What it does
 
