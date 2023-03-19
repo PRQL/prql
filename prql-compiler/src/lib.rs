@@ -125,7 +125,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed("", prql, options.use_colors))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,6 +188,9 @@ pub struct Options {
     ///
     /// Defaults to true.
     pub signature_comment: bool,
+
+    /// Whether to use ANSI colors in error messages.
+    pub use_colors: bool,
 }
 
 impl Default for Options {
@@ -196,6 +199,7 @@ impl Default for Options {
             format: true,
             target: Target::Sql(None),
             signature_comment: true,
+            use_colors: false,
         }
     }
 }
@@ -218,6 +222,11 @@ impl Options {
 
     pub fn some(self) -> Option<Self> {
         Some(self)
+    }
+
+    pub fn with_colors(mut self, use_colors: bool) -> Self {
+        self.use_colors = use_colors;
+        self
     }
 }
 
