@@ -3302,6 +3302,23 @@ fn test_header_target_error() {
     "#).unwrap_err(),@r###"
     Error: target `"foo.bar"` not found
     "###);
+
+    // TODO: Can we use the span of:
+    // - Ideally just `dialect`?
+    // - At least not the first empty line?
+    assert_display_snapshot!(compile(r#"
+    prql dialect:foo.bar
+    from a
+    "#).unwrap_err(),@r###"
+    Error:
+       ╭─[:1:1]
+       │
+     1 │ ╭─▶
+     2 │ ├─▶     prql dialect:foo.bar
+       │ │
+       │ ╰────────────────────────────── unknown query definition arguments `dialect`
+    ───╯
+    "###);
 }
 
 #[test]
