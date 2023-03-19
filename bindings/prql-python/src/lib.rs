@@ -102,7 +102,7 @@ fn convert_options(
         format: o.format,
         target,
         signature_comment: o.signature_comment,
-        // TOOD: offer support
+        // TODO: offer support
         use_colors: false,
     })
 }
