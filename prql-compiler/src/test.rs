@@ -3281,6 +3281,28 @@ a,b,c
 }
 
 #[test]
+fn test_header() {
+    // Test both target & version at the same time
+    let header = format!(
+        r#"
+            prql target:sql.mssql version:"{}.{}"
+            "#,
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR")
+    );
+    assert_display_snapshot!(compile(format!(r#"
+    {header}
+
+    from a
+    take 5
+    "#).as_str()).unwrap(),@r###"
+    SELECT
+      TOP (5) *
+    FROM
+      a
+    "###);
+}
+#[test]
 fn test_header_target_error() {
     assert_display_snapshot!(compile(r#"
     prql target:foo
