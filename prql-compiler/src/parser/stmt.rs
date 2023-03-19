@@ -71,10 +71,9 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
                 })
                 .transpose()
                 .map_err(|msg| Simple::custom(span.clone(), msg))?
-                .map_or_else(
-                    || HashMap::new(),
-                    |x| HashMap::from_iter(vec![("target".to_string(), x)]),
-                );
+                .map_or_else(HashMap::new, |x| {
+                    HashMap::from_iter(vec![("target".to_string(), x)])
+                });
 
             if !args.is_empty() {
                 return Err(Simple::custom(
