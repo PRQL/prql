@@ -64,9 +64,6 @@ params:
       - text: Star our GitHub repo [PRQL/prql](https://github.com/PRQL/prql)
       - text: Join our [Discord](https://discord.com/invite/eQcfaCmsNc)
       - text: Follow us on [Twitter](https://twitter.com/prql_lang)
-      - text:
-          "Subscribe to [issue #1 for a GitHub notification on
-          updates](https://github.com/PRQL/prql/issues/1)"
   description: PRQL is a modern language for transforming data
   images:
     - static/img/favicon-32x32.png
