@@ -111,7 +111,7 @@ impl From<CompileOptions> for prql_compiler::Options {
             target,
             signature_comment: o.signature_comment,
             // TODO: offer this option in the API
-            use_colors: false,
+            color: false,
         }
     }
 }

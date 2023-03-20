@@ -113,7 +113,7 @@ pub static PRQL_VERSION: Lazy<Version> =
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
 ///     signature_comment: false,
-///     use_colors: false,
+///     color: false,
 /// };
 /// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
@@ -126,7 +126,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, options.use_colors))
+        .map_err(|e| e.composed("", prql, options.color))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -191,7 +191,7 @@ pub struct Options {
     pub signature_comment: bool,
 
     /// Whether to use ANSI colors in error messages.
-    pub use_colors: bool,
+    pub color: bool,
 }
 
 impl Default for Options {
@@ -200,7 +200,7 @@ impl Default for Options {
             format: true,
             target: Target::Sql(None),
             signature_comment: true,
-            use_colors: false,
+            color: false,
         }
     }
 }
@@ -225,8 +225,8 @@ impl Options {
         Some(self)
     }
 
-    pub fn with_colors(mut self, use_colors: bool) -> Self {
-        self.use_colors = use_colors;
+    pub fn with_color(mut self, color: bool) -> Self {
+        self.color = color;
         self
     }
 }

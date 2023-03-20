@@ -324,6 +324,6 @@ fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler:
         target,
         signature_comment: o.signature_comment,
         // TODO: add support for this
-        use_colors: false,
+        color: false,
     })
 }

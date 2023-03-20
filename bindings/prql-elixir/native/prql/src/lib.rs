@@ -78,7 +78,7 @@ impl From<CompileOptions> for prql_compiler::Options {
             target: target_from_atom(o.target),
             signature_comment: o.signature_comment,
             // TODO: add support for this
-            use_colors: false,
+            color: false,
         }
     }
 }

@@ -103,7 +103,7 @@ fn convert_options(
         target,
         signature_comment: o.signature_comment,
         // TODO: offer support
-        use_colors: false,
+        color: false,
     })
 }
 

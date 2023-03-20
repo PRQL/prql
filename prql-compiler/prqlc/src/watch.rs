@@ -28,7 +28,7 @@ pub fn run(command: &mut WatchArgs) -> Result<()> {
         target: prql_compiler::Target::Sql(None),
         signature_comment: !command.no_signature,
         // TODO: potentially offer this as an arg?
-        use_colors: false,
+        color: false,
     };
     let path = Path::new(&command.path);
 
