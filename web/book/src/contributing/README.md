@@ -3,11 +3,13 @@
 If you're interested in joining the community to build a better SQL, here are
 ways to start:
 
-- Star this repo.
+- Star the [repo](https://github.com/PRQL/prql).
 - Send a link to PRQL to a couple of people whose opinion you respect.
-- Subscribe to [Issue #1](https://github.com/PRQL/prql/issues/1) for updates.
-- Join our [Discord](https://discord.gg/eQcfaCmsNc).
+- Subscribe to
+  [new releases](https://www.jessesquires.com/blog/2020/07/30/github-tip-watching-releases/)
+  for updates.
 - Follow us on [Twitter](https://twitter.com/prql_lang).
+- Join our [Discord](https://discord.gg/eQcfaCmsNc).
 - Find an issue labeled
   [Good First Issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
   and start contributing to the code.
