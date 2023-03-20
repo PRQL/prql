@@ -17,6 +17,10 @@
 
 **Internal changes**:
 
+- _Breaking_: The `compile` function's `Options` now includes a `color` member,
+  which determines whether error messages use ANSI color codes. This is
+  technically a breaking change to the API.
+
 **New Contributors**:
 
 ## 0.6.1 — 2022-03-12
