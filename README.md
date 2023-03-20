@@ -69,7 +69,7 @@ the intrepid, either as part of one of our supported extensions, or within your
 own tools, using one of our supported language bindings.
 
 PRQL still has some minor bugs and some missing features, and probably is only
-ready to rolled out to non-technical teams for fairly simple queries.
+ready to be rolled out to non-technical teams for fairly simple queries.
 
 Here's our current [Roadmap](https://prql-lang.org/roadmap/) and our
 [Milestones.](https://github.com/PRQL/prql/milestones)
