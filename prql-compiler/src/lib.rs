@@ -112,7 +112,8 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
-///     signature_comment: false
+///     signature_comment: false,
+///     use_colors: false,
 /// };
 /// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
