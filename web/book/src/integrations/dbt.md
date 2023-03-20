@@ -2,14 +2,14 @@
 
 > Original docs at <https://github.com/prql/dbt-prql>
 
-```note admonish
-As of Feb 2022, we're again considering how to best integrate with
+```admonish note
+As of Feb 2023, we're again considering how to best integrate with
 dbt more closely. Ideally a file with a `.prql` extension will just work™.
 
 If you're interested in this, subscribe or 👍 to
 <https://github.com/dbt-labs/dbt-core/pull/5982>.
 
-The original plugin is hosted here, but only works with a minority of
+The original plugin is hosted at <https://github.com/prql/dbt-prql>, but only works with a minority of
 dialects, and isn't a focus of development at the moment.
 ```
 
