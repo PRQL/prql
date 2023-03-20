@@ -38,9 +38,6 @@ globset = "0.4.8"
 insta = {version = "1.28", features = ["colors", "glob"]}
 log = "0.4.17"
 
-[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-trash = "3.0.0"
-
 [package.metadata.release]
 tag-name = "{{version}}"
 tag-prefix = ""
