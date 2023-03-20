@@ -17,7 +17,7 @@ test = false
 prql-compiler = {path = "..", default-features = false, version = "0.6.1" }
 # Was getting build errors with more recent versions; can remove pin if it
 # successfully builds.
-syn = "=1.0.107"
+syn = "=2.0.2"
 
 [package.metadata.release]
 tag-name = "{{version}}"
