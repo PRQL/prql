@@ -68,6 +68,8 @@ mod tests {
                         .replace(" boolean ", " bit ")
                         .replace("TRUE", "1")
                         .replace("FALSE", "0"),
+                    Dialect::MySql => s
+                        .replace("\"", "`"),
                     _ => s.to_string(),
                 };
                 con.run_query(sql.as_str(), runtime);

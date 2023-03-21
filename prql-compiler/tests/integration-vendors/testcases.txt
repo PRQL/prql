@@ -1,5 +1,5 @@
-from c=customers
-join ca=cars [ca.customer==c.id]
+from c=people
+join ca=cars [ca.person==c.id]
 filter ca.name=='Bugatti'
 select c.name
 ---
@@ -17,9 +17,9 @@ Lamborghini
 
 ###
 
-from customers
-join cars [cars.customer==customers.id]
-group [customers.name](
+from people
+join cars [cars.person==people.id]
+group [people.name](
     aggregate [
         c = count,
     ]
@@ -30,3 +30,60 @@ Wade Wilson,1
 Bruce Wayne,2
 Tony Stark,3
 
+###
+
+from cars
+select [person]
+group cars.* (take 1)
+sort cars.person
+---
+0
+1
+2
+
+###
+
+let car_count = (
+    from cars
+    aggregate a = count
+)
+
+from car_count
+filter a > 0
+select a
+---
+6
+
+###
+
+from people
+join cars [cars.person==people.id]
+group [people.id, people.name] (aggregate price = (sum cars.price))
+select ![people.id]
+sort people.name
+---
+Bruce Wayne,150000
+Tony Stark,1100000
+Wade Wilson,10000
+
+###
+
+from cars
+sort price
+select p = case [
+    price == null => 'priceless',
+    price < 40000 => 'cheap',
+    true => 'expensive'
+]
+take 3
+---
+cheap,10000
+expensive,60000
+expensive,90000
+
+###
+
+from Upper
+select id
+---
+999

@@ -1,10 +1,8 @@
 DROP TABLE IF EXISTS cars;
+DROP TABLE IF EXISTS people;
+DROP TABLE IF EXISTS "Upper";
 
-
-DROP TABLE IF EXISTS customers;
-
-
-CREATE TABLE customers
+CREATE TABLE people
 (
     id integer NOT NULL,
     name varchar(255) NOT NULL,
@@ -12,20 +10,24 @@ CREATE TABLE customers
     PRIMARY KEY (id)
 );
 
-
 CREATE TABLE cars
 (
     id integer NOT NULL,
-    customer integer NOT NULL,
+    person integer NOT NULL,
     name varchar(255),
+    price integer NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT c
-        FOREIGN KEY (customer)
-        REFERENCES customers (id)
+        FOREIGN KEY (person)
+        REFERENCES people (id)
 );
 
+CREATE TABLE "Upper"
+(
+    id integer NOT NULL
+);
 
-INSERT INTO customers
+INSERT INTO people
 (
     id,
     name,
@@ -36,17 +38,24 @@ VALUES
 (1, 'Bruce Wayne', TRUE),
 (2, 'Wade Wilson', FALSE);
 
-
 INSERT INTO cars
 (
     id,
-    customer,
-    name
+    person,
+    name,
+    price
 )
 VALUES
-(0, 1, 'Mercedes'),
-(1, 1, 'Porsche'),
-(2, 0, 'Bugatti'),
-(3, 0, 'Ferrari'),
-(4, 0, 'Lamborghini'),
-(5, 2, 'Toyota');
+(0, 1, 'Mercedes', 60000),
+(1, 1, 'Porsche', 90000),
+(2, 0, 'Bugatti', 400000),
+(3, 0, 'Ferrari', 500000),
+(4, 0, 'Lamborghini', 200000),
+(5, 2, 'Toyota', 10000);
+
+INSERT INTO "Upper"
+(
+    id
+)
+VALUES
+(999);

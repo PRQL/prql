@@ -210,7 +210,7 @@ impl MssqlConnection {
                 let value = match col.column_type() {
                     ColumnType::Null => "".to_string(),
                     ColumnType::Bit => String::from(row.get::<&str, usize>(i).unwrap()),
-                    ColumnType::Intn => row
+                    ColumnType::Intn | ColumnType::Int4 => row
                         .get::<i32, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or("".to_string()),
