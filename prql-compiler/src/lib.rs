@@ -211,6 +211,11 @@ impl Options {
         self
     }
 
+    pub fn with_signature_comment(mut self, signature_comment: bool) -> Self {
+        self.signature_comment = signature_comment;
+        self
+    }
+
     pub fn no_signature(mut self) -> Self {
         self.signature_comment = false;
         self
