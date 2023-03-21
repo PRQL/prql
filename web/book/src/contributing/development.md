@@ -281,14 +281,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr --ignore='target/**' -- cargo insta test --accept -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prql-compiler --lib
     ```
 
     Breaking this down:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
       value was created, for Rust tests which return `Result`s.
-    - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the
+    - `watchexec -e rs,toml,md -cr --ignore='target/**' --` will run the
       subsequent command on any change to files with extensions which we are
       generally editing.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot
