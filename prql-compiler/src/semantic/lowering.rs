@@ -51,6 +51,7 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     })
 }
 
+#[derive(Debug)]
 struct Lowerer {
     cid: IdGenerator<CId>,
     tid: IdGenerator<TId>,
@@ -73,7 +74,7 @@ struct Lowerer {
     table_buffer: Vec<TableDecl>,
 }
 
-#[derive(Clone, EnumAsInner)]
+#[derive(Clone, EnumAsInner, Debug)]
 enum LoweredTarget {
     /// Lowered node was a computed expression.
     Compute(CId),
