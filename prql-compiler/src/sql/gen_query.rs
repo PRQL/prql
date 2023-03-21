@@ -785,7 +785,25 @@ mod test {
 
         let sql_ast = crate::test::compile(query).unwrap();
 
-        assert_snapshot!(sql_ast);
+        assert_snapshot!(sql_ast, @r###"
+        WITH table_1 AS (
+          SELECT
+            title,
+            AVG(salary) AS _expr_0
+          FROM
+            employees
+          GROUP BY
+            title,
+            emp_no
+        )
+        SELECT
+          title,
+          AVG(_expr_0) AS avg_salary
+        FROM
+          table_1 AS table_0
+        GROUP BY
+          title
+        "###);
     }
 
     #[test]
