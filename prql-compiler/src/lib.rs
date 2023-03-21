@@ -83,7 +83,7 @@ mod parser;
 pub mod semantic;
 pub mod sql;
 #[cfg(test)]
-mod test;
+mod tests;
 mod utils;
 
 pub use error::{downcast, Error, ErrorMessage, ErrorMessages, Reason, SourceLocation, Span};
@@ -288,7 +288,7 @@ pub mod json {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_lib {
     use crate::Target;
     use insta::assert_debug_snapshot;
     use std::str::FromStr;
