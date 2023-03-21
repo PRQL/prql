@@ -79,7 +79,7 @@ Our immediate focus for the code is on:
 - Building out the next few big features, including
   [types](https://github.com/PRQL/prql/pull/1964) and
   [modules](https://github.com/PRQL/prql/pull/2129).
-- Ensuring our supported feature are really robust; resolving any
+- Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
 
 We're also spending time thinking about:
