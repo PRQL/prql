@@ -196,6 +196,11 @@ tasks:
       # We build the book too, because that acts as a test
       - cd web/book && mdbook build
 
+  test-integration:
+    desc: Test generated SQL for different vendors
+    cmds:
+      - cargo test test_vendors -- --ignored
+
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
     summary: |

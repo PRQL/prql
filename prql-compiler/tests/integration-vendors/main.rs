@@ -14,8 +14,14 @@ mod tests {
 
     use crate::connection::*;
 
+    #[ignore]
     #[test]
-    fn test_vendor() {
+    fn test_vendors() {
+        [5432, 3306, 1433, 50000].iter().for_each(|port| {
+            if !is_port_open(*port) {
+                panic!("No database is listening on port {}", port);
+            }
+        });
         let runtime = Runtime::new().unwrap();
         let mut duck = DuckDBConnection(duckdb::Connection::open_in_memory().unwrap());
         let mut sqlite = SQLiteConnection(rusqlite::Connection::open_in_memory().unwrap());
@@ -124,6 +130,18 @@ mod tests {
                 } else if col == &"false" {
                     *col = "0".to_string();
                 }
+            }
+        }
+    }
+
+    fn is_port_open(port: u16) -> bool {
+        match std::net::TcpStream::connect(("127.0.0.1", port)) {
+            Ok(stream) => {
+                stream.shutdown(std::net::Shutdown::Both).unwrap_or(());
+                true
+            }
+            Err(_) => {
+                false
             }
         }
     }
