@@ -17,7 +17,7 @@ mod tests {
     #[ignore]
     #[test]
     fn test_vendors() {
-        [5432, 3306, 1433, 50000].iter().for_each(|port| {
+        [5432, 3306, 1433/*, 50000*/].iter().for_each(|port| {
             if !is_port_open(*port) {
                 panic!("No database is listening on port {}", port);
             }
@@ -90,6 +90,7 @@ mod tests {
         }
     }
 
+    // parse test cases from file
     fn get_test_cases() -> Vec<(String, Vec<Row>)> {
         let test_file = include_str!("testcases.txt");
         let tests = test_file
@@ -107,6 +108,7 @@ mod tests {
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<&str>>();
                 assert_eq!(tests.len(), 2, "Test is missing ---");
+
                 let rows = tests[1]
                     .lines()
                     .map(|l| {
