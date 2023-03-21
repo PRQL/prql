@@ -4,13 +4,16 @@
 
 **Features**:
 
+- `prqlc compile` adds `--color` & `--include-signature-comment` options.
+  (@max-sixty, #2267)
+
 **Fixes**:
 
 **Documentation**:
 
 **Web**:
 
-- Added the PRQL-snippets from the book to the
+- Added the PRQL snippets from the book to the
   [Playground](https://prql-lang.org/playground/)
 
 **Integrations**:
@@ -19,7 +22,7 @@
 
 - _Breaking_: The `compile` function's `Options` now includes a `color` member,
   which determines whether error messages use ANSI color codes. This is
-  technically a breaking change to the API.
+  technically a breaking change to the API. (@max-sixty, #2251)
 
 **New Contributors**:
 
