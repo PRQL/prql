@@ -5,6 +5,11 @@ on:
       - web
   # Called by pull-request when specifically requested
   workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
 permissions:
