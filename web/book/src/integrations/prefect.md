@@ -1,6 +1,7 @@
 # Prefect
 
-Because Prefect is in native Python, it's extremely easy to integrate with PRQL.
+Because [Prefect](https://www.prefect.io/) is in native Python, it's extremely
+easy to integrate with PRQL.
 
 With a Postgres Task, replace:
 
