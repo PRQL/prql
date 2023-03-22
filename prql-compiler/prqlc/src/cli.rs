@@ -19,6 +19,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
     let mut cli = Cli::parse();
+    cli.color.apply();
 
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
@@ -29,26 +30,27 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 }
 
 #[derive(Parser, Debug, Clone)]
+#[command(color = concolor_clap::color_choice())]
 struct Cli {
     #[command(subcommand)]
     command: Command,
+    #[command(flatten)]
+    color: concolor_clap::Color,
 }
 
 #[derive(Subcommand, Debug, Clone)]
-#[clap(name = env!("CARGO_PKG_NAME"), about, version)]
+#[command(name = env!("CARGO_PKG_NAME"), about, version)]
 enum Command {
     /// Parse into PL AST
     Parse {
-        #[clap(value_parser, default_value = "-")]
-        input: Input,
-        #[clap(value_parser, default_value = "-")]
-        output: Output,
+        #[command(flatten)]
+        io_args: IoArgs,
         #[arg(value_enum, long, default_value = "yaml")]
         format: Format,
     },
 
     /// Parse & generate PRQL code back
-    #[clap(name = "fmt")]
+    #[command(name = "fmt")]
     Format(IoArgs),
 
     /// Parse, resolve & combine source with comments annotating relation type
@@ -59,16 +61,19 @@ enum Command {
 
     /// Parse, resolve & lower into RQ
     Resolve {
-        #[clap(value_parser, default_value = "-")]
-        input: Input,
-        #[clap(value_parser, default_value = "-")]
-        output: Output,
-        #[arg(value_enum, long)]
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(value_enum, long, default_value = "yaml")]
         format: Format,
     },
 
     /// Parse, resolve, lower into RQ & compile to SQL
-    Compile(IoArgs),
+    Compile {
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(long, default_value = "true")]
+        include_signature_comment: bool,
+    },
 
     /// Watch a directory and compile .prql files to .sql files
     Watch(watch::WatchArgs),
@@ -76,10 +81,10 @@ enum Command {
 
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
-    #[clap(value_parser, default_value = "-")]
+    #[arg(value_parser, default_value = "-")]
     input: Input,
 
-    #[clap(value_parser, default_value = "-")]
+    #[arg(value_parser, default_value = "-")]
     output: Output,
 }
 
@@ -96,11 +101,10 @@ fn is_stdin(input: &Input) -> bool {
 impl Command {
     /// Entrypoint called by [`main`]
     pub fn run(&mut self) -> Result<()> {
-        if let Command::Watch(command) = self {
-            return watch::run(command);
-        };
-
-        self.run_io_command()
+        match self {
+            Command::Watch(command) => watch::run(command),
+            _ => self.run_io_command(),
+        }
     }
 
     fn run_io_command(&mut self) -> std::result::Result<(), anyhow::Error> {
@@ -113,7 +117,15 @@ impl Command {
                 self.write_output(&buf)?;
             }
             Err(e) => {
-                print!("{:}", downcast(e).composed(&source_id, &source, true));
+                print!(
+                    "{:}",
+                    // TODO: we're repeating this for `Compile`; can we consolidate?
+                    downcast(e).composed(
+                        &source_id,
+                        &source,
+                        concolor::get(concolor::Stream::Stdout).ansi_color()
+                    )
+                );
                 std::process::exit(1)
             }
         }
@@ -167,33 +179,46 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ir)?.into_bytes(),
                 }
             }
-            // TODO: Allow passing the `Options` to the CLI; map those through.
-            // We already do this in Watch.
-            Command::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
+            Command::Compile {
+                include_signature_comment,
+                ..
+            } => compile(
+                source,
+                // I'm guessing it's too "clever" to use `Options` directly in
+                // the Compile enum variant, and avoid this boilerplate? Would
+                // reduce this code somewhat.
+                &Options::default()
+                    .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
+                    .with_signature_comment(*include_signature_comment),
+            )?
+            .as_bytes()
+            .to_vec(),
             Command::Watch(_) => unreachable!(),
         })
     }
 
     fn read_input(&mut self) -> Result<(String, String)> {
-        // TODO: possibly this should be called by the relevant subcommands
-        // passing in `input`, rather than matching on them and grabbing `input`
-        // from `self`.
+        // Possibly this should be called by the relevant subcommands passing in
+        // `input`, rather than matching on them and grabbing `input` from
+        // `self`? But possibly if everything moves to `io_args`, then this is
+        // quite reasonable?
         use Command::*;
         let mut input = match self {
-            Parse { input, .. } | Resolve { input, .. } => input.clone(),
-            Format(io) | Debug(io) | Annotate(io) | Compile(io) => io.input.clone(),
+            Parse { io_args, .. } | Resolve { io_args, .. } | Compile { io_args, .. } => {
+                io_args.input.clone()
+            }
+            Format(io) | Debug(io) | Annotate(io) => io.input.clone(),
             Watch(_) => unreachable!(),
         };
         // Don't wait without a prompt when running `prqlc compile` —
         // it's confusing whether it's waiting for input or not. This
         // offers the prompt.
         if is_stdin(&input) && atty::is(atty::Stream::Stdin) {
-            println!("Enter PRQL, then ctrl-d:");
-            println!();
+            println!("Enter PRQL, then ctrl-d:\n");
         }
 
         let mut source = String::new();
-        (input).read_to_string(&mut source)?;
+        input.read_to_string(&mut source)?;
         let source_id = (input.path()).to_str().unwrap().to_string();
         Ok((source, source_id))
     }
@@ -201,8 +226,10 @@ impl Command {
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
         use Command::*;
         let mut output = match self {
-            Parse { output, .. } | Resolve { output, .. } => output.to_owned(),
-            Format(io) | Debug(io) | Annotate(io) | Compile(io) => io.output.to_owned(),
+            Parse { io_args, .. } | Resolve { io_args, .. } | Compile { io_args, .. } => {
+                io_args.output.to_owned()
+            }
+            Format(io) | Debug(io) | Annotate(io) => io.output.to_owned(),
             Watch(_) => unreachable!(),
         };
         output.write_all(data)
@@ -321,7 +348,13 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn compile() {
         // Check we get an error on a bad input
         let input = "asdf";
-        let result = Command::execute(&Command::Compile(IoArgs::default()), input);
+        let result = Command::execute(
+            &Command::Compile {
+                io_args: IoArgs::default(),
+                include_signature_comment: true,
+            },
+            input,
+        );
         assert_display_snapshot!(result.unwrap_err(), @r###"
         Error:
            ╭─[:1:1]
@@ -337,8 +370,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn parse() {
         let output = Command::execute(
             &Command::Parse {
-                input: IoArgs::default().input,
-                output: IoArgs::default().output,
+                io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
             "from x | select y",
@@ -369,8 +401,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn resolve() {
         let output = Command::execute(
             &Command::Resolve {
-                input: IoArgs::default().input,
-                output: IoArgs::default().output,
+                io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
             "from x | select y",

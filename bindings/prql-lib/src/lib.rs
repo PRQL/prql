@@ -323,5 +323,7 @@ fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler:
         format: o.format,
         target,
         signature_comment: o.signature_comment,
+        // TODO: add support for this
+        color: false,
     })
 }

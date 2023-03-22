@@ -102,6 +102,8 @@ fn convert_options(
         format: o.format,
         target,
         signature_comment: o.signature_comment,
+        // TODO: offer support
+        color: false,
     })
 }
 

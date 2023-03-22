@@ -62,22 +62,37 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - February 2023
+## Current Status - April 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either as part of one of our supported extensions, or within your
 own tools, using one of our supported language bindings.
 
-PRQL continues to evolve toward the
-[0.5 Milestone.](https://github.com/PRQL/prql/milestone/5) The
-[CHANGELOG.md](https://github.com/PRQL/prql/blob/main/CHANGELOG.md) gives more
-information.
-
 PRQL still has some minor bugs and some missing features, and probably is only
-ready to rolled out to non-technical teams for fairly simple queries. We're
-exploring where to focus further development; we welcome use-cases. Here's our
-current [Roadmap](https://prql-lang.org/roadmap/) and our longer-term
-[set of Milestones.](https://github.com/PRQL/prql/milestones)
+ready to be rolled out to non-technical teams for fairly simple queries.
+
+Here's our current [Roadmap](https://prql-lang.org/roadmap/) and our
+[Milestones.](https://github.com/PRQL/prql/milestones)
+
+Our immediate focus for the code is on:
+
+- Building out the next few big features, including
+  [types](https://github.com/PRQL/prql/pull/1964) and
+  [modules](https://github.com/PRQL/prql/pull/2129).
+- Ensuring our supported features feel extremely robust; resolving any
+  [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
+
+We're also spending time thinking about:
+
+- Making it really easy to start using PRQL. We're doing that by building
+  integrations with tools that folks already use; for example our VS Code
+  extension & Jupyter integration. If there are tools you're familiar with that
+  you think would be open to integrating with PRQL, please let us know in an
+  issue.
+- Making it easier to contribute to the compiler. We have a wide group of
+  contributors to the project, but contributions to the compiler itself are
+  quite concentrated. We're keen to expand this;
+  [#1840](https://github.com/PRQL/prql/issues/1840) for feedback.
 
 ## Get involved
 
