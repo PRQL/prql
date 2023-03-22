@@ -30,7 +30,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[clap(color = concolor_clap::color_choice())]
+#[command(color = concolor_clap::color_choice())]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -39,18 +39,18 @@ struct Cli {
 }
 
 #[derive(Subcommand, Debug, Clone)]
-#[clap(name = env!("CARGO_PKG_NAME"), about, version)]
+#[command(name = env!("CARGO_PKG_NAME"), about, version)]
 enum Command {
     /// Parse into PL AST
     Parse {
-        #[clap(flatten)]
+        #[command(flatten)]
         io_args: IoArgs,
         #[arg(value_enum, long, default_value = "yaml")]
         format: Format,
     },
 
     /// Parse & generate PRQL code back
-    #[clap(name = "fmt")]
+    #[command(name = "fmt")]
     Format(IoArgs),
 
     /// Parse, resolve & combine source with comments annotating relation type
@@ -61,7 +61,7 @@ enum Command {
 
     /// Parse, resolve & lower into RQ
     Resolve {
-        #[clap(flatten)]
+        #[command(flatten)]
         io_args: IoArgs,
         #[arg(value_enum, long, default_value = "yaml")]
         format: Format,
@@ -69,7 +69,7 @@ enum Command {
 
     /// Parse, resolve, lower into RQ & compile to SQL
     Compile {
-        #[clap(flatten)]
+        #[command(flatten)]
         io_args: IoArgs,
         #[arg(long, default_value = "true")]
         include_signature_comment: bool,
@@ -81,10 +81,10 @@ enum Command {
 
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
-    #[clap(value_parser, default_value = "-")]
+    #[arg(value_parser, default_value = "-")]
     input: Input,
 
-    #[clap(value_parser, default_value = "-")]
+    #[arg(value_parser, default_value = "-")]
     output: Output,
 }
 
