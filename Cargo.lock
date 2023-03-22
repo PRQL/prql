@@ -1634,6 +1634,7 @@ dependencies = [
  "pulldown-cmark-to-cmark",
  "semver",
  "serde_json",
+ "serde_yaml",
  "similar",
  "walkdir",
 ]
@@ -2135,6 +2136,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sqlformat",
  "sqlparser",
  "strum",
