@@ -31,5 +31,21 @@ fn test_bad_error_messages() {
        │
        │ Help: are you missing `from` statement?
     ───╯
+    "###);
+
+    // This should suggest parentheses (this might not be an easy one to solve)
+    assert_display_snapshot!(compile(r###"
+    func f -> country == "Canada"
+
+    from employees
+    filter f location
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:5:14]
+       │
+     5 │     filter f location
+       │              ────┬───
+       │                  ╰───── Unknown name location
+    ───╯
     "###)
 }
