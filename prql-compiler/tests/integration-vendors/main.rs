@@ -8,8 +8,8 @@ mod tests {
     use tokio::runtime::Runtime;
     use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
-    use prql_compiler::Options;
     use prql_compiler::sql::Dialect;
+    use prql_compiler::Options;
     use prql_compiler::Target::Sql;
 
     use crate::connection::*;
@@ -17,7 +17,7 @@ mod tests {
     #[ignore]
     #[test]
     fn test_vendors() {
-        [5432, 3306, 1433/*, 50000*/].iter().for_each(|port| {
+        [5432, 3306, 1433 /*, 50000*/].iter().for_each(|port| {
             if !is_port_open(*port) {
                 panic!("No database is listening on port {}", port);
             }
@@ -59,7 +59,7 @@ mod tests {
     fn run_tests_for_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
         let setup = include_str!("setup.sql");
         setup
-            .split(";")
+            .split(';')
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .for_each(|s| {
@@ -68,8 +68,7 @@ mod tests {
                         .replace(" boolean ", " bit ")
                         .replace("TRUE", "1")
                         .replace("FALSE", "0"),
-                    Dialect::MySql => s
-                        .replace("\"", "`"),
+                    Dialect::MySql => s.replace('"', "`"),
                     _ => s.to_string(),
                 };
                 con.run_query(sql.as_str(), runtime);
@@ -112,7 +111,7 @@ mod tests {
                 let rows = tests[1]
                     .lines()
                     .map(|l| {
-                        l.split(",")
+                        l.split(',')
                             .map(|s| s.trim())
                             .filter(|s| !s.is_empty())
                             .map(|s| s.to_string())
@@ -129,9 +128,9 @@ mod tests {
     fn replace_booleans(rows: &mut Vec<Row>) {
         for row in rows {
             for col in row {
-                if col == &"true" {
+                if col == "true" {
                     *col = "1".to_string();
-                } else if col == &"false" {
+                } else if col == "false" {
                     *col = "0".to_string();
                 }
             }
@@ -144,9 +143,7 @@ mod tests {
                 stream.shutdown(std::net::Shutdown::Both).unwrap_or(());
                 true
             }
-            Err(_) => {
-                false
-            }
+            Err(_) => false,
         }
     }
 }

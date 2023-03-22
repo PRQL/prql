@@ -5,8 +5,8 @@ use mysql::prelude::Queryable;
 use mysql::Value;
 use pg_bigdecimal::PgNumeric;
 use postgres::types::Type;
-use tiberius::*;
 use tiberius::numeric::BigDecimal;
+use tiberius::*;
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
@@ -165,7 +165,7 @@ impl DBConnection for MysqlConnection {
             for v in row.unwrap() {
                 let value = match v {
                     Value::NULL => "".to_string(),
-                    Value::Bytes(v) => String::from_utf8(v).unwrap_or("BLOB".to_string()),
+                    Value::Bytes(v) => String::from_utf8(v).unwrap_or_else(|_| "BLOB".to_string()),
                     Value::Int(v) => v.to_string(),
                     Value::UInt(v) => v.to_string(),
                     Value::Float(v) => v.to_string(),
@@ -198,22 +198,21 @@ impl MssqlConnection {
     async fn query(&mut self, sql: &str) -> Vec<Row> {
         let mut stream = self.0.query(sql, &[]).await.unwrap();
         let mut vec = vec![];
-        let cols_option = (&mut stream).columns().await.unwrap();
+        let cols_option = stream.columns().await.unwrap();
         if cols_option.is_none() {
             return vec![];
         }
         let cols = cols_option.unwrap().to_vec();
         for row in stream.into_first_result().await.unwrap() {
             let mut columns = vec![];
-            for i in 0..row.len() {
-                let col = &cols[i];
+            for (i, col) in cols.iter().enumerate() {
                 let value = match col.column_type() {
                     ColumnType::Null => "".to_string(),
                     ColumnType::Bit => String::from(row.get::<&str, usize>(i).unwrap()),
                     ColumnType::Intn | ColumnType::Int4 => row
                         .get::<i32, usize>(i)
                         .map(|i| i.to_string())
-                        .unwrap_or("".to_string()),
+                        .unwrap_or_else(|| "".to_string()),
                     ColumnType::Numericn => row.get::<BigDecimal, usize>(i).unwrap().to_string(),
                     ColumnType::BigVarChar => String::from(row.get::<&str, usize>(i).unwrap()),
                     typ => unimplemented!("mssql type {:?}", typ),
