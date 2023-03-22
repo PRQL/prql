@@ -138,7 +138,7 @@ fn test_rq_serialize() -> Result<(), ErrorMessages> {
         if prql.contains("# Error expected") {
             continue;
         }
-        let rq = prql_to_pl(&prql).map(|pl| pl_to_rq(pl))?;
+        let rq = prql_to_pl(&prql).map(pl_to_rq)?;
         // Serialize to YAML
         assert!(serde_yaml::to_string(&rq).is_ok());
     }
