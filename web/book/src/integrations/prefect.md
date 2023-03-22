@@ -12,7 +12,7 @@ PostgresExecute.run(..., query=sql)
 ...with...
 
 ```python
-PostgresExecute.run(..., query=pyprql.to_sql(prql))
+PostgresExecute.run(..., query=prql_python.compile(prql))
 ```
 
 We're big fans of Prefect, and if there is anything that would make the
