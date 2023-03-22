@@ -21,7 +21,8 @@ jobs:
         run: docker-compose up -d
         working-directory: ./prql-compiler/tests/integration-vendors
       - name: Wait for database
-        uses: ifaxity/wait-on-action
+        uses: ifaxity/wait-on-action@1
         with:
           resource: "tcp:5432 tcp:3306 tcp:1433"
+          timeout: 60000
       - run: cargo test test_vendors -- --ignored

@@ -1,3 +1,5 @@
+#![cfg(not(any(target_family = "windows", target_family = "wasm")))]
+
 mod connection;
 
 #[cfg(test)]
