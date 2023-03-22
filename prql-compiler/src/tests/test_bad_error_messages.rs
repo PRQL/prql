@@ -4,7 +4,7 @@
 //! experienced contributors who would like a quick issue to fix:
 //! - Find where the error is being raised now, generally just search for a part
 //!   of the message.
-//! - Add `dbg!` statements to the code to see what's going on.
+//! - Add `dbg` macros to the code to see what's going on.
 //! - Write a better message / find a better place to raise a message.
 //! - Run `cargo insta test --accept`, and move the test out of this file into
 //!   `test_error_messages.rs`. If it's only partially solved, add a TODO and
