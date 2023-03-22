@@ -783,7 +783,7 @@ mod test {
         )
         "#;
 
-        let sql_ast = crate::test::compile(query).unwrap();
+        let sql_ast = crate::tests::compile(query).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
         WITH table_1 AS (
@@ -824,7 +824,7 @@ mod test {
         derive rank = rank
         "#;
 
-        let sql_ast = crate::test::compile(query).unwrap();
+        let sql_ast = crate::tests::compile(query).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
         WITH table_1 AS (
@@ -852,7 +852,7 @@ mod test {
         filter (average bar) > 3
         "#;
 
-        assert_snapshot!(crate::test::compile(query).unwrap(), @r###"
+        assert_snapshot!(crate::tests::compile(query).unwrap(), @r###"
         WITH table_1 AS (
           SELECT
             *,
