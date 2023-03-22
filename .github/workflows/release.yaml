@@ -44,7 +44,7 @@ jobs:
           package: prqlc
           package_root: .debpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
+          version: ${{ github.ref_type == 'tag' && github.ref_name || 0 }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
@@ -73,7 +73,7 @@ jobs:
           package_root: .rpmpkg
           maintainer: The PRQL Project
           vendor: The PRQL Project
-          version: ${{ github.ref_type == 'tag' && github.refname || 0 }}
+          version: ${{ github.ref_type == 'tag' && github.ref_name || 0 }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
@@ -94,6 +94,7 @@ jobs:
       - name: Move Snap to project root directory
         run: cp -r packages/snap/ .
       - name: 📦 Build Snap
+        id: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
         uses: snapcore/action-publish@v1
@@ -190,3 +191,6 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
+
+  push-devcontainer-base-image:
+    uses: ./.github/workflows/devcontainer.yaml

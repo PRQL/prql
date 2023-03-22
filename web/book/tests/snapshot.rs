@@ -131,3 +131,17 @@ The original PRQL was:
 
     Ok(())
 }
+
+#[test]
+fn test_rq_serialize() -> Result<(), ErrorMessages> {
+    for (_, prql) in collect_book_examples()? {
+        if prql.contains("# Error expected") {
+            continue;
+        }
+        let rq = prql_to_pl(&prql).map(pl_to_rq)?;
+        // Serialize to YAML
+        assert!(serde_yaml::to_string(&rq).is_ok());
+    }
+
+    Ok(())
+}

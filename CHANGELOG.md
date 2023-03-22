@@ -4,18 +4,25 @@
 
 **Features**:
 
+- `prqlc compile` adds `--color` & `--include-signature-comment` options.
+  (@max-sixty, #2267)
+
 **Fixes**:
 
 **Documentation**:
 
 **Web**:
 
-- Added the PRQL-snippets from the book to the
+- Added the PRQL snippets from the book to the
   [Playground](https://prql-lang.org/playground/)
 
 **Integrations**:
 
 **Internal changes**:
+
+- _Breaking_: The `compile` function's `Options` now includes a `color` member,
+  which determines whether error messages use ANSI color codes. This is
+  technically a breaking change to the API. (@max-sixty, #2251)
 
 **New Contributors**:
 
@@ -761,8 +768,7 @@ Thank you!
 ## 0.2.2 - 2022-07-10
 
 We're a couple of weeks since our 0.2.0 release. Thanks for the surge in
-interest and contributions! 0.2.2[^1] has some fixes & some internal
-improvements:
+interest and contributions! 0.2.2 has some fixes & some internal improvements:
 
 - We now test against SQLite & DuckDB on every commit, to ensure we're producing
   correct SQL. (@aljazerzen )
@@ -786,9 +792,7 @@ We're planning to continue collecting bugs & feature requests from users, as
 well as working on some of the bigger features, like type-inference.
 
 For those interesting in joining, we also have a new
-[Contributing page](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md).
-
-[^1]: Think of 0.2.1 like C+ :)
+[Contributing page](https://github.com/PRQL/prql/blob/main/.github/CONTRIBUTING.md).
 
 ## 0.2.0 - 2022-06-27
 
@@ -838,10 +842,11 @@ Keep in touch with PRQL by following the project on
 [Discord](https://discord.gg/eQcfaCmsNc), starring the
 [repo](https://github.com/PRQL/prql).
 
-[Contribute](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md) to the
-project — we're a really friendly community, whether you're a recent SQL user or
-an advanced Rust programmer. We need bug reports, documentation tweaks & feature
-requests — just as much as we need compiler improvements written in Rust.
+[Contribute](https://github.com/PRQL/prql/blob/main/.github/CONTRIBUTING.md) to
+the project — we're a really friendly community, whether you're a recent SQL
+user or an advanced Rust programmer. We need bug reports, documentation tweaks &
+feature requests — just as much as we need compiler improvements written in
+Rust.
 
 ---
 

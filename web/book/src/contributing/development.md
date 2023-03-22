@@ -281,14 +281,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr --ignore='target/**' -- cargo insta test --accept -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prql-compiler --lib
     ```
 
     Breaking this down:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
       value was created, for Rust tests which return `Result`s.
-    - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the
+    - `watchexec -e rs,toml,md -cr --ignore='target/**' --` will run the
       subsequent command on any change to files with extensions which we are
       generally editing.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot
@@ -399,10 +399,7 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Update Issue <https://github.com/PRQL/prql/issues/1> so that people will be
-   notified of the change.
-
-6. Add in the sections for a new Changelog:
+5. Add in the sections for a new Changelog:
 
    ```md
    ## 0.6.X — [unreleased]
@@ -421,5 +418,8 @@ Currently we release in a semi-automated way:
 
    **New Contributors**:
    ```
+
+6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
+   that need to be pushed out.
 
 We may make this more automated in future; e.g. automatic changelog creation.

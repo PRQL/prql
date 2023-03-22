@@ -15,6 +15,9 @@ pub struct Expr {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {
     ColumnRef(CId),
+    // https://github.com/dtolnay/serde-yaml/issues/363
+    // We should repeat this if we encounter any other nested enums.
+    #[serde(with = "serde_yaml::with::singleton_map")]
     Literal(Literal),
 
     // TODO: convert this into built-in function

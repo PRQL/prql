@@ -27,7 +27,8 @@ let prql = "from employees | select [name, age]";
 let opts = &Options {
     format: false,
     target: Target::Sql(Some(Dialect::SQLite)),
-    signature_comment: false
+    signature_comment: false,
+    color: false,
 };
 let sql = compile(&prql, opts).unwrap();
 assert_eq!("SELECT name, age FROM employees", sql);
