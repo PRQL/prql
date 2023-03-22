@@ -72,8 +72,8 @@ jobs:
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
-    # everything in this workflow has passed and, unlikely including each task
-    # in repo's settings, will pass when a task is skipped.
+    # everything in this workflow has passed and, unlike including each task in
+    # the branch's GitHub required tests, will pass when a task is skipped.
     #
     # Note that this _doesn't_ cover other workflows, such as `test-js.yaml`.
     # (and is strictly inferior to a GitHub feature that would just say "don't
@@ -81,7 +81,10 @@ jobs:
     # triggers for those into this workflow, and using an external action to
     # assess whether the paths have changed. That would move us closer to a
     # world where all tasks are defined in a single workflow, and we use
-    # job-level criteria to decide what to run.
+    # job-level criteria to decide what to run. But it's quite a change, I
+    # (@max-sixty) have probably done too much devops already, and it's possible
+    # that GitHub release something to enable path triggers within workflows
+    # natively.
     #
     if: always()
     needs:
