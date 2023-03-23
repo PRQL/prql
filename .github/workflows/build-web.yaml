@@ -31,6 +31,8 @@ jobs:
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-footnote
+          # https://github.com/daviddrysdale/mdbook-footnote/issues/1
+          locked: false
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
