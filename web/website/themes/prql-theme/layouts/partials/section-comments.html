@@ -15,7 +15,12 @@
             {{ with .quote }}
               <div class="card quote">
                 {{ if .link }}
-                  <a class="quote-text" href="{{ .link }}" target="_blank">
+                  <a
+                    class="quote-text"
+                    href="{{ .link }}"
+                    rel="noopener"
+                    target="_blank"
+                  >
                     {{ .text }}
                     <span> — {{ .author }} </span>
                   </a>
