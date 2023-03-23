@@ -21,16 +21,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18.x"
-          registry-url: "https://registry.npmjs.org"
-
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: wasm-pack
-
+      - uses: ./.github/actions/build-prql-js
       - run: npm cit
         working-directory: bindings/prql-js
