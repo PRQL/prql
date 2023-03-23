@@ -12,7 +12,7 @@ tasks:
       - cargo install --locked bacon cargo-audit cargo-insta cargo-release
         default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
         wasm-pack
-        # Can't install atm with `--locked`
+        # https://github.com/daviddrysdale/mdbook-footnote/issues/1
       - cargo install mdbook-footnote
       - cmd: |
           [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
