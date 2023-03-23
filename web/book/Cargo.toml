@@ -36,7 +36,7 @@ mdbook = {version = "0.4.21", default-features = false}
 
 [dev-dependencies]
 globset = "0.4.8"
-insta = {version = "1.28", features = ["colors", "glob"]}
+insta = {version = "1.29", features = ["colors", "glob"]}
 log = "0.4.17"
 
 [package.metadata.release]
