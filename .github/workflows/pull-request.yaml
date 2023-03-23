@@ -36,31 +36,8 @@ jobs:
       os: ${{ matrix.os }}
       target_option: ${{ matrix.target_option }}
 
-  test-book:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-        # Duplicated in `publish-web.yaml`
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook-footnote
-      - uses: baptiste0928/cargo-install@next
-        with:
-          crate: mdbook-admonish
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: 🔨 Build
-        run: mdbook build
-        working-directory: web/book/
-
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
-  # (meanting a breaking change) in the PR title. (We also run on other
+  # (meaning a breaking change) in the PR title. (We also run on other
   # conditions defined in `test-all.yaml`; the conditions defined here aren't
   # possible to use as conditions for running a workflow, only a job, so we use
   # this approach.)
@@ -70,7 +47,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
       contains(github.event.pull_request.title, '!')
 
-  publish:
+  publish-web:
     uses: ./.github/workflows/publish-web.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
@@ -92,3 +69,38 @@ jobs:
           # We also run without this in the nightly workflow (maybe there's a
           # better way of organizing these so we DRY)
           check-modified-files-only: "yes"
+
+  check-ok-to-merge:
+    # This doesn't run anything, but offers a task for us to tell GitHub
+    # everything in this workflow has passed and, unlike including each task in
+    # the branch's GitHub required tests, will pass when a task is skipped.
+    #
+    # Note that this _doesn't_ cover other workflows, such as `test-js.yaml`.
+    # (and is strictly inferior to a GitHub feature that would just say "don't
+    # allow merging on any failing test"). We could change that by moving the
+    # triggers for those into this workflow, and using an external action to
+    # assess whether the paths have changed. That would move us closer to a
+    # world where all tasks are defined in a single workflow, and we use
+    # job-level criteria to decide what to run. But it's quite a change, I
+    # (@max-sixty) have probably done too much devops already, and it's possible
+    # that GitHub release something to enable path triggers within workflows
+    # natively.
+    #
+    if: always()
+    needs:
+      - test-rust
+      - test-all
+      - publish-web
+      - nightly
+      - check-links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          # We don't include `check-links`, since occasionally we'll want to merge
+          # something which temporarily fails that, such as if we're changing the
+          # location of a file in this repo which is linked to.
+          allowed-failures: check-links
+          allowed-skips: test-all, publish-web, nightly
+          jobs: ${{ toJSON(needs) }}
