@@ -46,7 +46,6 @@ RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/loc
 
 # ========= Install cargo-tools =========
 COPY Taskfile.yml /tmp/Taskfile.yml
-USER vscode
 RUN task -t /tmp/Taskfile.yml install-cargo-tools
 
 # ========= Set up workdir =========
