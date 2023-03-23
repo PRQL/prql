@@ -6,7 +6,7 @@ on:
   pull_request:
     paths:
       - .devcontainer/base-image/Dockerfile
-      - Taskfile.cargo-tools.yml
+      - Taskfile.yml
   workflow_call:
   workflow_dispatch:
 
