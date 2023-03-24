@@ -8,10 +8,10 @@ away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL?" >}}
 
-You can use it now to build SQL queries. In addition, we are focusing on several
-integrations:
+PRQL is a great tool for building SQL queries. In addition, we are focusing on several
+integrations. Here's what you can do right now:
 
-- **Use PRQL to query your database right now.** Type your PRQL query into the
+- **Use PRQL to query your database** Type your PRQL query into the
   [Playground](https://prql-lang.org/playground/) and copy/paste the resulting
   SQL into your database. Read our
   [blog post](https://prql-lang.org/posts/2023-01-28-format-pretty-reports/) to
@@ -26,7 +26,7 @@ integrations:
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
 
-Beyond these two integrations, it's very easy to add PRQL to your own apps with
+It's also very easy to add PRQL to your own apps with
 our [bindings](/#bindings) for Rust, Python & JS.
 
 {{</ faq >}}
@@ -124,9 +124,9 @@ most dialects' implementation are identical to a generic implementation.
 
 {{</ faq >}}
 
-{{< faq "What's going on with this `aggregate` function?" >}}
+{{< faq "What's this `aggregate` function?" >}}
 
-**... And what's wrong with `SELECT` & `GROUP BY`?**
+**...and why not just use `SELECT` & `GROUP BY`?**
 
 SQL uses `SELECT` for all of these:
 
@@ -196,7 +196,7 @@ PRQL:
 > etc.
 
 For more detail, check out the docs in the
-[PRQL Book](https://prql-lang.org/book).
+[PRQL Book](https://prql-lang.org/book/transforms/aggregate.html).
 
 {{</ faq >}}
 
@@ -210,6 +210,6 @@ because of a strong convention around lowercase, but everywhere else we use
 
 {{< faq "Where can I find the logos?" >}}
 
-See the [press material](press-material.md).
+See the [press material](/press-material/).
 
 {{</ faq >}}

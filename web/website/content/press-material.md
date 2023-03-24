@@ -5,7 +5,7 @@ url: press-material
 
 The PRQL logo with "PRQL" name:
 
-- [PNG](https://raw.githubusercontent.com/PRQL/prql-brand/main/logo/PNG/Logo.png)
+- [PNG](https://raw.githubusercontent.com/PRQL/prql-brand/main/logo/PNG/Logo.png) 
 - [SVG](https://raw.githubusercontent.com/PRQL/prql-brand/main/logo/SVG/Logo.svg)
 
 Stand-alone logo without "PRQL" name:
