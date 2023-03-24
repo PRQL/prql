@@ -6,11 +6,16 @@ Here are some of the most common questions we hear. Have something else you'd
 like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask
 away!
 
-{{< faq "Cool story Hansel, but what can I actually do with PRQL now?" >}}
+{{< faq "Cool story Hansel, but what can I actually do with PRQL?" >}}
 
-We're still early, and the opportunities for using PRQL are focused on two
+You can use it now to build SQL queries. In addition, we are focusing on several
 integrations:
 
+- **Use PRQL to query your database right now.** Type your PRQL query into the
+  [Playground](https://prql-lang.org/playground/) and copy/paste the resulting
+  SQL into your database. Read our
+  [blog post](https://prql-lang.org/posts/2023-01-28-format-pretty-reports/) to
+  see how to make the reports more attractive.
 - **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
   [dbt](https://www.getdbt.com/) models. It very simple to use — install
   `dbt-prql` with pip, and then any text between a `{% prql %}` &
@@ -119,7 +124,9 @@ most dialects' implementation are identical to a generic implementation.
 
 {{</ faq >}}
 
-{{< faq "What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?" >}}
+{{< faq "What's going on with this `aggregate` function?" >}}
+
+**... And what's wrong with `SELECT` & `GROUP BY`?**
 
 SQL uses `SELECT` for all of these:
 
@@ -184,9 +191,9 @@ PRQL:
 
 <!-- TODO: the `>` doesn't seem to format on the website  -->
 
-> "FWIW the separate `group_by()` is one of my greatest design regrets with
-> dplyr — I wish I had made `by` a parameter of `summarise()`, `mutate()`,
-> `filter()` etc."
+> FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
+> — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
+> etc.
 
 For more detail, check out the docs in the
 [PRQL Book](https://prql-lang.org/book).
