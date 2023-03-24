@@ -75,7 +75,7 @@ impl std::ops::Add<Ident> for Ident {
 }
 
 // Q: @aljazerzen do we need these now? I couldn't immediately see what they
-// do (but can look more if neeeded).
+// do (but can look more if needed).
 //
 // use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 // impl Serialize for Ident {
