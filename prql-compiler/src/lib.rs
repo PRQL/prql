@@ -83,7 +83,7 @@ mod parser;
 pub mod semantic;
 pub mod sql;
 #[cfg(test)]
-mod test;
+mod tests;
 mod utils;
 
 pub use error::{downcast, Error, ErrorMessage, ErrorMessages, Reason, SourceLocation, Span};
@@ -112,7 +112,8 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
-///     signature_comment: false
+///     signature_comment: false,
+///     color: false,
 /// };
 /// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
@@ -125,7 +126,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed("", prql, options.color))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,6 +189,9 @@ pub struct Options {
     ///
     /// Defaults to true.
     pub signature_comment: bool,
+
+    /// Whether to use ANSI colors in error messages.
+    pub color: bool,
 }
 
 impl Default for Options {
@@ -196,6 +200,7 @@ impl Default for Options {
             format: true,
             target: Target::Sql(None),
             signature_comment: true,
+            color: false,
         }
     }
 }
@@ -203,6 +208,11 @@ impl Default for Options {
 impl Options {
     pub fn no_format(mut self) -> Self {
         self.format = false;
+        self
+    }
+
+    pub fn with_signature_comment(mut self, signature_comment: bool) -> Self {
+        self.signature_comment = signature_comment;
         self
     }
 
@@ -218,6 +228,11 @@ impl Options {
 
     pub fn some(self) -> Option<Self> {
         Some(self)
+    }
+
+    pub fn with_color(mut self, color: bool) -> Self {
+        self.color = color;
+        self
     }
 }
 
@@ -273,7 +288,7 @@ pub mod json {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_lib {
     use crate::Target;
     use insta::assert_debug_snapshot;
     use std::str::FromStr;

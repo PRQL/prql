@@ -42,32 +42,28 @@ params:
           PRQL? Send them a link to PRQL.
       - text:
           "Know Rust (or want to learn!)? [Contribute to our
-          compiler](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#compiler)"
+          compiler](https://prql-lang.org/book/contributing/index.html#compiler)"
       - text:
           "Familiar with web? Spot a mistake? [Improve the website design or
-          copy](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#integrations)"
+          copy](https://prql-lang.org/book/contributing/index.html#marketing)"
       - text:
-          "Interested in helping people explore their data? [Kick off our push
-          to improve our
-          playground](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#ide)"
+          "Interested in helping people explore their data? [Help improve the
+          playground](https://github.com/PRQL/prql/tree/main/web/playground)"
       - text:
           "Is SQL your mother-tongue? [Show us SQL queries which translate well
           /
-          badly](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#language-design).
+          badly](https://prql-lang.org/book/contributing/index.html#language-design).
           We are looking for any use-cases that expose a poor design choice, a
           need of a feature, or a sharp edge of the language."
     button:
       text: Contribute
-      link: https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md
+      link: https://prql-lang.org/book/contributing/index.html
   follow:
     subtitle: "Follow us:"
     list:
       - text: Star our GitHub repo [PRQL/prql](https://github.com/PRQL/prql)
       - text: Join our [Discord](https://discord.com/invite/eQcfaCmsNc)
       - text: Follow us on [Twitter](https://twitter.com/prql_lang)
-      - text:
-          "Subscribe to [issue #1 for a GitHub notification on
-          updates](https://github.com/PRQL/prql/issues/1)"
   description: PRQL is a modern language for transforming data
   images:
     - static/img/favicon-32x32.png

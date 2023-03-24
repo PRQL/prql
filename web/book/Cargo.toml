@@ -24,6 +24,7 @@ pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 semver = "1.0.9"
 serde_json = "1.0.81"
+serde_yaml = "0.9"
 similar = "2.2.0"
 walkdir = "2.3.2"
 
@@ -35,11 +36,8 @@ mdbook = {version = "0.4.21", default-features = false}
 
 [dev-dependencies]
 globset = "0.4.8"
-insta = {version = "1.28", features = ["colors", "glob"]}
+insta = {version = "1.29", features = ["colors", "glob"]}
 log = "0.4.17"
-
-[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-trash = "3.0.0"
 
 [package.metadata.release]
 tag-name = "{{version}}"
