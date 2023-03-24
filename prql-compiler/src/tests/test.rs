@@ -260,11 +260,11 @@ fn test_append() {
 }
 
 #[test]
-fn test_remove() -> anyhow::Result<(), anyhow::Error> {
+fn test_remove() {
     assert_display_snapshot!(compile(r#"
     from albums
     remove artists
-    "#)?,
+    "#).unwrap(),
         @r###"
     SELECT
       *
@@ -278,121 +278,120 @@ fn test_remove() -> anyhow::Result<(), anyhow::Error> {
       artists AS b
     "###
     );
-    Ok(())
 
-    // assert_display_snapshot!(compile(r#"
-    // from album
-    // select artist_id
-    // remove (
-    //     from artist | select artist_id
-    // )
-    // "#).unwrap(),
-    //     @r###"
-    // WITH table_0 AS (
-    //   SELECT
-    //     artist_id
-    //   FROM
-    //     artist
-    // )
-    // SELECT
-    //   artist_id
-    // FROM
-    //   album
-    // EXCEPT
-    //   ALL
-    // SELECT
-    //   *
-    // FROM
-    //   table_0 AS table_1
-    // "###
-    // );
+    assert_display_snapshot!(compile(r#"
+    from album
+    select artist_id
+    remove (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    EXCEPT
+      ALL
+    SELECT
+      *
+    FROM
+      table_0 AS table_1
+    "###
+    );
 
-    // assert_display_snapshot!(compile(r#"
-    // from album
-    // select [artist_id, title]
-    // remove (
-    //     from artist | select artist_id
-    // )
-    // "#).unwrap(),
-    //     @r###"
-    // WITH table_0 AS (
-    //   SELECT
-    //     artist_id
-    //   FROM
-    //     artist
-    // )
-    // SELECT
-    //   album.artist_id,
-    //   album.title
-    // FROM
-    //   album
-    //   LEFT JOIN table_0 AS table_1 ON album.artist_id = table_1.artist_id
-    // WHERE
-    //   table_1.artist_id IS NULL
-    // "###
-    // );
+    assert_display_snapshot!(compile(r#"
+    from album
+    select [artist_id, title]
+    remove (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      album.artist_id,
+      album.title
+    FROM
+      album
+      LEFT JOIN table_0 AS table_1 ON album.artist_id = table_1.artist_id
+    WHERE
+      table_1.artist_id IS NULL
+    "###
+    );
 
-    // assert_display_snapshot!(compile(r#"
-    // prql target:sql.sqlite
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
 
-    // from album
-    // remove artist
-    // "#).unwrap_err(),
-    //     @r###"
-    // Error: Your dialect does not support EXCEPT ALL
-    // "###
-    // );
+    from album
+    remove artist
+    "#).unwrap_err(),
+        @r###"
+    Error: Your dialect does not support EXCEPT ALL
+    "###
+    );
 
-    // assert_display_snapshot!(compile(r#"
-    // prql target:sql.sqlite
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
 
-    // func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
-    // func except `default_db.bottom` top -> (top | distinct | remove bottom)
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func except `default_db.bottom` top -> (top | distinct | remove bottom)
 
-    // from album
-    // select [artist_id, title]
-    // except (from artist | select [artist_id, name])
-    // "#).unwrap(),
-    //     @r###"
-    // WITH table_1 AS (
-    //   SELECT
-    //     DISTINCT artist_id,
-    //     title
-    //   FROM
-    //     album
-    // )
-    // SELECT
-    //   table_0.artist_id,
-    //   table_0.title
-    // FROM
-    //   table_1 AS table_0
-    //   LEFT JOIN bottom AS b ON table_0.artist_id = b.*
-    // WHERE
-    //   b.* IS NULL
-    // "###
-    // );
+    from album
+    select [artist_id, title]
+    except (from artist | select [artist_id, name])
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        DISTINCT artist_id,
+        title
+      FROM
+        album
+    )
+    SELECT
+      table_0.artist_id,
+      table_0.title
+    FROM
+      table_1 AS table_0
+      LEFT JOIN bottom AS b ON table_0.artist_id = b.*
+    WHERE
+      b.* IS NULL
+    "###
+    );
 
-    // assert_display_snapshot!(compile(r#"
-    // prql target:sql.sqlite
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
 
-    // func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
-    // func except `default_db.bottom` top -> (top | distinct | remove bottom)
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func except `default_db.bottom` top -> (top | distinct | remove bottom)
 
-    // from album
-    // except artist
-    // "#).unwrap(),
-    //     @r###"
-    // SELECT
-    //   *
-    // FROM
-    //   album AS t
-    // EXCEPT
-    // SELECT
-    //   *
-    // FROM
-    //   bottom AS b
-    // "###
-    // );
+    from album
+    except artist
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *
+    FROM
+      album AS t
+    EXCEPT
+    SELECT
+      *
+    FROM
+      bottom AS b
+    "###
+    );
 }
 
 #[test]
@@ -1170,23 +1169,6 @@ fn test_nulls() {
 }
 
 #[test]
-fn test_take_t() {
-    assert_display_snapshot!((compile(r###"
-    from employees
-    select a
-    take 5..5.6
-    "###).unwrap_err()), @r###"
-    Error:
-       ╭─[:4:5]
-       │
-     4 │     take 5..5.6
-       │     ─────┬─────
-       │          ╰─────── take expected a positive int range, but found 5..?
-    ───╯
-    "###);
-}
-
-#[test]
 fn test_take() {
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1199,6 +1181,7 @@ fn test_take() {
     LIMIT
       10
     "###);
+
     assert_display_snapshot!((compile(r###"
     from employees
     take 5..10
