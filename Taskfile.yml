@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://json.schemastore.org/taskfile.json
+
 # This file gives new contributors an easy way to get everything they need,
 # assuming `cargo` and [Task](https://taskfile.dev) are installed.
 
@@ -10,9 +12,6 @@
 # Some of the file may be somewhat over-engineered!
 
 version: "3"
-
-includes:
-  cargo-tools: ./Taskfile.cargo-tools.yml
 
 vars:
   # Keep in sync with .vscode/extensions.json
@@ -41,7 +40,7 @@ tasks:
 
     desc: Install tools for PRQL development.
     cmds:
-      - task: cargo-tools:install
+      - task: install-cargo-tools
       - task: install-brew-dependencies
       - task: install-maturin
       - task: install-pre-commit
@@ -56,11 +55,16 @@ tasks:
         silent: true
 
   install-cargo-tools:
-    # factored this out because it takes a long time to build
-    desc: Alias of `cargo-tools:install`
-    deps:
-      - cargo-tools:install
-
+    desc: Install cargo tools for PRQL development.
+    cmds:
+      # `--locked` installs from the underlying lock files (which is not the
+      # default?!)
+      - cargo install --locked bacon cargo-audit cargo-insta cargo-release
+        default-target mdbook mdbook-admonish mdbook-footnote mdbook-toc
+        wasm-bindgen-cli wasm-pack
+      - cmd: |
+          [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
+        silent: true
   install-maturin:
     desc: Install maturin.
     cmds:
@@ -242,10 +246,8 @@ tasks:
         website/public/playground/playground
 
   test-js:
-    # These are mostly copied from the tasks in `test-all.yaml`
-    dir: prql-js
+    dir: bindings/prql-js
     cmds:
-      - npm run build
       - npm cit
 
   # Currently disabled; see prql-elixir/README.md for details
