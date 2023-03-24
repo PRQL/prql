@@ -15,6 +15,8 @@ fn main() {
     );
 }
 
+// We don't need to run this with wasm, and the features that `mdbook` uses of
+// `clap`'s don't support wasm.
 #[cfg(target_family = "wasm")]
 fn main() -> ! {
     panic!("Not used as a binary in wasm (but it seems cargo insists we have a `main` function).")

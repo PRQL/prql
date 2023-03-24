@@ -127,7 +127,7 @@ impl Context {
                     .map(|col| match col {
                         FrameColumn::All { .. } => RelationColumn::Wildcard,
                         FrameColumn::Single { name, .. } => {
-                            RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
+                            RelationColumn::Single(name.as_ref().map(|n| n.name()))
                         }
                     })
                     .collect();
@@ -300,7 +300,7 @@ impl Context {
             // Columns can be inferred, which means that we don't know all column names at
             // compile time: use ExprKind::All
             vec![Expr::from(ExprKind::All {
-                within: mod_ident.clone(),
+                within: mod_ident.clone().into(),
                 except: Vec::new(),
             })]
         } else {
@@ -310,7 +310,7 @@ impl Context {
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
                 .sorted_by_key(|(_, decl)| decl.order)
                 .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
-                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
+                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col.into())))
                 .collect_vec()
         };
 
@@ -363,7 +363,7 @@ impl Context {
 
                         let input = frame.find_input(input_name).unwrap();
                         if let Some(table_ident) = input.table.clone() {
-                            self.infer_table_column(&table_ident, col_name)?;
+                            self.infer_table_column(&table_ident.into(), col_name)?;
                         }
                     }
                     _ => {

@@ -17,7 +17,7 @@ use super::{Context, Frame};
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
-    let name = closure.name.as_ref().filter(|n| !n.name.contains('.'));
+    let name = closure.name.as_ref().filter(|n| !n.name().contains('.'));
     let name = if let Some(name) = name {
         name.to_string()
     } else {
@@ -356,7 +356,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 .columns
                 .iter()
                 .map(|name| FrameColumn::Single {
-                    name: Some(Ident::from_name(name)),
+                    name: Some(IdentParts::from_name(name)),
                     expr_id: input.id,
                 })
                 .collect();
@@ -440,7 +440,7 @@ fn fold_by_simulating_eval(
     // thats why we trick the resolver with a dummy node that acts as table
     // chunk and instruct resolver to apply the transform on that.
 
-    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
+    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name).into()));
     dummy.ty = Some(val_type);
 
     let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
@@ -655,14 +655,14 @@ impl Frame {
 
         let alias = expr.alias.as_ref();
         let name = alias
-            .map(Ident::from_name)
-            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
+            .map(IdentParts::from_name)
+            .or_else(|| expr.kind.as_ident().and_then(|i| (i.clone().pop_front().1)));
 
         // remove names from columns with the same name
         if name.is_some() {
             for c in &mut self.columns {
                 if let FrameColumn::Single { name: n, .. } = c {
-                    if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
+                    if n.as_ref().map(|i| i.name()) == name.as_ref().map(|i| i.name()) {
                         *n = None;
                     }
                 }
@@ -679,7 +679,13 @@ impl Frame {
     }
 
     pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
-        self.inputs.iter().find(|i| i.name == input_name)
+        dbg!(input_name);
+        dbg!(dbg!(&self.inputs)
+            .iter()
+            .inspect(|x| {
+                dbg!(&x.name);
+            })
+            .find(|i| i.name == input_name))
     }
 
     /// Renames all frame inputs to given alias.
@@ -693,7 +699,7 @@ impl Frame {
                 FrameColumn::All { input_name, .. } => *input_name = alias.clone(),
                 FrameColumn::Single {
                     name: Some(name), ..
-                } => name.path = vec![alias.clone()],
+                } => name.parts = vec![alias.clone(), name.name()],
                 _ => {}
             }
         }
@@ -702,7 +708,10 @@ impl Frame {
 
 impl FrameInput {
     fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
-        let rel_def = context.root_mod.get(self.table.as_ref().unwrap()).unwrap();
+        let rel_def = context
+            .root_mod
+            .get(&self.table.clone().unwrap().into())
+            .unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
         let has_wildcard = rel_def
             .columns
@@ -724,7 +733,7 @@ impl FrameInput {
                     _ => None,
                 })
                 .filter(|i| i.starts_with(&input_ident_fq))
-                .map(|i| i.name.clone())
+                .map(|i| i.name())
                 .collect();
 
             vec![FrameColumn::All {
@@ -736,7 +745,7 @@ impl FrameInput {
                 .columns
                 .iter()
                 .map(|col| {
-                    let name = col.as_single().unwrap().clone().map(Ident::from_name);
+                    let name = col.as_single().unwrap().clone().map(IdentParts::from_name);
                     FrameColumn::Single {
                         name,
                         expr_id: self.id,

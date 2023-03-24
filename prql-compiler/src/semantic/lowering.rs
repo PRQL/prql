@@ -107,7 +107,10 @@ impl Lowerer {
             ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
                 let id = expr.id.unwrap();
-                let tid = *self.table_mapping.get(&fq_table_name).unwrap();
+                let tid = *self
+                    .table_mapping
+                    .get(&fq_table_name.clone().into())
+                    .unwrap();
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
@@ -117,7 +120,7 @@ impl Lowerer {
                     .and_then(|t| t.as_table())
                     .and_then(|f| f.inputs.first())
                     .map(|i| i.name.clone());
-                let name = input_name.or(Some(fq_table_name.name));
+                let name = input_name.or_else(|| Some(fq_table_name.name()));
 
                 self.create_a_table_instance(id, name, tid)
             }
@@ -431,7 +434,7 @@ impl Lowerer {
         for col in &frame.columns {
             match col {
                 FrameColumn::Single { name, expr_id } => {
-                    let name = name.clone().map(|n| n.name);
+                    let name = name.clone().map(|n| n.name());
                     let cid = self.lookup_cid(*expr_id, name.as_ref())?;
 
                     columns.push((RelationColumn::Single(name), cid));
@@ -501,7 +504,7 @@ impl Lowerer {
                 .filter(|e| e.target_id.is_some())
                 .map(|e| {
                     let id = e.target_id.unwrap();
-                    self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
+                    self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name()))
                 })
                 .try_collect()?;
             selected.retain(|c| !except.contains(c));
@@ -522,7 +525,7 @@ impl Lowerer {
         let needs_window = expr_ast.needs_window;
         expr_ast.needs_window = false;
         let alias_for = if has_alias {
-            expr_ast.kind.as_ident().map(|x| x.name.clone())
+            expr_ast.kind.as_ident().map(|x| x.clone().name())
         } else {
             None
         };
@@ -574,13 +577,13 @@ impl Lowerer {
                 log::debug!("lowering ident {ident} (target {:?})", ast.target_id);
 
                 if let Some(id) = ast.target_id {
-                    let cid = self.lookup_cid(id, Some(&ident.name))?;
+                    let cid = self.lookup_cid(id, Some(&ident.name()))?;
 
                     rq::ExprKind::ColumnRef(cid)
                 } else {
                     // This is an unresolved ident.
                     // Let's hope that the database engine can resolve it.
-                    rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
+                    rq::ExprKind::SString(vec![InterpolateItem::String(ident.name())])
                 }
             }
             pl::ExprKind::All { except, .. } => {
@@ -601,7 +604,7 @@ impl Lowerer {
                     .iter()
                     .map(|e| {
                         let ident = e.kind.as_ident().unwrap();
-                        self.lookup_cid(e.target_id.unwrap(), Some(&ident.name))
+                        self.lookup_cid(e.target_id.unwrap(), Some(&ident.name()))
                             .unwrap()
                     })
                     .collect();
@@ -886,7 +889,7 @@ impl AstFold for TableDepsCollector {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
                 if let Some(Ty::Table(_)) = &expr.ty {
-                    self.deps.push(ident.clone());
+                    self.deps.push(ident.clone().into());
                 }
                 expr.kind
             }

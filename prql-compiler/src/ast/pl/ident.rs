@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-use itertools::Itertools;
 use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
@@ -11,7 +10,72 @@ pub struct Ident {
     pub name: String,
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct IdentParts {
+    pub parts: Vec<String>,
+}
+impl std::fmt::Display for IdentParts {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        display_ident(f, self.clone())
+    }
+}
+impl IdentParts {
+    pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
+        let name = path.pop().unwrap().to_string();
+        IdentParts {
+            parts: path
+                .into_iter()
+                .map(|x| x.to_string())
+                .chain(vec![name].into_iter())
+                .collect(),
+        }
+    }
+    pub fn from_name<S: ToString>(name: S) -> Self {
+        IdentParts {
+            parts: vec![name.to_string()],
+        }
+    }
+    pub fn name(&self) -> String {
+        dbg!(dbg!(&self.parts).last().unwrap().clone())
+    }
+    pub fn path(&self) -> Vec<String> {
+        self.parts[..self.parts.len() - 1].to_vec()
+    }
+    pub fn pop_front(mut self) -> (String, Option<IdentParts>) {
+        if self.path().is_empty() {
+            (self.name(), None)
+        } else {
+            let first = self.parts.remove(0);
+            (first, Some(IdentParts { parts: self.parts }))
+        }
+    }
+    pub fn starts_with(&self, prefix: &Ident) -> bool {
+        self.parts
+            .starts_with((prefix).clone().into_vec().as_slice())
+    }
+}
+
+impl From<Ident> for IdentParts {
+    fn from(ident: Ident) -> Self {
+        IdentParts {
+            parts: ident.into_iter().collect(),
+        }
+    }
+}
+impl From<IdentParts> for Ident {
+    fn from(parts: IdentParts) -> Self {
+        Ident::from_path(parts.parts)
+    }
+}
+
 impl Ident {
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+    pub fn path(&self) -> Vec<String> {
+        self.path.clone()
+    }
     pub fn from_name<S: ToString>(name: S) -> Self {
         Ident {
             path: Vec::new(),
@@ -46,20 +110,37 @@ impl Ident {
         self
     }
 
-    pub fn starts_with(&self, prefix: &Ident) -> bool {
-        if self.path.len() < prefix.path.len() {
-            false
-        } else {
-            let self_chunks = self.path.iter().chain(Some(&self.name));
-            let prefix_chunks = prefix.path.iter().chain(Some(&prefix.name));
-            !std::iter::zip(self_chunks, prefix_chunks).all_equal()
-        }
+    fn into_vec(self) -> Vec<String> {
+        self.path.into_iter().chain(Some(self.name)).collect()
     }
+
+    pub fn starts_with(&self, prefix: &Ident) -> bool {
+        self.clone()
+            .into_vec()
+            .starts_with(&prefix.clone().into_vec())
+    }
+}
+
+#[test]
+fn test_starts_with() {
+    // Over-testing, from co-pilot, can remove some of them.
+    let a = Ident::from_path(vec!["a", "b", "c"]);
+    let b = Ident::from_path(vec!["a", "b"]);
+    let c = Ident::from_path(vec!["a", "b", "c", "d"]);
+    let d = Ident::from_path(vec!["a", "b", "d"]);
+    let e = Ident::from_path(vec!["a", "c"]);
+    let f = Ident::from_path(vec!["b", "c"]);
+    assert!(a.starts_with(&b));
+    assert!(a.starts_with(&a));
+    assert!(!a.starts_with(&c));
+    assert!(!a.starts_with(&d));
+    assert!(!a.starts_with(&e));
+    assert!(!a.starts_with(&f));
 }
 
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        display_ident(f, self)
+        display_ident(f, self.clone())
     }
 }
 
@@ -109,12 +190,27 @@ impl<'de> Deserialize<'de> for Ident {
     }
 }
 
-pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
-    for part in &ident.path {
+// pub fn display_ident_parts(
+//     f: &mut std::fmt::Formatter,
+//     ident: &IdentParts,
+// ) -> Result<(), std::fmt::Error> {
+//     for part in &ident.parts {
+//         display_ident_part(f, part)?;
+//         f.write_char('.')?;
+//     }
+//     Ok(())
+// }
+
+pub fn display_ident<T>(f: &mut std::fmt::Formatter, ident: T) -> Result<(), std::fmt::Error>
+where
+    T: Into<Ident>,
+{
+    let ident = ident.into();
+    for part in &ident.path() {
         display_ident_part(f, part)?;
         f.write_char('.')?;
     }
-    display_ident_part(f, &ident.name)?;
+    display_ident_part(f, &ident.name())?;
     Ok(())
 }
 

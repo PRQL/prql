@@ -198,30 +198,35 @@ impl Module {
     }
 
     pub(super) fn insert_frame(&mut self, frame: &Frame, namespace: &str) {
+        dbg!(&self, &frame, &namespace);
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
         for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
-            let input_name = match column {
-                FrameColumn::All { input_name, .. } => Some(input_name),
-                FrameColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
+            let input_name = match dbg!(column) {
+                FrameColumn::All { input_name, .. } => Some(input_name.clone()),
+                FrameColumn::Single { name, .. } => {
+                    name.clone().and_then(|n| n.path().first().cloned())
+                }
             };
 
             // get or create input namespace
             let ns;
             if let Some(input_name) = input_name {
-                let entry = match namespace.names.get_mut(input_name) {
+                let entry = match namespace.names.get_mut(&input_name) {
                     Some(x) => x,
                     None => {
-                        namespace.redirects.push(Ident::from_name(input_name));
+                        namespace
+                            .redirects
+                            .push(Ident::from_name(input_name.clone()));
 
-                        let input = frame.find_input(input_name).unwrap();
+                        let input = dbg!(frame).find_input(&input_name.clone()).unwrap();
                         let mut sub_ns = Module::default();
                         if let Some(fq_table) = input.table.clone() {
                             let self_decl = Decl {
                                 declared_at: Some(input.id),
-                                kind: DeclKind::InstanceOf(fq_table),
+                                kind: DeclKind::InstanceOf(fq_table.into()),
                                 order: 0,
                             };
                             sub_ns.names.insert(NS_SELF.to_string(), self_decl);
@@ -263,7 +268,7 @@ impl Module {
                         declared_at: None,
                         order: col_index + 1,
                     };
-                    ns.names.insert(name.name.clone(), decl);
+                    ns.names.insert(name.name().clone(), decl);
                 }
                 _ => {}
             }

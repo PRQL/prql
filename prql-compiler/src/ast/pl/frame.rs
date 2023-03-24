@@ -7,7 +7,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
 use serde::{Deserialize, Serialize};
 
-use super::{Expr, Ident};
+use super::{Expr, IdentParts};
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
@@ -33,7 +33,7 @@ pub struct FrameInput {
     /// fully qualified name of table that provides the data for this frame
     ///
     /// `None` means this is a literal and doesn't need a table to refer to
-    pub table: Option<Ident>,
+    pub table: Option<IdentParts>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -45,7 +45,7 @@ pub enum FrameColumn {
     },
 
     Single {
-        name: Option<Ident>,
+        name: Option<IdentParts>,
         expr_id: usize,
     },
 }

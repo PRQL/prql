@@ -122,7 +122,7 @@ impl AstFold for Resolver {
         let mut r = match node.kind {
             ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
-                let fq_ident = self.resolve_ident(&ident, node.span)?;
+                let fq_ident = self.resolve_ident(&ident.clone().into(), node.span)?;
                 log::debug!("... resolved to {fq_ident}");
                 let entry = self.context.root_mod.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
@@ -140,24 +140,24 @@ impl AstFold for Resolver {
                     }
 
                     DeclKind::Infer(_) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
+                        kind: ExprKind::Ident(fq_ident.into()),
                         target_id: entry.declared_at,
                         ..node
                     },
                     DeclKind::Column(target_id) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
+                        kind: ExprKind::Ident(fq_ident.into()),
                         target_id: Some(*target_id),
                         ..node
                     },
 
                     DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                        let rel_name = ident.name.clone();
+                        let rel_name = ident.name();
 
                         let instance_frame = Frame {
                             inputs: vec![FrameInput {
                                 id,
                                 name: rel_name.clone(),
-                                table: Some(fq_ident.clone()),
+                                table: Some(fq_ident.clone().into()),
                             }],
                             columns: columns
                                 .iter()
@@ -172,6 +172,7 @@ impl AstFold for Resolver {
                                     RelationColumn::Single(col_name) => FrameColumn::Single {
                                         name: col_name.clone().map(|col_name| {
                                             Ident::from_path(vec![rel_name.clone(), col_name])
+                                                .into()
                                         }),
                                         expr_id: id,
                                     },
@@ -183,7 +184,7 @@ impl AstFold for Resolver {
                         log::debug!("instanced table {fq_ident} as {instance_frame:?}");
 
                         Expr {
-                            kind: ExprKind::Ident(fq_ident),
+                            kind: ExprKind::Ident(fq_ident.into()),
                             ty: Some(Ty::Table(instance_frame)),
                             alias: None,
                             ..node
@@ -202,7 +203,7 @@ impl AstFold for Resolver {
                     }
 
                     _ => Expr {
-                        kind: ExprKind::Ident(fq_ident),
+                        kind: ExprKind::Ident(fq_ident.into()),
                         ..node
                     },
                 }
@@ -254,7 +255,7 @@ impl AstFold for Resolver {
             } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
 
             ExprKind::All { within, except } => {
-                let decl = self.context.root_mod.get(&within);
+                let decl = self.context.root_mod.get(&within.clone().into());
 
                 // lookup ids of matched inputs
                 let target_ids = decl
@@ -333,7 +334,7 @@ impl Resolver {
             // only apply this workaround if closure expects a single arg
             if (closure.params.len() - closure.args.len()) == 1 {
                 let param = "_pip_val";
-                let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
+                let value = Expr::from(ExprKind::Ident(Ident::from_name(param).into()));
                 closure.args.push(value);
                 Some(param)
             } else {
@@ -440,7 +441,7 @@ impl Resolver {
                 let name = closure
                     .name
                     .clone()
-                    .unwrap_or_else(|| Ident::from_name("<unnamed>"));
+                    .unwrap_or_else(|| IdentParts::from_name("<unnamed>"));
                 log::debug!("resolving args of function {}", name);
             }
             let closure = self.resolve_function_args(closure)?;
@@ -518,7 +519,10 @@ impl Resolver {
     }
 
     fn cast_built_in_function(&mut self, closure: Closure) -> Result<Result<Expr, Closure>> {
-        let is_std = closure.name.as_ref().map(|n| n.path.as_slice() == ["std"]);
+        let is_std = closure
+            .name
+            .as_ref()
+            .map(|n| n.path().as_slice() == ["std"]);
 
         if !is_std.unwrap_or_default() {
             return Ok(Err(closure));
@@ -604,7 +608,11 @@ impl Resolver {
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let arg = self.fold_and_type_check(arg, param, func_name)?;
+                let arg = self.fold_and_type_check(
+                    arg,
+                    param,
+                    &func_name.as_ref().map(|x| x.clone().into()),
+                )?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
@@ -627,7 +635,11 @@ impl Resolver {
 
                 let mut res = Vec::with_capacity(items.len());
                 for item in items {
-                    let item = self.fold_and_type_check(item, param, func_name)?;
+                    let item = self.fold_and_type_check(
+                        item,
+                        param,
+                        &func_name.clone().map(|x| x.into()),
+                    )?;
 
                     // add aliased columns into scope
                     if let Some(alias) = item.alias.clone() {
@@ -643,7 +655,7 @@ impl Resolver {
                 arg.kind = ExprKind::List(res);
             }
 
-            let arg = self.fold_and_type_check(arg, param, func_name)?;
+            let arg = self.fold_and_type_check(arg, param, &func_name.clone().map(|x| x.into()))?;
 
             closure.args[index] = arg;
         }
@@ -700,18 +712,24 @@ impl Resolver {
             .kind
             .into_ident()
             .map_err(|_| anyhow!("you can only use column names with self-equality operator."))?;
-        if !ident.path.is_empty() {
+        if !ident.path().is_empty() {
             bail!("you cannot use namespace prefix with self-equality operator.");
         }
-        let mut left = Expr::from(ExprKind::Ident(Ident {
-            path: vec![NS_FRAME.to_string()],
-            name: ident.name.clone(),
-        }));
+        let mut left = Expr::from(ExprKind::Ident(
+            Ident {
+                path: vec![NS_FRAME.to_string()],
+                name: ident.name(),
+            }
+            .into(),
+        ));
         left.span = span;
-        let mut right = Expr::from(ExprKind::Ident(Ident {
-            path: vec![NS_FRAME_RIGHT.to_string()],
-            name: ident.name,
-        }));
+        let mut right = Expr::from(ExprKind::Ident(
+            Ident {
+                path: vec![NS_FRAME_RIGHT.to_string()],
+                name: ident.name(),
+            }
+            .into(),
+        ));
         right.span = span;
         let kind = ExprKind::Binary {
             left: Box::new(left),
@@ -738,7 +756,7 @@ impl Resolver {
             .try_collect()?;
 
         self.fold_expr(Expr::from(ExprKind::All {
-            within: Ident::from_name(NS_FRAME),
+            within: Ident::from_name(NS_FRAME).into(),
             except,
         }))
     }
@@ -747,7 +765,7 @@ impl Resolver {
         let body_ty = self.fold_type_expr(func_def.return_ty)?;
 
         Ok(Closure {
-            name: Some(fq_ident),
+            name: Some(fq_ident.into()),
             body: func_def.body,
             body_ty,
 

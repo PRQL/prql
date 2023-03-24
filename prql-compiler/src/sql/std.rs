@@ -58,7 +58,7 @@ pub(super) fn translate_built_in(
                     let ident = ident.as_ref().unwrap();
 
                     // lookup args
-                    let arg = args.remove(ident.name.as_str());
+                    let arg = args.remove(ident.name().as_str());
                     pl::InterpolateItem::<rq::Expr>::Expr(Box::new(arg.unwrap()))
                 }
                 pl::InterpolateItem::String(s) => pl::InterpolateItem::String(s.clone()),

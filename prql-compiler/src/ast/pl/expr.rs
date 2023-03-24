@@ -49,9 +49,9 @@ pub struct Expr {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
-    Ident(Ident),
+    Ident(IdentParts),
     All {
-        within: Ident,
+        within: IdentParts,
         except: Vec<Expr>,
     },
     Literal(Literal),
@@ -172,7 +172,7 @@ impl FuncCall {
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Closure {
-    pub name: Option<Ident>,
+    pub name: Option<IdentParts>,
     pub body: Box<Expr>,
     pub body_ty: Option<Ty>,
 
@@ -184,10 +184,12 @@ pub struct Closure {
 }
 
 impl Closure {
-    pub fn as_debug_name(&self) -> &str {
-        let ident = self.name.as_ref();
-
-        ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
+    pub fn as_debug_name(&self) -> String {
+        self.name
+            .as_ref()
+            .and_then(|n| n.parts.first())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "<anonymous>".to_string())
     }
 }
 
@@ -481,9 +483,10 @@ impl Display for Expr {
 
         match &self.kind {
             ExprKind::Ident(s) => {
-                display_ident(f, s)?;
+                display_ident(f, s.clone())?;
             }
             ExprKind::All { within, except } => {
+                let within: IdentParts = within.clone();
                 write!(f, "{within}.![")?;
                 for e in except {
                     write!(f, "{e},")?;
