@@ -130,7 +130,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in

@@ -25,17 +25,17 @@ jobs:
         uses: peaceiris/actions-hugo@v2.6.0
 
       # Book setup, duplicated from `pull-request.yaml`
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook-footnote
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook-admonish
 
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-pack
 
