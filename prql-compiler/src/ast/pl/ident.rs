@@ -6,18 +6,18 @@ use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Seria
 /// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct IdentParts {
+pub struct Ident {
     pub parts: Vec<String>,
 }
-impl std::fmt::Display for IdentParts {
+impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         display_ident(f, self.clone())
     }
 }
-impl IdentParts {
+impl Ident {
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
-        IdentParts {
+        Ident {
             parts: path
                 .into_iter()
                 .map(|x| x.to_string())
@@ -26,12 +26,12 @@ impl IdentParts {
         }
     }
     pub fn from_name<S: ToString>(name: S) -> Self {
-        IdentParts {
+        Ident {
             parts: vec![name.to_string()],
         }
     }
     pub fn from_path_name<S: ToString>(path: Vec<S>, name: S) -> Self {
-        IdentParts {
+        Ident {
             parts: path
                 .into_iter()
                 .map(|x| x.to_string())
@@ -47,19 +47,19 @@ impl IdentParts {
     }
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path();
-        path.pop().map(|name| IdentParts {
+        path.pop().map(|name| Ident {
             parts: path.into_iter().chain(std::iter::once(name)).collect_vec(),
         })
     }
-    pub fn pop_front(mut self) -> (String, Option<IdentParts>) {
+    pub fn pop_front(mut self) -> (String, Option<Ident>) {
         if self.path().is_empty() {
             (self.name(), None)
         } else {
             let first = self.parts.remove(0);
-            (first, Some(IdentParts { parts: self.parts }))
+            (first, Some(Ident { parts: self.parts }))
         }
     }
-    pub fn starts_with(&self, prefix: &IdentParts) -> bool {
+    pub fn starts_with(&self, prefix: &Ident) -> bool {
         self.parts.starts_with(&prefix.parts)
     }
 }
@@ -67,12 +67,12 @@ impl IdentParts {
 #[test]
 fn test_starts_with() {
     // Over-testing, from co-pilot, can remove some of them.
-    let a = IdentParts::from_path(vec!["a", "b", "c"]);
-    let b = IdentParts::from_path(vec!["a", "b"]);
-    let c = IdentParts::from_path(vec!["a", "b", "c", "d"]);
-    let d = IdentParts::from_path(vec!["a", "b", "d"]);
-    let e = IdentParts::from_path(vec!["a", "c"]);
-    let f = IdentParts::from_path(vec!["b", "c"]);
+    let a = Ident::from_path(vec!["a", "b", "c"]);
+    let b = Ident::from_path(vec!["a", "b"]);
+    let c = Ident::from_path(vec!["a", "b", "c", "d"]);
+    let d = Ident::from_path(vec!["a", "b", "d"]);
+    let e = Ident::from_path(vec!["a", "c"]);
+    let f = Ident::from_path(vec!["b", "c"]);
     assert!(a.starts_with(&b));
     assert!(a.starts_with(&a));
     assert!(!a.starts_with(&c));
@@ -81,11 +81,11 @@ fn test_starts_with() {
     assert!(!a.starts_with(&f));
 }
 
-impl std::ops::Add<IdentParts> for IdentParts {
-    type Output = IdentParts;
+impl std::ops::Add<Ident> for Ident {
+    type Output = Ident;
 
-    fn add(self, rhs: IdentParts) -> Self::Output {
-        IdentParts {
+    fn add(self, rhs: Ident) -> Self::Output {
+        Ident {
             parts: self.parts.into_iter().chain(rhs.parts).collect(),
         }
     }
@@ -116,7 +116,7 @@ impl std::ops::Add<IdentParts> for IdentParts {
 
 pub fn display_ident<T>(f: &mut std::fmt::Formatter, ident: T) -> Result<(), std::fmt::Error>
 where
-    T: Into<IdentParts>,
+    T: Into<Ident>,
 {
     let ident = ident.into();
     for part in &ident.path() {

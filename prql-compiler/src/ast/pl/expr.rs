@@ -49,9 +49,9 @@ pub struct Expr {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
-    Ident(IdentParts),
+    Ident(Ident),
     All {
-        within: IdentParts,
+        within: Ident,
         except: Vec<Expr>,
     },
     Literal(Literal),
@@ -172,7 +172,7 @@ impl FuncCall {
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Closure {
-    pub name: Option<IdentParts>,
+    pub name: Option<Ident>,
     pub body: Box<Expr>,
     pub body_ty: Option<Ty>,
 
@@ -486,7 +486,7 @@ impl Display for Expr {
                 display_ident(f, s.clone())?;
             }
             ExprKind::All { within, except } => {
-                let within: IdentParts = within.clone();
+                let within: Ident = within.clone();
                 write!(f, "{within}.![")?;
                 for e in except {
                     write!(f, "{e},")?;

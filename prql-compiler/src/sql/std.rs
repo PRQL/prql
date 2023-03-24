@@ -23,10 +23,7 @@ fn load_std_impl() -> semantic::Module {
     };
 
     let (_, context) = semantic::resolve_only(statements, Some(context)).unwrap();
-    let std = context
-        .root_mod
-        .get(&pl::IdentParts::from_name("std"))
-        .unwrap();
+    let std = context.root_mod.get(&pl::Ident::from_name("std")).unwrap();
 
     std.kind.clone().into_module().unwrap()
 }
@@ -38,7 +35,7 @@ pub(super) fn translate_built_in(
 ) -> Result<sql_ast::Expr> {
     let name = name.strip_prefix("std.").unwrap();
 
-    let entry = STD.get(&pl::IdentParts::from_name(name)).unwrap();
+    let entry = STD.get(&pl::Ident::from_name(name)).unwrap();
     let func_def = entry.kind.as_func_def().unwrap();
 
     let params = func_def

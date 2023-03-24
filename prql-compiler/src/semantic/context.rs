@@ -43,7 +43,7 @@ pub enum DeclKind {
 
     TableDecl(TableDecl),
 
-    InstanceOf(IdentParts),
+    InstanceOf(Ident),
 
     /// A single column. Contains id of target which is either:
     /// - an input relation that is source of this column or
@@ -89,7 +89,7 @@ impl Context {
         let name = func_def.name.clone();
 
         let path = vec![NS_STD.to_string()];
-        let ident = IdentParts {
+        let ident = Ident {
             parts: path.into_iter().chain(std::iter::once(name)).collect(),
         };
 
@@ -162,7 +162,7 @@ impl Context {
             order: 0,
         };
 
-        let ident = IdentParts {
+        let ident = Ident {
             parts: path.into_iter().chain(std::iter::once(name)).collect(),
         };
         self.root_mod.insert(ident, decl).unwrap();
@@ -170,7 +170,7 @@ impl Context {
         Ok(())
     }
 
-    pub fn resolve_ident(&mut self, ident: &IdentParts) -> Result<IdentParts, String> {
+    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
         // special case: wildcard
         if ident.name() == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -203,10 +203,8 @@ impl Context {
 
         // fallback case: this variable can be from a namespace that we don't know all columns of
         let decls = if ident.name() != "*" {
-            self.root_mod.lookup(&IdentParts::from_path_name(
-                ident.path(),
-                NS_INFER.to_string(),
-            ))
+            self.root_mod
+                .lookup(&Ident::from_path_name(ident.path(), NS_INFER.to_string()))
         } else {
             HashSet::new()
         };
@@ -215,7 +213,7 @@ impl Context {
 
             // single match, great!
             1 => {
-                let infer_ident: IdentParts = decls.into_iter().next().unwrap();
+                let infer_ident: Ident = decls.into_iter().next().unwrap();
 
                 let infer = self.root_mod.get(&infer_ident).unwrap();
                 let infer_default = infer.kind.as_infer().cloned().unwrap();
@@ -253,7 +251,7 @@ impl Context {
                     }
                 }
 
-                Ok(module_ident + IdentParts::from_name(ident.name()))
+                Ok(module_ident + Ident::from_name(ident.name()))
             }
 
             // ambiguous
@@ -264,7 +262,7 @@ impl Context {
         }
     }
 
-    fn resolve_ident_wildcard(&mut self, ident: &IdentParts) -> Result<IdentParts, String> {
+    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
         // Try matching ident prefix with a module
         let (mod_ident, mod_decl) = {
             if ident.path().len() > 1 {
@@ -276,15 +274,13 @@ impl Context {
                 (mod_ident, mod_decl)
             } else {
                 // Ident could be just part of NS_FRAME
-                let mod_ident = (IdentParts::from_name(NS_FRAME) + ident.clone())
-                    .pop()
-                    .unwrap();
+                let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
 
                 if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident.clone()) {
                     (mod_ident, mod_decl)
                 } else {
                     // ... or part of NS_FRAME_RIGHT
-                    let mod_ident = (IdentParts::from_name(NS_FRAME_RIGHT) + ident.clone())
+                    let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
                         .pop()
                         .unwrap();
 
@@ -315,7 +311,7 @@ impl Context {
             (module.names.iter())
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
                 .sorted_by_key(|(_, decl)| decl.order)
-                .map(|(name, _)| mod_ident.clone() + IdentParts::from_name(name))
+                .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
                 .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
                 .collect_vec()
         };
@@ -331,14 +327,10 @@ impl Context {
         module.names.insert(save_as.to_string(), cols_expr.into());
 
         // Then we can return ident to that decl.
-        Ok(mod_ident + IdentParts::from_name(save_as))
+        Ok(mod_ident + Ident::from_name(save_as))
     }
 
-    fn infer_table_column(
-        &mut self,
-        table_ident: &IdentParts,
-        col_name: &str,
-    ) -> Result<(), String> {
+    fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
         let table = self.root_mod.get_mut(&table_ident.clone()).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 

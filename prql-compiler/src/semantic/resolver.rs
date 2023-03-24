@@ -130,8 +130,7 @@ impl AstFold for Resolver {
                 match &entry.kind {
                     // convert ident to function without args
                     DeclKind::FuncDef(func_def) => {
-                        let closure =
-                            self.closure_of_func_def(func_def.clone(), fq_ident)?;
+                        let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
 
                         if self.in_func_call_name {
                             Expr::from(ExprKind::Closure(Box::new(closure)))
@@ -172,7 +171,7 @@ impl AstFold for Resolver {
                                     },
                                     RelationColumn::Single(col_name) => FrameColumn::Single {
                                         name: col_name.clone().map(|col_name| {
-                                            IdentParts::from_path(vec![rel_name.clone(), col_name])
+                                            Ident::from_path(vec![rel_name.clone(), col_name])
                                         }),
                                         expr_id: id,
                                     },
@@ -334,7 +333,7 @@ impl Resolver {
             // only apply this workaround if closure expects a single arg
             if (closure.params.len() - closure.args.len()) == 1 {
                 let param = "_pip_val";
-                let value = Expr::from(ExprKind::Ident(IdentParts::from_name(param)));
+                let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
                 closure.args.push(value);
                 Some(param)
             } else {
@@ -383,9 +382,9 @@ impl Resolver {
         self.fold_expr(value)
     }
 
-    pub fn resolve_ident(&mut self, ident: &IdentParts, span: Option<Span>) -> Result<IdentParts> {
+    pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
         let res = if ident.path().is_empty() && self.default_namespace.is_some() {
-            let defaulted = IdentParts {
+            let defaulted = Ident {
                 parts: vec![self.default_namespace.clone().unwrap(), ident.name()],
             };
             self.context.resolve_ident(&defaulted)
@@ -440,7 +439,7 @@ impl Resolver {
                 let name = closure
                     .name
                     .clone()
-                    .unwrap_or_else(|| IdentParts::from_name("<unnamed>"));
+                    .unwrap_or_else(|| Ident::from_name("<unnamed>"));
                 log::debug!("resolving args of function {}", name);
             }
             let closure = self.resolve_function_args(closure)?;
@@ -607,11 +606,7 @@ impl Resolver {
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let arg = self.fold_and_type_check(
-                    arg,
-                    param,
-                    &func_name.as_ref().cloned(),
-                )?;
+                let arg = self.fold_and_type_check(arg, param, &func_name.as_ref().cloned())?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
@@ -634,11 +629,7 @@ impl Resolver {
 
                 let mut res = Vec::with_capacity(items.len());
                 for item in items {
-                    let item = self.fold_and_type_check(
-                        item,
-                        param,
-                        &func_name.clone(),
-                    )?;
+                    let item = self.fold_and_type_check(item, param, &func_name.clone())?;
 
                     // add aliased columns into scope
                     if let Some(alias) = item.alias.clone() {
@@ -671,7 +662,7 @@ impl Resolver {
         &mut self,
         arg: Expr,
         param: &ClosureParam,
-        func_name: &Option<IdentParts>,
+        func_name: &Option<Ident>,
     ) -> Result<Expr> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
@@ -714,13 +705,15 @@ impl Resolver {
         if !ident.path().is_empty() {
             bail!("you cannot use namespace prefix with self-equality operator.");
         }
-        let mut left = Expr::from(ExprKind::Ident(
-            IdentParts::from_path_name(vec![NS_FRAME.to_string()], ident.name()),
-        ));
+        let mut left = Expr::from(ExprKind::Ident(Ident::from_path_name(
+            vec![NS_FRAME.to_string()],
+            ident.name(),
+        )));
         left.span = span;
-        let mut right = Expr::from(ExprKind::Ident(
-            IdentParts::from_path_name(vec![NS_FRAME_RIGHT.to_string()], ident.name()),
-        ));
+        let mut right = Expr::from(ExprKind::Ident(Ident::from_path_name(
+            vec![NS_FRAME_RIGHT.to_string()],
+            ident.name(),
+        )));
         right.span = span;
         let kind = ExprKind::Binary {
             left: Box::new(left),
@@ -747,12 +740,12 @@ impl Resolver {
             .try_collect()?;
 
         self.fold_expr(Expr::from(ExprKind::All {
-            within: IdentParts::from_name(NS_FRAME),
+            within: Ident::from_name(NS_FRAME),
             except,
         }))
     }
 
-    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: IdentParts) -> Result<Closure> {
+    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
         let body_ty = self.fold_type_expr(func_def.return_ty)?;
 
         Ok(Closure {

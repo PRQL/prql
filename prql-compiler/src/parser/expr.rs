@@ -273,12 +273,12 @@ where
         .labelled("function call")
 }
 
-pub fn ident() -> impl Parser<Token, IdentParts, Error = Simple<Token>> {
+pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
     let star = ctrl('*').to("*".to_string());
 
     ident_part()
         .chain(ctrl('.').ignore_then(ident_part().or(star)).repeated())
-        .map(IdentParts::from_path::<String>)
+        .map(Ident::from_path::<String>)
         .labelled("identifier")
 }
 

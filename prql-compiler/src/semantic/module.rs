@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, IdentParts};
+use crate::ast::pl::{Expr, Ident};
 use crate::ast::rq::RelationColumn;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
@@ -27,7 +27,7 @@ pub struct Module {
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
-    pub redirects: Vec<IdentParts>,
+    pub redirects: Vec<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
     pub shadowed: Option<Box<Decl>>,
@@ -62,15 +62,15 @@ impl Module {
             ]),
             shadowed: None,
             redirects: vec![
-                IdentParts::from_name(NS_FRAME),
-                IdentParts::from_name(NS_FRAME_RIGHT),
-                IdentParts::from_name(NS_PARAM),
-                IdentParts::from_name(NS_STD),
+                Ident::from_name(NS_FRAME),
+                Ident::from_name(NS_FRAME_RIGHT),
+                Ident::from_name(NS_PARAM),
+                Ident::from_name(NS_STD),
             ],
         }
     }
 
-    pub fn insert(&mut self, ident: IdentParts, entry: Decl) -> Result<Option<Decl>> {
+    pub fn insert(&mut self, ident: Ident, entry: Decl) -> Result<Option<Decl>> {
         let mut ns = self;
 
         for part in ident.path() {
@@ -87,7 +87,7 @@ impl Module {
         Ok(ns.names.insert(ident.name(), entry))
     }
 
-    pub fn get_mut(&mut self, ident: &IdentParts) -> Option<&mut Decl> {
+    pub fn get_mut(&mut self, ident: &Ident) -> Option<&mut Decl> {
         let mut ns = self;
 
         for part in &ident.path() {
@@ -108,7 +108,7 @@ impl Module {
     }
 
     /// Get namespace entry using a fully qualified ident.
-    pub fn get(&self, fq_ident: &IdentParts) -> Option<&Decl> {
+    pub fn get(&self, fq_ident: &Ident) -> Option<&Decl> {
         let mut ns = self;
 
         for (index, part) in fq_ident.path().iter().enumerate() {
@@ -147,8 +147,8 @@ impl Module {
         ns.names.get(&fq_ident.name())
     }
 
-    pub fn lookup(&self, ident: &IdentParts) -> HashSet<IdentParts> {
-        fn lookup_in(module: &Module, ident: IdentParts) -> HashSet<IdentParts> {
+    pub fn lookup(&self, ident: &Ident) -> HashSet<Ident> {
+        fn lookup_in(module: &Module, ident: Ident) -> HashSet<Ident> {
             let (prefix, ident) = ident.pop_front();
 
             if let Some(ident) = ident {
@@ -171,20 +171,20 @@ impl Module {
 
                     return redirected
                         .into_iter()
-                        .map(|i| IdentParts::from_name(&prefix) + i)
+                        .map(|i| Ident::from_name(&prefix) + i)
                         .collect();
                 }
             } else if let Some(decl) = module.names.get(&prefix) {
                 if let DeclKind::Module(inner) = &decl.kind {
                     if inner.names.contains_key(NS_SELF) {
-                        return HashSet::from([IdentParts::from_path(vec![
+                        return HashSet::from([Ident::from_path(vec![
                             prefix,
                             NS_SELF.to_string(),
                         ])]);
                     }
                 }
 
-                return HashSet::from([IdentParts::from_name(prefix)]);
+                return HashSet::from([Ident::from_name(prefix)]);
             }
             HashSet::new()
         }
@@ -223,7 +223,7 @@ impl Module {
                     None => {
                         namespace
                             .redirects
-                            .push(IdentParts::from_name(input_name.clone()));
+                            .push(Ident::from_name(input_name.clone()));
 
                         let input = frame.find_input(&input_name.clone()).unwrap();
                         let mut sub_ns = Module::default();
@@ -344,7 +344,7 @@ impl Module {
         }
     }
 
-    pub fn as_decls(&self) -> Vec<(IdentParts, &Decl)> {
+    pub fn as_decls(&self) -> Vec<(Ident, &Decl)> {
         let mut r = Vec::new();
         for (name, decl) in &self.names {
             match &decl.kind {
@@ -352,9 +352,9 @@ impl Module {
                     module
                         .as_decls()
                         .into_iter()
-                        .map(|(inner, decl)| (IdentParts::from_name(name) + inner, decl)),
+                        .map(|(inner, decl)| (Ident::from_name(name) + inner, decl)),
                 ),
-                _ => r.push((IdentParts::from_name(name), decl)),
+                _ => r.push((Ident::from_name(name), decl)),
             }
         }
         r
