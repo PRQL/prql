@@ -37,7 +37,7 @@ impl IdentParts {
         }
     }
     pub fn name(&self) -> String {
-        dbg!(dbg!(&self.parts).last().unwrap().clone())
+        self.parts.last().unwrap().clone()
     }
     pub fn path(&self) -> Vec<String> {
         self.parts[..self.parts.len() - 1].to_vec()

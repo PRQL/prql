@@ -220,7 +220,7 @@ impl Module {
                             .redirects
                             .push(Ident::from_name(input_name.clone()));
 
-                        let input = dbg!(frame).find_input(&input_name.clone()).unwrap();
+                        let input = frame.find_input(&input_name.clone()).unwrap();
                         let mut sub_ns = Module::default();
                         if let Some(fq_table) = input.table.clone() {
                             let self_decl = Decl {
