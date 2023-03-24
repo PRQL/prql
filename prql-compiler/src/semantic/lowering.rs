@@ -8,7 +8,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, Ty, WindowFrame,
+    self, Expr, ExprKind, FrameColumn, IdentParts, InterpolateItem, Range, SwitchCase, Ty,
+    WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
@@ -61,8 +62,8 @@ struct Lowerer {
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
 
-    /// mapping from [Ident] of [crate::ast::TableDef] into [TId]s
-    table_mapping: HashMap<Ident, TId>,
+    /// mapping from [IdentParts] of [crate::ast::TableDef] into [TId]s
+    table_mapping: HashMap<IdentParts, TId>,
 
     // current window for any new column defs
     window: Option<rq::Window>,
@@ -109,7 +110,7 @@ impl Lowerer {
                 let id = expr.id.unwrap();
                 let tid = *self
                     .table_mapping
-                    .get(&fq_table_name.clone().into())
+                    .get(&fq_table_name)
                     .unwrap();
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
@@ -775,7 +776,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
 struct TableExtractor {
     path: Vec<String>,
 
-    tables: Vec<(Ident, context::TableDecl)>,
+    tables: Vec<(IdentParts, context::TableDecl)>,
 }
 
 impl TableExtractor {
@@ -801,7 +802,7 @@ impl TableExtractor {
                     self.extract_from_namespace(ns);
                 }
                 DeclKind::TableDecl(table) => {
-                    let fq_ident = Ident::from_path(self.path.clone());
+                    let fq_ident = IdentParts::from_path(self.path.clone());
                     self.tables.push((fq_ident, table.clone()));
                 }
                 _ => {}
@@ -811,7 +812,11 @@ impl TableExtractor {
     }
 }
 
-fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
+fn lower_table(
+    lowerer: &mut Lowerer,
+    table: context::TableDecl,
+    fq_ident: IdentParts,
+) -> Result<()> {
     let id = *lowerer
         .table_mapping
         .entry(fq_ident.clone())
@@ -822,9 +827,9 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
     let (relation, name) = match expr {
         TableExpr::RelationVar(expr) => {
             // a CTE
-            (lowerer.lower_relation(*expr)?, Some(fq_ident.name))
+            (lowerer.lower_relation(*expr)?, Some(fq_ident.name()))
         }
-        TableExpr::LocalTable => extern_ref_to_relation(columns, fq_ident.name),
+        TableExpr::LocalTable => extern_ref_to_relation(columns, fq_ident.name()),
         TableExpr::Param(_) => unreachable!(),
     };
 
@@ -849,10 +854,12 @@ fn extern_ref_to_relation(
     (relation, None)
 }
 
-fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, context::TableDecl)> {
+fn toposort_tables(
+    tables: Vec<(IdentParts, context::TableDecl)>,
+) -> Vec<(IdentParts, context::TableDecl)> {
     let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
 
-    let mut dependencies: Vec<(Ident, Vec<Ident>)> = tables
+    let mut dependencies: Vec<(IdentParts, Vec<IdentParts>)> = tables
         .iter()
         .map(|(ident, table)| {
             let deps = (table.expr.clone().into_relation_var())
@@ -873,11 +880,11 @@ fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, cont
 
 #[derive(Default)]
 struct TableDepsCollector {
-    deps: Vec<Ident>,
+    deps: Vec<IdentParts>,
 }
 
 impl TableDepsCollector {
-    fn collect(expr: pl::Expr) -> Vec<Ident> {
+    fn collect(expr: pl::Expr) -> Vec<IdentParts> {
         let mut c = TableDepsCollector::default();
         c.fold_expr(expr).unwrap();
         c.deps
@@ -889,7 +896,7 @@ impl AstFold for TableDepsCollector {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
                 if let Some(Ty::Table(_)) = &expr.ty {
-                    self.deps.push(ident.clone().into());
+                    self.deps.push(ident.clone());
                 }
                 expr.kind
             }

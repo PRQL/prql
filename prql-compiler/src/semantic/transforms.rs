@@ -440,7 +440,7 @@ fn fold_by_simulating_eval(
     // thats why we trick the resolver with a dummy node that acts as table
     // chunk and instruct resolver to apply the transform on that.
 
-    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name).into()));
+    let mut dummy = Expr::from(ExprKind::Ident(IdentParts::from_name(param_name)));
     dummy.ty = Some(val_type);
 
     let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
@@ -704,7 +704,7 @@ impl FrameInput {
     fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
         let rel_def = context
             .root_mod
-            .get(&self.table.clone().unwrap().into())
+            .get(&self.table.clone().unwrap())
             .unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
         let has_wildcard = rel_def
@@ -718,7 +718,7 @@ impl FrameInput {
             // We could do this for all columns, but it is less transparent,
             // so let's use it just as a last resort.
 
-            let input_ident_fq = Ident::from_path(vec![NS_FRAME, self.name.as_str()]);
+            let input_ident_fq = IdentParts::from_path(vec![NS_FRAME, self.name.as_str()]);
 
             let except = except
                 .iter()

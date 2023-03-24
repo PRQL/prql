@@ -43,7 +43,7 @@ pub enum DeclKind {
 
     TableDecl(TableDecl),
 
-    InstanceOf(Ident),
+    InstanceOf(IdentParts),
 
     /// A single column. Contains id of target which is either:
     /// - an input relation that is source of this column or
@@ -89,7 +89,9 @@ impl Context {
         let name = func_def.name.clone();
 
         let path = vec![NS_STD.to_string()];
-        let ident = Ident { name, path };
+        let ident = IdentParts {
+            parts: path.into_iter().chain(std::iter::once(name)).collect(),
+        };
 
         let decl = Decl {
             kind: DeclKind::FuncDef(func_def),
@@ -160,15 +162,17 @@ impl Context {
             order: 0,
         };
 
-        let ident = Ident { name, path };
+        let ident = IdentParts {
+            parts: path.into_iter().chain(std::iter::once(name)).collect(),
+        };
         self.root_mod.insert(ident, decl).unwrap();
 
         Ok(())
     }
 
-    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
+    pub fn resolve_ident(&mut self, ident: &IdentParts) -> Result<IdentParts, String> {
         // special case: wildcard
-        if ident.name == "*" {
+        if ident.name() == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
             // an attempt to query for all `download` columns and expects to be able
             // to select a `download_2020_01_01` column later in the query. But
@@ -182,7 +186,7 @@ impl Context {
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(ident);
+        let decls = self.root_mod.lookup(&ident.clone());
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -198,11 +202,11 @@ impl Context {
         }
 
         // fallback case: this variable can be from a namespace that we don't know all columns of
-        let decls = if ident.name != "*" {
-            self.root_mod.lookup(&Ident {
-                path: ident.path.clone(),
-                name: NS_INFER.to_string(),
-            })
+        let decls = if ident.name() != "*" {
+            self.root_mod.lookup(&IdentParts::from_path_name(
+                ident.path(),
+                NS_INFER.to_string(),
+            ))
         } else {
             HashSet::new()
         };
@@ -211,7 +215,7 @@ impl Context {
 
             // single match, great!
             1 => {
-                let infer_ident = decls.into_iter().next().unwrap();
+                let infer_ident: IdentParts = decls.into_iter().next().unwrap();
 
                 let infer = self.root_mod.get(&infer_ident).unwrap();
                 let infer_default = infer.kind.as_infer().cloned().unwrap();
@@ -224,13 +228,13 @@ impl Context {
                 // insert default
                 module
                     .names
-                    .insert(ident.name.clone(), Decl::from(*infer_default));
+                    .insert(ident.name(), Decl::from(*infer_default));
 
                 // infer table columns
                 if let Some(decl) = module.names.get(NS_SELF).cloned() {
                     if let DeclKind::InstanceOf(table_ident) = decl.kind {
                         log::debug!("inferring {ident} to be from table {table_ident}");
-                        self.infer_table_column(&table_ident, &ident.name)?;
+                        self.infer_table_column(&table_ident, &ident.name())?;
                     }
                 }
 
@@ -241,15 +245,15 @@ impl Context {
                     let inferred = self.inferred_columns.entry(input_id).or_default();
 
                     let exists = inferred.iter().any(|c| match c {
-                        RelationColumn::Single(Some(name)) => name == &ident.name,
+                        RelationColumn::Single(Some(name)) => name == &ident.name(),
                         _ => false,
                     });
                     if !exists {
-                        inferred.push(RelationColumn::Single(Some(ident.name.clone())));
+                        inferred.push(RelationColumn::Single(Some(ident.name())));
                     }
                 }
 
-                Ok(module_ident + Ident::from_name(ident.name.clone()))
+                Ok(module_ident + IdentParts::from_name(ident.name()))
             }
 
             // ambiguous
@@ -260,10 +264,10 @@ impl Context {
         }
     }
 
-    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
+    fn resolve_ident_wildcard(&mut self, ident: &IdentParts) -> Result<IdentParts, String> {
         // Try matching ident prefix with a module
         let (mod_ident, mod_decl) = {
-            if ident.path.len() > 1 {
+            if ident.path().len() > 1 {
                 // Ident has specified full path
                 let mod_ident = ident.clone().pop().unwrap();
                 let mod_decl = (self.root_mod.get_mut(&mod_ident))
@@ -272,13 +276,15 @@ impl Context {
                 (mod_ident, mod_decl)
             } else {
                 // Ident could be just part of NS_FRAME
-                let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
+                let mod_ident = (IdentParts::from_name(NS_FRAME) + ident.clone())
+                    .pop()
+                    .unwrap();
 
-                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
+                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident.clone()) {
                     (mod_ident, mod_decl)
                 } else {
                     // ... or part of NS_FRAME_RIGHT
-                    let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
+                    let mod_ident = (IdentParts::from_name(NS_FRAME_RIGHT) + ident.clone())
                         .pop()
                         .unwrap();
 
@@ -300,7 +306,7 @@ impl Context {
             // Columns can be inferred, which means that we don't know all column names at
             // compile time: use ExprKind::All
             vec![Expr::from(ExprKind::All {
-                within: mod_ident.clone().into(),
+                within: mod_ident.clone(),
                 except: Vec::new(),
             })]
         } else {
@@ -309,8 +315,8 @@ impl Context {
             (module.names.iter())
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
                 .sorted_by_key(|(_, decl)| decl.order)
-                .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
-                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col.into())))
+                .map(|(name, _)| mod_ident.clone() + IdentParts::from_name(name))
+                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
                 .collect_vec()
         };
 
@@ -325,11 +331,15 @@ impl Context {
         module.names.insert(save_as.to_string(), cols_expr.into());
 
         // Then we can return ident to that decl.
-        Ok(mod_ident + Ident::from_name(save_as))
+        Ok(mod_ident + IdentParts::from_name(save_as))
     }
 
-    fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
-        let table = self.root_mod.get_mut(table_ident).unwrap();
+    fn infer_table_column(
+        &mut self,
+        table_ident: &IdentParts,
+        col_name: &str,
+    ) -> Result<(), String> {
+        let table = self.root_mod.get_mut(&table_ident.clone()).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let has_wildcard =
@@ -363,7 +373,7 @@ impl Context {
 
                         let input = frame.find_input(input_name).unwrap();
                         if let Some(table_ident) = input.table.clone() {
-                            self.infer_table_column(&table_ident.into(), col_name)?;
+                            self.infer_table_column(&table_ident, col_name)?;
                         }
                     }
                     _ => {

@@ -1,15 +1,9 @@
 use std::fmt::Write;
 
+use itertools::Itertools;
 use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
-/// This is glorified way of writing a "vec with at least one element".
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Ident {
-    pub path: Vec<String>,
-    pub name: String,
-}
-
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct IdentParts {
@@ -36,11 +30,26 @@ impl IdentParts {
             parts: vec![name.to_string()],
         }
     }
+    pub fn from_path_name<S: ToString>(path: Vec<S>, name: S) -> Self {
+        IdentParts {
+            parts: path
+                .into_iter()
+                .map(|x| x.to_string())
+                .chain(vec![name.to_string()].into_iter())
+                .collect(),
+        }
+    }
     pub fn name(&self) -> String {
         self.parts.last().unwrap().clone()
     }
     pub fn path(&self) -> Vec<String> {
         self.parts[..self.parts.len() - 1].to_vec()
+    }
+    pub fn pop(self) -> Option<Self> {
+        let mut path = self.path();
+        path.pop().map(|name| IdentParts {
+            parts: path.into_iter().chain(std::iter::once(name)).collect_vec(),
+        })
     }
     pub fn pop_front(mut self) -> (String, Option<IdentParts>) {
         if self.path().is_empty() {
@@ -50,86 +59,20 @@ impl IdentParts {
             (first, Some(IdentParts { parts: self.parts }))
         }
     }
-    pub fn starts_with(&self, prefix: &Ident) -> bool {
-        self.parts
-            .starts_with((prefix).clone().into_vec().as_slice())
-    }
-}
-
-impl From<Ident> for IdentParts {
-    fn from(ident: Ident) -> Self {
-        IdentParts {
-            parts: ident.into_iter().collect(),
-        }
-    }
-}
-impl From<IdentParts> for Ident {
-    fn from(parts: IdentParts) -> Self {
-        Ident::from_path(parts.parts)
-    }
-}
-
-impl Ident {
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-    pub fn path(&self) -> Vec<String> {
-        self.path.clone()
-    }
-    pub fn from_name<S: ToString>(name: S) -> Self {
-        Ident {
-            path: Vec::new(),
-            name: name.to_string(),
-        }
-    }
-
-    pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
-        let name = path.pop().unwrap().to_string();
-        Ident {
-            path: path.into_iter().map(|x| x.to_string()).collect(),
-            name,
-        }
-    }
-
-    pub fn pop(self) -> Option<Self> {
-        let mut path = self.path;
-        path.pop().map(|name| Ident { path, name })
-    }
-
-    pub fn pop_front(mut self) -> (String, Option<Ident>) {
-        if self.path.is_empty() {
-            (self.name, None)
-        } else {
-            let first = self.path.remove(0);
-            (first, Some(self))
-        }
-    }
-
-    pub fn with_name<S: ToString>(mut self, name: S) -> Self {
-        self.name = name.to_string();
-        self
-    }
-
-    fn into_vec(self) -> Vec<String> {
-        self.path.into_iter().chain(Some(self.name)).collect()
-    }
-
-    pub fn starts_with(&self, prefix: &Ident) -> bool {
-        self.clone()
-            .into_vec()
-            .starts_with(&prefix.clone().into_vec())
+    pub fn starts_with(&self, prefix: &IdentParts) -> bool {
+        self.parts.starts_with(&prefix.parts)
     }
 }
 
 #[test]
 fn test_starts_with() {
     // Over-testing, from co-pilot, can remove some of them.
-    let a = Ident::from_path(vec!["a", "b", "c"]);
-    let b = Ident::from_path(vec!["a", "b"]);
-    let c = Ident::from_path(vec!["a", "b", "c", "d"]);
-    let d = Ident::from_path(vec!["a", "b", "d"]);
-    let e = Ident::from_path(vec!["a", "c"]);
-    let f = Ident::from_path(vec!["b", "c"]);
+    let a = IdentParts::from_path(vec!["a", "b", "c"]);
+    let b = IdentParts::from_path(vec!["a", "b"]);
+    let c = IdentParts::from_path(vec!["a", "b", "c", "d"]);
+    let d = IdentParts::from_path(vec!["a", "b", "d"]);
+    let e = IdentParts::from_path(vec!["a", "c"]);
+    let f = IdentParts::from_path(vec!["b", "c"]);
     assert!(a.starts_with(&b));
     assert!(a.starts_with(&a));
     assert!(!a.starts_with(&c));
@@ -138,72 +81,42 @@ fn test_starts_with() {
     assert!(!a.starts_with(&f));
 }
 
-impl std::fmt::Display for Ident {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        display_ident(f, self.clone())
-    }
-}
+impl std::ops::Add<IdentParts> for IdentParts {
+    type Output = IdentParts;
 
-impl IntoIterator for Ident {
-    type Item = String;
-    type IntoIter = std::iter::Chain<
-        std::vec::IntoIter<std::string::String>,
-        std::option::IntoIter<std::string::String>,
-    >;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.path.into_iter().chain(Some(self.name))
-    }
-}
-
-impl std::ops::Add<Ident> for Ident {
-    type Output = Ident;
-
-    fn add(self, rhs: Ident) -> Self::Output {
-        Ident {
-            path: self.into_iter().chain(rhs.path).collect(),
-            name: rhs.name,
+    fn add(self, rhs: IdentParts) -> Self::Output {
+        IdentParts {
+            parts: self.parts.into_iter().chain(rhs.parts).collect(),
         }
     }
 }
 
-impl Serialize for Ident {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.path.len() + 1))?;
-        for part in &self.path {
-            seq.serialize_element(part)?;
-        }
-        seq.serialize_element(&self.name)?;
-        seq.end()
-    }
-}
-
-impl<'de> Deserialize<'de> for Ident {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        <Vec<String> as Deserialize>::deserialize(deserializer).map(Ident::from_path)
-    }
-}
-
-// pub fn display_ident_parts(
-//     f: &mut std::fmt::Formatter,
-//     ident: &IdentParts,
-// ) -> Result<(), std::fmt::Error> {
-//     for part in &ident.parts {
-//         display_ident_part(f, part)?;
-//         f.write_char('.')?;
+// impl Serialize for Ident {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let mut seq = serializer.serialize_seq(Some(self.path.len() + 1))?;
+//         for part in &self.path {
+//             seq.serialize_element(part)?;
+//         }
+//         seq.serialize_element(&self.name)?;
+//         seq.end()
 //     }
-//     Ok(())
+// }
+
+// impl<'de> Deserialize<'de> for Ident {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         <Vec<String> as Deserialize>::deserialize(deserializer).map(Ident::from_path)
+//     }
 // }
 
 pub fn display_ident<T>(f: &mut std::fmt::Formatter, ident: T) -> Result<(), std::fmt::Error>
 where
-    T: Into<Ident>,
+    T: Into<IdentParts>,
 {
     let ident = ident.into();
     for part in &ident.path() {

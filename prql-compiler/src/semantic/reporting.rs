@@ -80,7 +80,7 @@ impl<'a> AstFold for Labeler<'a> {
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
-                let decl = self.context.root_mod.get(&ident.clone().into());
+                let decl = self.context.root_mod.get(&ident.clone());
 
                 let ident = format!("[{ident}]");
 
