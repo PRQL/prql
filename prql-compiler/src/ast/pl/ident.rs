@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use itertools::Itertools;
-use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{self, Deserialize, Serialize};
 
 /// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
@@ -91,6 +91,10 @@ impl std::ops::Add<Ident> for Ident {
     }
 }
 
+// Q: @aljazerzen do we need these now? I couldn't immediately see what they
+// do (but can look more if neeeded).
+//
+// use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 // impl Serialize for Ident {
 //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 //     where
