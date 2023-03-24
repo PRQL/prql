@@ -679,13 +679,7 @@ impl Frame {
     }
 
     pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
-        dbg!(input_name);
-        dbg!(dbg!(&self.inputs)
-            .iter()
-            .inspect(|x| {
-                dbg!(&x.name);
-            })
-            .find(|i| i.name == input_name))
+        self.inputs.iter().find(|i| i.name == input_name)
     }
 
     /// Renames all frame inputs to given alias.

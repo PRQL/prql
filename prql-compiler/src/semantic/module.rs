@@ -198,13 +198,12 @@ impl Module {
     }
 
     pub(super) fn insert_frame(&mut self, frame: &Frame, namespace: &str) {
-        dbg!(&self, &frame, &namespace);
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
         for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
-            let input_name = match dbg!(column) {
+            let input_name = match column {
                 FrameColumn::All { input_name, .. } => Some(input_name.clone()),
                 FrameColumn::Single { name, .. } => {
                     name.clone().and_then(|n| n.path().first().cloned())
