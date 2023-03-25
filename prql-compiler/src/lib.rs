@@ -322,6 +322,7 @@ mod tests_lib {
         assert_debug_snapshot!(Target::from_str("postgres"), @r###"
         Err(
             Error {
+                kind: Error,
                 span: None,
                 reason: NotFound {
                     name: "\"postgres\"",
