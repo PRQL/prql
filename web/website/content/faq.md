@@ -8,8 +8,8 @@ away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL?" >}}
 
-PRQL is a great tool for building SQL queries. In addition, we are focusing on several
-integrations. Here's what you can do right now:
+PRQL is a great tool for building SQL queries. In addition, we are focusing on
+several integrations. Here's what you can do right now:
 
 - **Use PRQL to query your database** Type your PRQL query into the
   [Playground](https://prql-lang.org/playground/) and copy/paste the resulting
@@ -26,8 +26,8 @@ integrations. Here's what you can do right now:
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
 
-It's also very easy to add PRQL to your own apps with
-our [bindings](/#bindings) for Rust, Python & JS.
+It's also very easy to add PRQL to your own apps with our [bindings](/#bindings)
+for Rust, Python & JS.
 
 {{</ faq >}}
 
