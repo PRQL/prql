@@ -606,7 +606,7 @@ impl Resolver {
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let arg = self.fold_and_type_check(arg, param, &func_name.as_ref().cloned())?;
+                let arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope

@@ -182,7 +182,7 @@ impl Context {
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(&ident.clone());
+        let decls = self.root_mod.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -327,7 +327,7 @@ impl Context {
     }
 
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
-        let table = self.root_mod.get_mut(&table_ident.clone()).unwrap();
+        let table = self.root_mod.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let has_wildcard =

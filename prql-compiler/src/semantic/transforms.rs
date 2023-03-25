@@ -656,7 +656,7 @@ impl Frame {
         let alias = expr.alias.as_ref();
         let name = alias
             .map(Ident::from_name)
-            .or_else(|| expr.kind.as_ident().and_then(|i| (i.clone().pop_front().1)));
+            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
 
         // remove names from columns with the same name
         if name.is_some() {
@@ -702,7 +702,7 @@ impl Frame {
 
 impl FrameInput {
     fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
-        let rel_def = context.root_mod.get(&self.table.clone().unwrap()).unwrap();
+        let rel_def = context.root_mod.get(self.table.as_ref().unwrap()).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
         let has_wildcard = rel_def
             .columns

@@ -123,7 +123,7 @@ impl Module {
                             .clone()
                             .path()
                             .get(index + 1)
-                            .unwrap_or(&fq_ident.name().clone().clone())
+                            .unwrap_or(&fq_ident.name())
                             .clone();
                         let mut found = false;
                         for n in stack.iter().rev() {
@@ -211,7 +211,7 @@ impl Module {
             let input_name = match column {
                 FrameColumn::All { input_name, .. } => Some(input_name.clone()),
                 FrameColumn::Single { name, .. } => {
-                    name.clone().and_then(|n| n.path().first().cloned())
+                    name.as_ref().and_then(|n| n.path().first().cloned())
                 }
             };
 
