@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
   mysql:
+    # No arm64 image available; remove when one does become available
+    platform: linux/amd64
     image: "mysql:debian"
     ports:
       - "3306:3306"
