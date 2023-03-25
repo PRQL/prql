@@ -14,16 +14,6 @@ impl std::fmt::Display for Ident {
     }
 }
 impl Ident {
-    pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
-        let name = path.pop().unwrap().to_string();
-        Ident {
-            parts: path
-                .into_iter()
-                .map(|x| x.to_string())
-                .chain(vec![name].into_iter())
-                .collect(),
-        }
-    }
     pub fn from_name<S: ToString>(name: S) -> Self {
         Ident {
             parts: vec![name.to_string()],

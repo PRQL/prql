@@ -715,7 +715,9 @@ impl FrameInput {
             // We could do this for all columns, but it is less transparent,
             // so let's use it just as a last resort.
 
-            let input_ident_fq = Ident::from_path(vec![NS_FRAME, self.name.as_str()]);
+            let input_ident_fq = Ident {
+                parts: vec![NS_FRAME.to_string(), self.name.clone()],
+            };
 
             let except = except
                 .iter()

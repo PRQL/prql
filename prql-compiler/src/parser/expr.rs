@@ -278,7 +278,7 @@ pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
 
     ident_part()
         .chain(ctrl('.').ignore_then(ident_part().or(star)).repeated())
-        .map(Ident::from_path::<String>)
+        .map(|x| Ident { parts: x })
         .labelled("identifier")
 }
 

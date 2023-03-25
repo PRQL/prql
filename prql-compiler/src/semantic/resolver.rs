@@ -170,8 +170,8 @@ impl AstFold for Resolver {
                                             .collect(),
                                     },
                                     RelationColumn::Single(col_name) => FrameColumn::Single {
-                                        name: col_name.clone().map(|col_name| {
-                                            Ident::from_path(vec![rel_name.clone(), col_name])
+                                        name: col_name.clone().map(|col_name| Ident {
+                                            parts: vec![rel_name.clone(), col_name],
                                         }),
                                         expr_id: id,
                                     },
