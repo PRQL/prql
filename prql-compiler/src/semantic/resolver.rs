@@ -170,8 +170,8 @@ impl AstFold for Resolver {
                                             .collect(),
                                     },
                                     RelationColumn::Single(col_name) => FrameColumn::Single {
-                                        name: col_name.clone().map(|col_name| Ident {
-                                            parts: vec![rel_name.clone(), col_name],
+                                        name: col_name.clone().map(|col_name| {
+                                            Ident(vec![rel_name.clone(), col_name])
                                         }),
                                         expr_id: id,
                                     },
@@ -384,9 +384,7 @@ impl Resolver {
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
         let res = if ident.path().is_empty() && self.default_namespace.is_some() {
-            let defaulted = Ident {
-                parts: vec![self.default_namespace.clone().unwrap(), ident.name()],
-            };
+            let defaulted = Ident(vec![self.default_namespace.clone().unwrap(), ident.name()]);
             self.context.resolve_ident(&defaulted)
         } else {
             self.context.resolve_ident(ident)

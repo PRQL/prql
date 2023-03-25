@@ -693,7 +693,7 @@ impl Frame {
                 FrameColumn::All { input_name, .. } => *input_name = alias.clone(),
                 FrameColumn::Single {
                     name: Some(name), ..
-                } => name.parts = vec![alias.clone(), name.name()],
+                } => name.0 = vec![alias.clone(), name.name()],
                 _ => {}
             }
         }
@@ -715,9 +715,7 @@ impl FrameInput {
             // We could do this for all columns, but it is less transparent,
             // so let's use it just as a last resort.
 
-            let input_ident_fq = Ident {
-                parts: vec![NS_FRAME.to_string(), self.name.clone()],
-            };
+            let input_ident_fq = Ident(vec![NS_FRAME.to_string(), self.name.clone()]);
 
             let except = except
                 .iter()

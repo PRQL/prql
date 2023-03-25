@@ -187,7 +187,7 @@ impl Closure {
     pub fn as_debug_name(&self) -> String {
         self.name
             .as_ref()
-            .and_then(|n| n.parts.first())
+            .and_then(|n| n.0.first())
             .map(|s| s.to_string())
             .unwrap_or_else(|| "<anonymous>".to_string())
     }

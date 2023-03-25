@@ -177,9 +177,7 @@ impl Module {
             } else if let Some(decl) = module.names.get(&prefix) {
                 if let DeclKind::Module(inner) = &decl.kind {
                     if inner.names.contains_key(NS_SELF) {
-                        return HashSet::from([Ident {
-                            parts: vec![prefix, NS_SELF.to_string()],
-                        }]);
+                        return HashSet::from([Ident(vec![prefix, NS_SELF.to_string()])]);
                     }
                 }
 

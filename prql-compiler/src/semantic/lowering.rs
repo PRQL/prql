@@ -798,9 +798,7 @@ impl TableExtractor {
                     self.extract_from_namespace(ns);
                 }
                 DeclKind::TableDecl(table) => {
-                    let fq_ident = Ident {
-                        parts: self.path.clone(),
-                    };
+                    let fq_ident = Ident(self.path.clone());
                     self.tables.push((fq_ident, table.clone()));
                 }
                 _ => {}

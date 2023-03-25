@@ -5,9 +5,7 @@ use serde::{self, Deserialize, Serialize};
 /// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct Ident {
-    pub parts: Vec<String>,
-}
+pub struct Ident(pub Vec<String>);
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         display_ident(f, self.clone())
@@ -15,24 +13,21 @@ impl std::fmt::Display for Ident {
 }
 impl Ident {
     pub fn from_name<S: ToString>(name: S) -> Self {
-        Ident {
-            parts: vec![name.to_string()],
-        }
+        Ident(vec![name.to_string()])
     }
     pub fn from_path_name<S: ToString>(path: Vec<S>, name: S) -> Self {
-        Ident {
-            parts: path
-                .into_iter()
+        Ident(
+            path.into_iter()
                 .map(|x| x.to_string())
                 .chain(vec![name.to_string()].into_iter())
                 .collect(),
-        }
+        )
     }
     pub fn name(&self) -> String {
-        self.parts.last().unwrap().clone()
+        self.0.last().unwrap().clone()
     }
     pub fn path(&self) -> Vec<String> {
-        self.parts[..self.parts.len() - 1].to_vec()
+        self.0[..self.0.len() - 1].to_vec()
     }
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path();
@@ -42,12 +37,12 @@ impl Ident {
         if self.path().is_empty() {
             (self.name(), None)
         } else {
-            let first = self.parts.remove(0);
-            (first, Some(Ident { parts: self.parts }))
+            let first = self.0.remove(0);
+            (first, Some(Ident(self.0)))
         }
     }
     pub fn starts_with(&self, prefix: &Ident) -> bool {
-        self.parts.starts_with(&prefix.parts)
+        self.0.starts_with(&prefix.0)
     }
 }
 
@@ -55,9 +50,7 @@ impl std::ops::Add<Ident> for Ident {
     type Output = Ident;
 
     fn add(self, rhs: Ident) -> Self::Output {
-        Ident {
-            parts: self.parts.into_iter().chain(rhs.parts).collect(),
-        }
+        Ident(self.0.into_iter().chain(rhs.0).collect())
     }
 }
 
