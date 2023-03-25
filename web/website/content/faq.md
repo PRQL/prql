@@ -210,6 +210,6 @@ because of a strong convention around lowercase, but everywhere else we use
 
 {{< faq "Where can I find the logos?" >}}
 
-See the [press material](/press-material/).
+See the [Press material](/press-material/) page.
 
 {{</ faq >}}
