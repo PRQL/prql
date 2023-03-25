@@ -4,6 +4,9 @@ mod connection;
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
+    use insta::assert_display_snapshot;
     use postgres::NoTls;
     use tiberius::{AuthMethod, Client, Config};
     use tokio::net::TcpStream;
@@ -16,14 +19,24 @@ mod tests {
 
     use crate::connection::*;
 
-    #[ignore]
     #[test]
-    fn test_vendors() {
-        [5432, 3306, 1433 /*, 50000*/].iter().for_each(|port| {
-            if !is_port_open(*port) {
-                panic!("No database is listening on port {}", port);
+    fn test_rdbms() {
+        for port in [5432u16, 3306, 1433 /*, 50000*/] {
+            // test is skipped locally when DB is not listening
+            // in CI it fails
+            if !is_port_open(port) {
+                match env::var("CI") {
+                    Ok(v) if &v == "true" => {
+                        // CI
+                        panic!("No database is listening on port {}", port);
+                    }
+                    Ok(_) | Err(_) => {
+                        // locally
+                        return;
+                    }
+                }
             }
-        });
+        }
         let runtime = Runtime::new().unwrap();
         let mut duck = DuckDBConnection(duckdb::Connection::open_in_memory().unwrap());
         let mut sqlite = SQLiteConnection(rusqlite::Connection::open_in_memory().unwrap());
@@ -88,6 +101,7 @@ mod tests {
                 "Rows do not match for {}",
                 con.get_dialect()
             );
+            assert_display_snapshot!(format!("{:?}", actual_rows), con.get_dialect().to_string());
         }
     }
 
