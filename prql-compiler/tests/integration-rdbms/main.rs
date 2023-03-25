@@ -101,7 +101,8 @@ mod tests {
                 "Rows do not match for {}",
                 con.get_dialect()
             );
-            assert_display_snapshot!(format!("{:?}", actual_rows), con.get_dialect().to_string());
+
+            assert_display_snapshot!(con.get_dialect().to_string(), format!("{:?}", actual_rows));
         }
     }
 
