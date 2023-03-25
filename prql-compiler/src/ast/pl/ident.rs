@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-use itertools::Itertools;
 use serde::{self, Deserialize, Serialize};
 
 /// A name. Generally columns, tables, functions, variables.
@@ -47,9 +46,7 @@ impl Ident {
     }
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path();
-        path.pop().map(|name| Ident {
-            parts: path.into_iter().chain(std::iter::once(name)).collect_vec(),
-        })
+        path.pop().map(|name| Ident::from_path_name(path, name))
     }
     pub fn pop_front(mut self) -> (String, Option<Ident>) {
         if self.path().is_empty() {

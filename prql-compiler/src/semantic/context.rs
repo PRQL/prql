@@ -89,9 +89,7 @@ impl Context {
         let name = func_def.name.clone();
 
         let path = vec![NS_STD.to_string()];
-        let ident = Ident {
-            parts: path.into_iter().chain(std::iter::once(name)).collect(),
-        };
+        let ident = Ident::from_path_name(path, name);
 
         let decl = Decl {
             kind: DeclKind::FuncDef(func_def),
@@ -162,9 +160,7 @@ impl Context {
             order: 0,
         };
 
-        let ident = Ident {
-            parts: path.into_iter().chain(std::iter::once(name)).collect(),
-        };
+        let ident = Ident::from_path_name(path, name);
         self.root_mod.insert(ident, decl).unwrap();
 
         Ok(())
