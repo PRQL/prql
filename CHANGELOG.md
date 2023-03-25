@@ -23,7 +23,8 @@
 - _Breaking_: The `compile` function's `Options` now includes a `color` member,
   which determines whether error messages use ANSI color codes. This is
   technically a breaking change to the API. (@max-sixty, #2251)
-- The `Error` struct now exposes the `MessageKind` enum. (@vanillajonathan, #2307)
+- The `Error` struct now exposes the `MessageKind` enum. (@vanillajonathan,
+  #2307)
 
 **New Contributors**:
 
