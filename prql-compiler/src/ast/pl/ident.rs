@@ -4,8 +4,8 @@ use serde::{self, Deserialize, Serialize};
 
 /// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
-#[serde(transparent)]
 pub struct Ident(pub Vec<String>);
+
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         display_ident(f, self.clone())
