@@ -28,7 +28,7 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-pack
 
