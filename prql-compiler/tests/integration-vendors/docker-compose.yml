@@ -1,8 +1,6 @@
-version: "3"
-
 services:
   postgres:
-    image: "postgres:15-alpine"
+    image: "postgres:alpine"
     ports:
       - "5432:5432"
     environment:
@@ -10,7 +8,7 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
   mysql:
-    image: "mysql:8"
+    image: "mysql:debian"
     ports:
       - "3306:3306"
     environment:
@@ -30,7 +28,7 @@ services:
   #      REPODB: false
   #      IS_OSXFS: false
   mssql:
-    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    image: "mcr.microsoft.com/mssql/server:latest"
     ports:
       - "1433:1433"
     environment:
