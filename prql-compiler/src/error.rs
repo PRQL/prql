@@ -14,6 +14,8 @@ pub struct Span {
 
 #[derive(Debug, Clone)]
 pub struct Error {
+    /// Message kind. Currently only Error is implemented.
+    pub kind: MessageKind,
     pub span: Option<Span>,
     pub reason: Reason,
     pub help: Option<String>,
@@ -32,6 +34,14 @@ pub struct SourceLocation {
     pub start: (usize, usize),
 
     pub end: (usize, usize),
+}
+
+/// Compile message kind. Currently only Error is implemented.
+#[derive(Clone, Debug, Serialize)]
+pub enum MessageKind {
+    Error,
+    Warning,
+    Lint,
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +64,7 @@ pub enum Reason {
 impl Error {
     pub fn new(reason: Reason) -> Self {
         Error {
+            kind: MessageKind::Error,
             span: None,
             reason,
             help: None,
@@ -83,6 +94,8 @@ impl Error {
 
 #[derive(Clone, Serialize)]
 pub struct ErrorMessage {
+    /// Message kind. Currently only Error is implemented.
+    pub kind: MessageKind,
     /// Machine-readable identifier of the error
     pub code: Option<String>,
     /// Plain text of the error
@@ -91,7 +104,6 @@ pub struct ErrorMessage {
     pub hint: Option<String>,
     /// Character offset of error origin within a source file
     pub span: Option<Span>,
-
     /// Annotated code, containing cause and hints.
     pub display: Option<String>,
     /// Line and column number of error origin within a source file
@@ -205,6 +217,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
 
     ErrorMessage {
         code,
+        kind: MessageKind::Error,
         reason,
         hint,
         span,
