@@ -1,5 +1,5 @@
 ---
-source: book/tests/snapshot.rs
+source: web/book/tests/snapshot.rs
 expression: "from_text format:json '[{\"n\": 1 }]'\nloop (\n    filter n<4\n    select n = n+1\n)\n\n# returns [1, 2, 3, 4]\n"
 ---
 WITH table_0 AS (
@@ -7,7 +7,7 @@ WITH table_0 AS (
     1 AS n
 ),
 table_4 AS (
-  WITH RECURSIVE loop AS (
+  WITH RECURSIVE _loop AS (
     SELECT
       n
     FROM
@@ -17,14 +17,14 @@ table_4 AS (
     SELECT
       n + 1
     FROM
-      loop AS table_2
+      _loop AS table_2
     WHERE
       n < 4
   )
   SELECT
     *
   FROM
-    loop
+    _loop
 )
 SELECT
   n

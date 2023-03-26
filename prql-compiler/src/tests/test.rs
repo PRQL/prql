@@ -3235,7 +3235,7 @@ fn test_loop() {
         1 AS n
     ),
     table_6 AS (
-      WITH RECURSIVE loop AS (
+      WITH RECURSIVE _loop AS (
         SELECT
           n - 2 AS _expr_0
         FROM
@@ -3249,7 +3249,7 @@ fn test_loop() {
             SELECT
               _expr_0 + 1 AS _expr_1
             FROM
-              loop AS table_2
+              _loop AS table_2
           ) AS table_3
         WHERE
           _expr_1 < 5
@@ -3257,7 +3257,7 @@ fn test_loop() {
       SELECT
         *
       FROM
-        loop
+        _loop
     )
     SELECT
       _expr_0 * 2 AS n

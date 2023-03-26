@@ -251,14 +251,14 @@ tasks:
       - npm cit
 
   # Currently disabled; see prql-elixir/README.md for details
-  # test-elixir:
-  #   dir: prql-elixir
-  #   cmds:
-  #     # We could move this line into an `install` task
-  #     - mix local.hex --force
-  #     - mix deps.get --force
-  #     - mix compile
-  #     - mix test
+  test-elixir:
+    dir: bindings/prql-elixir
+    cmds:
+      # We could move this line into an `install` task
+      - mix local.hex --force
+      - mix deps.get --force
+      - mix compile
+      - mix test
 
   run-website:
     desc: Build & serve the static website.
