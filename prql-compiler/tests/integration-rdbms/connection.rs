@@ -1,12 +1,18 @@
+use std::env::{current_dir, join_paths};
+use std::fs::read_to_string;
+use std::path::Path;
 use std::time::SystemTime;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
+use itertools::Itertools;
 use mysql::prelude::Queryable;
 use mysql::Value;
 use pg_bigdecimal::PgNumeric;
 use postgres::types::Type;
 use tiberius::numeric::BigDecimal;
+use tiberius::time::time::PrimitiveDateTime;
 use tiberius::*;
+use time::DateTime2;
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
@@ -27,6 +33,8 @@ pub struct MssqlConnection(pub tiberius::Client<Compat<TcpStream>>);
 
 pub trait DBConnection {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Vec<Row>;
+
+    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
 
     fn get_dialect(&self) -> Dialect;
 }
@@ -74,6 +82,24 @@ impl DBConnection for DuckDBConnection {
         vec
     }
 
+    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
+        let mut path = current_dir().unwrap();
+        for p in [
+            "tests",
+            "integration",
+            "data",
+            "chinook",
+            format!("{csv_name}.csv").as_str(),
+        ] {
+            path.push(p);
+        }
+        let path = path.display().to_string().replace("\"", "");
+        self.run_query(
+            &format!("COPY {csv_name} FROM '{path}' (AUTO_DETECT TRUE);"),
+            runtime,
+        );
+    }
+
     fn get_dialect(&self) -> Dialect {
         Dialect::DuckDb
     }
@@ -108,6 +134,48 @@ impl DBConnection for SQLiteConnection {
         vec
     }
 
+    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
+        let mut path = current_dir().unwrap();
+        for p in [
+            "tests",
+            "integration",
+            "data",
+            "chinook",
+            format!("{csv_name}.csv").as_str(),
+        ] {
+            path.push(p);
+        }
+        let content = read_to_string(path.clone()).unwrap();
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_path(path)
+            .unwrap();
+        let headers = reader
+            .headers()
+            .unwrap()
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        for result in reader.records() {
+            let r = result.unwrap();
+            let q = format!(
+                "INSERT INTO {csv_name} ({}) VALUES ({})",
+                headers.iter().join(","),
+                r.iter()
+                    .map(|s|  if true || s.contains(" ") {
+                        format!("\"{s}\"")
+                    } else {
+                        s.to_string()
+                    })
+                    .join(",")
+            );
+            self.run_query(q.as_str(), runtime);
+            //println!("{:?}", q);
+        }
+        //self.run_query(&format!(".mode csv; .import --skip 1 '{path}' {csv_name};"), runtime);
+        //self.run_query(&format!(".mode csv;"), runtime);
+    }
+
     fn get_dialect(&self) -> Dialect {
         Dialect::SQLite
     }
@@ -125,14 +193,13 @@ impl DBConnection for PostgresConnection {
                     &Type::BOOL => (row.get::<usize, bool>(i)).to_string(),
                     &Type::INT4 => (row.get::<usize, i32>(i)).to_string(),
                     &Type::INT8 => (row.get::<usize, i64>(i)).to_string(),
-                    &Type::TEXT => {
+                    &Type::TEXT | &Type::VARCHAR | &Type::JSON | &Type::JSONB => {
                         match row.try_get::<usize, String>(i) {
                             Ok(v) => v,
                             // handle null
                             Err(_) => "".to_string(),
                         }
                     }
-                    &Type::VARCHAR | &Type::JSON | &Type::JSONB => row.get::<usize, String>(i),
                     &Type::FLOAT4 => (row.get::<usize, f32>(i)).to_string(),
                     &Type::FLOAT8 => (row.get::<usize, f64>(i)).to_string(),
                     &Type::NUMERIC => row.get::<usize, PgNumeric>(i).n.unwrap().to_string(),
@@ -148,6 +215,15 @@ impl DBConnection for PostgresConnection {
             vec.push(columns);
         }
         vec
+    }
+
+    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
+        self.run_query(
+            &format!(
+                "COPY {csv_name} FROM '/tmp/chinook/{csv_name}.csv' DELIMITER ',' CSV HEADER;"
+            ),
+            runtime,
+        );
     }
 
     fn get_dialect(&self) -> Dialect {
@@ -179,6 +255,10 @@ impl DBConnection for MysqlConnection {
         vec
     }
 
+    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
+        self.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
+    }
+
     fn get_dialect(&self) -> Dialect {
         Dialect::MySql
     }
@@ -187,6 +267,10 @@ impl DBConnection for MysqlConnection {
 impl DBConnection for MssqlConnection {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Vec<Row> {
         runtime.block_on(self.query(sql))
+    }
+
+    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
+        self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime);
     }
 
     fn get_dialect(&self) -> Dialect {
@@ -213,8 +297,17 @@ impl MssqlConnection {
                         .get::<i32, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
+                    ColumnType::Floatn => row
+                        .get::<f32, usize>(i)
+                        .map(|i| i.to_string())
+                        .unwrap_or_else(|| "".to_string()),
                     ColumnType::Numericn => row.get::<BigDecimal, usize>(i).unwrap().to_string(),
-                    ColumnType::BigVarChar => String::from(row.get::<&str, usize>(i).unwrap()),
+                    ColumnType::BigVarChar | ColumnType::NVarchar => {
+                        String::from(row.get::<&str, usize>(i).unwrap_or(""))
+                    }
+                    ColumnType::Datetimen => {
+                        row.get::<PrimitiveDateTime, usize>(i).unwrap().to_string()
+                    }
                     typ => unimplemented!("mssql type {:?}", typ),
                 };
                 columns.push(value);

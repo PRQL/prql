@@ -69,26 +69,30 @@ mod tests {
         for con in connections {
             run_tests_for_connection(con, &runtime);
         }
+        panic!("mdsad");
     }
 
     fn run_tests_for_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
         let setup = include_str!("setup.sql");
+        let setup = include_str!("../integration/data/chinook/schema.sql");
+        println!("DD:: {}", con.get_dialect());
         setup
             .split(';')
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .for_each(|s| {
                 let sql = match con.get_dialect() {
-                    Dialect::MsSql => s
-                        .replace(" boolean ", " bit ")
-                        .replace("TRUE", "1")
-                        .replace("FALSE", "0"),
+                    Dialect::MsSql => s.replace("TIMESTAMP", "DATETIME"),
                     Dialect::MySql => s.replace('"', "`"),
                     _ => s.to_string(),
                 };
                 con.run_query(sql.as_str(), runtime);
             });
-
+        con.import_csv("invoices", runtime);
+        let mut rr = con.run_query("select * from invoices;", runtime);
+        println!("{:?}", rr.first());
+        assert_eq!(412, rr.len());
+        return;
         for (prql, expected_rows) in get_test_cases() {
             let options = Options::default().with_target(Sql(Some(con.get_dialect())));
             let sql = prql_compiler::compile(prql.as_str(), &options).unwrap();
