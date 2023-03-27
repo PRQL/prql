@@ -11,18 +11,18 @@ We call this project "Prequel", and write its name in upper-case as `PRQL`. We
 name the repo and some libraries `prql` because of a strong convention around
 lowercase, but everywhere else we use `PRQL`.
 
-**License**
+#### License
 
 We make PRQL software available under the
 [Apache 2.0 License](https://github.com/PRQL/prql/blob/main/LICENSE).
 
-**Wordmark**
+#### Wordmark
 
 The PRQL wordmark uses the
 [Inter ExtraBold](https://fonts.google.com/specimen/Inter?preview.text=PRQL&preview.text_type=custom)
 font.
 
-**Logos**
+#### Logos
 
 Logo with "PRQL" name:
 

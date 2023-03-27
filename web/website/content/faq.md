@@ -6,16 +6,14 @@ Here are some of the most common questions we hear. Have something else you'd
 like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask
 away!
 
-{{< faq "Cool story Hansel, but what can I actually do with PRQL?" >}}
+{{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
 
-PRQL is a great tool for building SQL queries. In addition, we are focusing on
-several integrations. Here's what you can do right now:
+PRQL builds powerful SQL queries today. In addition, we are focusing on
+several integrations. Here's how you can use PRQL:
 
-- **Use PRQL to query your database** Type your PRQL query into the
-  [Playground](https://prql-lang.org/playground/) and copy/paste the resulting
-  SQL into your database. Read our
-  [blog post](https://prql-lang.org/posts/2023-01-28-format-pretty-reports/) to
-  see how to make the reports more attractive.
+- **Do real work with PRQL** Type your PRQL query into the
+  [Playground](https://prql-lang.org/playground/) or the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
+  and copy/paste the resulting SQL into your database. 
 - **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
   [dbt](https://www.getdbt.com/) models. It very simple to use — install
   `dbt-prql` with pip, and then any text between a `{% prql %}` &
@@ -188,8 +186,6 @@ While you should be skeptical of new claims from new entrants
 [Tidyverse](https://www.tidyverse.org/)
 [commented](https://news.ycombinator.com/item?id=30067406) in a discussion on
 PRQL:
-
-<!-- TODO: the `>` doesn't seem to format on the website  -->
 
 > FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
 > — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`

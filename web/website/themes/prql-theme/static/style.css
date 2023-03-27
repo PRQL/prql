@@ -616,7 +616,7 @@ article img {
   max-width: 100%;
 }
 
-article > blockquote {
+blockquote p {
   margin: 0 0 1rem 0.5rem;
   padding: 0.25rem 1.25rem;
   border-left: 0.25rem solid lightgrey;
