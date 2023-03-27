@@ -71,7 +71,7 @@ tasks:
       - python3 -m pip install -U maturin
 
   suggest-vscode-extensions:
-    desc: Check and suggest VSCode extensions.
+    desc: Check and suggest VS Code extensions.
     vars:
       extensions:
         # List extensions, or just return true if we can't find `code`.
@@ -90,7 +90,7 @@ tasks:
       - |
         echo "
 
-        🟡 It looks like VSCode is installed but doesn't have all recommended extensions installed:
+        🟡 It looks like VS Code is installed but doesn't have all recommended extensions installed:
         {{ .missing_extensions }}
 
         Install them with:
@@ -99,7 +99,7 @@ tasks:
           "
 
   install-vscode-extensions:
-    desc: Install recommended VSCode extensions.
+    desc: Install recommended VS Code extensions.
     cmds:
       - |
         {{ range ( .vscode_extensions | trim | splitLines ) -}}
@@ -135,8 +135,8 @@ tasks:
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
       - cmd:
-          echo "In order to get nice auto-formatting of web code in VSCode,
-          VSCode requires configuration to use the system-wide install of
+          echo "In order to get nice auto-formatting of web code in VS Code, VS
+          Code requires configuration to use the system-wide install of
           prettier. See
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
           for more info."
@@ -251,14 +251,14 @@ tasks:
       - npm cit
 
   # Currently disabled; see prql-elixir/README.md for details
-  # test-elixir:
-  #   dir: prql-elixir
-  #   cmds:
-  #     # We could move this line into an `install` task
-  #     - mix local.hex --force
-  #     - mix deps.get --force
-  #     - mix compile
-  #     - mix test
+  test-elixir:
+    dir: bindings/prql-elixir
+    cmds:
+      # We could move this line into an `install` task
+      - mix local.hex --force
+      - mix deps.get --force
+      - mix compile
+      - mix test
 
   run-website:
     desc: Build & serve the static website.

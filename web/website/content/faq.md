@@ -6,14 +6,11 @@ Here are some of the most common questions we hear. Have something else you'd
 like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask
 away!
 
-{{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
+{{< faq "Cool story Hansel, but what can I actually do with PRQL now?" >}}
 
-PRQL builds powerful SQL queries today. In addition, we are focusing on
-several integrations. Here's how you can use PRQL:
+We're still early, and the opportunities for using PRQL are focused on two
+integrations:
 
-- **Do real work with PRQL** Type your PRQL query into the
-  [Playground](https://prql-lang.org/playground/) or the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
-  and copy/paste the resulting SQL into your database. 
 - **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
   [dbt](https://www.getdbt.com/) models. It very simple to use — install
   `dbt-prql` with pip, and then any text between a `{% prql %}` &
@@ -24,8 +21,8 @@ several integrations. Here's how you can use PRQL:
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
 
-It's also very easy to add PRQL to your own apps with our [bindings](/#bindings)
-for Rust, Python & JS.
+Beyond these two integrations, it's very easy to add PRQL to your own apps with
+our [bindings](/#bindings) for Rust, Python & JS.
 
 {{</ faq >}}
 
@@ -122,9 +119,7 @@ most dialects' implementation are identical to a generic implementation.
 
 {{</ faq >}}
 
-{{< faq "What's this `aggregate` function?" >}}
-
-**...and why not just use `SELECT` & `GROUP BY`?**
+{{< faq "What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?" >}}
 
 SQL uses `SELECT` for all of these:
 
@@ -187,12 +182,14 @@ While you should be skeptical of new claims from new entrants
 [commented](https://news.ycombinator.com/item?id=30067406) in a discussion on
 PRQL:
 
-> FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
-> — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
-> etc.
+<!-- TODO: the `>` doesn't seem to format on the website  -->
+
+> "FWIW the separate `group_by()` is one of my greatest design regrets with
+> dplyr — I wish I had made `by` a parameter of `summarise()`, `mutate()`,
+> `filter()` etc."
 
 For more detail, check out the docs in the
-[PRQL Book](https://prql-lang.org/book/transforms/aggregate.html).
+[PRQL Book](https://prql-lang.org/book).
 
 {{</ faq >}}
 
@@ -206,6 +203,8 @@ because of a strong convention around lowercase, but everywhere else we use
 
 {{< faq "Where can I find the logos?" >}}
 
-See the [Press material](/press-material/) page.
+<!-- TODO: unsure why a relative link such as `/press-material` doesn't pass the markdownlinkcheck? Would be good to resolve -->
+
+See the [press material](https://prql-lang.org/press-material/).
 
 {{</ faq >}}

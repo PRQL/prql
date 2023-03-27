@@ -2248,6 +2248,7 @@ join s=salaries [==id]
         Errors(
             [
                 Error {
+                    kind: Error,
                     span: Some(
                         span-chars-22-23,
                     ),
@@ -2258,6 +2259,7 @@ join s=salaries [==id]
                     code: None,
                 },
                 Error {
+                    kind: Error,
                     span: Some(
                         span-chars-35-36,
                     ),
@@ -2268,6 +2270,7 @@ join s=salaries [==id]
                     code: None,
                 },
                 Error {
+                    kind: Error,
                     span: Some(
                         span-chars-37-38,
                     ),
@@ -2288,6 +2291,7 @@ join s=salaries [==id]
         Errors(
             [
                 Error {
+                    kind: Error,
                     span: Some(
                         span-chars-6-7,
                     ),
