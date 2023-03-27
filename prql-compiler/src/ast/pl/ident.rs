@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-use itertools::Itertools;
 use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
@@ -46,14 +45,18 @@ impl Ident {
         self
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &String> {
+        self.path.iter().chain(std::iter::once(&self.name))
+    }
+
     pub fn starts_with(&self, prefix: &Ident) -> bool {
-        if self.path.len() < prefix.path.len() {
-            false
-        } else {
-            let self_chunks = self.path.iter().chain(Some(&self.name));
-            let prefix_chunks = prefix.path.iter().chain(Some(&prefix.name));
-            !std::iter::zip(self_chunks, prefix_chunks).all_equal()
+        if prefix.path.len() > self.path.len() {
+            return false;
         }
+        prefix
+            .iter()
+            .zip(self.iter())
+            .all(|(prefix_component, self_component)| prefix_component == self_component)
     }
 }
 
@@ -134,4 +137,21 @@ pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), st
     } else {
         write!(f, "{s}")
     }
+}
+
+#[test]
+fn test_starts_with() {
+    // Over-testing, from co-pilot, can remove some of them.
+    let a = Ident::from_path(vec!["a", "b", "c"]);
+    let b = Ident::from_path(vec!["a", "b"]);
+    let c = Ident::from_path(vec!["a", "b", "c", "d"]);
+    let d = Ident::from_path(vec!["a", "b", "d"]);
+    let e = Ident::from_path(vec!["a", "c"]);
+    let f = Ident::from_path(vec!["b", "c"]);
+    assert!(a.starts_with(&b));
+    assert!(a.starts_with(&a));
+    assert!(!a.starts_with(&c));
+    assert!(!a.starts_with(&d));
+    assert!(!a.starts_with(&e));
+    assert!(!a.starts_with(&f));
 }

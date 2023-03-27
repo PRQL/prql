@@ -14,7 +14,7 @@
 **Web**:
 
 - Added the PRQL snippets from the book to the
-  [Playground](https://prql-lang.org/playground/)
+  [Playground](https://prql-lang.org/playground/) (@jelenkee, #2197)
 
 **Integrations**:
 
@@ -23,10 +23,12 @@
 - _Breaking_: The `compile` function's `Options` now includes a `color` member,
   which determines whether error messages use ANSI color codes. This is
   technically a breaking change to the API. (@max-sixty, #2251)
+- The `Error` struct now exposes the `MessageKind` enum. (@vanillajonathan,
+  #2307)
 
 **New Contributors**:
 
-## 0.6.1 — 2022-03-12
+## 0.6.1 — 2023-03-12
 
 0.6.1 is a small release containing an internal refactoring and improved
 bindings for C, PHP & .NET.
@@ -57,7 +59,7 @@ This release has 54 commits from 6 contributors. Selected changes:
   `web` & `bindings`, simplifying the repo's structure. There's also `grammars`
   & `packages` (@max-sixty, #2135, #2117, #2121).
 
-## 0.6.0 — 2022-03-08
+## 0.6.0 — 2023-03-08
 
 0.6.0 introduces a rewritten parser, giving us the ability to dramatically
 improve error messages, renames `switch` to `case` and includes lots of minor
@@ -140,7 +142,7 @@ This release has 108 commits from 11 contributors. Selected changes:
 - @linux-china, with #1971
 - @Jelenkee, with #2019
 
-## 0.5.2 — 2022-02-18
+## 0.5.2 — 2023-02-18
 
 0.5.2 is a tiny release to fix an build issue in yesterday's `prql-js` 0.5.1
 release.
@@ -151,7 +153,7 @@ This release has 7 commits from 2 contributors.
 
 - @matthias-Q, with #1873
 
-## 0.5.1 — 2022-02-17
+## 0.5.1 — 2023-02-17
 
 0.5.1 contains a few fixes, and another change to how bindings handle default
 target / dialects.
@@ -182,7 +184,7 @@ This release has 53 commits from 7 contributors. Selected changes:
 
 - @vanillajonathan, with #1766
 
-## 0.5.0 — 2022-02-08
+## 0.5.0 — 2023-02-08
 
 0.5.0 contains a few fixes, some improvements to bindings, lots of docs
 improvements, and some work on forthcoming features. It contains one breaking
@@ -223,7 +225,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 - @RalfNorthman, with #1632
 - @nicot, with #1662
 
-## 0.4.2 — 2022-01-25
+## 0.4.2 — 2023-01-25
 
 **Features**:
 
@@ -263,7 +265,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 - @1Kinoti, with #1596
 - @veenaamb, with #1614
 
-## 0.4.1 — 2022-01-18
+## 0.4.1 — 2023-01-18
 
 0.4.1 comes a few days after 0.4.0, with a couple of features and the release of
 `prqlc`, the CLI crate.
@@ -292,7 +294,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 - @fool1280, with #1554
 - @nkicg6, with #1567
 
-## 0.4.0 — 2022-01-15
+## 0.4.0 — 2023-01-15
 
 0.4.0 brings lots of new features including `case`, `select ![]` and numbers
 with underscores. We have initial (unpublished) bindings to Elixir. And there's
