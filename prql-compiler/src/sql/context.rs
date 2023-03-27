@@ -16,6 +16,8 @@ use crate::utils::{IdGenerator, NameGenerator};
 
 use super::preprocess::{SqlRelation, SqlTransform};
 
+/// The AnchorContext struct stores information about tables and columns, and
+/// is used to generate new IDs and names.
 #[derive(Default, Debug)]
 pub struct AnchorContext {
     pub(super) column_decls: HashMap<CId, ColumnDecl>,
@@ -33,6 +35,8 @@ pub struct AnchorContext {
     pub(super) tiid: IdGenerator<TIId>,
 }
 
+/// The [SqlTableDecl] struct contains information about a table declaration,
+/// including its ID, name, and relation (if it has been defined).
 #[derive(Debug, Clone)]
 pub(super) struct SqlTableDecl {
     #[allow(dead_code)]
@@ -64,6 +68,8 @@ pub enum ColumnDecl {
 }
 
 impl AnchorContext {
+    /// Returns a new AnchorContext object based on a Query object. This method
+    /// generates new IDs and names for tables and columns as needed.
     pub fn of(query: Query) -> (Self, Relation) {
         let (cid, tid, query) = IdGenerator::load(query);
 
@@ -78,6 +84,8 @@ impl AnchorContext {
         QueryLoader::load(context, query)
     }
 
+    /// Generates a new ID and name for a wildcard column and registers it in the
+    /// AnchorContext's column_decls HashMap.
     pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
         let id = self.cid.gen();
         let kind = ColumnDecl::RelationColumn(tiid, id, RelationColumn::Wildcard);
@@ -85,12 +93,17 @@ impl AnchorContext {
         id
     }
 
+    /// Registers a new Compute object and its ID in the AnchorContext's column_decls
+    /// HashMap.
     pub fn register_compute(&mut self, compute: Compute) {
         let id = compute.id;
         let decl = ColumnDecl::Compute(Box::new(compute));
         self.column_decls.insert(id, decl);
     }
 
+    /// Creates a new table instance and registers it in the AnchorContext's
+    /// table_instances HashMap. Also generates new IDs and names for columns
+    /// as needed.
     pub fn create_table_instance(&mut self, mut table_ref: TableRef) -> TableRef {
         let tiid = self.tiid.gen();
 
@@ -107,6 +120,8 @@ impl AnchorContext {
         table_ref
     }
 
+    /// Returns the name of a column if it has been given a name already, or generates
+    /// a new name for it and registers it in the AnchorContext's column_names HashMap.
     pub(crate) fn ensure_column_name(&mut self, cid: CId) -> Option<&String> {
         // don't name wildcards & named RelationColumns
         let decl = &self.column_decls[&cid];
@@ -125,6 +140,8 @@ impl AnchorContext {
         Some(entry.or_insert_with(|| self.col_name.gen()))
     }
 
+    /// Loads column names from a pipeline of [`SqlTransform`] objects into the
+    /// [`AnchorContext`]'s `column_names` HashMap.
     pub(super) fn load_names(
         &mut self,
         pipeline: &[SqlTransform],
@@ -141,6 +158,8 @@ impl AnchorContext {
         }
     }
 
+    /// Determines which columns are being selected in a pipeline of SqlTransform
+    /// objects, and returns their IDs in a Vec.
     pub(super) fn determine_select_columns(pipeline: &[SqlTransform]) -> Vec<CId> {
         use SqlTransform::*;
         use Transform::*;
@@ -164,7 +183,7 @@ impl AnchorContext {
         }
     }
 
-    /// Returns a set of all columns of all tables in a pipeline
+    /// Collects the tables and columns used in a pipeline of [`SqlTransform`] objects.
     pub(super) fn collect_pipeline_inputs(
         &self,
         pipeline: &[SqlTransform],
@@ -207,6 +226,8 @@ struct QueryLoader {
 }
 
 impl QueryLoader {
+    /// Loads a [`Query`] into a new [`AnchorContext`] and returns the resulting
+    /// [`AnchorContext`] and a `Relation` object representing the query.
     fn load(context: AnchorContext, query: Query) -> (AnchorContext, Relation) {
         let mut loader = QueryLoader { context };
 
@@ -217,6 +238,7 @@ impl QueryLoader {
         (loader.context, relation)
     }
 
+    /// Loads a [`TableDecl`] into the [`AnchorContext`]'s `table_decls` HashMap.
     fn load_table(&mut self, table: TableDecl) -> Result<()> {
         let mut decl = fold_table(self, table)?;
 
