@@ -50,6 +50,9 @@ impl Ident {
     }
 
     pub fn starts_with(&self, prefix: &Ident) -> bool {
+        if prefix.path.len() > self.path.len() {
+            return false;
+        }
         prefix
             .iter()
             .zip(self.iter())
