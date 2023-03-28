@@ -8,13 +8,13 @@ away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
 
-PRQL builds powerful SQL queries today. In addition, we are focusing on
-several integrations. Here's how you can use PRQL:
+PRQL builds powerful SQL queries today. In addition, we are focusing on several
+integrations. Here's how you can use PRQL:
 
 - **Do real work with PRQL** Prototype your PRQL queries in the
-  [Playground](https://prql-lang.org/playground/) or the 
+  [Playground](https://prql-lang.org/playground/) or the
   [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
-  and copy/paste the resulting SQL into your database. 
+  and copy/paste the resulting SQL into your database.
 - **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
   [dbt](https://www.getdbt.com/) models. It very simple to use — install
   `dbt-prql` with pip, and then any text between a `{% prql %}` &
@@ -27,7 +27,6 @@ several integrations. Here's how you can use PRQL:
 
 It's also very easy to add PRQL to your own apps with our [bindings](/#bindings)
 for Rust, Python & JS.
-
 
 {{</ faq >}}
 
