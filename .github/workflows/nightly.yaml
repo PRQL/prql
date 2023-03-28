@@ -72,7 +72,6 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
-      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
       - run: rustup override set nightly-2022-10-22
       - uses: richb-hanover/cargo@v1.1.0
         with:
