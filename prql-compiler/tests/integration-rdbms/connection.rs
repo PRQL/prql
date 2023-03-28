@@ -1,9 +1,7 @@
-use std::env::{current_dir, join_paths};
-use std::fs::read_to_string;
-use std::path::Path;
+use std::env::current_dir;
 use std::time::SystemTime;
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use mysql::prelude::Queryable;
 use mysql::Value;
@@ -12,7 +10,6 @@ use postgres::types::Type;
 use tiberius::numeric::BigDecimal;
 use tiberius::time::time::PrimitiveDateTime;
 use tiberius::*;
-use time::DateTime2;
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
@@ -93,7 +90,7 @@ impl DBConnection for DuckDBConnection {
         ] {
             path.push(p);
         }
-        let path = path.display().to_string().replace("\"", "");
+        let path = path.display().to_string().replace('"', "");
         self.run_query(
             &format!("COPY {csv_name} FROM '{path}' (AUTO_DETECT TRUE);"),
             runtime,
@@ -145,7 +142,6 @@ impl DBConnection for SQLiteConnection {
         ] {
             path.push(p);
         }
-        let content = read_to_string(path.clone()).unwrap();
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(true)
             .from_path(path)
@@ -162,11 +158,7 @@ impl DBConnection for SQLiteConnection {
                 "INSERT INTO {csv_name} ({}) VALUES ({})",
                 headers.iter().join(","),
                 r.iter()
-                    .map(|s|  if true || s.contains(" ") {
-                        format!("\"{s}\"")
-                    } else {
-                        s.to_string()
-                    })
+                    .map(|s| format!("\"{}\"", s.replace('"', "\"\"")))
                     .join(",")
             );
             self.run_query(q.as_str(), runtime);
@@ -191,7 +183,10 @@ impl DBConnection for PostgresConnection {
                 let col = &(*row.columns())[i];
                 let value = match col.type_() {
                     &Type::BOOL => (row.get::<usize, bool>(i)).to_string(),
-                    &Type::INT4 => (row.get::<usize, i32>(i)).to_string(),
+                    &Type::INT4 => match row.try_get::<usize, i32>(i) {
+                        Ok(v) => v.to_string(),
+                        Err(_) => "".to_string(),
+                    },
                     &Type::INT8 => (row.get::<usize, i64>(i)).to_string(),
                     &Type::TEXT | &Type::VARCHAR | &Type::JSON | &Type::JSONB => {
                         match row.try_get::<usize, String>(i) {
@@ -298,7 +293,7 @@ impl MssqlConnection {
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
                     ColumnType::Floatn => row
-                        .get::<f32, usize>(i)
+                        .get::<f64, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
                     ColumnType::Numericn => row.get::<BigDecimal, usize>(i).unwrap().to_string(),

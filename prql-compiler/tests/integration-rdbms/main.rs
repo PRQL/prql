@@ -4,9 +4,10 @@ mod connection;
 
 #[cfg(test)]
 mod tests {
-    use std::env;
+    use std::collections::BTreeMap;
+    use std::{env, fs};
 
-    use insta::assert_display_snapshot;
+    use insta::{assert_snapshot, glob};
     use postgres::NoTls;
     use tiberius::{AuthMethod, Client, Config};
     use tokio::net::TcpStream;
@@ -30,7 +31,7 @@ mod tests {
                         // CI
                         panic!("No database is listening on port {}", port);
                     }
-                    Ok(_) | Err(_) => {
+                    _ => {
                         // locally
                         return;
                     }
@@ -63,19 +64,56 @@ mod tests {
             MssqlConnection(client)
         };
 
-        let connections: Vec<&mut dyn DBConnection> =
+        let mut connections: Vec<&mut dyn DBConnection> =
             vec![&mut duck, &mut sqlite, &mut pg, &mut my, &mut ms];
 
-        for con in connections {
-            run_tests_for_connection(con, &runtime);
+        for con in &mut connections {
+            setup_connection(*con, &runtime);
         }
-        panic!("mdsad");
+
+        // for each of the queries
+        glob!("..", "integration/queries/**/*.prql", |path| {
+            let test_name = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default();
+
+            // read
+            let prql = fs::read_to_string(path).unwrap();
+
+            if prql.contains("skip_test") {
+                return;
+            }
+
+            let mut results = BTreeMap::new();
+            for con in &mut connections {
+                let vendor = con.get_dialect().to_string().to_lowercase();
+                if prql.contains(format!("skip_{}", vendor).as_str()) {
+                    continue;
+                }
+                results.insert(vendor, run_query(*con, prql.as_str(), &runtime));
+            }
+
+            let first_result = match results.iter().next() {
+                Some(v) => v,
+                None => return,
+            };
+            for (k, v) in results.iter().skip(1) {
+                pretty_assertions::assert_eq!(
+                    *first_result.1,
+                    *v,
+                    "{} == {}: {test_name}",
+                    first_result.0,
+                    k
+                );
+            }
+
+            assert_snapshot!(format!("{:?}", first_result.1));
+        });
     }
 
-    fn run_tests_for_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
-        let setup = include_str!("setup.sql");
+    fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
         let setup = include_str!("../integration/data/chinook/schema.sql");
-        println!("DD:: {}", con.get_dialect());
         setup
             .split(';')
             .map(|s| s.trim())
@@ -83,66 +121,35 @@ mod tests {
             .for_each(|s| {
                 let sql = match con.get_dialect() {
                     Dialect::MsSql => s.replace("TIMESTAMP", "DATETIME"),
-                    Dialect::MySql => s.replace('"', "`"),
+                    Dialect::MySql => s.replace('"', "`").replace("TIMESTAMP", "DATETIME"),
                     _ => s.to_string(),
                 };
                 con.run_query(sql.as_str(), runtime);
             });
-        con.import_csv("invoices", runtime);
-        let mut rr = con.run_query("select * from invoices;", runtime);
-        println!("{:?}", rr.first());
-        assert_eq!(412, rr.len());
-        return;
-        for (prql, expected_rows) in get_test_cases() {
-            let options = Options::default().with_target(Sql(Some(con.get_dialect())));
-            let sql = prql_compiler::compile(prql.as_str(), &options).unwrap();
-            let mut actual_rows = con.run_query(sql.as_str(), runtime);
-            replace_booleans(&mut actual_rows);
-            println!("{} {:?}", &con.get_dialect(), &actual_rows);
-            assert_eq!(
-                *expected_rows,
-                actual_rows,
-                "Rows do not match for {}",
-                con.get_dialect()
-            );
-
-            assert_display_snapshot!(con.get_dialect().to_string(), format!("{:?}", actual_rows));
+        let tables = [
+            "invoices",
+            "customers",
+            "employees",
+            "tracks",
+            "albums",
+            "genres",
+            "playlist_track",
+            "playlists",
+            "media_types",
+            "artists",
+            "invoice_items",
+        ];
+        for table in tables {
+            con.import_csv(table, runtime);
         }
     }
 
-    // parse test cases from file
-    fn get_test_cases() -> Vec<(String, Vec<Row>)> {
-        let test_file = include_str!("testcases.txt");
-        let tests = test_file
-            .split("###")
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<&str>>();
-
-        tests
-            .iter()
-            .map(|test| {
-                let tests = test
-                    .split("---")
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .collect::<Vec<&str>>();
-                assert_eq!(tests.len(), 2, "Test is missing ---");
-
-                let rows = tests[1]
-                    .lines()
-                    .map(|l| {
-                        l.split(',')
-                            .map(|s| s.trim())
-                            .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string())
-                            .collect::<Row>()
-                    })
-                    .collect::<Vec<Row>>();
-
-                (tests[0].to_string(), rows)
-            })
-            .collect()
+    fn run_query(con: &mut dyn DBConnection, prql: &str, runtime: &Runtime) -> Vec<Row> {
+        let options = Options::default().with_target(Sql(Some(con.get_dialect())));
+        let sql = prql_compiler::compile(prql, &options).unwrap();
+        let mut actual_rows = con.run_query(sql.as_str(), runtime);
+        replace_booleans(&mut actual_rows);
+        actual_rows
     }
 
     // some sql dialects use 1 and 0 instead of true and false
