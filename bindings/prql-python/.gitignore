@@ -1,5 +1,3 @@
-/target
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 .pytest_cache/
@@ -57,16 +55,11 @@ coverage.xml
 *.log
 *.pot
 
-.DS_Store
-
 # Sphinx documentation
 docs/_build/
 
 # PyCharm
 .idea/
-
-# VSCode
-.vscode/
 
 # Pyenv
 .python-version

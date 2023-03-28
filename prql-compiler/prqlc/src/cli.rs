@@ -356,13 +356,13 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
             input,
         );
         assert_display_snapshot!(result.unwrap_err(), @r###"
-        Error:
-           ╭─[:1:1]
-           │
-         1 │ asdf
-           │ ──┬─
-           │   ╰─── Unknown name asdf
-        ───╯
+        [31mError:[0m
+           [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m:1:1[38;5;246m][0m
+           [38;5;246m│[0m
+         [38;5;246m1 │[0m asdf
+         [38;5;240m  │[0m ──┬─
+         [38;5;240m  │[0m   ╰─── Unknown name asdf
+        [38;5;246m───╯[0m
         "###);
     }
 

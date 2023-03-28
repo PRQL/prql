@@ -1,6 +1,0 @@
----
-source: prql-compiler/tests/integration-rdbms/main.rs
-expression: "format!(\"{:?}\", first_result.1)"
-input_file: prql-compiler/tests/integration/queries/loop.prql
----
-[["-2"], ["0"], ["2"], ["4"], ["6"], ["8"]]
