@@ -616,10 +616,10 @@ article img {
   max-width: 100%;
 }
 
-article > blockquote {
-  margin: 0 0 1rem -1.5rem;
+blockquote p {
+  margin: 0 0 1rem 0.5rem;
   padding: 0.25rem 1.25rem;
-  border-left: 0.25rem solid #c92a2a;
+  border-left: 0.25rem solid lightgrey;
 }
 
 article > blockquote > *:last-child {
