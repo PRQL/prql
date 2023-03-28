@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Don't attempt to publish if on a fork, including a PR.
-    if: "!github.event.pull_request.head.repo.fork"
+    if: ${{ !github.event.pull_request.head.repo.fork }}
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
