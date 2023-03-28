@@ -511,7 +511,14 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
-                let mut frame = body.ty.clone().unwrap().into_table().unwrap();
+                // TODO: See #2270 — this is a bad error message and likely
+                // should be handled prior to reaching this point.
+                let mut frame = body.ty.clone().unwrap().into_table().map_err(|_| {
+                    Error::new_simple(format!(
+                        "Expected a function that could operate on a table, but instead found {}",
+                        body.ty.clone().unwrap(),
+                    ))
+                })?;
 
                 log::debug!("inferring type of group with pipeline: {body}");
 
@@ -755,7 +762,7 @@ fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
 /// Sets partition, window and sort of [TransformCall].
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Flattener {
     /// Sort affects downstream transforms in a pipeline.
     /// Because transform pipelines are represented by nested [TransformCall]s,
@@ -803,6 +810,7 @@ impl AstFold for Flattener {
                 return Ok(replacement);
             }
         }
+        dbg!(&self, &expr);
 
         expr.kind = match expr.kind {
             ExprKind::TransformCall(t) => {
