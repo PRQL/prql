@@ -810,7 +810,6 @@ impl AstFold for Flattener {
                 return Ok(replacement);
             }
         }
-        dbg!(&self, &expr);
 
         expr.kind = match expr.kind {
             ExprKind::TransformCall(t) => {
