@@ -158,7 +158,11 @@ impl DBConnection for SQLiteConnection {
                 "INSERT INTO {csv_name} ({}) VALUES ({})",
                 headers.iter().join(","),
                 r.iter()
-                    .map(|s| format!("\"{}\"", s.replace('"', "\"\"")))
+                    .map(|s| if s.is_empty() {
+                        "null".to_string()
+                    } else {
+                        format!("\"{}\"", s.replace('"', "\"\""))
+                    })
                     .join(",")
             );
             self.run_query(q.as_str(), runtime);
