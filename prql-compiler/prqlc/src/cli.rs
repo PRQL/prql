@@ -348,6 +348,14 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn compile() {
         // Check we get an error on a bad input
         let input = "asdf";
+
+        // Disable colors (would be better if this were a proper CLI test and
+        // passed in `--color=never`)
+        concolor_clap::Color {
+            color: concolor_clap::ColorChoice::Never,
+        }
+        .apply();
+
         let result = Command::execute(
             &Command::Compile {
                 io_args: IoArgs::default(),

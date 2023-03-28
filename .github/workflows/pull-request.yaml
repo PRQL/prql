@@ -86,6 +86,7 @@ jobs:
     # that GitHub release something to enable path triggers within workflows
     # natively.
     #
+    # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
     needs:
       - test-rust
