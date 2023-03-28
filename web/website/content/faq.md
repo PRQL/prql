@@ -25,7 +25,7 @@ integrations. Here's how you can use PRQL:
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
 
-It's also very easy to add PRQL to your own apps with our [bindings](/#bindings)
+It's also possible to add PRQL to your own apps with our [bindings](/#bindings)
 for Rust, Python & JS.
 
 {{</ faq >}}
