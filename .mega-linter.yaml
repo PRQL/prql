@@ -10,6 +10,7 @@ DISABLE_LINTERS:
   - SPELL_CSPELL
   - CSS_STYLELINT
   - PHP_PSALM
+  - PHP_PHPSTAN # Disabled for now as we couldn't figure out how to prevent false positives. #2069
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
