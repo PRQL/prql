@@ -166,24 +166,76 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Requires another pass: https://github.com/PRQL/prql/issues/850
-  # publish-prql-java:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v3
-  #     - name: Install Java and Maven
-  #       uses: actions/setup-java@v3
-  #       with:
-  #         java-version: 8
-  #     - name: Release Maven package
-  #       uses: samuelmeuli/action-maven-publish@v1
-  #       with:
-  #         gpg_private_key: ${{ secrets.gpg_private_key }}
-  #         gpg_passphrase: ${{ secrets.gpg_passphrase }}
-  #         nexus_username: ${{ secrets.nexus_username }}
-  #         nexus_password: ${{ secrets.nexus_password }}
-  #         directory: prql-java/java/
+  build-prql-lib:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            directory: darwin-x86-64
+            target: x86_64-apple-darwin
+            suffix: ".dylib"
+          - os: macos-latest
+            directory: darwin-aarch64
+            target: aarch64-apple-darwin
+            suffix: ".dylib"
+          - os: ubuntu-latest
+            directory: linux-x86-64
+            target: x86_64-unknown-linux-gnu
+            suffix: ".so"
+          - os: windows-latest
+            directory: win32-x86-64
+            target: x86_64-pc-windows-msvc
+            suffix: ".dll"
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install targets
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+          toolchain: stable
+          target: ${{ matrix.target }}
+      - name: Build
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: build
+          args: --target=${{ matrix.target }} --release -p prql-lib
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.directory }}
+          path:
+            target/${{ matrix.target }}/release/*prql_lib${{ matrix.suffix }}
+          if-no-files-found: error
+
+  publish-prql-java:
+    needs:
+      - build-prql-lib
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install JDK 8 and Maven
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: 8
+          cache: "maven"
+      - uses: actions/download-artifact@v3
+        with:
+          path: bindings/prql-java/src/main/resources
+      - name: Release Maven package
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          directory: bindings/prql-java
+          maven_profiles: release
+          maven_args:
+            -Drevision=0.6.1 -q --batch-mode --show-version --strict-checksums
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          nexus_username: ${{ secrets.SONATYPE_USER }}
+          nexus_password: ${{ secrets.SONATYPE_PASSWD }}
 
   push-web-branch:
     runs-on: ubuntu-latest

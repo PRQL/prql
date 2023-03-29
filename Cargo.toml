@@ -10,7 +10,6 @@ members = [
   "prql-compiler/examples/compile-files", #
   # Bindings
   "bindings/prql-elixir/native/prql",
-  "bindings/prql-java",
   "bindings/prql-js",
   "bindings/prql-lib",
   "bindings/prql-python", #

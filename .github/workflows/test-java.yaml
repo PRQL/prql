@@ -13,14 +13,71 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  build-prql-lib:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{matrix.os}}
+        # start with the most popular ones
+        # supported directories: https://github.com/java-native-access/jna/tree/master/lib/native
+        include:
+          - os: macos-latest
+            directory: darwin-x86-64
+            target: x86_64-apple-darwin
+            suffix: ".dylib"
+          - os: macos-latest
+            directory: darwin-aarch64
+            target: aarch64-apple-darwin
+            suffix: ".dylib"
+          - os: ubuntu-latest
+            directory: linux-x86-64
+            target: x86_64-unknown-linux-gnu
+            suffix: ".so"
+          - os: windows-latest
+            directory: win32-x86-64
+            target: x86_64-pc-windows-msvc
+            suffix: ".dll"
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Maven test
-        working-directory: bindings/prql-java/java/
-        run: ./mvnw test
+      - name: Install targets
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+          toolchain: stable
+          target: ${{ matrix.target }}
+      - name: Build
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: build
+          args: --target=${{ matrix.target }} --release -p prql-lib
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.directory }}
+          path:
+            target/${{ matrix.target }}/release/*prql_lib${{ matrix.suffix }}
+          if-no-files-found: error
+
+  test:
+    needs:
+      - build-prql-lib
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install JDK 8 and Maven
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: 8
+          cache: "maven"
+      - uses: actions/download-artifact@v3
+        with:
+          path: bindings/prql-java/src/main/resources
+      - name: Build and install libraries
+        working-directory: bindings/prql-java
+        run:
+          mvn --batch-mode --show-version --strict-checksums -DskipTests package

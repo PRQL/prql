@@ -1,4 +1,9 @@
-target/
+dependency-reduced-pom.xml
+.flattened-pom.xml
 
-**/libprql_java*
-**/prql_java.dll
+*.class
+
+.bloop
+.metals
+.vscode
+target
