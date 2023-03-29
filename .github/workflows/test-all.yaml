@@ -13,7 +13,7 @@ name: test-all
 # - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
 #   everything — benchmarks, compilation timing, audits, etc.
 #
-# Also see pull-request.yaml#check-ok-to-merge for further ideas.
+# Also see pull-request.yaml#check-ok-to-merge for other thoughts
 
 on:
   push:
