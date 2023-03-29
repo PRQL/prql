@@ -57,11 +57,16 @@ jobs:
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration-rdbms
+        if: ${{ inputs.os != 'windows-latest' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
         with:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
+        if: ${{ inputs.os != 'windows-latest' }}
+      - name: skip integration if windows
+        run: echo "SKIP_INTEGRATION=true" >> $GITHUB_ENV
+        if: ${{ inputs.os == 'windows-latest' }}
       # Only check unreferenced snapshots on the default target tests on ubuntu
       #
       # (Maybe there's a nicer approach where we can parameterize one step
