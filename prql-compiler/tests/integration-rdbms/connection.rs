@@ -166,10 +166,7 @@ impl DBConnection for SQLiteConnection {
                     .join(",")
             );
             self.run_query(q.as_str(), runtime);
-            //println!("{:?}", q);
         }
-        //self.run_query(&format!(".mode csv; .import --skip 1 '{path}' {csv_name};"), runtime);
-        //self.run_query(&format!(".mode csv;"), runtime);
     }
 
     fn get_dialect(&self) -> Dialect {

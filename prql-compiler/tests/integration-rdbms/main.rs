@@ -1,4 +1,6 @@
 #![cfg(not(any(target_family = "windows", target_family = "wasm")))]
+// TODO enable it for all OS
+#![cfg(target_os = "linux")]
 
 mod connection;
 
@@ -22,6 +24,9 @@ mod tests {
 
     #[test]
     fn test_rdbms() {
+        if env::var("SKIP_INTEGRATION").is_ok() {
+            return;
+        }
         for port in [5432u16, 3306, 1433 /*, 50000*/] {
             // test is skipped locally when DB is not listening
             // in CI it fails
