@@ -116,7 +116,7 @@ public interface Prql {
 
     /**
      * Converts PRQL string to PL AST.
-     * 
+     *
      * @param prql non-null PRQL string
      * @return non-null PL AST in JSON string
      * @throws PrqlException when failed to compile the given query
