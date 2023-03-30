@@ -1,3 +1,5 @@
+# skip_mysql
+# skip_mssql
 from i=invoices
 join ii=invoice_items [==invoice_id]
 derive [
