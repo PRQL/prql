@@ -195,7 +195,9 @@ tasks:
       # excluded under wasm. Note that this will also over-delete on Windows.
       # Note that we need to pass the target explicitly to manage
       # https://github.com/rust-lang/cargo/issues/8899
-      - cargo insta test --accept --unreferenced=auto
+      - cargo insta test --accept
+      # see #2286
+      #- cargo insta test --accept --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
       # We build the book too, because that acts as a test
       - cd web/book && mdbook build

@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: "postgres:alpine"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: dummy
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    volumes: &vol
+      - ../integration/data/chinook:/tmp/chinook
+  mysql:
+    # No arm64 image available; remove when one does become available
+    platform: linux/amd64
+    image: "mysql:debian"
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: dummy
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./conf:/etc/mysql/conf.d
+      - ../integration/data/chinook:/tmp/chinook
+  #  db2:
+  #    image: 'icr.io/db2_community/db2'
+  #    ports:
+  #      - '50000:50000'
+  #    environment:
+  #      LICENSE: accept
+  #      DBNAME: dummy
+  #      DB2INSTANCE: db2
+  #      DB2INST1_PASSWORD: root
+  #      BLU: false
+  #      TO_CREATE_SAMPLEDB: false
+  #      REPODB: false
+  #      IS_OSXFS: false
+  mssql:
+    image: "mcr.microsoft.com/mssql/server:latest"
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: Wordpass123##
+      LC_ALL: en_US.UTF-8
+      MSSQL_COLLATION: Latin1_General_100_CS_AI_SC_UTF8
+    volumes: *vol
