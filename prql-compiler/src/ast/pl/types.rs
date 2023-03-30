@@ -80,7 +80,7 @@ pub enum TyLit {
     Timestamp,
 }
 
-// Type of a function curry
+// Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
     pub args: Vec<Ty>,
