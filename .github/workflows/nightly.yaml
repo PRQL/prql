@@ -15,7 +15,7 @@ jobs:
     # We can't read PRQL repo security events on forks, which causes this to
     # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
     # could move this to `pull-request-target`.
-    if: "!github.event.pull_request.head.repo.fork"
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     permissions:
       actions: read
       contents: read
@@ -28,6 +28,16 @@ jobs:
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Maybe add to test-all?
+  cargo-bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: bench
+          args: --timings --all-targets
 
   check-links:
     # We run on modified files only in PR, so do another check of all files here.
@@ -53,7 +63,7 @@ jobs:
   update-rust-toolchain:
     runs-on: ubuntu-latest
     # Don't run on forks; will attempt to create a PR into the fork...
-    if: "!github.event.pull_request.head.repo.fork"
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -72,7 +82,6 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
-      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
       - run: rustup override set nightly-2022-10-22
       - uses: richb-hanover/cargo@v1.1.0
         with:
