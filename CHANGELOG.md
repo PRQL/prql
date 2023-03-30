@@ -25,7 +25,8 @@
   technically a breaking change to the API. (@max-sixty, #2251)
 - The `Error` struct now exposes the `MessageKind` enum. (@vanillajonathan,
   #2307)
-- Integrations tests run in CI with DuckDB, SQLite, PostgreSQL, MySQL and SQL Server (@jelenkee, #2286)
+- Integrations tests run in CI with DuckDB, SQLite, PostgreSQL, MySQL and SQL
+  Server (@jelenkee, #2286)
 
 **New Contributors**:
 
