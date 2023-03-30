@@ -388,16 +388,16 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "timestamp" => TyLit::Timestamp,
         "table" => {
             // TODO: this is just a dummy that gets intercepted when resolving types
-            return Some(ExprKind::Set(SetExpr::Array(Box::new(SetExpr::Singleton(
-                Literal::Null,
-            )))));
+            return Some(ExprKind::Type(TypeExpr::Array(Box::new(
+                TypeExpr::Singleton(Literal::Null),
+            ))));
         }
         "column" => TyLit::Column,
         "list" => TyLit::List,
         "scalar" => TyLit::Scalar,
         _ => return None,
     };
-    Some(ExprKind::Set(SetExpr::Primitive(ty_lit)))
+    Some(ExprKind::Type(TypeExpr::Primitive(ty_lit)))
 }
 
 impl Default for DeclKind {
