@@ -33,8 +33,10 @@ const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
-    // TODO: instead of returning Strings with embeeded tags (e.g. `# error`),
-    // we could instead return a struct with a `prql` field and a struct of its metadata
+    // TODO: instead of returning Strings with embedded tags (e.g. `# error`),
+    // we could instead return a struct with a `prql` field and a struct of its
+    // metadata. That would make `test_display` work by matching on the metadata
+    // rather than re-parsing the string.
     use pulldown_cmark::{Event, Parser};
     let glob = Glob::new("**/*.md")?.compile_matcher();
     let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
