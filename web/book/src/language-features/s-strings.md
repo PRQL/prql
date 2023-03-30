@@ -61,7 +61,7 @@ should implement it in PRQL or PRQL's stdlib.
 
 To output braces from an s-string, use double braces:
 
-```prql_no_fmt
+```prql no-fmt
 from employees
 derive [
   has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
