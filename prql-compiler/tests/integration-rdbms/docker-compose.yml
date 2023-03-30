@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
     volumes: &vol
-      - ../integration/data/chinook:/tmp/chinook
+      - ../integration/data/chinook:/tmp/chinook:ro
   mysql:
     # No arm64 image available; remove when one does become available
     platform: linux/amd64
@@ -19,8 +19,8 @@ services:
       MYSQL_DATABASE: dummy
       MYSQL_ROOT_PASSWORD: root
     volumes:
-      - ./conf:/etc/mysql/conf.d
-      - ../integration/data/chinook:/tmp/chinook
+      - ./conf/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ../integration/data/chinook:/tmp/chinook:ro
   #  db2:
   #    image: 'icr.io/db2_community/db2'
   #    ports:
