@@ -18,10 +18,10 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
       Literal:
         Integer: 3
       ty:
-        SetExpr:
+        TypeExpr:
           Primitive: Int
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
   alias: added
 - id: 25
@@ -40,10 +40,10 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
       Literal:
         Integer: 1
       ty:
-        SetExpr:
+        TypeExpr:
           Primitive: Int
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
   alias: added_default
 

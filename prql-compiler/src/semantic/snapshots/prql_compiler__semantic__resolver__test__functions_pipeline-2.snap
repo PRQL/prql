@@ -9,7 +9,7 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
       Literal:
         Integer: 2
       ty:
-        SetExpr:
+        TypeExpr:
           Primitive: Int
     op: Add
     right:
@@ -34,11 +34,11 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
           Literal:
             Integer: 1
           ty:
-            SetExpr:
+            TypeExpr:
               Primitive: Int
       ty: Infer
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
   alias: b
 
