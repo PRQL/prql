@@ -22,7 +22,7 @@ expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n\n    
       target_id: 7
       ty: Infer
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
   alias: net_salary
 

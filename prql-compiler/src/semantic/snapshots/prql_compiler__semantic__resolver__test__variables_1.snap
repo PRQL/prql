@@ -22,7 +22,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       target_id: 6
       ty: Infer
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
   alias: gross_salary
 - id: 16
@@ -44,7 +44,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       target_id: 6
       ty: Infer
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
   alias: gross_cost
 
