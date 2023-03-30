@@ -97,10 +97,10 @@ impl Preprocessor for ComparisonPreprocessor {
 }
 
 /// Returns the language of a code block, divided by commas
-/// For example: ```prql,no-test
+/// For example: ```prql no-test
 pub fn code_block_lang_tags(event: &Event) -> Option<Vec<String>> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
-        Some(lang.to_string().split(',').map(|x| x.to_string()).collect())
+        Some(lang.to_string().split(' ').map(|x| x.to_string()).collect())
     } else {
         None
     }
@@ -277,7 +277,7 @@ from x
 import sys
 ```
 
-```prql,error
+```prql error
 this is an error
 ```
     "###;

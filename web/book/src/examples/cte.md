@@ -1,4 +1,4 @@
-```prql,no-fmt
+```prql no-fmt
 let newest_employees = (
   from employees
   sort tenure
