@@ -5,6 +5,7 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/build-web.yaml"
+      - "**.md"
   workflow_call:
 
 concurrency:
