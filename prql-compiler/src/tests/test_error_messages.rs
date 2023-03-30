@@ -126,3 +126,13 @@ fn test_hint_missing_args() {
     ───╯
     "###)
 }
+
+#[test]
+fn test_invalid_header() {
+    assert_display_snapshot!(compile(r###"
+    prql dialect:sql.duckdb
+    from x
+    "###).unwrap_err(), @r###"
+    Error: "unknown arg `dialect`"
+    "###)
+}

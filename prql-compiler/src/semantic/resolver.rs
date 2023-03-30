@@ -18,6 +18,8 @@ use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
 use super::type_resolver::{self, infer_type, type_of_closure, validate_type};
 
+const ALLOWED_QUERY_DEFS: [&str; 1] = ["target"];
+
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
@@ -62,7 +64,14 @@ impl AstFold for Resolver {
             }
 
             let kind = match stmt.kind {
-                StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
+                StmtKind::QueryDef(d) => {
+                    for key in d.other.keys() {
+                        if !ALLOWED_QUERY_DEFS.contains(&key.as_str()) {
+                            return Err(anyhow!("unknown arg `{}`", key));
+                        }
+                    }
+                    StmtKind::QueryDef(d)
+                }
                 StmtKind::FuncDef(func_def) => {
                     self.context.declare_func(func_def, stmt.id);
                     continue;
