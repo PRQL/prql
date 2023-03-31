@@ -3388,3 +3388,19 @@ fn test_upper() {
     "###
     );
 }
+
+#[test]
+fn test_1535() -> anyhow::Result<()> {
+    assert_display_snapshot!(compile(r#"
+    from x.y.z
+    "#)?,
+        @r###"
+    SELECT
+      UPPER(name) AS upper_name
+    FROM
+      test_tables
+    "###
+    );
+
+    Ok(())
+}

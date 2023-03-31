@@ -1,7 +1,7 @@
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, __private::de};
 use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
@@ -168,7 +168,7 @@ impl Context {
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
         // special case: wildcard
-        if ident.name == "*" {
+        if dbg!(ident).name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
             // an attempt to query for all `download` columns and expects to be able
             // to select a `download_2020_01_01` column later in the query. But
@@ -182,7 +182,7 @@ impl Context {
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(ident);
+        let decls = dbg!(self.root_mod.lookup(ident));
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -197,7 +197,13 @@ impl Context {
             }
         }
 
-        // fallback case: this variable can be from a namespace that we don't know all columns of
+        // fallback case: this variable can be from a namespace that we don't
+        // know all columns of
+        // TODO: I don't think we can hit the `else` condition here; remove.
+
+        // 1535: I think the thing we need to do is allow this lookup to create
+        // a new module!
+
         let decls = if ident.name != "*" {
             self.root_mod.lookup(&Ident {
                 path: ident.path.clone(),
@@ -206,7 +212,10 @@ impl Context {
         } else {
             HashSet::new()
         };
+        dbg!(decls.clone());
+        dbg!(std::backtrace::Backtrace::capture());
         match decls.len() {
+            // This is the source of the error
             0 => Err(format!("Unknown name {ident}")),
 
             // single match, great!

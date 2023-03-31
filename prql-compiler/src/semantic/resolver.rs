@@ -580,31 +580,31 @@ impl Resolver {
 
         let func_name = &closure.name;
 
-        let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
+        let (tables, other): (Vec<_>, Vec<_>) = dbg!(zip(&closure.params, to_resolve.args)
             .enumerate()
             .partition(|(_, (param, _))| {
-                let is_table = param
+                param
                     .ty
                     .as_ref()
                     .map(|t| matches!(t, Ty::Table(_)))
-                    .unwrap_or_default();
-
-                is_table
-            });
+                    .unwrap_or_default()
+            }));
 
         let has_tables = !tables.is_empty();
 
         // resolve tables
-        if has_tables {
+        if dbg!(has_tables) {
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
             for pos in tables.into_iter().with_position() {
+                dbg!(&pos);
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let arg = self.fold_and_type_check(arg, param, func_name)?;
+                dbg!(&arg, &param, &func_name);
+                let arg = dbg!(self.fold_and_type_check(arg, param, func_name)?);
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
@@ -652,6 +652,7 @@ impl Resolver {
             self.context.root_mod.unshadow(NS_FRAME);
             self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }
+        dbg!(&closure);
 
         Ok(closure)
     }
@@ -680,9 +681,9 @@ impl Resolver {
     }
 
     fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
-        let prev_namespace = self.default_namespace.take();
+        let prev_namespace = dbg!(self.default_namespace.take());
 
-        if param_name.starts_with("noresolve.") {
+        if dbg!(param_name).starts_with("noresolve.") {
             return Ok(expr);
         } else if let Some((ns, _)) = param_name.split_once('.') {
             self.default_namespace = Some(ns.to_string());

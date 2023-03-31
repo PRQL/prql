@@ -41,7 +41,7 @@ impl Module {
         }
     }
 
-    pub fn new() -> Module {
+    pub fn new_leaf() -> Module {
         Module {
             names: HashMap::from([
                 (
