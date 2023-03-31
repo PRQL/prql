@@ -18,6 +18,7 @@ services:
     environment:
       MYSQL_DATABASE: dummy
       MYSQL_ROOT_PASSWORD: root
+    command: --secure-file-priv=""
     volumes: *vol
   #  db2:
   #    image: 'icr.io/db2_community/db2'
