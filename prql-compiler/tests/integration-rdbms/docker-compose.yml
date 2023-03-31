@@ -18,9 +18,7 @@ services:
     environment:
       MYSQL_DATABASE: dummy
       MYSQL_ROOT_PASSWORD: root
-    volumes:
-      - ./conf/my.cnf:/etc/mysql/conf.d/my.cnf:ro
-      - ../integration/data/chinook:/tmp/chinook:ro
+    volumes: *vol
   #  db2:
   #    image: 'icr.io/db2_community/db2'
   #    ports:
