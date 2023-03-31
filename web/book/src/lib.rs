@@ -116,7 +116,7 @@ fn replace_examples(text: &str) -> Result<String> {
             cmark_acc.push(event.to_owned());
             continue;
         };
-        if !lang_tags.contains(&"prql".to_string()) {
+        if !lang_tags.contains(&"prql".to_string()) || lang_tags.contains(&"no-eval".to_string()) {
             cmark_acc.push(event.to_owned());
             continue;
         }
