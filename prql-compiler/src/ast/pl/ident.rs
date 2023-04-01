@@ -26,6 +26,7 @@ impl Ident {
         }
     }
 
+    /// The parent of this ident.
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path;
         path.pop().map(|name| Ident { path, name })
