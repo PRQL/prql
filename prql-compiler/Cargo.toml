@@ -73,3 +73,6 @@ exactly = 1
 file = "../web/book/src/language-features/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
+
+[features]
+test-external-dbs = []

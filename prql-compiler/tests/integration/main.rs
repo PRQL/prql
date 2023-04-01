@@ -3,6 +3,7 @@
 #![cfg(not(any(target_family = "windows", target_family = "wasm")))]
 // TODO enable it for all OS
 #![cfg(target_os = "linux")]
+#![cfg(feature = "test-external-dbs")]
 
 mod connection;
 
@@ -32,39 +33,7 @@ mod tests {
         }
 
         let runtime = Runtime::new().unwrap();
-        let mut connections: Vec<Box<dyn DBConnection>> = vec![];
-        if let Ok(connection) = duckdb::Connection::open_in_memory() {
-            connections.push(Box::new(DuckDBConnection(connection)));
-        }
-        if let Ok(connection) = rusqlite::Connection::open_in_memory() {
-            connections.push(Box::new(SQLiteConnection(connection)));
-        }
-        if let Ok(client) =
-            postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
-        {
-            connections.push(Box::new(PostgresConnection(client)));
-        }
-        if let Ok(pool) = mysql::Pool::new("mysql://root:root@localhost:3306/dummy") {
-            connections.push(Box::new(MysqlConnection(pool)));
-        }
-        if let Ok(client) = {
-            let mut config = Config::new();
-            config.host("127.0.0.1");
-            config.port(1433);
-            config.trust_cert();
-            config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
-
-            let client = runtime.block_on(get_client(config.clone()));
-
-            async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
-                let tcp = TcpStream::connect(config.get_addr()).await?;
-                tcp.set_nodelay(true).unwrap();
-                Client::connect(config, tcp.compat_write()).await
-            }
-            client
-        } {
-            connections.push(Box::new(MssqlConnection(client)));
-        }
+        let mut connections = get_connections(&runtime);
 
         for con in &mut connections {
             setup_connection(con.as_mut(), &runtime);
@@ -117,6 +86,43 @@ mod tests {
             }
             assert_snapshot!(result_string);
         });
+    }
+
+    fn get_connections(runtime: &Runtime) -> Vec<Box<dyn DBConnection>> {
+        let mut connections: Vec<Box<dyn DBConnection>> = vec![];
+        if let Ok(connection) = duckdb::Connection::open_in_memory() {
+            connections.push(Box::new(DuckDBConnection(connection)));
+        }
+        if let Ok(connection) = rusqlite::Connection::open_in_memory() {
+            connections.push(Box::new(SQLiteConnection(connection)));
+        }
+        if let Ok(client) =
+            postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
+        {
+            connections.push(Box::new(PostgresConnection(client)));
+        }
+        if let Ok(pool) = mysql::Pool::new("mysql://root:root@localhost:3306/dummy") {
+            connections.push(Box::new(MysqlConnection(pool)));
+        }
+        if let Ok(client) = {
+            let mut config = Config::new();
+            config.host("127.0.0.1");
+            config.port(1433);
+            config.trust_cert();
+            config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
+
+            let client = runtime.block_on(get_client(config.clone()));
+
+            async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
+                let tcp = TcpStream::connect(config.get_addr()).await?;
+                tcp.set_nodelay(true).unwrap();
+                Client::connect(config, tcp.compat_write()).await
+            }
+            client
+        } {
+            connections.push(Box::new(MssqlConnection(client)));
+        }
+        connections
     }
 
     fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {

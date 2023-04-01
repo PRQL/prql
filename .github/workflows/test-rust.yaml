@@ -79,7 +79,7 @@ jobs:
           runner.os == 'Linux') }}
         with:
           command: insta
-          args: test --unreferenced=auto ${{ inputs.target_option }}
+          args: test --unreferenced=auto ${{ inputs.target_option }} --features test-external-dbs
       - name: 📋 Test wasm
         uses: richb-hanover/cargo@v1.1.0
         if:
