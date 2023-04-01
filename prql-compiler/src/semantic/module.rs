@@ -73,6 +73,7 @@ impl Module {
     pub fn insert(&mut self, ident: Ident, entry: Decl) -> Result<Option<Decl>> {
         let mut ns = self;
 
+        // 1535: this is where I think we insert
         for part in ident.path {
             let entry = ns.names.entry(part.clone()).or_default();
 

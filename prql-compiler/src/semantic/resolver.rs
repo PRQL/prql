@@ -596,8 +596,9 @@ impl Resolver {
 
         // resolve tables
         if dbg!(has_tables) {
-            // 1535: Use whether it's here to decide whether to put it into the modules
-            self.context.root_mod.shadow(NS_FRAME);
+            // 1535: Use whether it's here to decide whether to put it into the
+            // modules
+            self.context.root_mod.self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
             for pos in tables.into_iter().with_position() {
