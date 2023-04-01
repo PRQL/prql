@@ -2,7 +2,6 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
@@ -198,13 +197,11 @@ impl Context {
         }
 
         // fallback case: this variable can be from a namespace that we don't know all columns of
-        let decls = if ident.name != "*" {
+        let decls = {
             self.root_mod.lookup(&Ident {
                 path: ident.path.clone(),
                 name: NS_INFER.to_string(),
             })
-        } else {
-            HashSet::new()
         };
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
