@@ -7,6 +7,7 @@ mod connection;
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::fmt::Write;
     use std::{env, fs};
 
     use insta::{assert_snapshot, glob};
@@ -56,7 +57,7 @@ mod tests {
             async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
                 let tcp = TcpStream::connect(config.get_addr()).await?;
                 tcp.set_nodelay(true).unwrap();
-                Ok(Client::connect(config, tcp.compat_write()).await?)
+                Client::connect(config, tcp.compat_write()).await
             }
             client
         } {
@@ -108,7 +109,11 @@ mod tests {
                 );
             }
 
-            assert_snapshot!(format!("{:?}", first_result.1));
+            let mut result_string = String::new();
+            for row in first_result.1 {
+                writeln!(&mut result_string, "{}", row.join(",")).unwrap_or_default();
+            }
+            assert_snapshot!(result_string);
         });
     }
 
