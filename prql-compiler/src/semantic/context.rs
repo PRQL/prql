@@ -1,7 +1,7 @@
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use serde::{Deserialize, Serialize, __private::de};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
@@ -197,20 +197,15 @@ impl Context {
             }
         }
 
-        // fallback case: this variable can be from a namespace that we don't
-        // know all columns of
-        // TODO: I don't think we can hit the `else` condition here; remove.
-
         // 1535: I think the thing we need to do is allow this lookup to create
         // a new module!
 
-        let decls = if ident.name != "*" {
+        // fallback case: this variable can be from a namespace that we don't know all columns of
+        let decls = {
             self.root_mod.lookup(&Ident {
                 path: ident.path.clone(),
                 name: NS_INFER.to_string(),
             })
-        } else {
-            HashSet::new()
         };
         dbg!(decls.clone());
         dbg!(std::backtrace::Backtrace::capture());
