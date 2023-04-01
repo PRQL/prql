@@ -235,7 +235,7 @@ This release has 74 commits from 12 contributors. Selected changes:
   formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
   be a string in any format. (@aljazerzen & @snth, #1514)
 
-  ```prql no-eval
+  ```prql
   from_text format:csv """
   a,b,c
   1,2,3
