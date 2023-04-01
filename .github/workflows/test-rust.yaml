@@ -56,7 +56,7 @@ jobs:
           args: ${{ inputs.target_option }} --no-run --locked
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration-rdbms
+        working-directory: ./prql-compiler/tests/integration
         if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
@@ -79,7 +79,9 @@ jobs:
           runner.os == 'Linux') }}
         with:
           command: insta
-          args: test --unreferenced=auto ${{ inputs.target_option }} --features test-external-dbs
+          args:
+            test --unreferenced=auto ${{ inputs.target_option }} --features
+            test-external-dbs
       - name: 📋 Test wasm
         uses: richb-hanover/cargo@v1.1.0
         if:

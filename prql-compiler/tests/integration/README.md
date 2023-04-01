@@ -4,7 +4,6 @@ Test PRQL queries against various SQL RDBMS.
 
 ## Data
 
-
 Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with
 them.
 
