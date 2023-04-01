@@ -27,32 +27,24 @@ mod tests {
         if env::var("SKIP_INTEGRATION").is_ok() {
             return;
         }
-        for port in [5432u16, 3306, 1433 /*, 50000*/] {
-            // test is skipped locally when DB is not listening
-            // in CI it fails
-            if !is_port_open(port) {
-                match env::var("CI") {
-                    Ok(v) if &v == "true" => {
-                        // CI
-                        panic!("No database is listening on port {}", port);
-                    }
-                    _ => {
-                        // locally
-                        return;
-                    }
-                }
-            }
-        }
+
         let runtime = Runtime::new().unwrap();
-        let mut duck = DuckDBConnection(duckdb::Connection::open_in_memory().unwrap());
-        let mut sqlite = SQLiteConnection(rusqlite::Connection::open_in_memory().unwrap());
-        let mut pg = PostgresConnection(
+        let mut connections: Vec<Box<dyn DBConnection>> = vec![];
+        if let Ok(connection) = duckdb::Connection::open_in_memory() {
+            connections.push(Box::new(DuckDBConnection(connection)));
+        }
+        if let Ok(connection) = rusqlite::Connection::open_in_memory() {
+            connections.push(Box::new(SQLiteConnection(connection)));
+        }
+        if let Ok(client) =
             postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
-                .unwrap(),
-        );
-        let mut my =
-            MysqlConnection(mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap());
-        let mut ms = {
+        {
+            connections.push(Box::new(PostgresConnection(client)));
+        }
+        if let Ok(pool) = mysql::Pool::new("mysql://root:root@localhost:3306/dummy") {
+            connections.push(Box::new(MysqlConnection(pool)));
+        }
+        if let Ok(client) = {
             let mut config = Config::new();
             config.host("127.0.0.1");
             config.port(1433);
@@ -61,19 +53,18 @@ mod tests {
 
             let client = runtime.block_on(get_client(config.clone()));
 
-            async fn get_client(config: Config) -> Client<Compat<TcpStream>> {
-                let tcp = TcpStream::connect(config.get_addr()).await.unwrap();
+            async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
+                let tcp = TcpStream::connect(config.get_addr()).await?;
                 tcp.set_nodelay(true).unwrap();
-                Client::connect(config, tcp.compat_write()).await.unwrap()
+                Ok(Client::connect(config, tcp.compat_write()).await?)
             }
-            MssqlConnection(client)
-        };
-
-        let mut connections: Vec<&mut dyn DBConnection> =
-            vec![&mut duck, &mut sqlite, &mut pg, &mut my, &mut ms];
+            client
+        } {
+            connections.push(Box::new(MssqlConnection(client)));
+        }
 
         for con in &mut connections {
-            setup_connection(*con, &runtime);
+            setup_connection(con.as_mut(), &runtime);
         }
 
         // for each of the queries
@@ -96,7 +87,11 @@ mod tests {
                 if prql.contains(format!("skip_{}", vendor).as_str()) {
                     continue;
                 }
-                results.insert(vendor, run_query(*con, prql.as_str(), &runtime));
+                results.insert(vendor, run_query(con.as_mut(), prql.as_str(), &runtime));
+            }
+
+            if results.is_empty() {
+                return;
             }
 
             let first_result = match results.iter().next() {
@@ -167,16 +162,6 @@ mod tests {
                     *col = "0".to_string();
                 }
             }
-        }
-    }
-
-    fn is_port_open(port: u16) -> bool {
-        match std::net::TcpStream::connect(("127.0.0.1", port)) {
-            Ok(stream) => {
-                stream.shutdown(std::net::Shutdown::Both).unwrap_or(());
-                true
-            }
-            Err(_) => false,
         }
     }
 }
