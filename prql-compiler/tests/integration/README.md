@@ -4,8 +4,6 @@ Test PRQL queries against various SQL RDBMS.
 
 ## Data
 
-Database chinook.db was downloaded from
-<https://www.sqlitetutorial.net/sqlite-sample-database>
 
 Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with
 them.
@@ -33,6 +31,8 @@ If passed environmental variable `POSTGRES_HOST` this crate will requests
 postgres server that should already have data loaded in.
 
 This will not run as a part of `cargo test`, but can be run with docker-compose.
+
+### TODO
 
 ## Docker compose
 
