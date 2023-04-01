@@ -119,8 +119,9 @@ impl AstFold for Resolver {
 
         log::trace!("folding expr {node:?}");
 
-        let mut r = match node.kind {
+        let mut r = match node.clone().kind {
             ExprKind::Ident(ident) => {
+                dbg!(node.clone());
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident, node.span)?;
                 log::debug!("... resolved to {fq_ident}");
@@ -406,6 +407,7 @@ impl Resolver {
         named_args: HashMap<String, Expr>,
         span: Option<Span>,
     ) -> Result<Expr, anyhow::Error> {
+        dbg!(&closure, &args, &named_args);
         let closure = self.apply_args_to_closure(closure, args, named_args)?;
         let args_len = closure.args.len();
 
@@ -594,6 +596,7 @@ impl Resolver {
 
         // resolve tables
         if dbg!(has_tables) {
+            // 1535: Use whether it's here to decide whether to put it into the modules
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
