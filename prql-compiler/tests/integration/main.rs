@@ -13,15 +13,15 @@ mod tests {
     use std::{env, fs};
 
     use insta::{assert_snapshot, glob};
-    use postgres::NoTls;
-    use tiberius::{AuthMethod, Client, Config};
     use tokio::net::TcpStream;
     use tokio::runtime::Runtime;
     use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
+    use postgres::NoTls;
     use prql_compiler::sql::Dialect;
     use prql_compiler::Options;
     use prql_compiler::Target::Sql;
+    use tiberius::{AuthMethod, Client, Config};
 
     use crate::connection::*;
 
@@ -85,8 +85,12 @@ mod tests {
 
     fn get_connections(runtime: &Runtime) -> Vec<Box<dyn DBConnection>> {
         let mut connections: Vec<Box<dyn DBConnection>> = vec![];
-        connections.push(Box::new(DuckDBConnection(duckdb::Connection::open_in_memory().unwrap())));
-        connections.push(Box::new(SQLiteConnection(rusqlite::Connection::open_in_memory().unwrap())));
+        connections.push(Box::new(DuckDBConnection(
+            duckdb::Connection::open_in_memory().unwrap(),
+        )));
+        connections.push(Box::new(SQLiteConnection(
+            rusqlite::Connection::open_in_memory().unwrap(),
+        )));
 
         let include_external_dbs = false;
         #[cfg(feature = "test-external-dbs")]
