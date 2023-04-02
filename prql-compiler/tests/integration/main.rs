@@ -3,7 +3,6 @@
 #![cfg(not(any(target_family = "windows", target_family = "wasm")))]
 // TODO enable it for all OS
 #![cfg(target_os = "linux")]
-#![cfg(feature = "test-external-dbs")]
 
 mod connection;
 
@@ -86,12 +85,17 @@ mod tests {
 
     fn get_connections(runtime: &Runtime) -> Vec<Box<dyn DBConnection>> {
         let mut connections: Vec<Box<dyn DBConnection>> = vec![];
-        if let Ok(connection) = duckdb::Connection::open_in_memory() {
-            connections.push(Box::new(DuckDBConnection(connection)));
+        connections.push(Box::new(DuckDBConnection(duckdb::Connection::open_in_memory().unwrap())));
+        connections.push(Box::new(SQLiteConnection(rusqlite::Connection::open_in_memory().unwrap())));
+
+        let include_external_dbs = false;
+        #[cfg(feature = "test-external-dbs")]
+        let include_external_dbs = true;
+
+        if !include_external_dbs {
+            return connections;
         }
-        if let Ok(connection) = rusqlite::Connection::open_in_memory() {
-            connections.push(Box::new(SQLiteConnection(connection)));
-        }
+
         if let Ok(client) =
             postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
         {
