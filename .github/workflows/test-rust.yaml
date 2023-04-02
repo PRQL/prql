@@ -78,5 +78,5 @@ jobs:
           #   ubuntu.
           # - Only enable integration test on linux (TODO)
           args:
-            test ${{ inputs.target_option }} ${{ ! inputs.target_option !=
+            test ${{ inputs.target_option }} ${{ inputs.target_option !=
             '--target=wasm32-unknown-unknown' && '--unreferenced=auto' || ''}}
