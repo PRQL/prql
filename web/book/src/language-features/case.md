@@ -4,6 +4,10 @@
 `case` is currently experimental and may change behavior in the near future
 ```
 
+```admonish info
+`case` was previously (PRQL 0.4 to 0.5) called `switch` and renamed to `case` in PRQL 0.6.0.
+```
+
 PRQL uses `case` for both SQL's `CASE` and `IF` statements. Here's an example:
 
 ```prql no-fmt
