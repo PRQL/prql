@@ -203,8 +203,6 @@ because of a strong convention around lowercase, but everywhere else we use
 
 {{< faq "Where can I find the logos?" >}}
 
-<!-- TODO: unsure why a relative link such as `/press-material` doesn't pass the markdownlinkcheck? Would be good to resolve -->
-
-See the [press material](https://prql-lang.org/press-material/).
+See the [press material]({{< ref "/press-material" >}}).
 
 {{</ faq >}}

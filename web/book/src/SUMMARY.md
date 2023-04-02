@@ -84,3 +84,5 @@
   - [Name resolving](./internals/name-resolving.md)
   - [Functions](./internals/functional-lang.md)
   - [Syntax highlighting](./internals/syntax-highlighting.md)
+
+- [Changelog](./changelog.md)
