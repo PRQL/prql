@@ -817,8 +817,9 @@ includes:
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
 `brew install prql-compiler`[^1].
 
-[^1]: we still need to update docs and add a release workflow for this:
-  <https://github.com/PRQL/prql/issues/866>
+[^1]:
+    we still need to update docs and add a release workflow for this:
+    <https://github.com/PRQL/prql/issues/866>
 
 ## 0.2.3 - 2022-07-24
 
