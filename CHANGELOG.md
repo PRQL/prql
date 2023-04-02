@@ -187,6 +187,7 @@ This release has 108 commits from 11 contributors. Selected changes:
 
   If you're interested in dbt integration, subscribe or 👍 to
   <https://github.com/dbt-labs/dbt-core/pull/5982>.
+
 - A new compile target `"sql.any"`. When `"sql.any"` is used as the target of
   the compile function's option, the target contained in the query header will
   be used. (@aljazerzen, #1995)
