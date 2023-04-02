@@ -796,9 +796,9 @@ We also have new features in the
 0.2.5 is a very small release following 0.2.4 yesterday. It includes:
 
 - Add the ability to represent single brackets in an s-string, with two brackets
-  (#752, @max-sixty )
+  (#752, @max-sixty)
 - Fix the "Copy to Clipboard" command in the Playground, for Firefox (#880,
-  @mklopets )
+  @mklopets)
 
 ## 0.2.4 - 2022-07-28
 
@@ -808,11 +808,11 @@ includes:
 - Enrich our CLI, adding commands to get different stages of the compilation
   process (@aljazerzen , #863)
 - Fix multiple `take n` statements in a query, leading to duplicate proxy
-  columns in generated SQL (@charlie-sanders )
-- Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty )
-- Some internal changes — reorganize top-level functions (@aljazerzen ), add a
-  workflow to track our Rust compilation time (@max-sixty ), simplify our simple
-  prql-to-sql tests (@max-sixty )
+  columns in generated SQL (@charlie-sanders)
+- Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty)
+- Some internal changes — reorganize top-level functions (@aljazerzen), add a
+  workflow to track our Rust compilation time (@max-sixty), simplify our simple
+  prql-to-sql tests (@max-sixty)
 
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
 `brew install prql-compiler`[^1].
@@ -828,23 +828,22 @@ mid-sized features to the language, and made a bunch of internal improvements.
 
 The 0.2.3 release includes:
 
-- Allow for escaping otherwise-invalid identifiers (@aljazerzen & @max-sixty )
-- Fix a bug around operator precedence (@max-sixty )
-- Add a section the book on the language bindings (@charlie-sanders )
+- Allow for escaping otherwise-invalid identifiers (@aljazerzen & @max-sixty)
+- Fix a bug around operator precedence (@max-sixty)
+- Add a section the book on the language bindings (@charlie-sanders)
 - Add tests for our `Display` representation while fixing some existing bugs.
-  This is gradually becoming our code formatter (@arrizalamin )
-- Add a "copy to clipboard" button in the Playground (@mklopets )
+  This is gradually becoming our code formatter (@arrizalamin)
+- Add a "copy to clipboard" button in the Playground (@mklopets)
 - Add lots of guidance to our `CONTRIBUTING.md` around our tests and process for
-  merging (@max-sixty )
-- Add a `prql!` macro for parsing a prql query at compile time (@aljazerzen )
-- Add tests for `prql-js` (@charlie-sanders )
-- Add a `from_json` method for transforming json to a PRQL string (@arrizalamin
-  )
-- Add a workflow to release `prql-java` to Maven (@doki23 )
+  merging (@max-sixty)
+- Add a `prql!` macro for parsing a prql query at compile time (@aljazerzen)
+- Add tests for `prql-js` (@charlie-sanders)
+- Add a `from_json` method for transforming json to a PRQL string (@arrizalamin)
+- Add a workflow to release `prql-java` to Maven (@doki23)
 - Enable running all tests from a PR by adding a `pr-run-all-tests` label
-  (@max-sixty )
-- Have `cargo-release` to bump all crate & npm versions (@max-sixty )
-- Update `prql-js` to use the bundler build of `prql-js` (@mklopets )
+  (@max-sixty)
+- Have `cargo-release` to bump all crate & npm versions (@max-sixty)
+- Update `prql-js` to use the bundler build of `prql-js` (@mklopets)
 
 As well as those contribution changes, thanks to those who've reported issues,
 such as @mklopets @huw @mm444 @ajfriend.
@@ -869,17 +868,17 @@ We're a couple of weeks since our 0.2.0 release. Thanks for the surge in
 interest and contributions! 0.2.2 has some fixes & some internal improvements:
 
 - We now test against SQLite & DuckDB on every commit, to ensure we're producing
-  correct SQL. (@aljazerzen )
-- We have the beginning of Java bindings! (@doki23 )
-- Idents surrounded by backticks are passed through to SQL (@max-sixty )
+  correct SQL. (@aljazerzen)
+- We have the beginning of Java bindings! (@doki23)
+- Idents surrounded by backticks are passed through to SQL (@max-sixty)
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
-- Automated releases to homebrew (@roG0d )
+- Automated releases to homebrew (@roG0d)
 - [prql-js](https://github.com/PRQL/prql/tree/main/bindings/prql-js) is now a
-  single package for Node, browsers & webpack (@charlie-sanders )
+  single package for Node, browsers & webpack (@charlie-sanders)
 - Parsing has some fixes, including `>=` and leading underscores in idents
-  (@mklopets )
-- Ranges receive correct syntax highlighting (@max-sixty )
+  (@mklopets)
+- Ranges receive correct syntax highlighting (@max-sixty)
 
 Thanks to Aljaž Mur Eržen @aljazerzen , George Roldugin @roldugin , Jasper
 McCulloch @Jaspooky , Jie Han @doki23 , Marko Klopets @mklopets , Maximilian
