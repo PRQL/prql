@@ -77,8 +77,8 @@ jobs:
         with:
           command: insta
           args:
-            test --unreferenced=auto ${{ inputs.target_option }} --features
-            test-external-dbs
+            test --unreferenced=auto ${{ inputs.target_option }}
+            ${{ inputs.os == 'ubuntu-latest' && '--features=test-external-dbs' || '' }}
       - name: 📋 Test wasm
         uses: richb-hanover/cargo@v1.1.0
         if:
