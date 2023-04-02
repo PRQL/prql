@@ -385,6 +385,7 @@ tools_section:
         A CLI for PRQL compiler, written in Rust.
 
         `cargo install prqlc`
+
         `brew install prql/PRQL/prqlc`
 
 integrations_section:
