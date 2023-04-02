@@ -161,6 +161,32 @@ This release has 108 commits from 11 contributors. Selected changes:
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
+- Add a new subcommand `prqlc jinja`. (@aljazerzen, #1722)
+- _Breaking_: prql-compiler no longer passes text containing `{{` & `}}` through
+  to the output. (@aljazerzen, #1722)
+
+  For example, the following PRQL query
+
+  ```prql no-eval
+  from {{foo}}
+  ```
+
+  was compiled to the following SQL previously, but now it raises an error.
+
+  ```sql
+  SELECT
+    *
+  FROM
+    {{ foo }}
+  ```
+
+  This pass-through feature existed for integration with dbt.
+
+  we're again considering how to best integrate with dbt, and this change is
+  based on the idea that the jinja macro should run before the PRQL compiler.
+
+  If you're interested in dbt integration, subscribe or 👍 to
+  <https://github.com/dbt-labs/dbt-core/pull/5982>.
 - A new compile target `"sql.any"`. When `"sql.any"` is used as the target of
   the compile function's option, the target contained in the query header will
   be used. (@aljazerzen, #1995)
