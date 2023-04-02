@@ -1139,7 +1139,7 @@ mod tests {
                             target_id: 6
                             ty: Infer
                       ty:
-                        SetExpr:
+                        TypeExpr:
                           Primitive: Column
               partition:
                 - id: 12

@@ -2,6 +2,7 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
+use mdbook_prql::code_block_lang_tags;
 use prql_compiler::*;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -32,6 +33,10 @@ const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
+    // TODO: instead of returning Strings with embedded tags (e.g. `# error`),
+    // we could instead return a struct with a `prql` field and a struct of its
+    // metadata. That would make `test_display` work by matching on the metadata
+    // rather than re-parsing the string.
     use pulldown_cmark::{Event, Parser};
     let glob = Glob::new("**/*.md")?.compile_matcher();
     let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
@@ -46,24 +51,25 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
             let mut parser = Parser::new(&text);
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
-                match mdbook_prql::code_block_lang(&event) {
-                    Some(lang) if lang.starts_with("prql") => {
-                        let mut text = String::new();
-                        while let Some(Event::Text(line)) = parser.next() {
-                            text.push_str(line.to_string().as_str());
-                        }
-                        if text.is_empty() {
-                            bail!("Expected text after PRQL code block");
-                        }
-                        if lang == "prql" {
-                            prql_blocks.push(text.to_string());
-                        } else if lang == "prql_error" {
-                            prql_blocks.push(format!("# Error expected\n\n{text}"));
-                        } else if lang == "prql_no_fmt" {
-                            prql_blocks.push(format!("# Can't yet format & compile\n\n{text}"));
-                        }
+                let Some(lang_tags) = code_block_lang_tags(&event) else {
+                    continue
+                };
+
+                if lang_tags.contains(&"prql".to_string()) {
+                    let mut prql_text = String::new();
+                    while let Some(Event::Text(line)) = parser.next() {
+                        prql_text.push_str(line.to_string().as_str());
                     }
-                    _ => {}
+                    if prql_text.is_empty() {
+                        bail!("Expected text after PRQL code block");
+                    }
+                    if lang_tags.contains(&"error".to_string()) {
+                        prql_blocks.push(format!("# error\n\n{prql_text}"));
+                    } else if lang_tags.contains(&"no-fmt".to_string()) {
+                        prql_blocks.push(format!("# no-fmt\n\n{prql_text}"));
+                    } else {
+                        prql_blocks.push(prql_text.to_string());
+                    }
                 }
             }
             let snapshot_prefix = &dir_entry
@@ -104,7 +110,7 @@ fn test_display() -> Result<(), ErrorMessages> {
     collect_book_examples()?
         .iter()
         .try_for_each(|(path, prql)| {
-            if prql.contains("# Error expected") || prql.contains("# Can't yet format & compile") {
+            if prql.contains("# error") || prql.contains("# no-fmt") {
                 return Ok(());
             }
             prql_to_pl(prql)
@@ -114,7 +120,7 @@ fn test_display() -> Result<(), ErrorMessages> {
                     panic!(
                         "
 Failed compiling the formatted result of {path:?}
-To skip this test for an example, use `prql_no_fmt` as the language label.
+To skip this test for an example, use `prql,no-fmt` as the language label.
 
 The original PRQL was:
 
@@ -135,7 +141,7 @@ The original PRQL was:
 #[test]
 fn test_rq_serialize() -> Result<(), ErrorMessages> {
     for (_, prql) in collect_book_examples()? {
-        if prql.contains("# Error expected") {
+        if prql.contains("# error") {
             continue;
         }
         let rq = prql_to_pl(&prql).map(pl_to_rq)?;

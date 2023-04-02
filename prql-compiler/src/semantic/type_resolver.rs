@@ -7,27 +7,27 @@ use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::Context;
 
-/// Takes a resolved [Expr] and evaluates it a set expression that can be used to construct a type.
-pub fn coerce_to_set(expr: Expr, context: &Context) -> Result<SetExpr, Error> {
+/// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
+pub fn coerce_to_set(expr: Expr, context: &Context) -> Result<TypeExpr, Error> {
     coerce_to_named_set(expr, context).map(|(_, s)| s)
 }
 
-fn coerce_to_named_set(expr: Expr, context: &Context) -> Result<(Option<String>, SetExpr), Error> {
+fn coerce_to_named_set(expr: Expr, context: &Context) -> Result<(Option<String>, TypeExpr), Error> {
     let name = expr.alias;
     let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
 
     Ok((name, expr))
 }
 
-fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Error> {
+fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Error> {
     // primitives
-    if let ExprKind::Set(set_expr) = expr {
+    if let ExprKind::Type(set_expr) = expr {
         return Ok(set_expr);
     }
 
     // singletons
     if let ExprKind::Literal(lit) = expr {
-        return Ok(SetExpr::Singleton(lit));
+        return Ok(TypeExpr::Singleton(lit));
     }
 
     // tuples
@@ -35,12 +35,12 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Erro
         let mut set_elements = Vec::with_capacity(elements.len());
 
         for e in elements {
-            let (name, set) = coerce_to_named_set(e, context)?;
+            let (name, ty) = coerce_to_named_set(e, context)?;
 
-            set_elements.push(TupleElement::Single(name, set));
+            set_elements.push(TupleElement::Single(name, ty));
         }
 
-        return Ok(SetExpr::Tuple(set_elements));
+        return Ok(TypeExpr::Tuple(set_elements));
     }
 
     // unions
@@ -55,22 +55,22 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<SetExpr, Erro
 
         // flatten nested unions
         let mut options = Vec::with_capacity(2);
-        if let SetExpr::Union(parts) = left.1 {
+        if let TypeExpr::Union(parts) = left.1 {
             options.extend(parts);
         } else {
             options.push(left);
         }
-        if let SetExpr::Union(parts) = right.1 {
+        if let TypeExpr::Union(parts) = right.1 {
             options.extend(parts);
         } else {
             options.push(right);
         }
 
-        return Ok(SetExpr::Union(options));
+        return Ok(TypeExpr::Union(options));
     }
 
     Err(Error::new_simple(format!(
-        "not a set expression: {}",
+        "not a type expression: {}",
         Expr::from(expr)
     )))
 }
@@ -83,13 +83,13 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
     Ok(match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
             Literal::Null => Ty::Infer,
-            Literal::Integer(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Int)),
-            Literal::Float(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Float)),
-            Literal::Boolean(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Bool)),
-            Literal::String(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Text)),
-            Literal::Date(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Date)),
-            Literal::Time(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Time)),
-            Literal::Timestamp(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Timestamp)),
+            Literal::Integer(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Int)),
+            Literal::Float(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Float)),
+            Literal::Boolean(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Bool)),
+            Literal::String(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
+            Literal::Date(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Date)),
+            Literal::Time(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Time)),
+            Literal::Timestamp(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Timestamp)),
             Literal::ValueAndUnit(_) => Ty::Infer, // TODO
             Literal::Relation(_) => unreachable!(),
         },
@@ -97,11 +97,11 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
         ExprKind::SString(_) => Ty::Infer,
-        ExprKind::FString(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::Text)),
+        ExprKind::FString(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
-        ExprKind::List(_) => Ty::SetExpr(SetExpr::Primitive(TyLit::List)),
+        ExprKind::List(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::List)),
 
         _ => Ty::Infer,
     })

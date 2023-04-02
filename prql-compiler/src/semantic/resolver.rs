@@ -77,7 +77,7 @@ impl AstFold for Resolver {
                         name: ty_def.name,
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
                             let mut e = Expr::null();
-                            e.ty = Some(Ty::SetExpr(SetExpr::Set));
+                            e.ty = Some(Ty::TypeExpr(TypeExpr::Type));
                             e
                         })),
                     };
@@ -448,7 +448,7 @@ impl Resolver {
             // evaluate
             let needs_window = (closure.body_ty)
                 .as_ref()
-                .map(|ty| ty.is_superset_of(&Ty::SetExpr(SetExpr::Primitive(TyLit::Column))))
+                .map(|ty| ty.is_superset_of(&Ty::TypeExpr(TypeExpr::Primitive(TyLit::Column))))
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
@@ -780,11 +780,11 @@ impl Resolver {
                 let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
 
                 // TODO: workaround
-                if let SetExpr::Array(_) = set_expr {
+                if let TypeExpr::Array(_) = set_expr {
                     return Ok(Some(Ty::Table(Frame::default())));
                 }
 
-                Some(Ty::SetExpr(set_expr))
+                Some(Ty::TypeExpr(set_expr))
             }
             None => None,
         })

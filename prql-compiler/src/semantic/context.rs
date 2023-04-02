@@ -2,7 +2,6 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
@@ -198,13 +197,11 @@ impl Context {
         }
 
         // fallback case: this variable can be from a namespace that we don't know all columns of
-        let decls = if ident.name != "*" {
+        let decls = {
             self.root_mod.lookup(&Ident {
                 path: ident.path.clone(),
                 name: NS_INFER.to_string(),
             })
-        } else {
-            HashSet::new()
         };
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
@@ -388,16 +385,16 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "timestamp" => TyLit::Timestamp,
         "table" => {
             // TODO: this is just a dummy that gets intercepted when resolving types
-            return Some(ExprKind::Set(SetExpr::Array(Box::new(SetExpr::Singleton(
-                Literal::Null,
-            )))));
+            return Some(ExprKind::Type(TypeExpr::Array(Box::new(
+                TypeExpr::Singleton(Literal::Null),
+            ))));
         }
         "column" => TyLit::Column,
         "list" => TyLit::List,
         "scalar" => TyLit::Scalar,
         _ => return None,
     };
-    Some(ExprKind::Set(SetExpr::Primitive(ty_lit)))
+    Some(ExprKind::Type(TypeExpr::Primitive(ty_lit)))
 }
 
 impl Default for DeclKind {
