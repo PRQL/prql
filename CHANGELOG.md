@@ -815,9 +815,9 @@ includes:
   prql-to-sql tests (@max-sixty )
 
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
-`brew install prql-compiler`[^2].
+`brew install prql-compiler`[^1].
 
-[^2]:
+[^1]:
   we still need to update docs and add a release workflow for this:
   <https://github.com/PRQL/prql/issues/866>
 
