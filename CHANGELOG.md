@@ -298,17 +298,21 @@ This release has 74 commits from 12 contributors. Selected changes:
   formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
   be a string in any format. (@aljazerzen & @snth, #1514)
 
-  ```prql
+  ```prql no-eval
   from_text format:csv """
   a,b,c
   1,2,3
   4,5,6
   """
+  ```
 
+  ```prql no-eval
   from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
   '''
+  ```
 
+  ```prql no-eval
   from_text format:json '''{
       "columns": ["a", "b", "c"],
       "data": [
@@ -341,7 +345,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 
 - Inferred column names include the relation name (@aljazerzen, #1550):
 
-  ```prql
+  ```prql no-eval
   from albums
   select title # name used to be inferred as title only
   select albums.title # so using albums was not possible here
@@ -380,7 +384,7 @@ below in this release).
   a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
-  ```prql
+  ```prql no-eval
   derive var = case [
     score <= 10 -> "low",
     score <= 30 -> "medium",
@@ -411,7 +415,7 @@ below in this release).
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
   #1329)
 
-  ```prql
+  ```prql no-eval
   from albums
   select ![title, composer]
   ```
@@ -419,7 +423,7 @@ below in this release).
 - _Experimental:_ `append` transform, equivalent to `UNION ALL` in SQL.
   (@aljazerzen, #894)
 
-  ```prql
+  ```prql no-eval
   from employees
   append managers
   ```
@@ -431,7 +435,7 @@ below in this release).
 - Numbers can contain underscores, which can make reading long numbers easier
   (@max-sixty, #1467):
 
-  ```prql
+  ```prql no-eval
   from numbers
   select [
       small = 1.000_000_1,
@@ -444,7 +448,7 @@ below in this release).
 - `dialect` is renamed to `target`, and its values are prefixed with `sql.`
   (@max-sixty, #1388); for example:
 
-  ```prql
+  ```prql no-eval
   prql target:sql.bigquery  # previously was `dialect:bigquery`
 
   from employees
@@ -456,7 +460,7 @@ below in this release).
 - Tables definitions can contain a bare s-string (@max-sixty, #1422), which
   enables us to include a full CTE of SQL, for example:
 
-  ```prql
+  ```prql no-eval
   let grouping = s"""
     SELECT SUM(a)
     FROM tbl
@@ -533,7 +537,7 @@ improvements]
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
 
-  ```prql
+  ```prql no-eval
   from s"SELECT * FROM employees WHERE foo > 5"
   ```
 
@@ -677,7 +681,7 @@ fix rather than a breaking change in semantic versioning.
   last; for example `round 2 foo_col` / `cast int foo`. This is consistent with
   other functions, and makes piping possible:
 
-  ```prql
+  ```prql no-eval
   derive [
     gross_salary = (salary + payroll_tax | as int),
     gross_salary_rounded = (gross_salary | round 0),
