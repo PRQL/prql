@@ -57,7 +57,7 @@ repos:
     hooks:
       - id: prql-codeblock
         name: Prevent prql codeblocks evaluating in book
-        description: prql code blocks are evaluated and replaced in the book
+        description: prql code blocks are evaluated and replaced in the book; instead use `prql no-eval`
         language: pygrep
         entry: "```prql$"
         files: 'CHANGELOG\.md$'
