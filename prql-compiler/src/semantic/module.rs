@@ -20,7 +20,7 @@ pub const NS_SELF: &str = "_self";
 // implies we can infer new names in the containing module
 pub const NS_INFER: &str = "_infer";
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
     /// Names declared in this module. This is the important thing.
     pub(super) names: HashMap<String, Decl>,
@@ -370,5 +370,47 @@ impl std::fmt::Debug for Module {
             ds.field("shadowed", f);
         }
         ds.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::pl::{Expr, ExprKind, Literal};
+
+    // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
+    #[test]
+    fn test_module() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
+
+        assert!(module.insert(ident.clone(), decl.clone()).is_ok());
+        assert_eq!(module.get(&ident).unwrap(), &decl);
+        assert_eq!(module.get_mut(&ident).unwrap(), &decl);
+
+        // Lookup
+        let lookup_result = module.lookup(&ident);
+        assert_eq!(lookup_result.len(), 1);
+        assert!(lookup_result.contains(&ident));
+    }
+
+    #[test]
+    fn test_module_shadow_unshadow() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
+
+        module.insert(ident.clone(), decl.clone()).unwrap();
+
+        module.shadow("test_name");
+        assert!(module.get(&ident) != Some(&decl));
+
+        module.unshadow("test_name");
+        assert_eq!(module.get(&ident).unwrap(), &decl);
     }
 }
