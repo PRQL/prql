@@ -13,15 +13,15 @@ mod tests {
     use std::{env, fs};
 
     use insta::{assert_snapshot, glob};
+    use postgres::NoTls;
+    use tiberius::{AuthMethod, Client, Config};
     use tokio::net::TcpStream;
     use tokio::runtime::Runtime;
     use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
-    use postgres::NoTls;
     use prql_compiler::sql::Dialect;
     use prql_compiler::Options;
     use prql_compiler::Target::Sql;
-    use tiberius::{AuthMethod, Client, Config};
 
     use crate::connection::*;
 
@@ -100,15 +100,14 @@ mod tests {
             return connections;
         }
 
-        if let Ok(client) =
+        connections.push(Box::new(PostgresConnection(
             postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
-        {
-            connections.push(Box::new(PostgresConnection(client)));
-        }
-        if let Ok(pool) = mysql::Pool::new("mysql://root:root@localhost:3306/dummy") {
-            connections.push(Box::new(MysqlConnection(pool)));
-        }
-        if let Ok(client) = {
+                .unwrap(),
+        )));
+        connections.push(Box::new(MysqlConnection(
+            mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
+        )));
+        let ms_client = {
             let mut config = Config::new();
             config.host("127.0.0.1");
             config.port(1433);
@@ -123,9 +122,10 @@ mod tests {
                 Client::connect(config, tcp.compat_write()).await
             }
             client
-        } {
-            connections.push(Box::new(MssqlConnection(client)));
         }
+        .unwrap();
+        connections.push(Box::new(MssqlConnection(ms_client)));
+
         connections
     }
 
