@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.7.1 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.7.0 — 2023-24-01
 
 0.7.0 is a fairly small release in terms of new features, with lots of internal
