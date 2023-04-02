@@ -136,5 +136,12 @@ fn test_missing_exclude() {
     select ![milliseconds,bytes]
     "###).unwrap_err(), @r###"
     Error: Excluding columns (milliseconds, bytes) is not supported by the current dialect, GenericDialect
-    "###)
+    "###);
+
+    assert_display_snapshot!(compile(r###"
+    from tracks
+    group title (take 1)
+    "###).unwrap_err(), @r###"
+    Error: Excluding columns (_expr_0) is not supported by the current dialect, GenericDialect
+    "###);
 }
