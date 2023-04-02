@@ -16,7 +16,7 @@
 
 **New Contributors**:
 
-## 0.7.0 — 2023-24-01
+## 0.7.0 — 2023-04-01
 
 0.7.0 is a fairly small release in terms of new features, with lots of internal
 improvements, such as integration tests with a whole range of DBs, a blog post
