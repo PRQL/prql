@@ -28,10 +28,6 @@ mod tests {
 
     #[test]
     fn test_rdbms() {
-        if env::var("SKIP_INTEGRATION").is_ok() {
-            return;
-        }
-
         let runtime = Runtime::new().unwrap();
         let mut connections = get_connections(&runtime);
 

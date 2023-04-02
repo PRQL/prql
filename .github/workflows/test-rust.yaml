@@ -64,9 +64,6 @@ jobs:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
         if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: skip integration if not linux
-        run: echo "SKIP_INTEGRATION=true" >> "$GITHUB_ENV"
-        if: ${{ inputs.os != 'ubuntu-latest' }}
       # Only check unreferenced snapshots on the default target tests on ubuntu
       #
       # (Maybe there's a nicer approach where we can parameterize one step

@@ -10,9 +10,7 @@ services:
     volumes: &vol
       - ./data/chinook:/tmp/chinook:ro
   mysql:
-    # No arm64 image available; remove when one does become available
-    platform: linux/amd64
-    image: "mysql:debian"
+    image: "mysql:oracle"
     ports:
       - "3306:3306"
     environment:
