@@ -2,10 +2,7 @@
 
 The PRQL compiler operates in the following stages:
 
-1. **Lexing & Parsing**: The PRQL text is split into tokens and a parse tree is
-   built. This parse tree is then converted into an Abstract Syntax Tree (AST)
-   using the `ast` module. The Chumsky parser is utilized for parsing, and the
-   AST is constructed in `parser.rs`.
+1. **Lexing & Parsing**: PRQL source text is split into tokens with the Chumsky parser named "lexer". Stream of tokens is then parsed into an Abstract Syntax Tree (AST).
 
 2. **Semantic Analysis**: This stage resolves names (identifiers), extracts
    declarations, and determines frames (table columns in each step). A `Context`
