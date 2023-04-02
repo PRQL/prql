@@ -20,7 +20,7 @@ pub const NS_SELF: &str = "_self";
 // implies we can infer new names in the containing module
 pub const NS_INFER: &str = "_infer";
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
     /// Names declared in this module. This is the important thing.
     pub(super) names: HashMap<String, Decl>,
@@ -370,5 +370,101 @@ impl std::fmt::Debug for Module {
             ds.field("shadowed", f);
         }
         ds.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::pl::{Expr, ExprKind, Literal};
+
+    #[test]
+    fn test_module() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl = Decl {
+            declared_at: Some(1),
+            kind: DeclKind::Expr(Box::new(expr)),
+            order: 0,
+        };
+
+        assert!(module.insert(ident.clone(), decl.clone()).is_ok());
+        assert_eq!(module.get(&ident).unwrap(), &decl);
+        assert_eq!(module.get_mut(&ident).unwrap(), &decl);
+
+        // Lookup
+        let lookup_result = module.lookup(&ident);
+        assert_eq!(lookup_result.len(), 1);
+        assert!(lookup_result.contains(&ident));
+    }
+
+    #[test]
+    fn test_module_shadow_unshadow() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl = Decl {
+            declared_at: Some(1),
+            kind: DeclKind::Expr(Box::new(expr)),
+            order: 0,
+        };
+
+        module.insert(ident.clone(), decl.clone()).unwrap();
+
+        module.shadow("test_name");
+        assert!(module.get(&ident).is_none());
+
+        module.unshadow("test_name");
+        assert_eq!(module.get(&ident).unwrap(), &decl);
+    }
+
+    #[test]
+    fn test_module_stack_push_pop() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl = Decl {
+            declared_at: Some(1),
+            kind: DeclKind::Expr(Box::new(expr)),
+            order: 0,
+        };
+
+        let mut nested_module = Module::default();
+        let ident2 = Ident::from_name("nested_name");
+        let expr2: Expr = ExprKind::Literal(Literal::Integer(24)).into();
+        let decl2 = Decl {
+            declared_at: Some(2),
+            kind: DeclKind::Expr(Box::new(expr2)),
+            order: 0,
+        };
+        nested_module.insert(ident2.clone(), decl2.clone()).unwrap();
+
+        module.insert(ident.clone(), decl).unwrap();
+
+        // Push the nested module onto the stack
+        module.stack_push("test_name", nested_module);
+
+        // Test that we can access the nested module's content
+        assert_eq!(
+            module
+                .get(&ident)
+                .unwrap()
+                .kind
+                .as_layered_modules()
+                .unwrap()
+                .last()
+                .unwrap()
+                .get(&ident2)
+                .unwrap(),
+            &decl2
+        );
+
+        // Pop the nested module off the stack
+        let popped_module = module.stack_pop("test_name").unwrap();
+        assert_eq!(popped_module.get(&ident2).unwrap(), &decl2);
     }
 }
