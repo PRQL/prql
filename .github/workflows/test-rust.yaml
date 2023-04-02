@@ -55,7 +55,7 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
-          args: ${{ inputs.target_option }} --no-run --locked
+          args: ${{ inputs.target_option }} --all-features --no-run --locked
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration-rdbms
