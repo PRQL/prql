@@ -818,8 +818,9 @@ Thanks to @ankane, `prql-compiler` is now available from homebrew core;
 `brew install prql-compiler`[^1].
 
 [^1]:
-  we still need to update docs and add a release workflow for this:
-  <https://github.com/PRQL/prql/issues/866>
+
+we still need to update docs and add a release workflow for this:
+<https://github.com/PRQL/prql/issues/866>
 
 ## 0.2.3 - 2022-07-24
 
@@ -953,9 +954,8 @@ I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 difficult work of building out the compiler. Much credit also goes to
 [Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
 PRQL's earliest supporters and the author of PyPrql, and
-[Ryan Patterson-Cross](https://github.com/rbpatt2019)
-(@rbpatt2019), who built the Jupyter integration among other Python
-contributions.
+[Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
+the Jupyter integration among other Python contributions.
 
 Other contributors who deserve a special mention include: @roG0d, @snth,
 @kwigley
