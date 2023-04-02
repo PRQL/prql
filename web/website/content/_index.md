@@ -372,11 +372,10 @@ tools_section:
       text:
         "Online in-browser playground that compiles PRQL to SQL as you type."
 
-    - link: https://github.com/prql/PyPrql
+    - link: https://pyprql.readthedocs.io/
       label: "PyPrql"
       text: |
-        Python TUI for connecting to databases.
-        Provides a native interactive console with auto-complete for column names and Jupyter/IPython cell magic.
+        Provides Jupyter/IPython cell magic and Pandas accessor.
 
         `pip install pyprql`
 
@@ -385,7 +384,7 @@ tools_section:
       text: |
         A CLI for PRQL compiler, written in Rust.
 
-        `cargo install prqlc`
+        `cargo install prqlc`  
         `brew install prql/PRQL/prqlc`
 
 integrations_section:
@@ -410,13 +409,6 @@ integrations_section:
     - label: "DuckDB"
       link: https://github.com/ywelsch/duckdb-prql
       text: A DuckDB extension to execute PRQL
-
-    - label: dbt
-      link: https://github.com/prql/dbt-prql
-      text:
-        Allows writing PRQL in dbt models. This combines the benefits of PRQL's
-        power & simplicity within queries; with dbt's version control, lineage &
-        testing across queries.
 
 bindings_section:
   enable: true
