@@ -16,7 +16,7 @@ Functions have two types of parameters:
 
 So this function is named `fahrenheit_to_celsius` and has one parameter `temp`:
 
-```prql_no_fmt
+```prql no-fmt
 func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 
 from cities

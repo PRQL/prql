@@ -40,7 +40,7 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
           Literal:
             Integer: 1
           ty:
-            SetExpr:
+            TypeExpr:
               Primitive: Int
       ty: Infer
     op: Add
@@ -53,6 +53,6 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
       target_id: 8
       ty: Infer
   ty:
-    SetExpr:
+    TypeExpr:
       Primitive: Column
 

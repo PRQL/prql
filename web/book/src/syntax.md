@@ -137,7 +137,7 @@ function call, like `foo + bar`.
 
 Here's a full rundown of times this applier:
 
-```prql_no_fmt
+```prql no-fmt
 from employees
 # Requires parentheses, because it's contains a pipe
 derive is_proximate = (distance | in 0..20)
@@ -169,7 +169,7 @@ sort [-distance]
 This doesn't work, for example (though it should provide a much better error
 message):
 
-```prql_error
+```prql error
 from employees
 derive total_distance = sum distance
 ```

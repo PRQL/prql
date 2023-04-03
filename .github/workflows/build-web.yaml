@@ -5,7 +5,13 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/build-web.yaml"
+      - "**.md"
   workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-web
+  cancel-in-progress: true
 
 jobs:
   build-web:
