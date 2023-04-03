@@ -26,8 +26,9 @@ cargo build.
 
 ### Postgres, MySQL, SQL Server
 
-These will not run as a part of `cargo test`. Use `cargo test --features=test-external-dbs` instead.
-Make sure to start docker compose before (see below).
+These will not run as a part of `cargo test`. Use
+`cargo test --features=test-external-dbs` instead. Make sure to start docker
+compose before (see below).
 
 ## Docker compose
 
@@ -36,6 +37,7 @@ To test the external databases, docker needs to be installed.
 Steps to run the tests:
 
 1. Run docker compose (may take a while on the first time):
+
    ```
    $ cd prql-compiler/tests/integration
    $ docker-compose up
