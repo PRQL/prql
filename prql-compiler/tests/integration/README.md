@@ -40,7 +40,7 @@ Steps to run the tests:
 
    ```
    $ cd prql-compiler/tests/integration
-   $ docker-compose up
+   $ docker compose up
    ```
 
 2. Run the tests:
