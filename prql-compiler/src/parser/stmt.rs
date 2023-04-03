@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
@@ -51,18 +52,41 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
                     ExprKind::Literal(Literal::String(v)) => {
                         VersionReq::parse(&v).map_err(|e| e.to_string())
                     }
-                    _ => Err("version must be a sting literal".to_string()),
+                    _ => Err("version must be a string literal".to_string()),
                 })
                 .transpose()
-                .map_err(|msg| Simple::custom(span, msg))?;
+                .map_err(|msg| Simple::custom(span.clone(), msg))?;
 
+            // TODO: `QueryDef` is currently implemented as `version` & `other`
+            // fields. We want to raise an error if an unsupported field is
+            // used, to avoid confusion (e.g. if someone passes `dialect`). So
+            // at the moment we implement this as having a HashMap with 0 or 1
+            // entries... We can decide how to implement `QueryDef` later, and
+            // have this awkward construction in the meantime.
             let other = args
-                .into_iter()
-                .flat_map(|(key, value)| match value.kind {
-                    ExprKind::Ident(value) => Some((key, value.to_string())),
-                    _ => None,
+                .remove("target")
+                .map(|v| match v.kind {
+                    ExprKind::Ident(value) => Ok(value.to_string()),
+                    _ => Err("target must be a string literal".to_string()),
                 })
-                .collect();
+                .transpose()
+                .map_err(|msg| Simple::custom(span.clone(), msg))?
+                .map_or_else(HashMap::new, |x| {
+                    HashMap::from_iter(vec![("target".to_string(), x)])
+                });
+
+            if !args.is_empty() {
+                return Err(Simple::custom(
+                    span,
+                    format!(
+                        "unknown query definition arguments {}",
+                        args.keys()
+                            .into_iter()
+                            .map(|x| format!("`{}`", x))
+                            .join(", ")
+                    ),
+                ));
+            }
 
             Ok(StmtKind::QueryDef(QueryDef { version, other }))
         })

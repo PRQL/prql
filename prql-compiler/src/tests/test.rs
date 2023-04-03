@@ -3194,6 +3194,28 @@ a,b,c
 }
 
 #[test]
+fn test_header() {
+    // Test both target & version at the same time
+    let header = format!(
+        r#"
+            prql target:sql.mssql version:"{}.{}"
+            "#,
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR")
+    );
+    assert_display_snapshot!(compile(format!(r#"
+    {header}
+
+    from a
+    take 5
+    "#).as_str()).unwrap(),@r###"
+    SELECT
+      TOP (5) *
+    FROM
+      a
+    "###);
+}
+#[test]
 fn test_header_target_error() {
     assert_display_snapshot!(compile(r#"
     prql target:foo
@@ -3214,6 +3236,23 @@ fn test_header_target_error() {
     from a
     "#).unwrap_err(),@r###"
     Error: target `"foo.bar"` not found
+    "###);
+
+    // TODO: Can we use the span of:
+    // - Ideally just `dialect`?
+    // - At least not the first empty line?
+    assert_display_snapshot!(compile(r#"
+    prql dialect:foo.bar
+    from a
+    "#).unwrap_err(),@r###"
+    Error:
+       ╭─[:1:1]
+       │
+     1 │ ╭─▶
+     2 │ ├─▶     prql dialect:foo.bar
+       │ │
+       │ ╰────────────────────────────── unknown query definition arguments `dialect`
+    ───╯
     "###);
 }
 
