@@ -21,7 +21,7 @@ pub struct Context {
     pub(crate) inferred_columns: HashMap<usize, Vec<RelationColumn>>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
     pub declared_at: Option<usize>,
 
@@ -32,7 +32,7 @@ pub struct Decl {
     pub order: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum DeclKind {
     /// A nested namespace
     Module(Module),
@@ -57,7 +57,7 @@ pub enum DeclKind {
     Expr(Box<Expr>),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
     /// Columns layout
     pub columns: Vec<RelationColumn>,
@@ -65,7 +65,7 @@ pub struct TableDecl {
     pub expr: TableExpr,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum TableExpr {
     /// In SQL, this is a CTE
     RelationVar(Box<Expr>),
