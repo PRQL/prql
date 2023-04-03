@@ -27,9 +27,14 @@ pub struct Module {
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
-    // Q: @aljazerzen — what's the difference between a redirect and a
-    // LayeredModule? Does the data structure contain the destination of the
-    // redirect?
+    ///
+    /// Assuming we want to lookup `average`, which is in `std`. The root module
+    /// does not contain the `average`. So instead:
+    /// - look for `average` in root module and find nothing,
+    /// - follow redirects in root module,
+    /// - because of redirect `std`, so we look for `average` in `std`,
+    /// - there is `average` is `std`,
+    /// - result of the lookup is FQ ident `std.average`.
     pub redirects: Vec<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
