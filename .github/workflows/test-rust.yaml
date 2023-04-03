@@ -41,7 +41,9 @@ jobs:
           command: clippy
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-          args: --all-targets ${{ inputs.target_option }} -- -D warnings
+          args:
+            --all-targets --all-features ${{ inputs.target_option }} -- -D
+            warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -53,7 +55,7 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
-          args: ${{ inputs.target_option }} --no-run --locked
+          args: ${{ inputs.target_option }} --all-features --no-run --locked
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
@@ -64,26 +66,16 @@ jobs:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
         if: ${{ inputs.os == 'ubuntu-latest' }}
-      # Only check unreferenced snapshots on the default target tests on ubuntu
-      #
-      # (Maybe there's a nicer approach where we can parameterize one step
-      # rather than have two different ones? We welcome a change to simplify
-      # this.)
-      - name: 📋 Test default
+      - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
-        if:
-          ${{ (inputs.target_option != '--target=wasm32-unknown-unknown' &&
-          runner.os == 'Linux') }}
         with:
           command: insta
+          # Autoformatting doesn't make this clear, but:
+          # - Only check unreferenced snapshots on the default target tests on
+          #   ubuntu.
+          # - Only enable integration test on linux
           args:
-            test --unreferenced=auto ${{ inputs.target_option }} ${{ inputs.os
-            == 'ubuntu-latest' && '--features=test-external-dbs' || '' }}
-      - name: 📋 Test wasm
-        uses: richb-hanover/cargo@v1.1.0
-        if:
-          ${{ ! (inputs.target_option != '--target=wasm32-unknown-unknown' &&
-          runner.os == 'Linux') }}
-        with:
-          command: insta
-          args: test ${{ inputs.target_option }}
+            test ${{ inputs.target_option != '--target=wasm32-unknown-unknown'
+            && '--unreferenced=auto' || ''}} ${{ inputs.target_option }} ${{
+            inputs.os == 'ubuntu-latest' && '--features=test-external-dbs' || ''
+            }}
