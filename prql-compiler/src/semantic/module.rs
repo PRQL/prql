@@ -27,6 +27,14 @@ pub struct Module {
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
+    ///
+    /// Assuming we want to lookup `average`, which is in `std`. The root module
+    /// does not contain the `average`. So instead:
+    /// - look for `average` in root module and find nothing,
+    /// - follow redirects in root module,
+    /// - because of redirect `std`, so we look for `average` in `std`,
+    /// - there is `average` is `std`,
+    /// - result of the lookup is FQ ident `std.average`.
     pub redirects: Vec<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
@@ -42,6 +50,8 @@ impl Module {
     }
 
     pub fn new() -> Module {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
         Module {
             names: HashMap::from([
                 (
@@ -73,6 +83,7 @@ impl Module {
     pub fn insert(&mut self, ident: Ident, entry: Decl) -> Result<Option<Decl>> {
         let mut ns = self;
 
+        // Navigate down the module path
         for part in ident.path {
             let entry = ns.names.entry(part.clone()).or_default();
 

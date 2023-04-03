@@ -12,9 +12,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-taskfile
   cancel-in-progress: true
 
-env:
-  SKIP_INTEGRATION: true
-
 jobs:
   test-taskfile:
     runs-on: macos-latest

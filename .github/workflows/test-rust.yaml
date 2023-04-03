@@ -58,7 +58,7 @@ jobs:
           args: ${{ inputs.target_option }} --all-features --no-run --locked
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration-rdbms
+        working-directory: ./prql-compiler/tests/integration
         if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
@@ -66,9 +66,6 @@ jobs:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
         if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: skip integration if not linux
-        run: echo "SKIP_INTEGRATION=true" >> "$GITHUB_ENV"
-        if: ${{ inputs.os != 'ubuntu-latest' }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -76,7 +73,9 @@ jobs:
           # Autoformatting doesn't make this clear, but:
           # - Only check unreferenced snapshots on the default target tests on
           #   ubuntu.
-          # - Only enable integration test on linux (TODO)
+          # - Only enable integration test on linux
           args:
-            test ${{ inputs.target_option }} ${{ inputs.target_option !=
-            '--target=wasm32-unknown-unknown' && '--unreferenced=auto' || ''}}
+            test ${{ inputs.target_option != '--target=wasm32-unknown-unknown'
+            && '--unreferenced=auto' || ''}} ${{ inputs.target_option }} ${{
+            inputs.os == 'ubuntu-latest' && '--features=test-external-dbs' || ''
+            }}
