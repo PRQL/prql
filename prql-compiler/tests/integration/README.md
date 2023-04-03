@@ -24,42 +24,27 @@ cargo build.
 Can be run as part of `cargo test`. Uses bundled DuckDb, compiled as part of
 cargo build.
 
-### Postgres
+### Postgres, MySQL, SQL Server
 
-If passed environmental variable `POSTGRES_HOST` this crate will requests
-postgres server that should already have data loaded in.
-
-This will not run as a part of `cargo test`, but can be run with docker-compose.
-
-### TODO
+These will not run as a part of `cargo test`. Use `cargo test --features=test-external-dbs` instead.
+Make sure to start docker compose before (see below).
 
 ## Docker compose
 
-There is also a proof on concept for testing done against Postgres, which can be
-run by running `docker-compose up`. This will:
-
-- build a docker image for Postgres (with data already loaded in)
-- build a docker image for this crate (+data), compiled with --tests
-- run the two images, executing the tests.
+To test the external databases, docker needs to be installed.
 
 Steps to run the tests:
 
-1. Compile the integration test:
-
-   ```
-   $ cargo build --test integration
-   ```
-
-2. Copy the test file to tests/integration dir:
-
-   ```
-   $ cp target/debug/deps/integration-xxxxx prql-compiler/tests/integration
-   ```
-
-3. Run docker compose (that will also build the image):
+1. Run docker compose (may take a while on the first time):
    ```
    $ cd prql-compiler/tests/integration
    $ docker-compose up
+   ```
+
+2. Run the tests:
+
+   ```
+   $ cargo test --features=test-external-dbs
    ```
 
 ## Test organization
