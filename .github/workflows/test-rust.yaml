@@ -56,7 +56,7 @@ jobs:
           args: ${{ inputs.target_option }} --no-run --locked
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration-rdbms
+        working-directory: ./prql-compiler/tests/integration
         if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
@@ -64,9 +64,6 @@ jobs:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
         if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: skip integration if not linux
-        run: echo "SKIP_INTEGRATION=true" >> "$GITHUB_ENV"
-        if: ${{ inputs.os != 'ubuntu-latest' }}
       # Only check unreferenced snapshots on the default target tests on ubuntu
       #
       # (Maybe there's a nicer approach where we can parameterize one step
@@ -79,7 +76,9 @@ jobs:
           runner.os == 'Linux') }}
         with:
           command: insta
-          args: test --unreferenced=auto ${{ inputs.target_option }}
+          args:
+            test --unreferenced=auto ${{ inputs.target_option }} ${{ inputs.os
+            == 'ubuntu-latest' && '--features=test-external-dbs' || '' }}
       - name: 📋 Test wasm
         uses: richb-hanover/cargo@v1.1.0
         if:
