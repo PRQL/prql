@@ -248,8 +248,9 @@ tasks:
         website/public/playground/playground
 
   test-js:
-    dir: bindings/prql-js
+    dir: prql-js
     cmds:
+      - npm run build
       - npm cit
 
   # Currently disabled; see prql-elixir/README.md for details
