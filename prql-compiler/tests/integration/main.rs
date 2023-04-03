@@ -90,10 +90,10 @@ mod tests {
             rusqlite::Connection::open_in_memory().unwrap(),
         )));
 
+        #[cfg(not(feature = "test-external-dbs"))]
         let include_external_dbs = false;
         #[cfg(feature = "test-external-dbs")]
         let include_external_dbs = true;
-
         if !include_external_dbs {
             return connections;
         }
