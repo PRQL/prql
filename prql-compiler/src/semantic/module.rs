@@ -27,6 +27,9 @@ pub struct Module {
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
+    // Q: @aljazerzen — what's the difference between a redirect and a
+    // LayeredModule? Does the data structure contain the destination of the
+    // redirect?
     pub redirects: Vec<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
@@ -42,6 +45,8 @@ impl Module {
     }
 
     pub fn new() -> Module {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
         Module {
             names: HashMap::from([
                 (
@@ -73,6 +78,7 @@ impl Module {
     pub fn insert(&mut self, ident: Ident, entry: Decl) -> Result<Option<Decl>> {
         let mut ns = self;
 
+        // Navigate down the module path
         for part in ident.path {
             let entry = ns.names.entry(part.clone()).or_default();
 
