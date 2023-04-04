@@ -70,12 +70,11 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # Autoformatting doesn't make this clear, but:
-          # - Only check unreferenced snapshots on the default target tests on
-          #   ubuntu.
-          # - Only enable integration test on linux
+          # Autoformatting doesn't make this clear to read, but this tertiary
+          # expression states to only check these on ubuntu linux:
+          # - External DB integration tests — `--features=test-external-dbs`.
+          # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
-            test ${{ inputs.target_option != '--target=wasm32-unknown-unknown'
-            && '--unreferenced=auto' || ''}} ${{ inputs.target_option }} ${{
-            inputs.os == 'ubuntu-latest' && '--features=test-external-dbs' || ''
-            }}
+            test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
+            inputs.os == 'ubuntu-latest' && '--unreferenced=auto
+            --features=test-external-dbs' || '' }}
