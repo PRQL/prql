@@ -2,8 +2,8 @@
 
 ## 0.7.1 — 2023-04-03
 
-0.7.1 is a hotfix release to fix the npm scripts when installing `prql-js` as a
-dependency.
+0.7.1 is a hotfix release to fix `prql-js`'s `npm install` behavior when being
+installed as a dependency.
 
 This release has 17 commits from 4 contributors.
 
