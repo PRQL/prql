@@ -10,6 +10,7 @@ version.workspace = true
 
 # Manually updated to match the version in the root `Cargo.toml`, until
 # https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
+
 metadata.msrv = "1.65.0"
 
 [dependencies]
