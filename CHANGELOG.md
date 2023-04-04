@@ -1,20 +1,11 @@
 # PRQL Changelog
 
-## 0.7.1 — [unreleased]
+## 0.7.1 — 2023-04-03
 
-**Features**:
+0.7.1 is a hotfix release to fix the npm scripts when installing `prql-js` as a
+dependency.
 
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
-
-**New Contributors**:
+This release has 17 commits from 4 contributors.
 
 ## 0.7.0 — 2023-04-01
 
