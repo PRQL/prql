@@ -64,4 +64,4 @@ search = '(\s+"prql-js",)\n(\s+"version": )"[\d\.]+"'
 exactly = 1
 file = "../../web/playground/package-lock.json"
 replace = '''$1"{{version}}"'''
-search = '(    "../prql-js": \{\n      "version": )"[\d\.]+"'
+search = '(    "../../bindings/prql-js": \{\n      "version": )"[\d\.]+"'
