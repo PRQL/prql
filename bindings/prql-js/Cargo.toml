@@ -65,3 +65,11 @@ exactly = 1
 file = "../../web/playground/package-lock.json"
 replace = '''$1"{{version}}"'''
 search = '(    "../../bindings/prql-js": \{\n      "version": )"[\d\.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 2
+file = "../../web/playground/package.json"
+replace = '''
+$1
+$2"{{version}}"'''
+search = '(\s+"prql-playground",)\n(\s+"version": )"[\d\.]+"'
