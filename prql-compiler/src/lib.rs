@@ -86,7 +86,9 @@ pub mod sql;
 mod tests;
 mod utils;
 
-pub use error::{downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation, Span};
+pub use error::{
+    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation, Span,
+};
 
 use once_cell::sync::Lazy;
 use semver::Version;
