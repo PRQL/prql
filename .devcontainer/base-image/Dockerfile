@@ -1,6 +1,6 @@
 # Some of this is shared with /Dockerfile
 
-FROM mcr.microsoft.com/devcontainers/rust:0.203.9-1-bullseye
+FROM mcr.microsoft.com/devcontainers/rust:0.203.10-1-bullseye
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
