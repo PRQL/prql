@@ -8,15 +8,15 @@ PRQL needs modules that would:
 - have unambiguous module structure within a project,
 - be able to compile individual files that are a part of a project.
 
-## Basic definition
+## Declaration
 
 Module is a namespace that contains declarations.
 
-Modules can be defined with mod keyword and a code block encased in curly
+Modules can be defined with module keyword and a code block encased in curly
 braces:
 
 ```
-mod my_module {
+module my_module {
     let bangers = (from tracks | take 10)
 }
 ```
@@ -49,7 +49,7 @@ Any declarations within a module can be referenced from the outside of the
 module:
 
 ```
-mod my_module {
+module my_module {
     let bangers = (from tracks | take 10)
 }
 
@@ -61,7 +61,7 @@ then the leading `let main = ` can be omitted and expressed only by the
 expression itself.
 
 ```
-mod my_module {
+module my_module {
     let bangers = (from tracks | take 10)
 
     from albums | select [title]
@@ -77,13 +77,13 @@ compiled to RQ.
 
 ```
 # root module of every project
-mod project {
-	mod std {
+module project {
+	module std {
 		func sum a -> ...
 		func mean a -> ...
 	}
 
-	mod default_db {
+	module default_db {
 		# all inferred tables and defined CTEs
 	}
 
