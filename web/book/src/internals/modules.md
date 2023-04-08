@@ -1,40 +1,48 @@
 # Modules
 
-PRQL needs modules that would:
+> Status: proposal
 
-- allow importing declarations from other files,
-- have namespaces for things like `std`,
-- have hierarchical structure so we can represent files in directories,
-- have unambiguous module structure within a project,
-- be able to compile individual files that are a part of a project.
+> This is a technical document. For a "how to use" or a TLDR; skip to the
+> [Example](#Example) section.
 
-## Declaration
+Design goals:
 
-Module is a namespace that contains declarations.
+1. Allow importing declarations from other files.
 
-Modules can be defined with module keyword and a code block encased in curly
-braces:
+2. Have namespaces for things like `std`.
 
-```prql_no_test
-module my_playlists {
-    let bangers = (from tracks | take 10)
-}
+3. Have hierarchical structure so we can represent files in directories.
+
+4. Have unambiguous module structure within a project.
+
+## Definition
+
+Module is a namespace that contains declarations. A module declaration itself,
+which means that it can contain nested child modules.
+
+This means that modules form a
+[tree graph](<https://en.wikipedia.org/wiki/Tree_(graph_theory)>), which we call
+"the module structure".
+
+For the sake of this document, we will express the module structure with
+`module` keyword and a code block encased in curly braces:
+
 ```
-
-Because module declaration is a declaration itself, modules can contain nested
-child modules:
-
-```prql_no_test
 module my_playlists {
-    let bangers = (from tracks | take 10)
+    let bangers = ... # a declaration
 
     module soundtracks {
-        let movie_albums = (from albums | filter id == 3)
+        let movie_albums = ... # another declaration
     }
 }
 ```
 
-## Usage
+> The syntax `module name { ...decls... }` is not part of PRQL language, with
+> the objection that it is unnecessary as it only adds more ways of defining
+> modules. If a significant upside of this syntax is found, it may be added in
+> the future.
+
+## Name resolution
 
 Any declarations within a module can be referenced from the outside of the
 module:
@@ -47,7 +55,7 @@ let great_tracks = my_playlists.bangers
 let movie_scores = my_playlists.soundtracks.movie_albums
 ```
 
-All identifiers are resolved relative to current module.
+Identifiers are resolved relative to current module.
 
 ```prql_no_test
 module my_playlists {
@@ -58,6 +66,26 @@ module my_playlists {
     from soundtracks.movie_albums
 }
 from my_playlists.soundtracks.movie_albums
+```
+
+If an identifier cannot be resolved relative to the current module, it tries to
+resolve relative to the parent module. This is repeated, stepping up the module
+hierarchy until a match is found or root of the module structure is reached.
+
+```prql_no_test
+module my_playlists {
+    let decl_1 = ...
+
+    module soundtracks {
+        let decl_2 = ...
+    }
+
+    module upbeat_rock {
+        let decl_3 = ...
+
+        from decl_1 | join soundtracks.decl2 | join decl_3
+    }
+}
 ```
 
 ## Main var declaration
@@ -76,32 +104,137 @@ module my_playlists {
 let album_titles = my_playlists.main
 ```
 
-When a file `my_file` is compiled to a query, variable `my_file.main` will be
-compiled to RQ.
+When a module is referenced as a value, the `main` variable is used instead.
+This is especially useful when referring to a module which is to be compiled to
+RQ (and later SQL).
 
-## File loading
+## File importing
 
-If a module definition of `my_playlists` does not have a code block, it's
-contents are loaded from `./my_playlists.prql`.
+To include PRQL source code from other files, one can use the following syntax:
 
-If the file does not exist, contents are loaded from file
-`./my_playlists/mod.prql`.
+```
+module my_playlists
+```
 
-When compilation is invoked compiler will search for the root of the module
-structure of the project:
+Such declaration loads either `./my_playlists.prql` (a leaf module) or
+`./my_playlists/_my_playlists.prql` (a directory module) and uses its contents
+as the declarations in module `my_playlists`. If none or both of the files are
+present, a compilation error is raised.
 
-1. attempt to load `./project.prql`. If successful use it as the root,
-2. attempt to load `./mod.prql`. If successful visit parent directory and go
-   back to step 1.
-3. use compiled file as the root for the module structure.
+Only directory modules can contain module declarations. If a leaf module
+contains a module declaration, a compilation error is raised, suggesting the
+leaf module to be converted into a directory module. This is a step toward any
+module structure having a single "normalized" representation in the file system.
+Such normalization is desired because it restrains the possible file system
+layouts to a comprehensible and predictable layout, while not sacrificing any
+functionality.
 
-prql-compiler will provide an interface that has:
+Described importing rules don't achieve this "single normalized representation"
+in full, since any leaf modules could be replaced by a directory module with
+zero submodules, without any semantic changes. Restricting directory modules to
+have at least one sub-module would not improve approachability enough to justify
+adding this restriction.
 
-- a function that takes a "file loader", which load files on-demand,
-- a simple function, that always report "file does not exist" to the compiler,
-  and can be used for compiling a single file to a single query.
+For example, the following module structure is annotated with files names in
+which the modules would reside:
+
+```prql_no_test
+
+module my_project {
+    # _my_project.prql
+
+    module sales {
+        # sales.prql
+    }
+
+    module projections {
+        # projections/_projections.prql
+
+        module year_2023 {
+            # projections/year_2023.prql
+        }
+
+        module year_2024 {
+            # projections/year_2024.prql
+        }
+    }
+}
+```
+
+If module `my_project.sales` wants to add a submodule `util`, it has to be
+converted to a directory modules. This means that it has to be moved to
+`sales/_sales.prql`. The new module would reside in `sales/util.prql`.
+
+The annotated layout is not the only possible layout for this module structure,
+since any of the modules `sales`, `year_2023` or `year_2024` could be converted
+into a directory module with zero sub-modules.
+
+Point 4 of design goals means that each declaration within a project has a
+single fully-qualified name within this project. This is insured by strict rules
+regarding importing files and the fact that the module structure is a tree.
+
+## Declaration order
+
+The order of declarations in a module holds no semantic value, except the "last
+`main` variable".
+
+References between modules can be cyclic.
+
+```
+module mod_a {
+    let decl_a_1 = ...
+    let decl_a_2 = (from mod_b.decl_b | take 10)
+}
+module mod_b {
+    let decl_b = (from mod_a.decl_a | take 10)
+}
+```
+
+References between variable declarations cannot be cyclic.
+
+```
+let decl_a = (from decl_b)
+let decl_b = (from decl_a) # error: cyclic reference
+```
+
+```
+module mod_a {
+    let decl_a = (from mod_b.decl_b)
+}
+module mod_b {
+    let decl_b = (from mod_a.decl_a) # error: cyclic reference
+}
+```
+
+## Compiler interface
+
+`prql-compiler` provides two interfaces for compiling files.
+
+**Multi-file interface** requires three arguments:
+
+- path to the file containing the module which is the root of the module
+  structure,
+- identifier of the pipeline that should be compiled to RQ and,
+- a "file loader", which can load files on-demand.
+
+The path to the root module can be automatically detected by searching for
+`.prql` files starting with `_` in the current working directory.
+
+Example prqlc usage:
+
+```
+$ prqlc compile _project.prql sales.projections.orders_2024
+$ prqlc compile sales.projections.orders_2024
+```
+
+**Single-file interface** requires a single argument; the PRQL source. Any
+attempts to load modules in this mode result in compilation errors. This
+interface is needed, for example, when integrating the compiler with a database
+connector (i.e. JDBC) where no other files can be loaded.
 
 ## Built-in module structure
+
+> Work In Progress
 
 ```
 # root module of every project
@@ -120,4 +253,59 @@ module project {
 		select [track_id, title]
 	)
 }
+```
+
+## Example
+
+This is an example project, where each of code block is a separate file.
+
+```
+# _project.prql
+
+module employees
+module sales
+module util
+```
+
+```
+# employees.prql
+
+let employees = (...)
+
+let salaries = (...)
+
+let departments = (...)
+```
+
+```
+# sales/_sales.prql
+
+module orders
+module projections
+
+let revenue_by_source = (...)
+```
+
+```
+# sales/orders.prql
+
+let current_year = (...)
+
+let archived = (...)
+
+let by_employee = (from orders | join employees.employees ...)
+```
+
+```
+# sales/projections.prql
+
+let orders_2023 = (from orders.current_year | append orders.archived)
+
+let orders_2024 = (...)
+```
+
+```
+# util.prql
+
+func pretty_print_num col -> (...)
 ```
