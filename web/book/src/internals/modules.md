@@ -11,14 +11,14 @@ Design goals:
 
 2. Have namespaces for things like `std`.
 
-3. Have hierarchical structure so we can represent files in directories.
+3. Have a hierarchical structure so we can represent files in directories.
 
 4. Have unambiguous module structure within a project.
 
 ## Definition
 
-Module is a namespace that contains declarations. A module declaration itself,
-which means that it can contain nested child modules.
+A module is a namespace that contains declarations. A module is itself a
+declaration , which means that it can contain nested child modules.
 
 This means that modules form a
 [tree graph](<https://en.wikipedia.org/wiki/Tree_(graph_theory)>), which we call
@@ -90,8 +90,8 @@ module my_playlists {
 
 ## Main var declaration
 
-If last declaration in a module is a variable declaration that is named `main`,
-then the leading `let main = ` can be omitted and expressed only by the
+If the final declaration in a module is a variable declaration that is named
+`main`, then the leading `let main = ` can be omitted and expressed only by the
 expression itself.
 
 ```
@@ -309,3 +309,10 @@ let orders_2024 = (...)
 
 func pretty_print_num col -> (...)
 ```
+
+---
+
+Sources:
+
+- [Notes On Module System](https://matklad.github.io/2021/11/27/notes-on-module-system.html),
+  by @matklad.
