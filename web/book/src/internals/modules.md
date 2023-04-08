@@ -47,7 +47,7 @@ module my_playlists {
 Any declarations within a module can be referenced from the outside of the
 module:
 
-```prql_no_test
+```prql no-eval
 # using module structure declared above
 
 let great_tracks = my_playlists.bangers
@@ -57,7 +57,7 @@ let movie_scores = my_playlists.soundtracks.movie_albums
 
 Identifiers are resolved relative to current module.
 
-```prql_no_test
+```prql no-eval
 module my_playlists {
     module soundtracks {
         let movie_albums = (from albums | filter id == 3)
@@ -72,7 +72,7 @@ If an identifier cannot be resolved relative to the current module, it tries to
 resolve relative to the parent module. This is repeated, stepping up the module
 hierarchy until a match is found or root of the module structure is reached.
 
-```prql_no_test
+```prql no-eval
 module my_playlists {
     let decl_1 = ...
 
@@ -138,7 +138,7 @@ adding this restriction.
 For example, the following module structure is annotated with files names in
 which the modules would reside:
 
-```prql_no_test
+```prql no-eval
 
 module my_project {
     # _my_project.prql
