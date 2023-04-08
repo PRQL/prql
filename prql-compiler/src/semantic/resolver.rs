@@ -157,7 +157,7 @@ impl AstFold for Resolver {
                             inputs: vec![FrameInput {
                                 id,
                                 name: rel_name.clone(),
-                                table: Some(fq_ident.clone()),
+                                source: InputSource::Table(fq_ident.clone()),
                             }],
                             columns: columns
                                 .iter()

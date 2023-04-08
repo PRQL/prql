@@ -24,16 +24,22 @@ pub struct Frame {
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FrameInput {
-    /// id of the node in AST that declares this input
+    /// Id of the node in AST that declares this input.
     pub id: usize,
 
-    /// local name of this input within a query
+    /// Local name of this input within a query.
     pub name: String,
 
-    /// fully qualified name of table that provides the data for this frame
-    ///
-    /// `None` means this is a literal and doesn't need a table to refer to
-    pub table: Option<Ident>,
+    /// Source that provides the data for this input.
+    pub source: InputSource,
+}
+
+#[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
+pub enum InputSource {
+    /// Contains a fully qualified name of the table.
+    Table(Ident),
+
+    Literal(Vec<FrameColumn>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -48,6 +54,20 @@ pub enum FrameColumn {
         name: Option<Ident>,
         expr_id: usize,
     },
+}
+
+impl Frame {
+    pub fn new_from_literal(id: usize, name: String, columns: Vec<FrameColumn>) -> Frame {
+        Frame {
+            inputs: vec![FrameInput {
+                id,
+                name,
+                source: InputSource::Literal(columns.clone()),
+            }],
+            columns,
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -359,7 +359,7 @@ impl Context {
                         let (input_name, _) = wildcard_inputs.into_iter().next().unwrap();
 
                         let input = frame.find_input(input_name).unwrap();
-                        if let Some(table_ident) = input.table.clone() {
+                        if let InputSource::Table(table_ident) = input.source.clone() {
                             self.infer_table_column(&table_ident, col_name)?;
                         }
                     }

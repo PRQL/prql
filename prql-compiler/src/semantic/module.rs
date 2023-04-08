@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident};
+use crate::ast::pl::{Expr, Ident, InputSource};
 use crate::ast::rq::RelationColumn;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
@@ -229,10 +229,10 @@ impl Module {
 
                         let input = frame.find_input(input_name).unwrap();
                         let mut sub_ns = Module::default();
-                        if let Some(fq_table) = input.table.clone() {
+                        if let InputSource::Table(fq_table) = &input.source {
                             let self_decl = Decl {
                                 declared_at: Some(input.id),
-                                kind: DeclKind::InstanceOf(fq_table),
+                                kind: DeclKind::InstanceOf(fq_table.clone()),
                                 order: 0,
                             };
                             sub_ns.names.insert(NS_SELF.to_string(), self_decl);

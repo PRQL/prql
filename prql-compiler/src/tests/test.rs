@@ -3029,6 +3029,25 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.duckdb
+    from s"SELECT * FROM foo"
+    select ![bar]
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        foo
+    )
+    SELECT
+      *
+    FROM
+      table_0 AS table_1
+    "###
+    );
 }
 
 #[test]

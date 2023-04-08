@@ -25,7 +25,8 @@ Table:
   inputs:
     - id: 6
       name: orders
-      table:
-        - default_db
-        - orders
+      source:
+        Table:
+          - default_db
+          - orders
 

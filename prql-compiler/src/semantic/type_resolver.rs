@@ -144,18 +144,16 @@ where
                 .clone()
                 .unwrap_or_else(|| format!("_literal_{}", found.id.unwrap()));
 
-            Ty::Table(Frame {
-                inputs: vec![FrameInput {
-                    id: found.id.unwrap(),
-                    name: input_name.clone(),
-                    table: None,
-                }],
-                columns: vec![FrameColumn::All {
-                    input_name,
-                    except: HashSet::new(),
-                }],
-                ..Default::default()
-            })
+            let columns = vec![FrameColumn::All {
+                input_name: input_name.clone(),
+                except: HashSet::new(),
+            }];
+
+            Ty::Table(Frame::new_from_literal(
+                found.id.unwrap(),
+                input_name,
+                columns,
+            ))
         } else {
             expected.clone()
         });
