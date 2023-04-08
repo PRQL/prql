@@ -404,7 +404,7 @@ impl Context {
         &mut self,
         input_id: usize,
         columns: Option<Vec<RelationColumn>>,
-        name_hint: Option<String>
+        name_hint: Option<String>,
     ) -> Frame {
         let id = input_id;
         let global_name = format!("_literal_{}", id);
@@ -431,9 +431,7 @@ impl Context {
         // produce a frame of that table
         let input_name = name_hint.unwrap_or_else(|| global_name.clone());
         let table_fq = default_db_ident + Ident::from_name(global_name);
-        let frame = self.table_decl_to_frame(&table_fq, input_name, id);
-
-        frame
+        self.table_decl_to_frame(&table_fq, input_name, id)
     }
 }
 

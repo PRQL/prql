@@ -109,7 +109,7 @@ impl Lowerer {
             // make sure that type of this expr has been inferred to be a table
             let inferred =
                 self.context
-                    .validate_type(&mut expr, &Ty::Table(Frame::default()), || None)?;
+                    .validate_type(&expr, &Ty::Table(Frame::default()), || None)?;
             expr.ty = Some(inferred);
         }
 
