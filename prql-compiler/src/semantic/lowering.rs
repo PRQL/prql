@@ -8,7 +8,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, Ty, WindowFrame,
+    self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, Ty,
+    WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
@@ -103,6 +104,15 @@ impl Lowerer {
 
     /// Lower an expression into a instance of a table in the query
     fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
+        let mut expr = expr;
+        if let Some(Ty::Infer) = expr.ty {
+            // make sure that type of this expr has been inferred to be a table
+            let inferred =
+                self.context
+                    .validate_type(&mut expr, &Ty::Table(Frame::default()), || None)?;
+            expr.ty = Some(inferred);
+        }
+
         Ok(match expr.kind {
             ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
@@ -154,15 +164,23 @@ impl Lowerer {
                 // create a new table
                 let tid = self.tid.gen();
 
-                let cols = vec![RelationColumn::Wildcard];
+                // pull columns from the table decl
+                let frame = expr.ty.as_ref().unwrap().as_table().unwrap();
+                let input = frame.inputs.get(0).unwrap();
 
+                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = table_decl.kind.as_table_decl().unwrap();
+                let columns = table_decl.columns.clone();
+
+                log::debug!("lowering sstring table, columns = {columns:?}");
+
+                // lower the expr
                 let items = self.lower_interpolations(items)?;
                 let relation = rq::Relation {
                     kind: rq::RelationKind::SString(items),
-                    columns: cols.clone(),
+                    columns,
                 };
 
-                log::debug!("lowering sstring table, columns = {:?}", cols);
                 self.table_buffer.push(TableDecl {
                     id: tid,
                     name: None,
@@ -179,18 +197,20 @@ impl Lowerer {
                 // create a new table
                 let tid = self.tid.gen();
 
-                let cols = lit
-                    .columns
-                    .iter()
-                    .map(|c| RelationColumn::Single(Some(c.clone())))
-                    .collect_vec();
+                // pull columns from the table decl
+                let frame = expr.ty.as_ref().unwrap().as_table().unwrap();
+                let input = frame.inputs.get(0).unwrap();
 
+                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = table_decl.kind.as_table_decl().unwrap();
+                let columns = table_decl.columns.clone();
+
+                log::debug!("lowering literal relation table, columns = {columns:?}");
                 let relation = rq::Relation {
                     kind: rq::RelationKind::Literal(lit),
-                    columns: cols.clone(),
+                    columns,
                 };
 
-                log::debug!("lowering literal relation table, columns = {:?}", cols);
                 self.table_buffer.push(TableDecl {
                     id: tid,
                     name: None,
@@ -242,11 +262,8 @@ impl Lowerer {
         // create instance columns from table columns
         let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
-        let inferred_cols = self.context.inferred_columns.get(&id);
-
         let columns = (table.relation.columns.iter())
             .cloned()
-            .chain(inferred_cols.cloned().unwrap_or_default())
             .unique()
             .map(|col| (col, self.cid.gen()))
             .collect_vec();
@@ -809,21 +826,22 @@ impl TableExtractor {
 }
 
 fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
-    let id = *lowerer
-        .table_mapping
-        .entry(fq_ident.clone())
-        .or_insert_with(|| lowerer.tid.gen());
-
     let context::TableDecl { columns, expr } = table;
 
     let (relation, name) = match expr {
         TableExpr::RelationVar(expr) => {
             // a CTE
-            (lowerer.lower_relation(*expr)?, Some(fq_ident.name))
+            (lowerer.lower_relation(*expr)?, Some(fq_ident.name.clone()))
         }
-        TableExpr::LocalTable => extern_ref_to_relation(columns, fq_ident.name),
+        TableExpr::LocalTable => extern_ref_to_relation(columns, fq_ident.name.clone()),
         TableExpr::Param(_) => unreachable!(),
+        TableExpr::None => return Ok(()),
     };
+
+    let id = *lowerer
+        .table_mapping
+        .entry(fq_ident)
+        .or_insert_with(|| lowerer.tid.gen());
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
 

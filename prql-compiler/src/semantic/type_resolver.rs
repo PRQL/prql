@@ -143,8 +143,8 @@ impl Context {
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns
                 // of this table, which means it needs to be defined somewhere in the module structure.
-                let id = found.id.unwrap();
-                let frame = self.declare_table_for_literal(id, None, found.alias.clone());
+                let frame =
+                    self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
                 Ty::Table(frame)
