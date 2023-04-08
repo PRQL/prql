@@ -15,19 +15,77 @@ Module is a namespace that contains declarations.
 Modules can be defined with module keyword and a code block encased in curly
 braces:
 
-```
-module my_module {
+```prql_no_test
+module my_playlists {
     let bangers = (from tracks | take 10)
 }
 ```
 
+Because module declaration is a declaration itself, modules can contain nested
+child modules:
+
+```prql_no_test
+module my_playlists {
+    let bangers = (from tracks | take 10)
+
+    module soundtracks {
+        let movie_albums = (from albums | filter id == 3)
+    }
+}
+```
+
+## Usage
+
+Any declarations within a module can be referenced from the outside of the
+module:
+
+```prql_no_test
+# using module structure declared above
+
+let great_tracks = my_playlists.bangers
+
+let movie_scores = my_playlists.soundtracks.movie_albums
+```
+
+All identifiers are resolved relative to current module.
+
+```prql_no_test
+module my_playlists {
+    module soundtracks {
+        let movie_albums = (from albums | filter id == 3)
+    }
+
+    from soundtracks.movie_albums
+}
+from my_playlists.soundtracks.movie_albums
+```
+
+## Main var declaration
+
+If last declaration in a module is a variable declaration that is named `main`,
+then the leading `let main = ` can be omitted and expressed only by the
+expression itself.
+
+```
+module my_playlists {
+    let bangers = (from tracks | take 10)
+
+    from playlists | take 10
+}
+
+let album_titles = my_playlists.main
+```
+
+When a file `my_file` is compiled to a query, variable `my_file.main` will be
+compiled to RQ.
+
 ## File loading
 
-If a module definition of `my_module` does not have a code block, it's contents
-are loaded from `./my_module.prql`.
+If a module definition of `my_playlists` does not have a code block, it's
+contents are loaded from `./my_playlists.prql`.
 
 If the file does not exist, contents are loaded from file
-`./my_module/mod.prql`.
+`./my_playlists/mod.prql`.
 
 When compilation is invoked compiler will search for the root of the module
 structure of the project:
@@ -42,36 +100,6 @@ prql-compiler will provide an interface that has:
 - a function that takes a "file loader", which load files on-demand,
 - a simple function, that always report "file does not exist" to the compiler,
   and can be used for compiling a single file to a single query.
-
-## Behavior
-
-Any declarations within a module can be referenced from the outside of the
-module:
-
-```
-module my_module {
-    let bangers = (from tracks | take 10)
-}
-
-let great_tracks = my_module.bangers
-```
-
-If last declaration in a module is a variable declaration that is named `main`,
-then the leading `let main = ` can be omitted and expressed only by the
-expression itself.
-
-```
-module my_module {
-    let bangers = (from tracks | take 10)
-
-    from albums | select [title]
-}
-
-let album_titles = my_module.main
-```
-
-When a file `my_file` is compiled to a query, variable `my_file.main` will be
-compiled to RQ.
 
 ## Built-in module structure
 
