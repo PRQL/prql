@@ -30,16 +30,8 @@ pub struct FrameInput {
     /// Local name of this input within a query.
     pub name: String,
 
-    /// Source that provides the data for this input.
-    pub source: InputSource,
-}
-
-#[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
-pub enum InputSource {
-    /// Contains a fully qualified name of the table.
-    Table(Ident),
-
-    Literal(Vec<FrameColumn>),
+    /// Fully qualified name of the table that provides the data for this input.
+    pub table: Ident,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -54,20 +46,6 @@ pub enum FrameColumn {
         name: Option<Ident>,
         expr_id: usize,
     },
-}
-
-impl Frame {
-    pub fn new_from_literal(id: usize, name: String, columns: Vec<FrameColumn>) -> Frame {
-        Frame {
-            inputs: vec![FrameInput {
-                id,
-                name,
-                source: InputSource::Literal(columns.clone()),
-            }],
-            columns,
-            ..Default::default()
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

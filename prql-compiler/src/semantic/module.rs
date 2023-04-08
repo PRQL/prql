@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident, InputSource};
+use crate::ast::pl::{Expr, Ident};
 use crate::ast::rq::RelationColumn;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
@@ -49,7 +49,7 @@ impl Module {
         }
     }
 
-    pub fn new() -> Module {
+    pub fn new_root() -> Module {
         // Each module starts with a default namespace that contains a wildcard
         // and the standard library.
         Module {
@@ -229,14 +229,14 @@ impl Module {
 
                         let input = frame.find_input(input_name).unwrap();
                         let mut sub_ns = Module::default();
-                        if let InputSource::Table(fq_table) = &input.source {
-                            let self_decl = Decl {
-                                declared_at: Some(input.id),
-                                kind: DeclKind::InstanceOf(fq_table.clone()),
-                                order: 0,
-                            };
-                            sub_ns.names.insert(NS_SELF.to_string(), self_decl);
-                        }
+
+                        let self_decl = Decl {
+                            declared_at: Some(input.id),
+                            kind: DeclKind::InstanceOf(input.table.clone()),
+                            order: 0,
+                        };
+                        sub_ns.names.insert(NS_SELF.to_string(), self_decl);
+
                         let sub_ns = Decl {
                             declared_at: Some(input.id),
                             kind: DeclKind::Module(sub_ns),

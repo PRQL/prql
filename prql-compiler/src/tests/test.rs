@@ -3043,7 +3043,7 @@ fn test_exclude_columns() {
         foo
     )
     SELECT
-      *
+      * EXCLUDE (bar)
     FROM
       table_0 AS table_1
     "###
