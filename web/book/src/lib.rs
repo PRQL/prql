@@ -96,7 +96,7 @@ impl Preprocessor for ComparisonPreprocessor {
     }
 }
 
-/// Returns the language of a code block, divided by commas
+/// Returns the language of a code block, divided by spaces
 /// For example: ```prql no-test
 pub fn code_block_lang_tags(event: &Event) -> Option<Vec<String>> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
@@ -106,26 +106,33 @@ pub fn code_block_lang_tags(event: &Event) -> Option<Vec<String>> {
     }
 }
 
+const ALLOWED_TAGS: &[&str] = &["prql", "no-test", "no-fmt", "no-eval", "error"];
+
 fn replace_examples(text: &str) -> Result<String> {
     let mut parser = Parser::new_ext(text, Options::all());
     let mut cmark_acc = vec![];
 
     while let Some(event) = parser.next() {
-        // If it's not PRQL, just push it and continue
+        // If it's there no tag, or it's not PRQL, or it has `no-eval`, just
+        // push it and continue.
         let Some(lang_tags) = code_block_lang_tags(&event) else {
             cmark_acc.push(event.to_owned());
             continue;
         };
-        if !lang_tags.contains(&"prql".to_string()) || lang_tags.contains(&"no-eval".to_string()) {
+        if !lang_tags.contains(&"prql".to_string()) {
             cmark_acc.push(event.to_owned());
             continue;
         }
 
-        let allowed_tags = ["prql", "no-test", "no-fmt", "error"];
         for tag in lang_tags.iter() {
-            if !allowed_tags.contains(&tag.as_str()) {
+            if !ALLOWED_TAGS.contains(&tag.as_str()) {
                 bail!("Unknown code block language: {}", tag)
             }
+        }
+
+        if lang_tags.contains(&"no-eval".to_string()) {
+            cmark_acc.push(event.to_owned());
+            continue;
         }
 
         let Some(Event::Text(text)) = parser.next() else {
