@@ -51,7 +51,7 @@ pub fn load_std_lib() -> Context {
     let statements = parse(std_lib).unwrap();
 
     let context = Context {
-        root_mod: Module::new_leaf(),
+        root_mod: Module::new_root(),
         ..Context::default()
     };
 

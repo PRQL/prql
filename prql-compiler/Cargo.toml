@@ -10,6 +10,7 @@ version.workspace = true
 
 # Manually updated to match the version in the root `Cargo.toml`, until
 # https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
+
 metadata.msrv = "1.65.0"
 
 [dependencies]
@@ -47,15 +48,15 @@ insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.4.0"
-postgres = "0.19.3"
+csv = "1.2"
 mysql = "23"
-tiberius = {version = "0.12", features = ["sql-browser-tokio", "bigdecimal", "time"]}
-tokio = {version = "1", features = ["full"]}
-tokio-util = { version = "0.7", features = ["compat"] }
+pg_bigdecimal = "0.1"
+postgres = "0.19"
 pretty_assertions = "1.3.0"
 rusqlite = {version = "0.29.0", features = ["bundled", "csvtab"]}
-pg_bigdecimal = "0.1"
-csv = "1.2"
+tiberius = {version = "0.12", features = ["sql-browser-tokio", "bigdecimal", "time"]}
+tokio = {version = "1", features = ["full"]}
+tokio-util = {version = "0.7", features = ["compat"]}
 
 # Re-enable on windows when duckdb supports it
 # https://github.com/wangfenjin/duckdb-rs/issues/62
@@ -68,8 +69,12 @@ name = "bench"
 
 # Putting this in the workspace root causes it to refer to the path relative
 # to `prql-compiler`? We can place it there when that's fixed.
+
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = "../web/book/src/language-features/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
+
+[features]
+test-external-dbs = []

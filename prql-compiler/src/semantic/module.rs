@@ -20,13 +20,21 @@ pub const NS_SELF: &str = "_self";
 // implies we can infer new names in the containing module
 pub const NS_INFER: &str = "_infer";
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
     /// Names declared in this module. This is the important thing.
     pub(super) names: HashMap<String, Decl>,
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
+    ///
+    /// Assuming we want to lookup `average`, which is in `std`. The root module
+    /// does not contain the `average`. So instead:
+    /// - look for `average` in root module and find nothing,
+    /// - follow redirects in root module,
+    /// - because of redirect `std`, so we look for `average` in `std`,
+    /// - there is `average` is `std`,
+    /// - result of the lookup is FQ ident `std.average`.
     pub redirects: Vec<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
@@ -41,7 +49,9 @@ impl Module {
         }
     }
 
-    pub fn new_leaf() -> Module {
+    pub fn new_root() -> Module {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
         Module {
             names: HashMap::from([
                 (
@@ -74,6 +84,7 @@ impl Module {
         let mut ns = self;
 
         // 1535: this is where I think we insert
+        // Navigate down the module path
         for part in ident.path {
             let entry = ns.names.entry(part.clone()).or_default();
 
@@ -219,14 +230,14 @@ impl Module {
 
                         let input = frame.find_input(input_name).unwrap();
                         let mut sub_ns = Module::default();
-                        if let Some(fq_table) = input.table.clone() {
-                            let self_decl = Decl {
-                                declared_at: Some(input.id),
-                                kind: DeclKind::InstanceOf(fq_table),
-                                order: 0,
-                            };
-                            sub_ns.names.insert(NS_SELF.to_string(), self_decl);
-                        }
+
+                        let self_decl = Decl {
+                            declared_at: Some(input.id),
+                            kind: DeclKind::InstanceOf(input.table.clone()),
+                            order: 0,
+                        };
+                        sub_ns.names.insert(NS_SELF.to_string(), self_decl);
+
                         let sub_ns = Decl {
                             declared_at: Some(input.id),
                             kind: DeclKind::Module(sub_ns),
@@ -371,5 +382,47 @@ impl std::fmt::Debug for Module {
             ds.field("shadowed", f);
         }
         ds.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::pl::{Expr, ExprKind, Literal};
+
+    // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
+    #[test]
+    fn test_module() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
+
+        assert!(module.insert(ident.clone(), decl.clone()).is_ok());
+        assert_eq!(module.get(&ident).unwrap(), &decl);
+        assert_eq!(module.get_mut(&ident).unwrap(), &decl);
+
+        // Lookup
+        let lookup_result = module.lookup(&ident);
+        assert_eq!(lookup_result.len(), 1);
+        assert!(lookup_result.contains(&ident));
+    }
+
+    #[test]
+    fn test_module_shadow_unshadow() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
+
+        module.insert(ident.clone(), decl.clone()).unwrap();
+
+        module.shadow("test_name");
+        assert!(module.get(&ident) != Some(&decl));
+
+        module.unshadow("test_name");
+        assert_eq!(module.get(&ident).unwrap(), &decl);
     }
 }
