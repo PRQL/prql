@@ -108,6 +108,11 @@ When a module is referenced as a value, the `main` variable is used instead.
 This is especially useful when referring to a module which is to be compiled to
 RQ (and later SQL).
 
+```
+# last line from previous example could thus be shortened to:
+let album_titles = my_playlists
+```
+
 ## File importing
 
 To include PRQL source code from other files, one can use the following syntax:
@@ -214,7 +219,8 @@ module mod_b {
 
 - path to the file containing the module which is the root of the module
   structure,
-- identifier of the pipeline that should be compiled to RQ and,
+- identifier of the pipeline that should be compiled to RQ (this can also be an
+  identifier of a module that has a `main` pipeline) and,
 - a "file loader", which can load files on-demand.
 
 The path to the root module can be automatically detected by searching for
