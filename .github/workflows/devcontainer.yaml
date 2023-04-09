@@ -1,11 +1,10 @@
 name: devcontainer
 
 on:
-  # TODO: integrate the Taskfiles — the extra complication of multiple files is
-  # not worth reducing the number of workflows we run
   pull_request:
     paths:
-      - .devcontainer/base-image/Dockerfile
+      - .devcontainer/**
+      - .github/workflows/devcontainer.yaml
       - Taskfile.yml
   workflow_call:
   workflow_dispatch:
