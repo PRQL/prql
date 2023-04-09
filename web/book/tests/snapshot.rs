@@ -32,6 +32,7 @@ fn test_prql_examples() {
 const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
+/// Excludes any with a `no-eval` tag.
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
     // TODO: instead of returning Strings with embedded tags (e.g. `# error`),
     // we could instead return a struct with a `prql` field and a struct of its
@@ -55,7 +56,9 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
                     continue
                 };
 
-                if lang_tags.contains(&"prql".to_string()) {
+                if lang_tags.contains(&"prql".to_string())
+                    && !lang_tags.contains(&"no-eval".to_string())
+                {
                     let mut prql_text = String::new();
                     while let Some(Event::Text(line)) = parser.next() {
                         prql_text.push_str(line.to_string().as_str());
