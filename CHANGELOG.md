@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.7.2 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.7.1 — 2023-04-03
 
 0.7.1 is a hotfix release to fix `prql-js`'s `npm install` behavior when being
