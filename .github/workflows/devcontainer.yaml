@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 3600
+    timeout-minutes: 14400
     steps:
       - uses: docker/metadata-action@v4
         id: meta
@@ -40,7 +40,7 @@ jobs:
 
       - name: Build
         uses: docker/build-push-action@v4
-        timeout-minutes: 3600
+        timeout-minutes: 14400
         with:
           file: "./.devcontainer/base-image/Dockerfile"
           tags: ${{ steps.meta.outputs.tags }}
