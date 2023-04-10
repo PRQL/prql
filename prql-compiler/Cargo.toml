@@ -68,13 +68,40 @@ harness = false
 name = "bench"
 
 # Putting this in the workspace root causes it to refer to the path relative
-# to `prql-compiler`? We can place it there when that's fixed.
+# to `prql-compiler`, so we choose this crate out of default.
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = "../web/book/src/language-features/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
+
+# Replace the cache key, since the caches seem to accumulate cruft over time;
+# ref https://github.com/PRQL/prql/pull/2407 (and there's no GHA variable that
+# contains the current version unfortunately).
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = ".github/workflows/build-web.yaml"
+replace = 'prefix-key: {{version}}'
+search = 'prefix-key: "[\d.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = ".github/workflows/test-rust.yaml"
+replace = 'prefix-key: {{version}}'
+search = 'prefix-key: "[\d.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = ".github/workflows/test-lib.yaml"
+replace = 'prefix-key: {{version}}'
+search = 'prefix-key: "[\d.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = ".github/actions/build-prql-python/action.yaml"
+replace = 'key: {{version}}'
+search = 'key: "[\d.]+"'
 
 [features]
 test-external-dbs = []
