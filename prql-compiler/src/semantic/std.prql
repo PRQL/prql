@@ -76,3 +76,7 @@ type table
 type column
 type list
 type scalar
+
+# Source-reading functions, primarily for DuckDB
+func read_parquet<table> source<text> -> s"SELECT * FROM read_parquet({source})"
+func read_csv<table> source<text> -> s"SELECT * FROM read_csv_auto({source})"

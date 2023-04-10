@@ -3446,3 +3446,25 @@ fn test_upper() {
     "###
     );
 }
+
+#[test]
+fn test_read_parquet_duckdb() {
+    assert_display_snapshot!(compile(r#"
+    from (read_parquet 'x.parquet')
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('x.parquet')
+    )
+    SELECT
+      *
+    FROM
+      table_0 AS table_1
+    "###
+    );
+
+    // TODO: `from x=(read_parquet 'x.parquet')` currently fails
+}
