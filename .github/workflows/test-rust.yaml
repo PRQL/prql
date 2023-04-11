@@ -33,7 +33,7 @@ jobs:
           # reset the cache. If necessary, we could do this on each release and
           # have this update automatically (there's no variable that contains
           # the current version unfortunately, though).
-          key: 0.6.0-${{ inputs.target_option }}
+          key: 0.7.0-${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
