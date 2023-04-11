@@ -1,4 +1,3 @@
-# skip_mssql
 from tracks
 sort milliseconds
 select display = case [

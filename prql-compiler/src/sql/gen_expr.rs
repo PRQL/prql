@@ -1,9 +1,12 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
+use std::collections::HashSet;
+
 use anyhow::{bail, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
+use sqlparser::ast::FunctionArg::Unnamed;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
@@ -11,7 +14,6 @@ use sqlparser::ast::{
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
 };
-use std::collections::HashSet;
 
 use crate::ast::pl::{
     BinOp, ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
@@ -380,7 +382,7 @@ fn translate_fstring_with_concat_function(
     items: Vec<InterpolateItem<Expr>>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Expr> {
-    let args = items
+    let mut args = items
         .into_iter()
         .map(|item| match item {
             InterpolateItem::String(string) => {
@@ -390,6 +392,13 @@ fn translate_fstring_with_concat_function(
         })
         .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
         .collect::<Result<Vec<_>>>()?;
+
+    // some dialect require at least two arguments
+    if args.len() < 2 {
+        args.push(Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
+            Value::SingleQuotedString("".to_string()),
+        ))));
+    }
 
     Ok(sql_ast::Expr::Function(Function {
         name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
@@ -871,13 +880,15 @@ impl SQLExpression for UnaryOperator {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use insta::assert_yaml_snapshot;
+
     use crate::ast::pl::Range;
     use crate::sql::context::AnchorContext;
     use crate::{
         parser::parse, semantic::resolve, sql::dialect::GenericDialect, sql::dialect::SQLiteDialect,
     };
-    use insta::assert_yaml_snapshot;
+
+    use super::*;
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {
