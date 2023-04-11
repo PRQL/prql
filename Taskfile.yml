@@ -62,10 +62,11 @@ tasks:
         mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-pack
     cmds:
       # In CI we use `binstall`, because it's faster, and without it we can't
-      # get the docker image to build in time. But it produces lots of confusing
-      # warning messages about 429 errors, I think because it's querying GitHub
-      # for so many packages; so we only use it for CI atm. If the warnings were
-      # less alarming, we could use for all installs.
+      # even get the arm64 docker image to build within the GHA timeout. But it
+      # produces lots of confusing warning messages about 429 errors, I think
+      # because it's querying GitHub for so many packages; so we only use it for
+      # CI atm. If the warnings were less alarming, we could use for all
+      # installs.
       #
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
