@@ -61,6 +61,11 @@ tasks:
         bacon cargo-audit cargo-insta cargo-release default-target mdbook
         mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-pack
     cmds:
+      # In CI we use `binstall`, because it's faster, and without it we can't
+      # get the docker image to build. But it produces lots of confusing warning
+      # messages about 429 errors, I think because it's querying GitHub for so
+      # many packages; so we only use it for CI atm.
+      #
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
       - |
@@ -74,6 +79,7 @@ tasks:
       - cmd: |
           [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
         silent: true
+
   install-maturin:
     desc: Install maturin.
     cmds:
