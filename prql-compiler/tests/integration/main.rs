@@ -17,7 +17,6 @@ mod tests {
     use tokio::runtime::Runtime;
     use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
-    use prql_compiler::sql::Dialect;
     use prql_compiler::Options;
     use prql_compiler::Target::Sql;
 
@@ -134,12 +133,8 @@ mod tests {
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
             .for_each(|s| {
-                let sql = match con.get_dialect() {
-                    Dialect::MsSql => s.replace("TIMESTAMP", "DATETIME"),
-                    Dialect::MySql => s.replace('"', "`").replace("TIMESTAMP", "DATETIME"),
-                    _ => s.to_string(),
-                };
-                con.run_query(sql.as_str(), runtime).unwrap();
+                con.run_query(con.modify_sql(s.to_string()).as_str(), runtime)
+                    .unwrap();
             });
         let tables = [
             "invoices",
@@ -162,7 +157,9 @@ mod tests {
     fn run_query(con: &mut dyn DBConnection, prql: &str, runtime: &Runtime) -> Vec<Row> {
         let options = Options::default().with_target(Sql(Some(con.get_dialect())));
         let sql = prql_compiler::compile(prql, &options).unwrap();
-        let mut actual_rows = con.run_query(sql.as_str(), runtime).unwrap();
+        let mut actual_rows = con
+            .run_query(con.modify_sql(sql).as_str(), runtime)
+            .unwrap();
         replace_booleans(&mut actual_rows);
         actual_rows
     }

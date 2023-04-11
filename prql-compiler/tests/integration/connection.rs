@@ -37,6 +37,10 @@ pub trait DBConnection {
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
 
     fn get_dialect(&self) -> Dialect;
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql
+    }
 }
 
 impl DBConnection for DuckDBConnection {
@@ -212,6 +216,10 @@ impl DBConnection for PostgresConnection {
     fn get_dialect(&self) -> Dialect {
         Dialect::PostgreSql
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace(" REAL", " NUMERIC")
+    }
 }
 
 impl DBConnection for MysqlConnection {
@@ -259,6 +267,10 @@ impl DBConnection for MysqlConnection {
     fn get_dialect(&self) -> Dialect {
         Dialect::MySql
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace('"', "`").replace("TIMESTAMP", "DATETIME")
+    }
 }
 
 impl DBConnection for MssqlConnection {
@@ -272,6 +284,11 @@ impl DBConnection for MssqlConnection {
 
     fn get_dialect(&self) -> Dialect {
         Dialect::MsSql
+    }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace("TIMESTAMP", "DATETIME")
+            .replace(" REAL", " NUMERIC")
     }
 }
 
@@ -298,7 +315,9 @@ impl MssqlConnection {
                         .get::<f64, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Numericn => row.get::<BigDecimal, usize>(i).unwrap().to_string(),
+                    ColumnType::Numericn | ColumnType::Decimaln => {
+                        row.get::<BigDecimal, usize>(i).unwrap().to_string()
+                    }
                     ColumnType::BigVarChar | ColumnType::NVarchar => {
                         String::from(row.get::<&str, usize>(i).unwrap_or(""))
                     }
