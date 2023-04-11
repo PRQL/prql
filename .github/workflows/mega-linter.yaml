@@ -3,7 +3,7 @@
 
 # MegaLinter GitHub Action configuration file
 # More info at https://megalinter.io
-name: MegaLinter
+name: lint-megalinter
 
 on:
   push:
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   build:
-    name: MegaLinter
+    name: lint-megalinter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
 
       # MegaLinter
-      - name: MegaLinter
+      - name: lint-megalinte
         id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
