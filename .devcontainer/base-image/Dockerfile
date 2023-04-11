@@ -13,10 +13,10 @@ COPY Taskfile.yml /tmp/Taskfile.yml
 USER vscode
 
 # TODO: Trying this rather than the standard; will integrate with the Taskfile before merging.
-RUN cargo install binstall
+RUN cargo install cargo-binstall
 RUN cargo binstall --locked bacon cargo-audit cargo-insta cargo-release default-target mdbook mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-pack
 
 
-RUN task -t /tmp/Taskfile.yml install-cargo-tools
+# RUN task -t /tmp/Taskfile.yml install-cargo-tools
 
 USER root

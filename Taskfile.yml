@@ -65,7 +65,7 @@ tasks:
       # default...)
       - |
         {{ if .CI }}
-          cargo install binstall
+          cargo install cargo-binstall
           cargo binstall --locked {{.packages}}
         {{ else }}
           cargo install --locked {{.packages}}
