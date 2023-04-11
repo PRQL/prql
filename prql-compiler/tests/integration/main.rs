@@ -139,7 +139,7 @@ mod tests {
                     Dialect::MySql => s.replace('"', "`").replace("TIMESTAMP", "DATETIME"),
                     _ => s.to_string(),
                 };
-                con.run_query(sql.as_str(), runtime);
+                con.run_query(sql.as_str(), runtime).unwrap();
             });
         let tables = [
             "invoices",
@@ -162,7 +162,7 @@ mod tests {
     fn run_query(con: &mut dyn DBConnection, prql: &str, runtime: &Runtime) -> Vec<Row> {
         let options = Options::default().with_target(Sql(Some(con.get_dialect())));
         let sql = prql_compiler::compile(prql, &options).unwrap();
-        let mut actual_rows = con.run_query(sql.as_str(), runtime);
+        let mut actual_rows = con.run_query(sql.as_str(), runtime).unwrap();
         replace_booleans(&mut actual_rows);
         actual_rows
     }

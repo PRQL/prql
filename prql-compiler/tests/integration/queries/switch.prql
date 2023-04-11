@@ -1,5 +1,4 @@
 # skip_mssql
-# skip_mysql (mysql imports empty strings in csv as empty strings instead of null)
 from tracks
 sort milliseconds
 select display = case [
