@@ -100,8 +100,8 @@ search = 'prefix-key: "[\d.]+"'
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = ".github/actions/build-prql-python/action.yaml"
-replace = 'key: {{version}}'
-search = 'key: "[\d.]+"'
+replace = 'prefix-key: {{version}}'
+search = 'prefix-key: "[\d.]+"'
 
 [features]
 test-external-dbs = []
