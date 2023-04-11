@@ -64,7 +64,7 @@ tasks:
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
       - |
-        {{ if .CI }} 
+        {{ if .CI }}
           cargo install binstall
           cargo binstall --locked {{.packages}}
         {{ else }}
