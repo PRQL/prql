@@ -8,9 +8,6 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
-# Manually updated to match the version in the root `Cargo.toml`, until
-# https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
-
 metadata.msrv = "1.65.0"
 
 [dependencies]
@@ -81,27 +78,27 @@ search = 'prql version:"[\d.]+"'
 # contains the current version unfortunately).
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = ".github/workflows/build-web.yaml"
+file = "../.github/workflows/build-web.yaml"
 replace = 'prefix-key: {{version}}'
-search = 'prefix-key: "[\d.]+"'
+search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = ".github/workflows/test-rust.yaml"
+file = "../.github/workflows/test-rust.yaml"
 replace = 'prefix-key: {{version}}'
-search = 'prefix-key: "[\d.]+"'
+search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = ".github/workflows/test-lib.yaml"
+file = "../.github/workflows/test-lib.yaml"
 replace = 'prefix-key: {{version}}'
-search = 'prefix-key: "[\d.]+"'
+search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = ".github/actions/build-prql-python/action.yaml"
+file = "../.github/actions/build-prql-python/action.yaml"
 replace = 'prefix-key: {{version}}'
-search = 'prefix-key: "[\d.]+"'
+search = 'prefix-key: [\d.]+'
 
 [features]
 test-external-dbs = []
