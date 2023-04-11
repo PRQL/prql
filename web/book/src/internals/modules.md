@@ -13,7 +13,7 @@ Design goals:
 
 3. Have a hierarchical structure so we can represent files in directories.
 
-4. Have unambiguous module structure within a project.
+4. Have an unambiguous module structure within a project.
 
 ## Definition
 
@@ -175,7 +175,7 @@ since any of the modules `sales`, `year_2023` or `year_2024` could be converted
 into a directory module with zero sub-modules.
 
 Point 4 of design goals means that each declaration within a project has a
-single fully-qualified name within this project. This is insured by strict rules
+single fully-qualified name within this project. This is ensured by strict rules
 regarding importing files and the fact that the module structure is a tree.
 
 ## Declaration order
