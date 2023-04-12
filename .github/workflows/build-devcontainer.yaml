@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - .devcontainer/**
-      - .github/workflows/devcontainer.yaml
+      - .github/workflows/build-devcontainer.yaml
       - Taskfile.yml
   push:
     # We could push this on the stable branch (currently named `web`) if we
@@ -21,7 +21,7 @@ on:
       - main
     paths:
       - .devcontainer/**
-      - .github/workflows/devcontainer.yaml
+      - .github/workflows/build-devcontainer.yaml
       - Taskfile.yml
   workflow_call:
   workflow_dispatch:
