@@ -195,20 +195,10 @@ tasks:
 
   test-rust:
     desc: Test all rust code, accepting snapshots.
-    # Commenting out the ability to watch, since Task seems to trip over itself,
-    # starting a new process before the old one has finished when a process
-    # changes output files.
-    #
-    # I think this is happening because the book tests delete `.prql` files,
-    # which causes `.snap` files to be removed when unreferenced, and this then
-    # compounds. Ideally the `mdbook` tests wouldn't delete its path of `.prql`
-    # files, instead only updating changed paths.
-    #
-    # We can turn this back on when Task handles it more robustly, or we improve
-    # the mdbook tests.
+    # Commenting out the ability to watch, since Task doesn't handle watching
+    # big directories well: https://github.com/go-task/task/issues/985
     #
     # sources:
-    #   # See notes in `test-rust-fast`
     #   - "**/*.rs"
     #   - "**/*.md"
     #   - "**/*.toml"
@@ -217,11 +207,7 @@ tasks:
     cmds:
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm. Note that this will also over-delete on Windows.
-      # Note that we need to pass the target explicitly to manage
-      # https://github.com/rust-lang/cargo/issues/8899
-      # see #2286
-      #- cargo insta test --accept --unreferenced=auto
-      - cargo insta test --accept
+      - cargo insta test --accept --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
       # We build the book too, because that acts as a test
       - cd web/book && mdbook build

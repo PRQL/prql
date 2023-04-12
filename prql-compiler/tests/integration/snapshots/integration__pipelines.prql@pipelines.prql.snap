@@ -1,0 +1,15 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "# skip_mssql\nfrom tracks\nsort track_id\ntake 20..25\nselect [is_in_range = album_id | in 5..10]\n"
+input_file: prql-compiler/tests/integration/queries/pipelines.prql
+---
+SELECT
+  album_id BETWEEN 5 AND 10 AS is_in_range,
+  track_id
+FROM
+  tracks
+ORDER BY
+  track_id
+LIMIT
+  6 OFFSET 19
+
