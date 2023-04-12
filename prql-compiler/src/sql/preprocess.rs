@@ -3,42 +3,33 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
 
 use anyhow::Result;
-use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::pl::{
     BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
-use crate::ast::rq::{
-    self, new_binop, CId, Compute, Expr, ExprKind, Relation, RelationColumn, RelationKind, RqFold,
-    TableRef, Transform, Window,
-};
+use crate::ast::rq::{self, new_binop, CId, Compute, Expr, ExprKind, RqFold, Transform, Window};
 use crate::error::Error;
 use crate::sql::context::AnchorContext;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
+use super::ast_srq::*;
 use super::Context;
 
-#[derive(Debug, Clone, EnumAsInner)]
-pub(super) enum SqlRelationKind {
-    Super(RelationKind),
-    PreprocessedPipeline(Vec<SqlTransform>),
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct SqlRelation {
-    pub kind: SqlRelationKind,
-    pub columns: Vec<RelationColumn>,
-}
-
-#[derive(Debug, Clone, EnumAsInner, strum::AsRefStr)]
-pub(super) enum SqlTransform {
-    Super(Transform),
-    Distinct,
-    Except { bottom: TableRef, distinct: bool },
-    Intersect { bottom: TableRef, distinct: bool },
-    Union { bottom: TableRef, distinct: bool },
-    Loop(Vec<SqlTransform>),
+/// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
+pub(super) fn preprocess(
+    pipeline: Vec<Transform>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform>, anyhow::Error> {
+    Ok(Ok(pipeline)
+        .map(normalize)
+        .map(prune_inputs)
+        .map(wrap)
+        .and_then(|p| distinct(p, ctx))
+        .map(union)
+        .and_then(|p| except(p, ctx))
+        .and_then(|p| intersect(p, ctx))
+        .map(reorder)?)
 }
 
 // This function was disabled because it changes semantics of the pipeline in some cases.
@@ -567,61 +558,6 @@ impl RqFold for Normalizer {
                 }
             }
             kind => kind,
-        })
-    }
-}
-
-impl SqlTransform {
-    pub fn as_str(&self) -> &str {
-        match self {
-            SqlTransform::Super(t) => t.as_ref(),
-            _ => self.as_ref(),
-        }
-    }
-
-    pub fn into_super_and<T, F: FnOnce(Transform) -> Result<T, Transform>>(
-        self,
-        f: F,
-    ) -> Result<T, SqlTransform> {
-        self.into_super()
-            .and_then(|t| f(t).map_err(SqlTransform::Super))
-    }
-}
-
-impl From<Relation> for SqlRelation {
-    fn from(rel: Relation) -> Self {
-        SqlRelation {
-            kind: SqlRelationKind::Super(rel.kind),
-            columns: rel.columns,
-        }
-    }
-}
-
-pub(super) trait SqlFold: RqFold {
-    fn fold_sql_transforms(&mut self, transforms: Vec<SqlTransform>) -> Result<Vec<SqlTransform>> {
-        transforms
-            .into_iter()
-            .map(|t| self.fold_sql_transform(t))
-            .try_collect()
-    }
-
-    fn fold_sql_transform(&mut self, transform: SqlTransform) -> Result<SqlTransform> {
-        Ok(match transform {
-            SqlTransform::Super(t) => SqlTransform::Super(self.fold_transform(t)?),
-            SqlTransform::Distinct => SqlTransform::Distinct,
-            SqlTransform::Union { bottom, distinct } => SqlTransform::Union {
-                bottom: self.fold_table_ref(bottom)?,
-                distinct,
-            },
-            SqlTransform::Except { bottom, distinct } => SqlTransform::Except {
-                bottom: self.fold_table_ref(bottom)?,
-                distinct,
-            },
-            SqlTransform::Intersect { bottom, distinct } => SqlTransform::Intersect {
-                bottom: self.fold_table_ref(bottom)?,
-                distinct,
-            },
-            SqlTransform::Loop(pipeline) => SqlTransform::Loop(self.fold_sql_transforms(pipeline)?),
         })
     }
 }

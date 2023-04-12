@@ -14,7 +14,7 @@ use crate::ast::rq::{
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
-use super::preprocess::{SqlRelation, SqlTransform};
+use super::ast_srq::{SqlRelation, SqlTransform};
 
 #[derive(Default, Debug)]
 pub struct AnchorContext {

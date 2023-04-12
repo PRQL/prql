@@ -5,13 +5,11 @@ use std::collections::{HashMap, HashSet};
 use crate::ast::rq::{
     self, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef, Transform,
 };
+use crate::sql::ast_srq::{SqlRelation, SqlRelationKind};
 use crate::sql::context::SqlTableDecl;
-use crate::sql::preprocess::{SqlRelation, SqlRelationKind};
 
-use super::{
-    context::{AnchorContext, ColumnDecl},
-    preprocess::{SqlFold, SqlTransform},
-};
+use super::ast_srq::{SqlFold, SqlTransform};
+use super::context::{AnchorContext, ColumnDecl};
 
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
