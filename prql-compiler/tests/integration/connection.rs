@@ -188,7 +188,12 @@ impl DBConnection for PostgresConnection {
                     }
                     &Type::FLOAT4 => (row.get::<usize, f32>(i)).to_string(),
                     &Type::FLOAT8 => (row.get::<usize, f64>(i)).to_string(),
-                    &Type::NUMERIC => row.get::<usize, PgNumeric>(i).n.unwrap().to_string(),
+                    &Type::NUMERIC => row
+                        .get::<usize, PgNumeric>(i)
+                        .n
+                        .map(|d| d.normalized())
+                        .unwrap()
+                        .to_string(),
                     &Type::TIMESTAMPTZ | &Type::TIMESTAMP => {
                         let time = row.get::<usize, SystemTime>(i);
                         let date_time: DateTime<Utc> = time.into();
@@ -219,6 +224,7 @@ impl DBConnection for PostgresConnection {
 
     fn modify_sql(&self, sql: String) -> String {
         sql.replace(" REAL", " NUMERIC")
+            .replace(" FLOAT", " NUMERIC")
     }
 }
 
@@ -269,7 +275,10 @@ impl DBConnection for MysqlConnection {
     }
 
     fn modify_sql(&self, sql: String) -> String {
-        sql.replace('"', "`").replace("TIMESTAMP", "DATETIME")
+        sql.replace('"', "`")
+            .replace("TIMESTAMP", "DATETIME")
+            .replace(" AS TEXT", " AS CHAR")
+            .replace(" AS INT", " AS SIGNED")
     }
 }
 
@@ -288,7 +297,7 @@ impl DBConnection for MssqlConnection {
 
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("TIMESTAMP", "DATETIME")
-            .replace(" REAL", " NUMERIC")
+            .replace(" AS TEXT", " AS VARCHAR")
     }
 }
 
@@ -315,9 +324,11 @@ impl MssqlConnection {
                         .get::<f64, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Numericn | ColumnType::Decimaln => {
-                        row.get::<BigDecimal, usize>(i).unwrap().to_string()
-                    }
+                    ColumnType::Numericn | ColumnType::Decimaln => row
+                        .get::<BigDecimal, usize>(i)
+                        .map(|d| d.normalized())
+                        .unwrap()
+                        .to_string(),
                     ColumnType::BigVarChar | ColumnType::NVarchar => {
                         String::from(row.get::<&str, usize>(i).unwrap_or(""))
                     }

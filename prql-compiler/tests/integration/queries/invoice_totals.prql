@@ -1,5 +1,4 @@
-# skip_mysql
-# skip_mssql
+# skip_mssql (error: The function 'LAG' may not have a window frame.)
 from i=invoices
 join ii=invoice_items [==invoice_id]
 derive [
@@ -26,7 +25,8 @@ select [
     day,
     num_orders = s"CAST({num_orders} AS INT)",
     num_tracks = s"CAST({num_tracks} AS INT)",
-    total_price = s"ROUND(CAST({total_price} AS FLOAT) * 100) / 100",
+    total_price = s"ROUND(CAST({total_price} AS FLOAT) * 100, 0) / 100",
     running_total_num_tracks = s"CAST({running_total_num_tracks} AS INT)",
     num_tracks_last_week = s"CAST({num_tracks_last_week} AS INT)"
 ]
+take 20
