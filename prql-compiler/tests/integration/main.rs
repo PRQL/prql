@@ -25,7 +25,7 @@ use crate::connection::*;
 // canonical set of examples between both, which this integration test would use
 // only for integration tests, and the other test would use for checking the
 // SQL. But at the moment we're only using these examples here, and we want to
-// test the SQL, so we copy-paste the query here.
+// test the SQL, so we copy-paste the function here.
 fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
     prql_compiler::compile(prql, &Options::default().no_signature())
 }
