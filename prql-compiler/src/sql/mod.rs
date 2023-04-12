@@ -1,6 +1,7 @@
 //! Backend for translating RQ into SQL
 
 mod anchor;
+mod ast_srq;
 mod context;
 mod dialect;
 mod gen_expr;
@@ -54,6 +55,27 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
     };
 
     Ok(sql)
+}
+
+/// This module gives access to internal machinery that gives no stability guarantees.
+pub mod internal {
+    use super::*;
+    use crate::ast::rq::{Query, RelationKind};
+
+    pub use super::ast_srq::SqlTransform;
+
+    /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
+    pub fn preprocess(query: Query) -> Result<Option<Vec<SqlTransform>>> {
+        let (ctx, relation) = AnchorContext::of(query);
+        let mut ctx = Context::new(dialect::Dialect::Generic.handler(), ctx);
+
+        match relation.kind {
+            RelationKind::Pipeline(pipeline) => {
+                Ok(Some(preprocess::preprocess(pipeline, &mut ctx)?))
+            }
+            _ => Ok(None),
+        }
+    }
 }
 
 #[derive(Debug)]

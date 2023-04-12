@@ -9,6 +9,7 @@
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use serde::Serialize;
 
 use crate::ast::rq::{Relation, RelationColumn, RelationKind, RqFold, TableRef, Transform};
 
@@ -24,7 +25,7 @@ pub struct SqlRelation {
     pub columns: Vec<RelationColumn>,
 }
 
-#[derive(Debug, Clone, EnumAsInner, strum::AsRefStr)]
+#[derive(Debug, Clone, EnumAsInner, strum::AsRefStr, Serialize)]
 pub enum SqlTransform {
     Super(Transform),
     Distinct,
