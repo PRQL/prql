@@ -4,6 +4,9 @@
 
 **Features**:
 
+- New functions `read_parquet` and `read_csv`, which mirror the DuckDB
+  functions, instructing the database to read from files (@max-sixty, #2049).
+
 **Fixes**:
 
 **Documentation**:
