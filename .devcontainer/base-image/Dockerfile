@@ -11,6 +11,7 @@ RUN apt-get update \
 # ========= Install cargo-tools for non-root user (vscode) =========
 COPY Taskfile.yml /tmp/Taskfile.yml
 USER vscode
-RUN task -t /tmp/Taskfile.yml install-cargo-tools
+
+RUN task -t /tmp/Taskfile.yml install-cargo-tools-binstall
 
 USER root
