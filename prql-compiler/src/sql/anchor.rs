@@ -59,21 +59,22 @@ pub(super) fn extract_atomic(
 
 /// Converts a pipeline into atomic pipelines. Meant for debugging purposes.
 pub(super) fn extract_atomics_naive(
-    mut pipeline: Vec<SqlTransform>,
+    pipeline: Vec<SqlTransform>,
     ctx: &mut AnchorContext,
 ) -> Vec<Vec<SqlTransform>> {
     let mut atomics = Vec::new();
-    loop {
-        let output = AnchorContext::determine_select_columns(&pipeline);
 
-        let (preceding, last) = split_off_back(pipeline, output, ctx);
-        atomics.push(last);
-        if let Some(preceding) = preceding {
-            pipeline = preceding;
-        } else {
-            break;
+    atomics.push(extract_atomic(pipeline, ctx));
+    while let Some(decl_key) = ctx.table_decls.keys().max_by_key(|t| t.get()).cloned() {
+        let decl = ctx.table_decls.remove(&decl_key).unwrap();
+        if let Some(relation) = decl.relation {
+            if let SqlRelationKind::PreprocessedPipeline(p) = relation.kind {
+                atomics.push(extract_atomic(p, ctx));
+            }
         }
     }
+
+    atomics.reverse();
     atomics
 }
 
@@ -342,7 +343,9 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     let split = match transform {
         Super(From(_)) => contains_any(following, ["From"]),
         Super(Join { .. }) => contains_any(following, ["From"]),
-        Super(Aggregate { .. }) => contains_any(following, ["From", "Join", "Aggregate", "Compute"]),
+        Super(Aggregate { .. }) => {
+            contains_any(following, ["From", "Join", "Aggregate", "Compute"])
+        }
         Super(Filter(_)) => contains_any(following, ["From", "Join"]),
         Super(Compute(_)) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
         Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
