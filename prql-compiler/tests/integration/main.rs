@@ -19,7 +19,7 @@ use prql_compiler::sql::Dialect;
 use prql_compiler::Options;
 use prql_compiler::Target::Sql;
 
-use crate::connection::*;
+use connection::*;
 
 // This is copy-pasted from `test.rs` in prql-compiler. Ideally we would have a
 // canonical set of examples between both, which this integration test would use
