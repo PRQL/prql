@@ -83,20 +83,9 @@ pub mod internal {
     /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
     pub fn anchor(query: Query) -> Result<Vec<Vec<SqlTransform>>> {
         let (pipeline, mut ctx) = init(query)?;
-        let mut pipeline = preprocess::preprocess(pipeline, &mut ctx)?;
+        let pipeline = preprocess::preprocess(pipeline, &mut ctx)?;
 
-        let mut atomics = Vec::new();
-        loop {
-            let (preceding, last) = anchor::split_off_back(pipeline, &mut ctx.anchor);
-            atomics.push(last);
-            if let Some(preceding) = preceding {
-                pipeline = preceding;
-            } else {
-                break;
-            }
-        }
-
-        Ok(atomics)
+        Ok(anchor::extract_atomics_naive(pipeline, &mut ctx.anchor))
     }
 }
 

@@ -683,13 +683,19 @@ fn test_sorts() {
     select [renamed = somefield]
     "###
     ).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        'something' AS renamed,
+        'something' AS _expr_0
+      FROM
+        x
+      ORDER BY
+        _expr_0
+    )
     SELECT
-      'something' AS renamed,
-      'something' AS _expr_0
+      renamed
     FROM
-      x
-    ORDER BY
-      _expr_0
+      table_1 AS table_0
     "###);
 }
 
@@ -3476,4 +3482,31 @@ fn test_read_parquet_duckdb() {
     );
 
     // TODO: `from x=(read_parquet 'x.parquet')` currently fails
+}
+
+
+#[test]
+fn test_excess_columns() {
+    assert_display_snapshot!(compile(r#"
+    from foo
+    derive d = x
+    sort d
+    select [col]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        col,
+        x AS _expr_0
+      FROM
+        foo
+      ORDER BY
+        _expr_0
+    )
+    SELECT
+      col
+    FROM
+      table_1 AS table_0
+    "###
+    );
 }

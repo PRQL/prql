@@ -11,17 +11,84 @@ use crate::sql::context::SqlTableDecl;
 use super::ast_srq::{SqlFold, SqlTransform};
 use super::context::{AnchorContext, ColumnDecl};
 
+/// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
+/// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
+pub(super) fn extract_atomic(
+    pipeline: Vec<SqlTransform>,
+    ctx: &mut AnchorContext,
+) -> Vec<SqlTransform> {
+    let output = AnchorContext::determine_select_columns(&pipeline);
+
+    let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
+
+    let (atomic, cid_redirects) = if let Some(preceding) = preceding {
+        log::debug!(
+            "pipeline split after {}",
+            preceding.last().unwrap().as_str()
+        );
+        anchor_split(ctx, preceding, atomic)
+    } else {
+        (atomic, HashMap::new())
+    };
+
+    // sometimes, additional columns will be added into select, because they are needed for
+    // other clauses. To filter them out, we use an additional limiting SELECT.
+    let output: Vec<_> = output
+        .into_iter()
+        .map(|c| cid_redirects.get(&c).cloned().unwrap_or(c))
+        .collect();
+    let select_cols = atomic
+        .iter()
+        .find_map(|x| x.as_super().and_then(|y| y.as_select()))
+        .unwrap();
+    dbg!(&atomic);
+    dbg!(&output);
+    if select_cols.iter().any(|c| !output.contains(c)) {
+        // duplicate Select for purposes of anchor_split
+        let duplicated_select = SqlTransform::Super(Transform::Select(select_cols.clone()));
+        let mut atomic = atomic;
+        atomic.push(duplicated_select);
+
+        // construct the new SELECT
+        let limited_view = vec![SqlTransform::Super(Transform::Select(output))];
+
+        let (limited_view, _) = anchor_split(ctx, atomic, limited_view);
+        return limited_view;
+    }
+
+    atomic
+}
+
+/// Converts a pipeline into atomic pipelines. Meant for debugging purposes.
+pub(super) fn extract_atomics_naive(
+    mut pipeline: Vec<SqlTransform>,
+    ctx: &mut AnchorContext,
+) -> Vec<Vec<SqlTransform>> {
+    let mut atomics = Vec::new();
+    loop {
+        let output = AnchorContext::determine_select_columns(&pipeline);
+
+        let (preceding, last) = split_off_back(pipeline, output, ctx);
+        atomics.push(last);
+        if let Some(preceding) = preceding {
+            pipeline = preceding;
+        } else {
+            break;
+        }
+    }
+    atomics
+}
+
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub(super) fn split_off_back(
     mut pipeline: Vec<SqlTransform>,
+    output: Vec<CId>,
     ctx: &mut AnchorContext,
 ) -> (Option<Vec<SqlTransform>>, Vec<SqlTransform>) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
-
-    let output = AnchorContext::determine_select_columns(&pipeline);
 
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
@@ -173,7 +240,7 @@ pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
     preceding: Vec<SqlTransform>,
     atomic: Vec<SqlTransform>,
-) -> Vec<SqlTransform> {
+) -> (Vec<SqlTransform>, HashMap<CId, CId>) {
     let new_tid = ctx.tid.gen();
 
     let preceding_select = &preceding.last().unwrap().as_super().unwrap();
@@ -230,7 +297,9 @@ pub(super) fn anchor_split(
     let mut second = atomic;
     second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
-    CidRedirector::redirect(second, cid_redirects, ctx)
+    let second = CidRedirector::redirect(second, &cid_redirects, ctx);
+
+    (second, cid_redirects)
 }
 
 /// Determines whether a pipeline must be split at a transform to
@@ -509,13 +578,13 @@ impl RqFold for CidCollector {
 
 pub(super) struct CidRedirector<'a> {
     pub ctx: &'a mut AnchorContext,
-    pub cid_redirects: HashMap<CId, CId>,
+    pub cid_redirects: &'a HashMap<CId, CId>,
 }
 
 impl<'a> CidRedirector<'a> {
     pub fn redirect(
         pipeline: Vec<SqlTransform>,
-        cid_redirects: HashMap<CId, CId>,
+        cid_redirects: &'a HashMap<CId, CId>,
         ctx: &mut AnchorContext,
     ) -> Vec<SqlTransform> {
         let mut redirector = CidRedirector { ctx, cid_redirects };
