@@ -124,8 +124,8 @@ module my_playlists
 
 This loads either `./my_playlists.prql` (a leaf module) or
 `./my_playlists/_my_playlists.prql` (a directory module) and uses its contents
-as module `my_playlists`. If none or both of the files are
-present, a compilation error is raised.
+as module `my_playlists`. If none or both of the files are present, a
+compilation error is raised.
 
 Only directory modules can contain module declarations. If a leaf module
 contains a module declaration, a compilation error is raised, suggesting the
