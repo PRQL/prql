@@ -6,12 +6,7 @@
 name: lint-megalinter
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_call:
 
 env: # Comment env block if you do not want to apply fixes
   # Apply linter fixes configuration
