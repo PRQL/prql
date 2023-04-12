@@ -33,7 +33,12 @@ fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
 #[test]
 fn test_sql_examples() {
     glob!("queries/**/*.prql", |path| {
-        assert_snapshot!(compile(&fs::read_to_string(path).unwrap()).unwrap())
+        let sql = fs::read_to_string(path).unwrap();
+        assert_snapshot!(
+            path.file_name().unwrap().to_string_lossy().to_string(),
+            compile(&sql).unwrap(),
+            &sql
+        )
     });
 }
 
