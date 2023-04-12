@@ -60,21 +60,43 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
     use super::*;
-    use crate::ast::rq::{Query, RelationKind};
+    use crate::ast::rq::{Query, Transform};
 
     pub use super::ast_srq::SqlTransform;
 
-    /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: Query) -> Result<Option<Vec<SqlTransform>>> {
+    fn init(query: Query) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);
-        let mut ctx = Context::new(dialect::Dialect::Generic.handler(), ctx);
+        let ctx = Context::new(dialect::Dialect::Generic.handler(), ctx);
 
-        match relation.kind {
-            RelationKind::Pipeline(pipeline) => {
-                Ok(Some(preprocess::preprocess(pipeline, &mut ctx)?))
+        let pipeline = (relation.kind.into_pipeline())
+            .map_err(|_| anyhow::anyhow!("Main RQ relation is not a pipeline."))?;
+        Ok((pipeline, ctx))
+    }
+
+    /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
+    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform>> {
+        let (pipeline, mut ctx) = init(query)?;
+
+        preprocess::preprocess(pipeline, &mut ctx)
+    }
+
+    /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
+    pub fn anchor(query: Query) -> Result<Vec<Vec<SqlTransform>>> {
+        let (pipeline, mut ctx) = init(query)?;
+        let mut pipeline = preprocess::preprocess(pipeline, &mut ctx)?;
+
+        let mut atomics = Vec::new();
+        loop {
+            let (preceding, last) = anchor::split_off_back(pipeline, &mut ctx.anchor);
+            atomics.push(last);
+            if let Some(preceding) = preceding {
+                pipeline = preceding;
+            } else {
+                break;
             }
-            _ => Ok(None),
         }
+
+        Ok(atomics)
     }
 }
 

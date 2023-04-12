@@ -19,11 +19,11 @@ use crate::utils::{BreakUp, Pluck};
 
 use crate::Target;
 
+use super::ast_srq::{SqlRelation, SqlRelationKind, SqlTransform};
 use super::context::AnchorContext;
 use super::gen_expr::*;
 use super::gen_projection::*;
 use super::preprocess;
-use super::ast_srq::{SqlRelation, SqlRelationKind, SqlTransform};
 use super::{anchor, Context, Dialect};
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
@@ -520,7 +520,10 @@ fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Q
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
 /// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
-fn extract_atomic(pipeline: Vec<SqlTransform>, ctx: &mut AnchorContext) -> Vec<SqlTransform> {
+pub(super) fn extract_atomic(
+    pipeline: Vec<SqlTransform>,
+    ctx: &mut AnchorContext,
+) -> Vec<SqlTransform> {
     let (preceding, atomic) = anchor::split_off_back(pipeline, ctx);
 
     if let Some(preceding) = preceding {

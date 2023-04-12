@@ -17,11 +17,14 @@ use super::ast_srq::*;
 use super::Context;
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
+///
+/// Note that some SQL translation mechanisms depend on behavior of some of these
+/// functions (i.e. reorder).
 pub(super) fn preprocess(
     pipeline: Vec<Transform>,
     ctx: &mut Context,
 ) -> Result<Vec<SqlTransform>, anyhow::Error> {
-    Ok(Ok(pipeline)
+    Ok(pipeline)
         .map(normalize)
         .map(prune_inputs)
         .map(wrap)
@@ -29,7 +32,7 @@ pub(super) fn preprocess(
         .map(union)
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
-        .map(reorder)?)
+        .map(reorder)
 }
 
 // This function was disabled because it changes semantics of the pipeline in some cases.
