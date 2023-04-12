@@ -90,7 +90,7 @@ search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/workflows/nightly.yaml"
+file = "../github/actions/time-compilation/action.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
