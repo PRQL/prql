@@ -533,6 +533,12 @@ impl Lowerer {
         mut expr_ast: pl::Expr,
         is_aggregation: bool,
     ) -> Result<rq::CId> {
+        // short-circuit if this node has already been lowered
+        if let Some(LoweredTarget::Compute(lowered)) = self.node_mapping.get(&expr_ast.id.unwrap())
+        {
+            return Ok(*lowered);
+        }
+
         // copy metadata before lowering
         let alias = expr_ast.alias.clone();
         let has_alias = alias.is_some();

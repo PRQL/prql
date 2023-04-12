@@ -3484,7 +3484,6 @@ fn test_read_parquet_duckdb() {
     // TODO: `from x=(read_parquet 'x.parquet')` currently fails
 }
 
-
 #[test]
 fn test_excess_columns() {
     // https://github.com/PRQL/prql/issues/2079
