@@ -3451,6 +3451,7 @@ fn test_upper() {
 fn test_read_parquet_duckdb() {
     assert_display_snapshot!(compile(r#"
     from (read_parquet 'x.parquet')
+    join (read_parquet "y.parquet") [==foo]
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -3458,11 +3459,19 @@ fn test_read_parquet_duckdb() {
         *
       FROM
         read_parquet('x.parquet')
+    ),
+    table_1 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('y.parquet')
     )
     SELECT
-      *
+      table_2.*,
+      table_3.*
     FROM
-      table_0 AS table_1
+      table_0 AS table_2
+      JOIN table_1 AS table_3 ON table_2.foo = table_3.foo
     "###
     );
 
