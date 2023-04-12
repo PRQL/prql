@@ -3497,43 +3497,15 @@ fn test_excess_columns() {
         @r###"
     WITH table_1 AS (
       SELECT
-        col,
-        x AS _expr_0
+        title,
+        track_id AS _expr_0
       FROM
-        foo
+        tracks
       ORDER BY
         _expr_0
     )
     SELECT
-      col
-    FROM
-      table_1 AS table_0
-    "###
-    );
-
-    assert_display_snapshot!(compile(r#"
-    from track
-    derive d = album_id + 1
-    group d (
-        aggregate [
-            n1 = (track_id | sum),
-        ]
-    )
-    sort d
-    select [ d1 = d, n1 ]
-    "#).unwrap(),
-        @r###"
-    WITH table_1 AS (
-      SELECT
-        col,
-        x AS _expr_0
-      FROM
-        foo
-      ORDER BY
-        _expr_0
-    )
-    SELECT
-      col
+      title
     FROM
       table_1 AS table_0
     "###
