@@ -193,4 +193,4 @@ jobs:
       - run: git push origin HEAD:web --force
 
   push-devcontainer-base-image:
-    uses: ./.github/workflows/build-devcontainer.yaml
+    uses: .github/workflows/build-devcontainer.yaml
