@@ -21,6 +21,9 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
+  cargo_crates:
+    bacon cargo-audit cargo-insta cargo-release default-target mdbook
+    mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-pack
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -56,10 +59,6 @@ tasks:
 
   install-cargo-tools:
     desc: Install cargo tools for PRQL development.
-    vars:
-      packages:
-        bacon cargo-audit cargo-insta cargo-release default-target mdbook
-        mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-pack
     cmds:
       # In CI we use `binstall`, because it's faster, and without it we can't
       # even get the arm64 docker image to build within the GHA timeout. But it
@@ -72,15 +71,23 @@ tasks:
       # default...)
       - |
         {{ if .CI }}
-          cargo install cargo-binstall
-          cargo binstall -y --locked {{.packages}}
+          task install-cargo-tools-binstall
         {{ else }}
-          cargo install --locked {{.packages}}
+          task install-cargo-tools-source
         {{ end }}
 
       - cmd: |
           [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
         silent: true
+
+  install-cargo-tools-source:
+    cmds:
+      - cargo install --locked {{.cargo_crates}}
+
+  install-cargo-tools-binstall:
+    cmds:
+      - cargo install cargo-binstall
+      - cargo binstall -y --locked {{.cargo_crates}}
 
   install-maturin:
     desc: Install maturin.

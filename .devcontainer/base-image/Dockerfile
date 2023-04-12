@@ -12,6 +12,6 @@ RUN apt-get update \
 COPY Taskfile.yml /tmp/Taskfile.yml
 USER vscode
 
-RUN task -t /tmp/Taskfile.yml install-cargo-tools
+RUN task -t /tmp/Taskfile.yml install-cargo-tools-binstall
 
 USER root
