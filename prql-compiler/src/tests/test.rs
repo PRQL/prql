@@ -3487,11 +3487,40 @@ fn test_read_parquet_duckdb() {
 
 #[test]
 fn test_excess_columns() {
+    // https://github.com/PRQL/prql/issues/2079
     assert_display_snapshot!(compile(r#"
-    from foo
-    derive d = x
+    from tracks
+    derive d = track_id
     sort d
-    select [col]
+    select [title]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        col,
+        x AS _expr_0
+      FROM
+        foo
+      ORDER BY
+        _expr_0
+    )
+    SELECT
+      col
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from track
+    derive d = album_id + 1
+    group d (
+        aggregate [
+            n1 = (track_id | sum),
+        ]
+    )
+    sort d
+    select [ d1 = d, n1 ]
     "#).unwrap(),
         @r###"
     WITH table_1 AS (

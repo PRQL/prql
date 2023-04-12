@@ -41,8 +41,6 @@ pub(super) fn extract_atomic(
         .iter()
         .find_map(|x| x.as_super().and_then(|y| y.as_select()))
         .unwrap();
-    dbg!(&atomic);
-    dbg!(&output);
     if select_cols.iter().any(|c| !output.contains(c)) {
         // duplicate Select for purposes of anchor_split
         let duplicated_select = SqlTransform::Super(Transform::Select(select_cols.clone()));
@@ -344,7 +342,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     let split = match transform {
         Super(From(_)) => contains_any(following, ["From"]),
         Super(Join { .. }) => contains_any(following, ["From"]),
-        Super(Aggregate { .. }) => contains_any(following, ["From", "Join", "Aggregate"]),
+        Super(Aggregate { .. }) => contains_any(following, ["From", "Join", "Aggregate", "Compute"]),
         Super(Filter(_)) => contains_any(following, ["From", "Join"]),
         Super(Compute(_)) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
         Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
@@ -394,7 +392,7 @@ pub struct Requirement {
     /// Maximum complexity with which this column can be expressed in this transform
     pub max_complexity: Complexity,
 
-    /// True iff this column needs to be SELECTed so I can be referenced in this transform
+    /// True iff this column needs to be SELECTed so it can be referenced in this transform
     pub selected: bool,
 }
 
@@ -486,7 +484,7 @@ pub(super) fn get_requirements(
             },
             false,
         ),
-        // ORDER BY uses aliased columns, so the columns can have high complexity
+        // we only use aliased columns in ORDER BY, so the columns can have high complexity
         Super(Sort(_)) => (Complexity::Aggregation, true),
         Super(Take(_)) => (Complexity::Plain, false),
         Super(Join { .. }) => (Complexity::Plain, false),
