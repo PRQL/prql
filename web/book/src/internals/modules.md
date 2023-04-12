@@ -18,7 +18,7 @@ Design goals:
 ## Definition
 
 A module is a namespace that contains declarations. A module is itself a
-declaration , which means that it can contain nested child modules.
+declaration, which means that it can contain nested child modules.
 
 This means that modules form a
 [tree graph](<https://en.wikipedia.org/wiki/Tree_(graph_theory)>), which we call
@@ -49,6 +49,7 @@ module:
 
 ```prql no-eval
 # using module structure declared above
+module my_playlists
 
 let great_tracks = my_playlists.bangers
 
@@ -115,15 +116,15 @@ let album_titles = my_playlists
 
 ## File importing
 
-To include PRQL source code from other files, one can use the following syntax:
+To include PRQL source code from other files, we can use the following syntax:
 
 ```
 module my_playlists
 ```
 
-Such declaration loads either `./my_playlists.prql` (a leaf module) or
+This loads either `./my_playlists.prql` (a leaf module) or
 `./my_playlists/_my_playlists.prql` (a directory module) and uses its contents
-as the declarations in module `my_playlists`. If none or both of the files are
+as module `my_playlists`. If none or both of the files are
 present, a compilation error is raised.
 
 Only directory modules can contain module declarations. If a leaf module
