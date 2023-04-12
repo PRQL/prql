@@ -26,6 +26,10 @@ use crate::connection::*;
 // only for integration tests, and the other test would use for checking the
 // SQL. But at the moment we're only using these examples here, and we want to
 // test the SQL, so we copy-paste the function here.
+
+// TODO: an relatively easy thing to do would be to use these as the canonical
+// examples in the book, and then we get this for free.
+
 fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
     prql_compiler::compile(prql, &Options::default().no_signature())
 }
