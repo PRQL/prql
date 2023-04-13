@@ -15,15 +15,15 @@ use sqlparser::ast::{
 use crate::ast::pl::{BinOp, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationKind, TableRef, Transform};
 use crate::sql::anchor::anchor_split;
-use crate::sql::preprocess::SqlRelationKind;
 use crate::utils::{BreakUp, Pluck};
 
 use crate::Target;
 
+use super::ast_srq::{SqlRelation, SqlRelationKind, SqlTransform};
 use super::context::AnchorContext;
 use super::gen_expr::*;
 use super::gen_projection::*;
-use super::preprocess::{self, SqlRelation, SqlTransform};
+use super::preprocess;
 use super::{anchor, Context, Dialect};
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
@@ -68,15 +68,7 @@ fn sql_query_of_sql_relation(
         // base case
         SqlRelationKind::Super(Pipeline(pipeline)) => {
             // preprocess
-            let pipeline = Ok(pipeline)
-                .map(preprocess::normalize)
-                .map(preprocess::prune_inputs)
-                .map(preprocess::wrap)
-                .and_then(|p| preprocess::distinct(p, ctx))
-                .map(preprocess::union)
-                .and_then(|p| preprocess::except(p, ctx))
-                .and_then(|p| preprocess::intersect(p, ctx))
-                .map(preprocess::reorder)?;
+            let pipeline = preprocess::preprocess(pipeline, ctx)?;
 
             // load names of output columns
             ctx.anchor.load_names(&pipeline, sql_relation.columns);
@@ -116,7 +108,7 @@ fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<T
 
     // ensure that the table is declared
     if let Some(sql_relation) = decl.relation.take() {
-        // if we cannot use CTEs
+        // if we cannot use CTEs (probably because we are within RECURSIVE)
         if !ctx.query.allow_ctes {
             // restore relation for other references
             decl.relation = Some(sql_relation.clone());
@@ -528,7 +520,10 @@ fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Q
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
 /// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
-fn extract_atomic(pipeline: Vec<SqlTransform>, ctx: &mut AnchorContext) -> Vec<SqlTransform> {
+pub(super) fn extract_atomic(
+    pipeline: Vec<SqlTransform>,
+    ctx: &mut AnchorContext,
+) -> Vec<SqlTransform> {
     let (preceding, atomic) = anchor::split_off_back(pipeline, ctx);
 
     if let Some(preceding) = preceding {
