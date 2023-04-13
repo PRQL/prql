@@ -168,7 +168,7 @@ fn translate_join(
 ) -> Result<Join> {
     let relation = table_factor_of_table_ref(with, ctx)?;
 
-    let constraint = JoinConstraint::On(translate_expr_kind(filter.kind, ctx)?);
+    let constraint = JoinConstraint::On(translate_expr(filter, ctx)?);
 
     Ok(Join {
         relation,
@@ -290,8 +290,10 @@ fn sql_select_query_of_pipeline(
     let offset = if offset == 0 {
         None
     } else {
+        let kind = ExprKind::Literal(Literal::Integer(offset));
+        let expr = Expr { kind, span: None };
         Some(sqlparser::ast::Offset {
-            value: translate_expr_kind(ExprKind::Literal(Literal::Integer(offset)), ctx)?,
+            value: translate_expr(expr, ctx)?,
             rows: sqlparser::ast::OffsetRows::None,
         })
     };
@@ -542,7 +544,7 @@ fn ensure_names(transforms: &[SqlTransform], ctx: &mut AnchorContext) {
 }
 fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Option<sql_ast::Expr>> {
     Ok(if let Some(cond) = all(exprs) {
-        Some(translate_expr_kind(cond.kind, context)?)
+        Some(translate_expr(cond, context)?)
     } else {
         None
     })
