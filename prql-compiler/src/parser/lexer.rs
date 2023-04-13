@@ -20,16 +20,14 @@ pub enum Token {
     /// single-char control tokens
     Control(char),
 
-    // TODO: rename to ArrowThin
-    Arrow, // ->
-    // TODO: rename to ArrowFat
-    ArrowDouble, // =>
+    ArrowThin,   // ->
+    ArrowFat,    // =>
     Eq,          // ==
     Ne,          // !=
     Gte,         // >=
     Lte,         // <=
-    And,         // and
-    Or,          // or
+    And,         // &&
+    Or,          // ||
     Coalesce,    // ??
 }
 
@@ -38,14 +36,14 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
 
     let control_multi = choice((
-        just("->").to(Token::Arrow),
-        just("=>").to(Token::ArrowDouble),
+        just("->").to(Token::ArrowThin),
+        just("=>").to(Token::ArrowFat),
         just("==").to(Token::Eq),
         just("!=").to(Token::Ne),
         just(">=").to(Token::Gte),
         just("<=").to(Token::Lte),
-        just("and").then_ignore(end_expr()).to(Token::And),
-        just("or").then_ignore(end_expr()).to(Token::Or),
+        just("&&").then_ignore(end_expr()).to(Token::And),
+        just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
     ));
 
@@ -391,8 +389,8 @@ impl std::fmt::Display for Token {
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
 
-            Self::Arrow => f.write_str("->"),
-            Self::ArrowDouble => f.write_str("=>"),
+            Self::ArrowThin => f.write_str("->"),
+            Self::ArrowFat => f.write_str("=>"),
             Self::Eq => f.write_str("=="),
             Self::Ne => f.write_str("!="),
             Self::Gte => f.write_str(">="),
