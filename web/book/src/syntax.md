@@ -16,7 +16,7 @@ A summary of PRQL syntax
 | `=`             | [Assigns](transforms/select.md) & [Aliases](transforms/join.md)      | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`             | [Named args & Parameters](queries/functions.md)                      | `interp low:0 1600 sat_score`                           |
 | `[]`            | [Lists](./syntax.md#lists)                                           | `select [id, amount]`                                   |
-| `()`            | [Precedence & Parentheses](./syntax.md#precedence-and-parentheses)   | `derive celsius = (fahrenheit - 32) / 1.8`              |
+| `+ - * /`       | [Operators & Expressions](./syntax.md#operators-and-expressions)     | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''` & `""`     | [Strings](language-features/strings.md)                              | `derive name = 'Mary'`                                  |
 | `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)                 | `` select `first name`  ``                              |
 | `#`             | [Comments](./syntax.md#comments)                                     | `# A comment`                                           |
@@ -109,9 +109,10 @@ select [
 filter circumference > 10 && color != "red"
 ```
 
-## Precedence and Parentheses
+## Operators and Expressions
 
-Parentheses — `()` — are used to give _precedence_ to inner expressions.
+PRQL allows expressions to with familiar notation. Parentheses — `()` — are used
+to give _precedence_ to inner expressions.
 
 ```admonish note
 We realize some of the finer points here are not intuitive. We are considering approaches to
@@ -174,12 +175,12 @@ from employees
 derive total_distance = sum distance
 ```
 
-For a more formal definition, refer to this precedence table. Because function
+For a more formal definition, refer to this table of operators. Because function
 calls have the lowest precedence, nested function calls or arguments that start
 or end with an operator require parenthesis.
 
 | Group          | Operators         | Precedence | Associativity |
-| -------------- | ----------------- | ---------- | ------------- | --- | ------------- |
+| -------------- | ----------------- | ---------- | ------------- |
 | identifier dot | `.`               | 1          |               |
 | unary          | `- + ! ==`        | 2          |               |
 | range          | `..`              | 3          |               |
@@ -188,7 +189,7 @@ or end with an operator require parenthesis.
 | compare        | `== != <= >= < >` | 6          | left-to-right |
 | coalesce       | `??`              | 7          | left-to-right |
 | and            | `&&`              | 8          | left-to-right |
-| or             | `                 |            | `             | 9   | left-to-right |
+| or             | &#x7c;&#x7c;      | 9          | left-to-right |
 | function call  |                   | 10         |               |
 
 ## Inner Transforms
