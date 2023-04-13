@@ -570,22 +570,22 @@ fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Exp
         }
     }
 
-    fn try_unpack(expr: Expr) -> Result<Result<(ExprKind, bool), Expr>> {
-        let eq = super::std::try_unpack_with(expr, super::std::STD_EQ, pick_non_null)?;
+    fn try_unpack(expr: Expr) -> Result<(ExprKind, bool), Expr> {
+        let eq = super::std::try_unpack_with(expr, super::std::STD_EQ, pick_non_null);
 
         let expr = match eq {
-            Ok(expr) => return Ok(Ok((expr, true))),
+            Ok(expr) => return Ok((expr, true)),
             Err(expr) => expr,
         };
 
-        let ne = super::std::try_unpack_with(expr, super::std::STD_NE, pick_non_null)?;
-        return Ok(match ne {
+        let ne = super::std::try_unpack_with(expr, super::std::STD_NE, pick_non_null);
+        return match ne {
             Ok(expr) => Ok((expr, false)),
             Err(expr) => Err(expr),
-        });
+        };
     }
 
-    let (expr, is_eq) = match try_unpack(expr)? {
+    let (expr, is_eq) = match try_unpack(expr) {
         Ok(r) => r,
         Err(expr) => return Ok(Err(expr)),
     };
@@ -660,8 +660,7 @@ fn try_into_between_old(
 }
 
 fn try_into_between(
-    name: &String,
-    args: &Vec<Expr>,
+    expr: Expr,
     ctx: &mut Context,
 ) -> Result<Option<sql_ast::Expr>> {
     if !matches!(op, BinOp::And) {

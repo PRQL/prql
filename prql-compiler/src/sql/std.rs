@@ -100,26 +100,27 @@ pub const STD_COALESCE: FunctionDecl<2> = FunctionDecl::new("std.coalesce");
 pub fn try_unpack<const ARG_COUNT: usize>(
     expr: rq::Expr,
     decl: FunctionDecl<ARG_COUNT>,
-) -> Result<Result<[rq::Expr; ARG_COUNT], rq::Expr>> {
+) -> Result<[rq::Expr; ARG_COUNT], rq::Expr> {
     if let rq::ExprKind::BuiltInFunction { name, args } = &expr.kind {
         if decl.name == name {
             let (_, args) = expr.kind.into_built_in_function().unwrap();
 
             let args: [rq::Expr; ARG_COUNT] = args
                 .try_into()
-                .map_err(|_| anyhow::anyhow!("Bad usage of function {}", decl.name))?;
+                .map_err(|_| anyhow::anyhow!("Bad usage of function {}", decl.name))
+                .unwrap();
 
-            return Ok(Ok(args));
+            return Ok(args);
         }
     }
-    Ok(Err(expr))
+    Err(expr)
 }
 
 pub fn try_unpack_with<const ARG_COUNT: usize, M, T>(
     expr: rq::Expr,
     decl: FunctionDecl<ARG_COUNT>,
     mapper: M,
-) -> Result<Result<T, rq::Expr>>
+) -> Result<T, rq::Expr>
 where
     M: FnOnce([rq::Expr; ARG_COUNT]) -> Result<T, [rq::Expr; ARG_COUNT]>,
 {
@@ -129,9 +130,10 @@ where
 
             let args: [rq::Expr; ARG_COUNT] = args
                 .try_into()
-                .map_err(|_| anyhow::anyhow!("Bad usage of function {}", decl.name))?;
+                .map_err(|_| anyhow::anyhow!("Bad usage of function {}", decl.name))
+                .unwrap();
 
-            return Ok(match mapper(args) {
+            return match mapper(args) {
                 Ok(res) => Ok(res),
                 Err(args) => {
                     // mapper was unsuccessful, let's repack back the original Expr
@@ -142,8 +144,8 @@ where
                         ..expr
                     })
                 }
-            });
+            };
         }
     }
-    Ok(Err(expr))
+    Err(expr)
 }
