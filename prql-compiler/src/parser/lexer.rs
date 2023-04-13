@@ -20,15 +20,15 @@ pub enum Token {
     /// single-char control tokens
     Control(char),
 
-    ArrowThin,   // ->
-    ArrowFat,    // =>
-    Eq,          // ==
-    Ne,          // !=
-    Gte,         // >=
-    Lte,         // <=
-    And,         // &&
-    Or,          // ||
-    Coalesce,    // ??
+    ArrowThin, // ->
+    ArrowFat,  // =>
+    Eq,        // ==
+    Ne,        // !=
+    Gte,       // >=
+    Lte,       // <=
+    And,       // &&
+    Or,        // ||
+    Coalesce,  // ??
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
