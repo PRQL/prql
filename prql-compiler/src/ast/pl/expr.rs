@@ -127,9 +127,9 @@ pub enum BinOp {
     Gte,
     #[strum(to_string = "<=")]
     Lte,
-    #[strum(to_string = "and")]
+    #[strum(to_string = "&&")]
     And,
-    #[strum(to_string = "or")]
+    #[strum(to_string = "||")]
     Or,
     #[strum(to_string = "??")]
     Coalesce,

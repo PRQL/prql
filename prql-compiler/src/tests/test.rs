@@ -1095,7 +1095,7 @@ fn test_filter() {
 
     assert_display_snapshot!((compile(r###"
     from employees
-    filter age > 25 and age < 40
+    filter age > 25 && age < 40
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1148,7 +1148,7 @@ fn test_nulls() {
     // IS NULL
     assert_display_snapshot!((compile(r###"
     from employees
-    filter first_name == null and null == last_name
+    filter first_name == null && null == last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1162,7 +1162,7 @@ fn test_nulls() {
     // IS NOT NULL
     assert_display_snapshot!((compile(r###"
     from employees
-    filter first_name != null and null != last_name
+    filter first_name != null && null != last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1514,7 +1514,7 @@ emp_salary = average salaries.salary
 )
 join de=dept_emp [==emp_no]
 join dm=dept_manager [
-(dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
+(dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
 group [dm.emp_no, gender] (
 aggregate [
@@ -3337,7 +3337,7 @@ fn test_loop() {
 fn test_params() {
     assert_display_snapshot!(compile(r#"
     from i = invoices
-    filter $1 <= i.date or i.date <= $2
+    filter $1 <= i.date || i.date <= $2
     select [
         i.id,
         i.total,
