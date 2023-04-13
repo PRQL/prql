@@ -21,7 +21,7 @@ A summary of PRQL syntax
 | `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)                 | `` select `first name`  ``                              |
 | `#`             | [Comments](./syntax.md#comments)                                     | `# A comment`                                           |
 | `@`             | [Dates & Times](language-features/dates-and-times.md#dates--times)   | `@2021-01-01`                                           |
-| `==`            | [Expressions](./syntax.md#expressions)                               | `filter a == b && c != d && e > f`                    |
+| `==`            | [Expressions](./syntax.md#expressions)                               | `filter a == b && c != d && e > f`                      |
 | `==`            | [Self-equality in `join`](transforms/join.md#self-equality-operator) | `join s=salaries [==id]`                                |
 | `->`            | [Function definitions](queries/functions.md)                         | `func add a b -> a + b`                                 |
 | `+`/`-`         | [Sort order](transforms/sort.md)                                     | `sort [-amount, +date]`                                 |
@@ -179,7 +179,7 @@ calls have the lowest precedence, nested function calls or arguments that start
 or end with an operator require parenthesis.
 
 | Group          | Operators         | Precedence | Associativity |
-| -------------- | ----------------- | ---------- | ------------- |
+| -------------- | ----------------- | ---------- | ------------- | --- | ------------- |
 | identifier dot | `.`               | 1          |               |
 | unary          | `- + ! ==`        | 2          |               |
 | range          | `..`              | 3          |               |
@@ -188,7 +188,7 @@ or end with an operator require parenthesis.
 | compare        | `== != <= >= < >` | 6          | left-to-right |
 | coalesce       | `??`              | 7          | left-to-right |
 | and            | `&&`              | 8          | left-to-right |
-| or             | `||`              | 9          | left-to-right |
+| or             | `                 |            | `             | 9   | left-to-right |
 | function call  |                   | 10         |               |
 
 ## Inner Transforms
