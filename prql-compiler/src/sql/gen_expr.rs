@@ -28,9 +28,9 @@ pub(super) fn translate_expr(item: Expr, ctx: &mut Context) -> Result<sql_ast::E
     Ok(match item.kind {
         ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
         ExprKind::Binary { op, left, right } => {
-            if let Some(is_null) = try_into_is_null(&op, &left, &right, ctx)? {
+            if let Some(is_null) = try_into_is_null_old(&op, &left, &right, ctx)? {
                 is_null
-            } else if let Some(between) = try_into_between(&op, &left, &right, ctx)? {
+            } else if let Some(between) = try_into_between_old(&op, &left, &right, ctx)? {
                 between
             } else {
                 let op = match op {
@@ -132,7 +132,52 @@ pub(super) fn translate_expr(item: Expr, ctx: &mut Context) -> Result<sql_ast::E
             }
         }
         ExprKind::BuiltInFunction { name, args } => {
-            super::std::translate_built_in(name, args, ctx)?
+            if let Some(is_null) = try_into_is_null(&name, &args, ctx)? {
+                is_null
+            } else if let Some(between) = try_into_between_old(&op, &left, &right, ctx)? {
+                between
+            } else if try_into_binary_op(&name, &args) {
+                let op = match op {
+                    BinOp::Mul => BinaryOperator::Multiply,
+                    BinOp::Div => BinaryOperator::Divide,
+                    BinOp::Mod => BinaryOperator::Modulo,
+                    BinOp::Add => BinaryOperator::Plus,
+                    BinOp::Sub => BinaryOperator::Minus,
+                    BinOp::Eq => BinaryOperator::Eq,
+                    BinOp::Ne => BinaryOperator::NotEq,
+                    BinOp::Gt => BinaryOperator::Gt,
+                    BinOp::Lt => BinaryOperator::Lt,
+                    BinOp::Gte => BinaryOperator::GtEq,
+                    BinOp::Lte => BinaryOperator::LtEq,
+                    BinOp::And => BinaryOperator::And,
+                    BinOp::Or => BinaryOperator::Or,
+                    BinOp::Coalesce => {
+                        let left = translate_operand(left.kind, 0, false, ctx)?;
+                        let right = translate_operand(right.kind, 0, false, ctx)?;
+
+                        return Ok(sql_ast::Expr::Function(Function {
+                            name: ObjectName(vec![Ident {
+                                value: "COALESCE".to_string(),
+                                quote_style: None,
+                            }]),
+                            args: vec![
+                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*left)),
+                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*right)),
+                            ],
+                            over: None,
+                            distinct: false,
+                            special: false,
+                        }));
+                    }
+                };
+
+                let strength = op.binding_strength();
+                let left = translate_operand(left.kind, strength, !op.associates_left(), ctx)?;
+                let right = translate_operand(right.kind, strength, !op.associates_right(), ctx)?;
+                sql_ast::Expr::BinaryOp { left, right, op }
+            } else {
+                super::std::translate_built_in(name, args, ctx)?
+            }
         }
     })
 }
@@ -514,7 +559,50 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     Ok(SelectItem::UnnamedExpr(expr))
 }
 
-fn try_into_is_null(
+fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    fn pick_non_null([a, b]: [Expr; 2]) -> Result<ExprKind, [Expr; 2]> {
+        if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
+            Ok(b.kind)
+        } else if matches!(b.kind, ExprKind::Literal(Literal::Null)) {
+            Ok(a.kind)
+        } else {
+            Err([a, b])
+        }
+    }
+
+    fn try_unpack(expr: Expr) -> Result<Result<(ExprKind, bool), Expr>> {
+        let eq = super::std::try_unpack_with(expr, super::std::STD_EQ, pick_non_null)?;
+
+        let expr = match eq {
+            Ok(expr) => return Ok(Ok((expr, true))),
+            Err(expr) => expr,
+        };
+
+        let ne = super::std::try_unpack_with(expr, super::std::STD_NE, pick_non_null)?;
+        return Ok(match ne {
+            Ok(expr) => Ok((expr, false)),
+            Err(expr) => Err(expr),
+        });
+    }
+
+    let (expr, is_eq) = match try_unpack(expr)? {
+        Ok(r) => r,
+        Err(expr) => return Ok(Err(expr)),
+    };
+
+    let strength =
+        sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
+    let expr = translate_operand(expr, strength, false, ctx)?;
+
+    return Ok(Ok(if is_eq {
+        sql_ast::Expr::IsNull(expr)
+    } else {
+        sql_ast::Expr::IsNotNull(expr)
+    }));
+}
+
+#[deprecated]
+fn try_into_is_null_old(
     op: &BinOp,
     a: &Expr,
     b: &Expr,
@@ -543,7 +631,8 @@ fn try_into_is_null(
     Ok(None)
 }
 
-fn try_into_between(
+#[deprecated]
+fn try_into_between_old(
     op: &BinOp,
     a: &Expr,
     b: &Expr,
@@ -567,6 +656,32 @@ fn try_into_between(
         negated: false,
         low: translate_operand(*a.2.clone(), 0, false, ctx)?,
         high: translate_operand(*b.2.clone(), 0, false, ctx)?,
+    }))
+}
+
+fn try_into_between(
+    name: &String,
+    args: &Vec<Expr>,
+    ctx: &mut Context,
+) -> Result<Option<sql_ast::Expr>> {
+    if !matches!(op, BinOp::And) {
+        return Ok(None);
+    }
+    let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) else {
+        return Ok(None);
+    };
+    if !(matches!(a.1, BinOp::Gte) && matches!(b.1, BinOp::Lte)) {
+        return Ok(None);
+    }
+    if a.0 != b.0 {
+        return Ok(None);
+    }
+
+    Ok(Some(sql_ast::Expr::Between {
+        expr: translate_operand(a.0.kind.clone(), 0, false, ctx)?,
+        negated: false,
+        low: translate_operand(a.2.kind.clone(), 0, false, ctx)?,
+        high: translate_operand(b.2.kind.clone(), 0, false, ctx)?,
     }))
 }
 

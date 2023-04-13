@@ -70,3 +70,80 @@ pub(super) fn translate_built_in(
 
     Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(s_string)))
 }
+
+struct FunctionDecl<const ARG_COUNT: usize> {
+    name: &'static str,
+}
+
+impl<const AC: usize> FunctionDecl<AC> {
+    const fn new(name: &'static str) -> Self {
+        Self { name }
+    }
+}
+
+// TODO: automatically generate these definitions
+pub const STD_MUL: FunctionDecl<2> = FunctionDecl::new("std.mul");
+pub const STD_DIV: FunctionDecl<2> = FunctionDecl::new("std.div");
+pub const STD_MOD: FunctionDecl<2> = FunctionDecl::new("std.mod");
+pub const STD_ADD: FunctionDecl<2> = FunctionDecl::new("std.add");
+pub const STD_SUB: FunctionDecl<2> = FunctionDecl::new("std.sub");
+pub const STD_EQ: FunctionDecl<2> = FunctionDecl::new("std.eq");
+pub const STD_NE: FunctionDecl<2> = FunctionDecl::new("std.ne");
+pub const STD_GT: FunctionDecl<2> = FunctionDecl::new("std.gt");
+pub const STD_LT: FunctionDecl<2> = FunctionDecl::new("std.lt");
+pub const STD_GTE: FunctionDecl<2> = FunctionDecl::new("std.gte");
+pub const STD_LTE: FunctionDecl<2> = FunctionDecl::new("std.lte");
+pub const STD_AND: FunctionDecl<2> = FunctionDecl::new("std.and");
+pub const STD_OR: FunctionDecl<2> = FunctionDecl::new("std.or");
+pub const STD_COALESCE: FunctionDecl<2> = FunctionDecl::new("std.coalesce");
+
+pub fn try_unpack<const ARG_COUNT: usize>(
+    expr: rq::Expr,
+    decl: FunctionDecl<ARG_COUNT>,
+) -> Result<Result<[rq::Expr; ARG_COUNT], rq::Expr>> {
+    if let rq::ExprKind::BuiltInFunction { name, args } = &expr.kind {
+        if decl.name == name {
+            let (_, args) = expr.kind.into_built_in_function().unwrap();
+
+            let args: [rq::Expr; ARG_COUNT] = args
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("Bad usage of function {}", decl.name))?;
+
+            return Ok(Ok(args));
+        }
+    }
+    Ok(Err(expr))
+}
+
+pub fn try_unpack_with<const ARG_COUNT: usize, M, T>(
+    expr: rq::Expr,
+    decl: FunctionDecl<ARG_COUNT>,
+    mapper: M,
+) -> Result<Result<T, rq::Expr>>
+where
+    M: FnOnce([rq::Expr; ARG_COUNT]) -> Result<T, [rq::Expr; ARG_COUNT]>,
+{
+    if let rq::ExprKind::BuiltInFunction { name, args } = &expr.kind {
+        if decl.name == name {
+            let (name, args) = expr.kind.into_built_in_function().unwrap();
+
+            let args: [rq::Expr; ARG_COUNT] = args
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("Bad usage of function {}", decl.name))?;
+
+            return Ok(match mapper(args) {
+                Ok(res) => Ok(res),
+                Err(args) => {
+                    // mapper was unsuccessful, let's repack back the original Expr
+
+                    let args = args.to_vec();
+                    Err(rq::Expr {
+                        kind: rq::ExprKind::BuiltInFunction { name, args },
+                        ..expr
+                    })
+                }
+            });
+        }
+    }
+    Ok(Err(expr))
+}
