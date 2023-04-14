@@ -24,7 +24,19 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 
-- [Syntax](./syntax.md)
+- [Syntax](./syntax/README.md)
+
+  - [Pipes](./syntax/pipes.md)
+  - [Lists](./syntax/lists.md)
+  - [Expressions & Operators](./syntax/expressions-and-operators.md)
+  - [Inner Transforms](./syntax/inner-transforms.md)
+  - [Comments](./syntax/comments.md)
+  - [Quoted Identifiers](./syntax/quoted-identifiers.md)
+  - [Quoting Schemas](./syntax/quoting-schemas.md)
+  - [Parameters](./syntax/parameters.md)
+  - [Numbers](./syntax/numbers.md)
+  - [Keywords](./syntax/keywords.md)
+
 - [Language features](./language-features/README.md)
 
   - [Coalesce](./language-features/coalesce.md)
