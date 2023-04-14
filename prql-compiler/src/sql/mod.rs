@@ -9,6 +9,7 @@ mod gen_projection;
 mod gen_query;
 mod preprocess;
 mod std;
+mod utils;
 
 pub use dialect::Dialect;
 

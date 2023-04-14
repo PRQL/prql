@@ -12,7 +12,7 @@ use sqlparser::ast::{
     TableAlias, TableFactor, TableWithJoins,
 };
 
-use crate::ast::pl::{BinOp, JoinSide, Literal, RelationLiteral};
+use crate::ast::pl::{JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationKind, TableRef, Transform};
 use crate::sql::anchor::anchor_split;
 use crate::utils::{BreakUp, Pluck};
@@ -554,10 +554,9 @@ fn all(mut exprs: Vec<Expr>) -> Option<Expr> {
     let mut condition = exprs.pop()?;
     while let Some(expr) = exprs.pop() {
         condition = Expr {
-            kind: ExprKind::Binary {
-                op: BinOp::And,
-                left: Box::new(expr),
-                right: Box::new(condition),
+            kind: ExprKind::BuiltInFunction {
+                name: super::std::STD_AND.name.to_string(),
+                args: vec![expr, condition],
             },
             span: None,
         };

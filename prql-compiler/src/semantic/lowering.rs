@@ -642,20 +642,39 @@ impl Lowerer {
                 }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
-            pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
-                left: Box::new(self.lower_expr(*left)?),
-                op,
-                right: Box::new(self.lower_expr(*right)?),
-            },
-            pl::ExprKind::Unary { op, expr } => rq::ExprKind::Unary {
-                op: match op {
-                    pl::UnOp::Neg => rq::UnOp::Neg,
+            pl::ExprKind::Binary { left, op, right } => {
+                let name = match op {
+                    pl::BinOp::Mul => "std.mul",
+                    pl::BinOp::Div => "std.div",
+                    pl::BinOp::Mod => "std.mod",
+                    pl::BinOp::Add => "std.add",
+                    pl::BinOp::Sub => "std.sub",
+                    pl::BinOp::Eq => "std.eq",
+                    pl::BinOp::Ne => "std.ne",
+                    pl::BinOp::Gt => "std.gt",
+                    pl::BinOp::Lt => "std.lt",
+                    pl::BinOp::Gte => "std.gte",
+                    pl::BinOp::Lte => "std.lte",
+                    pl::BinOp::And => "std.and",
+                    pl::BinOp::Or => "std.or",
+                    pl::BinOp::Coalesce => "std.coalesce",
+                }
+                .to_string();
+                let args = vec![self.lower_expr(*left)?, self.lower_expr(*right)?];
+
+                rq::ExprKind::BuiltInFunction { name, args }
+            }
+            pl::ExprKind::Unary { op, expr } => {
+                let name = match op {
+                    pl::UnOp::Neg => "std.neg",
                     pl::UnOp::Add => panic!("Add not resolved."),
-                    pl::UnOp::Not => rq::UnOp::Not,
+                    pl::UnOp::Not => "std.not",
                     pl::UnOp::EqSelf => panic!("EqSelf not resolved."),
-                },
-                expr: Box::new(self.lower_expr(*expr)?),
-            },
+                }
+                .to_string();
+                let args = vec![self.lower_expr(*expr)?];
+                rq::ExprKind::BuiltInFunction { name, args }
+            }
             pl::ExprKind::SString(items) => {
                 rq::ExprKind::SString(self.lower_interpolations(items)?)
             }

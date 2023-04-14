@@ -532,10 +532,6 @@ pub fn infer_complexity(compute: &Compute) -> Complexity {
 pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
     match &expr.kind {
         rq::ExprKind::Case(_) => Complexity::NonGroup,
-        rq::ExprKind::Binary { left, right, .. } => {
-            Complexity::max(infer_complexity_expr(left), infer_complexity_expr(right))
-        }
-        rq::ExprKind::Unary { expr, .. } => infer_complexity_expr(expr),
         rq::ExprKind::BuiltInFunction { args, .. } => args
             .iter()
             .map(infer_complexity_expr)

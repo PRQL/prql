@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::super::pl::{BinOp, InterpolateItem, Literal, SwitchCase};
+use super::super::pl::{InterpolateItem, Literal, SwitchCase};
 use super::CId;
 use crate::error::Span;
 
@@ -19,19 +19,6 @@ pub enum ExprKind {
     // We should repeat this if we encounter any other nested enums.
     #[serde(with = "serde_yaml::with::singleton_map")]
     Literal(Literal),
-
-    // TODO: convert this into built-in function
-    Binary {
-        left: Box<Expr>,
-        op: BinOp,
-        right: Box<Expr>,
-    },
-
-    // TODO: convert this into built-in function
-    Unary {
-        op: UnOp,
-        expr: Box<Expr>,
-    },
 
     SString(Vec<InterpolateItem<Expr>>),
 

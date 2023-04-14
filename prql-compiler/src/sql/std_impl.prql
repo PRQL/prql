@@ -30,17 +30,17 @@ func upper <text> column -> s"UPPER({column})"
 func read_parquet<table> source<text> -> s"SELECT * FROM read_parquet({source})"
 func read_csv<table> source<text> -> s"SELECT * FROM read_csv_auto({source})"
 
-func mul l r -> s"{l} * {r}"
-func div l r -> s"{l} / {r}"
-func mod l r -> s"{l} % {r}"
-func add l r -> s"{l} + {r}"
-func sub l r -> s"{l} - {r}"
-func eq l r -> s"{l} = {r}"
-func ne l r -> s"{l} <> {r}"
-func gt l r -> s"{l} > {r}"
-func lt l r -> s"{l} < {r}"
-func gte l r -> s"{l} >= {r}"
-func lte l r -> s"{l} <= {r}"
-func and l r -> s"{l} AND {r}"
-func or l r -> s"{l} OR {r}"
+func mul l r -> null
+func div l r -> null
+func mod l r -> null
+func add l r -> null
+func sub l r -> null
+func eq l r -> null
+func ne l r -> null
+func gt l r -> null
+func lt l r -> null
+func gte l r -> null
+func lte l r -> null
+func and l r -> null
+func or l r -> null
 func coalesce l r -> s"COALESCE({l}, {r})"
