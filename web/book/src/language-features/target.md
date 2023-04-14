@@ -48,7 +48,7 @@ very welcome.
 PRQL allows specifying a version of the language in the PRQL header, like:
 
 ```prql no-fmt
-prql version:"0.7.1"
+prql version:"0.8.0"
 
 from employees
 ```
