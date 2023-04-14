@@ -1,5 +1,26 @@
 # PRQL Changelog
 
+## 0.7.2 — [unreleased]
+
+**Features**:
+
+- New functions `read_parquet` and `read_csv`, which mirror the DuckDB
+  functions, instructing the database to read from files (@max-sixty, #2049).
+
+- Rename `and` to `&&` and `or` to `||` (@aljazerzen, #2422).
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.7.1 — 2023-04-03
 
 0.7.1 is a hotfix release to fix `prql-js`'s `npm install` behavior when being

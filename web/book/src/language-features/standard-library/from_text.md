@@ -1,4 +1,4 @@
-# From text
+# from_text
 
 It's often useful to make a small table inline, for example when exploring how a
 database will evaluate an expression, or to have a small lookup table inline.

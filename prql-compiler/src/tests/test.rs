@@ -683,13 +683,19 @@ fn test_sorts() {
     select [renamed = somefield]
     "###
     ).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        'something' AS renamed,
+        'something' AS _expr_0
+      FROM
+        x
+      ORDER BY
+        _expr_0
+    )
     SELECT
-      'something' AS renamed,
-      'something' AS _expr_0
+      renamed
     FROM
-      x
-    ORDER BY
-      _expr_0
+      table_1 AS table_0
     "###);
 }
 
@@ -1089,7 +1095,7 @@ fn test_filter() {
 
     assert_display_snapshot!((compile(r###"
     from employees
-    filter age > 25 and age < 40
+    filter age > 25 && age < 40
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1142,7 +1148,7 @@ fn test_nulls() {
     // IS NULL
     assert_display_snapshot!((compile(r###"
     from employees
-    filter first_name == null and null == last_name
+    filter first_name == null && null == last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1156,7 +1162,7 @@ fn test_nulls() {
     // IS NOT NULL
     assert_display_snapshot!((compile(r###"
     from employees
-    filter first_name != null and null != last_name
+    filter first_name != null && null != last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1508,7 +1514,7 @@ emp_salary = average salaries.salary
 )
 join de=dept_emp [==emp_no]
 join dm=dept_manager [
-(dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
+(dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
 group [dm.emp_no, gender] (
 aggregate [
@@ -3331,7 +3337,7 @@ fn test_loop() {
 fn test_params() {
     assert_display_snapshot!(compile(r#"
     from i = invoices
-    filter $1 <= i.date or i.date <= $2
+    filter $1 <= i.date || i.date <= $2
     select [
         i.id,
         i.total,
@@ -3461,4 +3467,61 @@ fn test_1535() -> anyhow::Result<()> {
     );
 
     Ok(())
+}
+
+fn test_read_parquet_duckdb() {
+    assert_display_snapshot!(compile(r#"
+    from (read_parquet 'x.parquet')
+    join (read_parquet "y.parquet") [==foo]
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('x.parquet')
+    ),
+    table_1 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('y.parquet')
+    )
+    SELECT
+      table_2.*,
+      table_3.*
+    FROM
+      table_0 AS table_2
+      JOIN table_1 AS table_3 ON table_2.foo = table_3.foo
+    "###
+    );
+
+    // TODO: `from x=(read_parquet 'x.parquet')` currently fails
+}
+
+#[test]
+fn test_excess_columns() {
+    // https://github.com/PRQL/prql/issues/2079
+    assert_display_snapshot!(compile(r#"
+    from tracks
+    derive d = track_id
+    sort d
+    select [title]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        title,
+        track_id AS _expr_0
+      FROM
+        tracks
+      ORDER BY
+        _expr_0
+    )
+    SELECT
+      title
+    FROM
+      table_1 AS table_0
+    "###
+    );
 }

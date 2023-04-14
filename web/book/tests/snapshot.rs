@@ -130,7 +130,7 @@ The original PRQL was:
 {prql}
 
 ",
-                        path = path.canonicalize().unwrap(),
+                        path = path.canonicalize().as_ref().unwrap_or(path),
                         prql = prql
                     )
                 });
