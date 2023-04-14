@@ -679,7 +679,17 @@ impl Lowerer {
                 rq::ExprKind::SString(self.lower_interpolations(items)?)
             }
             pl::ExprKind::FString(items) => {
-                rq::ExprKind::FString(self.lower_interpolations(items)?)
+                let mut res = None;
+                for item in items {
+                    let item = Some(match item {
+                        InterpolateItem::String(string) => str_lit(string),
+                        InterpolateItem::Expr(e) => self.lower_expr(*e)?,
+                    });
+
+                    res = crate::sql::utils::maybe_binop(res, crate::sql::std::STD_CONCAT, item);
+                }
+
+                res.unwrap_or_else(|| str_lit("".to_string())).kind
             }
             pl::ExprKind::Case(cases) => rq::ExprKind::Case(
                 cases
@@ -764,6 +774,13 @@ impl Lowerer {
         };
 
         Ok(cid)
+    }
+}
+
+fn str_lit(string: String) -> rq::Expr {
+    rq::Expr {
+        kind: rq::ExprKind::Literal(pl::Literal::String(string)),
+        span: None,
     }
 }
 

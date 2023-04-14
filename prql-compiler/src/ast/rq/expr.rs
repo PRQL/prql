@@ -22,8 +22,6 @@ pub enum ExprKind {
 
     SString(Vec<InterpolateItem<Expr>>),
 
-    // TODO: convert this into built-in function
-    FString(Vec<InterpolateItem<Expr>>),
     Case(Vec<SwitchCase<Expr>>),
 
     BuiltInFunction {
@@ -31,7 +29,7 @@ pub enum ExprKind {
         args: Vec<Expr>,
     },
 
-    /// Placeholder for
+    /// Placeholder for expressions provided after compilation.
     Param(String),
 }
 

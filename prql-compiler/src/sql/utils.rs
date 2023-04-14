@@ -1,6 +1,6 @@
 use crate::ast::rq::{Expr, ExprKind};
 
-pub(super) fn new_binop(left: Expr, func: super::std::FunctionDecl<2>, right: Expr) -> Expr {
+pub(crate) fn new_binop(left: Expr, func: super::std::FunctionDecl<2>, right: Expr) -> Expr {
     Expr {
         kind: ExprKind::BuiltInFunction {
             name: func.name.to_string(),
@@ -10,7 +10,7 @@ pub(super) fn new_binop(left: Expr, func: super::std::FunctionDecl<2>, right: Ex
     }
 }
 
-pub(super) fn maybe_binop(
+pub(crate) fn maybe_binop(
     left: Option<Expr>,
     func: super::std::FunctionDecl<2>,
     right: Option<Expr>,

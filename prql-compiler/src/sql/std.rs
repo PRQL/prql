@@ -70,7 +70,7 @@ pub(super) fn translate_built_in(expr: rq::Expr, ctx: &mut Context) -> Result<sq
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
-pub(super) struct FunctionDecl<const ARG_COUNT: usize> {
+pub(crate) struct FunctionDecl<const ARG_COUNT: usize> {
     pub name: &'static str,
 }
 
@@ -81,21 +81,22 @@ impl<const AC: usize> FunctionDecl<AC> {
 }
 
 // TODO: automatically generate these definitions from std_impl.prql
-pub(super) const STD_MUL: FunctionDecl<2> = FunctionDecl::new("std.mul");
-pub(super) const STD_DIV: FunctionDecl<2> = FunctionDecl::new("std.div");
-pub(super) const STD_MOD: FunctionDecl<2> = FunctionDecl::new("std.mod");
-pub(super) const STD_ADD: FunctionDecl<2> = FunctionDecl::new("std.add");
-pub(super) const STD_SUB: FunctionDecl<2> = FunctionDecl::new("std.sub");
-pub(super) const STD_EQ: FunctionDecl<2> = FunctionDecl::new("std.eq");
-pub(super) const STD_NE: FunctionDecl<2> = FunctionDecl::new("std.ne");
-pub(super) const STD_GT: FunctionDecl<2> = FunctionDecl::new("std.gt");
-pub(super) const STD_LT: FunctionDecl<2> = FunctionDecl::new("std.lt");
-pub(super) const STD_GTE: FunctionDecl<2> = FunctionDecl::new("std.gte");
-pub(super) const STD_LTE: FunctionDecl<2> = FunctionDecl::new("std.lte");
-pub(super) const STD_AND: FunctionDecl<2> = FunctionDecl::new("std.and");
-pub(super) const STD_OR: FunctionDecl<2> = FunctionDecl::new("std.or");
-pub(super) const STD_NEG: FunctionDecl<1> = FunctionDecl::new("std.neg");
-pub(super) const STD_NOT: FunctionDecl<1> = FunctionDecl::new("std.not");
+pub(crate) const STD_MUL: FunctionDecl<2> = FunctionDecl::new("std.mul");
+pub(crate) const STD_DIV: FunctionDecl<2> = FunctionDecl::new("std.div");
+pub(crate) const STD_MOD: FunctionDecl<2> = FunctionDecl::new("std.mod");
+pub(crate) const STD_ADD: FunctionDecl<2> = FunctionDecl::new("std.add");
+pub(crate) const STD_SUB: FunctionDecl<2> = FunctionDecl::new("std.sub");
+pub(crate) const STD_EQ: FunctionDecl<2> = FunctionDecl::new("std.eq");
+pub(crate) const STD_NE: FunctionDecl<2> = FunctionDecl::new("std.ne");
+pub(crate) const STD_GT: FunctionDecl<2> = FunctionDecl::new("std.gt");
+pub(crate) const STD_LT: FunctionDecl<2> = FunctionDecl::new("std.lt");
+pub(crate) const STD_GTE: FunctionDecl<2> = FunctionDecl::new("std.gte");
+pub(crate) const STD_LTE: FunctionDecl<2> = FunctionDecl::new("std.lte");
+pub(crate) const STD_AND: FunctionDecl<2> = FunctionDecl::new("std.and");
+pub(crate) const STD_OR: FunctionDecl<2> = FunctionDecl::new("std.or");
+pub(crate) const STD_CONCAT: FunctionDecl<2> = FunctionDecl::new("std.concat");
+pub(crate) const STD_NEG: FunctionDecl<1> = FunctionDecl::new("std.neg");
+pub(crate) const STD_NOT: FunctionDecl<1> = FunctionDecl::new("std.not");
 
 /// Assumes the expr is:
 /// - [rq::ExprKind::BuiltInFunction],

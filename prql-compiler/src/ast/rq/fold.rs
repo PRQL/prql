@@ -212,7 +212,6 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
         ExprKind::ColumnRef(cid) => ExprKind::ColumnRef(fold.fold_cid(cid)?),
 
         ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
-        ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),
         ExprKind::Case(cases) => ExprKind::Case(
             cases
                 .into_iter()
