@@ -19,7 +19,7 @@ Parentheses are required around:
   `round 0 (sum distance)`{{footnote: or, technically, it's on the right
   side of an assignment in a list...}}.
 - A minus sign in a function argument, like in `add (-1) (-3)`
-- [Inner transforms](#inner-transforms) for `group`, `window`, and other
+- [Inner transforms](./inner-transforms.md) for `group`, `window`, and other
   transforms.
 
 Parentheses are not required around expressions which use operators but no

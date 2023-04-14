@@ -1,6 +1,6 @@
 # Pipes
 
-Pipes — the connection between [transforms](transforms/README.md) that make up a
+Pipes — the connection between [transforms](../transforms/) that make up a
 pipeline — can be either line breaks or a pipe character (`|`).
 
 In almost all situations, line-breaks pipe the result of a line's transform into
