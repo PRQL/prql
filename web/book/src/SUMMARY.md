@@ -33,7 +33,6 @@
   - [Inner Transforms](./syntax/inner-transforms.md)
   - [Comments](./syntax/comments.md)
   - [Quoted Identifiers](./syntax/quoted-identifiers.md)
-  - [Quoting Schemas](./syntax/quoting-schemas.md)
   - [Parameters](./syntax/parameters.md)
   - [Numbers](./syntax/numbers.md)
   - [Keywords](./syntax/keywords.md)

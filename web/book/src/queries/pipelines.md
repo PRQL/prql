@@ -44,4 +44,4 @@ select [e.name, gross_salary, d.name]
 ## See also
 
 - [Transforms](../transforms/README.md) - PRQL Transforms
-- [Syntax](../syntax.md) - Notation for PRQL queries
+- [Syntax](../syntax/README.md) - Notation for PRQL queries
