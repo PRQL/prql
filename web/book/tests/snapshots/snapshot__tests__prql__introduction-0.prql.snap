@@ -32,7 +32,7 @@ SELECT
   country,
   _expr_0,
   sum_gross_cost,
-  CONCAT(title, '_', country) AS id,
+  CONCAT(CONCAT(title, '_'), country) AS id,
   LEFT(country, 2) AS country_code
 FROM
   table_1 AS table_0
