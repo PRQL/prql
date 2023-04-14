@@ -29,6 +29,7 @@
   - [Pipes](./syntax/pipes.md)
   - [Lists](./syntax/lists.md)
   - [Expressions & Operators](./syntax/expressions-and-operators.md)
+  - [Precedence & Parentheses](./syntax/precedence-and-parentheses.md)
   - [Inner Transforms](./syntax/inner-transforms.md)
   - [Comments](./syntax/comments.md)
   - [Quoted Identifiers](./syntax/quoted-identifiers.md)

@@ -14,14 +14,15 @@ A summary of PRQL syntax:
 | `=`             | [Assigns](../transforms/select.md) & [Aliases](../transforms/join.md)      | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`             | [Named args & Parameters](../queries/functions.md)                      | `interp low:0 1600 sat_score`                           |
 | `[]`            | [Lists](./lists.md)                                           | `select [id, amount]`                                   |
-| `+ - * /`       | [Operators & Expressions](./operators-and-expressions.md)     | `derive celsius = (fahrenheit - 32) / 1.8`              |
+| `+ - * /`       | [Expressions & Operators](./expressions-and-operators.md)                               | `filter a == b && c != d && e > f`                      |
+| `()`       | [Precedence & Parentheses](./precedence-and-parentheses.md)    | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''` & `""`     | [Strings](../language-features/strings.md)                              | `derive name = 'Mary'`                                  |
 | `` ` ` ``       | [Quoted identifiers](./quoted-identifiers.md)                 | `` select `first name`  ``                              |
 | `#`             | [Comments](./comments.md)                                     | `# A comment`                                           |
 | `@`             | [Dates & Times](../language-features/dates-and-times.md#dates--times)   | `@2021-01-01`                                           |
-| `==`            | [Expressions](./expressions.md)                               | `filter a == b && c != d && e > f`                      |
 | `==`            | [Self-equality in `join`](../transforms/join.md#self-equality-operator) | `join s=salaries [==id]`                                |
-| `->`            | [Function definitions](../queries/functions.md)                         | `func add a b -> a + b`                                 |
+| `->`            | [Function definitions](../queries/functions.md)                         | `func add a b -> a + b`|
+| `=>`            | [Case statement](../language-features/case.md)                     | `case [a==1 => c, a==2 => d ]` |
 | `+`/`-`         | [Sort order](../transforms/sort.md)                                     | `sort [-amount, +date]`                                 |
 | `??`            | [Coalesce](../language-features/coalesce.md)                            | `amount ?? 0`                                           |
 
