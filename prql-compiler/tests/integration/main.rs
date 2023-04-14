@@ -14,10 +14,36 @@ use tokio::runtime::Runtime;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 use connection::*;
+use prql_compiler::sql::Dialect;
 use prql_compiler::Options;
 use prql_compiler::Target::Sql;
 
 mod connection;
+
+// This is copy-pasted from `test.rs` in prql-compiler. Ideally we would have a
+// canonical set of examples between both, which this integration test would use
+// only for integration tests, and the other test would use for checking the
+// SQL. But at the moment we're only using these examples here, and we want to
+// test the SQL, so we copy-paste the function here.
+
+// TODO: an relatively easy thing to do would be to use these as the canonical
+// examples in the book, and then we get this for free.
+
+fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
+    prql_compiler::compile(prql, &Options::default().no_signature())
+}
+
+#[test]
+fn test_sql_examples() {
+    glob!("queries/**/*.prql", |path| {
+        let sql = fs::read_to_string(path).unwrap();
+        assert_snapshot!(
+            path.file_name().unwrap().to_string_lossy().to_string(),
+            compile(&sql).unwrap(),
+            &sql
+        )
+    });
+}
 
 #[test]
 fn test_rdbms() {

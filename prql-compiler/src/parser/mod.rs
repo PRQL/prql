@@ -1414,7 +1414,7 @@ Canada
               Integer: 1
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r#"a and b or c and d"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a && b || c && d"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1438,7 +1438,7 @@ Canada
                   - d
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r#"a and b + c or (d e) and f"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a && b + c || (d e) && f"#).unwrap(), @r###"
         ---
         Binary:
           left:

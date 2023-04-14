@@ -21,7 +21,7 @@ A summary of PRQL syntax
 | `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)                 | `` select `first name`  ``                              |
 | `#`             | [Comments](./syntax.md#comments)                                     | `# A comment`                                           |
 | `@`             | [Dates & Times](language-features/dates-and-times.md#dates--times)   | `@2021-01-01`                                           |
-| `==`            | [Expressions](./syntax.md#expressions)                               | `filter a == b and c != d and e > f`                    |
+| `==`            | [Expressions](./syntax.md#expressions)                               | `filter a == b && c != d && e > f`                      |
 | `==`            | [Self-equality in `join`](transforms/join.md#self-equality-operator) | `join s=salaries [==id]`                                |
 | `->`            | [Function definitions](queries/functions.md)                         | `func add a b -> a + b`                                 |
 | `+`/`-`         | [Sort order](transforms/sort.md)                                     | `sort [-amount, +date]`                                 |
@@ -106,7 +106,7 @@ select [
   circumference = diameter * 3.14159,
   color,
 ]
-filter circumference > 10 and color != "red"
+filter circumference > 10 && color != "red"
 ```
 
 ## Precedence and Parentheses
@@ -179,7 +179,7 @@ calls have the lowest precedence, nested function calls or arguments that start
 or end with an operator require parenthesis.
 
 | Group          | Operators         | Precedence | Associativity |
-| -------------- | ----------------- | ---------- | ------------- |
+| -------------- | ----------------- | ---------- | ------------- | --- | ------------- |
 | identifier dot | `.`               | 1          |               |
 | unary          | `- + ! ==`        | 2          |               |
 | range          | `..`              | 3          |               |
@@ -187,8 +187,8 @@ or end with an operator require parenthesis.
 | add            | `+ -`             | 5          | left-to-right |
 | compare        | `== != <= >= < >` | 6          | left-to-right |
 | coalesce       | `??`              | 7          | left-to-right |
-| and            | `and`             | 8          | left-to-right |
-| or             | `or`              | 9          | left-to-right |
+| and            | `&&`              | 8          | left-to-right |
+| or             | `                 |            | `             | 9   | left-to-right |
 | function call  |                   | 10         |               |
 
 ## Inner Transforms

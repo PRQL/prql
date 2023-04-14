@@ -15,15 +15,15 @@ use sqlparser::ast::{
 use crate::ast::pl::{BinOp, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationKind, TableRef, Transform};
 use crate::sql::anchor::anchor_split;
-use crate::sql::preprocess::SqlRelationKind;
 use crate::utils::{BreakUp, Pluck};
 
 use crate::Target;
 
+use super::ast_srq::{SqlRelation, SqlRelationKind, SqlTransform};
 use super::context::AnchorContext;
 use super::gen_expr::*;
 use super::gen_projection::*;
-use super::preprocess::{self, SqlRelation, SqlTransform};
+use super::preprocess;
 use super::{anchor, Context, Dialect};
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
@@ -68,15 +68,7 @@ fn sql_query_of_sql_relation(
         // base case
         SqlRelationKind::Super(Pipeline(pipeline)) => {
             // preprocess
-            let pipeline = Ok(pipeline)
-                .map(preprocess::normalize)
-                .map(preprocess::prune_inputs)
-                .map(preprocess::wrap)
-                .and_then(|p| preprocess::distinct(p, ctx))
-                .map(preprocess::union)
-                .and_then(|p| preprocess::except(p, ctx))
-                .and_then(|p| preprocess::intersect(p, ctx))
-                .map(preprocess::reorder)?;
+            let pipeline = preprocess::preprocess(pipeline, ctx)?;
 
             // load names of output columns
             ctx.anchor.load_names(&pipeline, sql_relation.columns);
@@ -116,7 +108,7 @@ fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<T
 
     // ensure that the table is declared
     if let Some(sql_relation) = decl.relation.take() {
-        // if we cannot use CTEs
+        // if we cannot use CTEs (probably because we are within RECURSIVE)
         if !ctx.query.allow_ctes {
             // restore relation for other references
             decl.relation = Some(sql_relation.clone());
@@ -201,7 +193,7 @@ fn sql_query_of_pipeline(
     }
 
     // extract an atomic pipeline from back of the pipeline and stash preceding part into context
-    let pipeline = extract_atomic(pipeline, &mut ctx.anchor);
+    let pipeline = anchor::extract_atomic(pipeline, &mut ctx.anchor);
 
     // ensure names for all columns that need it
     ensure_names(&pipeline, &mut ctx.anchor);
@@ -414,7 +406,7 @@ fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sql
     // (defining new columns, redirecting cids)
     let recursive_columns = SqlTransform::Super(Transform::Select(recursive_columns));
     initial.push(recursive_columns.clone());
-    let step = anchor_split(&mut ctx.anchor, initial, step);
+    let (step, _) = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
 
     let table_name = "_loop";
@@ -469,7 +461,7 @@ fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sql
     });
 
     // create a split between the loop SELECT statement and the following pipeline
-    let mut following = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
+    let (mut following, _) = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
 
     let from = following.first_mut().unwrap();
     let from = from.as_super().unwrap().as_from().unwrap();
@@ -524,43 +516,6 @@ fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Q
     }
 
     Ok(default_query(body))
-}
-
-/// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
-/// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
-fn extract_atomic(pipeline: Vec<SqlTransform>, ctx: &mut AnchorContext) -> Vec<SqlTransform> {
-    let (preceding, atomic) = anchor::split_off_back(pipeline, ctx);
-
-    if let Some(preceding) = preceding {
-        log::debug!(
-            "pipeline split after {}",
-            preceding.last().unwrap().as_str()
-        );
-
-        anchor::anchor_split(ctx, preceding, atomic)
-    } else {
-        atomic
-    }
-
-    // TODO
-    // sometimes, additional columns will be added into select, which have to
-    // be filtered out here, using additional CTE
-    // if let Some((pipeline, _)) = parts.last() {
-    //     let select_cols = pipeline
-    //         .first()
-    //         .unwrap()
-    //         .as_super()
-    //         .unwrap()
-    //         .as_select()
-    //         .unwrap();
-
-    //     if select_cols.iter().any(|c| !outputs_cid.contains(c)) {
-    //         parts.push((
-    //             vec![SqlTransform::Super(Transform::Select(outputs_cid))],
-    //             select_cols.clone(),
-    //         ));
-    //     }
-    // }
 }
 
 fn ensure_names(transforms: &[SqlTransform], ctx: &mut AnchorContext) {
@@ -705,25 +660,10 @@ mod test {
     }
 
     fn count_atomics(prql: &str) -> usize {
-        let (mut pipeline, mut context) = parse_and_resolve(prql).unwrap();
+        let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
         context.anchor.table_decls.clear();
 
-        let mut atomics = 0;
-        loop {
-            let _ = extract_atomic(pipeline, &mut context.anchor);
-            atomics += 1;
-
-            if let Some((_, decl)) = context.anchor.table_decls.drain().next() {
-                if let Some(relation) = decl.relation {
-                    if let SqlRelationKind::PreprocessedPipeline(p) = relation.kind {
-                        pipeline = p;
-                        continue;
-                    }
-                }
-            }
-            break;
-        }
-        atomics
+        anchor::extract_atomics_naive(pipeline, &mut context.anchor).len()
     }
 
     #[test]

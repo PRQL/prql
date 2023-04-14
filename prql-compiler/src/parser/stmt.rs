@@ -126,7 +126,7 @@ fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
                 .then(ctrl(':').ignore_then(expr()).or_not())
                 .repeated(),
         )
-        .then_ignore(just(Token::Arrow))
+        .then_ignore(just(Token::ArrowThin))
         .then(expr_call().map(Box::new))
         .then_ignore(new_line())
         .map(|(((name, return_ty), params), body)| {
