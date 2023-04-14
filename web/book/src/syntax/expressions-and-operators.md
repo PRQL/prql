@@ -1,9 +1,8 @@
 # Expressions and operators
 
-PRQL allows _expressions_, like `2 + 3` or `((1 + x) * y)`
-made up of various _operators_.
-In the example below, note the use of expressions to calculate the alias
-`circumference` and in the `filter` transform.
+PRQL allows _expressions_, like `2 + 3` or `((1 + x) * y)` made up of various
+_operators_. In the example below, note the use of expressions to calculate the
+alias `circumference` and in the `filter` transform.
 
 ```prql
 from foo
@@ -13,6 +12,7 @@ select [
 ]
 filter circumference > 10 && color != "red"
 ```
+
 ## Operator precedence
 
 This table gives formal description of operator precedence. Because function

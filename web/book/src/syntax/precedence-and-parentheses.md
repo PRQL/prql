@@ -1,7 +1,6 @@
 # Precedence and Parentheses
 
-Parentheses — `()` — are used
-to give _precedence_ to inner expressions.
+Parentheses — `()` — are used to give _precedence_ to inner expressions.
 
 ```admonish note
 We realize some of the finer points here are not intuitive. We are considering approaches to
