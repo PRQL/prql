@@ -1,9 +1,8 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: sqlite_out
+expression: result_string
 input_file: prql-compiler/tests/integration/queries/group_all.prql
 ---
-album_id,title,price
 1,For Those About To Rock We Salute You,9.9
 2,Balls to the Wall,0.99
 3,Restless and Wild,2.97
@@ -14,3 +13,4 @@ album_id,title,price
 8,Warner 25 Anos,13.86
 9,Plays Metallica By Four Cellos,7.92
 10,Audioslave,13.86
+

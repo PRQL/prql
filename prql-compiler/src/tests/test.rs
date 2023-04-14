@@ -683,13 +683,19 @@ fn test_sorts() {
     select [renamed = somefield]
     "###
     ).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        'something' AS renamed,
+        'something' AS _expr_0
+      FROM
+        x
+      ORDER BY
+        _expr_0
+    )
     SELECT
-      'something' AS renamed,
-      'something' AS _expr_0
+      renamed
     FROM
-      x
-    ORDER BY
-      _expr_0
+      table_1 AS table_0
     "###);
 }
 
@@ -1089,7 +1095,7 @@ fn test_filter() {
 
     assert_display_snapshot!((compile(r###"
     from employees
-    filter age > 25 and age < 40
+    filter age > 25 && age < 40
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1142,7 +1148,7 @@ fn test_nulls() {
     // IS NULL
     assert_display_snapshot!((compile(r###"
     from employees
-    filter first_name == null and null == last_name
+    filter first_name == null && null == last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1156,7 +1162,7 @@ fn test_nulls() {
     // IS NOT NULL
     assert_display_snapshot!((compile(r###"
     from employees
-    filter first_name != null and null != last_name
+    filter first_name != null && null != last_name
     "###).unwrap()), @r###"
     SELECT
       *
@@ -1508,7 +1514,7 @@ emp_salary = average salaries.salary
 )
 join de=dept_emp [==emp_no]
 join dm=dept_manager [
-(dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
+(dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
 group [dm.emp_no, gender] (
 aggregate [
@@ -3029,6 +3035,25 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.duckdb
+    from s"SELECT * FROM foo"
+    select ![bar]
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        foo
+    )
+    SELECT
+      * EXCLUDE (bar)
+    FROM
+      table_0 AS table_1
+    "###
+    );
 }
 
 #[test]
@@ -3194,6 +3219,28 @@ a,b,c
 }
 
 #[test]
+fn test_header() {
+    // Test both target & version at the same time
+    let header = format!(
+        r#"
+            prql target:sql.mssql version:"{}.{}"
+            "#,
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR")
+    );
+    assert_display_snapshot!(compile(format!(r#"
+    {header}
+
+    from a
+    take 5
+    "#).as_str()).unwrap(),@r###"
+    SELECT
+      TOP (5) *
+    FROM
+      a
+    "###);
+}
+#[test]
 fn test_header_target_error() {
     assert_display_snapshot!(compile(r#"
     prql target:foo
@@ -3214,6 +3261,23 @@ fn test_header_target_error() {
     from a
     "#).unwrap_err(),@r###"
     Error: target `"foo.bar"` not found
+    "###);
+
+    // TODO: Can we use the span of:
+    // - Ideally just `dialect`?
+    // - At least not the first empty line?
+    assert_display_snapshot!(compile(r#"
+    prql dialect:foo.bar
+    from a
+    "#).unwrap_err(),@r###"
+    Error:
+       ╭─[:1:1]
+       │
+     1 │ ╭─▶
+     2 │ ├─▶     prql dialect:foo.bar
+       │ │
+       │ ╰────────────────────────────── unknown query definition arguments `dialect`
+    ───╯
     "###);
 }
 
@@ -3273,7 +3337,7 @@ fn test_loop() {
 fn test_params() {
     assert_display_snapshot!(compile(r#"
     from i = invoices
-    filter $1 <= i.date or i.date <= $2
+    filter $1 <= i.date || i.date <= $2
     select [
         i.id,
         i.total,
@@ -3385,6 +3449,64 @@ fn test_upper() {
       UPPER(name) AS upper_name
     FROM
       test_tables
+    "###
+    );
+}
+
+#[test]
+fn test_read_parquet_duckdb() {
+    assert_display_snapshot!(compile(r#"
+    from (read_parquet 'x.parquet')
+    join (read_parquet "y.parquet") [==foo]
+    "#).unwrap(),
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('x.parquet')
+    ),
+    table_1 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('y.parquet')
+    )
+    SELECT
+      table_2.*,
+      table_3.*
+    FROM
+      table_0 AS table_2
+      JOIN table_1 AS table_3 ON table_2.foo = table_3.foo
+    "###
+    );
+
+    // TODO: `from x=(read_parquet 'x.parquet')` currently fails
+}
+
+#[test]
+fn test_excess_columns() {
+    // https://github.com/PRQL/prql/issues/2079
+    assert_display_snapshot!(compile(r#"
+    from tracks
+    derive d = track_id
+    sort d
+    select [title]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        title,
+        track_id AS _expr_0
+      FROM
+        tracks
+      ORDER BY
+        _expr_0
+    )
+    SELECT
+      title
+    FROM
+      table_1 AS table_0
     "###
     );
 }

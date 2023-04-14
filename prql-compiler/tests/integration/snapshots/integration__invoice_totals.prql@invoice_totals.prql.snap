@@ -1,0 +1,43 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "# skip_mysql\n# skip_mssql\nfrom i=invoices\njoin ii=invoice_items [==invoice_id]\nderive [\n    month = s\"substring(CAST({i.invoice_date} AS TEXT), 1, 7)\",\n    day = s\"substring(CAST({i.invoice_date} AS TEXT), 1, 10)\",\n]\ngroup [month, day] (\n    aggregate [\n        num_orders = s\"COUNT(DISTINCT {i.invoice_id})\",\n        num_tracks = sum ii.quantity,\n        total_price = sum (ii.unit_price * ii.quantity),\n    ]\n)\ngroup [month] (\n    sort day\n    window expanding:true (\n        derive [running_total_num_tracks = sum num_tracks]\n    )\n)\nsort day\nderive [num_tracks_last_week = lag 7 num_tracks]\nselect [\n    month,\n    day,\n    num_orders = s\"CAST({num_orders} AS INT)\",\n    num_tracks = s\"CAST({num_tracks} AS INT)\",\n    total_price = s\"ROUND(CAST({total_price} AS FLOAT) * 100) / 100\",\n    running_total_num_tracks = s\"CAST({running_total_num_tracks} AS INT)\",\n    num_tracks_last_week = s\"CAST({num_tracks_last_week} AS INT)\"\n]\n"
+input_file: prql-compiler/tests/integration/queries/invoice_totals.prql
+---
+WITH table_1 AS (
+  SELECT
+    substring(CAST(i.invoice_date AS TEXT), 1, 7) AS month,
+    substring(CAST(i.invoice_date AS TEXT), 1, 10) AS day,
+    SUM(ii.unit_price * ii.quantity) AS _expr_0,
+    SUM(ii.quantity) AS _expr_1,
+    COUNT(DISTINCT i.invoice_id) AS _expr_2
+  FROM
+    invoices AS i
+    JOIN invoice_items AS ii ON i.invoice_id = ii.invoice_id
+  GROUP BY
+    substring(CAST(i.invoice_date AS TEXT), 1, 7),
+    substring(CAST(i.invoice_date AS TEXT), 1, 10)
+)
+SELECT
+  month,
+  day,
+  CAST(_expr_2 AS INT) AS num_orders,
+  CAST(_expr_1 AS INT) AS num_tracks,
+  ROUND(CAST(_expr_0 AS FLOAT) * 100) / 100 AS total_price,
+  CAST(
+    SUM(_expr_1) OVER (
+      PARTITION BY month
+      ORDER BY
+        day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS INT
+  ) AS running_total_num_tracks,
+  CAST(
+    LAG(_expr_1, 7) OVER (
+      ORDER BY
+        day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS INT
+  ) AS num_tracks_last_week
+FROM
+  table_1 AS table_0
+ORDER BY
+  day
+

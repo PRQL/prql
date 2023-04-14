@@ -67,8 +67,21 @@ enum Command {
         format: Format,
     },
 
+    /// Parse, resolve, lower into RQ & preprocess SRQ
+    #[command(name = "sql:preprocess")]
+    SQLPreprocess(IoArgs),
+
+    /// Parse, resolve, lower into RQ & preprocess & anchor SRQ
+    ///
+    /// Only displays the main pipeline.
+    #[command(name = "sql:anchor")]
+    SQLAnchor(IoArgs),
+
     /// Parse, resolve, lower into RQ & compile to SQL
-    Compile {
+    ///
+    /// Only displays the main pipeline and does not handle loop.
+    #[command(name = "compile", alias = "sql:compile")]
+    SQLCompile {
         #[command(flatten)]
         io_args: IoArgs,
         #[arg(long, default_value = "true")]
@@ -179,7 +192,7 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ir)?.into_bytes(),
                 }
             }
-            Command::Compile {
+            Command::SQLCompile {
                 include_signature_comment,
                 ..
             } => compile(
@@ -193,6 +206,20 @@ impl Command {
             )?
             .as_bytes()
             .to_vec(),
+
+            Command::SQLPreprocess { .. } => {
+                let ast = prql_to_pl(source)?;
+                let rq = semantic::resolve(ast)?;
+                let srq = prql_compiler::sql::internal::preprocess(rq)?;
+                format!("{srq:#?}").as_bytes().to_vec()
+            }
+            Command::SQLAnchor { .. } => {
+                let ast = prql_to_pl(source)?;
+                let rq = semantic::resolve(ast)?;
+                let srq = prql_compiler::sql::internal::anchor(rq)?;
+                format!("{srq:#?}").as_bytes().to_vec()
+            }
+
             Command::Watch(_) => unreachable!(),
         })
     }
@@ -204,9 +231,11 @@ impl Command {
         // quite reasonable?
         use Command::*;
         let mut input = match self {
-            Parse { io_args, .. } | Resolve { io_args, .. } | Compile { io_args, .. } => {
-                io_args.input.clone()
-            }
+            Parse { io_args, .. }
+            | Resolve { io_args, .. }
+            | SQLCompile { io_args, .. }
+            | SQLPreprocess(io_args)
+            | SQLAnchor(io_args) => io_args.input.clone(),
             Format(io) | Debug(io) | Annotate(io) => io.input.clone(),
             Watch(_) => unreachable!(),
         };
@@ -226,9 +255,11 @@ impl Command {
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
         use Command::*;
         let mut output = match self {
-            Parse { io_args, .. } | Resolve { io_args, .. } | Compile { io_args, .. } => {
-                io_args.output.to_owned()
-            }
+            Parse { io_args, .. }
+            | Resolve { io_args, .. }
+            | SQLCompile { io_args, .. }
+            | SQLAnchor(io_args)
+            | SQLPreprocess(io_args) => io_args.output.to_owned(),
             Format(io) | Debug(io) | Annotate(io) => io.output.to_owned(),
             Watch(_) => unreachable!(),
         };
@@ -357,7 +388,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         .apply();
 
         let result = Command::execute(
-            &Command::Compile {
+            &Command::SQLCompile {
                 io_args: IoArgs::default(),
                 include_signature_comment: true,
             },

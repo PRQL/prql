@@ -3,15 +3,10 @@
 
 # MegaLinter GitHub Action configuration file
 # More info at https://megalinter.io
-name: MegaLinter
+name: lint-megalinter
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_call:
 
 env: # Comment env block if you do not want to apply fixes
   # Apply linter fixes configuration
@@ -25,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    name: MegaLinter
+    name: lint-megalinter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,7 +28,7 @@ jobs:
           fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
 
       # MegaLinter
-      - name: MegaLinter
+      - name: lint-megalinte
         id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
@@ -64,7 +59,7 @@ jobs:
           'all' || env.APPLY_FIXES_EVENT == github.event_name) &&
           env.APPLY_FIXES_MODE == 'pull_request' && (github.event_name == 'push'
           || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           commit-message: "[MegaLinter] Apply linters automatic fixes"

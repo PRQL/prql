@@ -1,6 +1,0 @@
----
-source: prql-compiler/tests/integration-rdbms/main.rs
-expression: "format!(\"{:?}\", first_result.1)"
-input_file: prql-compiler/tests/integration/queries/set_ops_remove.prql
----
-[["3"]]

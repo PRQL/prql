@@ -29,11 +29,8 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          # Based on https://github.com/PRQL/prql/issues/1985, attempting to
-          # reset the cache. If necessary, we could do this on each release and
-          # have this update automatically (there's no variable that contains
-          # the current version unfortunately, though).
-          key: 0.6.0-${{ inputs.target_option }}
+          prefix-key: 0.7.1
+          key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
@@ -41,7 +38,9 @@ jobs:
           command: clippy
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-          args: --all-targets ${{ inputs.target_option }} -- -D warnings
+          args:
+            --all-targets --all-features ${{ inputs.target_option }} -- -D
+            warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -53,10 +52,10 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
-          args: ${{ inputs.target_option }} --no-run --locked
+          args: ${{ inputs.target_option }} --all-features --no-run --locked
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration-rdbms
+        working-directory: ./prql-compiler/tests/integration
         if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
@@ -64,27 +63,15 @@ jobs:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
         if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: skip integration if not linux
-        run: echo "SKIP_INTEGRATION=true" >> "$GITHUB_ENV"
-        if: ${{ inputs.os != 'ubuntu-latest' }}
-      # Only check unreferenced snapshots on the default target tests on ubuntu
-      #
-      # (Maybe there's a nicer approach where we can parameterize one step
-      # rather than have two different ones? We welcome a change to simplify
-      # this.)
-      - name: 📋 Test default
+      - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
-        if:
-          ${{ (inputs.target_option != '--target=wasm32-unknown-unknown' &&
-          runner.os == 'Linux') }}
         with:
           command: insta
-          args: test --unreferenced=auto ${{ inputs.target_option }}
-      - name: 📋 Test wasm
-        uses: richb-hanover/cargo@v1.1.0
-        if:
-          ${{ ! (inputs.target_option != '--target=wasm32-unknown-unknown' &&
-          runner.os == 'Linux') }}
-        with:
-          command: insta
-          args: test ${{ inputs.target_option }}
+          # Autoformatting doesn't make this clear to read, but this tertiary
+          # expression states to only check these on ubuntu linux:
+          # - External DB integration tests — `--features=test-external-dbs`.
+          # - Unreferenced snapshots - `--unreferenced=auto`.
+          args:
+            test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
+            inputs.os == 'ubuntu-latest' && '--unreferenced=auto
+            --features=test-external-dbs' || '' }}

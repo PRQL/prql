@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use anyhow::Result;
 
 use crate::ast::pl::*;
@@ -124,62 +122,55 @@ fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -
     }
 }
 
-/// Validates that found node has expected type. Returns assumed type of the node.
-pub fn validate_type<F>(found: &Expr, expected: &Ty, who: F) -> Result<Ty, Error>
-where
-    F: FnOnce() -> Option<String>,
-{
-    let found_ty = found.ty.clone().unwrap();
+impl Context {
+    /// Validates that found node has expected type. Returns assumed type of the node.
+    pub fn validate_type<F>(&mut self, found: &Expr, expected: &Ty, who: F) -> Result<Ty, Error>
+    where
+        F: FnOnce() -> Option<String>,
+    {
+        let found_ty = found.ty.clone().unwrap();
 
-    // infer
-    if let Ty::Infer = expected {
-        return Ok(found_ty);
-    }
-    if let Ty::Infer = found_ty {
-        return Ok(if let Ty::Table(_) = expected {
-            // inferred tables are needed for table s-strings
-            // override the empty frame with frame of a table literal
+        // infer
+        if let Ty::Infer = expected {
+            return Ok(found_ty);
+        }
+        if let Ty::Infer = found_ty {
+            return Ok(if !matches!(expected, Ty::Table(_)) {
+                // base case: infer expected type
+                expected.clone()
+            } else {
+                // special case: infer a table type
+                // inferred tables are needed for s-strings that represent tables
+                // similarly as normal table references, we want to be able to infer columns
+                // of this table, which means it needs to be defined somewhere in the module structure.
+                let frame =
+                    self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
 
-            let input_name = (found.alias)
-                .clone()
-                .unwrap_or_else(|| format!("_literal_{}", found.id.unwrap()));
+                // override the empty frame with frame of the new table
+                Ty::Table(frame)
+            });
+        }
 
-            Ty::Table(Frame {
-                inputs: vec![FrameInput {
-                    id: found.id.unwrap(),
-                    name: input_name.clone(),
-                    table: None,
-                }],
-                columns: vec![FrameColumn::All {
-                    input_name,
-                    except: HashSet::new(),
-                }],
-                ..Default::default()
+        let expected_is_above = expected.is_superset_of(&found_ty);
+        if !expected_is_above {
+            let e = Err(Error::new(Reason::Expected {
+                who: who(),
+                expected: format!("type `{}`", expected),
+                found: format!("type `{}`", found_ty),
             })
-        } else {
-            expected.clone()
-        });
-    }
+            .with_span(found.span));
+            if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)) {
+                let func_name = found.kind.as_closure().and_then(|c| c.name.as_ref());
+                let to_what = func_name
+                    .map(|n| format!("to function {n}"))
+                    .unwrap_or_else(|| "in this function call?".to_string());
 
-    let expected_is_above = expected.is_superset_of(&found_ty);
-    if !expected_is_above {
-        let e = Err(Error::new(Reason::Expected {
-            who: who(),
-            expected: format!("type `{}`", expected),
-            found: format!("type `{}`", found_ty),
-        })
-        .with_span(found.span));
-        if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)) {
-            let func_name = found.kind.as_closure().and_then(|c| c.name.as_ref());
-            let to_what = func_name
-                .map(|n| format!("to function {n}"))
-                .unwrap_or_else(|| "in this function call?".to_string());
-
-            return e.with_help(format!("Have you forgotten an argument {to_what}?"));
-        };
-        return e;
+                return e.with_help(format!("Have you forgotten an argument {to_what}?"));
+            };
+            return e;
+        }
+        Ok(found_ty)
     }
-    Ok(found_ty)
 }
 
 pub fn type_of_closure(closure: &Closure) -> TyFunc {
