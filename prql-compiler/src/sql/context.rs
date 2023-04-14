@@ -14,7 +14,7 @@ use crate::ast::rq::{
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
-use super::preprocess::{SqlRelation, SqlTransform};
+use super::ast_srq::{SqlRelation, SqlTransform};
 
 /// The AnchorContext struct stores information about tables and columns, and
 /// is used to generate new IDs and names.

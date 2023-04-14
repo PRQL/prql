@@ -346,26 +346,23 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let input = FrameInput {
-                id: text_expr.id.unwrap(),
-                name: text_expr.alias.unwrap_or_else(|| "text".to_string()),
-                table: None,
-            };
+            let expr_id = text_expr.id.unwrap();
+            let input_name = text_expr.alias.unwrap_or_else(|| "text".to_string());
 
-            let columns = res
+            let columns: Vec<_> = res
                 .columns
                 .iter()
-                .map(|name| FrameColumn::Single {
-                    name: Some(Ident::from_name(name)),
-                    expr_id: input.id,
-                })
+                .cloned()
+                .map(Some)
+                .map(RelationColumn::Single)
                 .collect();
 
-            let frame = Frame {
-                columns,
-                inputs: vec![input],
-                ..Default::default()
-            };
+            let frame = resolver.context.declare_table_for_literal(
+                expr_id,
+                Some(columns),
+                Some(input_name),
+            );
+
             let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
             let res = Expr {
                 ty: Some(Ty::Table(frame)),
@@ -622,6 +619,7 @@ impl Frame {
     }
 
     pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
+        // spacial case: all except
         if let ExprKind::All { except, .. } = &expr.kind {
             let except_exprs: HashSet<&usize> =
                 except.iter().flat_map(|e| e.target_id.iter()).collect();
@@ -629,14 +627,17 @@ impl Frame {
                 except.iter().flat_map(|e| e.target_ids.iter()).collect();
 
             for target_id in &expr.target_ids {
-                match self.inputs.iter().find(|i| i.id == *target_id) {
+                let target_input = self.inputs.iter().find(|i| i.id == *target_id);
+                match target_input {
                     Some(input) => {
+                        // include all of the input's columns
                         if except_inputs.contains(target_id) {
                             continue;
                         }
                         self.columns.extend(input.get_all_columns(except, context));
                     }
                     None => {
+                        // include the column with if target_id
                         if except_exprs.contains(target_id) {
                             continue;
                         }
@@ -651,6 +652,7 @@ impl Frame {
             return;
         }
 
+        // base case: append the column into the frame
         let id = expr.id.unwrap();
 
         let alias = expr.alias.as_ref();
@@ -702,8 +704,10 @@ impl Frame {
 
 impl FrameInput {
     fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
-        let rel_def = context.root_mod.get(self.table.as_ref().unwrap()).unwrap();
+        let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
+
+        // special case: wildcard
         let has_wildcard = rel_def
             .columns
             .iter()
@@ -727,23 +731,24 @@ impl FrameInput {
                 .map(|i| i.name.clone())
                 .collect();
 
-            vec![FrameColumn::All {
+            return vec![FrameColumn::All {
                 input_name: self.name.clone(),
                 except,
-            }]
-        } else {
-            rel_def
-                .columns
-                .iter()
-                .map(|col| {
-                    let name = col.as_single().unwrap().clone().map(Ident::from_name);
-                    FrameColumn::Single {
-                        name,
-                        expr_id: self.id,
-                    }
-                })
-                .collect_vec()
+            }];
         }
+
+        // base case: convert rel_def into frame columns
+        rel_def
+            .columns
+            .iter()
+            .map(|col| {
+                let name = col.as_single().unwrap().clone().map(Ident::from_name);
+                FrameColumn::Single {
+                    name,
+                    expr_id: self.id,
+                }
+            })
+            .collect_vec()
     }
 }
 

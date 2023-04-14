@@ -17,7 +17,6 @@
   - [Derive](./transforms/derive.md)
   - [Filter](./transforms/filter.md)
   - [From](./transforms/from.md)
-  - [From Text](./transforms/from_text.md)
   - [Group](./transforms/group.md)
   - [Join](./transforms/join.md)
   - [Select](./transforms/select.md)
@@ -25,7 +24,20 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 
-- [Syntax](./syntax.md)
+- [Syntax](./syntax/README.md)
+
+  - [Pipes](./syntax/pipes.md)
+  - [Lists](./syntax/lists.md)
+  - [Expressions & Operators](./syntax/expressions-and-operators.md)
+  - [Precedence & Parentheses](./syntax/precedence-and-parentheses.md)
+  - [Inner Transforms](./syntax/inner-transforms.md)
+  - [Comments](./syntax/comments.md)
+  - [Quoted Identifiers](./syntax/quoted-identifiers.md)
+  - [Quoting Schemas](./syntax/quoting-schemas.md)
+  - [Parameters](./syntax/parameters.md)
+  - [Numbers](./syntax/numbers.md)
+  - [Keywords](./syntax/keywords.md)
+
 - [Language features](./language-features/README.md)
 
   - [Coalesce](./language-features/coalesce.md)
@@ -37,8 +49,9 @@
     <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
   - [Regex](./language-features/regex.md)
   - [Standard library](./language-features/standard-library/README.md)
-    - [From text](./language-features/standard-library/from-text.md)
+    - [From_text](./language-features/standard-library/from_text.md)
     - [Loop](./language-features/standard-library/loop.md)
+    - [Reading files](./language-features/standard-library/reading-files.md)
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)

@@ -81,7 +81,7 @@ group [e.emp_no, e.gender] (
 )
 join de=dept_emp [==emp_no]
 join dm=dept_manager [
-  (dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
+  (dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
 group [dm.emp_no, gender] (
   aggregate [
