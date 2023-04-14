@@ -26,7 +26,7 @@ brew install prql/prql/prql-compiler
 $ echo "from employees | filter has_dog | select salary" | prqlc compile
 
 SELECT
-  *
+  salary
 FROM
   employees
 WHERE
