@@ -32,6 +32,11 @@ version = "0.7.1"
 [profile.release.package.prql-js]
 # Tell `rust-js` to optimize for small code size.
 opt-level = "s"
+# Insta runs faster this way, ref https://insta.rs/docs/quickstart/
+[profile.dev.package.insta]
+opt-level = 3
+[profile.dev.package.similar]
+opt-level = 3
 
 [workspace.metadata.release]
 allow-branch = ["*"]
