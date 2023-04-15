@@ -4,7 +4,6 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
-use sqlparser::ast::FunctionArg::Unnamed;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,

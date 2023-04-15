@@ -14,7 +14,6 @@ use tokio::runtime::Runtime;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 use connection::*;
-use prql_compiler::sql::Dialect;
 use prql_compiler::Options;
 use prql_compiler::Target::Sql;
 
