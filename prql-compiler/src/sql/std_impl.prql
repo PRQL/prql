@@ -29,3 +29,20 @@ func upper <text> column -> s"UPPER({column})"
 # Source-reading functions, primarily for DuckDB
 func read_parquet<table> source<text> -> s"SELECT * FROM read_parquet({source})"
 func read_csv<table> source<text> -> s"SELECT * FROM read_csv_auto({source})"
+
+func mul l r -> null
+func div l r -> null
+func mod l r -> null
+func add l r -> null
+func sub l r -> null
+func eq l r -> null
+func ne l r -> null
+func gt l r -> null
+func lt l r -> null
+func gte l r -> null
+func lte l r -> null
+func and l r -> null
+func or l r -> null
+func coalesce l r -> s"COALESCE({l}, {r})"
+func neg l -> null
+func not l -> null
