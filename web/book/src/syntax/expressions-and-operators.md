@@ -19,6 +19,8 @@ This table gives formal description of operator precedence. Because function
 calls have the lowest precedence, nested function calls or arguments that start
 or end with an operator require parentheses.
 
+<!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
+
 | Group          | Operators         | Precedence | Associativity |
 | -------------- | ----------------- | ---------- | ------------- |
 | identifier dot | `.`               | 1          |               |
@@ -29,5 +31,5 @@ or end with an operator require parentheses.
 | compare        | `== != <= >= < >` | 6          | left-to-right |
 | coalesce       | `??`              | 7          | left-to-right |
 | and            | `&&`              | 8          | left-to-right |
-| or             | \|\|              | 9          | left-to-right |
+| or             | <code>\|\|</code> | 9          | left-to-right |
 | function call  |                   | 10         |               |
