@@ -257,7 +257,7 @@ impl DBConnection for MysqlConnection {
         // MySQL needs a special character in csv that means NULL (https://stackoverflow.com/a/2675493)
         // 1. read the csv
         // 2. create a copy with the special character
-        // 3. run the test and remove the copy
+        // 3. import the data and remove the copy
         let old_path = get_path_for_table(csv_name);
         let mut new_path = old_path.clone();
         new_path.pop();
