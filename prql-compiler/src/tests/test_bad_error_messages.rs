@@ -49,3 +49,15 @@ fn test_bad_error_messages() {
     ───╯
     "###)
 }
+
+#[test]
+fn test_2270() {
+    assert_display_snapshot!(compile(r###"
+    from tracks
+    group foo (take)
+    "###,
+    )
+    .unwrap_err(), @r###"
+    Error: Expected a function that could operate on a table, but instead found func table<[]> -> table<[]>
+    "###);
+}

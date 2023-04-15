@@ -1,13 +1,15 @@
 //! Backend for translating RQ into SQL
 
 mod anchor;
+mod ast_srq;
 mod context;
 mod dialect;
 mod gen_expr;
 mod gen_projection;
 mod gen_query;
 mod preprocess;
-mod std;
+pub(crate) mod std;
+pub(crate) mod utils;
 
 pub use dialect::Dialect;
 
@@ -54,6 +56,38 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
     };
 
     Ok(sql)
+}
+
+/// This module gives access to internal machinery that gives no stability guarantees.
+pub mod internal {
+    use super::*;
+    use crate::ast::rq::{Query, Transform};
+
+    pub use super::ast_srq::SqlTransform;
+
+    fn init(query: Query) -> Result<(Vec<Transform>, Context)> {
+        let (ctx, relation) = AnchorContext::of(query);
+        let ctx = Context::new(dialect::Dialect::Generic.handler(), ctx);
+
+        let pipeline = (relation.kind.into_pipeline())
+            .map_err(|_| anyhow::anyhow!("Main RQ relation is not a pipeline."))?;
+        Ok((pipeline, ctx))
+    }
+
+    /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
+    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform>> {
+        let (pipeline, mut ctx) = init(query)?;
+
+        preprocess::preprocess(pipeline, &mut ctx)
+    }
+
+    /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
+    pub fn anchor(query: Query) -> Result<Vec<Vec<SqlTransform>>> {
+        let (pipeline, mut ctx) = init(query)?;
+        let pipeline = preprocess::preprocess(pipeline, &mut ctx)?;
+
+        Ok(anchor::extract_atomics_naive(pipeline, &mut ctx.anchor))
+    }
 }
 
 #[derive(Debug)]

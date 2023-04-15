@@ -5,7 +5,13 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/build-web.yaml"
+      - "**.md"
   workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-web
+  cancel-in-progress: true
 
 jobs:
   build-web:
@@ -48,6 +54,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: 0.8.0
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
@@ -62,3 +69,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v1.0.8
         with:
           path: web/website/public/
+
+  check-links:
+    # Copied from `test-all.yaml` — run this for all files (not just changed
+    # ones) here, since we're more likely to change a location of a file that's
+    # linked _to_.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: .github/.markdown-link-check.json

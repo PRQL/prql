@@ -36,6 +36,9 @@ jobs:
       os: ${{ matrix.os }}
       target_option: ${{ matrix.target_option }}
 
+  lint-megalinter:
+    uses: ./.github/workflows/lint-megalinter.yaml
+
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meaning a breaking change) in the PR title. (We also run on other
   # conditions defined in `test-all.yaml`; the conditions defined here aren't
@@ -86,13 +89,15 @@ jobs:
     # that GitHub release something to enable path triggers within workflows
     # natively.
     #
+    # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
     needs:
-      - test-rust
-      - test-all
-      - publish-web
-      - nightly
       - check-links
+      - lint-megalinter
+      - nightly
+      - publish-web
+      - test-all
+      - test-rust
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed

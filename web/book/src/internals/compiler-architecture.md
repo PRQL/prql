@@ -1,52 +1,54 @@
-# Compiler architecture
+# PRQL Compiler Architecture
 
-Compiler works in the following stages:
+The PRQL compiler operates in the following stages:
 
-1. Lexing & parsing - split PRQL text into tokens, build parse tree and convert
-   into our AST (Abstract Syntax Tree, see `ast` module). Parsing is done using
-   the chumsky parser, AST is constructed in `parser.rs`.
+1. **Lexing & Parsing**: PRQL source text is split into tokens with the Chumsky
+   parser named "lexer". The stream of tokens is then parsed into an Abstract
+   Syntax Tree (AST).
 
-2. Semantic analysis - resolves names (identifiers), extracts declarations,
-   determines frames (columns of the table in each step). It declares `Context`
-   that contains root module (mapping from accessible names to their
-   declarations).
+2. **Semantic Analysis**: This stage resolves names (identifiers), extracts
+   declarations, and determines frames (table columns in each step). A `Context`
+   is declared containing the root module, which maps accessible names to their
+   declarations.
 
-   Resolving includes following operations:
+   The resolving process involves the following operations:
 
-   - Assign an id to each node (`Expr` and `Stmt`).
-   - Extract function declarations and variable def into appropriate `Module`,
-     accessible from `Context::root_mod`
-   - Lookup identifiers in module and find associated declaration. Ident is
-     replaced with fully qualified name that guarantees unique name in
-     `root_mod`. Sometimes, `Expr::target` is also set.
-   - Function calls to transforms (`from`, `derive`, `filter`) are converted
-     from `FuncCall` into `TransformCall`, which is more convenient for later
+   - Assign an ID to each node (`Expr` and `Stmt`).
+   - Extract function declarations and variable definitions into the appropriate
+     `Module`, accessible from `Context::root_mod`.
+   - Look up identifiers in the module and find the associated declaration. The
+     identifier is replaced with a fully qualified name that guarantees a unique
+     name in `root_mod`. In some cases, `Expr::target` is also set.
+   - Convert function calls to transforms (`from`, `derive`, `filter`) from
+     `FuncCall` to `TransformCall`, which is more convenient for later
      processing.
-   - Determine type of expr. If expr is a reference to a table use the frame of
-     the table as the type. If it is a `TransformCall`, apply the transform to
-     the input frame to obtain resulting type. For simple expressions, try to
-     infer from `ExprKind`.
+   - Determine the type of expressions. If an expression is a reference to a
+     table, use the frame of the table as the type. If it is a `TransformCall`,
+     apply the transform to the input frame to obtain the resulting type. For
+     simple expressions, try to infer from `ExprKind`.
 
-3. Lowering - converts PL into RQ that is more strictly typed, contains less
-   information but is convenient for translating into SQL or some other backend.
+3. **Lowering**: This stage converts the PL into RQ, which is more strictly
+   typed and contains less information but is convenient for translating into
+   SQL or other backends.
 
-4. SQL backend - converts RQ into SQL. It converts each of the relations into a
-   SQL query. Pipelines are analyzed and split at appropriate positions into
-   "AtomicPipelines" which can be represented by a single SELECT statement.
+4. **SQL Backend**: This stage converts RQ into SQL. Each relation is
+   transformed into an SQL query. Pipelines are analyzed and split into
+   "AtomicPipelines" at appropriate positions, which can be represented by a
+   single SELECT statement.
 
-   Splitting is done back-to-front. First, we start with list all output columns
-   we want. Then we traverse the pipeline backwards and split when we encounter
-   a transform that is incompatible with transforms already present in the
-   pipeline. Split can also be triggered by encountering an expression that
-   cannot be materialized where it is used (window function is WHERE for
-   example).
+   Splitting is performed back-to-front. First, a list of all output columns is
+   created. The pipeline is then traversed backwards, and splitting occurs when
+   an incompatible transform with those already present in the pipeline is
+   encountered. Splitting can also be triggered by encountering an expression
+   that cannot be materialized where it is used (e.g., a window function in a
+   WHERE clause).
 
-   This process is also called anchoring, because it anchors a column definition
-   to a specific location in the output query.
+   This process is also called anchoring, as it anchors a column definition to a
+   specific location in the output query.
 
    During this process, `sql::context` keeps track of:
 
-   - table instances in the query (to prevent mixing up two instances of the
-     same table)
-   - column definitions, whether computed or a reference to a table column,
-   - column names, as defined in RQ or generated
+   - Table instances in the query (to prevent mixing up multiple instances of
+     the same table)
+   - Column definitions, whether computed or a reference to a table column
+   - Column names, as defined in RQ or generated

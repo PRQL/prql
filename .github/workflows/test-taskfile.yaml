@@ -21,6 +21,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: 0.8.0
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: actions/setup-python@v4
         with:

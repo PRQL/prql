@@ -6,8 +6,9 @@ Specifies a data source.
 from {table_reference}
 ```
 
-Table names containing [schemas](../syntax.md#quoting-schemas) or needing to be
-quoted for [other reasons](../syntax.md#quoted-identifiers) need to be contained
+Table names containing
+[schemas](../syntax/quoted-identifiers.md#quoting-schemas) or needing to be
+quoted for [other reasons](../syntax/quoted-identifiers.md) need to be contained
 within backticks.
 
 ## Examples

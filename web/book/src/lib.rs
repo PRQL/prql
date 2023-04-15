@@ -96,25 +96,41 @@ impl Preprocessor for ComparisonPreprocessor {
     }
 }
 
-pub fn code_block_lang<'a>(event: &'a Event) -> Option<&'a str> {
+/// Returns the language of a code block, divided by spaces
+/// For example: ```prql no-test
+pub fn code_block_lang_tags(event: &Event) -> Option<Vec<String>> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
-        Some(lang.as_ref())
+        Some(lang.to_string().split(' ').map(|x| x.to_string()).collect())
     } else {
         None
     }
 }
+
+const ALLOWED_TAGS: &[&str] = &["prql", "no-test", "no-fmt", "no-eval", "error"];
 
 fn replace_examples(text: &str) -> Result<String> {
     let mut parser = Parser::new_ext(text, Options::all());
     let mut cmark_acc = vec![];
 
     while let Some(event) = parser.next() {
-        // If it's not PRQL, just push it and continue
-        let Some(lang) = code_block_lang(&event) else {
+        // If it's there no tag, or it's not PRQL, or it has `no-eval`, just
+        // push it and continue.
+        let Some(lang_tags) = code_block_lang_tags(&event) else {
             cmark_acc.push(event.to_owned());
             continue;
         };
-        if !lang.starts_with("prql") {
+        if !lang_tags.contains(&"prql".to_string()) {
+            cmark_acc.push(event.to_owned());
+            continue;
+        }
+
+        for tag in lang_tags.iter() {
+            if !ALLOWED_TAGS.contains(&tag.as_str()) {
+                bail!("Unknown code block language: {}", tag)
+            }
+        }
+
+        if lang_tags.contains(&"no-eval".to_string()) {
             cmark_acc.push(event.to_owned());
             continue;
         }
@@ -127,17 +143,10 @@ fn replace_examples(text: &str) -> Result<String> {
         let options = prql_compiler::Options::default().no_signature();
         let result = compile(&prql, &options);
 
-        match lang {
-            "prql" | "prql_no_fmt" => cmark_acc.push(Event::Html(
-                table_of_comparison(
-                    &prql,
-                    result
-                        .map_err(|_| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n"))?
-                        .as_str(),
-                )
-                .into(),
-            )),
-            "prql_error" => cmark_acc.push(Event::Html(
+        if lang_tags.contains(&"no-test".to_string()) {
+            cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
+        } else if lang_tags.contains(&"error".to_string()) {
+            cmark_acc.push(Event::Html(
                 table_of_error(
                     &prql,
                     result
@@ -151,14 +160,19 @@ fn replace_examples(text: &str) -> Result<String> {
                         .as_str(),
                 )
                 .into(),
-            )),
-            "prql_no_test" => {
-                cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
-            }
-            _ => {
-                bail!("Unknown code block language: {}", lang)
-            }
-        };
+            ))
+        } else {
+            // Either a bare `prql` or with `no-fmt`
+            cmark_acc.push(Event::Html(
+                table_of_comparison(
+                    &prql,
+                    result
+                        .map_err(|_| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n"))?
+                        .as_str(),
+                )
+                .into(),
+            ))
+        }
         // Skip ending tag
         parser.next();
     }
@@ -270,7 +284,7 @@ from x
 import sys
 ```
 
-```prql_error
+```prql error
 this is an error
 ```
     "###;

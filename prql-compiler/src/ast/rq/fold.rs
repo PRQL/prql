@@ -211,18 +211,7 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
     Ok(match kind {
         ExprKind::ColumnRef(cid) => ExprKind::ColumnRef(fold.fold_cid(cid)?),
 
-        ExprKind::Binary { left, op, right } => ExprKind::Binary {
-            left: Box::new(fold.fold_expr(*left)?),
-            op,
-            right: Box::new(fold.fold_expr(*right)?),
-        },
-        ExprKind::Unary { op, expr } => ExprKind::Unary {
-            op,
-            expr: Box::new(fold.fold_expr(*expr)?),
-        },
-
         ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
-        ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),
         ExprKind::Case(cases) => ExprKind::Case(
             cases
                 .into_iter()
