@@ -39,6 +39,7 @@
 
 - [Language features](./language-features/README.md)
 
+  - [Case](./language-features/case.md)
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
   - [Dates & times](./language-features/dates-and-times.md)
@@ -54,7 +55,6 @@
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)
-  - [Case](./language-features/case.md)
   - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)
