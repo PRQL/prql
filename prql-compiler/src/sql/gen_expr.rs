@@ -1,22 +1,21 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
-use std::collections::HashSet;
-
 use anyhow::{bail, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlparser::ast::FunctionArg::Unnamed;
 use sqlparser::ast::{
-    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
+    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
 };
+use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
+    ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span};
@@ -24,66 +23,13 @@ use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::gen_projection::try_into_exprs;
+use super::std::*;
 use super::Context;
 
-pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    Ok(match item {
+#[allow(deprecated)]
+pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+    Ok(match expr.kind {
         ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
-        ExprKind::Binary { op, left, right } => {
-            if let Some(is_null) = try_into_is_null(&op, &left, &right, ctx)? {
-                is_null
-            } else if let Some(between) = try_into_between(&op, &left, &right, ctx)? {
-                between
-            } else {
-                let op = match op {
-                    BinOp::Mul => BinaryOperator::Multiply,
-                    BinOp::Div => BinaryOperator::Divide,
-                    BinOp::Mod => BinaryOperator::Modulo,
-                    BinOp::Add => BinaryOperator::Plus,
-                    BinOp::Sub => BinaryOperator::Minus,
-                    BinOp::Eq => BinaryOperator::Eq,
-                    BinOp::Ne => BinaryOperator::NotEq,
-                    BinOp::Gt => BinaryOperator::Gt,
-                    BinOp::Lt => BinaryOperator::Lt,
-                    BinOp::Gte => BinaryOperator::GtEq,
-                    BinOp::Lte => BinaryOperator::LtEq,
-                    BinOp::And => BinaryOperator::And,
-                    BinOp::Or => BinaryOperator::Or,
-                    BinOp::Coalesce => {
-                        let left = translate_operand(left.kind, 0, false, ctx)?;
-                        let right = translate_operand(right.kind, 0, false, ctx)?;
-
-                        return Ok(sql_ast::Expr::Function(Function {
-                            name: ObjectName(vec![Ident {
-                                value: "COALESCE".to_string(),
-                                quote_style: None,
-                            }]),
-                            args: vec![
-                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*left)),
-                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*right)),
-                            ],
-                            over: None,
-                            distinct: false,
-                            special: false,
-                        }));
-                    }
-                };
-
-                let strength = op.binding_strength();
-                let left = translate_operand(left.kind, strength, !op.associates_left(), ctx)?;
-                let right = translate_operand(right.kind, strength, !op.associates_right(), ctx)?;
-                sql_ast::Expr::BinaryOp { left, right, op }
-            }
-        }
-
-        ExprKind::Unary { op, expr } => {
-            let op = match op {
-                UnOp::Neg => UnaryOperator::Minus,
-                UnOp::Not => UnaryOperator::Not,
-            };
-            let expr = translate_operand(expr.kind, op.binding_strength(), false, ctx)?;
-            sql_ast::Expr::UnaryOp { op, expr }
-        }
 
         // Fairly hacky — convert everything to a string, then concat it,
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
@@ -94,7 +40,6 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
             sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
         }
         ExprKind::Param(id) => sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("${id}"))),
-        ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
         ExprKind::Literal(l) => translate_literal(l, ctx)?,
         ExprKind::Case(mut cases) => {
             let default = cases
@@ -105,7 +50,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                         ExprKind::Literal(Literal::Boolean(true))
                     )
                 })
-                .map(|def| translate_expr_kind(def.value.kind.clone(), ctx))
+                .map(|def| translate_expr(def.value.clone(), ctx))
                 .transpose()?;
 
             if default.is_some() {
@@ -119,8 +64,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
             let cases: Vec<_> = cases
                 .into_iter()
                 .map(|case| -> Result<_> {
-                    let cond = translate_expr_kind(case.condition.kind, ctx)?;
-                    let value = translate_expr_kind(case.value.kind, ctx)?;
+                    let cond = translate_expr(case.condition, ctx)?;
+                    let value = translate_expr(case.value, ctx)?;
                     Ok((cond, value))
                 })
                 .try_collect()?;
@@ -133,10 +78,132 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 else_result,
             }
         }
-        ExprKind::BuiltInFunction { name, args } => {
-            super::std::translate_built_in(name, args, ctx)?
+        ExprKind::BuiltInFunction { .. } => {
+            let expr = match try_into_is_null(expr, ctx)? {
+                Ok(is_null) => return Ok(is_null),
+                Err(expr) => expr,
+            };
+
+            let expr = match try_into_between(expr, ctx)? {
+                Ok(between) => return Ok(between),
+                Err(expr) => expr,
+            };
+
+            let expr = match try_into_concat_function(expr, ctx)? {
+                Ok(between) => return Ok(between),
+                Err(expr) => expr,
+            };
+
+            let expr = match try_into_binary_op(expr, ctx)? {
+                Ok(bin_op) => return Ok(bin_op),
+                Err(expr) => expr,
+            };
+
+            let expr = match try_into_unary_op(expr, ctx)? {
+                Ok(un_op) => return Ok(un_op),
+                Err(expr) => expr,
+            };
+
+            super::std::translate_built_in(expr, ctx)?
         }
     })
+}
+
+fn try_into_binary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    use BinaryOperator::*;
+    const DECLS: [super::std::FunctionDecl<2>; 14] = [
+        STD_MUL, STD_DIV, STD_MOD, STD_ADD, STD_SUB, STD_EQ, STD_NE, STD_GT, STD_LT, STD_GTE,
+        STD_LTE, STD_AND, STD_OR, STD_CONCAT,
+    ];
+    const OPS: [BinaryOperator; 14] = [
+        Multiply,
+        Divide,
+        Modulo,
+        Plus,
+        Minus,
+        Eq,
+        NotEq,
+        Gt,
+        Lt,
+        GtEq,
+        LtEq,
+        And,
+        Or,
+        StringConcat,
+    ];
+
+    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
+        return Ok(Err(expr));
+    };
+
+    // this lookup is O(N), but 13 is not that big of a N
+    let decl_index = DECLS.iter().position(|x| x == &decl).unwrap();
+    let op = OPS[decl_index].clone();
+    let [left, right] = unpack(expr, decl);
+
+    let strength = op.binding_strength();
+    let left = translate_operand(left, strength, !op.associates_left(), ctx)?;
+    let right = translate_operand(right, strength, !op.associates_right(), ctx)?;
+    Ok(Ok(sql_ast::Expr::BinaryOp { left, right, op }))
+}
+
+fn try_into_unary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    use UnaryOperator::*;
+    const DECLS: [super::std::FunctionDecl<1>; 2] = [STD_NEG, STD_NOT];
+    const OPS: [UnaryOperator; 2] = [Minus, Not];
+
+    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
+        return Ok(Err(expr));
+    };
+    // this lookup is O(N), but 13 is not that big of a N
+    let decl_index = DECLS.iter().position(|x| x == &decl).unwrap();
+    let op = OPS[decl_index];
+    let [arg] = unpack(expr, decl);
+
+    let expr = translate_operand(arg, op.binding_strength(), false, ctx)?;
+    Ok(Ok(sql_ast::Expr::UnaryOp { op, expr }))
+}
+
+fn try_into_concat_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    if !ctx.dialect.has_concat_function() {
+        return Ok(Err(expr));
+    }
+
+    let args = match try_unpack_concat(expr)? {
+        Ok(args) => args,
+        Err(expr) => return Ok(Err(expr)),
+    };
+
+    let args = args
+        .into_iter()
+        .map(|a| {
+            translate_expr(a, ctx)
+                .map(FunctionArgExpr::Expr)
+                .map(FunctionArg::Unnamed)
+        })
+        .try_collect()?;
+
+    Ok(Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+        args,
+        over: None,
+        distinct: false,
+        special: false,
+    })))
+}
+
+fn try_unpack_concat(expr: Expr) -> Result<Result<Vec<Expr>, Expr>> {
+    let Some((_, _)) = try_unpack(&expr, [STD_CONCAT])? else {
+        return Ok(Err(expr));
+    };
+    let [left, right] = unpack(expr, STD_CONCAT);
+
+    let mut args = match try_unpack_concat(left)? {
+        Ok(args) => args,
+        Err(left) => vec![left],
+    };
+    args.push(right);
+    Ok(Ok(args))
 }
 
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
@@ -252,7 +319,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
                 let window = compute.window.clone();
                 let span = compute.expr.span;
 
-                let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
+                let expr = translate_expr(compute.expr.clone(), ctx)?;
 
                 if let Some(window) = window {
                     translate_windowed(expr, window, ctx, span)?
@@ -322,9 +389,7 @@ pub(super) fn translate_sstring(
         .into_iter()
         .map(|s_string_item| match s_string_item {
             InterpolateItem::String(string) => Ok(string),
-            InterpolateItem::Expr(node) => {
-                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
-            }
+            InterpolateItem::Expr(node) => translate_expr(*node, ctx).map(|expr| expr.to_string()),
         })
         .collect::<Result<Vec<String>>>()?
         .join(""))
@@ -378,66 +443,6 @@ pub(super) fn translate_query_sstring(
     )
 }
 
-fn translate_fstring_with_concat_function(
-    items: Vec<InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Expr> {
-    let mut args = items
-        .into_iter()
-        .map(|item| match item {
-            InterpolateItem::String(string) => {
-                Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
-            }
-            InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
-        })
-        .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
-        .collect::<Result<Vec<_>>>()?;
-
-    // some dialect require at least two arguments
-    if args.len() < 2 {
-        args.push(Unnamed(FunctionArgExpr::Expr(sql_ast::Expr::Value(
-            Value::SingleQuotedString("".to_string()),
-        ))));
-    }
-
-    Ok(sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
-        args,
-        distinct: false,
-        over: None,
-        special: false,
-    }))
-}
-
-fn translate_fstring_with_concat_operator(
-    items: Vec<InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Expr> {
-    let string = items
-        .into_iter()
-        .map(|f_string_item| match f_string_item {
-            InterpolateItem::String(string) => Ok(Value::SingleQuotedString(string).to_string()),
-            InterpolateItem::Expr(node) => {
-                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
-            }
-        })
-        .collect::<Result<Vec<String>>>()?
-        .join("||");
-
-    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(string)))
-}
-
-pub(super) fn translate_fstring(
-    items: Vec<InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Expr> {
-    if ctx.dialect.has_concat_function() {
-        translate_fstring_with_concat_function(items, ctx)
-    } else {
-        translate_fstring_with_concat_operator(items, ctx)
-    }
-}
-
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
@@ -485,10 +490,10 @@ pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
 }
 
 pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
+    let kind = ExprKind::Literal(Literal::Integer(take));
+    let expr = Expr { kind, span: None };
     Top {
-        quantity: Some(
-            translate_expr_kind(ExprKind::Literal(Literal::Integer(take)), ctx).unwrap(),
-        ),
+        quantity: Some(translate_expr(expr, ctx).unwrap()),
         with_ties: false,
         percent: false,
     }
@@ -523,59 +528,71 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     Ok(SelectItem::UnnamedExpr(expr))
 }
 
-fn try_into_is_null(
-    op: &BinOp,
-    a: &Expr,
-    b: &Expr,
-    ctx: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
-        let expr = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
-            b.kind.clone()
-        } else if matches!(b.kind, ExprKind::Literal(Literal::Null)) {
-            a.kind.clone()
-        } else {
-            return Ok(None);
-        };
+/// Translates expr into IS NULL if possible, otherwise returns the expr unchanged.
+///
+/// Outer Result contains an error, inner Result contains the unmatched expr.
+fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    let Some((decl, [a, b])) = try_unpack(&expr, [STD_EQ, STD_NE])? else {
+        return Ok(Err(expr))
+    };
 
-        let strength =
-            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
-        let expr = translate_operand(expr, strength, false, ctx)?;
+    let take_a = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
+        false
+    } else if matches!(b.kind, ExprKind::Literal(Literal::Null)) {
+        true
+    } else {
+        return Ok(Err(expr));
+    };
+    let is_std_eq = decl == STD_EQ;
 
-        return Ok(Some(if matches!(op, BinOp::Eq) {
-            sql_ast::Expr::IsNull(expr)
-        } else {
-            sql_ast::Expr::IsNotNull(expr)
-        }));
-    }
+    // we are sure this translates to IS NULL
+    let [a, b] = unpack(expr, decl);
+    let operand = if take_a { a } else { b };
 
-    Ok(None)
+    let strength =
+        sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
+    let expr = translate_operand(operand, strength, false, ctx)?;
+
+    Ok(Ok(if is_std_eq {
+        sql_ast::Expr::IsNull(expr)
+    } else {
+        sql_ast::Expr::IsNotNull(expr)
+    }))
 }
 
-fn try_into_between(
-    op: &BinOp,
-    a: &Expr,
-    b: &Expr,
-    ctx: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    if !matches!(op, BinOp::And) {
-        return Ok(None);
-    }
-    let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) else {
-        return Ok(None);
+/// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
+///
+/// Outer Result contains an error, inner Result contains the unmatched expr.
+fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    // validate that this expr matches the criteria
+
+    let Some((_, [a, b])) = try_unpack(&expr, [STD_AND])? else {
+        return Ok(Err(expr));
     };
-    if !(matches!(a.1, BinOp::Gte) && matches!(b.1, BinOp::Lte)) {
-        return Ok(None);
-    }
-    if a.0 != b.0 {
-        return Ok(None);
+
+    let Some((_, [a_l, _a_r])) = try_unpack(a, [STD_GTE])? else {
+        return Ok(Err(expr));
+    };
+    let Some((_, [b_l, _b_r])) = try_unpack(b, [STD_LTE])? else {
+        return Ok(Err(expr));
+    };
+
+    if a_l != b_l {
+        return Ok(Err(expr));
     }
 
-    Ok(Some(sql_ast::Expr::Between {
-        expr: translate_operand(a.0.kind.clone(), 0, false, ctx)?,
+    // at this point we are sure that this should translate to Between
+    // so the expr can be unpacked for good
+
+    let [a, b] = unpack(expr, STD_AND);
+    let [a_l, a_r] = unpack(a, STD_GTE);
+    let [_, b_r] = unpack(b, STD_LTE);
+
+    Ok(Ok(sql_ast::Expr::Between {
+        expr: translate_operand(a_l, 0, false, ctx)?,
         negated: false,
-        low: translate_operand(a.2.kind.clone(), 0, false, ctx)?,
-        high: translate_operand(b.2.kind.clone(), 0, false, ctx)?,
+        low: translate_operand(a_r, 0, false, ctx)?,
+        high: translate_operand(b_r, 0, false, ctx)?,
     }))
 }
 
@@ -764,12 +781,12 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 
 /// Wraps into parenthesis if binding strength would be less than min_strength
 fn translate_operand(
-    expr: ExprKind,
+    expr: Expr,
     parent_strength: i32,
     fix_associativity: bool,
     context: &mut Context,
 ) -> Result<Box<sql_ast::Expr>> {
-    let expr = Box::new(translate_expr_kind(expr, context)?);
+    let expr = Box::new(translate_expr(expr, context)?);
 
     let strength = expr.binding_strength();
 
@@ -880,15 +897,9 @@ impl SQLExpression for UnaryOperator {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_yaml_snapshot;
-
-    use crate::ast::pl::Range;
-    use crate::sql::context::AnchorContext;
-    use crate::{
-        parser::parse, semantic::resolve, sql::dialect::GenericDialect, sql::dialect::SQLiteDialect,
-    };
-
     use super::*;
+    use crate::ast::pl::Range;
+    use insta::assert_yaml_snapshot;
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {
@@ -972,42 +983,6 @@ mod test {
         start: 5
         end: 5
         "###);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_translate_fstring() -> Result<()> {
-        let mut context_with_concat_function: Context;
-        let mut context_without_concat_function: Context;
-
-        {
-            let query = resolve(parse("from foo")?)?;
-            let (anchor, _) = AnchorContext::of(query);
-            context_with_concat_function = Context::new(Box::new(GenericDialect {}), anchor);
-        }
-        {
-            let query = resolve(parse("from foo")?)?;
-            let (anchor, _) = AnchorContext::of(query);
-            context_without_concat_function = Context::new(Box::new(SQLiteDialect {}), anchor);
-        }
-
-        fn str_lit(s: &str) -> InterpolateItem<Expr> {
-            InterpolateItem::String(s.to_string())
-        }
-
-        assert_yaml_snapshot!(translate_fstring(vec![
-            str_lit("hello"),
-            str_lit("world"),
-            ], &mut context_with_concat_function)?.to_string(), @r###"
-    ---
-    "CONCAT('hello', 'world')"
-    "###);
-
-        assert_yaml_snapshot!(translate_fstring(vec![str_lit("hello"), str_lit("world")], &mut context_without_concat_function)?.to_string(), @r###"
-    ---
-    "'hello'||'world'"
-    "###);
 
         Ok(())
     }

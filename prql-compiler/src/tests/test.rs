@@ -1585,7 +1585,7 @@ fn test_f_string() {
     FROM
       employees
     "###
-    )
+    );
 }
 
 #[test]

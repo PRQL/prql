@@ -8,7 +8,7 @@ WITH table_1 AS (
     CASE
       WHEN composer IS NOT NULL THEN composer
       WHEN genre_id < 17 THEN 'no composer'
-      ELSE CONCAT('unknown composer', '')
+      ELSE 'unknown composer'
     END AS display,
     milliseconds
   FROM

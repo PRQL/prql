@@ -24,9 +24,22 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 
-- [Syntax](./syntax.md)
+- [Syntax](./syntax/README.md)
+
+  - [Pipes](./syntax/pipes.md)
+  - [Lists](./syntax/lists.md)
+  - [Expressions & Operators](./syntax/expressions-and-operators.md)
+  - [Precedence & Parentheses](./syntax/precedence-and-parentheses.md)
+  - [Inner Transforms](./syntax/inner-transforms.md)
+  - [Comments](./syntax/comments.md)
+  - [Quoted Identifiers](./syntax/quoted-identifiers.md)
+  - [Parameters](./syntax/parameters.md)
+  - [Numbers](./syntax/numbers.md)
+  - [Keywords](./syntax/keywords.md)
+
 - [Language features](./language-features/README.md)
 
+  - [Case](./language-features/case.md)
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
   - [Dates & times](./language-features/dates-and-times.md)
@@ -42,7 +55,6 @@
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)
-  - [Case](./language-features/case.md)
   - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)

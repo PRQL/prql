@@ -1,5 +1,5 @@
 ---
-source: book/tests/snapshot.rs
+source: web/book/tests/snapshot.rs
 expression: "from employees\nfilter department == \"Product\"\nselect [first_name, last_name]\n"
 ---
 SELECT

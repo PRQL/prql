@@ -1,5 +1,5 @@
 ---
-source: book/tests/snapshot.rs
+source: web/book/tests/snapshot.rs
 expression: "from web\nselect url = f\"http{tls}://www.{domain}.{tld}/{page}\"\n"
 ---
 SELECT
