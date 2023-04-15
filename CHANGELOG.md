@@ -15,7 +15,7 @@ This release has 38 commits from 8 contributors. Selected changes:
   #2422).
 
 - New functions `read_parquet` and `read_csv`, which mirror the DuckDB
-  functions, instructing the database to read from files (@max-sixty, #2049).
+  functions, instructing the database to read from files (@max-sixty, #2409).
 
 ## 0.7.1 — 2023-04-03
 
