@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "# skip_mssql\n# skip_mysql (mysql imports empty strings in csv as empty strings instead of null)\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
+expression: "from tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
 input_file: prql-compiler/tests/integration/queries/switch.prql
 ---
 WITH table_1 AS (
@@ -8,7 +8,7 @@ WITH table_1 AS (
     CASE
       WHEN composer IS NOT NULL THEN composer
       WHEN genre_id < 17 THEN 'no composer'
-      ELSE CONCAT('unknown composer')
+      ELSE CONCAT('unknown composer', '')
     END AS display,
     milliseconds
   FROM
