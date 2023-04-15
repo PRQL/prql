@@ -1065,17 +1065,17 @@ fn test_strings() {
       'two households''' AS x,
       'two households"' AS y,
       CONCAT(
-        CONCAT(
-          CONCAT(CONCAT('a ', 'two households'''), ' b'' '),
-          'two households"'
-        ),
+        'a ',
+        'two households''',
+        ' b'' ',
+        'two households"',
         ' c'
       ) AS z,
       CONCAT(
-        CONCAT(
-          CONCAT(CONCAT('a ', 'two households'''), ' b" '),
-          'two households"'
-        ),
+        'a ',
+        'two households''',
+        ' b" ',
+        'two households"',
         ' c'
       ) AS v
     FROM
@@ -1558,16 +1558,13 @@ fn test_f_string() {
         @r###"
     SELECT
       CONCAT(
-        CONCAT(
-          CONCAT(CONCAT('Hello my name is ', prefix), first_name),
-          ' '
-        ),
+        'Hello my name is ',
+        prefix,
+        first_name,
+        ' ',
         last_name
       ),
-      CONCAT(
-        CONCAT('and I am ', year_born - now()),
-        ' years old.'
-      )
+      CONCAT('and I am ', year_born - now(), ' years old.')
     FROM
       employees
     "###
@@ -2767,7 +2764,7 @@ fn test_case() {
       *,
       CASE
         WHEN nickname IS NOT NULL THEN nickname
-        ELSE CONCAT(CONCAT(first_name, ' '), last_name)
+        ELSE CONCAT(first_name, ' ', last_name)
       END AS display_name
     FROM
       employees
@@ -2787,7 +2784,7 @@ fn test_case() {
       *,
       CASE
         WHEN nickname IS NOT NULL THEN nickname
-        WHEN first_name IS NOT NULL THEN CONCAT(CONCAT(first_name, ' '), last_name)
+        WHEN first_name IS NOT NULL THEN CONCAT(first_name, ' ', last_name)
         ELSE NULL
       END AS display_name
     FROM

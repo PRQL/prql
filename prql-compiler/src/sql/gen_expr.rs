@@ -88,6 +88,11 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 Err(expr) => expr,
             };
 
+            let expr = match try_into_concat_function(expr, ctx)? {
+                Ok(between) => return Ok(between),
+                Err(expr) => expr,
+            };
+
             let expr = match try_into_binary_op(expr, ctx)? {
                 Ok(bin_op) => return Ok(bin_op),
                 Err(expr) => expr,
@@ -130,10 +135,6 @@ fn try_into_binary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::E
         return Ok(Err(expr));
     };
 
-    if decl == STD_CONCAT && ctx.dialect.has_concat_function() {
-        return Ok(Err(expr));
-    }
-
     // this lookup is O(N), but 13 is not that big of a N
     let decl_index = DECLS.iter().position(|x| x == &decl).unwrap();
     let op = OPS[decl_index].clone();
@@ -160,6 +161,48 @@ fn try_into_unary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Ex
 
     let expr = translate_operand(arg, op.binding_strength(), false, ctx)?;
     Ok(Ok(sql_ast::Expr::UnaryOp { op, expr }))
+}
+
+fn try_into_concat_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    if !ctx.dialect.has_concat_function() {
+        return Ok(Err(expr));
+    }
+
+    let args = match try_unpack_concat(expr)? {
+        Ok(args) => args,
+        Err(expr) => return Ok(Err(expr)),
+    };
+
+    let args = args
+        .into_iter()
+        .map(|a| {
+            translate_expr(a, ctx)
+                .map(FunctionArgExpr::Expr)
+                .map(FunctionArg::Unnamed)
+        })
+        .try_collect()?;
+
+    Ok(Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+        args,
+        over: None,
+        distinct: false,
+        special: false,
+    })))
+}
+
+fn try_unpack_concat(expr: Expr) -> Result<Result<Vec<Expr>, Expr>> {
+    let Some((_, _)) = try_unpack(&expr, [STD_CONCAT])? else {
+        return Ok(Err(expr));
+    };
+    let [left, right] = unpack(expr, STD_CONCAT);
+
+    let mut args = match try_unpack_concat(left)? {
+        Ok(args) => args,
+        Err(left) => vec![left],
+    };
+    args.push(right);
+    Ok(Ok(args))
 }
 
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {

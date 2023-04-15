@@ -44,6 +44,5 @@ func lte l r -> null
 func and l r -> null
 func or l r -> null
 func coalesce l r -> s"COALESCE({l}, {r})"
-func concat l r -> s"CONCAT({l}, {r})"
 func neg l -> null
 func not l -> null
