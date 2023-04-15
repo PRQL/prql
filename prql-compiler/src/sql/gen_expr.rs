@@ -484,6 +484,9 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     Ok(SelectItem::UnnamedExpr(expr))
 }
 
+/// Translates expr into IS NULL if possible, otherwise returns the expr unchanged.
+///
+/// Outer Result contains an error, inner Result contains the unmatched expr.
 fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
     let Some((decl, [a, b])) = try_unpack(&expr, [STD_EQ, STD_NE])? else {
         return Ok(Err(expr))
@@ -513,7 +516,9 @@ fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Exp
     }))
 }
 
-/// Tries to translate this expr into a BETWEEN statement. Returns original expr on failure.
+/// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
+///
+/// Outer Result contains an error, inner Result contains the unmatched expr.
 fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
     // validate that this expr matches the criteria
 
