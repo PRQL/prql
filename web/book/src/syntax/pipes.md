@@ -26,4 +26,4 @@ A line-break doesn't create a pipeline in a couple of cases:
 
 - within a list (e.g. the `derive` examples below),
 - when the following line is a new statement, which starts with a keyword of
-  `func`, `table` or `from`.
+  `func`, `let` or `from`.
