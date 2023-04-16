@@ -8,7 +8,8 @@ mod gen_expr;
 mod gen_projection;
 mod gen_query;
 mod preprocess;
-mod std;
+pub(crate) mod std;
+pub(crate) mod utils;
 
 pub use dialect::Dialect;
 
