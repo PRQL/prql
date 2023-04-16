@@ -1,7 +1,7 @@
 # Expressions and operators
 
-PRQL allows _expressions_, like `2 + 3` or `((1 + x) * y)` made up of various _operators_. 
-In the example below, note the use of expressions to calculate the
+PRQL allows _expressions_, like `2 + 3` or `((1 + x) * y)` made up of various
+_operators_. In the example below, note the use of expressions to calculate the
 alias `circumference` and in the `filter` transform.
 
 ```prql
@@ -15,41 +15,49 @@ filter circumference > 10 && color != "red"
 
 ## Operator precedence
 
-This table shows operator precedence.
-Use parentheses `()` to prioritize operations and for function calls (see below.)
-_Question: Are parentheses operators? Should they be in this table?_
+This table shows operator precedence. Use parentheses `()` to prioritize
+operations and for function calls (see below.) _Question: Are parentheses
+operators? Should they be in this table?_
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
-| Group           | Operators         | Precedence   | Associativity   |
-| --------------: | ----------------- | :----------: | :-------------: |
-| identifier dot  | `.`               | 1            |                 |
-| unary           | `- + ! ==`        | 2            |                 |
-| range           | `..`              | 3            |                 |
-| mul             | `* / %`           | 4            | left-to-right   |
-| add             | `+ -`             | 5            | left-to-right   |
-| compare         | `== != <= >= < >` | 6            | left-to-right   |
-| coalesce        | `??`              | 7            | left-to-right   |
-| and             | `&&`              | 8            | left-to-right   |
-| or              | <code>\|\|</code> | 9            | left-to-right   |
-| function call   |                   | 10           |                 |
-| _parens (?)_    | `()`              | ??           |   see table     |
+|          Group | Operators         | Precedence | Associativity |
+| -------------: | ----------------- | :--------: | :-----------: |
+| identifier dot | `.`               |     1      |               |
+|          unary | `- + ! ==`        |     2      |               |
+|          range | `..`              |     3      |               |
+|            mul | `* / %`           |     4      | left-to-right |
+|            add | `+ -`             |     5      | left-to-right |
+|        compare | `== != <= >= < >` |     6      | left-to-right |
+|       coalesce | `??`              |     7      | left-to-right |
+|            and | `&&`              |     8      | left-to-right |
+|             or | <code>\|\|</code> |     9      | left-to-right |
+|  function call |                   |     10     |               |
+|   _parens (?)_ | `()`              |     ??     |   see table   |
 
 ## Parentheses
 
 PRQL uses parentheses `()` for several purposes:
 
-- Parentheses in arithmetic expressions group operands to control the order of evaluation, for example: `((1 + x) * y)`
+- Parentheses in arithmetic expressions group operands to control the order of
+  evaluation, for example: `((1 + x) * y)`
 
-- Parentheses set off an [inner transform](./inner-transforms.md) for the `group ()` and `window ()` transforms. _Question: Are there any other transforms that use parentheses like this?_
+- Parentheses set off an [inner transform](./inner-transforms.md) for the
+  `group ()` and `window ()` transforms. _Question: Are there any other
+  transforms that use parentheses like this?_
 
-- Parentheses set off a minus sign for a function argument, for example: `add (-1) (-3)`
+- Parentheses set off a minus sign for a function argument, for example:
+  `add (-1) (-3)`
 
-- Parentheses wrap a function call that is part of a larger expression, for example: `round 0 (sum distance)` _Question: Is it necessary to state "on the right-hand side of an assignment"? (Are there counterexamples?)_ 
+- Parentheses wrap a function call that is part of a larger expression, for
+  example: `round 0 (sum distance)` _Question: Is it necessary to state "on the
+  right-hand side of an assignment"? (Are there counterexamples?)_
 
-   _Question: Why not require parentheses around function calls in a list? Why preserve this (confusing) special case?_
+  _Question: Why not require parentheses around function calls in a list? Why
+  preserve this (confusing) special case?_
 
-- Parentheses are not required for expressions that do not contain function calls, for example: `foo + bar`. 
+- Parentheses are not required for expressions that do not contain function
+  calls, for example: `foo + bar`.
 
 Here's a set of examples for these rules:
 
@@ -81,7 +89,7 @@ sort (-distance)
 # A list is fine too
 sort [-distance]
 ```
- 
+
 ```admonish note
 We are seeking input about these rules to see if they can be more intuitive. We're also planning to make the error messages much better,
 so the compiler is there to help out.
