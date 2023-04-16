@@ -39,7 +39,7 @@ operators? Should they be in this table?_
 
 PRQL uses parentheses `()` for several purposes:
 
-- Parentheses in arithmetic expressions group operands to control the order of
+- Parentheses group operands to control the order of
   evaluation, for example: `((1 + x) * y)`
 
 - Parentheses set off an [inner transform](./inner-transforms.md) for the
@@ -49,9 +49,12 @@ PRQL uses parentheses `()` for several purposes:
 - Parentheses set off a minus sign for a function argument, for example:
   `add (-1) (-3)`
 
+- Parentheses set off nested function calls that contain a pipe, either the `|` symbol or a new line.
+  “Nested” means within a transform; i.e. not just the main pipeline, for example: `(column-name | in 0..20)`
+
 - Parentheses wrap a function call that is part of a larger expression, for
   example: `round 0 (sum distance)` _Question: Is it necessary to state "on the
-  right-hand side of an assignment"? (Are there counterexamples?)_
+  right-hand side of an assignment"? Are there counterexamples?_
 
   _Question: Why not require parentheses around function calls in a list? Why
   preserve this (confusing) special case?_
@@ -59,7 +62,7 @@ PRQL uses parentheses `()` for several purposes:
 - Parentheses are not required for expressions that do not contain function
   calls, for example: `foo + bar`.
 
-Here's a set of examples for these rules:
+Here's a set of examples of these rules:
 
 ```prql no-fmt
 from employees
@@ -91,6 +94,7 @@ sort [-distance]
 ```
 
 ```admonish note
-We are seeking input about these rules to see if they can be more intuitive. We're also planning to make the error messages much better,
+We are seeking feedback about these rules to see if they can be more intuitive.
+We're also planning to make the error messages much better,
 so the compiler is there to help out.
 ```
