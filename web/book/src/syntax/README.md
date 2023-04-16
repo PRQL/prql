@@ -15,7 +15,6 @@ A summary of PRQL syntax:
 | `:`                              | [Named args & Parameters](../queries/functions.md)                      | `interp low:0 1600 sat_score`                           |
 | `[]`                             | [Lists](./lists.md)                                                     | `select [id, amount]`                                   |
 | <code>! && \|\| == +</code>, etc | [Expressions & Operators](./expressions-and-operators.md)               | <code>filter a == b + c \|\| d >= e</code>              |
-| `()`                             | [Precedence & Parentheses](./precedence-and-parentheses.md)             | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''`, `""`                       | [Strings](../language-features/strings.md)                              | `derive name = 'Mary'`                                  |
 | `` ` ` ``                        | [Quoted identifiers](./quoted-identifiers.md)                           | `` select `first name`  ``                              |
 | `#`                              | [Comments](./comments.md)                                               | `# A comment`                                           |
