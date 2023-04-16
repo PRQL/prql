@@ -16,13 +16,13 @@ filter circumference > 10 && color != "red"
 ## Operator precedence
 
 This table shows operator precedence. Use parentheses `()` to prioritize
-operations and for function calls (see the discussion below.) 
+operations and for function calls (see the discussion below.)
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
 |          Group | Operators         | Precedence | Associativity |
 | -------------: | ----------------- | :--------: | :-----------: |
-|   parentheses  | `()`              |     0      |   see below   |
+|    parentheses | `()`              |     0      |   see below   |
 | identifier dot | `.`               |     1      |               |
 |          unary | `- + ! ==`        |     2      |               |
 |          range | `..`              |     3      |               |
@@ -42,7 +42,7 @@ PRQL uses parentheses `()` for several purposes:
   `((1 + x) * y)`
 
 - Parentheses denote an [inner transform](./inner-transforms.md) for the
-  `group ()` and `window ()` transforms. 
+  `group ()` and `window ()` transforms.
 
 - Parentheses denote a minus sign for a function argument, for example:
   `add (-1) (-3)`
@@ -52,7 +52,7 @@ PRQL uses parentheses `()` for several purposes:
   main pipeline, for example: `(column-name | in 0..20)`
 
 - Parentheses wrap a function call that is part of a larger expression on the
-  right-hand side of an assignment, for example: `round 0 (sum distance)` 
+  right-hand side of an assignment, for example: `round 0 (sum distance)`
 
 - Parentheses are not required for expressions that do not contain function
   calls, for example: `foo + bar`.
@@ -88,8 +88,9 @@ sort (-distance)
 sort [-distance]
 ```
 
-Note: The `total_distance` statement below generates an error because the function is not in a list. 
-(The PRQL compiler should display a better error message.)
+Note: The `total_distance` statement below generates an error because the
+function is not in a list. (The PRQL compiler should display a better error
+message.)
 
 ```prql error
 from employees
