@@ -398,8 +398,8 @@ impl std::fmt::Display for Token {
             Self::Gte => f.write_str(">="),
             Self::Lte => f.write_str("<="),
             Self::RegexSearch => f.write_str("~="),
-            Self::And => f.write_str("and"),
-            Self::Or => f.write_str("or"),
+            Self::And => f.write_str("&&"),
+            Self::Or => f.write_str("||"),
             Self::Coalesce => f.write_str("??"),
 
             Self::Param(id) => write!(f, "${id}"),

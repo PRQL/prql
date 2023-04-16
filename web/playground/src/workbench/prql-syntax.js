@@ -16,19 +16,12 @@ const TRANSFORMS = [
 const BUILTIN_FUNCTIONS = ["case"]; // "in", "as"
 const KEYWORDS = ["func", "let", "prql"];
 const LITERALS = ["null", "true", "false"];
-const OPERATORS = ["and", "or"]; // "not"
 
 const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
   // defaultToken: 'invalid',
 
-  keywords: [
-    ...TRANSFORMS,
-    ...BUILTIN_FUNCTIONS,
-    ...KEYWORDS,
-    ...LITERALS,
-    ...OPERATORS,
-  ],
+  keywords: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS, ...LITERALS],
 
   operators: [
     "-",
@@ -46,6 +39,8 @@ const def = {
     ">=",
     "<=",
     "~=",
+    "&&",
+    "||",
     "??",
   ],
 
