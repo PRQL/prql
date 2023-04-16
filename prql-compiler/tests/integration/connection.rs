@@ -29,10 +29,6 @@ pub struct MysqlConnection(pub mysql::Pool);
 pub struct MssqlConnection(pub tiberius::Client<Compat<TcpStream>>);
 
 pub trait DBConnection {
-    // TODO: possibly this should return a Result instead of panicking on
-    // errors, and the caller can then state which dialect and query is being
-    // run. Currently the errors in CI are a bit confusing (though it's possible
-    // to use the line number, so not woeful).
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Vec<Row>;
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
