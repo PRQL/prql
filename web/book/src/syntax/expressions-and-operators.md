@@ -39,8 +39,8 @@ operators? Should they be in this table?_
 
 PRQL uses parentheses `()` for several purposes:
 
-- Parentheses group operands to control the order of
-  evaluation, for example: `((1 + x) * y)`
+- Parentheses group operands to control the order of evaluation, for example:
+  `((1 + x) * y)`
 
 - Parentheses set off an [inner transform](./inner-transforms.md) for the
   `group ()` and `window ()` transforms. _Question: Are there any other
@@ -49,8 +49,9 @@ PRQL uses parentheses `()` for several purposes:
 - Parentheses set off a minus sign for a function argument, for example:
   `add (-1) (-3)`
 
-- Parentheses set off nested function calls that contain a pipe, either the `|` symbol or a new line.
-  “Nested” means within a transform; i.e. not just the main pipeline, for example: `(column-name | in 0..20)`
+- Parentheses set off nested function calls that contain a pipe, either the `|`
+  symbol or a new line. “Nested” means within a transform; i.e. not just the
+  main pipeline, for example: `(column-name | in 0..20)`
 
 - Parentheses wrap a function call that is part of a larger expression, for
   example: `round 0 (sum distance)` _Question: Is it necessary to state "on the
