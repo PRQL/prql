@@ -26,7 +26,7 @@ select [
     day,
     num_orders = (num_orders | as int),
     num_tracks = (num_tracks | as int),
-    total_price = (total_price | as float | round 2),
+    total_price = (total_price | as FLOAT | round 2),
     running_total_num_tracks = (running_total_num_tracks | as int),
     num_tracks_last_week = (num_tracks_last_week | as int)
 ]
