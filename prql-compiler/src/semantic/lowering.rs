@@ -655,6 +655,7 @@ impl Lowerer {
                     pl::BinOp::Lt => "std.lt",
                     pl::BinOp::Gte => "std.gte",
                     pl::BinOp::Lte => "std.lte",
+                    pl::BinOp::RegexSearch => "std.regex_search",
                     pl::BinOp::And => "std.and",
                     pl::BinOp::Or => "std.or",
                     pl::BinOp::Coalesce => "std.coalesce",

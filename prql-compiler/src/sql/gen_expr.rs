@@ -93,6 +93,11 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 Err(expr) => expr,
             };
 
+            let expr = match try_into_regex_function(expr, ctx)? {
+                Ok(between) => return Ok(between),
+                Err(expr) => expr,
+            };
+
             let expr = match try_into_binary_op(expr, ctx)? {
                 Ok(bin_op) => return Ok(bin_op),
                 Err(expr) => expr,
@@ -189,6 +194,49 @@ fn try_into_concat_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_
         distinct: false,
         special: false,
     })))
+}
+
+fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    let Some(regex_function) = ctx.dialect.regex_function() else {
+        // TODO: name the dialect
+        bail!("regex functions are not supported by this dialect");
+    };
+
+    let args = match try_unpack_regex_search(expr)? {
+        Ok(args) => args,
+        Err(expr) => return Ok(Err(expr)),
+    };
+
+    let args = args
+        .into_iter()
+        .map(|a| {
+            translate_expr(a, ctx)
+                .map(FunctionArgExpr::Expr)
+                .map(FunctionArg::Unnamed)
+        })
+        .try_collect()?;
+
+    Ok(Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
+        args,
+        over: None,
+        distinct: false,
+        special: false,
+    })))
+}
+
+fn try_unpack_regex_search(expr: Expr) -> Result<Result<Vec<Expr>, Expr>> {
+    let Some((_, _)) = try_unpack(&expr, [STD_REGEX_SEARCH])? else {
+        return Ok(Err(expr));
+    };
+    let [left, right] = unpack(expr, STD_REGEX_SEARCH);
+
+    let mut args = match try_unpack_concat(left)? {
+        Ok(args) => args,
+        Err(left) => vec![left],
+    };
+    args.push(right);
+    Ok(Ok(args))
 }
 
 fn try_unpack_concat(expr: Expr) -> Result<Result<Vec<Expr>, Expr>> {

@@ -167,6 +167,10 @@ pub(super) trait DialectHandler: Any + Debug {
     fn stars_in_group(&self) -> bool {
         true
     }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        Some("REGEXP")
+    }
 }
 
 impl dyn DialectHandler {
@@ -181,6 +185,9 @@ impl DialectHandler for GenericDialect {}
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
+    }
+    fn regex_function(&self) -> std::option::Option<&'static str> {
+        Some("REGEXP_LIKE")
     }
 }
 
@@ -205,6 +212,9 @@ impl DialectHandler for SQLiteDialect {
 impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
         true
+    }
+    fn regex_function(&self) -> Option<&'static str> {
+        None
     }
 }
 
@@ -241,6 +251,10 @@ impl DialectHandler for BigQueryDialect {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
         true
     }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        Some("REGEXP_CONTAINS")
+    }
 }
 
 impl DialectHandler for SnowflakeDialect {
@@ -264,6 +278,10 @@ impl DialectHandler for DuckDbDialect {
     fn except_all(&self) -> bool {
         // https://duckdb.org/docs/sql/query_syntax/setops.html
         false
+    }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        Some("REGEXP_MATCHES")
     }
 }
 

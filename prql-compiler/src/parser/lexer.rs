@@ -20,15 +20,16 @@ pub enum Token {
     /// single-char control tokens
     Control(char),
 
-    ArrowThin, // ->
-    ArrowFat,  // =>
-    Eq,        // ==
-    Ne,        // !=
-    Gte,       // >=
-    Lte,       // <=
-    And,       // &&
-    Or,        // ||
-    Coalesce,  // ??
+    ArrowThin,   // ->
+    ArrowFat,    // =>
+    Eq,          // ==
+    Ne,          // !=
+    Gte,         // >=
+    Lte,         // <=
+    RegexSearch, // ~=
+    And,         // &&
+    Or,          // ||
+    Coalesce,    // ??
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -42,6 +43,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("!=").to(Token::Ne),
         just(">=").to(Token::Gte),
         just("<=").to(Token::Lte),
+        just("~=").to(Token::RegexSearch),
         just("&&").then_ignore(end_expr()).to(Token::And),
         just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
@@ -395,6 +397,7 @@ impl std::fmt::Display for Token {
             Self::Ne => f.write_str("!="),
             Self::Gte => f.write_str(">="),
             Self::Lte => f.write_str("<="),
+            Self::RegexSearch => f.write_str("~="),
             Self::And => f.write_str("and"),
             Self::Or => f.write_str("or"),
             Self::Coalesce => f.write_str("??"),
