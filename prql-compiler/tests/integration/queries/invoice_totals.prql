@@ -24,9 +24,9 @@ derive [num_tracks_last_week = lag 7 num_tracks]
 select [
     month,
     day,
-    num_orders = s"CAST({num_orders} AS INT)",
-    num_tracks = s"CAST({num_tracks} AS INT)",
-    total_price = s"ROUND(CAST({total_price} AS FLOAT) * 100) / 100",
-    running_total_num_tracks = s"CAST({running_total_num_tracks} AS INT)",
-    num_tracks_last_week = s"CAST({num_tracks_last_week} AS INT)"
+    num_orders = (num_orders | as int),
+    num_tracks = (num_tracks | as int),
+    total_price = (total_price | as float | round 2),
+    running_total_num_tracks = (running_total_num_tracks | as int),
+    num_tracks_last_week = (num_tracks_last_week | as int)
 ]
