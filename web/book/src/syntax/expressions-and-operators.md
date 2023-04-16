@@ -33,7 +33,7 @@ operators? Should they be in this table?_
 |            and | `&&`              |     8      | left-to-right |
 |             or | <code>\|\|</code> |     9      | left-to-right |
 |  function call |                   |     10     |               |
-|   _parens (?)_ | `()`              |     ??     |   see table   |
+|   _parens (?)_ | `()`              |     ??     |   see below   |
 
 ## Parentheses
 
