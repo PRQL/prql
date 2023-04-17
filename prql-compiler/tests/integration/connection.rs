@@ -275,8 +275,7 @@ impl DBConnection for MysqlConnection {
     }
 
     fn modify_sql(&self, sql: String) -> String {
-        sql.replace('"', "`")
-            .replace("TIMESTAMP", "DATETIME")
+        sql.replace("TIMESTAMP", "DATETIME")
             .replace(" AS TEXT", " AS CHAR")
             .replace(" AS INT", " AS SIGNED")
     }
