@@ -8,7 +8,7 @@ repos:
       - id: check-yaml
       - id: mixed-line-ending
   - repo: https://github.com/crate-ci/typos
-    rev: v1.14.5
+    rev: v1.14.6
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
@@ -39,7 +39,7 @@ repos:
       - id: mypy
         additional_dependencies: ["types-PyYAML==6.0.12.4"]
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.11.0
+    rev: v3.11.1
     hooks:
       - id: markdown-link-check
         files: \.md$
