@@ -99,7 +99,7 @@ derive other_distance = (sum distance) # works as expected
 ```
 
 ```admonish note
-We are seeking feedback about these rules to see if they can be more intuitive.
+We're continuing to think whether these rules can be more intuitive.
 We're also planning to make the error messages much better,
 so the compiler can help out.
 ```
