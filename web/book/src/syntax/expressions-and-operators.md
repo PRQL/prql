@@ -41,13 +41,13 @@ PRQL uses parentheses `()` for several purposes:
 - Parentheses group operands to control the order of evaluation, for example:
   `((1 + x) * y)`
 
-- Parentheses denote an [inner transform](./inner-transforms.md) for the
+- Parentheses delimit an [inner transform](./inner-transforms.md) for the
   `group ()` and `window ()` transforms.
 
-- Parentheses denote a minus sign for a function argument, for example:
+- Parentheses delimit a minus sign of a function argument, for example:
   `add (-1) (-3)`
 
-- Parentheses denote nested function calls that contain a pipe, either the `|`
+- Parentheses delimit nested function calls that contain a pipe, either the `|`
   symbol or a new line. “Nested” means within a transform; i.e. not just the
   main pipeline, for example: `(column-name | in 0..20)`
 
