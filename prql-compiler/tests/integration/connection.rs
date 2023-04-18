@@ -38,6 +38,8 @@ pub trait DBConnection {
 
     fn get_dialect(&self) -> Dialect;
 
+    // We sometimes want to modify the SQL `INSERT` query (we don't modify the
+    // SQL `SELECT` query)
     fn modify_sql(&self, sql: String) -> String {
         sql
     }
