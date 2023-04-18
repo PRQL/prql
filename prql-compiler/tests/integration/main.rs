@@ -179,9 +179,7 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
 fn run_query(con: &mut dyn DBConnection, prql: &str, runtime: &Runtime) -> Vec<Row> {
     let options = Options::default().with_target(Sql(Some(con.get_dialect())));
     let sql = prql_compiler::compile(prql, &options).unwrap();
-    let mut actual_rows = con
-        .run_query(con.modify_sql(sql).as_str(), runtime)
-        .unwrap();
+    let mut actual_rows = con.run_query(sql.as_str(), runtime).unwrap();
     replace_booleans(&mut actual_rows);
     actual_rows
 }

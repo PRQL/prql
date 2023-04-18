@@ -99,6 +99,10 @@ impl DBConnection for DuckDBConnection {
     fn get_dialect(&self) -> Dialect {
         Dialect::DuckDb
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace("REAL", "DOUBLE")
+    }
 }
 
 impl DBConnection for SQLiteConnection {
@@ -178,7 +182,10 @@ impl DBConnection for PostgresConnection {
                         Ok(v) => v.to_string(),
                         Err(_) => "".to_string(),
                     },
-                    &Type::INT8 => (row.get::<usize, i64>(i)).to_string(),
+                    &Type::INT8 => match row.try_get::<usize, i64>(i) {
+                        Ok(v) => v.to_string(),
+                        Err(_) => "".to_string(),
+                    },
                     &Type::TEXT | &Type::VARCHAR | &Type::JSON | &Type::JSONB => {
                         match row.try_get::<usize, String>(i) {
                             Ok(v) => v,
@@ -223,8 +230,7 @@ impl DBConnection for PostgresConnection {
     }
 
     fn modify_sql(&self, sql: String) -> String {
-        sql.replace(" REAL", " NUMERIC")
-            .replace(" FLOAT", " NUMERIC")
+        sql.replace("REAL", "DOUBLE PRECISION")
     }
 }
 
@@ -276,8 +282,6 @@ impl DBConnection for MysqlConnection {
 
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("TIMESTAMP", "DATETIME")
-            .replace(" AS TEXT", " AS CHAR")
-            .replace(" AS INT", " AS SIGNED")
     }
 }
 
@@ -296,6 +300,7 @@ impl DBConnection for MssqlConnection {
 
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("TIMESTAMP", "DATETIME")
+            .replace("REAL", "FLOAT(53)")
             .replace(" AS TEXT", " AS VARCHAR")
     }
 }
@@ -319,10 +324,16 @@ impl MssqlConnection {
                         .get::<i32, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Floatn => row
-                        .get::<f64, usize>(i)
-                        .map(|i| i.to_string())
-                        .unwrap_or_else(|| "".to_string()),
+                    ColumnType::Floatn => vec![
+                        row.try_get::<f32, usize>(i).map(|o| o.map(|n| n as f64)),
+                        row.try_get::<f64, usize>(i),
+                    ]
+                    .into_iter()
+                    .find(|r| r.is_ok())
+                    .unwrap()
+                    .unwrap()
+                    .map(|i| i.to_string())
+                    .unwrap_or_else(|| "".to_string()),
                     ColumnType::Numericn | ColumnType::Decimaln => row
                         .get::<BigDecimal, usize>(i)
                         .map(|d| d.normalized())

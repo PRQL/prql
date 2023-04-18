@@ -3,24 +3,24 @@ source: prql-compiler/tests/integration/main.rs
 expression: result_string
 input_file: prql-compiler/tests/integration/queries/invoice_totals.prql
 ---
-2009-01,2009-01-01,1,2,1.98,2,
-2009-01,2009-01-02,1,4,3.96,6,
-2009-01,2009-01-03,1,6,5.94,12,
-2009-01,2009-01-06,1,9,8.91,21,
-2009-01,2009-01-11,1,14,13.86,35,
-2009-01,2009-01-19,1,1,0.99,36,
-2009-02,2009-02-01,2,4,3.96,4,
-2009-02,2009-02-02,1,4,3.96,8,2
-2009-02,2009-02-03,1,6,5.94,14,4
-2009-02,2009-02-06,1,9,8.91,23,6
-2009-02,2009-02-11,1,14,13.86,37,9
-2009-02,2009-02-19,1,1,0.99,38,14
-2009-03,2009-03-04,2,4,3.96,4,1
-2009-03,2009-03-05,1,4,3.96,8,4
-2009-03,2009-03-06,1,6,5.94,14,4
-2009-03,2009-03-09,1,9,8.91,23,6
-2009-03,2009-03-14,1,14,13.86,37,9
-2009-03,2009-03-22,1,1,0.99,38,14
-2009-04,2009-04-04,2,4,3.96,4,1
-2009-04,2009-04-05,1,4,3.96,8,4
+Amsterdam,Lijnbaansgracht 120bg,7,38,38,
+Bangalore,3,Raj Bhavan Road,6,36,36,
+Berlin,Barbarossastraße 19,7,38,38,
+Berlin,Tauentzienstraße 8,7,38,76,
+Bordeaux,9, Place Louis Barthou,7,38,38,
+Boston,69 Salem Street,7,38,38,
+Brasília,Qe 7 Bloco G,7,38,38,
+Brussels,Grétrystraat 63,7,38,38,38
+Budapest,Erzsébet krt. 58.,7,38,38,36
+Buenos Aires,307 Macacha Güemes,7,38,38,38
+Chicago,162 E Superior Street,7,38,38,38
+Copenhagen,Sønder Boulevard 51,7,38,38,38
+Cupertino,1 Infinite Loop,7,38,38,38
+Delhi,12,Community Centre,7,38,38,38
+Dijon,68, Rue Jouvence,7,38,38,38
+Dublin,3 Chatham Street,7,38,38,38
+Edinburgh ,110 Raeburn Pl,7,38,38,38
+Edmonton,8210 111 ST NW,7,38,38,38
+Fort Worth,2211 W Berry Street,7,38,38,38
+Frankfurt,Berger Straße 10,7,38,38,38
 
