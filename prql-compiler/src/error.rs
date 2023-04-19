@@ -37,7 +37,7 @@ pub struct SourceLocation {
 }
 
 /// Compile message kind. Currently only Error is implemented.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum MessageKind {
     Error,
     Warning,
