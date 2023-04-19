@@ -1,6 +1,9 @@
 use std::env::current_dir;
+use std::fs;
+use std::path::PathBuf;
 use std::time::SystemTime;
 
+use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use mysql::prelude::Queryable;
@@ -29,17 +32,23 @@ pub struct MysqlConnection(pub mysql::Pool);
 pub struct MssqlConnection(pub tiberius::Client<Compat<TcpStream>>);
 
 pub trait DBConnection {
-    fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Vec<Row>;
+    fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
 
     fn get_dialect(&self) -> Dialect;
+
+    // We sometimes want to modify the SQL `INSERT` query (we don't modify the
+    // SQL `SELECT` query)
+    fn modify_sql(&self, sql: String) -> String {
+        sql
+    }
 }
 
 impl DBConnection for DuckDBConnection {
-    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Vec<Row> {
-        let mut statement = self.0.prepare(sql).unwrap();
-        let mut rows = statement.query([]).unwrap();
+    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
+        let mut statement = self.0.prepare(sql)?;
+        let mut rows = statement.query([])?;
         let mut vec = vec![];
         while let Ok(Some(row)) = rows.next() {
             let mut columns = vec![];
@@ -76,36 +85,32 @@ impl DBConnection for DuckDBConnection {
             }
             vec.push(columns)
         }
-        vec
+        Ok(vec)
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        let mut path = current_dir().unwrap();
-        for p in [
-            "tests",
-            "integration",
-            "data",
-            "chinook",
-            format!("{csv_name}.csv").as_str(),
-        ] {
-            path.push(p);
-        }
+        let path = get_path_for_table(csv_name);
         let path = path.display().to_string().replace('"', "");
         self.run_query(
             &format!("COPY {csv_name} FROM '{path}' (AUTO_DETECT TRUE);"),
             runtime,
-        );
+        )
+        .unwrap();
     }
 
     fn get_dialect(&self) -> Dialect {
         Dialect::DuckDb
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace("REAL", "DOUBLE")
+    }
 }
 
 impl DBConnection for SQLiteConnection {
-    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Vec<Row> {
-        let mut statement = self.0.prepare(sql).unwrap();
-        let mut rows = statement.query([]).unwrap();
+    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
+        let mut statement = self.0.prepare(sql)?;
+        let mut rows = statement.query([])?;
         let mut vec = vec![];
         while let Ok(Some(row)) = rows.next() {
             let mut columns = vec![];
@@ -128,20 +133,11 @@ impl DBConnection for SQLiteConnection {
             }
             vec.push(columns);
         }
-        vec
+        Ok(vec)
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        let mut path = current_dir().unwrap();
-        for p in [
-            "tests",
-            "integration",
-            "data",
-            "chinook",
-            format!("{csv_name}.csv").as_str(),
-        ] {
-            path.push(p);
-        }
+        let path = get_path_for_table(csv_name);
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(true)
             .from_path(path)
@@ -165,7 +161,7 @@ impl DBConnection for SQLiteConnection {
                     })
                     .join(",")
             );
-            self.run_query(q.as_str(), runtime);
+            self.run_query(q.as_str(), runtime).unwrap();
         }
     }
 
@@ -175,8 +171,8 @@ impl DBConnection for SQLiteConnection {
 }
 
 impl DBConnection for PostgresConnection {
-    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Vec<Row> {
-        let rows = self.0.query(sql, &[]).unwrap();
+    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
+        let rows = self.0.query(sql, &[])?;
         let mut vec = vec![];
         for row in rows.into_iter() {
             let mut columns = vec![];
@@ -188,7 +184,10 @@ impl DBConnection for PostgresConnection {
                         Ok(v) => v.to_string(),
                         Err(_) => "".to_string(),
                     },
-                    &Type::INT8 => (row.get::<usize, i64>(i)).to_string(),
+                    &Type::INT8 => match row.try_get::<usize, i64>(i) {
+                        Ok(v) => v.to_string(),
+                        Err(_) => "".to_string(),
+                    },
                     &Type::TEXT | &Type::VARCHAR | &Type::JSON | &Type::JSONB => {
                         match row.try_get::<usize, String>(i) {
                             Ok(v) => v,
@@ -198,19 +197,24 @@ impl DBConnection for PostgresConnection {
                     }
                     &Type::FLOAT4 => (row.get::<usize, f32>(i)).to_string(),
                     &Type::FLOAT8 => (row.get::<usize, f64>(i)).to_string(),
-                    &Type::NUMERIC => row.get::<usize, PgNumeric>(i).n.unwrap().to_string(),
+                    &Type::NUMERIC => row
+                        .get::<usize, PgNumeric>(i)
+                        .n
+                        .map(|d| d.normalized())
+                        .unwrap()
+                        .to_string(),
                     &Type::TIMESTAMPTZ | &Type::TIMESTAMP => {
                         let time = row.get::<usize, SystemTime>(i);
                         let date_time: DateTime<Utc> = time.into();
                         date_time.to_rfc3339()
                     }
-                    typ => unimplemented!("postgres type {:?}", typ),
+                    typ => bail!("postgres type {:?}", typ),
                 };
                 columns.push(value);
             }
             vec.push(columns);
         }
-        vec
+        Ok(vec)
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
@@ -219,18 +223,23 @@ impl DBConnection for PostgresConnection {
                 "COPY {csv_name} FROM '/tmp/chinook/{csv_name}.csv' DELIMITER ',' CSV HEADER;"
             ),
             runtime,
-        );
+        )
+        .unwrap();
     }
 
     fn get_dialect(&self) -> Dialect {
         Dialect::PostgreSql
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace("REAL", "DOUBLE PRECISION")
+    }
 }
 
 impl DBConnection for MysqlConnection {
-    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Vec<Row> {
-        let mut conn = self.0.get_conn().unwrap();
-        let rows: Vec<mysql::Row> = conn.query(sql).unwrap();
+    fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
+        let mut conn = self.0.get_conn()?;
+        let rows: Vec<mysql::Row> = conn.query(sql)?;
         let mut vec = vec![];
         for row in rows.into_iter() {
             let mut columns = vec![];
@@ -242,45 +251,69 @@ impl DBConnection for MysqlConnection {
                     Value::UInt(v) => v.to_string(),
                     Value::Float(v) => v.to_string(),
                     Value::Double(v) => v.to_string(),
-                    typ => unimplemented!("mysql type {:?}", typ),
+                    typ => bail!("mysql type {:?}", typ),
                 };
                 columns.push(value);
             }
             vec.push(columns);
         }
-        vec
+        Ok(vec)
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        self.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
+        // hacky hack for MySQL
+        // MySQL needs a special character in csv that means NULL (https://stackoverflow.com/a/2675493)
+        // 1. read the csv
+        // 2. create a copy with the special character
+        // 3. import the data and remove the copy
+        let old_path = get_path_for_table(csv_name);
+        let mut new_path = old_path.clone();
+        new_path.pop();
+        new_path.push(format!("{csv_name}.my.csv").as_str());
+        let mut file_content = fs::read_to_string(old_path).unwrap();
+        file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
+        fs::write(&new_path, file_content).unwrap();
+        let query_result = self.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
+        fs::remove_file(&new_path).unwrap();
+        query_result.unwrap();
     }
 
     fn get_dialect(&self) -> Dialect {
         Dialect::MySql
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace("TIMESTAMP", "DATETIME")
+    }
 }
 
 impl DBConnection for MssqlConnection {
-    fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Vec<Row> {
+    fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>> {
         runtime.block_on(self.query(sql))
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime);
+        self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
     }
 
     fn get_dialect(&self) -> Dialect {
         Dialect::MsSql
     }
+
+    fn modify_sql(&self, sql: String) -> String {
+        sql.replace("TIMESTAMP", "DATETIME")
+            .replace("REAL", "FLOAT(53)")
+            .replace(" AS TEXT", " AS VARCHAR")
+    }
 }
 
 impl MssqlConnection {
-    async fn query(&mut self, sql: &str) -> Vec<Row> {
-        let mut stream = self.0.query(sql, &[]).await.unwrap();
+    async fn query(&mut self, sql: &str) -> Result<Vec<Row>> {
+        let mut stream = self.0.query(sql, &[]).await?;
         let mut vec = vec![];
-        let cols_option = stream.columns().await.unwrap();
+        let cols_option = stream.columns().await?;
         if cols_option.is_none() {
-            return vec![];
+            return Ok(vec);
         }
         let cols = cols_option.unwrap().to_vec();
         for row in stream.into_first_result().await.unwrap() {
@@ -293,24 +326,48 @@ impl MssqlConnection {
                         .get::<i32, usize>(i)
                         .map(|i| i.to_string())
                         .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Floatn => row
-                        .get::<f64, usize>(i)
-                        .map(|i| i.to_string())
-                        .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Numericn => row.get::<BigDecimal, usize>(i).unwrap().to_string(),
+                    ColumnType::Floatn => vec![
+                        row.try_get::<f32, usize>(i).map(|o| o.map(|n| n as f64)),
+                        row.try_get::<f64, usize>(i),
+                    ]
+                    .into_iter()
+                    .find(|r| r.is_ok())
+                    .unwrap()
+                    .unwrap()
+                    .map(|i| i.to_string())
+                    .unwrap_or_else(|| "".to_string()),
+                    ColumnType::Numericn | ColumnType::Decimaln => row
+                        .get::<BigDecimal, usize>(i)
+                        .map(|d| d.normalized())
+                        .unwrap()
+                        .to_string(),
                     ColumnType::BigVarChar | ColumnType::NVarchar => {
                         String::from(row.get::<&str, usize>(i).unwrap_or(""))
                     }
                     ColumnType::Datetimen => {
                         row.get::<PrimitiveDateTime, usize>(i).unwrap().to_string()
                     }
-                    typ => unimplemented!("mssql type {:?}", typ),
+                    typ => bail!("mssql type {:?}", typ),
                 };
                 columns.push(value);
             }
             vec.push(columns);
         }
 
-        vec
+        Ok(vec)
     }
+}
+
+fn get_path_for_table(csv_name: &str) -> PathBuf {
+    let mut path = current_dir().unwrap();
+    for p in [
+        "tests",
+        "integration",
+        "data",
+        "chinook",
+        format!("{csv_name}.csv").as_str(),
+    ] {
+        path.push(p);
+    }
+    path
 }

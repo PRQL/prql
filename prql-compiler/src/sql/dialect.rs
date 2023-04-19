@@ -216,6 +216,15 @@ impl DialectHandler for MsSqlDialect {
     fn regex_function(&self) -> Option<&'static str> {
         None
     }
+
+    // https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16
+    fn except_all(&self) -> bool {
+        false
+    }
+
+    fn set_ops_distinct(&self) -> bool {
+        false
+    }
 }
 
 impl DialectHandler for MySqlDialect {
