@@ -91,9 +91,8 @@ module my_playlists {
 
 ## Main var declaration
 
-If the final declaration in a module is a variable declaration that is named
-`main`, then the leading `let main = ` can be omitted and expressed only by the
-expression itself.
+The final variable declaration in a module can omit the leading `let main =` and
+acquire an implicit name main.
 
 ```
 module my_playlists {
