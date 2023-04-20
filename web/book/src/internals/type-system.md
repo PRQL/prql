@@ -39,7 +39,7 @@ In practical terms, we want for a user to be able to:
   user's SQL database and generating PRQL source.
 
 - ... express their SQL queries in PRQL. Again, using mapping from STS to PTS,
-  one should be able to express an SQL operation in PRQL.
+  one should be able to express any SQL operation in PRQL.
 
   For example, translate MSSQL `DATEDIFF` to subtraction operator `-` in PRQL.
 
@@ -75,9 +75,9 @@ flexibility, all while being conceptually simple.
 
 **Composable** - as with transformation, we'd want types to compose together.
 
-Using Python, JavaScript, C++ or Rust, one could define many different a data
-structure that would correspond to our idea of "relation". Most of them would be
-an object/struct that has column names and types and then a generic array of
+Using Python, JavaScript, C++ or Rust, one could define many different data
+structures that would correspond to our idea of "relation". Most of them would
+be an object/struct that has column names and types and then a generic array of
 arrays for rows.
 
 PRQL's type system should also be able to express relations as composed from
@@ -93,7 +93,7 @@ I would also strive for the type system to be minimal - don't differentiate
 between tuples, objects and structs. Choose one and stick to it.
 
 **Type constraints** - constrain a type with a predicate. For example, have a
-type of int64 that are equal or greater than 10. Postgres
+type of `int64`s that are equal or greater than 10. Postgres
 [does support this](https://news.ycombinator.com/item?id=34835063). The primary
 value of using constrained types would not be validation (as it is used in
 linked article), but when matching the type.
@@ -191,8 +191,8 @@ As shown, types can be defined by defining expressions and coercing them to set
 expressions by using `< >`.
 
 But similar to how both `func` and `let` can be used to define functions (when
-we introduce lambda function syntax), let's also define syntactic sugar for type
-definitions:
+we introduce lambda function syntax), let's also introduce syntactic sugar for
+type definitions:
 
 ```
 # these two are equivalent
@@ -208,8 +208,8 @@ type my_type = set_expr
 is known at compile-time. Each field has a type itself and an optional name.
 Fields are not necessarily of the same type.
 
-In other languages, similar constructs are named struct, tuple, named tuple or
-(data)class.
+In other languages, similar constructs are named record, struct, tuple, named
+tuple or (data)class.
 
 **Array** is a container type that contains n ordered fields, where n is not
 known at compile-time. All fields are of the same type and cannot be named.
@@ -244,7 +244,7 @@ Note that STS types do not have a single physical layout. Postgres has a logical
 used as a function parameter type, but does not have a single physical layout so
 it cannot be used in a column declaration.
 
-For now, PRQL does not define a physical layout of any type. It is not needed
+For now, PRQL does not define physical layouts of any type. It is not needed
 since PRQL is not used for DDL (see section "Built-in primitives") or does not
 support raw access to underlying memory.
 
@@ -295,8 +295,11 @@ type invoices = {[
 This document mentions `int32` and `int64` as distinct types, but there is no
 need for that in the initial implementation. The built-in `int` can associate
 with all operations on integers and translate PRQL to valid SQL regardless of
-the size of the integer. Later, `int` be replaced by
-`type int = int8 or int16 or int32 or int64`.
+the size of the integer. Later, `int` cam be replaced by:
+
+```
+type int = int8 || int16 || int32 || int64
+```
 
 The general rule for "when to make a distinction between types" would be "as
 soon as the types carry different information and we find an operation that
@@ -308,25 +311,105 @@ Language and does not have to bother with exact physical layout of types.
 
 ### Non-bijection cases between PTS and STS
 
-There are cases where a PTS construct has multiple possible and valid
-representations in some STSs.
+### Type representations
 
-For such cases, we'd want to have something similar to Rust's `#[repr(X)]` which
-says "data in this type is represented as X" (we'd probably want a different
-syntax).
+There are cases where a PTS type has multiple possible and valid representations
+in some STSs.
 
-This is needed because translation from PRQL operations to SQL may depend on the
-representation.
+For such cases, we'd want to support the use of alternative representations for
+storing data, but also application of any function that is defined for the
+original type.
 
-Using SQLite as an example again, users may have some data stored as INTEGER and
-some as TEXT, but would want to define both of them as PTS `timestamp`. They
-would attach `#[repr(INTEGER)]` or `#[repr(TEXT)]` to the type. This would
-affect how `timestamp - timestamp` is translated into SQL. INTEGER can use
-normal int subtraction, but TEXT must apply `unixepoch` first.
+Using SQLite as an example again, users may have some temporal data stored as
+INTEGER unix timestamp and some as TEXT that contains ISO 8601 without timezone.
+From the user's perspective, both of these types are `timestamp`s and should be
+declared as such. But when compiling operations over these types to SQL, the
+compiler should consider their different representations in STS. For example a
+difference between two timestamps `timestamp - timestamp` can be translated to a
+normal int subtraction for INTEGER repr, but must apply SQLite's function
+`unixepoch` when dealing with TEXT repr.
 
-A similar example is a "string array type" in PTS that could be represented by a
-`text[]` (if DBMS supports arrays) or `json` or it's variant `jsonb` in
-Postgres. Again, the representation would affect operators: in Postgres arrays
-can be access with `my_array[1]` and json uses `my_json_array -> 1`. This
-example may not be applicable, if we decide that we want a separate JSON type in
-PST.
+Table declarations should therefore support annotations that give hints about
+which representation is used:
+
+```
+table foo {
+    #[repr(text)]
+    created_at: timestamp,
+}
+```
+
+A similar example is an "array of strings type" in PTS that could be represented
+by a `text[]` (if DBMS supports arrays) or `json` or it's variant `jsonb` in
+Postgres. Again, the representation would affect operators: in Postgres, arrays
+would be accessed with `my_array[1]` and json arrays would use
+`my_json_array -> 1`. This example may not be applicable, if we decide that we
+want a separate JSON type in PST.
+
+### RQ functions, targets and reprs
+
+> This part is talks about technical implementations, not the language itself
+
+#### Idea
+
+RQ contains a single node kind for expressing operations and functions:
+BuiltInFunction (may be renamed in the future).
+
+It is a bottleneck that we can leverage when trying to affect how an operator or
+a function interacts with different type representations on different targets.
+
+Idea is to implement the BuiltInFunction mutiple times and annotate it with it
+intended target and parameter representation. Then we can teach the compiler to
+pick the appropriate function implementation that suit current repr and
+compilation target.
+
+#### Specifics
+
+RQ specification is an interface that contains functions, identified by name
+(i.e. `std.int8.add`). These functions have typed parameters and a return value.
+If an RQ function call does not match the function declaration in number or in
+types of the parameters, this is considered an invalid RQ AST.
+
+We provide multiple implementations for each RQ function. They are annotated
+with a target (i.e. `#[target(sql.sqlite)]`) and have their params annotated
+with type reprs (i.e. `#[repr(int)]`).
+
+```
+# using a made-up syntax
+
+#[target(sql.sqlite)]
+func std.int8.add
+    #[repr(int8)] x
+    #[repr(int8)] y
+    -> s"{x} + {y}"
+```
+
+Each RQ type has one canonical repr that serves as the reference implementation
+for other reprs and indicates the amount of contained data (i.e. 1 bit, 8 bits,
+64 bits).
+
+#### Example
+
+Let's say for example, that we'd want to support 8bit integer arithmentic, and
+that we'd want the result of `127 + 1` to be `-128` (ideally we'd handle this
+better, but bear with me for the sake of the example). Because some RDBMSs don't
+support 8bit numbers and do all their integer computation with 64bit numbers
+(SQLite), we need to implement an alternative type representation for that
+target.
+
+The logical type `int8` could have the following two reprs:
+
+- canonical `repr_int8` that contains 8 bits in two's complement, covering
+  integer values in range -128 to 127 (inclusive),
+- `repr_int64` that contains 64 bits of data, but is using only the values that
+  are also covered by `repr_int8`.
+
+Now we'd implement function `std.int8.add` for each of the reprs. Let's assume
+that the `int8` implementation is straightforward and that databases don't just
+change the data type when a number overflows. The impl for `int64` requires a
+CASE statement that checks if the value would overflow and subtact 256 in that
+case.
+
+The goal here is that the results of the two impls are equivalent. To
+validate that, we also need a way to convert between the reprs, or another
+`to_string` function, implemented for both reprs.
