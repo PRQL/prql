@@ -358,7 +358,7 @@ BuiltInFunction (may be renamed in the future).
 It is a bottleneck that we can leverage when trying to affect how an operator or
 a function interacts with different type representations on different targets.
 
-Idea is to implement the BuiltInFunction mutiple times and annotate it with it
+Idea is to implement the BuiltInFunction multiple times and annotate it with it
 intended target and parameter representation. Then we can teach the compiler to
 pick the appropriate function implementation that suit current repr and
 compilation target.
@@ -390,7 +390,7 @@ for other reprs and indicates the amount of contained data (i.e. 1 bit, 8 bits,
 
 #### Example
 
-Let's say for example, that we'd want to support 8bit integer arithmentic, and
+Let's say for example, that we'd want to support 8bit integer arithmetic, and
 that we'd want the result of `127 + 1` to be `-128` (ideally we'd handle this
 better, but bear with me for the sake of the example). Because some RDBMSs don't
 support 8bit numbers and do all their integer computation with 64bit numbers
@@ -410,6 +410,6 @@ change the data type when a number overflows. The impl for `int64` requires a
 CASE statement that checks if the value would overflow and subtact 256 in that
 case.
 
-The goal here is that the results of the two impls are equivalent. To
-validate that, we also need a way to convert between the reprs, or another
-`to_string` function, implemented for both reprs.
+The goal here is that the results of the two impls are equivalent. To validate
+that, we also need a way to convert between the reprs, or another `to_string`
+function, implemented for both reprs.
