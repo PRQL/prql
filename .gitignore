@@ -31,3 +31,5 @@ _*.pl
 # snapshots), we can adjust.
 *.pending-snap
 *.snap.new
+
+*.my.csv

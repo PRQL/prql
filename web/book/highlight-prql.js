@@ -205,8 +205,8 @@ formatting = function (hljs) {
 
 hljs.registerLanguage("prql", formatting);
 hljs.registerLanguage("prql_no_test", formatting);
-hljs.registerLanguage("prql_error", formatting);
-hljs.registerLanguage("prql_no_fmt", formatting);
+hljs.registerLanguage("prql,error", formatting);
+hljs.registerLanguage("prql,no-fmt", formatting);
 hljs.registerLanguage("elm", formatting);
 
 // These lines should only exists in the book, not the website.
@@ -217,7 +217,7 @@ Array.from(document.querySelectorAll("code.language-prql")).forEach(
   (a) => console.log(a) || hljs.highlightBlock(a)
 );
 
-Array.from(document.querySelectorAll("code.language-prql_error")).forEach(
+Array.from(document.querySelectorAll("code.language-prql,error")).forEach(
   (a) => console.log(a) || hljs.highlightBlock(a)
 );
 

@@ -1,22 +1,91 @@
 # PRQL Changelog
 
-## 0.6.2 — [unreleased]
+## 0.8.0 — 2023-04-14
+
+0.8.0 renames the `and` & `or` operators to `&&` & `||` respectively,
+reorganizes the Syntax section in the book, and introduces `read_parquet` &
+`read_csv` functions for reading files with DuckDB.
+
+This release has 38 commits from 8 contributors. Selected changes:
+
+**Features**:
+
+- Rename `and` to `&&` and `or` to `||`. Operators which are symbols are now
+  consistently infix, while "words" are now consistently functions (@aljazerzen,
+  #2422).
+
+- New functions `read_parquet` and `read_csv`, which mirror the DuckDB
+  functions, instructing the database to read from files (@max-sixty, #2409).
+
+## 0.7.1 — 2023-04-03
+
+0.7.1 is a hotfix release to fix `prql-js`'s `npm install` behavior when being
+installed as a dependency.
+
+This release has 17 commits from 4 contributors.
+
+## 0.7.0 — 2023-04-01
+
+0.7.0 is a fairly small release in terms of new features, with lots of internal
+improvements, such as integration tests with a whole range of DBs, a blog post
+on Pi day, RFCs for a type system, and more robust language bindings.
+
+There's a very small breaking change to the rust API, hence the minor version
+bump.
+
+Here's our April 2023 Update, from our
+[Readme](https://github.com/PRQL/prql/blob/main/README.md):
+
+> ### April 2023 update
+>
+> PRQL is being actively developed by a growing community. It's ready to use by
+> the intrepid, either as part of one of our supported extensions, or within
+> your own tools, using one of our supported language bindings.
+>
+> PRQL still has some minor bugs and some missing features, and probably is only
+> ready to be rolled out to non-technical teams for fairly simple queries.
+>
+> Here's our current [Roadmap](https://prql-lang.org/roadmap/) and our
+> [Milestones.](https://github.com/PRQL/prql/milestones)
+>
+> Our immediate focus for the code is on:
+>
+> - Building out the next few big features, including
+>   [types](https://github.com/PRQL/prql/pull/1964) and
+>   [modules](https://github.com/PRQL/prql/pull/2129).
+> - Ensuring our supported features feel extremely robust; resolving any
+>   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
+>
+> We're also spending time thinking about:
+>
+> - Making it really easy to start using PRQL. We're doing that by building
+>   integrations with tools that folks already use; for example our VS Code
+>   extension & Jupyter integration. If there are tools you're familiar with
+>   that you think would be open to integrating with PRQL, please let us know in
+>   an issue.
+> - Making it easier to contribute to the compiler. We have a wide group of
+>   contributors to the project, but contributions to the compiler itself are
+>   quite concentrated. We're keen to expand this;
+>   [#1840](https://github.com/PRQL/prql/issues/1840) for feedback.
+
+---
+
+The release has 131 commits from 10 contributors. Particular credit goes to to
+@eitsupi & @jelenkee, who have made significant contributions, and
+@vanillajonathan, whose prolific contribution include our growing language
+bindings.
+
+A small selection of the changes:
 
 **Features**:
 
 - `prqlc compile` adds `--color` & `--include-signature-comment` options.
   (@max-sixty, #2267)
 
-**Fixes**:
-
-**Documentation**:
-
 **Web**:
 
 - Added the PRQL snippets from the book to the
   [Playground](https://prql-lang.org/playground/) (@jelenkee, #2197)
-
-**Integrations**:
 
 **Internal changes**:
 
@@ -25,8 +94,12 @@
   technically a breaking change to the API. (@max-sixty, #2251)
 - The `Error` struct now exposes the `MessageKind` enum. (@vanillajonathan,
   #2307)
+- Integration tests run in CI with DuckDB, SQLite, PostgreSQL, MySQL and SQL
+  Server (@jelenkee, #2286)
 
 **New Contributors**:
+
+- @k-nut, with #2294
 
 ## 0.6.1 — 2023-03-12
 
@@ -96,6 +169,33 @@ This release has 108 commits from 11 contributors. Selected changes:
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
+- Add a new subcommand `prqlc jinja`. (@aljazerzen, #1722)
+- _Breaking_: prql-compiler no longer passes text containing `{{` & `}}` through
+  to the output. (@aljazerzen, #1722)
+
+  For example, the following PRQL query
+
+  ```prql no-eval
+  from {{foo}}
+  ```
+
+  was compiled to the following SQL previously, but now it raises an error.
+
+  ```sql
+  SELECT
+    *
+  FROM
+    {{ foo }}
+  ```
+
+  This pass-through feature existed for integration with dbt.
+
+  we're again considering how to best integrate with dbt, and this change is
+  based on the idea that the jinja macro should run before the PRQL compiler.
+
+  If you're interested in dbt integration, subscribe or 👍 to
+  <https://github.com/dbt-labs/dbt-core/pull/5982>.
+
 - A new compile target `"sql.any"`. When `"sql.any"` is used as the target of
   the compile function's option, the target contained in the query header will
   be used. (@aljazerzen, #1995)
@@ -233,17 +333,21 @@ This release has 74 commits from 12 contributors. Selected changes:
   formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
   be a string in any format. (@aljazerzen & @snth, #1514)
 
-  ```prql
+  ```prql no-eval
   from_text format:csv """
   a,b,c
   1,2,3
   4,5,6
   """
+  ```
 
+  ```prql no-eval
   from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
   '''
+  ```
 
+  ```prql no-eval
   from_text format:json '''{
       "columns": ["a", "b", "c"],
       "data": [
@@ -276,7 +380,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 
 - Inferred column names include the relation name (@aljazerzen, #1550):
 
-  ```prql
+  ```prql no-eval
   from albums
   select title # name used to be inferred as title only
   select albums.title # so using albums was not possible here
@@ -315,7 +419,7 @@ below in this release).
   a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
-  ```prql
+  ```prql no-eval
   derive var = case [
     score <= 10 -> "low",
     score <= 30 -> "medium",
@@ -346,7 +450,7 @@ below in this release).
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
   #1329)
 
-  ```prql
+  ```prql no-eval
   from albums
   select ![title, composer]
   ```
@@ -354,7 +458,7 @@ below in this release).
 - _Experimental:_ `append` transform, equivalent to `UNION ALL` in SQL.
   (@aljazerzen, #894)
 
-  ```prql
+  ```prql no-eval
   from employees
   append managers
   ```
@@ -366,7 +470,7 @@ below in this release).
 - Numbers can contain underscores, which can make reading long numbers easier
   (@max-sixty, #1467):
 
-  ```prql
+  ```prql no-eval
   from numbers
   select [
       small = 1.000_000_1,
@@ -379,7 +483,7 @@ below in this release).
 - `dialect` is renamed to `target`, and its values are prefixed with `sql.`
   (@max-sixty, #1388); for example:
 
-  ```prql
+  ```prql no-eval
   prql target:sql.bigquery  # previously was `dialect:bigquery`
 
   from employees
@@ -391,7 +495,7 @@ below in this release).
 - Tables definitions can contain a bare s-string (@max-sixty, #1422), which
   enables us to include a full CTE of SQL, for example:
 
-  ```prql
+  ```prql no-eval
   let grouping = s"""
     SELECT SUM(a)
     FROM tbl
@@ -468,7 +572,7 @@ improvements]
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
 
-  ```prql
+  ```prql no-eval
   from s"SELECT * FROM employees WHERE foo > 5"
   ```
 
@@ -612,7 +716,7 @@ fix rather than a breaking change in semantic versioning.
   last; for example `round 2 foo_col` / `cast int foo`. This is consistent with
   other functions, and makes piping possible:
 
-  ```prql
+  ```prql no-eval
   derive [
     gross_salary = (salary + payroll_tax | as int),
     gross_salary_rounded = (gross_salary | round 0),
@@ -700,9 +804,9 @@ We also have new features in the
 0.2.5 is a very small release following 0.2.4 yesterday. It includes:
 
 - Add the ability to represent single brackets in an s-string, with two brackets
-  (#752, @max-sixty )
+  (#752, @max-sixty)
 - Fix the "Copy to Clipboard" command in the Playground, for Firefox (#880,
-  @mklopets )
+  @mklopets)
 
 ## 0.2.4 - 2022-07-28
 
@@ -712,16 +816,16 @@ includes:
 - Enrich our CLI, adding commands to get different stages of the compilation
   process (@aljazerzen , #863)
 - Fix multiple `take n` statements in a query, leading to duplicate proxy
-  columns in generated SQL (@charlie-sanders )
-- Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty )
-- Some internal changes — reorganize top-level functions (@aljazerzen ), add a
-  workflow to track our Rust compilation time (@max-sixty ), simplify our simple
-  prql-to-sql tests (@max-sixty )
+  columns in generated SQL (@charlie-sanders)
+- Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty)
+- Some internal changes — reorganize top-level functions (@aljazerzen), add a
+  workflow to track our Rust compilation time (@max-sixty), simplify our simple
+  prql-to-sql tests (@max-sixty)
 
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
-`brew install prql-compiler`[^2].
+`brew install prql-compiler`[^1].
 
-[^2]:
+[^1]:
     we still need to update docs and add a release workflow for this:
     <https://github.com/PRQL/prql/issues/866>
 
@@ -732,23 +836,22 @@ mid-sized features to the language, and made a bunch of internal improvements.
 
 The 0.2.3 release includes:
 
-- Allow for escaping otherwise-invalid identifiers (@aljazerzen & @max-sixty )
-- Fix a bug around operator precedence (@max-sixty )
-- Add a section the book on the language bindings (@charlie-sanders )
+- Allow for escaping otherwise-invalid identifiers (@aljazerzen & @max-sixty)
+- Fix a bug around operator precedence (@max-sixty)
+- Add a section the book on the language bindings (@charlie-sanders)
 - Add tests for our `Display` representation while fixing some existing bugs.
-  This is gradually becoming our code formatter (@arrizalamin )
-- Add a "copy to clipboard" button in the Playground (@mklopets )
+  This is gradually becoming our code formatter (@arrizalamin)
+- Add a "copy to clipboard" button in the Playground (@mklopets)
 - Add lots of guidance to our `CONTRIBUTING.md` around our tests and process for
-  merging (@max-sixty )
-- Add a `prql!` macro for parsing a prql query at compile time (@aljazerzen )
-- Add tests for `prql-js` (@charlie-sanders )
-- Add a `from_json` method for transforming json to a PRQL string (@arrizalamin
-  )
-- Add a workflow to release `prql-java` to Maven (@doki23 )
+  merging (@max-sixty)
+- Add a `prql!` macro for parsing a prql query at compile time (@aljazerzen)
+- Add tests for `prql-js` (@charlie-sanders)
+- Add a `from_json` method for transforming json to a PRQL string (@arrizalamin)
+- Add a workflow to release `prql-java` to Maven (@doki23)
 - Enable running all tests from a PR by adding a `pr-run-all-tests` label
-  (@max-sixty )
-- Have `cargo-release` to bump all crate & npm versions (@max-sixty )
-- Update `prql-js` to use the bundler build of `prql-js` (@mklopets )
+  (@max-sixty)
+- Have `cargo-release` to bump all crate & npm versions (@max-sixty)
+- Update `prql-js` to use the bundler build of `prql-js` (@mklopets)
 
 As well as those contribution changes, thanks to those who've reported issues,
 such as @mklopets @huw @mm444 @ajfriend.
@@ -773,17 +876,17 @@ We're a couple of weeks since our 0.2.0 release. Thanks for the surge in
 interest and contributions! 0.2.2 has some fixes & some internal improvements:
 
 - We now test against SQLite & DuckDB on every commit, to ensure we're producing
-  correct SQL. (@aljazerzen )
-- We have the beginning of Java bindings! (@doki23 )
-- Idents surrounded by backticks are passed through to SQL (@max-sixty )
+  correct SQL. (@aljazerzen)
+- We have the beginning of Java bindings! (@doki23)
+- Idents surrounded by backticks are passed through to SQL (@max-sixty)
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
-- Automated releases to homebrew (@roG0d )
+- Automated releases to homebrew (@roG0d)
 - [prql-js](https://github.com/PRQL/prql/tree/main/bindings/prql-js) is now a
-  single package for Node, browsers & webpack (@charlie-sanders )
+  single package for Node, browsers & webpack (@charlie-sanders)
 - Parsing has some fixes, including `>=` and leading underscores in idents
-  (@mklopets )
-- Ranges receive correct syntax highlighting (@max-sixty )
+  (@mklopets)
+- Ranges receive correct syntax highlighting (@max-sixty)
 
 Thanks to Aljaž Mur Eržen @aljazerzen , George Roldugin @roldugin , Jasper
 McCulloch @Jaspooky , Jie Han @doki23 , Marko Klopets @mklopets , Maximilian
@@ -857,9 +960,8 @@ I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 difficult work of building out the compiler. Much credit also goes to
 [Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
 PRQL's earliest supporters and the author of PyPrql, and
-[Ryan Patterson-Cross](https://github.com/orgs/prql/people/rbpatt2019)
-(@rbpatt2019), who built the Jupyter integration among other Python
-contributions.
+[Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
+the Jupyter integration among other Python contributions.
 
 Other contributors who deserve a special mention include: @roG0d, @snth,
 @kwigley

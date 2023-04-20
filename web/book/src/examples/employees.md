@@ -81,7 +81,7 @@ group [e.emp_no, e.gender] (
 )
 join de=dept_emp [==emp_no]
 join dm=dept_manager [
-  (dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
+  (dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
 group [dm.emp_no, gender] (
   aggregate [
@@ -99,7 +99,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]
 
 > Find distributions of titles, salaries and genders for each department.
 
-```prql_no_fmt
+```prql no-fmt
 from de=dept_emp
 join s=salaries side:left [
   (s.emp_no == de.emp_no),

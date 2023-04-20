@@ -5,9 +5,7 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
-use crate::semantic::context::TableDecl;
 use crate::semantic::static_analysis;
 use crate::semantic::transforms::coerce_and_flatten;
 use crate::utils::IdGenerator;
@@ -16,7 +14,7 @@ use super::context::{Context, Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
-use super::type_resolver::{self, infer_type, type_of_closure, validate_type};
+use super::type_resolver::{self, infer_type, type_of_closure};
 
 /// Runs semantic analysis on the query, using current state.
 ///
@@ -77,7 +75,7 @@ impl AstFold for Resolver {
                         name: ty_def.name,
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
                             let mut e = Expr::null();
-                            e.ty = Some(Ty::SetExpr(SetExpr::Set));
+                            e.ty = Some(Ty::TypeExpr(TypeExpr::Type));
                             e
                         })),
                     };
@@ -150,37 +148,11 @@ impl AstFold for Resolver {
                         ..node
                     },
 
-                    DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                        let rel_name = ident.name.clone();
+                    DeclKind::TableDecl(_) => {
+                        let input_name = ident.name.clone();
 
-                        let instance_frame = Frame {
-                            inputs: vec![FrameInput {
-                                id,
-                                name: rel_name.clone(),
-                                table: Some(fq_ident.clone()),
-                            }],
-                            columns: columns
-                                .iter()
-                                .map(|col| match col {
-                                    RelationColumn::Wildcard => FrameColumn::All {
-                                        input_name: rel_name.clone(),
-                                        except: columns
-                                            .iter()
-                                            .flat_map(|c| c.as_single().cloned().flatten())
-                                            .collect(),
-                                    },
-                                    RelationColumn::Single(col_name) => FrameColumn::Single {
-                                        name: col_name.clone().map(|col_name| {
-                                            Ident::from_path(vec![rel_name.clone(), col_name])
-                                        }),
-                                        expr_id: id,
-                                    },
-                                })
-                                .collect(),
-                            ..Default::default()
-                        };
-
-                        log::debug!("instanced table {fq_ident} as {instance_frame:?}");
+                        let instance_frame =
+                            self.context.table_decl_to_frame(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
@@ -448,7 +420,7 @@ impl Resolver {
             // evaluate
             let needs_window = (closure.body_ty)
                 .as_ref()
-                .map(|ty| ty.is_superset_of(&Ty::SetExpr(SetExpr::Primitive(TyLit::Column))))
+                .map(|ty| ty.is_superset_of(&Ty::TypeExpr(TypeExpr::Primitive(TyLit::Column))))
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
@@ -668,7 +640,7 @@ impl Resolver {
         if arg.ty.is_some() {
             // validate type
             let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
-            let assumed_ty = validate_type(&arg, param_ty, || {
+            let assumed_ty = self.context.validate_type(&arg, param_ty, || {
                 func_name
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
@@ -780,11 +752,11 @@ impl Resolver {
                 let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
 
                 // TODO: workaround
-                if let SetExpr::Array(_) = set_expr {
+                if let TypeExpr::Array(_) = set_expr {
                     return Ok(Some(Ty::Table(Frame::default())));
                 }
 
-                Some(Ty::SetExpr(set_expr))
+                Some(Ty::TypeExpr(set_expr))
             }
             None => None,
         })

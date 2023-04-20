@@ -307,7 +307,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   we expect, and that changes to our code don't cause any unexpected
   regressions.
 
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/web/book/src/integrations/README.md)**
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/prql-compiler/tests/integration)**
   — these run tests against real databases, to ensure we're producing correct
   SQL.
 
@@ -402,7 +402,7 @@ Currently we release in a semi-automated way:
 5. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.6.X — [unreleased]
+   ## 0.7.X — [unreleased]
 
    **Features**:
 

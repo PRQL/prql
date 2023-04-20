@@ -2,8 +2,18 @@ name: test-all
 
 # The full suite of tests. These can take up to 20 minutes, so are only run on
 # merges or where we're more concerned about a break outside the core libraries.
-
+#
 # To run these on a PR, label with `pr-test-all`.
+#
+# There are also tests in `test-nightly.yaml` which aren't here.
+
+# Possibly we could instead group tests by:
+# - `test-fast` — on pull requests
+# - `test-most` — on merges; with all platforms, bindings, etc
+# - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
+#   everything — benchmarks, compilation timing, audits, etc.
+#
+# Also see pull-request.yaml#check-ok-to-merge for other thoughts
 
 on:
   push:

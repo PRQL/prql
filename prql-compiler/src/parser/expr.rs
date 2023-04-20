@@ -75,7 +75,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let case = keyword("case")
             .ignore_then(
                 func_call(expr.clone())
-                    .then_ignore(just(Token::ArrowDouble))
+                    .then_ignore(just(Token::ArrowFat))
                     .then(func_call(expr))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
@@ -297,12 +297,14 @@ fn operator_add() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
 fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (just(Token::Eq).to(BinOp::Eq))
-        .or(just(Token::Ne).to(BinOp::Ne))
-        .or(just(Token::Lte).to(BinOp::Lte))
-        .or(just(Token::Gte).to(BinOp::Gte))
-        .or(ctrl('<').to(BinOp::Lt))
-        .or(ctrl('>').to(BinOp::Gt))
+    choice((
+        just(Token::Eq).to(BinOp::Eq),
+        just(Token::Ne).to(BinOp::Ne),
+        just(Token::Lte).to(BinOp::Lte),
+        just(Token::Gte).to(BinOp::Gte),
+        ctrl('<').to(BinOp::Lt),
+        ctrl('>').to(BinOp::Gt),
+    ))
 }
 fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     just(Token::And).to(BinOp::And)
