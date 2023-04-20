@@ -8,10 +8,11 @@ away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
 
-PRQL builds powerful SQL queries today. In addition, we are focusing on several
-integrations. Here's how you can use PRQL:
+Use PRQL to build SQL queries today.
+In addition, we are focusing on several integrations.
+Here's how you can use PRQL:
 
-- **Do real work with PRQL** Prototype your PRQL queries in the
+- **Prototype your PRQL queries** in the
   [Playground](https://prql-lang.org/playground/) or the
   [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
   and copy/paste the resulting SQL into your database.
@@ -207,6 +208,6 @@ because of a strong convention around lowercase, but everywhere else we use
 
 {{< faq "Where can I find the logos?" >}}
 
-See the [press material]({{< ref "/press-material" >}}).
+See our [press materials](https://github.com/PRQL/prql-brand).
 
 {{</ faq >}}
