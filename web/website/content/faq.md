@@ -8,9 +8,8 @@ away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
 
-Use PRQL to build SQL queries today.
-In addition, we are focusing on several integrations.
-Here's how you can use PRQL:
+Use PRQL to build SQL queries today. In addition, we are focusing on several
+integrations. Here's how you can use PRQL:
 
 - **Prototype your PRQL queries** in the
   [Playground](https://prql-lang.org/playground/) or the
