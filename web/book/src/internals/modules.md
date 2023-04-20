@@ -115,6 +115,9 @@ let album_titles = my_playlists
 
 ## File importing
 
+> This section is under discussion. Current implementation plans do not include
+> `module` declarations, but loading of all files under the compilation path.
+
 To include PRQL source code from other files, we can use the following syntax:
 
 ```
