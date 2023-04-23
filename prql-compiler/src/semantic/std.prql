@@ -11,7 +11,7 @@
 #     It can be PRQL code or "null" to indicate internal compiler code
 
 # Aggregate functions
-# These return either a scalar when used within `aggregate`, or a column when used anywhere else. # Aggregate Functions
+# These return either a scalar when used within `aggregate`, or a column when used anywhere else.
 func min <scalar || column> column -> null
 func max <scalar || column> column -> null
 func sum <scalar || column> column -> null
