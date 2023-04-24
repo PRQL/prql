@@ -12,7 +12,7 @@
       "pattern": "^https://twitter.com"
     },
     {
-      "pattern": "^https://php.net"
+      "pattern": "^https://www.php.net"
     }
   ]
 }
