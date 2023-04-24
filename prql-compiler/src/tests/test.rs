@@ -1747,6 +1747,12 @@ fn test_bare_s_string() {
     FROM
       a
     "###);
+
+    assert_display_snapshot!(compile(r###"
+    from s"SELECTfoo"
+    "###).unwrap_err(), @r###"
+    Error: s-strings representing a table must start with `SELECT `
+    "###);
 }
 
 #[test]
@@ -2655,12 +2661,6 @@ fn test_table_s_string() {
       table_0 AS table_1
     "###
     );
-
-    assert_display_snapshot!(compile(r###"
-    from s"SELECTfoo"
-    "###).unwrap_err(), @r###"
-    Error: s-strings representing a table must start with `SELECT `
-    "###);
 }
 
 #[test]
