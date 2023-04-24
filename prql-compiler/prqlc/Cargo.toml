@@ -19,7 +19,7 @@ concolor = "0.1.0"
 concolor-clap = {version = "0.1.0", features = ["api"]}
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
-minijinja = {version = "0.31.0", features = ["unstable_machinery"]}
+minijinja = {version = "0.32.1", features = ["unstable_machinery"]}
 notify = "^5.1.0"
 prql-compiler = {path = '..', version = "0.8.0" }
 regex = {version = "1.7.1", features = ["std", "unicode"]}
