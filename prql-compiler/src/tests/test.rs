@@ -1716,7 +1716,7 @@ fn test_bare_s_string() {
     "###
     );
 
-    // Check SLECT\n.
+    // Check SELECT\n.
     let query = r###"
     let a = s"
     SELECT
