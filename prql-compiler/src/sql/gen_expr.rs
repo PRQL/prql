@@ -400,13 +400,14 @@ pub(super) fn translate_query_sstring(
 ) -> Result<sql_ast::Query> {
     let string = translate_sstring(items, context)?;
 
+    let re = Regex::new(r"(?i)^SELECT(\s|\n|\r)").unwrap();
     let prefix = if let Some(string) = string.trim().get(0..7) {
         string
     } else {
         ""
     };
 
-    if prefix.eq_ignore_ascii_case("SELECT ") {
+    if re.is_match(prefix) {
         if let Some(string) = string.trim().strip_prefix(prefix) {
             return Ok(sql_ast::Query {
                 body: Box::new(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
