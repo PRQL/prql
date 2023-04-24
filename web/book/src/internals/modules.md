@@ -3,7 +3,7 @@
 > Status: proposal
 
 > This is a technical document. For a "how to use" or a TLDR; skip to the
-> [Example](#Example) section.
+> [Example](#example) section.
 
 Design goals:
 
