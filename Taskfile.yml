@@ -205,6 +205,8 @@ tasks:
     #   - "**/*.lock"
     #   - "**/*.snap"
     cmds:
+      # Build prqlc first for assert_cmd tests
+      - cargo build -p prqlc
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm. Note that this will also over-delete on Windows.
       - cargo insta test --accept --unreferenced=auto
