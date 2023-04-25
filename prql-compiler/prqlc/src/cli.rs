@@ -6,11 +6,12 @@ use itertools::Itertools;
 use std::io::{Read, Write};
 use std::ops::Range;
 use std::process::exit;
+use std::str::FromStr;
 
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Frame, pl_to_prql};
 use prql_compiler::{compile, prql_to_pl, Span};
-use prql_compiler::{downcast, Options};
+use prql_compiler::{downcast, Options, Target};
 
 use crate::watch;
 
@@ -86,10 +87,16 @@ enum Command {
         io_args: IoArgs,
         #[arg(long, default_value = "true")]
         include_signature_comment: bool,
+        #[arg(short, long, default_value = "sql.any", env = "PRQLC_TARGET")]
+        target: String,
     },
 
     /// Watch a directory and compile .prql files to .sql files
     Watch(watch::WatchArgs),
+
+    /// Show available compile target names
+    #[command(name = "get-targets")]
+    GetTargets,
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -116,8 +123,23 @@ impl Command {
     pub fn run(&mut self) -> Result<()> {
         match self {
             Command::Watch(command) => watch::run(command),
+            Command::GetTargets => self.get_targets(),
             _ => self.run_io_command(),
         }
+    }
+
+    fn get_targets(&self) -> std::result::Result<(), anyhow::Error> {
+        let res: Result<std::string::String, anyhow::Error> = Ok(match self {
+            Command::GetTargets => Target::names().join("\n"),
+            _ => unreachable!(),
+        });
+
+        match res {
+            Ok(s) => println!("{s}"),
+            Err(_) => unreachable!(),
+        }
+
+        Ok(())
     }
 
     fn run_io_command(&mut self) -> std::result::Result<(), anyhow::Error> {
@@ -194,6 +216,7 @@ impl Command {
             }
             Command::SQLCompile {
                 include_signature_comment,
+                target,
                 ..
             } => compile(
                 source,
@@ -201,6 +224,7 @@ impl Command {
                 // the Compile enum variant, and avoid this boilerplate? Would
                 // reduce this code somewhat.
                 &Options::default()
+                    .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
                     .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
                     .with_signature_comment(*include_signature_comment),
             )?
@@ -220,7 +244,7 @@ impl Command {
                 format!("{srq:#?}").as_bytes().to_vec()
             }
 
-            Command::Watch(_) => unreachable!(),
+            _ => unreachable!(),
         })
     }
 
@@ -237,7 +261,7 @@ impl Command {
             | SQLPreprocess(io_args)
             | SQLAnchor(io_args) => io_args.input.clone(),
             Format(io) | Debug(io) | Annotate(io) => io.input.clone(),
-            Watch(_) => unreachable!(),
+            _ => unreachable!(),
         };
         // Don't wait without a prompt when running `prqlc compile` —
         // it's confusing whether it's waiting for input or not. This
@@ -261,7 +285,7 @@ impl Command {
             | SQLAnchor(io_args)
             | SQLPreprocess(io_args) => io_args.output.to_owned(),
             Format(io) | Debug(io) | Annotate(io) => io.output.to_owned(),
-            Watch(_) => unreachable!(),
+            _ => unreachable!(),
         };
         output.write_all(data)
     }
@@ -299,7 +323,9 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
 
 #[cfg(test)]
 mod tests {
+    use assert_cmd;
     use insta::{assert_display_snapshot, assert_snapshot};
+    use predicates;
 
     // TODO: would be good to test the basic CLI interface — i.e. snapshotting this:
 
@@ -391,6 +417,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
                 include_signature_comment: true,
+                target: "sql.any".to_string(),
             },
             input,
         );
@@ -476,5 +503,20 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
           columns:
           - !Single y
         "###);
+    }
+    #[test]
+    fn get_targets() {
+        let n_targets = Target::names().len();
+
+        assert_cmd::Command::cargo_bin("prqlc")
+            .unwrap()
+            .args(["get-targets"])
+            .assert()
+            .success()
+            .stdout(
+                predicates::str::is_match(r"sql\.[a-z]+\n")
+                    .unwrap()
+                    .count(n_targets),
+            );
     }
 }
