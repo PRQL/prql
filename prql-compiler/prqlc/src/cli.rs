@@ -323,9 +323,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use assert_cmd;
     use insta::{assert_display_snapshot, assert_snapshot};
-    use predicates;
 
     // TODO: would be good to test the basic CLI interface — i.e. snapshotting this:
 
