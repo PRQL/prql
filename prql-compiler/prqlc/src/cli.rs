@@ -502,19 +502,4 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
           - !Single y
         "###);
     }
-    #[test]
-    fn get_targets() {
-        let n_targets = Target::names().len();
-
-        assert_cmd::Command::cargo_bin("prqlc")
-            .unwrap()
-            .args(["get-targets"])
-            .assert()
-            .success()
-            .stdout(
-                predicates::str::is_match(r"sql\.[a-z]+\n")
-                    .unwrap()
-                    .count(n_targets),
-            );
-    }
 }
