@@ -53,13 +53,6 @@ jobs:
         with:
           command: test
           args: ${{ inputs.target_option }} --all-features --no-run --locked
-      - name: 🏭 Compile prqlc
-        uses: richb-hanover/cargo@v1.1.0
-        # Build prqlc for assert_cmd tests
-        with:
-          command: build
-          args: -p prqlc
-        if: inputs.target_option != '--target=wasm32-unknown-unknown'
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
