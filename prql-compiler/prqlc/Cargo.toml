@@ -12,7 +12,7 @@ version.workspace = true
 anyhow = {version = "1.0.57"}
 ariadne = "0.2.0"
 atty = "0.2.14"
-clap = {version = "4.2.0", features = ["derive"]}
+clap = {version = "4.2.0", features = ["derive", "env"]}
 clio = {version = "0.2.4", features = ['clap-parse']}
 color-eyre = "0.6.1"
 concolor = "0.1.0"
