@@ -1715,6 +1715,44 @@ fn test_bare_s_string() {
       a
     "###
     );
+
+    // Check SELECT\n.
+    let query = r###"
+    let a = s"
+    SELECT
+      foo
+    FROM
+      bar"
+
+    from a
+    "###;
+
+    let sql = compile(query).unwrap();
+    assert_display_snapshot!(sql,
+      @r###"
+    WITH table_0 AS (
+      SELECT
+        foo
+      FROM
+        bar
+    ),
+    a AS (
+      SELECT
+        *
+      FROM
+        table_0 AS table_1
+    )
+    SELECT
+      *
+    FROM
+      a
+    "###);
+
+    assert_display_snapshot!(compile(r###"
+    from s"SELECTfoo"
+    "###).unwrap_err(), @r###"
+    Error: s-strings representing a table must start with `SELECT `
+    "###);
 }
 
 #[test]
