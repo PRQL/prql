@@ -26,7 +26,6 @@ It's also possible to add PRQL to your own apps with our [bindings](/#bindings)
 for Rust, Python & JS. For an example of using PRQL with DuckDB, check out
 [Querying with PRQL](https://eitsupi.github.io/querying-with-prql/).
 
-
 {{</ faq >}}
 
 {{< faq "Something here reminds me of another project, did you take the idea from them?" >}}
