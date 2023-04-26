@@ -28,7 +28,7 @@ serde_yaml = "0.9.1"
 walkdir = "^2.3.2"
 
 # We use minijinja just for the Jinja lexer, which is not part of the
-# public inteface which is covered by semver guarantees.
+# public interface which is covered by semver guarantees.
 minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
