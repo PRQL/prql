@@ -14,7 +14,8 @@ integrations. Here's how you can use PRQL:
 - **Prototype your PRQL queries** in the
   [Playground](https://prql-lang.org/playground/) or the
   [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
-  and copy/paste the resulting SQL into your database.
+  and copy/paste the resulting SQL into your database. It's not a great
+  workflow, but it's easy to get started.
 - **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
   [dbt](https://www.getdbt.com/) models. It very simple to use — install
   `dbt-prql` with pip, and then any text between a `{% prql %}` &
