@@ -4,6 +4,9 @@ use insta_cmd::assert_cmd_snapshot;
 use insta_cmd::get_cargo_bin;
 use std::process::Command;
 
+// Windows has slightly different outputs (e.g. `prqlc.exe` instead of `prqlc`),
+// so we exclude.
+#[cfg(not(target_family = "windows"))]
 #[test]
 fn test_help() {
     assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc")).arg("--help"), @r###"
