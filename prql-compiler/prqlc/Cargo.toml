@@ -20,7 +20,7 @@ concolor-clap = {version = "0.1.0", features = ["api"]}
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
 notify = "^5.1.0"
-prql-compiler = {path = '..', version = "0.8.0" }
+prql-compiler = {path = '..', version = "0.8.0"}
 regex = {version = "1.8.1", features = ["std", "unicode"]}
 serde = "^1"
 serde_json = "1.0.81"
@@ -32,4 +32,6 @@ walkdir = "^2.3.2"
 minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+assert_cmd = "2.0.11"
 insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
+predicates = "3.0.3"
