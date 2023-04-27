@@ -400,7 +400,7 @@ pub(super) fn translate_query_sstring(
 ) -> Result<sql_ast::Query> {
     let string = translate_sstring(items, context)?;
 
-    let re = Regex::new(r"(?i)^SELECT(\s|\n|\r)").unwrap();
+    let re = Regex::new(r"(?i)^SELECT\b").unwrap();
     let prefix = if let Some(string) = string.trim().get(0..7) {
         string
     } else {
