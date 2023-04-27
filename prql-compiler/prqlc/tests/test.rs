@@ -26,7 +26,8 @@ fn test_help() {
       help            Print this message or the help of the given subcommand(s)
 
     Options:
-          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always, never]
+          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
+                          never]
       -h, --help          Print help
       -V, --version       Print version
 
