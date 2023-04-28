@@ -25,7 +25,7 @@ fn test_help() {
       sql:anchor      Parse, resolve, lower into RQ & preprocess & anchor SRQ
       compile         Parse, resolve, lower into RQ & compile to SQL
       watch           Watch a directory and compile .prql files to .sql files
-      get-targets     Show available compile target names
+      list-targets    Show available compile target names
       help            Print this message or the help of the given subcommand(s)
 
     Options:
@@ -40,7 +40,7 @@ fn test_help() {
 
 #[test]
 fn test_get_targets() {
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc")).arg("get-targets"), @r###"
+    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc")).arg("list-targets"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----

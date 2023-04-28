@@ -95,8 +95,8 @@ enum Command {
     Watch(watch::WatchArgs),
 
     /// Show available compile target names
-    #[command(name = "get-targets")]
-    GetTargets,
+    #[command(name = "list-targets")]
+    ListTargets,
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -123,14 +123,14 @@ impl Command {
     pub fn run(&mut self) -> Result<()> {
         match self {
             Command::Watch(command) => watch::run(command),
-            Command::GetTargets => self.get_targets(),
+            Command::ListTargets => self.list_targets(),
             _ => self.run_io_command(),
         }
     }
 
-    fn get_targets(&self) -> std::result::Result<(), anyhow::Error> {
+    fn list_targets(&self) -> std::result::Result<(), anyhow::Error> {
         let res: Result<std::string::String, anyhow::Error> = Ok(match self {
-            Command::GetTargets => Target::names().join("\n"),
+            Command::ListTargets => Target::names().join("\n"),
             _ => unreachable!(),
         });
 
