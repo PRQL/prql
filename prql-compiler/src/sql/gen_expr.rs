@@ -25,7 +25,6 @@ use super::gen_projection::try_into_exprs;
 use super::std::*;
 use super::Context;
 
-#[allow(deprecated)]
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match expr.kind {
         ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
