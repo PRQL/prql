@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.8.2 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.8.1 — 2023-04-29
 
 0.8.1 is a small release with a new `list-targets` command in `prqlc`, some
