@@ -8,22 +8,25 @@ away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
 
-Use PRQL to build SQL queries today. In addition, we are focusing on several
-integrations. Here's how you can use PRQL:
+PRQL is ready to use by the intrepid, either with our supported integrations, or
+within your own tools, using one of our supported language bindings. The easiest
+way is with our integrations:
 
 - **Prototype your PRQL queries** in the
   [Playground](https://prql-lang.org/playground/) or the
   [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
-  and copy/paste the resulting SQL into your database. It's not a great
+  and copy/paste the resulting SQL into your database. It's not the perfect
   workflow, but it's easy to get started.
 - **[Jupyter](https://pyprql.readthedocs.io/en/latest/magic_readme.html)**
   allows writing PRQL in a Jupyter notebook or IPython repl, with a `%%prql`
   magic. As well as connecting to existing DBs, our integration with DuckDB
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
+- **[DuckDB extension](https://github.com/ywelsch/duckdb-prql)** — is a DuckDB
+  extension which allows querying a DuckDB instance with PRQL.
 
-It's also possible to add PRQL to your own apps with our [bindings](/#bindings)
-for Rust, Python & JS. For an example of using PRQL with DuckDB, check out
+It's also possible to query PRQL from your code with our [bindings](/#bindings)
+for R, Rust, Python & JS. For an example of using PRQL with DuckDB, check out
 [Querying with PRQL](https://eitsupi.github.io/querying-with-prql/).
 
 {{</ faq >}}
