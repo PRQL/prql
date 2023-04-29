@@ -80,3 +80,4 @@ jobs:
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           config-file: .github/.markdown-link-check.json
+          use-quiet-mode: "yes"

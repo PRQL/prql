@@ -1,4 +1,5 @@
-# skip_mssql
+# skip_mssql (https://github.com/PRQL/prql/issues/2448)
+# booleans cannot be selected directly. instead CASE is needed (https://dba.stackexchange.com/a/2774)
 from tracks
 sort track_id
 take 20..25

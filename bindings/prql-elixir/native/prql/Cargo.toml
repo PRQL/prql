@@ -20,4 +20,4 @@ prql-compiler = {path = "../../../../prql-compiler", default-features = false, v
 
 # See Readme for details on Mac
 [target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
-rustler = "0.27.0"
+rustler = "0.28.0"

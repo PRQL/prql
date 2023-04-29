@@ -1,4 +1,17 @@
-# Aggregate Functions
+# The PRQL standard library defines the following functions and transforms.
+# The definitions are whitespace insensitive, and have this form:
+#
+# func my_func <return_type> param1 param2 ...  -> body_expr
+# where:
+#   * my_func is the name of the function
+#   * <return_type> is the type of result wrapped in "< ... >"
+#   * param1 is the first parameter optionally followed by a type in "< ... >"
+#   * param2 etc. follow the same pattern as param1
+#   * -> body_expr defines the function body that creates the result.
+#     It can be PRQL code or "null" to indicate internal compiler code
+
+# Aggregate functions
+# These return either a scalar when used within `aggregate`, or a column when used anywhere else.
 func min <scalar || column> column -> null
 func max <scalar || column> column -> null
 func sum <scalar || column> column -> null

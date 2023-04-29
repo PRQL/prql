@@ -1,32 +1,31 @@
-# skip_mysql
-# skip_mssql
+# skip_mssql (error: The function 'LAG' may not have a window frame.)
 from i=invoices
 join ii=invoice_items [==invoice_id]
 derive [
-    month = s"substring(CAST({i.invoice_date} AS TEXT), 1, 7)",
-    day = s"substring(CAST({i.invoice_date} AS TEXT), 1, 10)",
+    city = i.billing_city,
+    street = i.billing_address,
 ]
-group [month, day] (
+group [city, street] (
     aggregate [
         num_orders = s"COUNT(DISTINCT {i.invoice_id})",
         num_tracks = sum ii.quantity,
         total_price = sum (ii.unit_price * ii.quantity),
     ]
 )
-group [month] (
-    sort day
+group [city] (
+    sort street
     window expanding:true (
         derive [running_total_num_tracks = sum num_tracks]
     )
 )
-sort day
+sort city
 derive [num_tracks_last_week = lag 7 num_tracks]
 select [
-    month,
-    day,
-    num_orders = (num_orders | as int),
-    num_tracks = (num_tracks | as int),
-    total_price = (total_price | as FLOAT | round 2),
-    running_total_num_tracks = (running_total_num_tracks | as int),
-    num_tracks_last_week = (num_tracks_last_week | as int)
+    city,
+    street,
+    num_orders,
+    num_tracks,
+    running_total_num_tracks,
+    num_tracks_last_week
 ]
+take 20

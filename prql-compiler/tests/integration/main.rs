@@ -2,8 +2,6 @@
 // https://github.com/wangfenjin/duckdb-rs/issues/62
 #![cfg(not(any(target_family = "windows", target_family = "wasm")))]
 
-mod connection;
-
 use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::{env, fs};
@@ -15,11 +13,11 @@ use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
-use prql_compiler::sql::Dialect;
+use connection::*;
 use prql_compiler::Options;
 use prql_compiler::Target::Sql;
 
-use connection::*;
+mod connection;
 
 // This is copy-pasted from `test.rs` in prql-compiler. Ideally we would have a
 // canonical set of examples between both, which this integration test would use
@@ -157,12 +155,8 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .for_each(|s| {
-            let sql = match con.get_dialect() {
-                Dialect::MsSql => s.replace("TIMESTAMP", "DATETIME"),
-                Dialect::MySql => s.replace('"', "`").replace("TIMESTAMP", "DATETIME"),
-                _ => s.to_string(),
-            };
-            con.run_query(sql.as_str(), runtime);
+            con.run_query(con.modify_sql(s.to_string()).as_str(), runtime)
+                .unwrap();
         });
     let tables = [
         "invoices",
@@ -185,7 +179,7 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
 fn run_query(con: &mut dyn DBConnection, prql: &str, runtime: &Runtime) -> Vec<Row> {
     let options = Options::default().with_target(Sql(Some(con.get_dialect())));
     let sql = prql_compiler::compile(prql, &options).unwrap();
-    let mut actual_rows = con.run_query(sql.as_str(), runtime);
+    let mut actual_rows = con.run_query(sql.as_str(), runtime).unwrap();
     replace_booleans(&mut actual_rows);
     actual_rows
 }
