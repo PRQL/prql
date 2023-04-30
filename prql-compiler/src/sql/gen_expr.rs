@@ -130,7 +130,9 @@ fn try_into_binary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::E
         StringConcat,
     ];
 
-    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
+    let decl = if let Some((decl, _)) = try_unpack(&expr, DECLS)? {
+        decl
+    } else {
         return Ok(Err(expr));
     };
 
@@ -150,9 +152,12 @@ fn try_into_unary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Ex
     const DECLS: [super::std::FunctionDecl<1>; 2] = [STD_NEG, STD_NOT];
     const OPS: [UnaryOperator; 2] = [Minus, Not];
 
-    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
+    let decl = if let Some((decl, _)) = try_unpack(&expr, DECLS)? {
+        decl
+    } else {
         return Ok(Err(expr));
     };
+
     // this lookup is O(N), but 13 is not that big of a N
     let decl_index = DECLS.iter().position(|x| x == &decl).unwrap();
     let op = OPS[decl_index];
@@ -191,7 +196,9 @@ fn try_into_concat_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_
 }
 
 fn try_unpack_concat(expr: Expr) -> Result<Result<Vec<Expr>, Expr>> {
-    let Some((_, _)) = try_unpack(&expr, [STD_CONCAT])? else {
+    let () = if let Some((_, _)) = try_unpack(&expr, [STD_CONCAT])? {
+        ()
+    } else {
         return Ok(Err(expr));
     };
     let [left, right] = unpack(expr, STD_CONCAT);
@@ -531,8 +538,10 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
 ///
 /// Outer Result contains an error, inner Result contains the unmatched expr.
 fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    let Some((decl, [a, b])) = try_unpack(&expr, [STD_EQ, STD_NE])? else {
-        return Ok(Err(expr))
+    let (decl, a, b) = if let Some((decl, [a, b])) = try_unpack(&expr, [STD_EQ, STD_NE])? {
+        (decl, a, b)
+    } else {
+        return Ok(Err(expr));
     };
 
     let take_a = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {

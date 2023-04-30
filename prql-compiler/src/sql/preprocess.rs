@@ -538,7 +538,9 @@ impl RqFold for Normalizer {
             ..expr
         };
 
-        let Some((decl, _)) = super::std::try_unpack(&expr, [super::std::STD_EQ])? else {
+        let decl = if let Some((decl, _)) = super::std::try_unpack(&expr, [super::std::STD_EQ])? {
+            decl
+        } else {
             return Ok(expr);
         };
         let name = decl.name.to_string();
