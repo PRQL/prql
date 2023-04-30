@@ -9,7 +9,7 @@ function Sidebar({ library, onLoadFile }) {
 
   function toggleFolder(id) {
     openFolders[id] = !Boolean(openFolders[id]);
-    setOpenFolders(() => openFolders);
+    setOpenFolders(() => ({ ...openFolders }));
   }
 
   function handleClick(section, file, id) {
@@ -18,7 +18,6 @@ function Sidebar({ library, onLoadFile }) {
     } else {
       toggleFolder(id);
     }
-    sv(($) => $ + 1);
   }
 
   function isFile(path) {
@@ -27,7 +26,6 @@ function Sidebar({ library, onLoadFile }) {
 
   const sections = [];
   const [openFolders, setOpenFolders] = useState({});
-  const [v, sv] = useState(1);
 
   for (const [section, files] of Object.entries(library)) {
     const fileRows = [];
@@ -46,7 +44,7 @@ function Sidebar({ library, onLoadFile }) {
                 (isFile(filename) ? " " : " folderRow ") +
                 (openFolders[id] ? " open " : " ")
               }
-              style={{ marginLeft: `${10 * depth}px` }}
+              style={{ marginLeft: `${12 * depth}px` }}
               onClick={() => handleClick(section, filename, id)}
             >
               {name ?? filename}
@@ -72,22 +70,24 @@ function Sidebar({ library, onLoadFile }) {
       </section>
       <section>
         <h2>External links</h2>
-        <a
-          className="fileRow"
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://prql-lang.org"
-        >
-          PRQL Website &#8599;
-        </a>
-        <a
-          className="fileRow"
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://prql-lang.org/book/"
-        >
-          Book &#8599;
-        </a>
+        <div className="fileRow">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://prql-lang.org"
+          >
+            PRQL Website &#8599;
+          </a>
+        </div>
+        <div className="fileRow">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://prql-lang.org/book/"
+          >
+            Book &#8599;
+          </a>
+        </div>
       </section>
 
       {sections}

@@ -3,42 +3,37 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
 
 use anyhow::Result;
-use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
+    ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
-use crate::ast::rq::{
-    self, new_binop, CId, Compute, Expr, ExprKind, Relation, RelationColumn, RelationKind, RqFold,
-    TableRef, Transform, Window,
-};
+use crate::ast::rq::{self, CId, Compute, Expr, ExprKind, RqFold, Transform, Window};
 use crate::error::Error;
 use crate::sql::context::AnchorContext;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
+use super::ast_srq::*;
+use super::utils::{maybe_binop, new_binop};
 use super::Context;
 
-#[derive(Debug, Clone, EnumAsInner)]
-pub(super) enum SqlRelationKind {
-    Super(RelationKind),
-    PreprocessedPipeline(Vec<SqlTransform>),
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct SqlRelation {
-    pub kind: SqlRelationKind,
-    pub columns: Vec<RelationColumn>,
-}
-
-#[derive(Debug, Clone, EnumAsInner, strum::AsRefStr)]
-pub(super) enum SqlTransform {
-    Super(Transform),
-    Distinct,
-    Except { bottom: TableRef, distinct: bool },
-    Intersect { bottom: TableRef, distinct: bool },
-    Union { bottom: TableRef, distinct: bool },
-    Loop(Vec<SqlTransform>),
+/// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
+///
+/// Note that some SQL translation mechanisms depend on behavior of some of these
+/// functions (i.e. reorder).
+pub(super) fn preprocess(
+    pipeline: Vec<Transform>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform>, anyhow::Error> {
+    Ok(pipeline)
+        .and_then(normalize)
+        .map(prune_inputs)
+        .map(wrap)
+        .and_then(|p| distinct(p, ctx))
+        .map(union)
+        .and_then(|p| except(p, ctx))
+        .and_then(|p| intersect(p, ctx))
+        .map(reorder)
 }
 
 // This function was disabled because it changes semantics of the pipeline in some cases.
@@ -180,7 +175,7 @@ fn create_filter_by_row_number(
                 kind: WindowKind::Range,
                 range: Range {
                     start: None,
-                    end: Some(*int_expr(0)),
+                    end: Some(int_expr(0)),
                 },
             }
         },
@@ -197,50 +192,30 @@ fn create_filter_by_row_number(
 
     ctx.anchor.register_compute(compute.clone());
 
-    let col_ref = Box::new(Expr {
+    let col_ref = Expr {
         kind: ExprKind::ColumnRef(compute.id),
         span: None,
-    });
+    };
 
     // add the two transforms
     let range_int = range.try_map(as_int).unwrap();
-    vec![
-        SqlTransform::Super(Transform::Compute(compute)),
-        SqlTransform::Super(Transform::Filter(match (range_int.start, range_int.end) {
-            (Some(s), Some(e)) if s == e => Expr {
-                span: None,
-                kind: ExprKind::Binary {
-                    left: col_ref,
-                    op: BinOp::Eq,
-                    right: int_expr(s),
-                },
-            },
-            (start, end) => {
-                let start = start.map(|start| Expr {
-                    kind: ExprKind::Binary {
-                        left: col_ref.clone(),
-                        op: BinOp::Gte,
-                        right: int_expr(start),
-                    },
-                    span: None,
-                });
-                let end = end.map(|end| Expr {
-                    kind: ExprKind::Binary {
-                        left: col_ref,
-                        op: BinOp::Lte,
-                        right: int_expr(end),
-                    },
-                    span: None,
-                });
 
-                let res = new_binop(start, BinOp::And, end);
-                res.unwrap_or(Expr {
-                    kind: ExprKind::Literal(Literal::Boolean(true)),
-                    span: None,
-                })
-            }
-        })),
-    ]
+    let compute = SqlTransform::Super(Transform::Compute(compute));
+    let filter = SqlTransform::Super(Transform::Filter(match (range_int.start, range_int.end) {
+        (Some(s), Some(e)) if s == e => new_binop(col_ref, super::std::STD_EQ, int_expr(s)),
+        (start, end) => {
+            let start =
+                start.map(|start| new_binop(col_ref.clone(), super::std::STD_GTE, int_expr(start)));
+            let end = end.map(|end| new_binop(col_ref, super::std::STD_LTE, int_expr(end)));
+
+            maybe_binop(start, super::std::STD_AND, end).unwrap_or(Expr {
+                kind: ExprKind::Literal(Literal::Boolean(true)),
+                span: None,
+            })
+        }
+    }));
+
+    vec![compute, filter]
 }
 
 fn as_int(expr: Expr) -> Result<i64, ()> {
@@ -248,11 +223,11 @@ fn as_int(expr: Expr) -> Result<i64, ()> {
     lit.as_integer().cloned().ok_or(())
 }
 
-fn int_expr(i: i64) -> Box<Expr> {
-    Box::new(Expr {
+fn int_expr(i: i64) -> Expr {
+    Expr {
         span: None,
         kind: ExprKind::Literal(Literal::Integer(i)),
-    })
+    }
 }
 
 /// Creates [SqlTransform::Union] from [Transform::Append]
@@ -318,14 +293,14 @@ pub(super) fn except(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Vec<S
 
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
-        let (join_left, join_right) = collect_equals(join_cond);
+        let (join_left, join_right) = collect_equals(join_cond)?;
         if !all_in(&top, join_left) || !all_in(&bottom, join_right) {
             continue;
         }
 
         // filter has to check for nullability of bottom
         // (this could be loosened to check only for nulls in a previously non-nullable column)
-        let (filter_left, filter_right) = collect_equals(filter);
+        let (filter_left, filter_right) = collect_equals(filter)?;
         if !(all_in(&bottom, filter_left) && all_null(filter_right)) {
             continue;
         }
@@ -408,7 +383,7 @@ pub(super) fn intersect(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Ve
 
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
-        let (left, right) = collect_equals(join_cond);
+        let (left, right) = collect_equals(join_cond)?;
         if !(all_in(&top, left) && all_in(&bottom, right)) {
             continue;
         }
@@ -481,35 +456,24 @@ fn all_null(exprs: Vec<&Expr>) -> bool {
 
 /// Converts `(a == b) and ((c == d) and (e == f))`
 /// into `([a, c, e], [b, d, f])`
-fn collect_equals(expr: &Expr) -> (Vec<&Expr>, Vec<&Expr>) {
+fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
     let mut lefts = Vec::new();
     let mut rights = Vec::new();
 
-    match &expr.kind {
-        ExprKind::Binary {
-            left,
-            op: BinOp::Eq,
-            right,
-        } => {
-            lefts.push(left.as_ref());
-            rights.push(right.as_ref());
-        }
-        ExprKind::Binary {
-            left,
-            op: BinOp::And,
-            right,
-        } => {
-            let (l, r) = collect_equals(left);
-            lefts.extend(l);
-            rights.extend(r);
+    if let Some((_, [left, right])) = super::std::try_unpack(expr, [super::std::STD_EQ])? {
+        lefts.push(left);
+        rights.push(right);
+    } else if let Some((_, [left, right])) = super::std::try_unpack(expr, [super::std::STD_AND])? {
+        let (l, r) = collect_equals(left)?;
+        lefts.extend(l);
+        rights.extend(r);
 
-            let (l, r) = collect_equals(right);
-            lefts.extend(l);
-            rights.extend(r);
-        }
-        _ => {}
+        let (l, r) = collect_equals(right)?;
+        lefts.extend(l);
+        rights.extend(r);
     }
-    (lefts, rights)
+
+    Ok((lefts, rights))
 }
 
 fn col_refs(exprs: Vec<&Expr>) -> Vec<CId> {
@@ -561,91 +525,32 @@ pub(super) fn reorder(mut pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
 /// Normalize query:
 /// - Swap null checks such that null is always on the right side.
 ///   This is needed to simplify code for Except and for compiling to IS NULL.
-pub(super) fn normalize(pipeline: Vec<Transform>) -> Vec<Transform> {
-    Normalizer {}.fold_transforms(pipeline).unwrap()
+pub(super) fn normalize(pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
+    Normalizer {}.fold_transforms(pipeline)
 }
 
 struct Normalizer {}
 
 impl RqFold for Normalizer {
-    fn fold_expr_kind(&mut self, kind: ExprKind) -> Result<ExprKind> {
-        let kind = rq::fold_expr_kind(self, kind)?;
-        Ok(match kind {
-            ExprKind::Binary {
-                left,
-                op: BinOp::Eq,
-                right,
-            } => {
-                if let ExprKind::Literal(Literal::Null) = &left.kind {
-                    ExprKind::Binary {
-                        left: right,
-                        op: BinOp::Eq,
-                        right: left,
-                    }
-                } else {
-                    ExprKind::Binary {
-                        left,
-                        op: BinOp::Eq,
-                        right,
-                    }
-                }
-            }
-            kind => kind,
-        })
-    }
-}
+    fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
+        let expr = Expr {
+            kind: rq::fold_expr_kind(self, expr.kind)?,
+            ..expr
+        };
 
-impl SqlTransform {
-    pub fn as_str(&self) -> &str {
-        match self {
-            SqlTransform::Super(t) => t.as_ref(),
-            _ => self.as_ref(),
-        }
-    }
+        let Some((decl, _)) = super::std::try_unpack(&expr, [super::std::STD_EQ])? else {
+            return Ok(expr);
+        };
+        let name = decl.name.to_string();
+        let span = expr.span;
+        let [left, right] = super::std::unpack(expr, decl);
 
-    pub fn into_super_and<T, F: FnOnce(Transform) -> Result<T, Transform>>(
-        self,
-        f: F,
-    ) -> Result<T, SqlTransform> {
-        self.into_super()
-            .and_then(|t| f(t).map_err(SqlTransform::Super))
-    }
-}
-
-impl From<Relation> for SqlRelation {
-    fn from(rel: Relation) -> Self {
-        SqlRelation {
-            kind: SqlRelationKind::Super(rel.kind),
-            columns: rel.columns,
-        }
-    }
-}
-
-pub(super) trait SqlFold: RqFold {
-    fn fold_sql_transforms(&mut self, transforms: Vec<SqlTransform>) -> Result<Vec<SqlTransform>> {
-        transforms
-            .into_iter()
-            .map(|t| self.fold_sql_transform(t))
-            .try_collect()
-    }
-
-    fn fold_sql_transform(&mut self, transform: SqlTransform) -> Result<SqlTransform> {
-        Ok(match transform {
-            SqlTransform::Super(t) => SqlTransform::Super(self.fold_transform(t)?),
-            SqlTransform::Distinct => SqlTransform::Distinct,
-            SqlTransform::Union { bottom, distinct } => SqlTransform::Union {
-                bottom: self.fold_table_ref(bottom)?,
-                distinct,
-            },
-            SqlTransform::Except { bottom, distinct } => SqlTransform::Except {
-                bottom: self.fold_table_ref(bottom)?,
-                distinct,
-            },
-            SqlTransform::Intersect { bottom, distinct } => SqlTransform::Intersect {
-                bottom: self.fold_table_ref(bottom)?,
-                distinct,
-            },
-            SqlTransform::Loop(pipeline) => SqlTransform::Loop(self.fold_sql_transforms(pipeline)?),
-        })
+        let args = if let ExprKind::Literal(Literal::Null) = &left.kind {
+            vec![right, left]
+        } else {
+            vec![left, right]
+        };
+        let kind = ExprKind::BuiltInFunction { name, args };
+        Ok(Expr { kind, span })
     }
 }

@@ -110,6 +110,8 @@ impl From<CompileOptions> for prql_compiler::Options {
             format: o.format,
             target,
             signature_comment: o.signature_comment,
+            // TODO: offer this option in the API
+            color: false,
         }
     }
 }

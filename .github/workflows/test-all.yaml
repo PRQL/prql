@@ -2,8 +2,18 @@ name: test-all
 
 # The full suite of tests. These can take up to 20 minutes, so are only run on
 # merges or where we're more concerned about a break outside the core libraries.
-
+#
 # To run these on a PR, label with `pr-test-all`.
+#
+# There are also tests in `test-nightly.yaml` which aren't here.
+
+# Possibly we could instead group tests by:
+# - `test-fast` — on pull requests
+# - `test-most` — on merges; with all platforms, bindings, etc
+# - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
+#   everything — benchmarks, compilation timing, audits, etc.
+#
+# Also see pull-request.yaml#check-ok-to-merge for other thoughts
 
 on:
   push:
@@ -22,11 +32,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-web:
+    uses: ./.github/workflows/build-web.yaml
+
   test-rust:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        target_option: ["", --target=wasm32-unknown-unknown]
+        target_option: [""]
+        # Only run wasm on ubuntu, given it's the same rust target. (There is a
+        # possibility of having a failure on just one platform, but it's quite
+        # unlikely. If we do observe this, we can expand, or introduce a
+        # `test-actually-all.yaml` which accounts for these corner cases without
+        # using runners & cache space)
+        include:
+          - os: ubuntu-latest
+            target_option: --target=wasm32-unknown-unknown
 
     uses: ./.github/workflows/test-rust.yaml
     with:
@@ -53,6 +74,9 @@ jobs:
 
   test-lib:
     uses: ./.github/workflows/test-lib.yaml
+
+  test-taskfile:
+    uses: ./.github/workflows/test-taskfile.yaml
 
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
@@ -107,14 +131,16 @@ jobs:
           # Use the GHA cache
           load: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Only save cache on `main`
+          cache-to:
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
   test-min-rust-version:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in

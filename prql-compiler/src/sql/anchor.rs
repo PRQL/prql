@@ -5,25 +5,89 @@ use std::collections::{HashMap, HashSet};
 use crate::ast::rq::{
     self, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef, Transform,
 };
+use crate::sql::ast_srq::{SqlRelation, SqlRelationKind};
 use crate::sql::context::SqlTableDecl;
-use crate::sql::preprocess::{SqlRelation, SqlRelationKind};
 
-use super::{
-    context::{AnchorContext, ColumnDecl},
-    preprocess::{SqlFold, SqlTransform},
-};
+use super::ast_srq::{SqlFold, SqlTransform};
+use super::context::{AnchorContext, ColumnDecl};
+
+/// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
+/// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
+pub(super) fn extract_atomic(
+    pipeline: Vec<SqlTransform>,
+    ctx: &mut AnchorContext,
+) -> Vec<SqlTransform> {
+    let output = AnchorContext::determine_select_columns(&pipeline);
+
+    let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
+
+    let (atomic, cid_redirects) = if let Some(preceding) = preceding {
+        log::debug!(
+            "pipeline split after {}",
+            preceding.last().unwrap().as_str()
+        );
+        anchor_split(ctx, preceding, atomic)
+    } else {
+        (atomic, HashMap::new())
+    };
+
+    // sometimes, additional columns will be added into select, because they are needed for
+    // other clauses. To filter them out, we use an additional limiting SELECT.
+    let output: Vec<_> = output
+        .into_iter()
+        .map(|c| cid_redirects.get(&c).cloned().unwrap_or(c))
+        .collect();
+    let select_cols = atomic
+        .iter()
+        .find_map(|x| x.as_super().and_then(|y| y.as_select()))
+        .unwrap();
+    if select_cols.iter().any(|c| !output.contains(c)) {
+        // duplicate Select for purposes of anchor_split
+        let duplicated_select = SqlTransform::Super(Transform::Select(select_cols.clone()));
+        let mut atomic = atomic;
+        atomic.push(duplicated_select);
+
+        // construct the new SELECT
+        let limited_view = vec![SqlTransform::Super(Transform::Select(output))];
+
+        let (limited_view, _) = anchor_split(ctx, atomic, limited_view);
+        return limited_view;
+    }
+
+    atomic
+}
+
+/// Converts a pipeline into atomic pipelines. Meant for debugging purposes.
+pub(super) fn extract_atomics_naive(
+    pipeline: Vec<SqlTransform>,
+    ctx: &mut AnchorContext,
+) -> Vec<Vec<SqlTransform>> {
+    let mut atomics = Vec::new();
+
+    atomics.push(extract_atomic(pipeline, ctx));
+    while let Some(decl_key) = ctx.table_decls.keys().max_by_key(|t| t.get()).cloned() {
+        let decl = ctx.table_decls.remove(&decl_key).unwrap();
+        if let Some(relation) = decl.relation {
+            if let SqlRelationKind::PreprocessedPipeline(p) = relation.kind {
+                atomics.push(extract_atomic(p, ctx));
+            }
+        }
+    }
+
+    atomics.reverse();
+    atomics
+}
 
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub(super) fn split_off_back(
     mut pipeline: Vec<SqlTransform>,
+    output: Vec<CId>,
     ctx: &mut AnchorContext,
 ) -> (Option<Vec<SqlTransform>>, Vec<SqlTransform>) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
-
-    let output = AnchorContext::determine_select_columns(&pipeline);
 
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
@@ -175,7 +239,7 @@ pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
     preceding: Vec<SqlTransform>,
     atomic: Vec<SqlTransform>,
-) -> Vec<SqlTransform> {
+) -> (Vec<SqlTransform>, HashMap<CId, CId>) {
     let new_tid = ctx.tid.gen();
 
     let preceding_select = &preceding.last().unwrap().as_super().unwrap();
@@ -232,7 +296,9 @@ pub(super) fn anchor_split(
     let mut second = atomic;
     second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
-    CidRedirector::redirect(second, cid_redirects, ctx)
+    let second = CidRedirector::redirect(second, &cid_redirects, ctx);
+
+    (second, cid_redirects)
 }
 
 /// Determines whether a pipeline must be split at a transform to
@@ -277,7 +343,9 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     let split = match transform {
         Super(From(_)) => contains_any(following, ["From"]),
         Super(Join { .. }) => contains_any(following, ["From"]),
-        Super(Aggregate { .. }) => contains_any(following, ["From", "Join", "Aggregate"]),
+        Super(Aggregate { .. }) => {
+            contains_any(following, ["From", "Join", "Aggregate", "Compute"])
+        }
         Super(Filter(_)) => contains_any(following, ["From", "Join"]),
         Super(Compute(_)) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
         Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
@@ -327,7 +395,7 @@ pub struct Requirement {
     /// Maximum complexity with which this column can be expressed in this transform
     pub max_complexity: Complexity,
 
-    /// True iff this column needs to be SELECTed so I can be referenced in this transform
+    /// True iff this column needs to be SELECTed so it can be referenced in this transform
     pub selected: bool,
 }
 
@@ -419,7 +487,7 @@ pub(super) fn get_requirements(
             },
             false,
         ),
-        // ORDER BY uses aliased columns, so the columns can have high complexity
+        // we only use aliased columns in ORDER BY, so the columns can have high complexity
         Super(Sort(_)) => (Complexity::Aggregation, true),
         Super(Take(_)) => (Complexity::Plain, false),
         Super(Join { .. }) => (Complexity::Plain, false),
@@ -464,10 +532,6 @@ pub fn infer_complexity(compute: &Compute) -> Complexity {
 pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
     match &expr.kind {
         rq::ExprKind::Case(_) => Complexity::NonGroup,
-        rq::ExprKind::Binary { left, right, .. } => {
-            Complexity::max(infer_complexity_expr(left), infer_complexity_expr(right))
-        }
-        rq::ExprKind::Unary { expr, .. } => infer_complexity_expr(expr),
         rq::ExprKind::BuiltInFunction { args, .. } => args
             .iter()
             .map(infer_complexity_expr)
@@ -476,8 +540,7 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
         rq::ExprKind::ColumnRef(_)
         | rq::ExprKind::Literal(_)
         | rq::ExprKind::SString(_)
-        | rq::ExprKind::Param(_)
-        | rq::ExprKind::FString(_) => Complexity::Plain,
+        | rq::ExprKind::Param(_) => Complexity::Plain,
     }
 }
 
@@ -511,13 +574,13 @@ impl RqFold for CidCollector {
 
 pub(super) struct CidRedirector<'a> {
     pub ctx: &'a mut AnchorContext,
-    pub cid_redirects: HashMap<CId, CId>,
+    pub cid_redirects: &'a HashMap<CId, CId>,
 }
 
 impl<'a> CidRedirector<'a> {
     pub fn redirect(
         pipeline: Vec<SqlTransform>,
-        cid_redirects: HashMap<CId, CId>,
+        cid_redirects: &'a HashMap<CId, CId>,
         ctx: &mut AnchorContext,
     ) -> Vec<SqlTransform> {
         let mut redirector = CidRedirector { ctx, cid_redirects };

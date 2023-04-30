@@ -9,7 +9,7 @@ runs:
     - uses: Swatinem/rust-cache@v2
       with:
         save-if: ${{ github.ref == 'refs/heads/main' }}
-        key: python
+        prefix-key: 0.8.1
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux'
       with:

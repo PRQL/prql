@@ -5,28 +5,33 @@ default_job = "check"
 # PRQL additions
 [jobs.test-fast]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
-watch = ["tests", "benches", "examples"]
+watch = ["*"]
 
 [jobs.test]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--unreferenced=auto"]
-watch = ["tests", "benches", "examples"]
+watch = ["*"]
 
 # Standard tasks
 
 [jobs.check]
 command = ["cargo", "check", "--color", "always"]
 need_stdout = false
-watch = ["tests", "benches", "examples"]
+watch = ["*"]
 
 [jobs.check-all]
 command = ["cargo", "check", "--all-targets", "--color", "always"]
 need_stdout = false
-watch = ["tests", "benches", "examples"]
+watch = ["*"]
 
 [jobs.clippy]
 command = ["cargo", "clippy", "--all-targets", "--color", "always"]
 need_stdout = false
-watch = ["tests", "benches", "examples"]
+watch = ["*"]
+
+[jobs.test-cargo]
+command = ["cargo", "test", "--color", "always", "--no-fail-fast"]
+need_stdout = true
+watch = ["*"]
 
 [jobs.doc]
 command = ["cargo", "doc", "--color", "always", "--no-deps"]
@@ -39,17 +44,6 @@ command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
 need_stdout = false
 on_success = "back" # so that we don't open the browser at each change
 
-# You can run your application and have the result displayed in bacon,
-# *if* it makes sense for this crate. You can run an example the same
-# way. Don't forget the `--color always` part or the errors won't be
-# properly parsed.
-# If you want to pass options to your program, a `--` separator
-# will be needed.
-[jobs.run]
-allow_warnings = true
-command = ["cargo", "run", "--color", "always"]
-need_stdout = true
-
 # You may define here keybindings that would be specific to
 # a project, for example a shortcut to launch a specific job.
 # Shortcuts to internal functions (scrolling, toggling, etc.)
@@ -59,5 +53,7 @@ a = "job:check-all"
 c = "job:clippy"
 d = "job:doc-open"
 f = "job:test-fast"
+# `g` for standard carGo tests
+g = "job:test-cargo"
 r = "job:run"
 t = "job:test"

@@ -96,69 +96,85 @@ impl Preprocessor for ComparisonPreprocessor {
     }
 }
 
-pub fn code_block_lang<'a>(event: &'a Event) -> Option<&'a str> {
+/// Returns the language of a code block, divided by spaces
+/// For example: ```prql no-test
+pub fn code_block_lang_tags(event: &Event) -> Option<Vec<String>> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
-        Some(lang.as_ref())
+        Some(lang.to_string().split(' ').map(|x| x.to_string()).collect())
     } else {
         None
     }
 }
+
+const ALLOWED_TAGS: &[&str] = &["prql", "no-test", "no-fmt", "no-eval", "error"];
 
 fn replace_examples(text: &str) -> Result<String> {
     let mut parser = Parser::new_ext(text, Options::all());
     let mut cmark_acc = vec![];
 
     while let Some(event) = parser.next() {
-        if let Some(lang) = code_block_lang(&event) {
-            let Some(Event::Text(text)) = parser.next()
-            else {
-                bail!("Expected text within code block")
-            };
-            let prql = text.to_string();
-            let options = prql_compiler::Options::default().no_signature();
-            let result = compile(&prql, &options);
-
-            match lang {
-                "prql" | "prql_no_fmt" => cmark_acc.push(Event::Html(
-                    table_of_comparison(
-                        &prql,
-                        result
-                            .unwrap_or_else(|_| {
-                                panic!("{}", format!("Query raised an error:\n\n {prql}\n\n"))
-                            })
-                            .as_str(),
-                    )
-                    .into(),
-                )),
-                "prql_error" => cmark_acc.push(Event::Html(
-                    table_of_error(
-                        &prql,
-                        result
-                            .expect_err(
-                                &format!(
-                                    "Query was labeled to raise an error, but succeeded.\n {prql}\n\n"
-                                )
-                                .to_string(),
-                            )
-                            .to_string()
-                            .as_str(),
-                    )
-                    .into(),
-                )),
-                "prql_no_test" => {}
-                _ => {
-                    if lang.starts_with("prql") {
-                        bail!("Unknown code block language: {}", lang)
-                    } else {
-                        cmark_acc.push(event.to_owned())
-                    }
-                }
-            };
-            // Skip ending tag
-            parser.next();
-        } else {
-            cmark_acc.push(event.to_owned())
+        // If it's there no tag, or it's not PRQL, or it has `no-eval`, just
+        // push it and continue.
+        let Some(lang_tags) = code_block_lang_tags(&event) else {
+            cmark_acc.push(event.to_owned());
+            continue;
+        };
+        if !lang_tags.contains(&"prql".to_string()) {
+            cmark_acc.push(event.to_owned());
+            continue;
         }
+
+        for tag in lang_tags.iter() {
+            if !ALLOWED_TAGS.contains(&tag.as_str()) {
+                bail!("Unknown code block language: {}", tag)
+            }
+        }
+
+        if lang_tags.contains(&"no-eval".to_string()) {
+            cmark_acc.push(event.to_owned());
+            continue;
+        }
+
+        let Some(Event::Text(text)) = parser.next() else {
+            bail!("Expected text within code block")
+        };
+
+        let prql = text.to_string();
+        let options = prql_compiler::Options::default().no_signature();
+        let result = compile(&prql, &options);
+
+        if lang_tags.contains(&"no-test".to_string()) {
+            cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
+        } else if lang_tags.contains(&"error".to_string()) {
+            cmark_acc.push(Event::Html(
+                table_of_error(
+                    &prql,
+                    result
+                        .expect_err(
+                            &format!(
+                                "Query was labeled to raise an error, but succeeded.\n {prql}\n\n"
+                            )
+                            .to_string(),
+                        )
+                        .to_string()
+                        .as_str(),
+                )
+                .into(),
+            ))
+        } else {
+            // Either a bare `prql` or with `no-fmt`
+            cmark_acc.push(Event::Html(
+                table_of_comparison(
+                    &prql,
+                    result
+                        .map_err(|_| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n"))?
+                        .as_str(),
+                )
+                .into(),
+            ))
+        }
+        // Skip ending tag
+        parser.next();
     }
     let mut buf = String::new();
     cmark(cmark_acc.into_iter(), &mut buf)?;
@@ -198,6 +214,28 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
     .to_string()
 }
 
+// Similar to `table_of_comparison`, but without a second column.
+fn table_of_prql_only(prql: &str) -> String {
+    format!(
+        r#"
+<div class="comparison">
+
+<div>
+<h4>PRQL</h4>
+
+```prql
+{prql}
+```
+
+</div>
+</div>
+"#,
+        prql = prql.trim(),
+    )
+    .trim_start()
+    .to_string()
+}
+
 // Exactly the same as `table_of_comparison`, but with a different title for the second column.
 fn table_of_error(prql: &str, error: &str) -> String {
     format!(
@@ -229,6 +267,93 @@ fn table_of_error(prql: &str, error: &str) -> String {
     )
     .trim_start()
     .to_string()
+}
+
+#[test]
+fn test_replace_examples() -> Result<()> {
+    use insta::assert_display_snapshot;
+
+    let md = r###"
+# PRQL Doc
+
+```prql
+from x
+```
+
+```python
+import sys
+```
+
+```prql error
+this is an error
+```
+    "###;
+
+    assert_display_snapshot!(replace_examples(md)?, @r###"
+    # PRQL Doc
+
+    <div class="comparison">
+
+    <div>
+    <h4>PRQL</h4>
+
+    ```prql
+    from x
+    ```
+
+    </div>
+
+    <div>
+    <h4>SQL</h4>
+
+    ```sql
+    SELECT
+      *
+    FROM
+      x
+
+    ```
+
+    </div>
+
+    </div>
+
+
+    ````python
+    import sys
+    ````
+
+    <div class="comparison">
+
+    <div>
+    <h4>PRQL</h4>
+
+    ```prql
+    this is an error
+    ```
+
+    </div>
+
+    <div>
+    <h4>Error</h4>
+
+    ```
+    Error:
+       ╭─[:1:1]
+       │
+     1 │ this is an error
+       │ ──┬─
+       │   ╰─── Unknown name this
+    ───╯
+
+    ```
+
+    </div>
+
+    </div>
+    "###);
+
+    Ok(())
 }
 
 #[test]

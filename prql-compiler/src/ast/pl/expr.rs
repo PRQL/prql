@@ -77,7 +77,7 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
-    Set(SetExpr),
+    Type(TypeExpr),
 
     /// a placeholder for values provided after query is compiled
     Param(String),
@@ -127,9 +127,9 @@ pub enum BinOp {
     Gte,
     #[strum(to_string = "<=")]
     Lte,
-    #[strum(to_string = "and")]
+    #[strum(to_string = "&&")]
     And,
-    #[strum(to_string = "or")]
+    #[strum(to_string = "||")]
     Or,
     #[strum(to_string = "??")]
     Coalesce,
@@ -344,6 +344,11 @@ pub enum WindowKind {
 }
 
 /// A reference to a table that is not in scope of this query.
+///
+/// > Note: We're not using this at the moment in
+/// > [crate::ast::rq::RelationKind], since we wanted to avoid nested enums,
+/// > since they can't be serialized to YAML at the moment. We may add this back
+/// > in the future, or flatten it up to [crate::ast::rq::RelationKind]
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableExternRef {
     /// Actual table in a database, that we can refer to by name in SQL
@@ -594,8 +599,8 @@ impl Display for Expr {
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
             }
-            ExprKind::Set(_) => {
-                writeln!(f, "<set-expr>")?;
+            ExprKind::Type(_) => {
+                writeln!(f, "<type-expr>")?;
             }
             ExprKind::Param(id) => {
                 writeln!(f, "${id}")?;

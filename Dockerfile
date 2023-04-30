@@ -1,5 +1,8 @@
-# Dockerfile to build the prql development environment
-# For more details, see the USING_DOCKER.md file
+# Dockerfile to build the prql development environment.
+# See https://prql-lang.org/book/contributing/developing-with-docker.html for
+# more details.
+
+# Some of this is shared with /.devcontainer/base-image/Dockerfile.
 
 # Build with:
 #
@@ -12,11 +15,9 @@
 #   docker run -it -v $(pwd)/:/src -p 3000:3000 prql
 #
 # You'll see a root@xxxxxxxxx:/app/# prompt
-# Enter the commands for the various tasks
+# Enter the relevant command
 # Ctrl-c to exit that task
 # Ctrl-d to close down the Docker machine
-
-# See USING_DOCKER.md for instructions for various tasks
 
 FROM rust:1.65.0-slim-buster
 # Surprising this isn't already in the rust image
@@ -43,12 +44,12 @@ RUN apt-get -yq update \
 # ========= Install task =========
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
-# ========= Set up workdir & copy the taskfile =========
-WORKDIR /src
-COPY Taskfile.cargo-tools.yml .
-
 # ========= Install cargo-tools =========
-RUN task -t Taskfile.cargo-tools.yml install
+COPY Taskfile.yml /tmp/Taskfile.yml
+RUN task -t /tmp/Taskfile.yml install-cargo-tools
+
+# ========= Set up workdir =========
+WORKDIR /src
 
 # TODO: currently this doesn't support doing things like running the playground,
 # since we don't install hugo & node. Default `apt` doesn't install up-to-date

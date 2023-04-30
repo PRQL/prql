@@ -12,19 +12,19 @@
     ]
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "^1.24.0",
-    "@monaco-editor/react": "^4.4.6",
+    "@duckdb/duckdb-wasm": "^1.25.0",
+    "@monaco-editor/react": "^4.5.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
-    "monaco-editor": "^0.36.0",
+    "monaco-editor": "^0.37.0",
     "prql-js": "file:../../bindings/prql-js",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-syntax-highlighter": "^15.5.0",
     "wasm-react-scripts": "5.0.3",
     "web-vitals": "^3.3.0",
-    "yaml": "^2.2.1"
+    "yaml": "^2.2.2"
   },
   "devDependencies": {
     "npm-watch": "^0.11.0"
@@ -41,10 +41,10 @@
   "scripts": {
     "build": "npm run genBook && react-scripts build",
     "eject": "npm run genBook && react-scripts eject",
-    "preinstall": "cp -r ../../prql-compiler/tests/integration/data public && cd ../../bindings/prql-js && npm run build:bundler",
+    "preinstall": "cp -r ../../prql-compiler/tests/integration/data public",
     "start": "npm run genBook && react-scripts start",
     "test": "npm run genBook && react-scripts test",
     "genBook": "node generateBook.js"
   },
-  "version": "0.1.0"
+  "version": "0.8.1"
 }

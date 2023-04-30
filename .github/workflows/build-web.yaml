@@ -1,0 +1,83 @@
+name: build-web
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/build-web.yaml"
+      - "**.md"
+  workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-web
+  cancel-in-progress: true
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+
+    # Skip running workflow on forks. Checking the repository owner still allows
+    # this to be run on PRs, and then below we disable it from attempting to
+    # publish.
+    if: github.repository_owner == 'prql'
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+
+      # Website requires hugo
+      - name: Setup hugo
+        uses: peaceiris/actions-hugo@v2.6.0
+
+      # Book setup, duplicated from `pull-request.yaml`
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook-footnote
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook-admonish
+
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: wasm-pack
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 0.8.1
+          save-if:
+            ${{ github.ref == 'refs/heads/web' || github.ref ==
+            'refs/heads/main' }}
+
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: 🕷️ Build website
+        run: task build-web
+
+      - uses: actions/upload-pages-artifact@v1.0.8
+        with:
+          path: web/website/public/
+
+  check-links:
+    # Copied from `test-all.yaml` — run this for all files (not just changed
+    # ones) here, since we're more likely to change a location of a file that's
+    # linked _to_.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: .github/.markdown-link-check.json
+          use-quiet-mode: "yes"
