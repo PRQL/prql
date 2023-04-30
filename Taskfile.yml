@@ -255,7 +255,7 @@ tasks:
       # prql-lang.org/playground with an iframe containing the playground.
       # Possibly there's a more elegant way of doing this...
       - rsync -ai --checksum --delete playground/build/
-        website/public/playground/playground
+        website/public/playground/playground/
 
   test-js:
     dir: bindings/prql-js
@@ -277,6 +277,17 @@ tasks:
     dir: web/website
     cmds:
       - hugo server
+
+  run-web:
+    desc: Build & serve the website & playground.
+    summary:
+      Note that this only live-reloads the static website; and requires
+      rerunning to pick up playground & book changes.
+    dir: web/website
+    cmds:
+      - task: build-web
+      # Then start web server with rendering to disk, so it picks up the playground files.
+      - hugo server --renderToDisk
 
   run-book:
     desc: Build & serve the book.
