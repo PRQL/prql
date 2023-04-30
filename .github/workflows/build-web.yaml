@@ -54,7 +54,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.0
+          prefix-key: 0.8.1
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
@@ -80,3 +80,4 @@ jobs:
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           config-file: .github/.markdown-link-check.json
+          use-quiet-mode: "yes"

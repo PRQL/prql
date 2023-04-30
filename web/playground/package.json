@@ -24,7 +24,7 @@
     "react-syntax-highlighter": "^15.5.0",
     "wasm-react-scripts": "5.0.3",
     "web-vitals": "^3.3.0",
-    "yaml": "^2.2.1"
+    "yaml": "^2.2.2"
   },
   "devDependencies": {
     "npm-watch": "^0.11.0"
@@ -46,5 +46,5 @@
     "test": "npm run genBook && react-scripts test",
     "genBook": "node generateBook.js"
   },
-  "version": "0.8.0"
+  "version": "0.8.1"
 }

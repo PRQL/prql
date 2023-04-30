@@ -12,21 +12,25 @@ version.workspace = true
 anyhow = {version = "1.0.57"}
 ariadne = "0.2.0"
 atty = "0.2.14"
-clap = {version = "4.2.0", features = ["derive"]}
+clap = {version = "4.2.0", features = ["derive", "env", "wrap_help"]}
 clio = {version = "0.2.4", features = ['clap-parse']}
 color-eyre = "0.6.1"
 concolor = "0.1.0"
 concolor-clap = {version = "0.1.0", features = ["api"]}
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
-minijinja = {version = "0.31.0", features = ["unstable_machinery"]}
 notify = "^5.1.0"
-prql-compiler = {path = '..', version = "0.8.0" }
-regex = {version = "1.7.1", features = ["std", "unicode"]}
+prql-compiler = {path = '..', version = "0.8.1" }
+regex = {version = "1.8.1", features = ["std", "unicode"]}
 serde = "^1"
 serde_json = "1.0.81"
 serde_yaml = "0.9.1"
 walkdir = "^2.3.2"
 
+# We use minijinja just for the Jinja lexer, which is not part of the
+# public interface which is covered by semver guarantees.
+minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
+
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
+insta-cmd = "0.2.0"

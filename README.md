@@ -65,8 +65,8 @@ For more on the language, more examples & comparisons with SQL, visit
 ## Current Status - April 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
-the intrepid, either as part of one of our supported extensions, or within your
-own tools, using one of our supported language bindings.
+the intrepid, either with our supported integrations, or within your own tools,
+using one of our supported language bindings.
 
 PRQL still has some minor bugs and some missing features, and probably is only
 ready to be rolled out to non-technical teams for fairly simple queries.
