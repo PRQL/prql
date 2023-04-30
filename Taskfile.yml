@@ -86,7 +86,7 @@ tasks:
 
   install-cargo-tools-binstall:
     cmds:
-      - cargo install cargo-binstall
+      - cargo install --locked cargo-binstall
       - cargo binstall -y --locked {{.cargo_crates}}
 
   install-maturin:
