@@ -213,7 +213,9 @@ fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_a
     let Some(regex_function) = ctx.dialect.regex_function() else {
         // TODO: name the dialect, but not immediately obvious how to actually
         // get the dialect string from a `DialectHandler`.
-        bail!("regex functions are not supported by this dialect");
+        //
+        // MSSQL doesn't support them, MySQL has a different construction.
+        bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
     };
 
     let args = unpack(expr, decl);

@@ -207,6 +207,14 @@ impl DialectHandler for SQLiteDialect {
     fn stars_in_group(&self) -> bool {
         false
     }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        // Sqlite has a different construction, using `REGEXP` as an operator.
+        // (`foo REGEXP 'bar').
+        //
+        // TODO: change the construction of the function to allow this.
+        None
+    }
 }
 
 impl DialectHandler for MsSqlDialect {
@@ -235,6 +243,14 @@ impl DialectHandler for MySqlDialect {
     fn set_ops_distinct(&self) -> bool {
         // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
         true
+    }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        // MySQL has a different construction, using `REGEXP` as an operator.
+        // (`foo REGEXP 'bar'). So
+        //
+        // TODO: change the construction of the function to allow this.
+        None
     }
 }
 

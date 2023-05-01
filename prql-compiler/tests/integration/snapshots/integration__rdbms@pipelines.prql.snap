@@ -3,10 +3,19 @@ source: prql-compiler/tests/integration/main.rs
 expression: result_string
 input_file: prql-compiler/tests/integration/queries/pipelines.prql
 ---
-0
-0
-0
-1
-1
-1
+My Love,Jauperi/Zeu Góes
+The Girl I Love She Got Long Black Wavy Hair,Jimmy Page/John Bonham/John Estes/John Paul Jones/Robert Plant
+Love Gun,Paul Stanley
+Do You Love Me,Paul Stanley, B. Ezrin, K. Fowley
+Calling Dr. Love,Gene Simmons
+Cry For Love,Bossi/David Coverdale/Earl Slick
+Um Love,
+Do You Have Other Loves?,
+Don't Take Your Love From Me,
+I Need Love,Bolin/Coverdale
+Love Child,Bolin/Coverdale
+Cascades : I'm Not Your Lover,Ian Gillan, Roger Glover, Jon Lord, Steve Morse, Ian Paice
+Love Conquers All,Blackmore, Glover, Turner
+Love Don't Mean a Thing,D.Coverdale/G.Hughes/Glenn Hughes/I.Paice/Ian Paice/J.Lord/John Lord/R.Blackmore/Ritchie Blackmore
+You Can't Do it Right (With the One You Love),D.Coverdale/G.Hughes/Glenn Hughes/R.Blackmore/Ritchie Blackmore
 

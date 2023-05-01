@@ -45,7 +45,6 @@
   - [Distinct](./language-features/distinct.md)
   - [Null handling](./language-features/null.md)
   - [Ranges](./language-features/ranges.md)
-    <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
   - [Regex](./language-features/regex.md)
   - [Standard library](./language-features/standard-library/README.md)
     - [From_text](./language-features/standard-library/from_text.md)
