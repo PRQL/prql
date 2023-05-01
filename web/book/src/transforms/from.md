@@ -2,7 +2,7 @@
 
 Specifies a data source.
 
-```prql_no_test
+```prql no-eval
 from {table_reference}
 ```
 
