@@ -6,7 +6,7 @@ The major distinction between PRQL and today's conventional programming
 languages such as C or Python is the function call syntax. It consists of the
 function name followed by arguments separated by whitespace.
 
-```prql_no_test
+```prql no-eval
 function_name arg1 arg2 arg3
 ```
 
@@ -14,7 +14,7 @@ If one of the arguments is also a function call, it must be encased in
 parentheses, so we know where arguments of inner function end and the arguments
 of outer function start.
 
-```prql_no_test
+```prql no-eval
 outer_func arg_1 (inner_func arg_a, arg_b) arg_2
 ```
 
@@ -25,13 +25,13 @@ whether the pipeline is delimited by pipe symbol `|` or a new line, the pipeline
 is equivalent to applying each of functions as the last argument of the next
 function.
 
-```prql_no_test
+```prql no-eval
 a | foo 3 | bar 'hello' 'world' | baz
 ```
 
 ... is equivalent to ...
 
-```prql_no_test
+```prql no-eval
 baz (bar 'hello' 'world' (foo 3 a))
 ```
 

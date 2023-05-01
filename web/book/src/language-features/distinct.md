@@ -46,7 +46,7 @@ group [first_name, last_name] (take 1)
 
 When using Postgres dialect, we are planning to compile:
 
-```prql_no_test
+```prql no-eval
 # youngest employee from each department
 from employees
 group department (

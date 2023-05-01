@@ -2,7 +2,7 @@
 
 Picks rows based on their position.
 
-```prql_no_test
+```prql no-eval
 take {n|range}
 ```
 

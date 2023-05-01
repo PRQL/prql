@@ -2,7 +2,7 @@
 
 Picks and computes columns.
 
-```prql_no_test
+```prql no-eval
 select [
   {name} = {expression},
   # or
@@ -74,7 +74,7 @@ select ![artists.*]
 In the final example above, the `e` representing the table / namespace is no
 longer available after the `select` statement. For example, this would raise an error:
 
-```prql_no_test
+```prql no-eval
 from e=employees
 select e.first_name
 filter e.first_name == "Fred" # Can't find `e.first_name`
