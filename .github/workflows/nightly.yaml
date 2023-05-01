@@ -85,7 +85,8 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
-      - run: cargo +nightly udeps --all-targets
+      - run: rustup override set nightly-2022-04-22
+      - run: cargo udeps --all-targets
 
   test-docker:
     # We only test the build in `test-all`; this also runs tests.
