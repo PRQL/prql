@@ -86,6 +86,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
+          cache-key: v2
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: udeps
