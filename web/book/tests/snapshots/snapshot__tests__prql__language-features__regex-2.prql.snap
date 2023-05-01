@@ -1,11 +1,11 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "prql target:sql.postgres\n\nfrom artists\nfilter (name ~= \"Martin\")\n"
+expression: "prql target:sql.bigquery\n\nfrom tracks\nfilter (name ~= \"\\\\bLove\\\\b\")\n"
 ---
 SELECT
   *
 FROM
-  artists
+  tracks
 WHERE
-  REGEXP_LIKE(name, 'Martin')
+  REGEXP_CONTAINS(name, '\bLove\b')
 

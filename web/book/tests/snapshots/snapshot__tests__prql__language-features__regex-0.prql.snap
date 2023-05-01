@@ -1,11 +1,11 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from artists\nfilter (name ~= \"Martin\")\n"
+expression: "from tracks\nfilter (name ~= \"Love\")\n"
 ---
 SELECT
   *
 FROM
-  artists
+  tracks
 WHERE
-  REGEXP(name, 'Martin')
+  REGEXP(name, 'Love')
 
