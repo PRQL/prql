@@ -43,7 +43,7 @@ repos:
     hooks:
       - id: markdown-link-check
         files: \.md$
-        args: ["--config=.github/.markdown-link-check.json"]
+        args: ["--config=.config/.markdown-link-check-local.json"]
   - repo: local
     hooks:
       - id: no-dbg
