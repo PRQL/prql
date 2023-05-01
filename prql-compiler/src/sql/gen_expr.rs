@@ -204,16 +204,18 @@ fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_a
     // function. But possibly we keep it complicated here and allow for more
     // implementations in PRQL std lib.
 
-    let Some(regex_function) = ctx.dialect.regex_function() else {
-        // TODO: name the dialect
-        bail!("regex functions are not supported by this dialect");
-    };
-
     const DECLS: [super::std::FunctionDecl<2>; 1] = [STD_REGEX_SEARCH];
 
     let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
         return Ok(Err(expr));
     };
+
+    let Some(regex_function) = ctx.dialect.regex_function() else {
+        // TODO: name the dialect, but not immediately obvious how to actually
+        // get the dialect string from a `DialectHandler`.
+        bail!("regex functions are not supported by this dialect");
+    };
+
     let args = unpack(expr, decl);
 
     let args = args
