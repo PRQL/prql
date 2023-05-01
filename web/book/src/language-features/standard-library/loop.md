@@ -2,7 +2,7 @@
 
 > _Experimental_
 
-```prql_no_test
+```prql no-eval
 loop {step_function} {initial_relation}
 ```
 

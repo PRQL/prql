@@ -13,7 +13,7 @@ select db_version = s"version()"
 Embed a column name in an s-string using braces. For example, PRQL's standard
 library defines the `average` function as:
 
-```prql_no_test
+```prql no-eval
 func average column -> s"AVG({column})"
 ```
 
