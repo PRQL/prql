@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - run: rustup override set nightly-2022-04-22
+      - run: rustup override set nightly-2023-04-22
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
