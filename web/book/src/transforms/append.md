@@ -39,7 +39,7 @@ intersect employees_2
 To imitate set operations i.e. (`UNION`, `EXCEPT` and `INTERSECT`), you can use
 the following functions:
 
-```prql_no_test
+```prql no-eval
 func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
 func union `default_db.bottom` top -> (top | append bottom | distinct)
 func except `default_db.bottom` top -> (top | distinct | remove bottom)

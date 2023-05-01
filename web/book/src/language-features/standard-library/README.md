@@ -16,7 +16,7 @@ then, we'll only add functions here that are broadly supported by most DBs.
 Here's the source of the current
 [PRQL `std`](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/std.prql):
 
-```prql_no_test
+```prql no-eval
 {{#include ../../../../../prql-compiler/src/semantic/std.prql}}
 ```
 
