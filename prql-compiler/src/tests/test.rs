@@ -3507,6 +3507,7 @@ fn test_1535() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
 fn test_read_parquet_duckdb() {
     assert_display_snapshot!(compile(r#"
     from (read_parquet 'x.parquet')

@@ -197,9 +197,6 @@ impl Context {
             }
         }
 
-        // 1535: I think the thing we need to do is allow this lookup to create
-        // a new module!
-
         // fallback case: this variable can be from a namespace that we don't know all columns of
         let decls = {
             self.root_mod.lookup(&Ident {
@@ -211,6 +208,8 @@ impl Context {
         dbg!(std::backtrace::Backtrace::capture());
         match decls.len() {
             // This is the source of the error
+            // 1535: we need allow this to create a new module rather than
+            // raising an error.
             0 => Err(format!("Unknown name {ident}")),
 
             // single match, great!
