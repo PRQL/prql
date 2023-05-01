@@ -214,7 +214,7 @@ fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_a
         // TODO: name the dialect, but not immediately obvious how to actually
         // get the dialect string from a `DialectHandler`.
         //
-        // MSSQL doesn't support them, MySQL has a different construction.
+        // MSSQL doesn't support them, MySQL & SQLite have a different construction.
         bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
     };
 
