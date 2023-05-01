@@ -19,7 +19,7 @@ itertools = "0.10.3"
 lazy_static = "1.4.0"
 log = "0.4.17"
 once_cell = "1.17.0"
-regex = "1.7.0"
+regex = "1.8.1"
 semver = {version = "1.0.14", features = ["serde"]}
 # We could put `serde` behind a feature if needed, particularly `yaml`, which
 # isn't used in the main library.
@@ -90,7 +90,7 @@ search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../github/actions/time-compilation/action.yaml"
+file = "../.github/actions/time-compilation/action.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 

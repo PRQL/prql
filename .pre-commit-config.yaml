@@ -8,20 +8,20 @@ repos:
       - id: check-yaml
       - id: mixed-line-ending
   - repo: https://github.com/crate-ci/typos
-    rev: v1.14.5
+    rev: v1.14.8
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.6
+    rev: v3.0.0-alpha.9-for-vscode
     hooks:
       - id: prettier
         additional_dependencies:
           - prettier
           - prettier-plugin-go-template
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.261
+    rev: v0.0.263
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
@@ -39,11 +39,11 @@ repos:
       - id: mypy
         additional_dependencies: ["types-PyYAML==6.0.12.4"]
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.11.0
+    rev: v3.11.2
     hooks:
       - id: markdown-link-check
         files: \.md$
-        args: ["--config=.github/.markdown-link-check.json"]
+        args: ["--config=.config/.markdown-link-check-local.json"]
   - repo: local
     hooks:
       - id: no-dbg

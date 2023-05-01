@@ -3,7 +3,7 @@
 Applies a pipeline to segments of rows, producing one output value for every
 input value.
 
-```prql_no_test
+```prql no-eval
 window rows:{range} range:{range} expanding:false rolling:0 {pipeline}
 ```
 

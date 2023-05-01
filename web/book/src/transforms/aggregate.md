@@ -7,7 +7,7 @@ When applied:
 - without `group`, it produces one row from the whole table,
 - within a `group` pipeline, it produces one row from each group.
 
-```prql_no_test
+```prql no-eval
 aggregate [{expression or assign operations}]
 ```
 

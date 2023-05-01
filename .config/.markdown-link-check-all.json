@@ -7,9 +7,12 @@
       "urls": ["https://crates.io"]
     }
   ],
-  "ignorePatterns": [
+  "ignorePatters": [
     {
       "pattern": "^https://twitter.com"
+    },
+    {
+      "pattern": "^https://www.php.net"
     }
   ]
 }

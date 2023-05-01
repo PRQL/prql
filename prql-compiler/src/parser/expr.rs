@@ -297,12 +297,14 @@ fn operator_add() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
 fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (just(Token::Eq).to(BinOp::Eq))
-        .or(just(Token::Ne).to(BinOp::Ne))
-        .or(just(Token::Lte).to(BinOp::Lte))
-        .or(just(Token::Gte).to(BinOp::Gte))
-        .or(ctrl('<').to(BinOp::Lt))
-        .or(ctrl('>').to(BinOp::Gt))
+    choice((
+        just(Token::Eq).to(BinOp::Eq),
+        just(Token::Ne).to(BinOp::Ne),
+        just(Token::Lte).to(BinOp::Lte),
+        just(Token::Gte).to(BinOp::Gte),
+        ctrl('<').to(BinOp::Lt),
+        ctrl('>').to(BinOp::Gt),
+    ))
 }
 fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     just(Token::And).to(BinOp::And)

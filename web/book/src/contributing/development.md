@@ -402,7 +402,7 @@ Currently we release in a semi-automated way:
 5. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.7.X — [unreleased]
+   ## 0.8.X — [unreleased]
 
    **Features**:
 

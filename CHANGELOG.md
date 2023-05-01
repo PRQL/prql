@@ -1,13 +1,8 @@
 # PRQL Changelog
 
-## 0.7.2 — [unreleased]
+## 0.8.2 — [unreleased]
 
 **Features**:
-
-- New functions `read_parquet` and `read_csv`, which mirror the DuckDB
-  functions, instructing the database to read from files (@max-sixty, #2049).
-
-- Rename `and` to `&&` and `or` to `||` (@aljazerzen, #2422).
 
 **Fixes**:
 
@@ -20,6 +15,35 @@
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.8.1 — 2023-04-29
+
+0.8.1 is a small release with a new `list-targets` command in `prqlc`, some
+documentation improvements, and some internal improvements.
+
+This release has 41 commits from 8 contributors.
+
+From the broader perspective of the project, we're increasing the relative
+prioritization of it being easy for folks to actually use PRQL — either with
+existing tools, or a tool we'd build. We'll be thinking about & discussing the
+best way to do that over the next few weeks.
+
+## 0.8.0 — 2023-04-14
+
+0.8.0 renames the `and` & `or` operators to `&&` & `||` respectively,
+reorganizes the Syntax section in the book, and introduces `read_parquet` &
+`read_csv` functions for reading files with DuckDB.
+
+This release has 38 commits from 8 contributors. Selected changes:
+
+**Features**:
+
+- Rename `and` to `&&` and `or` to `||`. Operators which are symbols are now
+  consistently infix, while "words" are now consistently functions (@aljazerzen,
+  #2422).
+
+- New functions `read_parquet` and `read_csv`, which mirror the DuckDB
+  functions, instructing the database to read from files (@max-sixty, #2409).
 
 ## 0.7.1 — 2023-04-03
 
