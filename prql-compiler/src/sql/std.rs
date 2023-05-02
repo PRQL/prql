@@ -92,6 +92,7 @@ pub(crate) const STD_GT: FunctionDecl<2> = FunctionDecl::new("std.gt");
 pub(crate) const STD_LT: FunctionDecl<2> = FunctionDecl::new("std.lt");
 pub(crate) const STD_GTE: FunctionDecl<2> = FunctionDecl::new("std.gte");
 pub(crate) const STD_LTE: FunctionDecl<2> = FunctionDecl::new("std.lte");
+pub(crate) const STD_REGEX_SEARCH: FunctionDecl<2> = FunctionDecl::new("std.regex_search");
 pub(crate) const STD_AND: FunctionDecl<2> = FunctionDecl::new("std.and");
 pub(crate) const STD_OR: FunctionDecl<2> = FunctionDecl::new("std.or");
 pub(crate) const STD_CONCAT: FunctionDecl<2> = FunctionDecl::new("std.concat");

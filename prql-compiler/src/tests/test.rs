@@ -3548,3 +3548,19 @@ fn test_excess_columns() {
     "###
     );
 }
+
+#[test]
+fn test_regex_search() {
+    assert_display_snapshot!(compile(r#"
+    from tracks
+    derive is_bob_marley = artist_name ~= "Bob\\sMarley"
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *,
+      REGEXP(artist_name, 'Bob\sMarley') AS is_bob_marley
+    FROM
+      tracks
+    "###
+    );
+}

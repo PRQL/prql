@@ -1075,7 +1075,26 @@ Canada
               right:
                 Ident:
                   - tax_rate
-        "###)
+        "###);
+    }
+
+    #[test]
+    fn test_regex() {
+        assert_yaml_snapshot!(
+            parse_expr(
+                "'oba' ~= 'foobar'"
+            ).unwrap(),
+            @r###"
+        ---
+        Binary:
+          left:
+            Literal:
+              String: oba
+          op: RegexSearch
+          right:
+            Literal:
+              String: foobar
+        "###);
     }
 
     #[test]

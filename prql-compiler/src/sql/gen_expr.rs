@@ -92,6 +92,11 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 Err(expr) => expr,
             };
 
+            let expr = match try_into_regex_function(expr, ctx)? {
+                Ok(between) => return Ok(between),
+                Err(expr) => expr,
+            };
+
             let expr = match try_into_binary_op(expr, ctx)? {
                 Ok(bin_op) => return Ok(bin_op),
                 Err(expr) => expr,
@@ -183,6 +188,49 @@ fn try_into_concat_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_
 
     Ok(Ok(sql_ast::Expr::Function(Function {
         name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+        args,
+        over: None,
+        distinct: false,
+        special: false,
+    })))
+}
+
+fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
+    // This function is mostly copied from the other `try_into_*` functions —
+    // don't use this as a template.
+    //
+    // Possibly we might be able to simplify some of this, even if it's
+    // more verbose / less performant? It's not easy rust to add a simple
+    // function. But possibly we keep it complicated here and allow for more
+    // implementations in PRQL std lib.
+
+    const DECLS: [super::std::FunctionDecl<2>; 1] = [STD_REGEX_SEARCH];
+
+    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
+        return Ok(Err(expr));
+    };
+
+    let Some(regex_function) = ctx.dialect.regex_function() else {
+        // TODO: name the dialect, but not immediately obvious how to actually
+        // get the dialect string from a `DialectHandler`.
+        //
+        // MSSQL doesn't support them, MySQL & SQLite have a different construction.
+        bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
+    };
+
+    let args = unpack(expr, decl);
+
+    let args = args
+        .into_iter()
+        .map(|a| {
+            translate_expr(a, ctx)
+                .map(FunctionArgExpr::Expr)
+                .map(FunctionArg::Unnamed)
+        })
+        .try_collect()?;
+
+    Ok(Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
         args,
         over: None,
         distinct: false,

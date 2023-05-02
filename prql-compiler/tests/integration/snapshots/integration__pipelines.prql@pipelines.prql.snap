@@ -1,21 +1,26 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "# skip_mssql\nfrom tracks\nsort track_id\ntake 20..25\nselect [is_in_range = album_id | in 5..10]\n"
+expression: "# skip_mssql (https://github.com/PRQL/prql/issues/2448)\n# skip_mysql (regex not yet implemented)\n# skip_sqlite (regex not yet implemented)\n# booleans cannot be selected directly. instead CASE is needed (https://dba.stackexchange.com/a/2774)\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect [name, composer]\n\n"
 input_file: prql-compiler/tests/integration/queries/pipelines.prql
 ---
 WITH table_1 AS (
   SELECT
-    album_id BETWEEN 5 AND 10 AS is_in_range,
+    name,
+    composer,
     track_id
   FROM
     tracks
+  WHERE
+    REGEXP(name, 'Love')
+    AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
   ORDER BY
     track_id
   LIMIT
-    6 OFFSET 19
+    15
 )
 SELECT
-  is_in_range
+  name,
+  composer
 FROM
   table_1 AS table_0
 

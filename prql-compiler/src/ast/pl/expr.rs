@@ -127,6 +127,8 @@ pub enum BinOp {
     Gte,
     #[strum(to_string = "<=")]
     Lte,
+    #[strum(to_string = "~=")]
+    RegexSearch,
     #[strum(to_string = "&&")]
     And,
     #[strum(to_string = "||")]
