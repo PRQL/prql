@@ -4,6 +4,26 @@
 
 **Features**:
 
+- Add a `~=` regex search operator (@max-sixty, #2458). An example:
+
+  ```prql no-eval
+  from tracks
+  filter (name ~= "Love")
+  ```
+
+  ...compiles to;
+
+  ```sql
+  SELECT
+    *
+  FROM
+    tracks
+  WHERE
+    REGEXP(name, 'Love')
+  ```
+
+  ...though the exact form differs by dialect.
+
 **Fixes**:
 
 **Documentation**:
