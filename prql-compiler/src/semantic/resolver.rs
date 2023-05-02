@@ -567,45 +567,45 @@ impl Resolver {
         let has_tables = !dbg!(&tables).is_empty();
 
         // resolve tables
-        if dbg!(has_tables) {
+        if has_tables {
             // For each table, check whether we have its path as a namespace in
             // the context. If we don't, add it in.
-            for t in &tables {
-                let (_, arg) = dbg!(&t.1);
-                if let Expr {
-                    kind: ExprKind::Ident(table_ident),
-                    // Ident { path, name }, ..),
-                    ..
-                } = arg
-                {
-                    if self
-                        .context
-                        .root_mod
-                        .get(&table_ident.clone().pop().unwrap())
-                        .is_none()
-                    {
-                        self.context.root_mod.insert(
-                            table_ident.clone(),
-                            Decl {
-                                kind: DeclKind::Module(Module::default()),
-                                ..Default::default()
-                            },
-                        )?;
-                        //  Table::new(table_ident.clone()), table_ident);
-                    }
-                    // if !self.context.root_mod.has_namespace(path) {
-                    //     self.context
-                    //         .root_mod
-                    //         .insert_frame(Table::new(path.clone()), path);
-                    // }
-                }
-                dbg!(&arg);
-                // let table = arg.ty.as_ref().unwrap().as_table().unwrap();
-                // let path = table.path.clone();
-                // if !self.context.root_mod.has_namespace(&path) {
-                //     self.context.root_mod.insert_frame(table, &path);
-                // }
-            }
+            // for t in &tables {
+            //     let (_, arg) = dbg!(&t.1);
+            //     if let Expr {
+            //         kind: ExprKind::Ident(table_ident),
+            //         // Ident { path, name }, ..),
+            //         ..
+            //     } = arg
+            //     {
+            //         if self
+            //             .context
+            //             .root_mod
+            //             .get(&table_ident.clone().pop().unwrap())
+            //             .is_none()
+            //         {
+            //             self.context.root_mod.insert(
+            //                 table_ident.clone(),
+            //                 Decl {
+            //                     kind: DeclKind::Module(Module::default()),
+            //                     ..Default::default()
+            //                 },
+            //             )?;
+            //             //  Table::new(table_ident.clone()), table_ident);
+            //         }
+            //         // if !self.context.root_mod.has_namespace(path) {
+            //         //     self.context
+            //         //         .root_mod
+            //         //         .insert_frame(Table::new(path.clone()), path);
+            //         // }
+            //     }
+            //     dbg!(&arg);
+            //     // let table = arg.ty.as_ref().unwrap().as_table().unwrap();
+            //     // let path = table.path.clone();
+            //     // if !self.context.root_mod.has_namespace(&path) {
+            //     //     self.context.root_mod.insert_frame(table, &path);
+            //     // }
+            // }
 
             // 1535: Use whether it's here to decide whether to put it into the
             // modules
@@ -613,13 +613,13 @@ impl Resolver {
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
             for pos in tables.into_iter().with_position() {
-                dbg!(&pos);
+                // dbg!(&pos);
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                dbg!(&arg, &param, &func_name);
-                let arg = dbg!(self.fold_and_type_check(arg, param, func_name)?);
+                // dbg!(&arg, &param, &func_name);
+                let arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
@@ -667,7 +667,6 @@ impl Resolver {
             self.context.root_mod.unshadow(NS_FRAME);
             self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }
-        dbg!(&closure);
 
         Ok(closure)
     }
