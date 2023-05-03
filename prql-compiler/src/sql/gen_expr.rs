@@ -76,49 +76,44 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 else_result,
             }
         }
-        ExprKind::BuiltInFunction { ref name, ref args } => match &name[..] {
-            "std.eq" | "std.ne" => {
-                if args.len() == 2 {
-                    let (a, b) = (&args[0], &args[1]);
+        ExprKind::BuiltInFunction { ref name, ref args } => {
+            // A few special cases and then fall-through to the standard approach.
+            match name.as_str() {
+                "std.eq" | "std.ne" => {
+                    if args.len() == 2 {
+                        let (a, b) = (&args[0], &args[1]);
 
-                    if a.kind == ExprKind::Literal(Literal::Null)
-                        || b.kind == ExprKind::Literal(Literal::Null)
-                    {
-                        process_null(name, args, ctx)?
-                    } else if let Some(op) = operator_from_name(name) {
-                        let (left, right) = (&args[0], &args[1]);
-                        translate_binary_operator(left, right, op, ctx)?
-                    } else {
-                        translate_built_in(expr, ctx)?
-                    }
-                } else {
-                    super::std::translate_built_in(expr, ctx)?
-                }
-            }
-            "std.neg" | "std.not" => {
-                if args.len() == 1 {
-                    process_unary(name, &args[0], ctx)?
-                } else {
-                    super::std::translate_built_in(expr, ctx)?
-                }
-            }
-            "std.concat" => process_concat(&expr, ctx)?,
-            _ => match try_into_between(expr.clone(), ctx)? {
-                Some(between_expr) => between_expr,
-                None => {
-                    if let Some(op) = operator_from_name(name) {
-                        if args.len() == 2 {
+                        if a.kind == ExprKind::Literal(Literal::Null)
+                            || b.kind == ExprKind::Literal(Literal::Null)
+                        {
+                            return process_null(name, args, ctx);
+                        } else if let Some(op) = operator_from_name(name) {
                             let (left, right) = (&args[0], &args[1]);
-                            translate_binary_operator(left, right, op, ctx)?
-                        } else {
-                            super::std::translate_built_in(expr, ctx)?
+                            return translate_binary_operator(left, right, op, ctx);
                         }
-                    } else {
-                        super::std::translate_built_in(expr, ctx)?
                     }
                 }
-            },
-        },
+                "std.neg" | "std.not" => {
+                    if args.len() == 1 {
+                        return process_unary(name, &args[0], ctx);
+                    }
+                }
+                "std.concat" => return process_concat(&expr, ctx),
+                _ => match try_into_between(expr.clone(), ctx)? {
+                    Some(between_expr) => return Ok(between_expr),
+                    None => {
+                        if let Some(op) = operator_from_name(name) {
+                            if args.len() == 2 {
+                                let (left, right) = (&args[0], &args[1]);
+                                return translate_binary_operator(left, right, op, ctx);
+                            }
+                        }
+                    }
+                },
+            }
+
+            super::std::translate_built_in(expr, ctx)?
+        }
     })
 }
 
