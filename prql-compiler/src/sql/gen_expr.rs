@@ -22,7 +22,6 @@ use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::gen_projection::try_into_exprs;
-use super::std::*;
 use super::Context;
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
@@ -80,6 +79,12 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
             // A few special cases and then fall-through to the standard approach.
             match name.as_str() {
                 "std.eq" | "std.ne" => {
+                    // See notes in `std.rs` re whether we use names vs.
+                    // `FunctionDecl` vs. an Enum; and getting the correct
+                    // number of args from there. Currently the error messages
+                    // for the wrong number of args will be bad (though it's an
+                    // unusual case where RQ contains something like `std.eq`
+                    // with the wrong number of args).
                     if args.len() == 2 {
                         let (a, b) = (&args[0], &args[1]);
 
