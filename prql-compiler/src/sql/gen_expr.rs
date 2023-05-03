@@ -78,35 +78,31 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
         ExprKind::BuiltInFunction { ref name, ref args } => {
             // A few special cases and then fall-through to the standard approach.
             match name.as_str() {
+                // See notes in `std.rs` re whether we use names vs.
+                // `FunctionDecl` vs. an Enum; and getting the correct
+                // number of args from there. Currently the error messages
+                // for the wrong number of args will be bad (though it's an
+                // unusual case where RQ contains something like `std.eq`
+                // with the wrong number of args).
                 "std.eq" | "std.ne" => {
-                    // See notes in `std.rs` re whether we use names vs.
-                    // `FunctionDecl` vs. an Enum; and getting the correct
-                    // number of args from there. Currently the error messages
-                    // for the wrong number of args will be bad (though it's an
-                    // unusual case where RQ contains something like `std.eq`
-                    // with the wrong number of args).
-                    if args.len() == 2 {
-                        let (a, b) = (&args[0], &args[1]);
-
+                    if let [a, b] = args.as_slice() {
                         if a.kind == ExprKind::Literal(Literal::Null)
                             || b.kind == ExprKind::Literal(Literal::Null)
                         {
                             return process_null(name, args, ctx);
                         } else if let Some(op) = operator_from_name(name) {
-                            let (left, right) = (&args[0], &args[1]);
-                            return translate_binary_operator(left, right, op, ctx);
+                            return translate_binary_operator(a, b, op, ctx);
                         }
                     }
                 }
                 "std.neg" | "std.not" => {
-                    if args.len() == 1 {
-                        return process_unary(name, &args[0], ctx);
+                    if let [arg] = args.as_slice() {
+                        return process_unary(name, arg, ctx);
                     }
                 }
                 "std.concat" => return process_concat(&expr, ctx),
                 "std.regex_search" => {
-                    if args.len() == 2 {
-                        let (search, target) = (&args[0], &args[1]);
+                    if let [search, target] = args.as_slice() {
                         return process_regex(search, target, ctx);
                     }
                 }
@@ -114,8 +110,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                     Some(between_expr) => return Ok(between_expr),
                     None => {
                         if let Some(op) = operator_from_name(name) {
-                            if args.len() == 2 {
-                                let (left, right) = (&args[0], &args[1]);
+                            if let [left, right] = args.as_slice() {
                                 return translate_binary_operator(left, right, op, ctx);
                             }
                         }
@@ -274,37 +269,32 @@ fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
 /// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
 fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>, anyhow::Error> {
     if let ExprKind::BuiltInFunction { name, args } = &expr.kind {
-        if name == "std.and" && args.len() == 2 {
-            let (a, b) = (&args[0], &args[1]);
-
-            if let (
-                ExprKind::BuiltInFunction {
-                    name: a_name,
-                    args: a_args,
-                },
-                ExprKind::BuiltInFunction {
-                    name: b_name,
-                    args: b_args,
-                },
-            ) = (&a.kind, &b.kind)
-            {
-                if a_name == "std.gte"
-                    && b_name == "std.lte"
-                    && a_args.len() == 2
-                    && b_args.len() == 2
+        if name == "std.and" {
+            if let [a, b] = args.as_slice() {
+                if let (
+                    ExprKind::BuiltInFunction {
+                        name: a_name,
+                        args: a_args,
+                    },
+                    ExprKind::BuiltInFunction {
+                        name: b_name,
+                        args: b_args,
+                    },
+                ) = (&a.kind, &b.kind)
                 {
-                    let (a_l, a_r) = (&a_args[0], &a_args[1]);
-                    let (b_l, b_r) = (&b_args[0], &b_args[1]);
-
-                    // We need for the values on each arm to be the same; e.g. x
-                    // > 3 and x < 5
-                    if a_l == b_l {
-                        return Ok(Some(sql_ast::Expr::Between {
-                            expr: translate_operand(a_l.clone(), 0, false, ctx)?,
-                            negated: false,
-                            low: translate_operand(a_r.clone(), 0, false, ctx)?,
-                            high: translate_operand(b_r.clone(), 0, false, ctx)?,
-                        }));
+                    if a_name == "std.gte" && b_name == "std.lte" {
+                        if let ([a_l, a_r], [b_l, b_r]) = (a_args.as_slice(), b_args.as_slice()) {
+                            // We need for the values on each arm to be the same; e.g. x
+                            // > 3 and x < 5
+                            if a_l == b_l {
+                                return Ok(Some(sql_ast::Expr::Between {
+                                    expr: translate_operand(a_l.clone(), 0, false, ctx)?,
+                                    negated: false,
+                                    low: translate_operand(a_r.clone(), 0, false, ctx)?,
+                                    high: translate_operand(b_r.clone(), 0, false, ctx)?,
+                                }));
+                            }
+                        }
                     }
                 }
             }
