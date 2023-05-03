@@ -167,6 +167,10 @@ pub(super) trait DialectHandler: Any + Debug {
     fn stars_in_group(&self) -> bool {
         true
     }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        Some("REGEXP")
+    }
 }
 
 impl dyn DialectHandler {
@@ -181,6 +185,9 @@ impl DialectHandler for GenericDialect {}
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
+    }
+    fn regex_function(&self) -> std::option::Option<&'static str> {
+        Some("REGEXP_LIKE")
     }
 }
 
@@ -200,11 +207,22 @@ impl DialectHandler for SQLiteDialect {
     fn stars_in_group(&self) -> bool {
         false
     }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        // Sqlite has a different construction, using `REGEXP` as an operator.
+        // (`foo REGEXP 'bar').
+        //
+        // TODO: change the construction of the function to allow this.
+        None
+    }
 }
 
 impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
         true
+    }
+    fn regex_function(&self) -> Option<&'static str> {
+        None
     }
 
     // https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16
@@ -225,6 +243,14 @@ impl DialectHandler for MySqlDialect {
     fn set_ops_distinct(&self) -> bool {
         // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
         true
+    }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        // MySQL has a different construction, using `REGEXP` as an operator.
+        // (`foo REGEXP 'bar'). So
+        //
+        // TODO: change the construction of the function to allow this.
+        None
     }
 }
 
@@ -250,6 +276,10 @@ impl DialectHandler for BigQueryDialect {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
         true
     }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        Some("REGEXP_CONTAINS")
+    }
 }
 
 impl DialectHandler for SnowflakeDialect {
@@ -273,6 +303,10 @@ impl DialectHandler for DuckDbDialect {
     fn except_all(&self) -> bool {
         // https://duckdb.org/docs/sql/query_syntax/setops.html
         false
+    }
+
+    fn regex_function(&self) -> Option<&'static str> {
+        Some("REGEXP_MATCHES")
     }
 }
 

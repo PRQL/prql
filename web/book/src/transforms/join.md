@@ -2,7 +2,7 @@
 
 Adds columns from another table, matching rows based on a condition.
 
-```prql_no_test
+```prql no-eval
 join side:{inner|left|right|full} {table} {[conditions]}
 ```
 

@@ -20,7 +20,7 @@ derive gross_salary = (salary + payroll_tax)
 
 ...and so on:
 
-```prql_no_test
+```prql no-eval
 from employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary

@@ -29,7 +29,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.0
+          prefix-key: 0.8.1
           key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy

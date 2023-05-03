@@ -2,7 +2,7 @@
 
 Picks rows based on their values.
 
-```prql_no_test
+```prql no-eval
 filter {boolean_expression}
 ```
 

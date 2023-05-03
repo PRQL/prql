@@ -104,6 +104,12 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                     }
                 }
                 "std.concat" => return process_concat(&expr, ctx),
+                "std.regex_search" => {
+                    if args.len() == 2 {
+                        let (search, target) = (&args[0], &args[1]);
+                        return process_regex(search, target, ctx);
+                    }
+                }
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr),
                     None => {
@@ -116,7 +122,6 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                     }
                 },
             }
-
             super::std::translate_built_in(expr, ctx)?
         }
     })
@@ -131,7 +136,7 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
         a
     };
 
-    // If this were an Enum, we could match on it.
+    // If this were an Enum, we could match on it (see notes in `std.rs`).
     if name == "std.eq" {
         let strength =
             sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
@@ -215,6 +220,33 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 
         Ok(current_expr)
     }
+}
+
+fn process_regex(search: &Expr, target: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+    let Some(regex_function) = ctx.dialect.regex_function() else {
+        // TODO: name the dialect, but not immediately obvious how to actually
+        // get the dialect string from a `DialectHandler`.
+        //
+        // MSSQL doesn't support them, MySQL & SQLite have a different construction.
+        bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
+    };
+
+    let args = [search, target]
+        .into_iter()
+        .map(|a| {
+            translate_expr(a.clone(), ctx)
+                .map(FunctionArgExpr::Expr)
+                .map(FunctionArg::Unnamed)
+        })
+        .try_collect()?;
+
+    Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
+        args,
+        over: None,
+        distinct: false,
+        special: false,
+    }))
 }
 
 fn translate_binary_operator(

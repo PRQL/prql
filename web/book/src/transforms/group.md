@@ -2,7 +2,7 @@
 
 Partitions the rows into groups and applies a pipeline to each of the groups.
 
-```prql_no_test
+```prql no-eval
 group [{key_columns}] {pipeline}
 ```
 

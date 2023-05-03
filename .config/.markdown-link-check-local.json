@@ -1,12 +1,4 @@
 {
-  "httpHeaders": [
-    {
-      "headers": {
-        "Accept": "text/html"
-      },
-      "urls": ["https://crates.io"]
-    }
-  ],
   "ignorePatterns": [
     {
       "_comment_1": "Our pipeline should depend only on the work we do.",

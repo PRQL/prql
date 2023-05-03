@@ -302,6 +302,7 @@ fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
         just(Token::Ne).to(BinOp::Ne),
         just(Token::Lte).to(BinOp::Lte),
         just(Token::Gte).to(BinOp::Gte),
+        just(Token::RegexSearch).to(BinOp::RegexSearch),
         ctrl('<').to(BinOp::Lt),
         ctrl('>').to(BinOp::Gt),
     ))

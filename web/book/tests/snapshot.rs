@@ -123,7 +123,7 @@ fn test_display() -> Result<(), ErrorMessages> {
                     panic!(
                         "
 Failed compiling the formatted result of {path:?}
-To skip this test for an example, use `prql,no-fmt` as the language label.
+To skip this test for an example, use `prql no-fmt` as the language label.
 
 The original PRQL was:
 

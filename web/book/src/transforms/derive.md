@@ -2,7 +2,7 @@
 
 Computes one or more new columns.
 
-```prql_no_test
+```prql no-eval
 derive [
   {name} = {expression},
   # or

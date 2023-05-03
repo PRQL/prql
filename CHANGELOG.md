@@ -1,5 +1,53 @@
 # PRQL Changelog
 
+## 0.8.2 — [unreleased]
+
+**Features**:
+
+- Add a `~=` regex search operator (@max-sixty, #2458). An example:
+
+  ```prql no-eval
+  from tracks
+  filter (name ~= "Love")
+  ```
+
+  ...compiles to;
+
+  ```sql
+  SELECT
+    *
+  FROM
+    tracks
+  WHERE
+    REGEXP(name, 'Love')
+  ```
+
+  ...though the exact form differs by dialect.
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.8.1 — 2023-04-29
+
+0.8.1 is a small release with a new `list-targets` command in `prqlc`, some
+documentation improvements, and some internal improvements.
+
+This release has 41 commits from 8 contributors.
+
+From the broader perspective of the project, we're increasing the relative
+prioritization of it being easy for folks to actually use PRQL — either with
+existing tools, or a tool we'd build. We'll be thinking about & discussing the
+best way to do that over the next few weeks.
+
 ## 0.8.0 — 2023-04-14
 
 0.8.0 renames the `and` & `or` operators to `&&` & `||` respectively,

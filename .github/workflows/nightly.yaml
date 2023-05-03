@@ -40,13 +40,14 @@ jobs:
           args: --timings --all-targets
 
   check-links:
-    # We run on modified files only in PR, so do another check of all files here.
+    # We run only on modified files and only on our resources in PRs; here we
+    # run on all links and all files.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: .github/.markdown-link-check.json
+          config-file: .config/.markdown-link-check-global.json
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -63,7 +64,10 @@ jobs:
   update-rust-toolchain:
     runs-on: ubuntu-latest
     # Don't run on forks; will attempt to create a PR into the fork...
-    if: ${{ !github.event.pull_request.head.repo.fork }}
+    # if: ${{ !github.event.pull_request.head.repo.fork }}
+
+    # Disabling until we resolve what version Debian supports, ref https://github.com/PRQL/prql/pull/1561
+    if: false
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -79,10 +83,10 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - run: rustup override set nightly-2023-04-22
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
-      - run: rustup override set nightly-2022-10-22
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: udeps
