@@ -37,7 +37,7 @@ derive db_version = s"version()" # S-string, escape hatch to SQL
 
 let high_energy = (
   from genres
-  filter name == 'Rock And Roll' or name == 'Hip Hop/Rap'
+  filter name == 'Rock And Roll' || name == 'Hip Hop/Rap'
 )
 
 from t=tracks
