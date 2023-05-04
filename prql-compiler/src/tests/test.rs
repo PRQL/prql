@@ -726,16 +726,14 @@ fn test_numbers() {
 
 #[test]
 fn test_ranges() {
-    let query = r###"
+    assert_display_snapshot!((compile(r###"
     from employees
     derive [
       close = (distance | in 0..100),
       far = (distance | in 100..),
       country_founding | in @1776-07-04..@1787-09-17
     ]
-    "###;
-
-    assert_display_snapshot!((compile(query).unwrap()), @r###"
+    "###).unwrap()), @r###"
     SELECT
       *,
       distance BETWEEN 0 AND 100 AS close,

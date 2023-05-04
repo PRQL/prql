@@ -22,7 +22,6 @@ use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::gen_projection::try_into_exprs;
-use super::std::*;
 use super::Context;
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
@@ -76,140 +75,149 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 else_result,
             }
         }
-        ExprKind::BuiltInFunction { .. } => {
-            let expr = match try_into_is_null(expr, ctx)? {
-                Ok(is_null) => return Ok(is_null),
-                Err(expr) => expr,
-            };
-
-            let expr = match try_into_between(expr, ctx)? {
-                Ok(between) => return Ok(between),
-                Err(expr) => expr,
-            };
-
-            let expr = match try_into_concat_function(expr, ctx)? {
-                Ok(between) => return Ok(between),
-                Err(expr) => expr,
-            };
-
-            let expr = match try_into_regex_function(expr, ctx)? {
-                Ok(between) => return Ok(between),
-                Err(expr) => expr,
-            };
-
-            let expr = match try_into_binary_op(expr, ctx)? {
-                Ok(bin_op) => return Ok(bin_op),
-                Err(expr) => expr,
-            };
-
-            let expr = match try_into_unary_op(expr, ctx)? {
-                Ok(un_op) => return Ok(un_op),
-                Err(expr) => expr,
-            };
-
+        ExprKind::BuiltInFunction { ref name, ref args } => {
+            // A few special cases and then fall-through to the standard approach.
+            match name.as_str() {
+                // See notes in `std.rs` re whether we use names vs.
+                // `FunctionDecl` vs. an Enum; and getting the correct
+                // number of args from there. Currently the error messages
+                // for the wrong number of args will be bad (though it's an
+                // unusual case where RQ contains something like `std.eq`
+                // with the wrong number of args).
+                "std.eq" | "std.ne" => {
+                    if let [a, b] = args.as_slice() {
+                        if a.kind == ExprKind::Literal(Literal::Null)
+                            || b.kind == ExprKind::Literal(Literal::Null)
+                        {
+                            return process_null(name, args, ctx);
+                        } else if let Some(op) = operator_from_name(name) {
+                            return translate_binary_operator(a, b, op, ctx);
+                        }
+                    }
+                }
+                "std.neg" | "std.not" => {
+                    if let [arg] = args.as_slice() {
+                        return process_unary(name, arg, ctx);
+                    }
+                }
+                "std.concat" => return process_concat(&expr, ctx),
+                "std.regex_search" => {
+                    if let [search, target] = args.as_slice() {
+                        return process_regex(search, target, ctx);
+                    }
+                }
+                _ => match try_into_between(expr.clone(), ctx)? {
+                    Some(between_expr) => return Ok(between_expr),
+                    None => {
+                        if let Some(op) = operator_from_name(name) {
+                            if let [left, right] = args.as_slice() {
+                                return translate_binary_operator(left, right, op, ctx);
+                            }
+                        }
+                    }
+                },
+            }
             super::std::translate_built_in(expr, ctx)?
         }
     })
 }
 
-fn try_into_binary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    use BinaryOperator::*;
-    const DECLS: [super::std::FunctionDecl<2>; 14] = [
-        STD_MUL, STD_DIV, STD_MOD, STD_ADD, STD_SUB, STD_EQ, STD_NE, STD_GT, STD_LT, STD_GTE,
-        STD_LTE, STD_AND, STD_OR, STD_CONCAT,
-    ];
-    const OPS: [BinaryOperator; 14] = [
-        Multiply,
-        Divide,
-        Modulo,
-        Plus,
-        Minus,
-        Eq,
-        NotEq,
-        Gt,
-        Lt,
-        GtEq,
-        LtEq,
-        And,
-        Or,
-        StringConcat,
-    ];
-
-    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
-        return Ok(Err(expr));
+/// Translates into IS NULL if possible
+fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+    let (a, b) = (&args[0], &args[1]);
+    let operand = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
+        b
+    } else {
+        a
     };
 
-    // this lookup is O(N), but 13 is not that big of a N
-    let decl_index = DECLS.iter().position(|x| x == &decl).unwrap();
-    let op = OPS[decl_index].clone();
-    let [left, right] = unpack(expr, decl);
-
-    let strength = op.binding_strength();
-    let left = translate_operand(left, strength, !op.associates_left(), ctx)?;
-    let right = translate_operand(right, strength, !op.associates_right(), ctx)?;
-    Ok(Ok(sql_ast::Expr::BinaryOp { left, right, op }))
-}
-
-fn try_into_unary_op(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    use UnaryOperator::*;
-    const DECLS: [super::std::FunctionDecl<1>; 2] = [STD_NEG, STD_NOT];
-    const OPS: [UnaryOperator; 2] = [Minus, Not];
-
-    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
-        return Ok(Err(expr));
-    };
-    // this lookup is O(N), but 13 is not that big of a N
-    let decl_index = DECLS.iter().position(|x| x == &decl).unwrap();
-    let op = OPS[decl_index];
-    let [arg] = unpack(expr, decl);
-
-    let expr = translate_operand(arg, op.binding_strength(), false, ctx)?;
-    Ok(Ok(sql_ast::Expr::UnaryOp { op, expr }))
-}
-
-fn try_into_concat_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    if !ctx.dialect.has_concat_function() {
-        return Ok(Err(expr));
+    // If this were an Enum, we could match on it (see notes in `std.rs`).
+    if name == "std.eq" {
+        let strength =
+            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
+        let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        Ok(sql_ast::Expr::IsNull(expr))
+    } else if name == "std.ne" {
+        let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null)))
+            .binding_strength();
+        let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        Ok(sql_ast::Expr::IsNotNull(expr))
+    } else {
+        unreachable!()
     }
-
-    let args = match try_unpack_concat(expr)? {
-        Ok(args) => args,
-        Err(expr) => return Ok(Err(expr)),
-    };
-
-    let args = args
-        .into_iter()
-        .map(|a| {
-            translate_expr(a, ctx)
-                .map(FunctionArgExpr::Expr)
-                .map(FunctionArg::Unnamed)
-        })
-        .try_collect()?;
-
-    Ok(Ok(sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
-        args,
-        over: None,
-        distinct: false,
-        special: false,
-    })))
 }
 
-fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    // This function is mostly copied from the other `try_into_*` functions —
-    // don't use this as a template.
-    //
-    // Possibly we might be able to simplify some of this, even if it's
-    // more verbose / less performant? It's not easy rust to add a simple
-    // function. But possibly we keep it complicated here and allow for more
-    // implementations in PRQL std lib.
+fn process_unary(name: &str, arg: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+    match name {
+        "std.neg" => {
+            let expr = translate_operand(
+                arg.clone(),
+                UnaryOperator::Minus.binding_strength(),
+                false,
+                ctx,
+            )?;
+            Ok(sql_ast::Expr::UnaryOp {
+                op: UnaryOperator::Minus,
+                expr,
+            })
+        }
+        "std.not" => {
+            let expr = translate_operand(
+                arg.clone(),
+                UnaryOperator::Not.binding_strength(),
+                false,
+                ctx,
+            )?;
+            Ok(sql_ast::Expr::UnaryOp {
+                op: UnaryOperator::Not,
+                expr,
+            })
+        }
+        _ => unreachable!(), // We've already covered all cases above
+    }
+}
 
-    const DECLS: [super::std::FunctionDecl<2>; 1] = [STD_REGEX_SEARCH];
+fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+    if ctx.dialect.has_concat_function() {
+        let concat_args = collect_concat_args(expr);
 
-    let Some((decl, _)) = try_unpack(&expr, DECLS)? else {
-        return Ok(Err(expr));
-    };
+        let args = concat_args
+            .iter()
+            .map(|a| {
+                translate_expr((*a).clone(), ctx)
+                    .map(FunctionArgExpr::Expr)
+                    .map(FunctionArg::Unnamed)
+            })
+            .try_collect()?;
 
+        Ok(sql_ast::Expr::Function(Function {
+            name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+            args,
+            over: None,
+            distinct: false,
+            special: false,
+        }))
+    } else {
+        let concat_args = collect_concat_args(expr);
+
+        let mut iter = concat_args.into_iter();
+        let first_expr = iter.next().unwrap();
+        let mut current_expr = translate_expr(first_expr.clone(), ctx)?;
+
+        for arg in iter {
+            let translated_arg = translate_expr(arg.clone(), ctx)?;
+            current_expr = sql_ast::Expr::BinaryOp {
+                left: Box::new(current_expr),
+                op: BinaryOperator::StringConcat,
+                right: Box::new(translated_arg),
+            };
+        }
+
+        Ok(current_expr)
+    }
+}
+
+fn process_regex(search: &Expr, target: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     let Some(regex_function) = ctx.dialect.regex_function() else {
         // TODO: name the dialect, but not immediately obvious how to actually
         // get the dialect string from a `DialectHandler`.
@@ -218,38 +226,102 @@ fn try_into_regex_function(expr: Expr, ctx: &mut Context) -> Result<Result<sql_a
         bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
     };
 
-    let args = unpack(expr, decl);
-
-    let args = args
+    let args = [search, target]
         .into_iter()
         .map(|a| {
-            translate_expr(a, ctx)
+            translate_expr(a.clone(), ctx)
                 .map(FunctionArgExpr::Expr)
                 .map(FunctionArg::Unnamed)
         })
         .try_collect()?;
 
-    Ok(Ok(sql_ast::Expr::Function(Function {
+    Ok(sql_ast::Expr::Function(Function {
         name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
         args,
         over: None,
         distinct: false,
         special: false,
-    })))
+    }))
 }
 
-fn try_unpack_concat(expr: Expr) -> Result<Result<Vec<Expr>, Expr>> {
-    let Some((_, _)) = try_unpack(&expr, [STD_CONCAT])? else {
-        return Ok(Err(expr));
-    };
-    let [left, right] = unpack(expr, STD_CONCAT);
+fn translate_binary_operator(
+    left: &Expr,
+    right: &Expr,
+    op: BinaryOperator,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let strength = op.binding_strength();
+    let left = translate_operand(left.clone(), strength, !op.associates_left(), ctx)?;
+    let right = translate_operand(right.clone(), strength, !op.associates_right(), ctx)?;
 
-    let mut args = match try_unpack_concat(left)? {
-        Ok(args) => args,
-        Err(left) => vec![left],
-    };
-    args.push(right);
-    Ok(Ok(args))
+    Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
+    match &expr.kind {
+        ExprKind::BuiltInFunction { name, args } if name == "std.concat" => {
+            args.iter().flat_map(collect_concat_args).collect()
+        }
+        _ => vec![expr],
+    }
+}
+
+/// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
+fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>, anyhow::Error> {
+    if let ExprKind::BuiltInFunction { name, args } = &expr.kind {
+        if name == "std.and" {
+            if let [a, b] = args.as_slice() {
+                if let (
+                    ExprKind::BuiltInFunction {
+                        name: a_name,
+                        args: a_args,
+                    },
+                    ExprKind::BuiltInFunction {
+                        name: b_name,
+                        args: b_args,
+                    },
+                ) = (&a.kind, &b.kind)
+                {
+                    if a_name == "std.gte" && b_name == "std.lte" {
+                        if let ([a_l, a_r], [b_l, b_r]) = (a_args.as_slice(), b_args.as_slice()) {
+                            // We need for the values on each arm to be the same; e.g. x
+                            // > 3 and x < 5
+                            if a_l == b_l {
+                                return Ok(Some(sql_ast::Expr::Between {
+                                    expr: translate_operand(a_l.clone(), 0, false, ctx)?,
+                                    negated: false,
+                                    low: translate_operand(a_r.clone(), 0, false, ctx)?,
+                                    high: translate_operand(b_r.clone(), 0, false, ctx)?,
+                                }));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(None)
+}
+
+fn operator_from_name(name: &str) -> Option<BinaryOperator> {
+    use BinaryOperator::*;
+    match name {
+        "std.mul" => Some(Multiply),
+        "std.div" => Some(Divide),
+        "std.mod" => Some(Modulo),
+        "std.add" => Some(Plus),
+        "std.sub" => Some(Minus),
+        "std.eq" => Some(Eq),
+        "std.ne" => Some(NotEq),
+        "std.gt" => Some(Gt),
+        "std.lt" => Some(Lt),
+        "std.gte" => Some(GtEq),
+        "std.lte" => Some(LtEq),
+        "std.and" => Some(And),
+        "std.or" => Some(Or),
+        "std.concat" => Some(StringConcat),
+        _ => None,
+    }
 }
 
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
@@ -573,74 +645,6 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     }
 
     Ok(SelectItem::UnnamedExpr(expr))
-}
-
-/// Translates expr into IS NULL if possible, otherwise returns the expr unchanged.
-///
-/// Outer Result contains an error, inner Result contains the unmatched expr.
-fn try_into_is_null(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    let Some((decl, [a, b])) = try_unpack(&expr, [STD_EQ, STD_NE])? else {
-        return Ok(Err(expr))
-    };
-
-    let take_a = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
-        false
-    } else if matches!(b.kind, ExprKind::Literal(Literal::Null)) {
-        true
-    } else {
-        return Ok(Err(expr));
-    };
-    let is_std_eq = decl == STD_EQ;
-
-    // we are sure this translates to IS NULL
-    let [a, b] = unpack(expr, decl);
-    let operand = if take_a { a } else { b };
-
-    let strength =
-        sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
-    let expr = translate_operand(operand, strength, false, ctx)?;
-
-    Ok(Ok(if is_std_eq {
-        sql_ast::Expr::IsNull(expr)
-    } else {
-        sql_ast::Expr::IsNotNull(expr)
-    }))
-}
-
-/// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
-///
-/// Outer Result contains an error, inner Result contains the unmatched expr.
-fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Result<sql_ast::Expr, Expr>> {
-    // validate that this expr matches the criteria
-
-    let Some((_, [a, b])) = try_unpack(&expr, [STD_AND])? else {
-        return Ok(Err(expr));
-    };
-
-    let Some((_, [a_l, _a_r])) = try_unpack(a, [STD_GTE])? else {
-        return Ok(Err(expr));
-    };
-    let Some((_, [b_l, _b_r])) = try_unpack(b, [STD_LTE])? else {
-        return Ok(Err(expr));
-    };
-
-    if a_l != b_l {
-        return Ok(Err(expr));
-    }
-
-    // at this point we are sure that this should translate to Between
-    // so the expr can be unpacked for good
-
-    let [a, b] = unpack(expr, STD_AND);
-    let [a_l, a_r] = unpack(a, STD_GTE);
-    let [_, b_r] = unpack(b, STD_LTE);
-
-    Ok(Ok(sql_ast::Expr::Between {
-        expr: translate_operand(a_l, 0, false, ctx)?,
-        negated: false,
-        low: translate_operand(a_r, 0, false, ctx)?,
-        high: translate_operand(b_r, 0, false, ctx)?,
-    }))
 }
 
 fn translate_windowed(

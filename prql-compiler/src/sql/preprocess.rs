@@ -436,17 +436,25 @@ fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
     let mut lefts = Vec::new();
     let mut rights = Vec::new();
 
-    if let Some((_, [left, right])) = super::std::try_unpack(expr, [super::std::STD_EQ])? {
-        lefts.push(left);
-        rights.push(right);
-    } else if let Some((_, [left, right])) = super::std::try_unpack(expr, [super::std::STD_AND])? {
-        let (l, r) = collect_equals(left)?;
-        lefts.extend(l);
-        rights.extend(r);
+    match &expr.kind {
+        ExprKind::BuiltInFunction { name, args }
+            if name == super::std::STD_EQ.name && args.len() == 2 =>
+        {
+            lefts.push(&args[0]);
+            rights.push(&args[1]);
+        }
+        ExprKind::BuiltInFunction { name, args }
+            if name == super::std::STD_AND.name && args.len() == 2 =>
+        {
+            let (l, r) = collect_equals(&args[0])?;
+            lefts.extend(l);
+            rights.extend(r);
 
-        let (l, r) = collect_equals(right)?;
-        lefts.extend(l);
-        rights.extend(r);
+            let (l, r) = collect_equals(&args[1])?;
+            lefts.extend(l);
+            rights.extend(r);
+        }
+        _ => (),
     }
 
     Ok((lefts, rights))
@@ -514,19 +522,26 @@ impl RqFold for Normalizer {
             ..expr
         };
 
-        let Some((decl, _)) = super::std::try_unpack(&expr, [super::std::STD_EQ])? else {
-            return Ok(expr);
-        };
-        let name = decl.name.to_string();
-        let span = expr.span;
-        let [left, right] = super::std::unpack(expr, decl);
+        if let ExprKind::BuiltInFunction { name, args } = &expr.kind {
+            if name == "std.eq" && args.len() == 2 {
+                let (left, right) = (&args[0], &args[1]);
+                let span = expr.span;
+                let new_args = if let ExprKind::Literal(Literal::Null) = &left.kind {
+                    vec![right.clone(), left.clone()]
+                } else {
+                    vec![left.clone(), right.clone()]
+                };
+                let new_kind = ExprKind::BuiltInFunction {
+                    name: name.clone(),
+                    args: new_args,
+                };
+                return Ok(Expr {
+                    kind: new_kind,
+                    span,
+                });
+            }
+        }
 
-        let args = if let ExprKind::Literal(Literal::Null) = &left.kind {
-            vec![right, left]
-        } else {
-            vec![left, right]
-        };
-        let kind = ExprKind::BuiltInFunction { name, args };
-        Ok(Expr { kind, span })
+        Ok(expr)
     }
 }
