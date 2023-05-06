@@ -26,6 +26,8 @@ semver = "1.0.9"
 serde_json = "1.0.81"
 serde_yaml = "0.9"
 similar = "2.2.0"
+strum = {version = "0.24.0", features = ["std", "derive"]}
+strum_macros = "0.24.0"
 walkdir = "2.3.2"
 
 # Possibly we should just put all dependencies as excluded from wasm? Currently
