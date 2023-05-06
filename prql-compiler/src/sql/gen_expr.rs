@@ -346,10 +346,13 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
                 "months" => DateTimeField::Month,
+                "weeks" => DateTimeField::Week,
                 "days" => DateTimeField::Day,
                 "hours" => DateTimeField::Hour,
                 "minutes" => DateTimeField::Minute,
                 "seconds" => DateTimeField::Second,
+                "milliseconds" => DateTimeField::Millisecond,
+                "microseconds" => DateTimeField::Microsecond,
                 _ => bail!("Unsupported interval unit: {}", vau.unit),
             };
             let value = if ctx.dialect.requires_quotes_intervals() {
