@@ -3562,3 +3562,18 @@ fn test_regex_search() {
     "###
     );
 }
+
+#[test]
+fn test_intervals() {
+    assert_display_snapshot!(compile(r#"
+    from foo
+    select dt = 1years + 1months + 1weeks + 1days + 1hours + 1minutes + 1seconds + 1milliseconds + 1microseconds
+    "#).unwrap(),
+        @r###"
+    SELECT
+      INTERVAL 1 YEAR + INTERVAL 1 MONTH + INTERVAL 1 WEEK + INTERVAL 1 DAY + INTERVAL 1 HOUR + INTERVAL 1 MINUTE + INTERVAL 1 SECOND + INTERVAL 1 MILLISECOND + INTERVAL 1 MICROSECOND AS dt
+    FROM
+      foo
+    "###
+    );
+}
