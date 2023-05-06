@@ -2,7 +2,7 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
-use mdbook_prql::code_block_lang_tags;
+use mdbook_prql::{code_block_lang_tags, LangTag};
 use prql_compiler::*;
 use std::fs;
 use std::path::Path;
@@ -30,7 +30,7 @@ fn test_prql_examples() {
 
 struct Example {
     name: String,
-    tags: Vec<String>,
+    tags: Vec<LangTag>,
     prql: String,
 }
 
@@ -55,9 +55,7 @@ fn collect_book_examples() -> Result<Vec<Example>> {
                     continue
                 };
 
-                if lang_tags.contains(&"prql".to_string())
-                    && !lang_tags.contains(&"no-eval".to_string())
-                {
+                if lang_tags.contains(&LangTag::Prql) && !lang_tags.contains(&LangTag::NoEval) {
                     let mut prql_text = String::new();
                     while let Some(Event::Text(line)) = parser.next() {
                         prql_text.push_str(line.to_string().as_str());
@@ -104,7 +102,7 @@ fn test_display() -> Result<(), ErrorMessages> {
     collect_book_examples()?
         .iter()
         .try_for_each(|Example { name, tags, prql }| {
-            if tags.contains(&"error".to_string()) || tags.contains(&"no-fmt".to_string()) {
+            if tags.contains(&LangTag::Error) || tags.contains(&LangTag::NoFmt) {
                 return Ok(());
             }
             prql_to_pl(prql)
@@ -135,7 +133,7 @@ The original PRQL was:
 #[test]
 fn test_rq_serialize() -> Result<(), ErrorMessages> {
     for Example { tags, prql, .. } in collect_book_examples()? {
-        if tags.contains(&"error".to_string()) {
+        if tags.contains(&LangTag::Error) {
             continue;
         }
         let rq = prql_to_pl(&prql).map(pl_to_rq)?;

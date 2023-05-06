@@ -6,6 +6,7 @@
 
 use anyhow::{bail, Result};
 use clap::{Arg, ArgMatches, Command};
+use itertools::Itertools;
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
@@ -13,7 +14,9 @@ use prql_compiler::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 use semver::{Version, VersionReq};
+use std::str::FromStr;
 use std::{io, process};
+use strum::EnumString;
 
 /// Checks renderer support and runs the preprocessor.
 pub fn run(preprocessor: impl Preprocessor, name: &'static str, description: &'static str) {
@@ -96,17 +99,33 @@ impl Preprocessor for ComparisonPreprocessor {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, EnumString, strum::Display)]
+#[strum(serialize_all = "kebab_case")]
+pub enum LangTag {
+    Prql,
+    NoFmt,
+    NoEval,
+    Error,
+    NoTest,
+    #[strum(default)]
+    Other(String),
+}
+
 /// Returns the language of a code block, divided by spaces
 /// For example: ```prql no-test
-pub fn code_block_lang_tags(event: &Event) -> Option<Vec<String>> {
+pub fn code_block_lang_tags(event: &Event) -> Option<Vec<LangTag>> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
-        Some(lang.to_string().split(' ').map(|x| x.to_string()).collect())
+        Some(
+            lang.to_string()
+                .split(' ')
+                .map(LangTag::from_str)
+                .try_collect()
+                .ok()?,
+        )
     } else {
         None
     }
 }
-
-const ALLOWED_TAGS: &[&str] = &["prql", "no-test", "no-fmt", "no-eval", "error"];
 
 fn replace_examples(text: &str) -> Result<String> {
     let mut parser = Parser::new_ext(text, Options::all());
@@ -119,18 +138,18 @@ fn replace_examples(text: &str) -> Result<String> {
             cmark_acc.push(event.to_owned());
             continue;
         };
-        if !lang_tags.contains(&"prql".to_string()) {
+        if !lang_tags.contains(&LangTag::Prql) {
             cmark_acc.push(event.to_owned());
             continue;
         }
 
-        for tag in lang_tags.iter() {
-            if !ALLOWED_TAGS.contains(&tag.as_str()) {
-                bail!("Unknown code block language: {}", tag)
-            }
-        }
+        lang_tags
+            .iter()
+            .filter(|tag| matches!(tag, LangTag::Other(_)))
+            .map(|tag| bail!("Unknown code block language: {}", tag))
+            .try_collect()?;
 
-        if lang_tags.contains(&"no-eval".to_string()) {
+        if lang_tags.contains(&LangTag::NoEval) {
             cmark_acc.push(event.to_owned());
             continue;
         }
@@ -143,9 +162,9 @@ fn replace_examples(text: &str) -> Result<String> {
         let options = prql_compiler::Options::default().no_signature();
         let result = compile(&prql, &options);
 
-        if lang_tags.contains(&"no-test".to_string()) {
+        if lang_tags.contains(&LangTag::NoTest) {
             cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
-        } else if lang_tags.contains(&"error".to_string()) {
+        } else if lang_tags.contains(&LangTag::Error) {
             cmark_acc.push(Event::Html(
                 table_of_error(
                     &prql,

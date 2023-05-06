@@ -2158,6 +2158,8 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "similar",
+ "strum",
+ "strum_macros",
  "walkdir",
 ]
 
