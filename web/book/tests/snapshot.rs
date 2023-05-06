@@ -4,8 +4,8 @@ use globset::Glob;
 use insta::assert_snapshot;
 use mdbook_prql::code_block_lang_tags;
 use prql_compiler::*;
-use std::path::{Path, PathBuf};
-use std::{collections::HashMap, fs};
+use std::fs;
+use std::path::Path;
 use walkdir::WalkDir;
 
 #[test]
@@ -17,30 +17,29 @@ use walkdir::WalkDir;
 /// This mirrors the process in [replace_examples], which inserts a
 /// comparison table of SQL into the book, and so serves as a snapshot test of
 /// those examples.
-/// Snapshot the SQL output of each example.
 fn test_prql_examples() {
     let opts = Options::default().no_signature();
     let examples = collect_book_examples().unwrap();
 
-    for (path, prql) in examples {
+    for Example { name, prql, .. } in examples {
         // Whether it's a success or a failure, get the string.
         let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
-        assert_snapshot!(path.to_str().unwrap(), &sql, &prql);
+        assert_snapshot!(name, &sql, &prql);
     }
 }
 
-const ROOT_EXAMPLES_PATH: &str = "tests/prql";
+struct Example {
+    name: String,
+    tags: Vec<String>,
+    prql: String,
+}
 
-/// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
+/// Collect all the PRQL examples in the book, as [Example]s.
 /// Excludes any with a `no-eval` tag.
-fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
-    // TODO: instead of returning Strings with embedded tags (e.g. `# error`),
-    // we could instead return a struct with a `prql` field and a struct of its
-    // metadata. That would make `test_display` work by matching on the metadata
-    // rather than re-parsing the string.
+fn collect_book_examples() -> Result<Vec<Example>> {
     use pulldown_cmark::{Event, Parser};
     let glob = Glob::new("**/*.md")?.compile_matcher();
-    let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
+    let examples_in_book: Vec<Example> = WalkDir::new(Path::new("./src/"))
         .into_iter()
         .flatten()
         .filter(|x| glob.is_match(x.path()))
@@ -66,32 +65,24 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
                     if prql_text.is_empty() {
                         bail!("Expected text after PRQL code block");
                     }
-                    if lang_tags.contains(&"error".to_string()) {
-                        prql_blocks.push(format!("# error\n\n{prql_text}"));
-                    } else if lang_tags.contains(&"no-fmt".to_string()) {
-                        prql_blocks.push(format!("# no-fmt\n\n{prql_text}"));
-                    } else {
-                        prql_blocks.push(prql_text.to_string());
-                    }
+                    prql_blocks.push((lang_tags, prql_text));
                 }
             }
-            let snapshot_prefix = &dir_entry
+            let file_name = &dir_entry
                 .path()
                 .strip_prefix("./src/")?
                 .to_str()
                 .unwrap()
                 .trim_end_matches(".md");
             Ok(prql_blocks
-                .iter()
+                .into_iter()
                 .enumerate()
-                .map(|(i, example)| {
-                    (
-                        Path::new(&format!("{ROOT_EXAMPLES_PATH}/{snapshot_prefix}-{i}.prql"))
-                            .to_path_buf(),
-                        example.to_string(),
-                    )
+                .map(|(i, (tags, prql))| Example {
+                    name: format!("{file_name}-{i}"),
+                    tags,
+                    prql,
                 })
-                .collect::<HashMap<_, _>>())
+                .collect::<Vec<Example>>())
         })
         .flatten()
         .collect();
@@ -112,8 +103,8 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
 fn test_display() -> Result<(), ErrorMessages> {
     collect_book_examples()?
         .iter()
-        .try_for_each(|(path, prql)| {
-            if prql.contains("# error") || prql.contains("# no-fmt") {
+        .try_for_each(|Example { name, tags, prql }| {
+            if tags.contains(&"error".to_string()) || tags.contains(&"no-fmt".to_string()) {
                 return Ok(());
             }
             prql_to_pl(prql)
@@ -122,7 +113,7 @@ fn test_display() -> Result<(), ErrorMessages> {
                 .unwrap_or_else(|_| {
                     panic!(
                         "
-Failed compiling the formatted result of {path:?}
+Failed compiling the formatted result of {name:?}
 To skip this test for an example, use `prql no-fmt` as the language label.
 
 The original PRQL was:
@@ -130,7 +121,7 @@ The original PRQL was:
 {prql}
 
 ",
-                        path = path.canonicalize().as_ref().unwrap_or(path),
+                        name = name,
                         prql = prql
                     )
                 });
@@ -143,8 +134,8 @@ The original PRQL was:
 
 #[test]
 fn test_rq_serialize() -> Result<(), ErrorMessages> {
-    for (_, prql) in collect_book_examples()? {
-        if prql.contains("# error") {
+    for Example { tags, prql, .. } in collect_book_examples()? {
+        if tags.contains(&"error".to_string()) {
             continue;
         }
         let rq = prql_to_pl(&prql).map(pl_to_rq)?;
