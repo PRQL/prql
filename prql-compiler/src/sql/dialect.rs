@@ -12,8 +12,15 @@
 //! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
 //! constructs. The upside is much less complex translator.
 
+
+
 use core::fmt::Debug;
+
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::{
+    self as sql_ast, Function, FunctionArg, FunctionArgExpr,
+    ObjectName,
+};
 use std::any::{Any, TypeId};
 use strum::{EnumMessage, IntoEnumIterator};
 
@@ -170,6 +177,43 @@ pub(super) trait DialectHandler: Any + Debug {
 
     fn regex_function(&self) -> Option<&'static str> {
         Some("REGEXP")
+    }
+
+    fn translate_regex(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        // When
+        // https://github.com/sqlparser-rs/sqlparser-rs/issues/863#issuecomment-1537272570
+        // is fixed, we can implement the infix for the other dialects. Until
+        // then, we still only have the `regex_function` implementations. (But
+        // I'd done the work to allow any Expr to be created before realizing
+        // sqlparser-rs didn't support custom operators, so may as well leave it
+        // in for when they do / we find another approach.)
+
+        let Some(regex_function) = self.regex_function() else {
+            // TODO: name the dialect, but not immediately obvious how to actually
+            // get the dialect string from a `DialectHandler` (though we could
+            // add it to each impl...)
+            //
+            // MSSQL doesn't support them, MySQL & SQLite have a different construction.
+            anyhow::bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
+        };
+
+        let args = [search, target]
+            .into_iter()
+            .map(FunctionArgExpr::Expr)
+            .map(FunctionArg::Unnamed)
+            .collect();
+
+        Ok(sql_ast::Expr::Function(Function {
+            name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
+            args,
+            over: None,
+            distinct: false,
+            special: false,
+        }))
     }
 }
 
