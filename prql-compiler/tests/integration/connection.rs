@@ -228,7 +228,7 @@ impl DBConnection for PostgresConnection {
     }
 
     fn get_dialect(&self) -> Dialect {
-        Dialect::PostgreSql
+        Dialect::Postgres
     }
 
     fn modify_sql(&self, sql: String) -> String {
