@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-        exclude: '(.*\.snap|.*render-link.html)'
+        exclude: '(.*\.snap|.*render-link.html|head.hbs)'
       - id: check-yaml
       - id: mixed-line-ending
   - repo: https://github.com/crate-ci/typos
