@@ -302,7 +302,7 @@ mod tests_lib {
         Ok(
             Sql(
                 Some(
-                    PostgreSql,
+                    Postgres,
                 ),
             ),
         )

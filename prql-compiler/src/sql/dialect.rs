@@ -39,28 +39,18 @@ use strum::VariantNames;
     strum::EnumString,
     strum::EnumVariantNames,
 )]
+#[strum(serialize_all = "lowercase")]
 pub enum Dialect {
-    #[strum(serialize = "ansi")]
     Ansi,
-    #[strum(serialize = "bigquery")]
     BigQuery,
-    #[strum(serialize = "clickhouse")]
     ClickHouse,
-    #[strum(serialize = "duckdb")]
     DuckDb,
-    #[strum(serialize = "generic")]
     Generic,
-    #[strum(serialize = "hive")]
     Hive,
-    #[strum(serialize = "mssql")]
     MsSql,
-    #[strum(serialize = "mysql")]
     MySql,
-    #[strum(serialize = "postgres")]
-    PostgreSql,
-    #[strum(serialize = "sqlite")]
+    Postgres,
     SQLite,
-    #[strum(serialize = "snowflake")]
     Snowflake,
 }
 
@@ -78,7 +68,7 @@ impl Dialect {
             Dialect::ClickHouse => Box::new(ClickHouseDialect),
             Dialect::Snowflake => Box::new(SnowflakeDialect),
             Dialect::DuckDb => Box::new(DuckDbDialect),
-            Dialect::PostgreSql => Box::new(PostgresDialect),
+            Dialect::Postgres => Box::new(PostgresDialect),
             Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
         }
     }
@@ -321,7 +311,7 @@ mod tests {
     fn test_dialect_from_str() {
         assert_debug_snapshot!(Dialect::from_str("postgres"), @r###"
         Ok(
-            PostgreSql,
+            Postgres,
         )
         "###);
 
