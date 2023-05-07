@@ -1,6 +1,5 @@
 [book]
 description = "Modern language for transforming data — a simple, powerful, pipelined SQL replacement"
-google-analytics = "G-LQJDD599T4"
 language = "en"
 multilingual = false
 title = "PRQL language book"
@@ -9,6 +8,7 @@ title = "PRQL language book"
 additional-css = ["comparison-table.css", "mdbook-admonish.css"]
 additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/PRQL/prql"
+google-analytics = "G-LQJDD599T4"
 
 [preprocessor.prql]
 # This is required because mdbook-prql isn't necessarily installed; maybe
