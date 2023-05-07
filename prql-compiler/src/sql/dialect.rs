@@ -14,8 +14,9 @@
 
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
+
 use std::any::{Any, TypeId};
-use strum::{EnumMessage, IntoEnumIterator};
+use strum::VariantNames;
 
 /// SQL dialect.
 ///
@@ -36,6 +37,7 @@ use strum::{EnumMessage, IntoEnumIterator};
     strum::EnumIter,
     strum::EnumMessage,
     strum::EnumString,
+    strum::EnumVariantNames,
 )]
 pub enum Dialect {
     #[strum(serialize = "ansi")]
@@ -81,10 +83,9 @@ impl Dialect {
         }
     }
 
-    pub fn names() -> Vec<&'static str> {
-        Dialect::iter()
-            .flat_map(|d| d.get_serializations().to_vec())
-            .collect::<Vec<&'static str>>()
+    #[deprecated(note = "Use `Dialect::Variants` instead")]
+    pub fn names() -> &'static [&'static str] {
+        Dialect::VARIANTS
     }
 }
 
