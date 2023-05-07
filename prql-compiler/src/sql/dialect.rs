@@ -12,15 +12,10 @@
 //! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
 //! constructs. The upside is much less complex translator.
 
-
-
 use core::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{
-    self as sql_ast, Function, FunctionArg, FunctionArgExpr,
-    ObjectName,
-};
+use sqlparser::ast::{self as sql_ast, Function, FunctionArg, FunctionArgExpr, ObjectName};
 use std::any::{Any, TypeId};
 use strum::{EnumMessage, IntoEnumIterator};
 
