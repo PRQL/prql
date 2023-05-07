@@ -8,7 +8,6 @@ title = "PRQL language book"
 additional-css = ["comparison-table.css", "mdbook-admonish.css"]
 additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/PRQL/prql"
-google-analytics = "G-LQJDD599T4"
 
 [preprocessor.prql]
 # This is required because mdbook-prql isn't necessarily installed; maybe
