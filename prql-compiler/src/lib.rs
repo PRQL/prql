@@ -94,6 +94,7 @@ use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use strum::VariantNames;
 
 pub static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
@@ -147,8 +148,8 @@ impl Target {
     pub fn names() -> Vec<String> {
         let mut names = vec!["sql.any".to_string()];
 
-        let dialects = sql::Dialect::names();
-        names.extend(dialects.into_iter().map(|d| format!("sql.{d}")));
+        let dialects = sql::Dialect::VARIANTS;
+        names.extend(dialects.iter().map(|d| format!("sql.{d}")));
 
         names
     }
@@ -301,7 +302,7 @@ mod tests_lib {
         Ok(
             Sql(
                 Some(
-                    PostgreSql,
+                    Postgres,
                 ),
             ),
         )
