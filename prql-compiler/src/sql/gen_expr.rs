@@ -103,7 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 "std.concat" => return process_concat(&expr, ctx),
                 "std.regex_search" => {
                     if let [search, target] = args.as_slice() {
-                        return process_regex(search, target, ctx);
+                        return process_regex(search, target, ctx).with_span(expr.span);
                     }
                 }
                 _ => match try_into_between(expr.clone(), ctx)? {
