@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
-use crate::error::{Error, Reason, Span};
+use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::static_analysis;
 use crate::semantic::transforms::coerce_and_flatten;
 use crate::utils::IdGenerator;
