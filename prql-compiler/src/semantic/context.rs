@@ -7,7 +7,7 @@ use std::{collections::HashMap, fmt::Debug};
 use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
-use crate::error::{Error, Span};
+use crate::error::{Error, Span, WithErrorInfo};
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]

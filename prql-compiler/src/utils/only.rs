@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::ast::pl::Expr;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, WithErrorInfo};
 
 pub trait ExactlyOneNode {
     fn exactly_one_node(self, who: &str, occupation: &str) -> Result<Expr, Error>;

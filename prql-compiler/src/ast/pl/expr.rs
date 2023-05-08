@@ -7,7 +7,7 @@ use semver::VersionReq;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Error, Reason, Span};
+use crate::error::{Error, Reason, Span, WithErrorInfo};
 
 use super::*;
 

@@ -17,7 +17,7 @@ use crate::ast::pl::{
     ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
-use crate::error::{Error, Span};
+use crate::error::{Error, Span, WithErrorInfo};
 use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
