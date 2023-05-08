@@ -23,7 +23,7 @@ use crate::Error;
 
 /// SQL dialect.
 ///
-/// This is only changes the output for a relatively small subset of features.
+/// This only changes the output for a relatively small subset of features.
 ///
 /// If something does not work in a specific dialect, please raise in a
 /// GitHub issue.
