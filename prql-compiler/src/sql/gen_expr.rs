@@ -103,15 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 "std.concat" => return process_concat(&expr, ctx),
                 "std.regex_search" => {
                     if let [search, target] = args.as_slice() {
-                        return process_regex(search, target, ctx).map_err(|e| {
-                            // Add the span of the expression to the error. But
-                            // we pass back an `anyhow::Error`, so we need to
-                            // try downcasting it first. If that fails, we
-                            // return the original error.
-                            e.downcast_ref::<crate::Error>()
-                                .map(|e| e.clone().with_span(expr.span).into())
-                                .unwrap_or(e)
-                        });
+                        return dbg!(process_regex(search, target, ctx)).with_span(expr.span);
                     }
                 }
                 _ => match try_into_between(expr.clone(), ctx)? {

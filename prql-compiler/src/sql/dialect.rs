@@ -19,6 +19,8 @@ use sqlparser::ast::{self as sql_ast, Function, FunctionArg, FunctionArgExpr, Ob
 use std::any::{Any, TypeId};
 use strum::VariantNames;
 
+use crate::Error;
+
 /// SQL dialect.
 ///
 /// This is only changes the output for a relatively small subset of features.
@@ -183,7 +185,9 @@ pub(super) trait DialectHandler: Any + Debug {
             // add it to each impl...)
             //
             // MSSQL doesn't support them, MySQL & SQLite have a different construction.
-            anyhow::bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
+            return Err(Error::new(
+                crate::Reason::Simple("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)".to_string())
+            ).into())
         };
 
         let args = [search, target]
