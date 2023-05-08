@@ -9,7 +9,7 @@ use sqlparser::ast::{
 
 use crate::ast::rq::{CId, RelationColumn};
 
-use crate::error::{Error, Span};
+use crate::error::{Error, Span, WithErrorInfo};
 use crate::sql::context::ColumnDecl;
 
 use super::context::AnchorContext;

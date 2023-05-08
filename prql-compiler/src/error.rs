@@ -76,18 +76,20 @@ impl Error {
         Error::new(Reason::Simple(reason.to_string()))
     }
 
-    pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
+    pub fn with_code(mut self, code: &'static str) -> Self {
+        self.code = Some(code);
+        self
+    }
+}
+
+impl WithErrorInfo for crate::Error {
+    fn with_help<S: Into<String>>(mut self, help: S) -> Self {
         self.help = Some(help.into());
         self
     }
 
-    pub fn with_span(mut self, span: Option<Span>) -> Self {
+    fn with_span(mut self, span: Option<Span>) -> Self {
         self.span = span;
-        self
-    }
-
-    pub fn with_code(mut self, code: &'static str) -> Self {
-        self.code = Some(code);
         self
     }
 }
@@ -330,7 +332,25 @@ pub trait WithErrorInfo {
     fn with_span(self, span: Option<Span>) -> Self;
 }
 
-impl<T> WithErrorInfo for Result<T, Error> {
+impl WithErrorInfo for anyhow::Error {
+    fn with_help<S: Into<String>>(self, help: S) -> Self {
+        self.downcast_ref::<crate::Error>()
+            .map(|e| e.clone().with_help(help).into())
+            .unwrap_or(self)
+    }
+
+    // Add a span of an expression onto the error. We need this implementation
+    // because we often pass `anyhow::Error`, and still want to try adding a
+    // span. So we need to try downcasting it to our error type first, and that
+    // fails, we return the original error.
+    fn with_span(self, span: Option<Span>) -> Self {
+        self.downcast_ref::<crate::Error>()
+            .map(|e| e.clone().with_span(span).into())
+            .unwrap_or(self)
+    }
+}
+
+impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
     fn with_help<S: Into<String>>(self, help: S) -> Self {
         self.map_err(|e| e.with_help(help))
     }
