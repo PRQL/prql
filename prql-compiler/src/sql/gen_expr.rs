@@ -218,30 +218,10 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 }
 
 fn process_regex(search: &Expr, target: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    let Some(regex_function) = ctx.dialect.regex_function() else {
-        // TODO: name the dialect, but not immediately obvious how to actually
-        // get the dialect string from a `DialectHandler`.
-        //
-        // MSSQL doesn't support them, MySQL & SQLite have a different construction.
-        bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
-    };
+    let search = translate_expr(search.clone(), ctx)?;
+    let target = translate_expr(target.clone(), ctx)?;
 
-    let args = [search, target]
-        .into_iter()
-        .map(|a| {
-            translate_expr(a.clone(), ctx)
-                .map(FunctionArgExpr::Expr)
-                .map(FunctionArg::Unnamed)
-        })
-        .try_collect()?;
-
-    Ok(sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
-        args,
-        over: None,
-        distinct: false,
-        special: false,
-    }))
+    ctx.dialect.translate_regex(search, target)
 }
 
 fn translate_binary_operator(
