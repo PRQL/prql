@@ -103,7 +103,15 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 "std.concat" => return process_concat(&expr, ctx),
                 "std.regex_search" => {
                     if let [search, target] = args.as_slice() {
-                        return process_regex(search, target, ctx);
+                        return process_regex(search, target, ctx).map_err(|e| {
+                            // Add the span of the expression to the error. But
+                            // we pass back an `anyhow::Error`, so we need to
+                            // try downcasting it first. If that fails, we
+                            // return the original error.
+                            e.downcast_ref::<crate::Error>()
+                                .map(|e| e.clone().with_span(expr.span).into())
+                                .unwrap_or(e)
+                        });
                     }
                 }
                 _ => match try_into_between(expr.clone(), ctx)? {
@@ -222,10 +230,12 @@ fn process_regex(search: &Expr, target: &Expr, ctx: &mut Context) -> Result<sql_
         // TODO: name the dialect, but not immediately obvious how to actually
         // get the dialect string from a `DialectHandler`.
         //
-        // MSSQL doesn't support them, MySQL & SQLite have a different construction.
-        bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
+        // MSSQL doesn't support them, MySQL & SQLite have a different
+        // construction.
+        return Err(Error::new(
+            crate::Reason::Simple("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)".to_string())
+        ).into())
     };
-
     let args = [search, target]
         .into_iter()
         .map(|a| {
