@@ -5,18 +5,17 @@ use std::collections::{HashMap, HashSet};
 use crate::ast::rq::{
     self, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef, Transform,
 };
-use crate::sql::ast_srq::{SqlRelation, SqlRelationKind};
-use crate::sql::context::SqlTableDecl;
+use crate::sql::srq::context::RelationAdapter;
 
-use super::ast_srq::{SqlFold, SqlTransform};
-use super::context::{AnchorContext, ColumnDecl};
+use super::ast::{SqlTransform, SrqFold};
+use super::context::{AnchorContext, ColumnDecl, RelationStatus, SqlTableDecl};
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
 /// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
 pub(super) fn extract_atomic(
-    pipeline: Vec<SqlTransform>,
+    pipeline: Vec<SqlTransform<TableRef>>,
     ctx: &mut AnchorContext,
-) -> Vec<SqlTransform> {
+) -> Vec<SqlTransform<TableRef>> {
     let output = AnchorContext::determine_select_columns(&pipeline);
 
     let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
@@ -42,6 +41,10 @@ pub(super) fn extract_atomic(
         .find_map(|x| x.as_super().and_then(|y| y.as_select()))
         .unwrap();
     if select_cols.iter().any(|c| !output.contains(c)) {
+        log::debug!(
+            "appending a projection SELECT, because previous one contained un-selected columns"
+        );
+
         // duplicate Select for purposes of anchor_split
         let duplicated_select = SqlTransform::Super(Transform::Select(select_cols.clone()));
         let mut atomic = atomic;
@@ -57,34 +60,16 @@ pub(super) fn extract_atomic(
     atomic
 }
 
-/// Converts a pipeline into atomic pipelines. Meant for debugging purposes.
-pub(super) fn extract_atomics_naive(
-    pipeline: Vec<SqlTransform>,
-    ctx: &mut AnchorContext,
-) -> Vec<Vec<SqlTransform>> {
-    let mut atomics = Vec::new();
-
-    atomics.push(extract_atomic(pipeline, ctx));
-    while let Some(decl_key) = ctx.table_decls.keys().max_by_key(|t| t.get()).cloned() {
-        let decl = ctx.table_decls.remove(&decl_key).unwrap();
-        if let Some(relation) = decl.relation {
-            if let SqlRelationKind::PreprocessedPipeline(p) = relation.kind {
-                atomics.push(extract_atomic(p, ctx));
-            }
-        }
-    }
-
-    atomics.reverse();
-    atomics
-}
-
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub(super) fn split_off_back(
-    mut pipeline: Vec<SqlTransform>,
+    mut pipeline: Vec<SqlTransform<TableRef>>,
     output: Vec<CId>,
     ctx: &mut AnchorContext,
-) -> (Option<Vec<SqlTransform>>, Vec<SqlTransform>) {
+) -> (
+    Option<Vec<SqlTransform<TableRef>>>,
+    Vec<SqlTransform<TableRef>>,
+) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
@@ -237,9 +222,9 @@ fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> bool {
 /// - redirect all references to original columns to the new ones
 pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
-    preceding: Vec<SqlTransform>,
-    atomic: Vec<SqlTransform>,
-) -> (Vec<SqlTransform>, HashMap<CId, CId>) {
+    preceding: Vec<SqlTransform<TableRef>>,
+    atomic: Vec<SqlTransform<TableRef>>,
+) -> (Vec<SqlTransform<TableRef>>, HashMap<CId, CId>) {
     let new_tid = ctx.tid.gen();
 
     let preceding_select = &preceding.last().unwrap().as_super().unwrap();
@@ -270,18 +255,18 @@ pub(super) fn anchor_split(
     }
 
     // define a new table
+    let columns = cols_at_split
+        .iter()
+        .map(|_| RelationColumn::Single(None))
+        .collect_vec();
     ctx.table_decls.insert(
         new_tid,
         SqlTableDecl {
             id: new_tid,
             name: None,
-            relation: Some(SqlRelation {
-                columns: cols_at_split
-                    .iter()
-                    .map(|_| RelationColumn::Single(None))
-                    .collect_vec(),
-                kind: SqlRelationKind::PreprocessedPipeline(preceding),
-            }),
+            relation: RelationStatus::NotYetDefined(RelationAdapter::Preprocessed(
+                preceding, columns,
+            )),
         },
     );
 
@@ -305,7 +290,7 @@ pub(super) fn anchor_split(
 /// fit into one SELECT statement.
 ///
 /// `following` contain names of following transforms in the pipeline.
-fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) -> bool {
+fn is_split_required(transform: &SqlTransform<TableRef>, following: &mut HashSet<String>) -> bool {
     // Pipeline must be split when there is a transform that is out of order:
     // - from (max 1x),
     // - join (no limit),
@@ -320,7 +305,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     // - loop (max 1x)
     //
     // Select is not affected by the order.
-    use SqlTransform::*;
+    use SqlTransform::Super;
     use Transform::*;
 
     // Compute for aggregation does not count as a real compute,
@@ -341,8 +326,8 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     }
 
     let split = match transform {
-        Super(From(_)) => contains_any(following, ["From"]),
-        Super(Join { .. }) => contains_any(following, ["From"]),
+        Super(Transform::From(_)) => contains_any(following, ["From"]),
+        Super(Transform::Join { .. }) => contains_any(following, ["From"]),
         Super(Aggregate { .. }) => {
             contains_any(following, ["From", "Join", "Aggregate", "Compute"])
         }
@@ -353,7 +338,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
             following,
             ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
         ),
-        Distinct => contains_any(
+        SqlTransform::Distinct => contains_any(
             following,
             [
                 "From",
@@ -365,7 +350,9 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
                 "Take",
             ],
         ),
-        Union { .. } | Except { .. } | Intersect { .. } => contains_any(
+        SqlTransform::Union { .. }
+        | SqlTransform::Except { .. }
+        | SqlTransform::Intersect { .. } => contains_any(
             following,
             [
                 "From",
@@ -422,10 +409,10 @@ impl std::fmt::Debug for Requirement {
 }
 
 pub(super) fn get_requirements(
-    transform: &SqlTransform,
+    transform: &SqlTransform<TableRef>,
     following: &HashSet<String>,
 ) -> Vec<Requirement> {
-    use SqlTransform::*;
+    use SqlTransform::Super;
     use Transform::*;
 
     // special case for aggregate, which contain two difference Complexities
@@ -447,7 +434,9 @@ pub(super) fn get_requirements(
     // general case: extract cids
     let cids = match transform {
         Super(Compute(compute)) => CidCollector::collect(compute.expr.clone()),
-        Super(Filter(expr) | Join { filter: expr, .. }) => CidCollector::collect(expr.clone()),
+        Super(Filter(expr) | Transform::Join { filter: expr, .. }) => {
+            CidCollector::collect(expr.clone())
+        }
         Super(Sort(sorts)) => sorts.iter().map(|s| s.column).collect(),
         Super(Take(rq::Take { range, .. })) => {
             let mut cids = Vec::new();
@@ -460,13 +449,7 @@ pub(super) fn get_requirements(
             cids
         }
 
-        Super(Aggregate { .. } | Append(_) | Transform::Loop(_)) => unreachable!(),
-        Super(Select(_) | From(_))
-        | Distinct
-        | Union { .. }
-        | Except { .. }
-        | Intersect { .. }
-        | SqlTransform::Loop(_) => return Vec::new(),
+        Super(Select(_) | Transform::From(_)) | _ => return Vec::new(),
     };
 
     // general case: determine complexity
@@ -490,7 +473,7 @@ pub(super) fn get_requirements(
         // we only use aliased columns in ORDER BY, so the columns can have high complexity
         Super(Sort(_)) => (Complexity::Aggregation, true),
         Super(Take(_)) => (Complexity::Plain, false),
-        Super(Join { .. }) => (Complexity::Plain, false),
+        Super(Transform::Join { .. }) => (Complexity::Plain, false),
 
         _ => unreachable!(),
     };
@@ -579,10 +562,10 @@ pub(super) struct CidRedirector<'a> {
 
 impl<'a> CidRedirector<'a> {
     pub fn redirect(
-        pipeline: Vec<SqlTransform>,
+        pipeline: Vec<SqlTransform<TableRef>>,
         cid_redirects: &'a HashMap<CId, CId>,
         ctx: &mut AnchorContext,
-    ) -> Vec<SqlTransform> {
+    ) -> Vec<SqlTransform<TableRef>> {
         let mut redirector = CidRedirector { ctx, cid_redirects };
         redirector.fold_sql_transforms(pipeline).unwrap()
     }
@@ -605,4 +588,12 @@ impl<'a> RqFold for CidRedirector<'a> {
     }
 }
 
-impl<'a> SqlFold for CidRedirector<'a> {}
+impl<'a> SrqFold<TableRef, TableRef, Transform, Transform> for CidRedirector<'a> {
+    fn fold_rel(&mut self, rel: TableRef) -> Result<TableRef> {
+        self.fold_table_ref(rel)
+    }
+
+    fn fold_super(&mut self, sup: Transform) -> Result<Transform> {
+        self.fold_transform(sup)
+    }
+}

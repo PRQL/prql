@@ -12,32 +12,32 @@ use crate::ast::rq::{
     fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
     TableDecl, TableRef, Transform,
 };
+
 use crate::utils::{IdGenerator, NameGenerator};
 
-use super::srq::ast::SqlTransform;
+use super::ast::{SqlRelation, SqlTransform};
 
 /// The AnchorContext struct stores information about tables and columns, and
 /// is used to generate new IDs and names.
-#[deprecated]
 #[derive(Default, Debug)]
 pub struct AnchorContext {
-    pub(super) column_decls: HashMap<CId, ColumnDecl>,
-    pub(super) column_names: HashMap<CId, String>,
+    pub column_decls: HashMap<CId, ColumnDecl>,
+    pub column_names: HashMap<CId, String>,
 
-    pub(super) table_decls: HashMap<TId, SqlTableDecl>,
+    pub table_decls: HashMap<TId, SqlTableDecl>,
 
-    pub(super) table_instances: HashMap<TIId, TableRef>,
+    pub table_instances: HashMap<TIId, TableRef>,
 
-    pub(super) col_name: NameGenerator,
-    pub(super) table_name: NameGenerator,
+    pub col_name: NameGenerator,
+    pub table_name: NameGenerator,
 
-    pub(super) cid: IdGenerator<CId>,
-    pub(super) tid: IdGenerator<TId>,
-    pub(super) tiid: IdGenerator<TIId>,
+    pub cid: IdGenerator<CId>,
+    pub tid: IdGenerator<TId>,
+    pub tiid: IdGenerator<TIId>,
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct SqlTableDecl {
+pub struct SqlTableDecl {
     #[allow(dead_code)]
     pub id: TId,
 
@@ -47,6 +47,42 @@ pub(super) struct SqlTableDecl {
     /// None means that it has already been defined, or was not needed to be defined in the
     /// first place.
     pub relation: RelationStatus,
+}
+
+#[derive(Debug, Clone)]
+pub enum RelationStatus {
+    /// Table or a common table expression. It can be referenced by name.
+    Defined,
+
+    /// Relation expression which is yet to be defined.
+    NotYetDefined(RelationAdapter),
+}
+
+impl RelationStatus {
+    /// Analogous to [Option::take]
+    pub fn take_to_define(&mut self) -> RelationStatus {
+        std::mem::replace(self, RelationStatus::Defined)
+    }
+}
+
+/// A relation which may have already been preprocessed.
+#[derive(Debug, Clone)]
+pub enum RelationAdapter {
+    Rq(Relation),
+    Preprocessed(Vec<SqlTransform<TableRef>>, Vec<RelationColumn>),
+    Srq(SqlRelation),
+}
+
+impl From<SqlRelation> for RelationAdapter {
+    fn from(rel: SqlRelation) -> Self {
+        RelationAdapter::Srq(rel)
+    }
+}
+
+impl From<Relation> for RelationAdapter {
+    fn from(rel: Relation) -> Self {
+        RelationAdapter::Rq(rel)
+    }
 }
 
 /// Table instance id
@@ -139,7 +175,7 @@ impl AnchorContext {
 
     pub(super) fn load_names(
         &mut self,
-        pipeline: &[SqlTransform],
+        pipeline: &[SqlTransform<TableRef>],
         output_cols: Vec<RelationColumn>,
     ) {
         let output_cids = Self::determine_select_columns(pipeline);
@@ -153,20 +189,21 @@ impl AnchorContext {
         }
     }
 
-    pub(super) fn determine_select_columns(pipeline: &[SqlTransform]) -> Vec<CId> {
-        use SqlTransform::*;
-        use Transform::*;
+    pub(super) fn determine_select_columns<T>(pipeline: &[SqlTransform<T>]) -> Vec<CId> {
+        use SqlTransform::Super;
 
         if let Some((last, remaining)) = pipeline.split_last() {
             match last {
-                Super(From(table)) => table.columns.iter().map(|(_, cid)| *cid).collect(),
-                Super(Join { with: table, .. }) => [
+                Super(Transform::From(table)) => {
+                    table.columns.iter().map(|(_, cid)| *cid).collect()
+                }
+                Super(Transform::Join { with: table, .. }) => [
                     Self::determine_select_columns(remaining),
                     table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
                 ]
                 .concat(),
-                Super(Select(cols)) => cols.clone(),
-                Super(Aggregate { partition, compute }) => {
+                Super(Transform::Select(cols)) => cols.clone(),
+                Super(Transform::Aggregate { partition, compute }) => {
                     [partition.clone(), compute.clone()].concat()
                 }
                 _ => Self::determine_select_columns(remaining),
@@ -179,7 +216,7 @@ impl AnchorContext {
     /// Returns a set of all columns of all tables in a pipeline
     pub(super) fn collect_pipeline_inputs(
         &self,
-        pipeline: &[SqlTransform],
+        pipeline: &[SqlTransform<TableRef>],
     ) -> (Vec<TIId>, HashSet<CId>) {
         let mut tables = Vec::new();
         let mut columns = HashSet::new();

@@ -1,13 +1,11 @@
 //! Backend for translating RQ into SQL
 
-mod anchor;
-mod ast_srq;
-mod context;
+// mod context;
 mod dialect;
 mod gen_expr;
 mod gen_projection;
 mod gen_query;
-mod preprocess;
+mod srq;
 pub(crate) mod std;
 pub(crate) mod utils;
 
@@ -15,9 +13,12 @@ pub use dialect::Dialect;
 
 use anyhow::Result;
 
+use crate::ast::rq::TId;
 use crate::{ast::rq::Query, Options, PRQL_VERSION};
 
-use self::{context::AnchorContext, dialect::DialectHandler};
+use self::dialect::DialectHandler;
+use self::srq::ast::SqlRelation;
+use self::srq::context::AnchorContext;
 
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: Query, options: &Options) -> Result<String> {
@@ -61,9 +62,9 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
     use super::*;
-    use crate::ast::rq::{Query, Transform};
+    use crate::ast::rq::{Query, TableRef, Transform};
 
-    pub use super::ast_srq::SqlTransform;
+    pub use super::srq::ast::SqlTransform;
 
     fn init(query: Query) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);
@@ -75,23 +76,21 @@ pub mod internal {
     }
 
     /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform>> {
+    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform<TableRef>>> {
         let (pipeline, mut ctx) = init(query)?;
 
-        preprocess::preprocess(pipeline, &mut ctx)
+        srq::preprocess::preprocess(pipeline, &mut ctx)
     }
 
     /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: Query) -> Result<Vec<Vec<SqlTransform>>> {
-        let (pipeline, mut ctx) = init(query)?;
-        let pipeline = preprocess::preprocess(pipeline, &mut ctx)?;
-
-        Ok(anchor::extract_atomics_naive(pipeline, &mut ctx.anchor))
+    pub fn anchor(query: Query) -> Result<srq::ast::SqlQuery> {
+        let (query, _ctx) = srq::compile_query(query, Some(dialect::Dialect::Generic))?;
+        Ok(query)
     }
 }
 
 #[derive(Debug)]
-struct Context {
+pub(self) struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
 
@@ -101,7 +100,7 @@ struct Context {
     // stuff regarding parent queries
     query_stack: Vec<QueryOpts>,
 
-    pub ctes: Vec<sqlparser::ast::Cte>,
+    pub ctes: Vec<(TId, SqlRelation)>,
 }
 
 #[derive(Clone, Debug)]

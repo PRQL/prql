@@ -574,19 +574,19 @@ fn test_rn_ids_are_unique() {
       FROM
         y_orig
     ),
-    table_1 AS (
+    table_2 AS (
       SELECT
         *,
         ROW_NUMBER() OVER (PARTITION BY x_id) AS _expr_0
       FROM
-        table_3 AS table_2
+        table_3 AS table_1
       WHERE
         _expr_1 <= 2
     )
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_2 AS table_0
     WHERE
       _expr_0 <= 3
     "###);
@@ -1986,13 +1986,13 @@ fn test_nonatomic() {
         employees
       LIMIT
         20
-    ), table_1 AS (
+    ), table_2 AS (
       SELECT
         title,
         country,
         AVG(salary) AS _expr_0
       FROM
-        table_3 AS table_2
+        table_3 AS table_1
       WHERE
         country = 'USA'
       GROUP BY
@@ -2004,7 +2004,7 @@ fn test_nonatomic() {
       country,
       AVG(_expr_0) AS sum_gross_cost
     FROM
-      table_1 AS table_0
+      table_2 AS table_0
     GROUP BY
       title,
       country

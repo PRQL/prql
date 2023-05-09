@@ -10,9 +10,8 @@ use sqlparser::ast::{
 use crate::ast::rq::{CId, RelationColumn};
 
 use crate::error::{Error, Span};
-use crate::sql::context::ColumnDecl;
 
-use super::context::AnchorContext;
+use super::srq::context::{AnchorContext, ColumnDecl};
 use super::dialect::ColumnExclude;
 use super::{gen_expr::*, Context};
 

@@ -8,29 +8,29 @@ use itertools::Itertools;
 use crate::ast::pl::{
     ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
-use crate::ast::rq::{self, CId, Compute, Expr, ExprKind, RqFold, Transform, Window};
+use crate::ast::rq::{self, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window};
 use crate::error::Error;
-use crate::sql::context::AnchorContext;
+use crate::sql::utils::{maybe_binop, new_binop};
+use crate::sql::Context;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
-use super::ast_srq::*;
-use super::utils::{maybe_binop, new_binop};
-use super::Context;
+use super::ast::*;
+use super::context::AnchorContext;
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
 ///
 /// Note that some SQL translation mechanisms depend on behavior of some of these
 /// functions (i.e. reorder).
-pub(super) fn preprocess(
+pub(in crate::sql) fn preprocess(
     pipeline: Vec<Transform>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform>, anyhow::Error> {
+) -> Result<Vec<SqlTransform<TableRef>>, anyhow::Error> {
     Ok(pipeline)
         .and_then(normalize)
         .map(prune_inputs)
         .map(wrap)
         .and_then(|p| distinct(p, ctx))
-        .map(union)
+        .and_then(|p| union(p))
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
@@ -38,7 +38,7 @@ pub(super) fn preprocess(
 
 // This function was disabled because it changes semantics of the pipeline in some cases.
 // /// Pushes all [Transform::Select]s to the back of the pipeline.
-// pub(super) fn push_down_selects(pipeline: Vec<Transform>) -> Vec<Transform> {
+// pub(in crate::sql) fn push_down_selects(pipeline: Vec<Transform>) -> Vec<Transform> {
 //     let mut select = None;
 //     let mut res = Vec::with_capacity(pipeline.len());
 //     for t in pipeline {
@@ -55,7 +55,7 @@ pub(super) fn preprocess(
 // }
 
 /// Removes unused relation inputs
-pub(super) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
+pub(in crate::sql) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
     let mut used_cids = HashSet::new();
 
     let mut res = Vec::new();
@@ -85,10 +85,9 @@ pub(super) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
     res
 }
 
-pub(super) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform> {
+pub(in crate::sql) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform<TableRef>> {
     pipe.into_iter()
         .map(|t| match t {
-            Transform::Loop(pipeline) => SqlTransform::Loop(wrap(pipeline)),
             _ => SqlTransform::Super(t),
         })
         .collect()
@@ -101,11 +100,11 @@ fn vecs_contain_same_elements<T: Eq + std::hash::Hash>(a: &[T], b: &[T]) -> bool
 }
 
 /// Creates [SqlTransform::Distinct] from [Transform::Take]
-pub(super) fn distinct(
-    pipeline: Vec<SqlTransform>,
+pub(in crate::sql) fn distinct(
+    pipeline: Vec<SqlTransform<TableRef>>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform>> {
-    use SqlTransform::*;
+) -> Result<Vec<SqlTransform<TableRef>>> {
+    use SqlTransform::Super;
     use Transform::*;
 
     let mut res = Vec::new();
@@ -134,7 +133,7 @@ pub(super) fn distinct(
                 let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
 
                 if take_only_first && sort.is_empty() && matching_columns {
-                    res.push(Distinct);
+                    res.push(SqlTransform::Distinct);
                     continue;
                 }
 
@@ -156,7 +155,7 @@ fn create_filter_by_row_number(
     sort: Vec<ColumnSort<CId>>,
     partition: Vec<CId>,
     ctx: &mut Context,
-) -> Vec<SqlTransform> {
+) -> Vec<SqlTransform<TableRef>> {
     // declare new column
     let expr = Expr {
         kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
@@ -200,15 +199,17 @@ fn create_filter_by_row_number(
     // add the two transforms
     let range_int = range.try_map(as_int).unwrap();
 
+    use super::super::std;
+
     let compute = SqlTransform::Super(Transform::Compute(compute));
     let filter = SqlTransform::Super(Transform::Filter(match (range_int.start, range_int.end) {
-        (Some(s), Some(e)) if s == e => new_binop(col_ref, super::std::STD_EQ, int_expr(s)),
+        (Some(s), Some(e)) if s == e => new_binop(col_ref, std::STD_EQ, int_expr(s)),
         (start, end) => {
             let start =
-                start.map(|start| new_binop(col_ref.clone(), super::std::STD_GTE, int_expr(start)));
-            let end = end.map(|end| new_binop(col_ref, super::std::STD_LTE, int_expr(end)));
+                start.map(|start| new_binop(col_ref.clone(), std::STD_GTE, int_expr(start)));
+            let end = end.map(|end| new_binop(col_ref, std::STD_LTE, int_expr(end)));
 
-            maybe_binop(start, super::std::STD_AND, end).unwrap_or(Expr {
+            maybe_binop(start, std::STD_AND, end).unwrap_or(Expr {
                 kind: ExprKind::Literal(Literal::Boolean(true)),
                 span: None,
             })
@@ -231,7 +232,9 @@ fn int_expr(i: i64) -> Expr {
 }
 
 /// Creates [SqlTransform::Union] from [Transform::Append]
-pub(super) fn union(pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
+pub(in crate::sql) fn union(
+    pipeline: Vec<SqlTransform<TableRef>>,
+) -> Result<Vec<SqlTransform<TableRef>>> {
     use SqlTransform::*;
     use Transform::*;
 
@@ -252,13 +255,15 @@ pub(super) fn union(pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
 
         res.push(SqlTransform::Union { bottom, distinct });
     }
-    res
+    Ok(res)
 }
 
 /// Creates [SqlTransform::Except] from [Transform::Join] and [Transform::Filter]
-pub(super) fn except(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Vec<SqlTransform>> {
+pub(in crate::sql) fn except(
+    pipeline: Vec<SqlTransform<TableRef>>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform<TableRef>>> {
     use SqlTransform::*;
-    use Transform::*;
 
     let output = AnchorContext::determine_select_columns(&pipeline);
     let output: HashSet<CId, RandomState> = HashSet::from_iter(output);
@@ -270,8 +275,8 @@ pub(super) fn except(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Vec<S
         if res.len() < 2 {
             continue;
         }
-        let Super(Join { side: JoinSide::Left, filter: join_cond, with }) = &res[res.len() - 2] else { continue };
-        let Super(Filter(filter)) = &res[res.len() - 1] else { continue };
+        let Super(Transform::Join { side: JoinSide::Left, filter: join_cond, with }) = &res[res.len() - 2] else { continue };
+        let Super(Transform::Filter(filter)) = &res[res.len() - 1] else { continue };
 
         let top = AnchorContext::determine_select_columns(&res[0..res.len() - 2]);
         let bottom = with.columns.iter().map(|(_, c)| *c).collect_vec();
@@ -337,9 +342,11 @@ pub(super) fn except(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Vec<S
 }
 
 /// Creates [SqlTransform::Intersect] from [Transform::Join]
-pub(super) fn intersect(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Vec<SqlTransform>> {
+pub(in crate::sql) fn intersect(
+    pipeline: Vec<SqlTransform<TableRef>>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform<TableRef>>> {
     use SqlTransform::*;
-    use Transform::*;
 
     let output = AnchorContext::determine_select_columns(&pipeline);
     let output: HashSet<CId, RandomState> = HashSet::from_iter(output);
@@ -352,7 +359,7 @@ pub(super) fn intersect(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Ve
         if res.is_empty() {
             continue;
         }
-        let Super(Join { side: JoinSide::Inner, filter: join_cond, with }) = &res[res.len() - 1] else { continue };
+        let Super(Transform::Join { side: JoinSide::Inner, filter: join_cond, with }) = &res[res.len() - 1] else { continue };
 
         let top = AnchorContext::determine_select_columns(&res[0..res.len() - 1]);
         let bottom = with.columns.iter().map(|(_, c)| *c).collect_vec();
@@ -436,15 +443,15 @@ fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
     let mut lefts = Vec::new();
     let mut rights = Vec::new();
 
+    use super::super::std;
+
     match &expr.kind {
-        ExprKind::BuiltInFunction { name, args }
-            if name == super::std::STD_EQ.name && args.len() == 2 =>
-        {
+        ExprKind::BuiltInFunction { name, args } if name == std::STD_EQ.name && args.len() == 2 => {
             lefts.push(&args[0]);
             rights.push(&args[1]);
         }
         ExprKind::BuiltInFunction { name, args }
-            if name == super::std::STD_AND.name && args.len() == 2 =>
+            if name == std::STD_AND.name && args.len() == 2 =>
         {
             let (l, r) = collect_equals(&args[0])?;
             lefts.extend(l);
@@ -475,16 +482,18 @@ fn col_refs(exprs: Vec<&Expr>) -> Vec<CId> {
 /// - the transform order in SQL requires Computes to be before Filter. This
 ///   can be circumvented by materializing the column earlier in the pipeline,
 ///   which is done in this function.
-pub(super) fn reorder(mut pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
-    use SqlTransform::*;
+pub(in crate::sql) fn reorder(
+    mut pipeline: Vec<SqlTransform<TableRef>>,
+) -> Vec<SqlTransform<TableRef>> {
+    use SqlTransform::Super;
     use Transform::*;
 
     // reorder Compose
     pipeline.sort_by(|a, b| match (a, b) {
         // don't reorder with From or Join or itself
         (
-            Super(From(_)) | Super(Join { .. }) | Super(Compute(_)),
-            Super(From(_)) | Super(Join { .. }) | Super(Compute(_)),
+            Super(Transform::From(_)) | Super(Transform::Join { .. }) | Super(Compute(_)),
+            Super(Transform::From(_)) | Super(Transform::Join { .. }) | Super(Compute(_)),
         ) => Ordering::Equal,
 
         // reorder always
@@ -509,7 +518,7 @@ pub(super) fn reorder(mut pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
 /// Normalize query:
 /// - Swap null checks such that null is always on the right side.
 ///   This is needed to simplify code for Except and for compiling to IS NULL.
-pub(super) fn normalize(pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
+pub(in crate::sql) fn normalize(pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
     Normalizer {}.fold_transforms(pipeline)
 }
 
