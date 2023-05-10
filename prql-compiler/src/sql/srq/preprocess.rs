@@ -30,7 +30,7 @@ pub(in crate::sql) fn preprocess(
         .map(prune_inputs)
         .map(wrap)
         .and_then(|p| distinct(p, ctx))
-        .and_then(|p| union(p))
+        .and_then(union)
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
@@ -86,11 +86,7 @@ pub(in crate::sql) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transfor
 }
 
 pub(in crate::sql) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform<TableRef>> {
-    pipe.into_iter()
-        .map(|t| match t {
-            _ => SqlTransform::Super(t),
-        })
-        .collect()
+    pipe.into_iter().map(SqlTransform::Super).collect()
 }
 
 fn vecs_contain_same_elements<T: Eq + std::hash::Hash>(a: &[T], b: &[T]) -> bool {

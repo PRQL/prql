@@ -11,8 +11,8 @@ use crate::ast::rq::{CId, RelationColumn};
 
 use crate::error::{Error, Span};
 
-use super::srq::context::{AnchorContext, ColumnDecl};
 use super::dialect::ColumnExclude;
+use super::srq::context::{AnchorContext, ColumnDecl};
 use super::{gen_expr::*, Context};
 
 pub(super) fn try_into_exprs(

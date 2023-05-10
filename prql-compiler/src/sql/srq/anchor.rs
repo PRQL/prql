@@ -449,7 +449,7 @@ pub(super) fn get_requirements(
             cids
         }
 
-        Super(Select(_) | Transform::From(_)) | _ => return Vec::new(),
+        _ => return Vec::new(),
     };
 
     // general case: determine complexity

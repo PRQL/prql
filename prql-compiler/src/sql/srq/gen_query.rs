@@ -101,7 +101,7 @@ fn compile_pipeline(
         .iter()
         .any(|t| matches!(t, Super(Transform::Loop(_))))
     {
-        pipeline = sql_of_loop(pipeline, ctx)?;
+        pipeline = compile_loop(pipeline, ctx)?;
     }
 
     // extract an atomic pipeline from back of the pipeline and stash preceding part into context
@@ -177,7 +177,7 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
         // if we cannot use CTEs (probably because we are within RECURSIVE)
         if !ctx.query.allow_ctes {
             // restore relation for other references
-            decl.relation = RelationStatus::NotYetDefined(sql_relation.clone().into());
+            decl.relation = RelationStatus::NotYetDefined(sql_relation.clone());
 
             // return a sub-query
             let relation = compile_relation(sql_relation, ctx)?;
@@ -194,7 +194,7 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
     Ok(RelationExpr::Ref(table_ref.source, table_ref.name))
 }
 
-fn sql_of_loop(
+fn compile_loop(
     pipeline: Vec<SqlTransform<TableRef>>,
     ctx: &mut Context,
 ) -> Result<Vec<SqlTransform<TableRef>>> {
@@ -244,7 +244,7 @@ fn sql_of_loop(
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
 
     let loop_name = ctx.anchor.table_name.gen();
-    loop_decl.name = Some(loop_name.clone());
+    loop_decl.name = Some(loop_name);
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query
@@ -263,22 +263,10 @@ fn sql_of_loop(
 fn ensure_names(transforms: &[SqlTransform<TableRef>], ctx: &mut AnchorContext) {
     let empty = HashSet::new();
     for t in transforms {
-        match t {
-            SqlTransform::Super(Transform::Sort(_)) => {
-                for r in anchor::get_requirements(t, &empty) {
-                    ctx.ensure_column_name(r.col);
-                }
+        if let SqlTransform::Super(Transform::Sort(_)) = t {
+            for r in anchor::get_requirements(t, &empty) {
+                ctx.ensure_column_name(r.col);
             }
-            SqlTransform::Super(Transform::Select(cids)) => {
-                for cid in cids {
-                    let _decl = &ctx.column_decls[cid];
-                    //let name = match decl {
-                    //    ColumnDecl::RelationColumn(_, _, _) => todo!(),
-                    //    ColumnDecl::Compute(_) => ctx.column_names[..],
-                    //};
-                }
-            }
-            _ => (),
         }
     }
 }
