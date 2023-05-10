@@ -5,7 +5,6 @@ expression: "from employees\nfilter start_date > @2021-01-01               # Cle
 WITH table_3 AS (
   SELECT
     title,
-    country,
     salary + COALESCE(tax, 0) + benefits_cost AS _expr_1,
     salary + COALESCE(tax, 0) AS _expr_2
   FROM
