@@ -128,12 +128,21 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
-        .map_err(error::downcast)
+        .map_err(
+            error::downcast
+        )
         .map_err(|e| e.composed("", prql, options.color))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Target {
+    // formatting error
+
+
+
+
+
+
     /// If `None` is used, dialect is extracted from `target` query header.
     Sql(Option<sql::Dialect>),
 }
