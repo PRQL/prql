@@ -13,14 +13,14 @@ WITH table_3 AS (
   WHERE
     start_date > DATE '2021-01-01'
 ),
-table_1 AS (
+table_2 AS (
   SELECT
     title,
     country,
     AVG(_expr_2) AS _expr_0,
     SUM(_expr_1) AS sum_gross_cost
   FROM
-    table_3 AS table_2
+    table_3 AS table_1
   WHERE
     _expr_1 > 0
   GROUP BY
@@ -35,7 +35,7 @@ SELECT
   CONCAT(title, '_', country) AS id,
   LEFT(country, 2) AS country_code
 FROM
-  table_1 AS table_0
+  table_2 AS table_0
 WHERE
   sum_gross_cost > 100000
 ORDER BY

@@ -9,10 +9,13 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ast::rq::{Query, RelationKind, RqFold, TableRef, Transform};
+use crate::utils::BreakUp;
 use crate::Target;
 
-use super::anchor;
-use super::ast::{fold_sql_transform, RelationExpr, SqlQuery, SqlRelation, SqlTransform, SrqFold};
+use super::anchor::{self, anchor_split};
+use super::ast::{
+    fold_sql_transform, Cte, CteKind, RelationExpr, SqlQuery, SqlRelation, SqlTransform, SrqFold,
+};
 use super::context::{AnchorContext, RelationAdapter, RelationStatus};
 
 use super::super::{Context, Dialect};
@@ -88,15 +91,17 @@ fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlR
 }
 
 fn compile_pipeline(
-    pipeline: Vec<SqlTransform<TableRef>>,
+    mut pipeline: Vec<SqlTransform<TableRef>>,
     ctx: &mut Context,
 ) -> Result<SqlRelation> {
-    use SqlTransform::*;
+    use SqlTransform::Super;
 
     // special case: loop
-    if pipeline.iter().any(|t| matches!(t, Loop(_))) {
-        todo!();
-        // pipeline = sql_of_loop(pipeline, ctx)?;
+    if pipeline
+        .iter()
+        .any(|t| matches!(t, Super(Transform::Loop(_))))
+    {
+        pipeline = sql_of_loop(pipeline, ctx)?;
     }
 
     // extract an atomic pipeline from back of the pipeline and stash preceding part into context
@@ -149,7 +154,7 @@ impl<'a> SrqFold<TableRef, RelationExpr, Transform, ()> for TransformCompiler<'a
                         Transform::Join { side, with, filter } => SqlTransform::Join {
                             side,
                             with: self.fold_rel(with)?,
-                        filter,
+                            filter,
                         },
                         Transform::Compute(_) | Transform::Append(_) | Transform::Loop(_) => {
                             return Ok(None)
@@ -180,23 +185,25 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
         }
 
         let relation = compile_relation(sql_relation, ctx)?;
-        ctx.ctes.push((table_ref.source, relation));
+        ctx.ctes.push(Cte {
+            tid: table_ref.source,
+            kind: CteKind::Normal(relation),
+        });
     }
 
     Ok(RelationExpr::Ref(table_ref.source, table_ref.name))
 }
 
-#[allow(dead_code, unused_variables)]
-fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
-    /*
+fn sql_of_loop(
+    pipeline: Vec<SqlTransform<TableRef>>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform<TableRef>>> {
     // split the pipeline
-    let (mut initial, mut following) = pipeline.break_up(|t| matches!(t, SqlTransform::Loop(_)));
+    let (mut initial, mut following) =
+        pipeline.break_up(|t| matches!(t, SqlTransform::Super(Transform::Loop(_))));
     let loop_ = following.remove(0);
-    let step = loop_.into_loop().unwrap();
-
-    // RECURSIVE can only follow WITH directly, which means that if we want to use it for
-    // an arbitrary query, we have to defined a *nested* WITH RECURSIVE and not use
-    // the top-level list of CTEs.
+    let step = loop_.into_super_and(|t| t.into_loop()).unwrap();
+    let step = preprocess::preprocess(step, ctx)?;
 
     // determine columns of the initial table
     let recursive_columns = AnchorContext::determine_select_columns(&initial);
@@ -208,60 +215,24 @@ fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sql
     let (step, _) = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
 
-    let table_name = "_loop";
+    let recursive_name = "_loop".to_string();
     let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
-    initial.name = Some(table_name.to_string());
-    let initial_relation = if let RelationStatus::NotYetDefined(rel) = initial.relation {
+    initial.name = Some(recursive_name.clone());
+
+    // compile initial
+    let initial = if let RelationStatus::NotYetDefined(rel) = initial.relation.take_to_define() {
         compile_relation(rel, ctx)?
     } else {
         unreachable!()
     };
 
-    let (initial, _) = initial_relation.into_pipeline().unwrap();
-
-    // compile initial
-    let initial = query_to_set_expr(sql_query_of_pipeline(initial, ctx)?, ctx);
-
     // compile step (without producing CTEs)
     ctx.push_query();
     ctx.query.allow_ctes = false;
 
-    let step = query_to_set_expr(sql_query_of_pipeline(step, ctx)?, ctx);
+    let step = compile_pipeline(step, ctx)?;
 
     ctx.pop_query();
-
-    // build CTE and it's SELECT
-    let cte = sql_ast::Cte {
-        alias: simple_table_alias(Ident::new(table_name)),
-        query: Box::new(default_query(SetExpr::SetOperation {
-            op: sql_ast::SetOperator::Union,
-            set_quantifier: sql_ast::SetQuantifier::All,
-            left: initial,
-            right: step,
-        })),
-        from: None,
-    };
-    let query = Box::new(sql_ast::Query {
-        with: Some(sql_ast::With {
-            recursive: true,
-            cte_tables: vec![cte],
-        }),
-        ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-            projection: vec![SelectItem::Wildcard(
-                sql_ast::WildcardAdditionalOptions::default(),
-            )],
-            from: vec![TableWithJoins {
-                relation: TableFactor::Table {
-                    name: sql_ast::ObjectName(vec![Ident::new(table_name)]),
-                    alias: None,
-                    args: None,
-                    with_hints: Vec::new(),
-                },
-                joins: vec![],
-            }],
-            ..default_select()
-        })))
-    });
 
     // create a split between the loop SELECT statement and the following pipeline
     let (mut following, _) = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
@@ -277,11 +248,16 @@ fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sql
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query
-    ctx.ctes.push((loop_name, query));
+    ctx.ctes.push(Cte {
+        tid: from.source,
+        kind: CteKind::Loop {
+            initial,
+            step,
+            recursive_name,
+        },
+    });
 
     Ok(following)
-     */
-    todo!()
 }
 
 fn ensure_names(transforms: &[SqlTransform<TableRef>], ctx: &mut AnchorContext) {

@@ -365,7 +365,7 @@ fn is_split_required(transform: &SqlTransform<TableRef>, following: &mut HashSet
                 "Distinct",
             ],
         ),
-        SqlTransform::Loop(_) => !following.is_empty(),
+        Super(Loop(_)) => !following.is_empty(),
         _ => false,
     };
 

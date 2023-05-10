@@ -13,11 +13,10 @@ pub use dialect::Dialect;
 
 use anyhow::Result;
 
-use crate::ast::rq::TId;
 use crate::{ast::rq::Query, Options, PRQL_VERSION};
 
 use self::dialect::DialectHandler;
-use self::srq::ast::SqlRelation;
+use self::srq::ast::Cte;
 use self::srq::context::AnchorContext;
 
 /// Translate a PRQL AST into a SQL string.
@@ -100,7 +99,7 @@ pub(self) struct Context {
     // stuff regarding parent queries
     query_stack: Vec<QueryOpts>,
 
-    pub ctes: Vec<(TId, SqlRelation)>,
+    pub ctes: Vec<Cte>,
 }
 
 #[derive(Clone, Debug)]

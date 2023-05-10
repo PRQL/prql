@@ -11,12 +11,12 @@ WITH table_3 AS (
   GROUP BY
     emp_no
 ),
-table_1 AS (
+table_2 AS (
   SELECT
-    AVG(table_2._expr_1) AS _expr_0
+    AVG(table_1._expr_1) AS _expr_0
   FROM
-    table_3 AS table_2
-    JOIN titles ON table_2.emp_no = titles.emp_no
+    table_3 AS table_1
+    JOIN titles ON table_1.emp_no = titles.emp_no
   GROUP BY
     titles.title
 )
@@ -24,7 +24,7 @@ SELECT
   _expr_0 / 1000 AS salary_k,
   _expr_0 / 1000 * 1000 AS salary
 FROM
-  table_1 AS table_0
+  table_2 AS table_0
 LIMIT
   10
 

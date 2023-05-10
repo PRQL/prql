@@ -11,7 +11,7 @@ use crate::ast::rq::{self, Expr, RqFold, TId};
 #[derive(Debug, Clone)]
 pub struct SqlQuery {
     /// Common Table Expression (WITH clause)
-    pub ctes: Vec<(rq::TId, SqlRelation)>,
+    pub ctes: Vec<Cte>,
 
     /// The body of SELECT query.
     pub main_relation: SqlRelation,
@@ -30,6 +30,27 @@ pub enum RelationExpr {
     SubQuery(SqlRelation, Option<String>),
 }
 
+#[derive(Debug, Clone)]
+pub struct Cte {
+    pub tid: TId,
+    pub kind: CteKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum CteKind {
+    Normal(SqlRelation),
+    Loop {
+        initial: SqlRelation,
+        step: SqlRelation,
+        recursive_name: String,
+    },
+}
+
+/// Similar to [rq::Transform], but more similar to SQL clauses.
+///
+/// Uses a two generic args that allows compiler to do work in multiple stages.
+/// First convert RQ to [SqlTransform<TableRef, rq::Transform>] and at the end
+/// compile that to [SqlTransform<RelationExpr, ()>].
 #[derive(Debug, Clone, EnumAsInner, strum::AsRefStr, Serialize)]
 pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
     // Contains [rq::Transform] during compilation. After finishing, this is emptied.
@@ -63,7 +84,6 @@ pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
         bottom: Rel,
         distinct: bool,
     },
-    Loop(Vec<SqlTransform>),
 }
 
 impl<Rel> SqlTransform<Rel> {
@@ -139,7 +159,6 @@ pub fn fold_sql_transform<
             bottom: fold.fold_rel(bottom)?,
             distinct,
         },
-        SqlTransform::Loop(pipeline) => SqlTransform::Loop(pipeline),
         SqlTransform::Select(v) => SqlTransform::Select(v),
         SqlTransform::Filter(v) => SqlTransform::Filter(v),
         SqlTransform::Aggregate { partition, compute } => {

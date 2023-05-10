@@ -10,12 +10,12 @@ use sqlparser::ast::{
 };
 
 use crate::ast::pl::{JoinSide, Literal, RelationLiteral};
-use crate::ast::rq::{CId, Expr, ExprKind, Query, TId};
+use crate::ast::rq::{CId, Expr, ExprKind, Query};
 use crate::utils::{BreakUp, Pluck};
 
 use super::gen_expr::*;
 use super::gen_projection::*;
-use super::srq::ast::{RelationExpr, SqlRelation, SqlTransform};
+use super::srq::ast::{Cte, CteKind, RelationExpr, SqlRelation, SqlTransform};
 
 use super::{Context, Dialect};
 
@@ -32,7 +32,7 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
         let cte_tables = srq_query
             .ctes
             .into_iter()
-            .map(|(tid, rel)| translate_cte(tid, rel, &mut ctx))
+            .map(|cte| translate_cte(cte, &mut ctx))
             .try_collect()?;
         query.with = Some(sql_ast::With {
             recursive: false,
@@ -41,25 +41,6 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
     }
 
     Ok(query)
-}
-
-fn translate_cte(tid: TId, rel: SqlRelation, ctx: &mut Context) -> Result<sql_ast::Cte> {
-    let query = translate_relation(rel, ctx)?;
-
-    let decl = ctx.anchor.table_decls.get_mut(&tid).unwrap();
-    let table_name = decl.name.clone().unwrap_or_else(|| {
-        let n = ctx.anchor.table_name.gen();
-        decl.name = Some(n.clone());
-        n
-    });
-
-    let table_name = translate_ident_part(table_name, ctx);
-
-    Ok(sql_ast::Cte {
-        alias: simple_table_alias(table_name),
-        query: Box::new(query),
-        from: None,
-    })
 }
 
 fn translate_relation(relation: SqlRelation, ctx: &mut Context) -> Result<sql_ast::Query> {
@@ -319,104 +300,76 @@ fn translate_join(
     })
 }
 
-#[allow(dead_code, unused_variables)]
-fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
-    /*
-
-
-    // split the pipeline
-    let (mut initial, mut following) = pipeline.break_up(|t| matches!(t, SqlTransform::Loop(_)));
-    let loop_ = following.remove(0);
-    let step = loop_.into_loop().unwrap();
-
-    // RECURSIVE can only follow WITH directly, which means that if we want to use it for
-    // an arbitrary query, we have to defined a *nested* WITH RECURSIVE and not use
-    // the top-level list of CTEs.
-
-    // determine columns of the initial table
-    let recursive_columns = AnchorContext::determine_select_columns(&initial);
-
-    // do the same thing we do when splitting a pipeline
-    // (defining new columns, redirecting cids)
-    let recursive_columns = SqlTransform::Super(Transform::Select(recursive_columns));
-    initial.push(recursive_columns.clone());
-    let (step, _) = anchor_split(&mut ctx.anchor, initial, step);
-    let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
-
-    let table_name = "_loop";
-    let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
-    initial.name = Some(table_name.to_string());
-    let initial_relation = if let RelationStatus::NotYetDefined(rel) = initial.relation {
-        rel.preprocess(ctx)?
-    } else {
-        unreachable!()
-    };
-
-    let (initial, _) = initial_relation.into_pipeline().unwrap();
-
-    // compile initial
-    let initial = query_to_set_expr(sql_query_of_pipeline(initial, ctx)?, ctx);
-
-    // compile step (without producing CTEs)
-    ctx.push_query();
-    ctx.query.allow_ctes = false;
-
-    let step = query_to_set_expr(sql_query_of_pipeline(step, ctx)?, ctx);
-
-    ctx.pop_query();
-
-    // build CTE and it's SELECT
-    let cte = sql_ast::Cte {
-        alias: simple_table_alias(Ident::new(table_name)),
-        query: Box::new(default_query(SetExpr::SetOperation {
-            op: sql_ast::SetOperator::Union,
-            set_quantifier: sql_ast::SetQuantifier::All,
-            left: initial,
-            right: step,
-        })),
-        from: None,
-    };
-    let query = Box::new(sql_ast::Query {
-        with: Some(sql_ast::With {
-            recursive: true,
-            cte_tables: vec![cte],
-        }),
-        ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-            projection: vec![SelectItem::Wildcard(
-                sql_ast::WildcardAdditionalOptions::default(),
-            )],
-            from: vec![TableWithJoins {
-                relation: TableFactor::Table {
-                    name: sql_ast::ObjectName(vec![Ident::new(table_name)]),
-                    alias: None,
-                    args: None,
-                    with_hints: Vec::new(),
-                },
-                joins: vec![],
-            }],
-            ..default_select()
-        })))
+fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<sql_ast::Cte> {
+    let decl = ctx.anchor.table_decls.get_mut(&cte.tid).unwrap();
+    let cte_name = decl.name.clone().unwrap_or_else(|| {
+        let n = ctx.anchor.table_name.gen();
+        decl.name = Some(n.clone());
+        n
     });
 
-    // create a split between the loop SELECT statement and the following pipeline
-    let (mut following, _) = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
+    let cte_name = translate_ident_part(cte_name, ctx);
 
-    let from = following.first_mut().unwrap();
-    let from = from.as_super().unwrap().as_from().unwrap();
+    let query = match cte.kind {
+        // base case
+        CteKind::Normal(rel) => translate_relation(rel, ctx)?,
 
-    // this will be table decl that references the whole loop expression
-    let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
+        // special: WITH RECURSIVE
+        CteKind::Loop {
+            initial,
+            step,
+            recursive_name,
+        } => {
+            // compile initial
+            let initial = query_to_set_expr(translate_relation(initial, ctx)?, ctx);
 
-    let loop_name = ctx.anchor.table_name.gen();
-    loop_decl.name = Some(loop_name.clone());
-    loop_decl.relation = RelationStatus::Defined;
+            let step = query_to_set_expr(translate_relation(step, ctx)?, ctx);
 
-    // push the whole thing into WITH of the main query
-    ctx.ctes.push((loop_name, query));
+            // RECURSIVE can only follow WITH directly, which means that if we want to use it for
+            // an arbitrary query, we have to defined a *nested* WITH RECURSIVE and not use
+            // the top-level list of CTEs.
 
-    Ok(following)
-     */
-    todo!()
+            let recursive_name = Ident::new(recursive_name);
+
+            // build CTE and its SELECT
+            let cte = sql_ast::Cte {
+                alias: simple_table_alias(recursive_name.clone()),
+                query: Box::new(default_query(SetExpr::SetOperation {
+                    op: sql_ast::SetOperator::Union,
+                    set_quantifier: sql_ast::SetQuantifier::All,
+                    left: initial,
+                    right: step,
+                })),
+                from: None,
+            };
+            sql_ast::Query {
+                with: Some(sql_ast::With {
+                    recursive: true,
+                    cte_tables: vec![cte],
+                }),
+                ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
+                    projection: vec![SelectItem::Wildcard(
+                        sql_ast::WildcardAdditionalOptions::default(),
+                    )],
+                    from: vec![TableWithJoins {
+                        relation: TableFactor::Table {
+                            name: sql_ast::ObjectName(vec![recursive_name]),
+                            alias: None,
+                            args: None,
+                            with_hints: Vec::new(),
+                        },
+                        joins: vec![],
+                    }],
+                    ..default_select()
+                })))
+            }
+        }
+    };
+    Ok(sql_ast::Cte {
+        alias: simple_table_alias(cte_name),
+        query: Box::new(query),
+        from: None,
+    })
 }
 
 fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
