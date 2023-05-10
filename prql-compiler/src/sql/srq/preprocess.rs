@@ -9,7 +9,7 @@ use crate::ast::pl::{
     ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
 use crate::ast::rq::{self, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window};
-use crate::error::Error;
+use crate::error::{Error, WithErrorInfo};
 use crate::sql::utils::{maybe_binop, new_binop};
 use crate::sql::Context;
 

@@ -126,3 +126,20 @@ fn test_hint_missing_args() {
     ───╯
     "###)
 }
+
+#[test]
+fn test_regex_dialect() {
+    assert_display_snapshot!(compile(r###"
+    prql target:sql.sqlite
+    from foo
+    filter bar ~= 'love'
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:12]
+       │
+     4 │     filter bar ~= 'love'
+       │            ──────┬──────
+       │                  ╰──────── regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)
+    ───╯
+    "###)
+}

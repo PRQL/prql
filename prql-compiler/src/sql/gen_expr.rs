@@ -17,11 +17,11 @@ use crate::ast::pl::{
     ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
-use crate::error::{Error, Span};
+use crate::error::{Error, Span, WithErrorInfo};
+use crate::sql::srq::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::gen_projection::try_into_exprs;
-use super::srq::context::ColumnDecl;
 use super::Context;
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
@@ -103,7 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 "std.concat" => return process_concat(&expr, ctx),
                 "std.regex_search" => {
                     if let [search, target] = args.as_slice() {
-                        return process_regex(search, target, ctx);
+                        return process_regex(search, target, ctx).with_span(expr.span);
                     }
                 }
                 _ => match try_into_between(expr.clone(), ctx)? {
@@ -218,30 +218,10 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 }
 
 fn process_regex(search: &Expr, target: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    let Some(regex_function) = ctx.dialect.regex_function() else {
-        // TODO: name the dialect, but not immediately obvious how to actually
-        // get the dialect string from a `DialectHandler`.
-        //
-        // MSSQL doesn't support them, MySQL & SQLite have a different construction.
-        bail!("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)");
-    };
+    let search = translate_expr(search.clone(), ctx)?;
+    let target = translate_expr(target.clone(), ctx)?;
 
-    let args = [search, target]
-        .into_iter()
-        .map(|a| {
-            translate_expr(a.clone(), ctx)
-                .map(FunctionArgExpr::Expr)
-                .map(FunctionArg::Unnamed)
-        })
-        .try_collect()?;
-
-    Ok(sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
-        args,
-        over: None,
-        distinct: false,
-        special: false,
-    }))
+    ctx.dialect.translate_regex(search, target)
 }
 
 fn translate_binary_operator(

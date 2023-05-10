@@ -15,7 +15,7 @@ use self::lexer::Token;
 
 use super::ast::pl::*;
 
-use crate::error::{Error, Errors, Reason};
+use crate::error::{Error, Errors, Reason, WithErrorInfo};
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(source: &str) -> Result<Vec<Stmt>> {

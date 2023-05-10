@@ -12,7 +12,7 @@ use crate::ast::pl::{
     WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
-use crate::error::{Error, Reason, Span};
+use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
