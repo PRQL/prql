@@ -26,15 +26,15 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 0.8.1
           key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          cache: false
       - name: 📎 Clippy
         run:
           # Note that `--all-targets` doesn't refer to targets like
