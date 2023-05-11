@@ -18,7 +18,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
-use crate::sql::context::ColumnDecl;
+use crate::sql::srq::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::gen_projection::try_into_exprs;
@@ -498,9 +498,9 @@ pub(super) fn translate_sstring(
 
 pub(super) fn translate_query_sstring(
     items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
-    context: &mut Context,
+    ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let string = translate_sstring(items, context)?;
+    let string = translate_sstring(items, ctx)?;
 
     let re = Regex::new(r"(?i)^SELECT\b").unwrap();
     let prefix = if let Some(string) = string.trim().get(0..7) {

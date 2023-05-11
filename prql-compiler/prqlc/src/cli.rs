@@ -76,7 +76,13 @@ enum Command {
     ///
     /// Only displays the main pipeline.
     #[command(name = "sql:anchor")]
-    SQLAnchor(IoArgs),
+    SQLAnchor {
+        #[command(flatten)]
+        io_args: IoArgs,
+
+        #[arg(value_enum, long, default_value = "yaml")]
+        format: Format,
+    },
 
     /// Parse, resolve, lower into RQ & compile to SQL
     ///
@@ -237,11 +243,20 @@ impl Command {
                 let srq = prql_compiler::sql::internal::preprocess(rq)?;
                 format!("{srq:#?}").as_bytes().to_vec()
             }
-            Command::SQLAnchor { .. } => {
+            Command::SQLAnchor { format, .. } => {
                 let ast = prql_to_pl(source)?;
                 let rq = semantic::resolve(ast)?;
                 let srq = prql_compiler::sql::internal::anchor(rq)?;
-                format!("{srq:#?}").as_bytes().to_vec()
+
+                let json = serde_json::to_string_pretty(&srq)?;
+
+                match format {
+                    Format::Json => json.into_bytes(),
+                    Format::Yaml => {
+                        let val: serde_yaml::Value = serde_yaml::from_str(&json)?;
+                        serde_yaml::to_string(&val)?.into_bytes()
+                    }
+                }
             }
 
             _ => unreachable!(),
@@ -259,7 +274,7 @@ impl Command {
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
-            | SQLAnchor(io_args) => io_args.input.clone(),
+            | SQLAnchor { io_args, .. } => io_args.input.clone(),
             Format(io) | Debug(io) | Annotate(io) => io.input.clone(),
             _ => unreachable!(),
         };
@@ -282,7 +297,7 @@ impl Command {
             Parse { io_args, .. }
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
-            | SQLAnchor(io_args)
+            | SQLAnchor { io_args, .. }
             | SQLPreprocess(io_args) => io_args.output.to_owned(),
             Format(io) | Debug(io) | Annotate(io) => io.output.to_owned(),
             _ => unreachable!(),
@@ -500,6 +515,76 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
             - 0
           columns:
           - !Single y
+        "###);
+    }
+
+    #[test]
+    fn sql_anchor() {
+        let output = Command::execute(
+            &Command::SQLAnchor {
+                io_args: IoArgs::default(),
+                format: Format::Yaml,
+            },
+            "from employees | sort salary | take 3 | filter salary > 0",
+        )
+        .unwrap();
+
+        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        ctes:
+        - tid: 1
+          kind:
+            Normal:
+              AtomicPipeline:
+              - Select:
+                - 0
+                - 1
+              - From:
+                  Ref:
+                  - 0
+                  - employees
+              - Sort:
+                - direction: Asc
+                  column: 0
+              - Take:
+                  range:
+                    start: null
+                    end:
+                      kind:
+                        Literal:
+                          Integer: 3
+                      span: null
+                  partition: []
+                  sort:
+                  - direction: Asc
+                    column: 0
+        main_relation:
+          AtomicPipeline:
+          - From:
+              Ref:
+              - 1
+              - table_0
+          - Select:
+            - 2
+            - 3
+          - Filter:
+              kind:
+                BuiltInFunction:
+                  name: std.gt
+                  args:
+                  - kind:
+                      ColumnRef: 2
+                    span:
+                      start: 47
+                      end: 53
+                  - kind:
+                      Literal:
+                        Integer: 0
+                    span:
+                      start: 56
+                      end: 57
+              span:
+                start: 47
+                end: 57
         "###);
     }
 }

@@ -8,13 +8,12 @@ use sqlparser::ast::{
 };
 
 use crate::ast::rq::{CId, RelationColumn};
-
 use crate::error::{Error, Span, WithErrorInfo};
-use crate::sql::context::ColumnDecl;
 
-use super::context::AnchorContext;
 use super::dialect::ColumnExclude;
-use super::{gen_expr::*, Context};
+use super::gen_expr::*;
+use super::srq::context::{AnchorContext, ColumnDecl};
+use super::Context;
 
 pub(super) fn try_into_exprs(
     cids: Vec<CId>,
