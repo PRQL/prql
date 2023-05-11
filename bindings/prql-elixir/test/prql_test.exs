@@ -27,10 +27,7 @@ defmodule PRQLTest do
             "code": null,
             "reason": "Unknown name invalid",
             "hint": null,
-            "span": {
-              "start": 0,
-              "end": 7
-            },
+            "span": "span-chars-0-7",
             "display": "Error: \n   ╭─[:1:1]\n   │\n 1 │ invalid\n   │ ───┬───  \n   │    ╰───── Unknown name invalid\n───╯\n",
             "location": {
               "start": [0, 0],
