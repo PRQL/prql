@@ -14,7 +14,7 @@ type Sorting = Vec<ColumnSort<CId>>;
 pub(super) fn postprocess(query: SqlQuery, ctx: &mut Context) -> Result<SqlQuery> {
     let mut s = SortingInference {
         last_sorting: Vec::new(),
-        sortings: HashMap::new(),
+        sorting: HashMap::new(),
         ctx,
     };
 
@@ -23,7 +23,7 @@ pub(super) fn postprocess(query: SqlQuery, ctx: &mut Context) -> Result<SqlQuery
 
 struct SortingInference<'a> {
     last_sorting: Sorting,
-    sortings: HashMap<TId, Sorting>,
+    sorting: HashMap<TId, Sorting>,
     ctx: &'a mut Context,
 }
 
@@ -37,7 +37,7 @@ impl<'a> SrqFold for SortingInference<'a> {
 
             // store sorting to be used later in From references
             let sorting = self.last_sorting.drain(..).collect();
-            self.sortings.insert(cte.tid, sorting);
+            self.sorting.insert(cte.tid, sorting);
 
             ctes.push(cte);
         }
@@ -80,7 +80,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
                     match expr.kind {
                         RelationExprKind::Ref(ref tid) => {
                             // infer sorting from referenced pipeline
-                            sorting = self.sortings.get(tid).cloned().unwrap_or_default();
+                            sorting = self.sorting.get(tid).cloned().unwrap_or_default();
                         }
                         RelationExprKind::SubQuery(rel) => {
                             let rel = self.fold_sql_relation(rel)?;
