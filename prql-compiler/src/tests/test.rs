@@ -214,7 +214,7 @@ fn test_append() {
     "###);
 
     assert_display_snapshot!(compile(r###"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
     func union `default_db.bottom` top -> (top | append bottom | distinct)
 
     from employees
@@ -233,7 +233,7 @@ fn test_append() {
     "###);
 
     assert_display_snapshot!(compile(r###"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
     func union `default_db.bottom` top -> (top | append bottom | distinct)
 
     from employees
@@ -345,7 +345,7 @@ fn test_remove() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
     func except `default_db.bottom` top -> (top | distinct | remove bottom)
 
     from album
@@ -374,7 +374,7 @@ fn test_remove() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
     func except `default_db.bottom` top -> (top | distinct | remove bottom)
 
     from album
@@ -442,7 +442,7 @@ fn test_intersect() {
     );
 
     assert_display_snapshot!(compile(r#"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
 
     from album
     select artist_id
@@ -479,7 +479,7 @@ fn test_intersect() {
     );
 
     assert_display_snapshot!(compile(r#"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
 
     from album
     select artist_id
@@ -515,7 +515,7 @@ fn test_intersect() {
     );
 
     assert_display_snapshot!(compile(r#"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func distinct rel -> (noop t = rel | group [t.*] (take 1))
 
     from album
     select artist_id
@@ -3498,9 +3498,9 @@ fn test_1535() -> anyhow::Result<()> {
     "#)?,
         @r###"
     SELECT
-      UPPER(name) AS upper_name
+      *
     FROM
-      test_tables
+      z
     "###
     );
 
