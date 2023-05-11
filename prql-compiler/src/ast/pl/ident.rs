@@ -68,9 +68,7 @@ impl Ident {
     }
 
     pub fn starts_with_part(&self, prefix: &str) -> bool {
-        std::iter::once(prefix)
-            .zip(self.iter())
-            .all(|(prefix_component, self_component)| prefix_component == self_component)
+       self.iter().next().map_or(false, |self_component| self_component == prefix)
     }
 }
 
