@@ -26,15 +26,15 @@ pub(super) fn try_into_exprs(
     for cid in cids {
         let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-        let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
+        let ColumnDecl::RelationColumn(riid, _, RelationColumn::Wildcard) = decl else {
             // base case
             res.push(translate_cid(cid, ctx)?);
             continue;
         };
 
         // star
-        let t = &ctx.anchor.table_instances[tiid];
-        let table_name = t.name.clone();
+        let t = &ctx.anchor.relation_instances[riid];
+        let table_name = t.table_ref.name.clone();
 
         let ident = translate_star(ctx, span)?;
         if let Some(excluded) = excluded.get(&cid) {
@@ -81,12 +81,12 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
 
     let mut output = Vec::new();
     for cid in cols {
-        if let ColumnDecl::RelationColumn(tiid, _, col) = &ctx.column_decls[&cid] {
+        if let ColumnDecl::RelationColumn(riid, _, col) = &ctx.column_decls[&cid] {
             if matches!(col, RelationColumn::Wildcard) {
                 exclude(&mut star, &mut excluded);
 
-                let table_ref = &ctx.table_instances[tiid];
-                let in_star: HashSet<_> = (table_ref.columns)
+                let relation_instance = &ctx.relation_instances[riid];
+                let in_star: HashSet<_> = (relation_instance.table_ref.columns)
                     .iter()
                     .filter_map(|c| match c {
                         (RelationColumn::Wildcard, _) => None,
@@ -127,14 +127,14 @@ pub(super) fn translate_select_items(
         .map(|cid| {
             let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-            let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
+            let ColumnDecl::RelationColumn(riid, _, RelationColumn::Wildcard) = decl else {
                 // general case
                 return translate_select_item(cid, ctx)
             };
 
             // wildcard case
-            let t = &ctx.anchor.table_instances[tiid];
-            let table_name = t.name.clone();
+            let t = &ctx.anchor.relation_instances[riid];
+            let table_name = t.table_ref.name.clone();
 
             let ident = translate_ident(table_name, Some("*".to_string()), ctx);
 

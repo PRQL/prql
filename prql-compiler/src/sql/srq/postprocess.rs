@@ -4,26 +4,32 @@ use anyhow::Result;
 
 use crate::ast::pl::ColumnSort;
 use crate::ast::rq::{CId, RqFold, TId};
+use crate::sql::Context;
 
+use super::anchor::CidRedirector;
 use super::ast::*;
 
 type Sorting = Vec<ColumnSort<CId>>;
 
-pub fn postprocess(query: SqlQuery) -> Result<SqlQuery> {
-    let mut s = SortingInference::default();
+pub(super) fn postprocess(query: SqlQuery, ctx: &mut Context) -> Result<SqlQuery> {
+    let mut s = SortingInference {
+        last_sorting: Vec::new(),
+        sortings: HashMap::new(),
+        ctx,
+    };
 
     s.fold_sql_query(query)
 }
 
-#[derive(Default)]
-struct SortingInference {
+struct SortingInference<'a> {
     last_sorting: Sorting,
     sortings: HashMap<TId, Sorting>,
+    ctx: &'a mut Context,
 }
 
-impl RqFold for SortingInference {}
+impl<'a> RqFold for SortingInference<'a> {}
 
-impl SrqFold for SortingInference {
+impl<'a> SrqFold for SortingInference<'a> {
     fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
         let mut ctes = Vec::with_capacity(query.ctes.len());
         for cte in query.ctes {
@@ -51,7 +57,7 @@ impl SrqFold for SortingInference {
     }
 }
 
-impl SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference {
+impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> {
     fn fold_rel(&mut self, rel: RelationExpr) -> Result<RelationExpr> {
         Ok(rel)
     }
@@ -71,19 +77,22 @@ impl SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference {
         for mut transform in transforms {
             match transform {
                 SqlTransform::From(mut expr) => {
-                    match expr {
-                        RelationExpr::Ref(ref tid, _) => {
+                    match expr.kind {
+                        RelationExprKind::Ref(ref tid) => {
                             // infer sorting from referenced pipeline
                             sorting = self.sortings.get(tid).cloned().unwrap_or_default();
                         }
-                        RelationExpr::SubQuery(rel, alias) => {
+                        RelationExprKind::SubQuery(rel) => {
                             let rel = self.fold_sql_relation(rel)?;
 
                             // infer sorting from sub-query
                             sorting = self.last_sorting.drain(..).collect();
 
-                            expr = RelationExpr::SubQuery(rel, alias);
+                            expr.kind = RelationExprKind::SubQuery(rel);
                         }
+                    }
+                    if let Some(riid) = &expr.riid {
+                        sorting = CidRedirector::redirect_sorts(sorting, riid, &mut self.ctx.anchor)
                     }
                     transform = SqlTransform::From(expr);
                 }

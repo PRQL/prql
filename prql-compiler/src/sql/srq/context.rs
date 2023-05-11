@@ -7,6 +7,7 @@ use std::iter::zip;
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use serde::Serialize;
 
 use crate::ast::rq::{
     fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
@@ -26,14 +27,14 @@ pub struct AnchorContext {
 
     pub table_decls: HashMap<TId, SqlTableDecl>,
 
-    pub table_instances: HashMap<TIId, TableRef>,
+    pub relation_instances: HashMap<RIId, RelationInstance>,
 
     pub col_name: NameGenerator,
     pub table_name: NameGenerator,
 
     pub cid: IdGenerator<CId>,
     pub tid: IdGenerator<TId>,
-    pub tiid: IdGenerator<TIId>,
+    pub riid: IdGenerator<RIId>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +57,17 @@ pub enum RelationStatus {
 
     /// Relation expression which is yet to be defined.
     NotYetDefined(RelationAdapter),
+}
+
+#[derive(Debug)]
+pub struct RelationInstance {
+    pub riid: RIId,
+
+    pub table_ref: TableRef,
+
+    /// When a pipeline is split, [CId]s from first pipeline are assigned a new
+    /// [CId] in the second pipeline.
+    pub cid_redirects: HashMap<CId, CId>,
 }
 
 impl RelationStatus {
@@ -86,19 +98,19 @@ impl From<Relation> for RelationAdapter {
 }
 
 /// Table instance id
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TIId(usize);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+pub struct RIId(usize);
 
-impl From<usize> for TIId {
+impl From<usize> for RIId {
     fn from(id: usize) -> Self {
-        TIId(id)
+        RIId(id)
     }
 }
 
 /// Column declaration.
 #[derive(Debug, PartialEq, Clone, strum::AsRefStr, EnumAsInner)]
 pub enum ColumnDecl {
-    RelationColumn(TIId, CId, RelationColumn),
+    RelationColumn(RIId, CId, RelationColumn),
     Compute(Box<Compute>),
 }
 
@@ -111,7 +123,7 @@ impl AnchorContext {
         let context = AnchorContext {
             cid,
             tid,
-            tiid: IdGenerator::new(),
+            riid: IdGenerator::new(),
             col_name: NameGenerator::new("_expr_"),
             table_name: NameGenerator::new("table_"),
             ..Default::default()
@@ -121,9 +133,9 @@ impl AnchorContext {
 
     /// Generates a new ID and name for a wildcard column and registers it in the
     /// AnchorContext's column_decls HashMap.
-    pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
+    pub fn register_wildcard(&mut self, riid: RIId) -> CId {
         let id = self.cid.gen();
-        let kind = ColumnDecl::RelationColumn(tiid, id, RelationColumn::Wildcard);
+        let kind = ColumnDecl::RelationColumn(riid, id, RelationColumn::Wildcard);
         self.column_decls.insert(id, kind);
         id
     }
@@ -137,11 +149,15 @@ impl AnchorContext {
     /// Creates a new table instance and registers it in the AnchorContext's
     /// table_instances HashMap. Also generates new IDs and names for columns
     /// as needed.
-    pub fn create_table_instance(&mut self, mut table_ref: TableRef) -> TableRef {
-        let tiid = self.tiid.gen();
+    pub fn create_relation_instance(
+        &mut self,
+        mut table_ref: TableRef,
+        cid_redirects: HashMap<CId, CId>,
+    ) -> TableRef {
+        let riid = self.riid.gen();
 
         for (col, cid) in &table_ref.columns {
-            let def = ColumnDecl::RelationColumn(tiid, *cid, col.clone());
+            let def = ColumnDecl::RelationColumn(riid, *cid, col.clone());
             self.column_decls.insert(*cid, def);
         }
 
@@ -149,8 +165,26 @@ impl AnchorContext {
             table_ref.name = Some(self.table_name.gen())
         }
 
-        self.table_instances.insert(tiid, table_ref.clone());
+        let relation_instance = RelationInstance {
+            riid,
+            table_ref: table_ref.clone(),
+            cid_redirects,
+        };
+
+        self.relation_instances.insert(riid, relation_instance);
         table_ref
+    }
+
+    // TODO: this should not return an Option
+    pub fn find_relation_instance<'a>(
+        &'a self,
+        table_ref: &TableRef,
+    ) -> Option<&'a RelationInstance> {
+        let (_, cid) = table_ref.columns.first()?;
+        let col_decl = self.column_decls.get(cid).unwrap();
+        let (riid, _, _) = col_decl.as_relation_column().unwrap();
+
+        Some(self.relation_instances.get(riid).unwrap())
     }
 
     /// Returns the name of a column if it has been given a name already, or generates
@@ -217,7 +251,7 @@ impl AnchorContext {
     pub(super) fn collect_pipeline_inputs(
         &self,
         pipeline: &[SqlTransform<TableRef>],
-    ) -> (Vec<TIId>, HashSet<CId>) {
+    ) -> (Vec<RIId>, HashSet<CId>) {
         let mut tables = Vec::new();
         let mut columns = HashSet::new();
         for t in pipeline {
@@ -304,19 +338,26 @@ impl RqFold for QueryLoader {
     }
 
     fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
-        let tiid = self.context.tiid.gen();
+        let riid = self.context.riid.gen();
 
         if table_ref.name.is_none() {
             table_ref.name = Some(self.context.table_name.gen());
         }
 
         // store
-        self.context.table_instances.insert(tiid, table_ref.clone());
+        self.context.relation_instances.insert(
+            riid,
+            RelationInstance {
+                riid,
+                table_ref: table_ref.clone(),
+                cid_redirects: HashMap::new(),
+            },
+        );
 
         for (col, cid) in &table_ref.columns {
             self.context
                 .column_decls
-                .insert(*cid, ColumnDecl::RelationColumn(tiid, *cid, col.clone()));
+                .insert(*cid, ColumnDecl::RelationColumn(riid, *cid, col.clone()));
         }
 
         Ok(table_ref)

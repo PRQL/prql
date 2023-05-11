@@ -15,7 +15,7 @@ use crate::utils::{BreakUp, Pluck};
 
 use super::gen_expr::*;
 use super::gen_projection::*;
-use super::srq::ast::{Cte, CteKind, RelationExpr, SqlRelation, SqlTransform};
+use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 
 use super::{Context, Dialect};
 
@@ -236,8 +236,8 @@ fn translate_set_ops_pipeline(
 }
 
 fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Result<TableFactor> {
-    Ok(match relation_expr {
-        RelationExpr::Ref(tid, alias) => {
+    Ok(match relation_expr.kind {
+        RelationExprKind::Ref(tid) => {
             let decl = ctx.anchor.table_decls.get_mut(&tid).unwrap();
 
             // prepare names
@@ -253,19 +253,19 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
 
             TableFactor::Table {
                 name,
-                alias: if Some(table_name) == alias {
+                alias: if Some(table_name) == relation_expr.alias {
                     None
                 } else {
-                    translate_table_alias(alias, ctx)
+                    translate_table_alias(relation_expr.alias, ctx)
                 },
                 args: None,
                 with_hints: vec![],
             }
         }
-        RelationExpr::SubQuery(query, alias) => {
+        RelationExprKind::SubQuery(query) => {
             let query = translate_relation(query, ctx)?;
 
-            let alias = translate_table_alias(alias, ctx);
+            let alias = translate_table_alias(relation_expr.alias, ctx);
 
             TableFactor::Derived {
                 lateral: false,

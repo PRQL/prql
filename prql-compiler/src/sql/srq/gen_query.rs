@@ -12,7 +12,8 @@ use crate::Target;
 
 use super::anchor::{self, anchor_split};
 use super::ast::{
-    fold_sql_transform, Cte, CteKind, RelationExpr, SqlQuery, SqlRelation, SqlTransform, SrqMapper,
+    fold_sql_transform, Cte, CteKind, RelationExpr, RelationExprKind, SqlQuery, SqlRelation,
+    SqlTransform, SrqMapper,
 };
 use super::context::{AnchorContext, RelationAdapter, RelationStatus};
 
@@ -50,7 +51,7 @@ pub(in super::super) fn compile_query(
         ctes,
     };
 
-    let query = postprocess::postprocess(query)?;
+    let query = postprocess::postprocess(query, &mut ctx)?;
 
     Ok((query, ctx))
 }
@@ -172,6 +173,10 @@ impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<
 }
 
 pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<RelationExpr> {
+    let relation_instance = ctx.anchor.find_relation_instance(&table_ref);
+    let riid = relation_instance.map(|r| r.riid);
+    let alias = table_ref.name;
+
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
 
     // ensure that the table is declared
@@ -183,7 +188,11 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
 
             // return a sub-query
             let relation = compile_relation(sql_relation, ctx)?;
-            return Ok(RelationExpr::SubQuery(relation, table_ref.name));
+            return Ok(RelationExpr {
+                kind: RelationExprKind::SubQuery(relation),
+                alias,
+                riid,
+            });
         }
 
         let relation = compile_relation(sql_relation, ctx)?;
@@ -193,7 +202,11 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
         });
     }
 
-    Ok(RelationExpr::Ref(table_ref.source, table_ref.name))
+    Ok(RelationExpr {
+        kind: RelationExprKind::Ref(table_ref.source),
+        alias,
+        riid,
+    })
 }
 
 fn compile_loop(
@@ -214,7 +227,7 @@ fn compile_loop(
     // (defining new columns, redirecting cids)
     let recursive_columns = SqlTransform::Super(Transform::Select(recursive_columns));
     initial.push(recursive_columns.clone());
-    let (step, _) = anchor_split(&mut ctx.anchor, initial, step);
+    let step = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
 
     let recursive_name = "_loop".to_string();
@@ -237,7 +250,7 @@ fn compile_loop(
     ctx.pop_query();
 
     // create a split between the loop SELECT statement and the following pipeline
-    let (mut following, _) = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
+    let mut following = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
 
     let from = following.first_mut().unwrap();
     let from = from.as_super().unwrap().as_from().unwrap();

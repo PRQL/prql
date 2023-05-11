@@ -15,5 +15,5 @@ FROM
   table_1 AS table_0
   JOIN locations ON table_0.employee_id = locations.employee_id
 ORDER BY
-  employees.tenure
+  table_0.tenure
 

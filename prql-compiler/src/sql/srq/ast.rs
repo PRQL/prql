@@ -9,7 +9,9 @@ use itertools::Itertools;
 use serde::Serialize;
 
 use crate::ast::pl::{ColumnSort, InterpolateItem, JoinSide, RelationLiteral};
-use crate::ast::rq::{self, fold_cids, fold_column_sorts, RqFold};
+use crate::ast::rq::{self, fold_column_sorts, RqFold};
+
+use super::context::RIId;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SqlQuery {
@@ -28,9 +30,19 @@ pub enum SqlRelation {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum RelationExpr {
-    Ref(rq::TId, Option<String>),
-    SubQuery(SqlRelation, Option<String>),
+pub struct RelationExpr {
+    pub kind: RelationExprKind,
+
+    pub alias: Option<String>,
+
+    // TODO: this should not be an Option
+    pub riid: Option<RIId>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub enum RelationExprKind {
+    Ref(rq::TId),
+    SubQuery(SqlRelation),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -173,15 +185,15 @@ pub fn fold_sql_transform<
             bottom: fold.fold_rel(bottom)?,
             distinct,
         },
-        SqlTransform::Select(v) => SqlTransform::Select(fold_cids(fold, v)?),
+        SqlTransform::Select(v) => SqlTransform::Select(fold.fold_cids(v)?),
         SqlTransform::Filter(v) => SqlTransform::Filter(fold.fold_expr(v)?),
         SqlTransform::Aggregate { partition, compute } => SqlTransform::Aggregate {
-            partition: fold_cids(fold, partition)?,
-            compute: fold_cids(fold, compute)?,
+            partition: fold.fold_cids(partition)?,
+            compute: fold.fold_cids(compute)?,
         },
         SqlTransform::Sort(v) => SqlTransform::Sort(fold_column_sorts(fold, v)?),
         SqlTransform::Take(take) => SqlTransform::Take(rq::Take {
-            partition: fold_cids(fold, take.partition)?,
+            partition: fold.fold_cids(take.partition)?,
             sort: fold_column_sorts(fold, take.sort)?,
             range: take.range,
         }),

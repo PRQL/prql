@@ -539,9 +539,10 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
                 - 0
                 - 1
               - From:
-                  Ref:
-                  - 0
-                  - employees
+                  kind:
+                    Ref: 0
+                  alias: employees
+                  riid: 0
               - Sort:
                 - direction: Asc
                   column: 0
@@ -560,9 +561,10 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         main_relation:
           AtomicPipeline:
           - From:
-              Ref:
-              - 1
-              - table_0
+              kind:
+                Ref: 1
+              alias: table_0
+              riid: 1
           - Select:
             - 2
             - 3
@@ -581,7 +583,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
               span: span-chars-47-57
           - Sort:
             - direction: Asc
-              column: 0
+              column: 2
         "###);
     }
 }
