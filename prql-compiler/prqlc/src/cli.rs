@@ -573,18 +573,12 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
                   args:
                   - kind:
                       ColumnRef: 2
-                    span:
-                      start: 47
-                      end: 53
+                    span: span-chars-47-53
                   - kind:
                       Literal:
                         Integer: 0
-                    span:
-                      start: 56
-                      end: 57
-              span:
-                start: 47
-                end: 57
+                    span: span-chars-56-57
+              span: span-chars-47-57
         "###);
     }
 }
