@@ -9,7 +9,7 @@ use itertools::Itertools;
 use serde::Serialize;
 
 use crate::ast::pl::{ColumnSort, InterpolateItem, JoinSide, RelationLiteral};
-use crate::ast::rq::{self, fold_cids, fold_column_sorts, Expr, RqFold, TId, Take};
+use crate::ast::rq::{self, fold_cids, fold_column_sorts, RqFold};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SqlQuery {
@@ -24,18 +24,18 @@ pub struct SqlQuery {
 pub enum SqlRelation {
     AtomicPipeline(Vec<SqlTransform<RelationExpr, ()>>),
     Literal(RelationLiteral),
-    SString(Vec<InterpolateItem<Expr>>),
+    SString(Vec<InterpolateItem<rq::Expr>>),
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub enum RelationExpr {
-    Ref(TId, Option<String>),
+    Ref(rq::TId, Option<String>),
     SubQuery(SqlRelation, Option<String>),
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Cte {
-    pub tid: TId,
+    pub tid: rq::TId,
     pub kind: CteKind,
 }
 
@@ -72,7 +72,7 @@ pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
 
     From(Rel),
     Select(Vec<rq::CId>),
-    Filter(Expr),
+    Filter(rq::Expr),
     Aggregate {
         partition: Vec<rq::CId>,
         compute: Vec<rq::CId>,
@@ -82,7 +82,7 @@ pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
     Join {
         side: JoinSide,
         with: Rel,
-        filter: Expr,
+        filter: rq::Expr,
     },
 
     Distinct,
@@ -117,7 +117,7 @@ impl<Rel> SqlTransform<Rel> {
     }
 }
 
-pub trait SrqFold<RelIn, RelOut, SuperIn, SuperOut>: RqFold {
+pub trait SrqMapper<RelIn, RelOut, SuperIn, SuperOut>: RqFold {
     fn fold_rel(&mut self, rel: RelIn) -> Result<RelOut>;
 
     fn fold_super(&mut self, sup: SuperIn) -> Result<SuperOut>;
@@ -145,7 +145,7 @@ pub fn fold_sql_transform<
     RelOut,
     SuperIn,
     SuperOut,
-    F: ?Sized + SrqFold<RelIn, RelOut, SuperIn, SuperOut>,
+    F: ?Sized + SrqMapper<RelIn, RelOut, SuperIn, SuperOut>,
 >(
     fold: &mut F,
     transform: SqlTransform<RelIn, SuperIn>,
@@ -180,10 +180,50 @@ pub fn fold_sql_transform<
             compute: fold_cids(fold, compute)?,
         },
         SqlTransform::Sort(v) => SqlTransform::Sort(fold_column_sorts(fold, v)?),
-        SqlTransform::Take(take) => SqlTransform::Take(Take {
+        SqlTransform::Take(take) => SqlTransform::Take(rq::Take {
             partition: fold_cids(fold, take.partition)?,
             sort: fold_column_sorts(fold, take.sort)?,
             range: take.range,
         }),
     })
+}
+
+pub trait SrqFold: SrqMapper<RelationExpr, RelationExpr, (), ()> {
+    fn fold_sql_query(&mut self, query: SqlQuery) -> Result<SqlQuery> {
+        Ok(SqlQuery {
+            ctes: query
+                .ctes
+                .into_iter()
+                .map(|c| self.fold_cte(c))
+                .try_collect()?,
+            main_relation: self.fold_sql_relation(query.main_relation)?,
+        })
+    }
+
+    fn fold_sql_relation(&mut self, relation: SqlRelation) -> Result<SqlRelation> {
+        Ok(match relation {
+            SqlRelation::AtomicPipeline(pipeline) => {
+                SqlRelation::AtomicPipeline(self.fold_sql_transforms(pipeline)?)
+            }
+            _ => relation,
+        })
+    }
+
+    fn fold_cte(&mut self, cte: Cte) -> Result<Cte> {
+        Ok(Cte {
+            tid: cte.tid,
+            kind: match cte.kind {
+                CteKind::Normal(rel) => CteKind::Normal(self.fold_sql_relation(rel)?),
+                CteKind::Loop {
+                    initial,
+                    step,
+                    recursive_name,
+                } => CteKind::Loop {
+                    initial: self.fold_sql_relation(initial)?,
+                    step: self.fold_sql_relation(step)?,
+                    recursive_name,
+                },
+            },
+        })
+    }
 }

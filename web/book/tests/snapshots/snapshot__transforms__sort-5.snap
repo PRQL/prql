@@ -7,8 +7,6 @@ WITH table_1 AS (
     *
   FROM
     employees
-  ORDER BY
-    tenure
 )
 SELECT
   table_0.*,
@@ -16,4 +14,6 @@ SELECT
 FROM
   table_1 AS table_0
   JOIN locations ON table_0.employee_id = locations.employee_id
+ORDER BY
+  employees.tenure
 

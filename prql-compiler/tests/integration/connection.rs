@@ -360,14 +360,12 @@ impl MssqlConnection {
 
 fn get_path_for_table(csv_name: &str) -> PathBuf {
     let mut path = current_dir().unwrap();
-    for p in [
+    path.extend([
         "tests",
         "integration",
         "data",
         "chinook",
         format!("{csv_name}.csv").as_str(),
-    ] {
-        path.push(p);
-    }
+    ]);
     path
 }

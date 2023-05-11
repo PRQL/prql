@@ -27,4 +27,6 @@ SELECT
 FROM
   newest_employees
   JOIN average_salaries ON newest_employees.country = average_salaries.country
+ORDER BY
+  employees.tenure
 

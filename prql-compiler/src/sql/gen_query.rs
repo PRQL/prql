@@ -104,7 +104,7 @@ fn translate_select_pipeline(
     let projection = translate_wildcards(&ctx.anchor, projection);
     let projection = translate_select_items(projection.0, projection.1, ctx)?;
 
-    let sorts = pipeline.pluck(|t| t.into_sort());
+    let order_by = pipeline.pluck(|t| t.into_sort());
     let takes = pipeline.pluck(|t| t.into_take());
     let distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
 
@@ -142,7 +142,7 @@ fn translate_select_pipeline(
     };
 
     // Use sorting from the frame
-    let order_by = sorts
+    let order_by = order_by
         .last()
         .map(|sorts| {
             sorts
@@ -193,6 +193,7 @@ fn translate_set_ops_pipeline(
             Union { .. } => sql_ast::SetOperator::Union,
             Except { .. } => sql_ast::SetOperator::Except,
             Intersect { .. } => sql_ast::SetOperator::Intersect,
+            Sort(_) => continue,
             _ => unreachable!(),
         };
 

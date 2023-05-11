@@ -12,6 +12,7 @@ mod anchor;
 pub mod ast;
 pub mod context;
 mod gen_query;
+mod postprocess;
 pub mod preprocess;
 
 pub(super) use gen_query::compile_query;

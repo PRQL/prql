@@ -7,7 +7,7 @@ use crate::ast::rq::{
 };
 use crate::sql::srq::context::RelationAdapter;
 
-use super::ast::{SqlTransform, SrqFold};
+use super::ast::{SqlTransform, SrqMapper};
 use super::context::{AnchorContext, ColumnDecl, RelationStatus, SqlTableDecl};
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
@@ -590,7 +590,7 @@ impl<'a> RqFold for CidRedirector<'a> {
     }
 }
 
-impl<'a> SrqFold<TableRef, TableRef, Transform, Transform> for CidRedirector<'a> {
+impl<'a> SrqMapper<TableRef, TableRef, Transform, Transform> for CidRedirector<'a> {
     fn fold_rel(&mut self, rel: TableRef) -> Result<TableRef> {
         self.fold_table_ref(rel)
     }

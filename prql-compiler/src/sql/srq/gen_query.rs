@@ -12,12 +12,12 @@ use crate::Target;
 
 use super::anchor::{self, anchor_split};
 use super::ast::{
-    fold_sql_transform, Cte, CteKind, RelationExpr, SqlQuery, SqlRelation, SqlTransform, SrqFold,
+    fold_sql_transform, Cte, CteKind, RelationExpr, SqlQuery, SqlRelation, SqlTransform, SrqMapper,
 };
 use super::context::{AnchorContext, RelationAdapter, RelationStatus};
 
 use super::super::{Context, Dialect};
-use super::preprocess;
+use super::{postprocess, preprocess};
 
 pub(in super::super) fn compile_query(
     query: Query,
@@ -49,6 +49,9 @@ pub(in super::super) fn compile_query(
         main_relation,
         ctes,
     };
+
+    let query = postprocess::postprocess(query)?;
+
     Ok((query, ctx))
 }
 
@@ -122,7 +125,7 @@ struct TransformCompiler<'a> {
 
 impl<'a> RqFold for TransformCompiler<'a> {}
 
-impl<'a> SrqFold<TableRef, RelationExpr, Transform, ()> for TransformCompiler<'a> {
+impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<'a> {
     fn fold_rel(&mut self, rel: TableRef) -> Result<RelationExpr> {
         compile_table_ref(rel, self.ctx)
     }
@@ -155,7 +158,8 @@ impl<'a> SrqFold<TableRef, RelationExpr, Transform, ()> for TransformCompiler<'a
                             filter,
                         },
                         Transform::Compute(_) | Transform::Append(_) | Transform::Loop(_) => {
-                            return Ok(None)
+                            // these are not used from here on
+                            return Ok(None);
                         }
                     }
                 } else {
