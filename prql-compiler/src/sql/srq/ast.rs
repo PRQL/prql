@@ -60,7 +60,9 @@ pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
     ///
     /// For example, initial an RQ Append transform is wrapped as such:
     ///
-    ///     rq::Transform::Append(x) -> srq::SqlTransform::Super(rq::Transform::Append(x))
+    /// ```ignore
+    /// rq::Transform::Append(x) -> srq::SqlTransform::Super(rq::Transform::Append(x))
+    /// ```
     ///
     /// During preprocessing, `Super(Append)` is converted into `srq::SqlTransform::Union { .. }`.
     ///
