@@ -40,25 +40,10 @@ from employees
 sort [s"substr({first_name}, 2, 5)"]
 ```
 
-## Notes
+## Ordering guarantees
 
-### Ordering guarantees
-
-Most DBs will persist ordering through most transforms; for example, you can
-expect this result to be ordered by `tenure`.
-
-```prql
-from employees
-sort tenure
-derive name = f"{first_name} {last_name}"
-```
-
-But:
-
-- This is an implementation detail of the DB. If there are instances where this
-  doesn't hold, please open an issue, and we'll consider how to manage it.
-- Some transforms which change the existence of rows, such as `join` or `group`,
-  won't persist ordering; for example:
+PRQL will persist orderings through transforms where possible. Most DBs don't
+natively do this for operations such as `JOIN`. For example in:
 
 ```prql
 from employees
@@ -66,4 +51,4 @@ sort tenure
 join locations [==employee_id]
 ```
 
-See [Issue #1363](https://github.com/PRQL/prql/issues/1363) for more details.
+...PRQL compiles the `ORDER BY` to the _end_ of the query.
