@@ -428,14 +428,14 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
                     expr
                 }
             }
-            ColumnDecl::RelationColumn(tiid, _, col) => {
+            ColumnDecl::RelationColumn(riid, _, col) => {
                 let column = match col.clone() {
                     RelationColumn::Wildcard => translate_star(ctx, None)?,
                     RelationColumn::Single(name) => name.unwrap(),
                 };
-                let t = &ctx.anchor.table_instances[tiid];
+                let t = &ctx.anchor.relation_instances[riid];
 
-                let ident = translate_ident(t.name.clone(), Some(column), ctx);
+                let ident = translate_ident(t.table_ref.name.clone(), Some(column), ctx);
                 sql_ast::Expr::CompoundIdentifier(ident)
             }
         })
@@ -443,9 +443,9 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
         // translate into ident
         let column_decl = &&ctx.anchor.column_decls[&cid];
 
-        let table_name = if let ColumnDecl::RelationColumn(tiid, _, _) = column_decl {
-            let t = &ctx.anchor.table_instances[tiid];
-            Some(t.name.clone().unwrap())
+        let table_name = if let ColumnDecl::RelationColumn(riid, _, _) = column_decl {
+            let t = &ctx.anchor.relation_instances[riid];
+            Some(t.table_ref.name.clone().unwrap())
         } else {
             None
         };

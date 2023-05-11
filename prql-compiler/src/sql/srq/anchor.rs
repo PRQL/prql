@@ -2,13 +2,15 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
+use crate::ast::pl::ColumnSort;
 use crate::ast::rq::{
-    self, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef, Transform,
+    self, fold_column_sorts, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef,
+    Transform,
 };
 use crate::sql::srq::context::RelationAdapter;
 
-use super::ast::{SqlTransform, SrqFold};
-use super::context::{AnchorContext, ColumnDecl, RelationStatus, SqlTableDecl};
+use super::ast::{SqlTransform, SrqMapper};
+use super::context::{AnchorContext, ColumnDecl, RIId, RelationStatus, SqlTableDecl};
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
 /// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
@@ -20,22 +22,19 @@ pub(super) fn extract_atomic(
 
     let (preceding, atomic) = split_off_back(pipeline, output.clone(), ctx);
 
-    let (atomic, cid_redirects) = if let Some(preceding) = preceding {
+    let atomic = if let Some(preceding) = preceding {
         log::debug!(
             "pipeline split after {}",
             preceding.last().unwrap().as_str()
         );
         anchor_split(ctx, preceding, atomic)
     } else {
-        (atomic, HashMap::new())
+        atomic
     };
 
     // sometimes, additional columns will be added into select, because they are needed for
     // other clauses. To filter them out, we use an additional limiting SELECT.
-    let output: Vec<_> = output
-        .into_iter()
-        .map(|c| cid_redirects.get(&c).cloned().unwrap_or(c))
-        .collect();
+    let output: Vec<_> = CidRedirector::redirect_cids(output, &atomic, ctx);
     let select_cols = atomic
         .iter()
         .find_map(|x| x.as_super().and_then(|y| y.as_select()))
@@ -53,8 +52,7 @@ pub(super) fn extract_atomic(
         // construct the new SELECT
         let limited_view = vec![SqlTransform::Super(Transform::Select(output))];
 
-        let (limited_view, _) = anchor_split(ctx, atomic, limited_view);
-        return limited_view;
+        return anchor_split(ctx, atomic, limited_view);
     }
 
     atomic
@@ -175,7 +173,7 @@ pub(super) fn split_off_back(
 
             input_tables
                 .iter()
-                .map(|tiid| ctx.register_wildcard(*tiid))
+                .map(|riid| ctx.register_wildcard(*riid))
                 .collect()
         } else {
             output
@@ -226,7 +224,7 @@ pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
     preceding: Vec<SqlTransform<TableRef>>,
     atomic: Vec<SqlTransform<TableRef>>,
-) -> (Vec<SqlTransform<TableRef>>, HashMap<CId, CId>) {
+) -> Vec<SqlTransform<TableRef>> {
     let new_tid = ctx.tid.gen();
 
     let preceding_select = &preceding.last().unwrap().as_super().unwrap();
@@ -273,19 +271,20 @@ pub(super) fn anchor_split(
     );
 
     // define instance of that table
-    let table_ref = ctx.create_table_instance(TableRef {
-        source: new_tid,
-        name: None,
-        columns: new_columns,
-    });
+    let table_ref = ctx.create_relation_instance(
+        TableRef {
+            source: new_tid,
+            name: None,
+            columns: new_columns,
+        },
+        cid_redirects,
+    );
 
     // adjust second part: prepend from and rewrite expressions to use new columns
     let mut second = atomic;
     second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
-    let second = CidRedirector::redirect(second, &cid_redirects, ctx);
-
-    (second, cid_redirects)
+    CidRedirector::redirect_pipeline(second, ctx)
 }
 
 /// Determines whether a pipeline must be split at a transform to
@@ -558,18 +557,55 @@ impl RqFold for CidCollector {
 }
 
 pub(super) struct CidRedirector<'a> {
-    pub ctx: &'a mut AnchorContext,
-    pub cid_redirects: &'a HashMap<CId, CId>,
+    ctx: &'a mut AnchorContext,
+    cid_redirects: HashMap<CId, CId>,
 }
 
 impl<'a> CidRedirector<'a> {
-    pub fn redirect(
+    pub fn of_first_from(
+        pipeline: &[SqlTransform<TableRef>],
+        ctx: &'a mut AnchorContext,
+    ) -> Option<Self> {
+        let from = pipeline.first()?.as_super()?.as_from()?;
+        let relation_instance = ctx.find_relation_instance(from)?;
+        let cid_redirects = relation_instance.cid_redirects.clone();
+        Some(CidRedirector { ctx, cid_redirects })
+    }
+
+    pub fn redirect_pipeline(
         pipeline: Vec<SqlTransform<TableRef>>,
-        cid_redirects: &'a HashMap<CId, CId>,
-        ctx: &mut AnchorContext,
+        ctx: &'a mut AnchorContext,
     ) -> Vec<SqlTransform<TableRef>> {
-        let mut redirector = CidRedirector { ctx, cid_redirects };
+        let Some(mut redirector) = Self::of_first_from(&pipeline, ctx) else {
+            return pipeline;
+        };
+
         redirector.fold_sql_transforms(pipeline).unwrap()
+    }
+
+    /// Redirects cids within a context of a pipeline.
+    /// This will find cid_redirects of the first From in the pipeline.
+    pub fn redirect_cids(
+        cids: Vec<CId>,
+        pipeline: &[SqlTransform<TableRef>],
+        ctx: &'a mut AnchorContext,
+    ) -> Vec<CId> {
+        // find cid_redirects
+        let Some(mut redirector) = Self::of_first_from(pipeline, ctx) else {
+            return cids;
+        };
+        redirector.fold_cids(cids).unwrap()
+    }
+
+    pub fn redirect_sorts(
+        sorts: Vec<ColumnSort<CId>>,
+        riid: &RIId,
+        ctx: &'a mut AnchorContext,
+    ) -> Vec<ColumnSort<CId>> {
+        let cid_redirects = ctx.relation_instances[riid].cid_redirects.clone();
+        let mut redirector = CidRedirector { ctx, cid_redirects };
+
+        fold_column_sorts(&mut redirector, sorts).unwrap()
     }
 }
 
@@ -590,7 +626,7 @@ impl<'a> RqFold for CidRedirector<'a> {
     }
 }
 
-impl<'a> SrqFold<TableRef, TableRef, Transform, Transform> for CidRedirector<'a> {
+impl<'a> SrqMapper<TableRef, TableRef, Transform, Transform> for CidRedirector<'a> {
     fn fold_rel(&mut self, rel: TableRef) -> Result<TableRef> {
         self.fold_table_ref(rel)
     }

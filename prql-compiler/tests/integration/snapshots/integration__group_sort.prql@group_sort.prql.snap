@@ -29,4 +29,6 @@ SELECT
   n1
 FROM
   table_2 AS table_1
+ORDER BY
+  _expr_0
 

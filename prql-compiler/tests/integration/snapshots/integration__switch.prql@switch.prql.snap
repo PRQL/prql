@@ -22,4 +22,6 @@ SELECT
   display
 FROM
   table_1 AS table_0
+ORDER BY
+  milliseconds
 

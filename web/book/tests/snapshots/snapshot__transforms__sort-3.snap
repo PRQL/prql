@@ -8,11 +8,11 @@ WITH table_1 AS (
     substr(first_name, 2, 5) AS _expr_0
   FROM
     employees
-  ORDER BY
-    _expr_0
 )
 SELECT
   *
 FROM
   table_1 AS table_0
+ORDER BY
+  _expr_0
 

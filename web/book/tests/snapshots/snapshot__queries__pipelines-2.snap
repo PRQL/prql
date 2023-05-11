@@ -21,4 +21,6 @@ SELECT
 FROM
   table_1 AS table_0
   JOIN department AS d ON table_0.dept_no = d.dept_no
+ORDER BY
+  table_0.gross_salary
 

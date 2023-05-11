@@ -689,13 +689,13 @@ fn test_sorts() {
         'something' AS _expr_0
       FROM
         x
-      ORDER BY
-        _expr_0
     )
     SELECT
       renamed
     FROM
       table_1 AS table_0
+    ORDER BY
+      _expr_0
     "###);
 }
 
@@ -1952,6 +1952,8 @@ fn test_prql_to_sql_table() {
     FROM
       newest_employees
       JOIN average_salaries ON newest_employees.country = average_salaries.country
+    ORDER BY
+      employees.tenure
     "###
     );
 }
@@ -3536,13 +3538,13 @@ fn test_excess_columns() {
         track_id AS _expr_0
       FROM
         tracks
-      ORDER BY
-        _expr_0
     )
     SELECT
       title
     FROM
       table_1 AS table_0
+    ORDER BY
+      _expr_0
     "###
     );
 }

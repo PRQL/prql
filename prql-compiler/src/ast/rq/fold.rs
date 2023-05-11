@@ -55,6 +55,9 @@ pub trait RqFold {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(cid)
     }
+    fn fold_cids(&mut self, cids: Vec<CId>) -> Result<Vec<CId>> {
+        cids.into_iter().map(|i| self.fold_cid(i)).try_collect()
+    }
     fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
         fold_compute(self, compute)
     }
@@ -81,7 +84,7 @@ fn fold_window<F: ?Sized + RqFold>(fold: &mut F, w: Window) -> Result<Window> {
                 end: w.frame.range.end.map(|x| fold.fold_expr(x)).transpose()?,
             },
         },
-        partition: fold_cids(fold, w.partition)?,
+        partition: fold.fold_cids(w.partition)?,
         sort: fold_column_sorts(fold, w.sort)?,
     })
 }
@@ -144,10 +147,6 @@ pub fn fold_query<F: ?Sized + RqFold>(fold: &mut F, query: Query) -> Result<Quer
     })
 }
 
-pub fn fold_cids<F: ?Sized + RqFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
-    cids.into_iter().map(|i| fold.fold_cid(i)).try_collect()
-}
-
 pub fn fold_transforms<F: ?Sized + RqFold>(
     fold: &mut F,
     transforms: Vec<Transform>,
@@ -169,15 +168,15 @@ pub fn fold_transform<T: ?Sized + RqFold>(
 
         Compute(compute) => Compute(fold.fold_compute(compute)?),
         Aggregate { partition, compute } => Aggregate {
-            partition: fold_cids(fold, partition)?,
-            compute: fold_cids(fold, compute)?,
+            partition: fold.fold_cids(partition)?,
+            compute: fold.fold_cids(compute)?,
         },
 
-        Select(ids) => Select(fold_cids(fold, ids)?),
+        Select(ids) => Select(fold.fold_cids(ids)?),
         Filter(i) => Filter(fold.fold_expr(i)?),
         Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),
         Take(take) => Take(super::Take {
-            partition: fold_cids(fold, take.partition)?,
+            partition: fold.fold_cids(take.partition)?,
             sort: fold_column_sorts(fold, take.sort)?,
             range: take.range,
         }),

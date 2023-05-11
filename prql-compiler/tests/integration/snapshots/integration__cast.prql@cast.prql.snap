@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "from tracks\nsort [-bytes]\nselect [\n    name,\n    bin = ((album_id | as REAL) * 99)\n]\ntake 20"
+expression: "from tracks\nsort [-bytes]\nselect [\n    name,\n    bin = ((album_id | as REAL) * 99)\n]\ntake 20\n"
 input_file: prql-compiler/tests/integration/queries/cast.prql
 ---
 WITH table_1 AS (
@@ -20,4 +20,6 @@ SELECT
   bin
 FROM
   table_1 AS table_0
+ORDER BY
+  bytes DESC
 
