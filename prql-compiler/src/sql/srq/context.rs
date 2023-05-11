@@ -9,6 +9,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::Serialize;
 
+use crate::ast::pl::Ident;
 use crate::ast::rq::{
     fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
     TableDecl, TableRef, Transform,
@@ -42,7 +43,7 @@ pub struct SqlTableDecl {
     #[allow(dead_code)]
     pub id: TId,
 
-    pub name: Option<String>,
+    pub name: Option<Ident>,
 
     /// Relation that still needs to be defined (usually as CTE) so it can be referenced by name.
     /// None means that it has already been defined, or was not needed to be defined in the
@@ -302,20 +303,22 @@ impl QueryLoader {
 
     fn load_table(&mut self, table: TableDecl) -> Result<()> {
         let mut decl = fold_table(self, table)?;
+        let mut table_name = decl.name.clone().map(Ident::from_name);
 
         // assume name of the LocalTable that the relation is referencing
         if let RelationKind::ExternRef(table) = &decl.relation.kind {
-            decl.name = Some(table.clone());
+            decl.name = Some(table.name.clone());
+            table_name = Some(table.clone());
         }
 
         // generate name (if not present)
-        if decl.name.is_none() && decl.relation.kind.as_extern_ref().is_none() {
+        if decl.name.is_none() {
             decl.name = Some(self.context.table_name.gen());
         }
 
         let sql_decl = SqlTableDecl {
             id: decl.id,
-            name: decl.name,
+            name: table_name,
             relation: if matches!(decl.relation.kind, RelationKind::ExternRef(_)) {
                 // this relation can be materialized by just using table name as a reference
                 // ... i.e. it's already defined.

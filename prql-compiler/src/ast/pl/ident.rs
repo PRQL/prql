@@ -66,6 +66,12 @@ impl Ident {
             .zip(self.iter())
             .all(|(prefix_component, self_component)| prefix_component == self_component)
     }
+
+    pub fn starts_with_part(&self, prefix: &str) -> bool {
+        std::iter::once(prefix)
+            .zip(self.iter())
+            .all(|(prefix_component, self_component)| prefix_component == self_component)
+    }
 }
 
 impl std::fmt::Display for Ident {

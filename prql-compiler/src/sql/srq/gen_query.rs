@@ -6,6 +6,7 @@ use std::str::FromStr;
 use anyhow::Result;
 use itertools::Itertools;
 
+use crate::ast::pl::Ident;
 use crate::ast::rq::{Query, RelationKind, RqFold, TableRef, Transform};
 use crate::utils::BreakUp;
 use crate::Target;
@@ -232,7 +233,7 @@ fn compile_loop(
 
     let recursive_name = "_loop".to_string();
     let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
-    initial.name = Some(recursive_name.clone());
+    initial.name = Some(Ident::from_name(recursive_name.clone()));
 
     // compile initial
     let initial = if let RelationStatus::NotYetDefined(rel) = initial.relation.take_to_define() {
@@ -259,7 +260,7 @@ fn compile_loop(
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
 
     let loop_name = ctx.anchor.table_name.gen();
-    loop_decl.name = Some(loop_name);
+    loop_decl.name = Some(Ident::from_name(loop_name));
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query

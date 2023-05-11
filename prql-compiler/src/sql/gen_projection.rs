@@ -7,6 +7,7 @@ use sqlparser::ast::{
     WildcardAdditionalOptions,
 };
 
+use crate::ast::pl::Ident;
 use crate::ast::rq::{CId, RelationColumn};
 use crate::error::{Error, Span, WithErrorInfo};
 
@@ -34,7 +35,7 @@ pub(super) fn try_into_exprs(
 
         // star
         let t = &ctx.anchor.relation_instances[riid];
-        let table_name = t.table_ref.name.clone();
+        let table_name = t.table_ref.name.clone().map(Ident::from_name);
 
         let ident = translate_star(ctx, span)?;
         if let Some(excluded) = excluded.get(&cid) {
@@ -134,7 +135,7 @@ pub(super) fn translate_select_items(
 
             // wildcard case
             let t = &ctx.anchor.relation_instances[riid];
-            let table_name = t.table_ref.name.clone();
+            let table_name = t.table_ref.name.clone().map(Ident::from_name);
 
             let ident = translate_ident(table_name, Some("*".to_string()), ctx);
 
