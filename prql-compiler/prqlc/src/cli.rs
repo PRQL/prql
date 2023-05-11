@@ -495,7 +495,8 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         - id: 0
           name: null
           relation:
-            kind: !ExternRef x
+            kind: !ExternRef
+            - x
             columns:
             - !Single y
             - Wildcard

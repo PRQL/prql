@@ -2,13 +2,13 @@
 source: web/book/tests/snapshot.rs
 expression: "from (read_parquet 'artists.parquet')\njoin (read_csv 'albums.csv') [==track_id]\n"
 ---
-WITH table_0 AS (
+WITH table_4 AS (
   SELECT
     *
   FROM
     read_parquet('artists.parquet')
 ),
-table_1 AS (
+table_5 AS (
   SELECT
     *
   FROM
@@ -18,6 +18,6 @@ SELECT
   table_2.*,
   table_3.*
 FROM
-  table_0 AS table_2
-  JOIN table_1 AS table_3 ON table_2.track_id = table_3.track_id
+  table_4 AS table_2
+  JOIN table_5 AS table_3 ON table_2.track_id = table_3.track_id
 
