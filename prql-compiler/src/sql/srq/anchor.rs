@@ -62,6 +62,8 @@ pub(super) fn extract_atomic(
 
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
+///
+/// Returns optional remaining preceding pipeline and the atomic pipeline.
 pub(super) fn split_off_back(
     mut pipeline: Vec<SqlTransform<TableRef>>,
     output: Vec<CId>,

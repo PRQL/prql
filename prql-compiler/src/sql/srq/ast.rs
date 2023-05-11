@@ -1,4 +1,7 @@
 //! Sql Relational Query AST
+//!
+//! This IR dictates the structure of the resulting SQL query. This includes number of CTEs,
+//! position of sub-queries and set operations.
 
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
@@ -6,9 +9,9 @@ use itertools::Itertools;
 use serde::Serialize;
 
 use crate::ast::pl::{ColumnSort, InterpolateItem, JoinSide, RelationLiteral};
-use crate::ast::rq::{self, Expr, RqFold, TId};
+use crate::ast::rq::{self, fold_cids, fold_column_sorts, Expr, RqFold, TId, Take};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SqlQuery {
     /// Common Table Expression (WITH clause)
     pub ctes: Vec<Cte>,
@@ -30,13 +33,13 @@ pub enum RelationExpr {
     SubQuery(SqlRelation, Option<String>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Cte {
     pub tid: TId,
     pub kind: CteKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum CteKind {
     Normal(SqlRelation),
     Loop {
@@ -46,14 +49,23 @@ pub enum CteKind {
     },
 }
 
-/// Similar to [rq::Transform], but more similar to SQL clauses.
+/// Similar to [rq::Transform], but closer to a SQL clause.
 ///
-/// Uses a two generic args that allows compiler to do work in multiple stages.
+/// Uses two generic args that allows the compiler to work in multiple stages.
 /// First convert RQ to [SqlTransform<TableRef, rq::Transform>] and at the end
 /// compile that to [SqlTransform<RelationExpr, ()>].
 #[derive(Debug, Clone, EnumAsInner, strum::AsRefStr, Serialize)]
 pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
-    // Contains [rq::Transform] during compilation. After finishing, this is emptied.
+    /// Contains [rq::Transform] during compilation. After finishing, this is emptied.
+    ///
+    /// For example, initial an RQ Append transform is wrapped as such:
+    ///
+    ///     rq::Transform::Append(x) -> srq::SqlTransform::Super(rq::Transform::Append(x))
+    ///
+    /// During preprocessing, `Super(Append)` is converted into `srq::SqlTransform::Union { .. }`.
+    ///
+    /// At the end of SRQ compilation, all `Super()` are either discarded or converted to their
+    /// SRQ equivalents.
     Super(Super),
 
     From(Rel),
@@ -159,12 +171,17 @@ pub fn fold_sql_transform<
             bottom: fold.fold_rel(bottom)?,
             distinct,
         },
-        SqlTransform::Select(v) => SqlTransform::Select(v),
-        SqlTransform::Filter(v) => SqlTransform::Filter(v),
-        SqlTransform::Aggregate { partition, compute } => {
-            SqlTransform::Aggregate { partition, compute }
-        }
-        SqlTransform::Sort(v) => SqlTransform::Sort(v),
-        SqlTransform::Take(v) => SqlTransform::Take(v),
+        SqlTransform::Select(v) => SqlTransform::Select(fold_cids(fold, v)?),
+        SqlTransform::Filter(v) => SqlTransform::Filter(fold.fold_expr(v)?),
+        SqlTransform::Aggregate { partition, compute } => SqlTransform::Aggregate {
+            partition: fold_cids(fold, partition)?,
+            compute: fold_cids(fold, compute)?,
+        },
+        SqlTransform::Sort(v) => SqlTransform::Sort(fold_column_sorts(fold, v)?),
+        SqlTransform::Take(take) => SqlTransform::Take(Take {
+            partition: fold_cids(fold, take.partition)?,
+            sort: fold_column_sorts(fold, take.sort)?,
+            range: take.range,
+        }),
     })
 }

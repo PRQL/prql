@@ -144,7 +144,7 @@ pub fn fold_query<F: ?Sized + RqFold>(fold: &mut F, query: Query) -> Result<Quer
     })
 }
 
-fn fold_cids<F: ?Sized + RqFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
+pub fn fold_cids<F: ?Sized + RqFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
     cids.into_iter().map(|i| fold.fold_cid(i)).try_collect()
 }
 
@@ -192,7 +192,7 @@ pub fn fold_transform<T: ?Sized + RqFold>(
     Ok(transform)
 }
 
-fn fold_column_sorts<T: ?Sized + RqFold>(
+pub fn fold_column_sorts<T: ?Sized + RqFold>(
     fold: &mut T,
     sorts: Vec<ColumnSort<CId>>,
 ) -> Result<Vec<ColumnSort<CId>>> {

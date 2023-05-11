@@ -1,7 +1,5 @@
-//! This module is responsible for translating PRQL AST to sqlparser AST, and
-//! then to a String. We use sqlparser because it's trivial to create the string
-//! once it's in their AST (it's just `.to_string()`). It also lets us support a
-//! few dialects of SQL immediately.
+//! This module is responsible for translating RQ to SRQ.
+
 use std::collections::HashSet;
 use std::str::FromStr;
 

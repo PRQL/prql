@@ -6,7 +6,7 @@
 //! `partition`. In [super::preprocess] module, [crate::ast::rq::Transform] take is wrapped into
 //! [SqlTransform], which does have [SqlTransform::Distinct].
 //!
-//! This module also contains compiler from RQ to SRQ.
+//! This module also contains the compiler from RQ to SRQ.
 
 mod anchor;
 pub mod ast;
@@ -32,10 +32,10 @@ mod test {
         compile_query(query, Some(Dialect::Generic))
     }
 
-    fn count_atomics(prql: &str) -> usize {
-        let (query, _ctx) = parse_and_resolve(prql).unwrap();
+    fn count_atomics(prql: &str) -> Result<usize> {
+        let (query, _ctx) = parse_and_resolve(prql)?;
 
-        query.ctes.len() + 1
+        Ok(query.ctes.len() + 1)
     }
 
     #[test]
@@ -49,7 +49,7 @@ mod test {
         take 20
         "###;
 
-        assert_eq!(count_atomics(prql), 1);
+        assert!(count_atomics(prql).unwrap() == 1);
 
         // One aggregate, but take at the top
         let prql: &str = r###"
@@ -60,7 +60,7 @@ mod test {
         sort sal
         "###;
 
-        assert_eq!(count_atomics(prql), 2);
+        assert!(count_atomics(prql).unwrap() == 2);
 
         // A take, then two aggregates
         let prql: &str = r###"
@@ -72,7 +72,7 @@ mod test {
         sort sal2
         "###;
 
-        assert_eq!(count_atomics(prql), 3);
+        assert!(count_atomics(prql).unwrap() == 3);
 
         // A take, then a select
         let prql: &str = r###"
@@ -81,6 +81,6 @@ mod test {
         select first_name
         "###;
 
-        assert_eq!(count_atomics(prql), 1);
+        assert!(count_atomics(prql).unwrap() == 1);
     }
 }

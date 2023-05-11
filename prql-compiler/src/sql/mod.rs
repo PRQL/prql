@@ -89,7 +89,7 @@ pub mod internal {
 }
 
 #[derive(Debug)]
-pub(self) struct Context {
+struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
 
