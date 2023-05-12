@@ -131,10 +131,10 @@ impl<'a> AstFold for Labeler<'a> {
     }
 }
 
-pub fn collect_frames(stmts: Vec<Stmt>) -> Vec<(Span, Frame)> {
+pub fn collect_frames(expr: Expr) -> Vec<(Span, Frame)> {
     let mut collector = FrameCollector { frames: vec![] };
 
-    collector.fold_stmts(stmts).unwrap();
+    collector.fold_expr(expr).unwrap();
 
     collector.frames.reverse();
     collector.frames

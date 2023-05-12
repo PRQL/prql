@@ -20,7 +20,7 @@ x AS (
     b,
     c
   FROM
-    table_4 AS table_1
+    table_4 AS table_3
 ),
 table_5 AS (
   SELECT
@@ -37,7 +37,7 @@ y AS (
     a,
     m
   FROM
-    table_5 AS table_3
+    table_5 AS table_1
 )
 SELECT
   x.a,
