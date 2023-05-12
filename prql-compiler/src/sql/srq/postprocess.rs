@@ -1,3 +1,7 @@
+//! An AST pass after compilation to SRQ.
+//!
+//! Currently only moves [SqlTransform::Sort]s.
+
 use std::collections::HashMap;
 
 use anyhow::Result;
