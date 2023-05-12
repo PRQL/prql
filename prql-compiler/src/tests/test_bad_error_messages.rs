@@ -25,11 +25,13 @@ fn test_bad_error_messages() {
     group
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:?:?]
+       ╭─[:3:5]
        │
+     3 │     group
+       │     ──┬──
+       │       ╰──── main relation expected type `table<[]>`, but found type `func infer table<[]> -> table<[]>`
        │
-       │
-       │ Help: are you missing `from` statement?
+       │ Help: Have you forgotten an argument to function std.group?
     ───╯
     "###);
 

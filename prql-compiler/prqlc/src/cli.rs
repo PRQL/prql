@@ -205,9 +205,13 @@ impl Command {
                 let stmts = prql_to_pl(source)?;
 
                 // resolve
-                let (stmts, _) = semantic::resolve_only(stmts, None)?;
+                let (_, ctx) = semantic::resolve_only(stmts, None)?;
 
-                let frames = collect_frames(stmts);
+                let frames = if let Some(main) = ctx.find_main() {
+                    collect_frames(main.clone())
+                } else {
+                    vec![]
+                };
 
                 // combine with source
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()

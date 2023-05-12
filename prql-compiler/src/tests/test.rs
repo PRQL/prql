@@ -229,7 +229,7 @@ fn test_append() {
     SELECT
       *
     FROM
-      bottom
+      managers
     "###);
 
     assert_display_snapshot!(compile(r###"
@@ -255,7 +255,7 @@ fn test_append() {
     SELECT
       *
     FROM
-      bottom
+      all_employees_of_some_other_company
     "###);
 }
 
@@ -353,21 +353,23 @@ fn test_remove() {
     except (from artist | select [artist_id, name])
     "#).unwrap(),
         @r###"
-    WITH table_1 AS (
+    WITH table_2 AS (
       SELECT
-        DISTINCT artist_id,
-        title
+        artist_id,
+        name
       FROM
-        album
+        artist
     )
     SELECT
-      table_0.artist_id,
-      table_0.title
+      artist_id,
+      title
     FROM
-      table_1 AS table_0
-      LEFT JOIN bottom AS b ON table_0.artist_id = b.*
-    WHERE
-      b.* IS NULL
+      album
+    EXCEPT
+    SELECT
+      *
+    FROM
+      table_2 AS table_1
     "###
     );
 
@@ -389,7 +391,7 @@ fn test_remove() {
     SELECT
       *
     FROM
-      bottom AS b
+      artist AS b
     "###
     );
 }
@@ -598,7 +600,7 @@ fn test_quoting() {
     assert_display_snapshot!((compile(r###"
 prql target:sql.postgres
 let UPPER = (
-    from lower
+    default_db.lower
 )
 from UPPER
 join `some_schema.tablename` [==id]
@@ -649,7 +651,7 @@ join c = `db.schema.t-able` [`db.schema.table`.id == c.id]
     "###);
 
     assert_display_snapshot!((compile(r###"
-from table
+default_db.table
 select `first name`
     "###).unwrap()), @r###"
     SELECT
@@ -2548,6 +2550,7 @@ fn test_table_s_string() {
         age ASC
     )
     SELECT
+      *
     FROM
       table_2 AS table_1
     "###
@@ -2641,6 +2644,7 @@ fn test_table_s_string() {
         ) as date
     )
     SELECT
+      *
     FROM
       table_2 AS table_1
     "###
@@ -2657,6 +2661,7 @@ fn test_table_s_string() {
         x
     )
     SELECT
+      *
     FROM
       table_2 AS table_1
     "###

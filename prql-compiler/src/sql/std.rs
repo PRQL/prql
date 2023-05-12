@@ -18,14 +18,12 @@ fn load_std_impl() -> semantic::Module {
     let statements = parse(std_lib).unwrap();
 
     let context = semantic::Context {
-        root_mod: semantic::Module::new_root(),
+        root_mod: semantic::Module::default(),
         ..semantic::Context::default()
     };
 
     let (_, context) = semantic::resolve_only(statements, Some(context)).unwrap();
-    let std = context.root_mod.get(&pl::Ident::from_name("std")).unwrap();
-
-    std.kind.clone().into_module().unwrap()
+    context.root_mod
 }
 
 pub(super) fn translate_built_in(expr: rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {

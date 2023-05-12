@@ -28,6 +28,7 @@ pub enum StmtKind {
     FuncDef(FuncDef),
     VarDef(VarDef),
     TypeDef(TypeDef),
+    ModuleDef(ModuleDef),
     Main(Box<Expr>),
 }
 
@@ -69,6 +70,12 @@ pub struct VarDef {
 pub struct TypeDef {
     pub name: String,
     pub value: Option<Expr>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ModuleDef {
+    pub name: String,
+    pub stmts: Vec<Stmt>,
 }
 
 impl From<StmtKind> for Stmt {
@@ -141,6 +148,13 @@ impl Display for StmtKind {
                 } else {
                     write!(f, "type {}\n\n", ty_def.name)?;
                 }
+            }
+            StmtKind::ModuleDef(module_def) => {
+                write!(f, "module {} {{", module_def.name)?;
+                for stmt in &module_def.stmts {
+                    write!(f, "{}", stmt.kind)?;
+                }
+                write!(f, "}}\n\n")?;
             }
         }
         Ok(())

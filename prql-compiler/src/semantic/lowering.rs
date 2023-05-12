@@ -8,14 +8,14 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, Ty,
-    WindowFrame,
+    self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, Range, StmtKind, SwitchCase,
+    Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
-use crate::utils::{toposort, IdGenerator};
+use crate::utils::{toposort, IdGenerator, Pluck};
 
 use super::context::{self, Context, DeclKind};
 use super::module::NS_DEFAULT_DB;
@@ -29,28 +29,34 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
 
     TableExtractor::extract(&mut l)?;
 
-    let mut query_def = None;
-    let mut main_pipeline = None;
+    let def = statements
+        .into_iter()
+        .find_map(|stmt| match stmt.kind {
+            StmtKind::QueryDef(def) => Some(def),
+            _ => None,
+        })
+        .unwrap_or_default();
 
-    for statement in statements {
-        use pl::StmtKind::*;
-
-        match statement.kind {
-            QueryDef(def) => query_def = Some(def),
-            Main(expr) => {
-                let relation = l.lower_relation(*expr)?;
-                main_pipeline = Some(relation);
-            }
-            FuncDef(_) | VarDef(_) | TypeDef(_) => {}
-        }
-    }
+    let relation = find_main_relation(&mut l)
+        .ok_or_else(|| Error::new_simple("Missing query").with_code("E0001"))?;
 
     Ok(Query {
-        def: query_def.unwrap_or_default(),
+        def,
         tables: l.table_buffer,
-        relation: main_pipeline
-            .ok_or_else(|| Error::new_simple("Missing query").with_code("E0001"))?,
+        relation,
     })
+}
+
+fn find_main_relation(l: &mut Lowerer) -> Option<rq::Relation> {
+    let main = Ident::from_name("main");
+    let main_tid = l.table_mapping.get(&main)?;
+
+    let main = l
+        .table_buffer
+        .pluck(|t| if &t.id == main_tid { Ok(t) } else { Err(t) });
+
+    let main = main.into_iter().next()?;
+    Some(main.relation)
 }
 
 #[derive(Debug)]

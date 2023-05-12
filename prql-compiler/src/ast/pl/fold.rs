@@ -48,6 +48,9 @@ pub trait AstFold {
             value: ty_def.value.map(|x| self.fold_expr(x)).transpose()?,
         })
     }
+    fn fold_module_def(&mut self, module_def: ModuleDef) -> Result<ModuleDef> {
+        fold_module_def(self, module_def)
+    }
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
         fold_pipeline(self, pipeline)
     }
@@ -130,7 +133,15 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
         Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
+        ModuleDef(module_def) => ModuleDef(fold.fold_module_def(module_def)?),
         QueryDef(_) => stmt_kind,
+    })
+}
+
+fn fold_module_def<F: ?Sized + AstFold>(fold: &mut F, module_def: ModuleDef) -> Result<ModuleDef> {
+    Ok(ModuleDef {
+        name: module_def.name,
+        stmts: fold.fold_stmts(module_def.stmts)?,
     })
 }
 

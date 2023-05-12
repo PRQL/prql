@@ -49,7 +49,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("??").to(Token::Coalesce),
     ));
 
-    let control = one_of("></%=+-*[]().,:|!").map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
 
     let ident = ident_part().map(Token::Ident);
 
@@ -59,6 +59,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("case"),
         just("prql"),
         just("type"),
+        just("module"),
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())

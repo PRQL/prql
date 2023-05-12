@@ -19,8 +19,24 @@ use super::type_resolver::{self, infer_type, type_of_closure};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(stmts: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
+pub fn resolve(
+    stmts: Vec<Stmt>,
+    path: Vec<String>,
+    context: Context,
+) -> Result<(Vec<Stmt>, Context)> {
     let mut resolver = Resolver::new(context);
+    resolver.current_module_path = path;
+
+    for stmt in &stmts {
+        if let StmtKind::ModuleDef(_) = stmt.kind {
+            return Err(
+                Error::new_simple("explicit module declarations are not allowed")
+                    .with_span(stmt.span)
+                    .into(),
+            );
+        }
+    }
+
     let stmts = resolver.fold_stmts(stmts)?;
 
     Ok((stmts, resolver.context))
@@ -29,6 +45,8 @@ pub fn resolve(stmts: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
     pub context: Context,
+
+    current_module_path: Vec<String>,
 
     default_namespace: Option<String>,
 
@@ -42,6 +60,7 @@ impl Resolver {
     fn new(context: Context) -> Self {
         Resolver {
             context,
+            current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
             id: IdGenerator::new(),
@@ -62,12 +81,24 @@ impl AstFold for Resolver {
             let kind = match stmt.kind {
                 StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
                 StmtKind::FuncDef(func_def) => {
-                    self.context.declare_func(func_def, stmt.id);
+                    let ident = Ident {
+                        path: self.current_module_path.clone(),
+                        name: func_def.name.clone(),
+                    };
+
+                    let decl = DeclKind::FuncDef(func_def);
+
+                    self.context.declare(ident, decl, stmt.id);
                     continue;
                 }
                 StmtKind::VarDef(var_def) => {
                     let var_def = self.fold_var_def(var_def)?;
-                    self.context.declare_var(var_def, stmt.id, stmt.span)?;
+                    let ident = Ident {
+                        path: self.current_module_path.clone(),
+                        name: var_def.name.clone(),
+                    };
+                    self.context
+                        .declare_var(ident, var_def.value, stmt.id, stmt.span)?;
                     continue;
                 }
                 StmtKind::TypeDef(ty_def) => {
@@ -81,12 +112,52 @@ impl AstFold for Resolver {
                     };
 
                     let var_def = self.fold_var_def(var_def)?;
-                    self.context.declare_var(var_def, stmt.id, stmt.span)?;
+
+                    let ident = Ident {
+                        path: self.current_module_path.clone(),
+                        name: var_def.name.clone(),
+                    };
+                    self.context
+                        .declare_var(ident, var_def.value, stmt.id, stmt.span)?;
                     continue;
                 }
                 StmtKind::Main(expr) => {
                     let expr = Flattener::fold(self.fold_expr(*expr)?);
-                    StmtKind::Main(Box::new(expr))
+
+                    let ty = Ty::Table(Frame::default());
+                    self.context
+                        .validate_type(&expr, &ty, || Some("main relation".to_string()))?;
+
+                    let var_def = VarDef {
+                        name: "main".to_string(),
+                        value: Box::new(expr),
+                    };
+                    let ident = Ident {
+                        path: self.current_module_path.clone(),
+                        name: var_def.name.clone(),
+                    };
+                    self.context
+                        .declare_var(ident, var_def.value, stmt.id, stmt.span)?;
+                    continue;
+                }
+                StmtKind::ModuleDef(module_def) => {
+                    self.current_module_path.push(module_def.name);
+
+                    let decl = Decl {
+                        declared_at: stmt.id,
+                        kind: DeclKind::Module(Module {
+                            names: HashMap::new(),
+                            redirects: Vec::new(),
+                            shadowed: None,
+                        }),
+                        order: 0,
+                    };
+                    let ident = Ident::from_path(self.current_module_path.clone());
+                    self.context.root_mod.insert(ident, decl)?;
+
+                    let _ = self.fold_stmts(module_def.stmts)?;
+                    self.current_module_path.pop();
+                    continue;
                 }
             };
 
@@ -355,12 +426,9 @@ impl Resolver {
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
-        let res = if let Some(def) = &self.default_namespace {
-            let defaulted = ident.clone().prepend(def.to_string());
-            self.context.resolve_ident(&defaulted)
-        } else {
-            self.context.resolve_ident(ident)
-        };
+        let res = self
+            .context
+            .resolve_ident(ident, self.default_namespace.as_ref());
 
         res.map_err(|e| {
             log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
@@ -780,15 +848,13 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
 mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
-    use itertools::Itertools;
 
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let (stmts, _) = resolve_only(crate::parser::parse(query)?, None)?;
-
-        Ok(*stmts.into_iter().exactly_one()?.kind.into_main()?)
+        let (_, ctx) = resolve_only(crate::parser::parse(query)?, None)?;
+        Ok(ctx.find_main().unwrap().clone())
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {

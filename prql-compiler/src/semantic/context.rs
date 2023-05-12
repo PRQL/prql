@@ -86,14 +86,9 @@ pub enum TableColumn {
 }
 
 impl Context {
-    pub fn declare_func(&mut self, func_def: FuncDef, id: Option<usize>) {
-        let name = func_def.name.clone();
-
-        let path = vec![NS_STD.to_string()];
-        let ident = Ident { name, path };
-
+    pub fn declare(&mut self, ident: Ident, decl: DeclKind, id: Option<usize>) {
         let decl = Decl {
-            kind: DeclKind::FuncDef(func_def),
+            kind: decl,
             declared_at: id,
             order: 0,
         };
@@ -102,16 +97,14 @@ impl Context {
 
     pub fn declare_var(
         &mut self,
-        var_def: VarDef,
+        ident: Ident,
+        value: Box<Expr>,
         id: Option<usize>,
         span: Option<Span>,
     ) -> Result<()> {
-        let name = var_def.name;
-        let mut path = Vec::new();
-
-        let decl = match &var_def.value.ty {
+        let decl = match &value.ty {
             Some(Ty::Table(_) | Ty::Infer) => {
-                let mut value = var_def.value;
+                let mut value = value;
 
                 let ty = value.ty.clone().unwrap();
                 let frame = ty.into_table().unwrap_or_else(|_| {
@@ -121,8 +114,6 @@ impl Context {
                     value.ty = Some(assumed.clone());
                     assumed.into_table().unwrap()
                 });
-
-                path = vec![NS_DEFAULT_DB.to_string()];
 
                 let columns = (frame.columns.iter())
                     .map(|col| match col {
@@ -137,10 +128,9 @@ impl Context {
                 DeclKind::TableDecl(TableDecl { columns, expr })
             }
             Some(_) => {
-                let mut value = var_def.value;
+                let mut value = value;
 
-                // TODO: check that declaring module is std
-                if let Some(kind) = get_stdlib_decl(name.as_str()) {
+                if let Some(kind) = get_stdlib_decl(&ident) {
                     value.kind = kind;
                 }
 
@@ -161,13 +151,16 @@ impl Context {
             order: 0,
         };
 
-        let ident = Ident { name, path };
         self.root_mod.insert(ident, decl).unwrap();
 
         Ok(())
     }
 
-    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
+    pub fn resolve_ident(
+        &mut self,
+        ident: &Ident,
+        default_namespace: Option<&String>,
+    ) -> Result<Ident, String> {
         // special case: wildcard
         if ident.name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -199,6 +192,29 @@ impl Context {
                 })
             }
         }
+
+        let ident = if let Some(default_namespace) = default_namespace {
+            let ident = ident.clone().prepend(default_namespace.clone());
+
+            let decls = self.root_mod.lookup(&ident);
+            match decls.len() {
+                // no match: try match *
+                0 => ident,
+
+                // single match, great!
+                1 => return Ok(decls.into_iter().next().unwrap()),
+
+                // ambiguous
+                _ => {
+                    return Err({
+                        let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                        format!("Ambiguous name. Could be from any of {decls}")
+                    })
+                }
+            }
+        } else {
+            ident.clone()
+        };
 
         // fallback case: try to match with NS_INFER and infer the declaration from the original ident.
         match self.resolve_ident_fallback(ident.clone(), NS_INFER) {
@@ -466,10 +482,23 @@ impl Context {
         let table_fq = default_db_ident + Ident::from_name(global_name);
         self.table_decl_to_frame(&table_fq, input_name, id)
     }
+
+    pub fn find_main(&self) -> Option<&Expr> {
+        let main = Ident::from_name("main");
+        let decl = self.root_mod.get(&main)?;
+
+        let decl = decl.kind.as_table_decl()?;
+
+        Some(decl.expr.as_relation_var()?.as_ref())
+    }
 }
 
-fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
-    let ty_lit = match name {
+fn get_stdlib_decl(ident: &Ident) -> Option<ExprKind> {
+    if !ident.starts_with_part(NS_STD) {
+        return None;
+    }
+
+    let ty_lit = match ident.name.as_str() {
         "int" => TyLit::Int,
         "float" => TyLit::Float,
         "bool" => TyLit::Bool,
