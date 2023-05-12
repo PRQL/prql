@@ -68,7 +68,9 @@ impl Ident {
     }
 
     pub fn starts_with_part(&self, prefix: &str) -> bool {
-       self.iter().next().map_or(false, |self_component| self_component == prefix)
+        self.iter()
+            .next()
+            .map_or(false, |self_component| self_component == prefix)
     }
 }
 
