@@ -26,6 +26,8 @@ impl Ident {
         }
     }
 
+    /// Remove last part of the ident.
+    /// Result will generally refer to the parent of this ident.
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path;
         path.pop().map(|name| Ident { path, name })
@@ -38,6 +40,12 @@ impl Ident {
             let first = self.path.remove(0);
             (first, Some(self))
         }
+    }
+
+    pub fn prepend(self, part: String) -> Ident {
+        let mut parts = vec![part];
+        parts.extend(self.into_iter());
+        Ident::from_path(parts)
     }
 
     pub fn with_name<S: ToString>(mut self, name: S) -> Self {
@@ -57,6 +65,12 @@ impl Ident {
             .iter()
             .zip(self.iter())
             .all(|(prefix_component, self_component)| prefix_component == self_component)
+    }
+
+    pub fn starts_with_part(&self, prefix: &str) -> bool {
+        self.iter()
+            .next()
+            .map_or(false, |self_component| self_component == prefix)
     }
 }
 

@@ -5,11 +5,11 @@
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlparser::ast::{
-    self as sql_ast, Ident, Join, JoinConstraint, JoinOperator, Select, SelectItem, SetExpr,
-    TableAlias, TableFactor, TableWithJoins,
+    self as sql_ast, Join, JoinConstraint, JoinOperator, Select, SelectItem, SetExpr, TableAlias,
+    TableFactor, TableWithJoins,
 };
 
-use crate::ast::pl::{JoinSide, Literal, RelationLiteral};
+use crate::ast::pl::{Ident, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query};
 use crate::utils::{BreakUp, Pluck};
 
@@ -243,7 +243,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
             // prepare names
             let table_name = match &decl.name {
                 None => {
-                    decl.name = Some(ctx.anchor.table_name.gen());
+                    decl.name = Some(Ident::from_name(ctx.anchor.table_name.gen()));
                     decl.name.clone().unwrap()
                 }
                 Some(n) => n.clone(),
@@ -253,7 +253,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
 
             TableFactor::Table {
                 name,
-                alias: if Some(table_name) == relation_expr.alias {
+                alias: if Some(table_name.name) == relation_expr.alias {
                     None
                 } else {
                     translate_table_alias(relation_expr.alias, ctx)
@@ -304,12 +304,12 @@ fn translate_join(
 fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<sql_ast::Cte> {
     let decl = ctx.anchor.table_decls.get_mut(&cte.tid).unwrap();
     let cte_name = decl.name.clone().unwrap_or_else(|| {
-        let n = ctx.anchor.table_name.gen();
+        let n = Ident::from_name(ctx.anchor.table_name.gen());
         decl.name = Some(n.clone());
         n
     });
 
-    let cte_name = translate_ident_part(cte_name, ctx);
+    let cte_name = translate_ident(Some(cte_name), None, ctx).pop().unwrap();
 
     let query = match cte.kind {
         // base case
@@ -330,7 +330,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<sql_ast::Cte> {
             // an arbitrary query, we have to defined a *nested* WITH RECURSIVE and not use
             // the top-level list of CTEs.
 
-            let recursive_name = Ident::new(recursive_name);
+            let recursive_name = sql_ast::Ident::new(recursive_name);
 
             // build CTE and its SELECT
             let cte = sql_ast::Cte {
@@ -460,7 +460,7 @@ fn default_select() -> Select {
     }
 }
 
-fn simple_table_alias(name: Ident) -> TableAlias {
+fn simple_table_alias(name: sql_ast::Ident) -> TableAlias {
     TableAlias {
         name,
         columns: Vec::new(),
@@ -489,7 +489,7 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
             relation: TableFactor::Derived {
                 lateral: false,
                 subquery: Box::new(query),
-                alias: Some(simple_table_alias(Ident::new(
+                alias: Some(simple_table_alias(sql_ast::Ident::new(
                     context.anchor.table_name.gen(),
                 ))),
             },

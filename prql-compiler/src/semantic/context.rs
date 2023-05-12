@@ -4,7 +4,9 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
+use super::module::{
+    Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_STD,
+};
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Span, WithErrorInfo};
@@ -191,54 +193,85 @@ impl Context {
 
             // ambiguous
             _ => {
-                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                return Err(format!("Ambiguous name. Could be from any of {decls}"));
+                return Err({
+                    let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                    format!("Ambiguous name. Could be from any of {decls}")
+                })
             }
         }
 
-        // fallback case: this variable can be from a namespace that we don't know all columns of
-        let decls = {
-            self.root_mod.lookup(&Ident {
-                path: ident.path.clone(),
-                name: NS_INFER.to_string(),
-            })
-        };
-        match decls.len() {
-            0 => Err(format!("Unknown name {ident}")),
+        // fallback case: try to match with NS_INFER and infer the declaration from the original ident.
+        match self.resolve_ident_fallback(ident.clone(), NS_INFER) {
+            // The declaration and all needed parent modules were created
+            // -> just return the fq ident
+            Some(inferred_ident) => Ok(inferred_ident),
 
+            // Was not able to infer.
+            None => Err(format!("Unknown name {ident}")),
+        }
+    }
+
+    /// Try lookup of the ident with name replaced. If unsuccessful, recursively retry parent ident.
+    fn resolve_ident_fallback(
+        &mut self,
+        ident: Ident,
+        name_replacement: &'static str,
+    ) -> Option<Ident> {
+        let infer_ident = ident.clone().with_name(name_replacement);
+
+        // lookup of infer_ident
+        let mut decls = self.root_mod.lookup(&infer_ident);
+
+        if decls.is_empty() {
+            if let Some(parent) = infer_ident.clone().pop() {
+                // try to infer parent
+                let _ = self.resolve_ident_fallback(parent, NS_INFER_MODULE)?;
+
+                // module was successfully inferred, retry the lookup
+                decls = self.root_mod.lookup(&infer_ident)
+            }
+        }
+
+        if decls.len() == 1 {
             // single match, great!
-            1 => {
-                let infer_ident = decls.into_iter().next().unwrap();
+            let infer_ident = decls.into_iter().next().unwrap();
+            self.infer_decl(infer_ident, &ident).ok()
+        } else {
+            // no matches or ambiguous
+            None
+        }
+    }
 
-                let infer = self.root_mod.get(&infer_ident).unwrap();
-                let infer_default = infer.kind.as_infer().cloned().unwrap();
+    /// Create a declaration of [original] from template provided by declaration of [infer_ident].
+    fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
+        let infer = self.root_mod.get(&infer_ident).unwrap();
+        let mut infer_default = *infer.kind.as_infer().cloned().unwrap();
 
-                let module_ident = infer_ident.pop().unwrap();
-                let module = self.root_mod.get_mut(&module_ident).unwrap();
-                let module = module.kind.as_module_mut().unwrap();
+        if let DeclKind::Module(new_module) = &mut infer_default {
+            // Modules are inferred only for database inference.
+            // Because we want to infer database modules that nested arbitrarily deep,
+            // we cannot store the template in DeclKind::Infer, but we override it here.
+            *new_module = Module::new_database();
+        }
 
-                // insert default
-                module
-                    .names
-                    .insert(ident.name.clone(), Decl::from(*infer_default));
+        let module_ident = infer_ident.pop().unwrap();
+        let module = self.root_mod.get_mut(&module_ident).unwrap();
+        let module = module.kind.as_module_mut().unwrap();
 
-                // infer table columns
-                if let Some(decl) = module.names.get(NS_SELF).cloned() {
-                    if let DeclKind::InstanceOf(table_ident) = decl.kind {
-                        log::debug!("inferring {ident} to be from table {table_ident}");
-                        self.infer_table_column(&table_ident, &ident.name)?;
-                    }
-                }
+        // insert default
+        module
+            .names
+            .insert(original.name.clone(), Decl::from(infer_default));
 
-                Ok(module_ident + Ident::from_name(ident.name.clone()))
-            }
-
-            // ambiguous
-            _ => {
-                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                Err(format!("Ambiguous name. Could be from any of {decls}"))
+        // infer table columns
+        if let Some(decl) = module.names.get(NS_SELF).cloned() {
+            if let DeclKind::InstanceOf(table_ident) = decl.kind {
+                log::debug!("inferring {original} to be from table {table_ident}");
+                self.infer_table_column(&table_ident, &original.name)?;
             }
         }
+
+        Ok(module_ident + Ident::from_name(original.name.clone()))
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {

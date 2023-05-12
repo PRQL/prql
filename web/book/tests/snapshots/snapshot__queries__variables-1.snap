@@ -2,7 +2,7 @@
 source: web/book/tests/snapshot.rs
 expression: "let grouping = s\"\"\"\n  SELECT SUM(a)\n  FROM tbl\n  GROUP BY\n    GROUPING SETS\n    ((b, c, d), (d), (b, d))\n\"\"\"\n\nfrom grouping\n"
 ---
-WITH table_0 AS (
+WITH table_2 AS (
   SELECT
     SUM(a)
   FROM
@@ -14,7 +14,7 @@ grouping AS (
   SELECT
     *
   FROM
-    table_0 AS table_1
+    table_2 AS table_1
 )
 SELECT
   *

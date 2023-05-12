@@ -1040,7 +1040,8 @@ mod tests {
             name: ~
             relation:
               kind:
-                ExternRef: c_invoice
+                ExternRef:
+                  - c_invoice
               columns:
                 - Single: invoice_no
                 - Wildcard
@@ -1199,7 +1200,8 @@ mod tests {
             name: ~
             relation:
               kind:
-                ExternRef: invoices
+                ExternRef:
+                  - invoices
               columns:
                 - Single: issued_at
                 - Single: amount

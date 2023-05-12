@@ -14,7 +14,8 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
+    self, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection, WindowFrame,
+    WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
@@ -435,7 +436,8 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
                 };
                 let t = &ctx.anchor.relation_instances[riid];
 
-                let ident = translate_ident(t.table_ref.name.clone(), Some(column), ctx);
+                let table_ident = t.table_ref.name.clone().map(Ident::from_name);
+                let ident = translate_ident(table_ident, Some(column), ctx);
                 sql_ast::Expr::CompoundIdentifier(ident)
             }
         })
@@ -461,7 +463,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
             }
         };
 
-        let ident = translate_ident(table_name, Some(column), ctx);
+        let ident = translate_ident(table_name.map(Ident::from_name), Some(column), ctx);
 
         log::debug!("translating {cid:?} post projection: {ident:?}");
 
@@ -725,38 +727,19 @@ pub(super) fn translate_column_sort(
 // [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
 pub(super) fn translate_ident(
-    table_name: Option<String>,
+    table_ident: Option<pl::Ident>,
     column: Option<String>,
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
     if !ctx.query.omit_ident_prefix || column.is_none() {
-        if let Some(table) = table_name {
+        if let Some(table) = table_ident {
             #[allow(clippy::if_same_then_else)]
             if ctx.dialect.big_query_quoting() {
                 // Special-case this for BigQuery, Ref #852
-                parts.push(table);
-            } else if table.contains('*') {
-                // This messy and could be cleaned up a lot.
-                // If `parts` is (includung the backticks)
-                //
-                //   `schema.table`
-                //
-                // then we want to split it up, because we need to produce the
-                // result without the surrounding backticks, ref #822.
-                //
-                // But if it's `path/*.parquet`, then we want to retain the
-                // backticks.
-                //
-                // So for the moment, we check whether there's a `*` in there,
-                // and if there is, we don't split it up.
-                //
-                // I think probably we should interpret `schema.table` as a
-                // namespace when it's passed to `from` or `join`, but that
-                // requires handling the types in those transforms.
-                parts.push(table);
+                parts.push(table.into_iter().join("."));
             } else {
-                parts.extend(table.split('.').map(|s| s.to_string()));
+                parts.extend(table.into_iter());
             }
         }
     }

@@ -15,10 +15,15 @@ pub const NS_FRAME: &str = "_frame";
 pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "default_db";
+
 // refers to the containing module (direct parent)
 pub const NS_SELF: &str = "_self";
-// implies we can infer new names in the containing module
+
+// implies we can infer new non-module declarations in the containing module
 pub const NS_INFER: &str = "_infer";
+
+// implies we can infer new module declarations in the containing module
+pub const NS_INFER_MODULE: &str = "_infer_module";
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -56,17 +61,7 @@ impl Module {
             names: HashMap::from([
                 (
                     "default_db".to_string(),
-                    Decl::from(DeclKind::Module(Module {
-                        names: HashMap::from([(
-                            NS_INFER.to_string(),
-                            Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                                columns: vec![RelationColumn::Wildcard],
-                                expr: TableExpr::LocalTable,
-                            })))),
-                        )]),
-                        shadowed: None,
-                        redirects: vec![],
-                    })),
+                    Decl::from(DeclKind::Module(Self::new_database())),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
             ]),
@@ -77,6 +72,31 @@ impl Module {
                 Ident::from_name(NS_PARAM),
                 Ident::from_name(NS_STD),
             ],
+        }
+    }
+
+    pub fn new_database() -> Module {
+        let names = HashMap::from([
+            (
+                NS_INFER.to_string(),
+                Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
+                    columns: vec![RelationColumn::Wildcard],
+                    expr: TableExpr::LocalTable,
+                })))),
+            ),
+            (
+                NS_INFER_MODULE.to_string(),
+                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(Module {
+                    names: HashMap::new(),
+                    redirects: vec![],
+                    shadowed: None,
+                })))),
+            ),
+        ]);
+        Module {
+            names,
+            shadowed: None,
+            redirects: vec![],
         }
     }
 
@@ -195,7 +215,7 @@ impl Module {
             HashSet::new()
         }
 
-        log::trace!("lookup {ident}");
+        log::trace!("lookup: {ident}");
 
         let mut res = HashSet::new();
 
@@ -372,7 +392,7 @@ impl std::fmt::Debug for Module {
             ds.field("aliases", &aliases);
         }
 
-        if self.names.len() < 10 {
+        if self.names.len() < 15 {
             ds.field("names", &self.names);
         } else {
             ds.field("names", &format!("... {} entries ...", self.names.len()));

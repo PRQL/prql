@@ -1,9 +1,9 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from `music.albums`\n"
+expression: "from my_database.chinook.albums\n"
 ---
 SELECT
   *
 FROM
-  music.albums
+  my_database.chinook.albums
 

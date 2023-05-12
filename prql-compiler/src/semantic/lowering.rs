@@ -18,6 +18,7 @@ use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
 use super::context::{self, Context, DeclKind};
+use super::module::NS_DEFAULT_DB;
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
@@ -876,7 +877,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
             // a CTE
             (lowerer.lower_relation(*expr)?, Some(fq_ident.name.clone()))
         }
-        TableExpr::LocalTable => extern_ref_to_relation(columns, fq_ident.name.clone()),
+        TableExpr::LocalTable => extern_ref_to_relation(columns, &fq_ident),
         TableExpr::Param(_) => unreachable!(),
         TableExpr::None => return Ok(()),
     };
@@ -895,13 +896,21 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
 
 fn extern_ref_to_relation(
     mut columns: Vec<RelationColumn>,
-    extern_ref: String,
+    fq_ident: &Ident,
 ) -> (rq::Relation, Option<String>) {
+    let extern_name = if fq_ident.starts_with_part(NS_DEFAULT_DB) {
+        let (_, remainder) = fq_ident.clone().pop_front();
+        remainder.unwrap()
+    } else {
+        // tables that are not from default_db
+        todo!()
+    };
+
     // put wildcards last
     columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
 
     let relation = rq::Relation {
-        kind: rq::RelationKind::ExternRef(extern_ref),
+        kind: rq::RelationKind::ExternRef(extern_name),
         columns,
     };
     (relation, None)

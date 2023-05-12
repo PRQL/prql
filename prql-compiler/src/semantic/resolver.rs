@@ -355,11 +355,8 @@ impl Resolver {
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
-        let res = if ident.path.is_empty() && self.default_namespace.is_some() {
-            let defaulted = Ident {
-                path: vec![self.default_namespace.clone().unwrap()],
-                name: ident.name.clone(),
-            };
+        let res = if let Some(def) = &self.default_namespace {
+            let defaulted = ident.clone().prepend(def.to_string());
             self.context.resolve_ident(&defaulted)
         } else {
             self.context.resolve_ident(ident)
