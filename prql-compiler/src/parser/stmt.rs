@@ -13,16 +13,26 @@ use super::lexer::Token;
 pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
     query_def()
         .or_not()
-        .chain::<Stmt, _, _>(
-            choice((type_def(), var_def(), function_def()))
-                .map_with_span(into_stmt)
-                .separated_by(new_line().repeated())
-                .allow_leading()
-                .allow_trailing(),
-        )
-        .chain(main_pipeline().or_not())
+        .chain(module_contents())
         .then_ignore(end())
         .labelled("source file")
+}
+
+fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
+    recursive(|module_contents| {
+        let module_def = keyword("module")
+            .ignore_then(ident_part())
+            .then(module_contents.delimited_by(ctrl('{'), ctrl('}')))
+            .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
+            .labelled("module definition");
+
+        choice((type_def(), var_def(), function_def(), module_def))
+            .map_with_span(into_stmt)
+            .separated_by(new_line().repeated())
+            .allow_leading()
+            .allow_trailing()
+            .chain(main_pipeline().or_not())
+    })
 }
 
 fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {

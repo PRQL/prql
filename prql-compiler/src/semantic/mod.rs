@@ -15,6 +15,7 @@ pub use self::module::Module;
 use crate::ast::pl::frame::{Frame, FrameColumn};
 use crate::ast::pl::Stmt;
 use crate::ast::rq::Query;
+use crate::semantic::module::NS_STD;
 use crate::PRQL_VERSION;
 
 use anyhow::{bail, Result};
@@ -24,7 +25,7 @@ use semver::{Version, VersionReq};
 pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     let context = load_std_lib();
 
-    let (statements, context) = resolver::resolve(statements, context)?;
+    let (statements, context) = resolver::resolve(statements, vec![], context)?;
 
     let query = lowering::lower_ast_to_ir(statements, context)?;
 
@@ -42,7 +43,7 @@ pub fn resolve_only(
 ) -> Result<(Vec<Stmt>, Context)> {
     let context = context.unwrap_or_else(load_std_lib);
 
-    resolver::resolve(statements, context)
+    resolver::resolve(statements, vec![], context)
 }
 
 pub fn load_std_lib() -> Context {
@@ -55,7 +56,7 @@ pub fn load_std_lib() -> Context {
         ..Context::default()
     };
 
-    let (_, context) = resolver::resolve(statements, context).unwrap();
+    let (_, context) = resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap();
     context
 }
 

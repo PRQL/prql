@@ -1107,71 +1107,71 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve_only(query, None).unwrap();
-        assert_yaml_snapshot!(result, @r###"
+        let (_, ctx) = resolve_only(query, None).unwrap();
+        let res = ctx.find_main().unwrap().clone();
+        assert_yaml_snapshot!(res, @r###"
         ---
-        - Main:
-            id: 28
-            TransformCall:
-              input:
-                id: 6
-                Ident:
-                  - default_db
-                  - c_invoice
-                ty:
-                  Table:
-                    columns:
-                      - All:
-                          input_name: c_invoice
-                          except: []
-                    inputs:
-                      - id: 6
-                        name: c_invoice
-                        table:
-                          - default_db
-                          - c_invoice
-              kind:
-                Aggregate:
-                  assigns:
-                    - id: 22
-                      BuiltInFunction:
-                        name: std.average
-                        args:
-                          - id: 27
-                            Ident:
-                              - _frame
-                              - c_invoice
-                              - amount
-                            target_id: 6
-                            ty: Infer
-                      ty:
-                        TypeExpr:
-                          Primitive: Column
-              partition:
-                - id: 12
-                  Ident:
-                    - _frame
-                    - c_invoice
-                    - issued_at
-                  target_id: 6
-                  ty: Infer
+        id: 28
+        TransformCall:
+          input:
+            id: 6
+            Ident:
+              - default_db
+              - c_invoice
             ty:
               Table:
                 columns:
-                  - Single:
-                      name:
-                        - c_invoice
-                        - issued_at
-                      expr_id: 12
-                  - Single:
-                      name: ~
-                      expr_id: 22
+                  - All:
+                      input_name: c_invoice
+                      except: []
                 inputs:
                   - id: 6
                     name: c_invoice
                     table:
                       - default_db
                       - c_invoice
+          kind:
+            Aggregate:
+              assigns:
+                - id: 22
+                  BuiltInFunction:
+                    name: std.average
+                    args:
+                      - id: 27
+                        Ident:
+                          - _frame
+                          - c_invoice
+                          - amount
+                        target_id: 6
+                        ty: Infer
+                  ty:
+                    TypeExpr:
+                      Primitive: Column
+          partition:
+            - id: 12
+              Ident:
+                - _frame
+                - c_invoice
+                - issued_at
+              target_id: 6
+              ty: Infer
+        ty:
+          Table:
+            columns:
+              - Single:
+                  name:
+                    - c_invoice
+                    - issued_at
+                  expr_id: 12
+              - Single:
+                  name: ~
+                  expr_id: 22
+            inputs:
+              - id: 6
+                name: c_invoice
+                table:
+                  - default_db
+                  - c_invoice
         "###);
     }
 
