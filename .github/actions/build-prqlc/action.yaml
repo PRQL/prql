@@ -1,0 +1,40 @@
+name: build-prqlc
+description: >
+  Build prqlc
+inputs:
+  target:
+    description: Build target
+    required: true
+  cross:
+    description: Use cross?
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: Swatinem/rust-cache@v2
+      with:
+        save-if: ${{ github.ref == 'refs/heads/main' }}
+        prefix-key: 0.8.1
+
+    - name: cargo build
+      uses: richb-hanover/cargo@v1.1.0
+      with:
+        command: build
+        use-cross: inputs.cross == 'true'
+        args: --package prqlc --release --locked --target=${{ inputs.target }}
+
+    - if: runner.os == 'Windows'
+      shell: powershell
+      run: echo "BIN_NAME=prqlc.exe" >>"$env:GITHUB_ENV"
+
+    - if: runner.os != 'Windows'
+      shell: bash
+      run: echo "BIN_NAME=prqlc" >>"$GITHUB_ENV"
+
+    - name: Upload prqlc
+      uses: actions/upload-artifact@v3
+      with:
+        name: prqlc-${{ inputs.target }}
+        path: target/${{ inputs.target }}/release/${{ env.BIN_NAME }}
