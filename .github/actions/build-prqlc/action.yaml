@@ -31,7 +31,9 @@ runs:
 
     - if: runner.os != 'Windows'
       shell: bash
-      run: echo "BIN_NAME=prqlc" >>"$GITHUB_ENV"
+      run: |
+        echo "BIN_NAME=prqlc" >>"$GITHUB_ENV"
+        chmod +x target/${{ inputs.target }}/release/prqlc
 
     - name: Upload prqlc
       uses: actions/upload-artifact@v3
