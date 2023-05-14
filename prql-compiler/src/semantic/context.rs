@@ -4,12 +4,14 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{
-    Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_STD,
+use super::module::Module;
+use super::{
+    NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_QUERY_DEF,
+    NS_SELF,
 };
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
-use crate::error::{Error, Span, WithErrorInfo};
+use crate::error::{Error, Span};
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
@@ -54,6 +56,8 @@ pub enum DeclKind {
     FuncDef(FuncDef),
 
     Expr(Box<Expr>),
+
+    QueryDef(QueryDef),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -95,14 +99,8 @@ impl Context {
         self.root_mod.insert(ident, decl).unwrap();
     }
 
-    pub fn declare_var(
-        &mut self,
-        ident: Ident,
-        value: Box<Expr>,
-        id: Option<usize>,
-        span: Option<Span>,
-    ) -> Result<()> {
-        let decl = match &value.ty {
+    pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> Result<DeclKind> {
+        match &value.ty {
             Some(Ty::Table(_) | Ty::Infer) => {
                 let mut value = value;
 
@@ -125,35 +123,11 @@ impl Context {
                     .collect();
 
                 let expr = TableExpr::RelationVar(value);
-                DeclKind::TableDecl(TableDecl { columns, expr })
+                Ok(DeclKind::TableDecl(TableDecl { columns, expr }))
             }
-            Some(_) => {
-                let mut value = value;
-
-                if let Some(kind) = get_stdlib_decl(&ident) {
-                    value.kind = kind;
-                }
-
-                DeclKind::Expr(value)
-            }
-            None => {
-                return Err(
-                    Error::new_simple("Cannot infer type. Type annotations needed.")
-                        .with_span(span)
-                        .into(),
-                );
-            }
-        };
-
-        let decl = Decl {
-            declared_at: id,
-            kind: decl,
-            order: 0,
-        };
-
-        self.root_mod.insert(ident, decl).unwrap();
-
-        Ok(())
+            Some(_) => Ok(DeclKind::Expr(value)),
+            None => Err(Error::new_simple("Cannot infer type. Type annotations needed.").into()),
+        }
     }
 
     pub fn resolve_ident(
@@ -483,41 +457,44 @@ impl Context {
         self.table_decl_to_frame(&table_fq, input_name, id)
     }
 
-    pub fn find_main(&self) -> Option<&Expr> {
-        let main = Ident::from_name("main");
-        let decl = self.root_mod.get(&main)?;
+    /// Finds that main pipeline given a path to either main itself or its parent module.
+    /// Returns main expr and fq ident of the decl.
+    pub fn find_main(&self, path: &[String]) -> Option<(&Expr, Ident)> {
+        let mut res = None;
 
+        // is path referencing "main"?
+        if path.last().map(|x| x.as_str()) == Some(NS_MAIN) {
+            let ident = Ident::from_path(path.to_vec());
+            let decl = self.root_mod.get(&ident);
+            res = decl.map(|x| (x, ident));
+        }
+
+        // is path referencing the parent module?
+        if res.is_none() {
+            let mut path = path.to_vec();
+            path.push(NS_MAIN.to_string());
+
+            let ident = Ident::from_path(path);
+            let decl = self.root_mod.get(&ident);
+            res = decl.map(|x| (x, ident));
+        }
+
+        let (decl, ident) = res?;
         let decl = decl.kind.as_table_decl()?;
 
-        Some(decl.expr.as_relation_var()?.as_ref())
-    }
-}
-
-fn get_stdlib_decl(ident: &Ident) -> Option<ExprKind> {
-    if !ident.starts_with_part(NS_STD) {
-        return None;
+        let expr = decl.expr.as_relation_var()?.as_ref();
+        Some((expr, ident))
     }
 
-    let ty_lit = match ident.name.as_str() {
-        "int" => TyLit::Int,
-        "float" => TyLit::Float,
-        "bool" => TyLit::Bool,
-        "text" => TyLit::Text,
-        "date" => TyLit::Date,
-        "time" => TyLit::Time,
-        "timestamp" => TyLit::Timestamp,
-        "table" => {
-            // TODO: this is just a dummy that gets intercepted when resolving types
-            return Some(ExprKind::Type(TypeExpr::Array(Box::new(
-                TypeExpr::Singleton(Literal::Null),
-            ))));
-        }
-        "column" => TyLit::Column,
-        "list" => TyLit::List,
-        "scalar" => TyLit::Scalar,
-        _ => return None,
-    };
-    Some(ExprKind::Type(TypeExpr::Primitive(ty_lit)))
+    pub fn find_query_def(&self, main: &Ident) -> Option<&QueryDef> {
+        let ident = Ident {
+            path: main.path.clone(),
+            name: NS_QUERY_DEF.to_string(),
+        };
+
+        let decl = self.root_mod.get(&ident)?;
+        decl.kind.as_query_def()
+    }
 }
 
 impl Default for DeclKind {
@@ -559,8 +536,9 @@ impl std::fmt::Display for DeclKind {
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
-            Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),
+            Self::FuncDef(_) => write!(f, "FuncDef"),
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
+            Self::QueryDef(_) => write!(f, "QueryDef"),
         }
     }
 }

@@ -9,38 +9,46 @@ mod static_analysis;
 mod transforms;
 mod type_resolver;
 
+use std::collections::HashMap;
+use anyhow::Result;
+
 pub use self::context::Context;
 pub use self::module::Module;
 
 use crate::ast::pl::frame::{Frame, FrameColumn};
 use crate::ast::pl::Stmt;
 use crate::ast::rq::Query;
-use crate::semantic::module::NS_STD;
-use crate::PRQL_VERSION;
-
-use anyhow::{bail, Result};
-use semver::{Version, VersionReq};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     let context = load_std_lib();
 
-    let (statements, context) = resolver::resolve(statements, vec![], context)?;
+    let context = resolver::resolve(statements, vec![], context)?;
 
-    let query = lowering::lower_ast_to_ir(statements, context)?;
+    let query = lowering::lower_to_ir(context, &[])?;
 
-    if let Some(ref version) = query.def.version {
-        check_query_version(version, &PRQL_VERSION)?;
+    Ok(query)
+}
+
+pub struct FileTree {
+    pub files: HashMap<Vec<String>, Vec<Stmt>>,
+}
+
+/// Runs semantic analysis on the query and lowers PL to RQ.
+pub fn resolve_tree(file_tree: FileTree, main_path: Vec<String>) -> Result<Query> {
+    let mut context = load_std_lib();
+
+    for (path, stmts) in file_tree.files.into_iter() {
+        context = resolver::resolve(stmts, path, context)?;
     }
+
+    let query = lowering::lower_to_ir(context, &main_path)?;
 
     Ok(query)
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve_only(
-    statements: Vec<Stmt>,
-    context: Option<Context>,
-) -> Result<(Vec<Stmt>, Context)> {
+pub fn resolve_only(statements: Vec<Stmt>, context: Option<Context>) -> Result<Context> {
     let context = context.unwrap_or_else(load_std_lib);
 
     resolver::resolve(statements, vec![], context)
@@ -56,17 +64,25 @@ pub fn load_std_lib() -> Context {
         ..Context::default()
     };
 
-    let (_, context) = resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap();
-    context
+    resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap()
 }
 
-fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
-    if !query_version.matches(prql_version) {
-        bail!("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
-    }
+pub const NS_STD: &str = "std";
+pub const NS_FRAME: &str = "_frame";
+pub const NS_FRAME_RIGHT: &str = "_right";
+pub const NS_PARAM: &str = "_param";
+pub const NS_DEFAULT_DB: &str = "default_db";
+pub const NS_QUERY_DEF: &str = "prql";
+pub const NS_MAIN: &str = "main";
 
-    Ok(())
-}
+// refers to the containing module (direct parent)
+pub const NS_SELF: &str = "_self";
+
+// implies we can infer new non-module declarations in the containing module
+pub const NS_INFER: &str = "_infer";
+
+// implies we can infer new module declarations in the containing module
+pub const NS_INFER_MODULE: &str = "_infer_module";
 
 #[cfg(test)]
 mod test {

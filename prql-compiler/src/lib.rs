@@ -96,8 +96,9 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use strum::VariantNames;
 
-pub static PRQL_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
+pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
+    Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prql-compiler version number")
+});
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -227,10 +228,6 @@ impl Options {
     pub fn with_target(mut self, target: Target) -> Self {
         self.target = target;
         self
-    }
-
-    pub fn some(self) -> Option<Self> {
-        Some(self)
     }
 
     pub fn with_color(mut self, color: bool) -> Self {

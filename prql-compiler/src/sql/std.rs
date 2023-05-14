@@ -22,7 +22,7 @@ fn load_std_impl() -> semantic::Module {
         ..semantic::Context::default()
     };
 
-    let (_, context) = semantic::resolve_only(statements, Some(context)).unwrap();
+    let context = semantic::resolve_only(statements, Some(context)).unwrap();
     context.root_mod
 }
 

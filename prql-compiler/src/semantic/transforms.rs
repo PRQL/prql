@@ -11,9 +11,10 @@ use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
-use super::module::{Module, NS_FRAME, NS_PARAM};
+use super::module::Module;
 use super::resolver::Resolver;
 use super::{Context, Frame};
+use super::{NS_FRAME, NS_PARAM};
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
@@ -1107,71 +1108,72 @@ mod tests {
         ",
         )
         .unwrap();
-        let (_, ctx) = resolve_only(query, None).unwrap();
-        let res = ctx.find_main().unwrap().clone();
+        let ctx = resolve_only(query, None).unwrap();
+        let res = ctx.find_main(&vec![]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
-        id: 28
-        TransformCall:
-          input:
-            id: 6
-            Ident:
-              - default_db
-              - c_invoice
-            ty:
-              Table:
-                columns:
-                  - All:
-                      input_name: c_invoice
-                      except: []
-                inputs:
-                  - id: 6
-                    name: c_invoice
-                    table:
-                      - default_db
-                      - c_invoice
-          kind:
-            Aggregate:
-              assigns:
-                - id: 22
-                  BuiltInFunction:
-                    name: std.average
-                    args:
-                      - id: 27
-                        Ident:
-                          - _frame
-                          - c_invoice
-                          - amount
-                        target_id: 6
-                        ty: Infer
-                  ty:
-                    TypeExpr:
-                      Primitive: Column
-          partition:
-            - id: 12
+        - id: 28
+          TransformCall:
+            input:
+              id: 6
               Ident:
-                - _frame
+                - default_db
                 - c_invoice
-                - issued_at
-              target_id: 6
-              ty: Infer
-        ty:
-          Table:
-            columns:
-              - Single:
-                  name:
-                    - c_invoice
-                    - issued_at
-                  expr_id: 12
-              - Single:
-                  name: ~
-                  expr_id: 22
-            inputs:
-              - id: 6
-                name: c_invoice
-                table:
-                  - default_db
+              ty:
+                Table:
+                  columns:
+                    - All:
+                        input_name: c_invoice
+                        except: []
+                  inputs:
+                    - id: 6
+                      name: c_invoice
+                      table:
+                        - default_db
+                        - c_invoice
+            kind:
+              Aggregate:
+                assigns:
+                  - id: 22
+                    BuiltInFunction:
+                      name: std.average
+                      args:
+                        - id: 27
+                          Ident:
+                            - _frame
+                            - c_invoice
+                            - amount
+                          target_id: 6
+                          ty: Infer
+                    ty:
+                      TypeExpr:
+                        Primitive: Column
+            partition:
+              - id: 12
+                Ident:
+                  - _frame
                   - c_invoice
+                  - issued_at
+                target_id: 6
+                ty: Infer
+          ty:
+            Table:
+              columns:
+                - Single:
+                    name:
+                      - c_invoice
+                      - issued_at
+                    expr_id: 12
+                - Single:
+                    name: ~
+                    expr_id: 22
+              inputs:
+                - id: 6
+                  name: c_invoice
+                  table:
+                    - default_db
+                    - c_invoice
+        - - main
         "###);
     }
 

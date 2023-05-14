@@ -38,13 +38,11 @@ pub trait AstFold {
     }
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
         Ok(VarDef {
-            name: var_def.name,
             value: Box::new(self.fold_expr(*var_def.value)?),
         })
     }
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
         Ok(TypeDef {
-            name: ty_def.name,
             value: ty_def.value.map(|x| self.fold_expr(x)).transpose()?,
         })
     }
@@ -140,7 +138,6 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
 
 fn fold_module_def<F: ?Sized + AstFold>(fold: &mut F, module_def: ModuleDef) -> Result<ModuleDef> {
     Ok(ModuleDef {
-        name: module_def.name,
         stmts: fold.fold_stmts(module_def.stmts)?,
     })
 }
@@ -310,7 +307,6 @@ pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Resu
 
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
-        name: func_def.name,
         positional_params: fold_func_param(fold, func_def.positional_params)?,
         named_params: fold_func_param(fold, func_def.named_params)?,
         body: Box::new(fold.fold_expr(*func_def.body)?),

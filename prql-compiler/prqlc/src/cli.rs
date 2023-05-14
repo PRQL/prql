@@ -186,17 +186,11 @@ impl Command {
             Command::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
             Command::Debug(_) => {
                 let stmts = prql_to_pl(source)?;
-                let (stmts, context) = semantic::resolve_only(stmts, None)?;
+                let context = semantic::resolve_only(stmts, None)?;
 
-                let (references, stmts) =
-                    label_references(stmts, &context, "".to_string(), source.to_string());
+                let references = label_references(&context, "".to_string(), source.to_string());
 
-                [
-                    references,
-                    format!("\n{context:#?}\n").into_bytes(),
-                    format!("\n{stmts:#?}\n").into_bytes(),
-                ]
-                .concat()
+                [references, format!("\n{context:#?}\n").into_bytes()].concat()
             }
             Command::Annotate(_) => {
                 // TODO: potentially if there is code performing a role beyond
@@ -205,9 +199,9 @@ impl Command {
                 let stmts = prql_to_pl(source)?;
 
                 // resolve
-                let (_, ctx) = semantic::resolve_only(stmts, None)?;
+                let ctx = semantic::resolve_only(stmts, None)?;
 
-                let frames = if let Some(main) = ctx.find_main() {
+                let frames = if let Some((main, _)) = ctx.find_main(&[]) {
                     collect_frames(main.clone())
                 } else {
                     vec![]
@@ -230,9 +224,6 @@ impl Command {
                 ..
             } => compile(
                 source,
-                // I'm guessing it's too "clever" to use `Options` directly in
-                // the Compile enum variant, and avoid this boilerplate? Would
-                // reduce this code somewhat.
                 &Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
                     .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
@@ -461,7 +452,8 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         .unwrap();
 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
               - FuncCall:
