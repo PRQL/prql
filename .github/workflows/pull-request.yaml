@@ -131,4 +131,3 @@ jobs:
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
-          cross: ${{ matrix.cross || '' }}

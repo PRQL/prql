@@ -5,10 +5,6 @@ inputs:
   target:
     description: Build target
     required: true
-  cross:
-    description: Use cross?
-    required: false
-    default: "false"
 
 runs:
   using: composite
@@ -31,7 +27,6 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
-        use-cross: inputs.cross == 'true'
         args: --package prqlc --release --locked --target=${{ inputs.target }}
 
     - if: runner.os == 'Windows'
