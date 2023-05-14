@@ -21,6 +21,12 @@ runs:
         save-if: ${{ github.ref == 'refs/heads/main' }}
         prefix-key: 0.8.1
 
+    - if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y musl-tools
+
     - name: cargo build
       uses: richb-hanover/cargo@v1.1.0
       with:
