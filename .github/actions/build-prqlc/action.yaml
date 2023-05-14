@@ -13,6 +13,9 @@ inputs:
 runs:
   using: composite
   steps:
+    - run: rustup target add ${{ inputs.target }}
+      shell: bash
+
     - uses: Swatinem/rust-cache@v2
       with:
         save-if: ${{ github.ref == 'refs/heads/main' }}
