@@ -9,15 +9,16 @@ mod static_analysis;
 mod transforms;
 mod type_resolver;
 
-use std::collections::HashMap;
 use anyhow::Result;
+use itertools::Itertools;
+use std::path::PathBuf;
 
 pub use self::context::Context;
 pub use self::module::Module;
 
-use crate::ast::pl::frame::{Frame, FrameColumn};
-use crate::ast::pl::Stmt;
+use crate::ast::pl::{Frame, FrameColumn, Stmt};
 use crate::ast::rq::Query;
+use crate::FileTree;
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
@@ -30,15 +31,13 @@ pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     Ok(query)
 }
 
-pub struct FileTree {
-    pub files: HashMap<Vec<String>, Vec<Stmt>>,
-}
-
 /// Runs semantic analysis on the query and lowers PL to RQ.
-pub fn resolve_tree(file_tree: FileTree, main_path: Vec<String>) -> Result<Query> {
+pub fn resolve_tree(file_tree: FileTree<Vec<Stmt>>, main_path: Vec<String>) -> Result<Query> {
     let mut context = load_std_lib();
 
-    for (path, stmts) in file_tree.files.into_iter() {
+    for (path, stmts) in file_tree.files {
+        let path = os_path_to_prql_path(path)?;
+
         context = resolver::resolve(stmts, path, context)?;
     }
 
@@ -65,6 +64,21 @@ pub fn load_std_lib() -> Context {
     };
 
     resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap()
+}
+
+pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
+    // remove file format extension
+    let path = path.with_extension("");
+
+    // split by /
+    path.components()
+        .map(|x| {
+            x.as_os_str()
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Invalid file path: {path:?}"))
+                .map(str::to_string)
+        })
+        .try_collect()
 }
 
 pub const NS_STD: &str = "std";

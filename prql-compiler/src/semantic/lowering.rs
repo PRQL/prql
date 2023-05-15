@@ -26,7 +26,11 @@ use super::NS_DEFAULT_DB;
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
 pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<Query> {
+    dbg!(&context.root_mod);
+    dbg!(&main_path);
+
     // find main
+    log::debug!("lookup for main pipeline in {main_path:?}");
     let (_, main_ident) = context
         .find_main(main_path)
         .ok_or_else(|| Error::new_simple("Missing main pipeline").with_code("E0001"))?;

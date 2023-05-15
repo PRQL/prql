@@ -470,12 +470,15 @@ impl Context {
         }
 
         // is path referencing the parent module?
+        dbg!(res.is_none());
         if res.is_none() {
             let mut path = path.to_vec();
             path.push(NS_MAIN.to_string());
 
             let ident = Ident::from_path(path);
+            dbg!(&ident);
             let decl = self.root_mod.get(&ident);
+            dbg!(&decl);
             res = decl.map(|x| (x, ident));
         }
 

@@ -93,7 +93,7 @@ pub use error::{
 use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
 
 pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
@@ -247,14 +247,28 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
         .map_err(|e| e.composed("", prql, false))
 }
 
+/// Parse PRQL into a PL AST
+pub fn prql_to_pl_tree(prql: &FileTree) -> Result<FileTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
+    parser::parse_tree(prql).map_err(error::downcast)
+    // .map_err(|e| e.composed("", prql, false))
+}
+
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve(pl).map_err(|e| e.into())
+    semantic::resolve(pl).map_err(error::downcast)
+}
+
+/// Perform semantic analysis and convert PL to RQ.
+pub fn pl_to_rq_tree(
+    pl: FileTree<Vec<ast::pl::Stmt>>,
+    main_path: Vec<String>,
+) -> Result<ast::rq::Query, ErrorMessages> {
+    semantic::resolve_tree(pl, main_path).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(|e| e.into())
+    sql::compile(rq, options).map_err(error::downcast)
 }
 
 /// Generate PRQL code from PL AST
@@ -284,6 +298,22 @@ pub mod json {
     /// JSON deserialization
     pub fn to_rq(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FileTree<T: Sized + Serialize = String> {
+    /// Mapping from file paths into their contents.
+    ///
+    /// File path must use '/' separators and may have a file format extension.
+    pub files: HashMap<PathBuf, T>,
+}
+
+impl<S: ToString> From<S> for FileTree {
+    fn from(str: S) -> Self {
+        FileTree {
+            files: [(std::path::Path::new("").to_path_buf(), str.to_string())].into(),
+        }
     }
 }
 

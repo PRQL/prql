@@ -3,6 +3,8 @@ mod interpolation;
 mod lexer;
 mod stmt;
 
+use std::collections::HashMap;
+
 use anyhow::Result;
 use chumsky::{
     error::{Cheap, SimpleReason},
@@ -16,6 +18,7 @@ use self::lexer::Token;
 use super::ast::pl::*;
 
 use crate::error::{Error, Errors, Reason, WithErrorInfo};
+use crate::FileTree;
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(source: &str) -> Result<Vec<Stmt>> {
@@ -47,6 +50,15 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     } else {
         Err(Errors(errors).into())
     }
+}
+
+pub fn parse_tree(file_tree: &FileTree<String>) -> Result<FileTree<Vec<Stmt>>> {
+    let mut res = HashMap::new();
+    for (ident, source) in &file_tree.files {
+        let stmts = parse(source)?;
+        res.insert(ident.clone(), stmts);
+    }
+    Ok(FileTree { files: res })
 }
 
 fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
