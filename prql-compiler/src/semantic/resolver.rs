@@ -862,7 +862,7 @@ mod test {
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let ctx = resolve_only(crate::parser::parse(query)?, None)?;
-        let (main, _) = ctx.find_main(&vec![]).unwrap();
+        let (main, _) = ctx.find_main(&[]).unwrap();
         Ok(main.clone())
     }
 

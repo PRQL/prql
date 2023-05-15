@@ -1109,7 +1109,7 @@ mod tests {
         )
         .unwrap();
         let ctx = resolve_only(query, None).unwrap();
-        let res = ctx.find_main(&vec![]).unwrap().clone();
+        let res = ctx.find_main(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
         - id: 28
