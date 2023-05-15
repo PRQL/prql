@@ -130,7 +130,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, options.color))
+        .map_err(|e| e.composed(&prql.into(), options.color))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -244,7 +244,7 @@ pub struct ReadmeDoctests;
 pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed(&prql.into(), false))
 }
 
 /// Parse PRQL into a PL AST
@@ -304,9 +304,15 @@ pub mod json {
 #[derive(Debug, Clone, Serialize)]
 pub struct FileTree<T: Sized + Serialize = String> {
     /// Mapping from file paths into their contents.
-    ///
-    /// File path must use '/' separators and may have a file format extension.
     pub files: HashMap<PathBuf, T>,
+}
+
+impl FileTree<String> {
+    pub fn single<S: ToString>(source_id: PathBuf, source: S) -> Self {
+        FileTree {
+            files: [(source_id, source.to_string())].into(),
+        }
+    }
 }
 
 impl<S: ToString> From<S> for FileTree {

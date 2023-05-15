@@ -11,14 +11,15 @@ mod type_resolver;
 
 use anyhow::Result;
 use itertools::Itertools;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub use self::context::Context;
 pub use self::module::Module;
 
 use crate::ast::pl::{Frame, FrameColumn, Stmt};
 use crate::ast::rq::Query;
-use crate::FileTree;
+use crate::error::WithErrorInfo;
+use crate::{Error, FileTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
@@ -35,9 +36,7 @@ pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
 pub fn resolve_tree(file_tree: FileTree<Vec<Stmt>>, main_path: Vec<String>) -> Result<Query> {
     let mut context = load_std_lib();
 
-    for (path, stmts) in file_tree.files {
-        let path = os_path_to_prql_path(path)?;
-
+    for (path, stmts) in normalize(file_tree)? {
         context = resolver::resolve(stmts, path, context)?;
     }
 
@@ -79,6 +78,48 @@ pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
                 .map(str::to_string)
         })
         .try_collect()
+}
+
+fn normalize(mut tree: FileTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt>)>> {
+    // find root
+    let root_path = PathBuf::from("");
+
+    if tree.files.get(&root_path).is_none() {
+        if tree.files.len() == 1 {
+            // if there is only one file, use that as the root
+            let (_, only) = tree.files.drain().exactly_one().unwrap();
+            tree.files.insert(root_path, only);
+        } else if let Some(under) = tree.files.keys().find(|p| path_starts_with(p, "_")) {
+            // if there is a path that starts with `_`, that's the root
+            let under = tree.files.remove(&under.clone()).unwrap();
+            tree.files.insert(root_path, under);
+        } else {
+            return Err(Error::new_simple("Cannot find the root module.")
+                .with_help("root module should be prefixed with `_`")
+                .into());
+        }
+    }
+
+    // TODO: make sure that the module tree is normalized
+
+    // TODO: find correct resolution order
+
+    let mut modules = Vec::with_capacity(tree.files.len());
+    for (path, stmts) in tree.files {
+        let path = os_path_to_prql_path(path)?;
+        modules.push((path, stmts));
+    }
+    modules.sort_unstable_by_key(|(path, _)| path.join("."));
+    modules.reverse();
+
+    Ok(modules)
+}
+
+fn path_starts_with(p: &Path, prefix: &str) -> bool {
+    p.components()
+        .next()
+        .and_then(|x| x.as_os_str().to_str())
+        .map_or(false, |x| x.starts_with(prefix))
 }
 
 pub const NS_STD: &str = "std";

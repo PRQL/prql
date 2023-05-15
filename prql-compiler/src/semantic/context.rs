@@ -470,7 +470,6 @@ impl Context {
         }
 
         // is path referencing the parent module?
-        dbg!(res.is_none());
         if res.is_none() {
             let mut path = path.to_vec();
             path.push(NS_MAIN.to_string());
