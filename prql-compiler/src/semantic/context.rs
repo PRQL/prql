@@ -475,9 +475,7 @@ impl Context {
             path.push(NS_MAIN.to_string());
 
             let ident = Ident::from_path(path);
-            dbg!(&ident);
             let decl = self.root_mod.get(&ident);
-            dbg!(&decl);
             res = decl.map(|x| (x, ident));
         }
 
