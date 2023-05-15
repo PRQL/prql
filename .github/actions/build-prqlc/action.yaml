@@ -40,4 +40,4 @@ runs:
       uses: actions/upload-artifact@v3
       with:
         name: prqlc-${{ inputs.target }}
-        path: target/${{ inputs.target }}/release/${{ env.BIN_NAME }}
+        path: target/${{ inputs.target }}/release/${{ runner.os == 'Windows' && 'prqlc.exe' || 'prqlc' }}
