@@ -117,9 +117,8 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-          # TODO: Linux arm64 build
-          # - os: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
           - os: macos-latest
             target: x86_64-apple-darwin
           - os: macos-latest
