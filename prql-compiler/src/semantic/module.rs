@@ -8,22 +8,8 @@ use crate::ast::pl::{Expr, Ident};
 use crate::ast::rq::RelationColumn;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{Frame, FrameColumn};
-
-pub const NS_STD: &str = "std";
-pub const NS_FRAME: &str = "_frame";
-pub const NS_FRAME_RIGHT: &str = "_right";
-pub const NS_PARAM: &str = "_param";
-pub const NS_DEFAULT_DB: &str = "default_db";
-
-// refers to the containing module (direct parent)
-pub const NS_SELF: &str = "_self";
-
-// implies we can infer new non-module declarations in the containing module
-pub const NS_INFER: &str = "_infer";
-
-// implies we can infer new module declarations in the containing module
-pub const NS_INFER_MODULE: &str = "_infer_module";
+use super::{Frame, FrameColumn, NS_PARAM, NS_STD};
+use super::{NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_SELF};
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {

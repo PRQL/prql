@@ -93,11 +93,12 @@ pub use error::{
 use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
 
-pub static PRQL_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
+pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
+    Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prql-compiler version number")
+});
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -129,7 +130,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, options.color))
+        .map_err(|e| e.composed(&prql.into(), options.color))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -229,10 +230,6 @@ impl Options {
         self
     }
 
-    pub fn some(self) -> Option<Self> {
-        Some(self)
-    }
-
     pub fn with_color(mut self, color: bool) -> Self {
         self.color = color;
         self
@@ -247,17 +244,31 @@ pub struct ReadmeDoctests;
 pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed(&prql.into(), false))
+}
+
+/// Parse PRQL into a PL AST
+pub fn prql_to_pl_tree(prql: &FileTree) -> Result<FileTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
+    parser::parse_tree(prql).map_err(error::downcast)
+    // .map_err(|e| e.composed("", prql, false))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve(pl).map_err(|e| e.into())
+    semantic::resolve(pl).map_err(error::downcast)
+}
+
+/// Perform semantic analysis and convert PL to RQ.
+pub fn pl_to_rq_tree(
+    pl: FileTree<Vec<ast::pl::Stmt>>,
+    main_path: Vec<String>,
+) -> Result<ast::rq::Query, ErrorMessages> {
+    semantic::resolve_tree(pl, main_path).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(|e| e.into())
+    sql::compile(rq, options).map_err(error::downcast)
 }
 
 /// Generate PRQL code from PL AST
@@ -287,6 +298,28 @@ pub mod json {
     /// JSON deserialization
     pub fn to_rq(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FileTree<T: Sized + Serialize = String> {
+    /// Mapping from file paths into their contents.
+    pub files: HashMap<PathBuf, T>,
+}
+
+impl FileTree<String> {
+    pub fn single<S: ToString>(source_id: PathBuf, source: S) -> Self {
+        FileTree {
+            files: [(source_id, source.to_string())].into(),
+        }
+    }
+}
+
+impl<S: ToString> From<S> for FileTree {
+    fn from(str: S) -> Self {
+        FileTree {
+            files: [(std::path::Path::new("").to_path_buf(), str.to_string())].into(),
+        }
     }
 }
 

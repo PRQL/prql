@@ -5,17 +5,12 @@ use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::context::{DeclKind, RelationColumns, TableDecl, TableExpr};
-use super::module::NS_DEFAULT_DB;
+use super::NS_DEFAULT_DB;
 use super::{Context, Frame};
 use crate::ast::pl::{fold::*, *};
 use crate::error::Span;
 
-pub fn label_references(
-    stmts: Vec<Stmt>,
-    context: &Context,
-    source_id: String,
-    source: String,
-) -> (Vec<u8>, Vec<Stmt>) {
+pub fn label_references(context: &Context, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -28,14 +23,13 @@ pub fn label_references(
         report: &mut report,
     };
     labeler.fold_table_exprs();
-    let stmts = labeler.fold_stmts(stmts).unwrap();
 
     let mut out = Vec::new();
     report
         .finish()
         .write((source_id, source), &mut out)
         .unwrap();
-    (out, stmts)
+    out
 }
 
 /// Traverses AST and add labels for each of the idents and function calls
@@ -94,6 +88,7 @@ impl<'a> AstFold for Labeler<'a> {
                         DeclKind::Module(_) => Color::Cyan,
                         DeclKind::LayeredModules(_) => Color::Cyan,
                         DeclKind::Infer(_) => Color::White,
+                        DeclKind::QueryDef(_) => Color::White,
                     };
 
                     let location = decl

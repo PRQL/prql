@@ -8,55 +8,91 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, Range, StmtKind, SwitchCase,
+    self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, QueryDef, Range, SwitchCase,
     Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
-use crate::utils::{toposort, IdGenerator, Pluck};
+use crate::utils::{toposort, IdGenerator};
+use crate::COMPILER_VERSION;
 
 use super::context::{self, Context, DeclKind};
-use super::module::NS_DEFAULT_DB;
+use super::NS_DEFAULT_DB;
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
-/// - make sure there are no unresolved
-pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Query> {
+/// - make sure there are no unresolved expressions.
+pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<Query> {
+    // find main
+    log::debug!("lookup for main pipeline in {main_path:?}");
+    let (_, main_ident) = context
+        .find_main(main_path)
+        .ok_or_else(|| Error::new_simple("Missing main pipeline").with_code("E0001"))?;
+
+    // find & validate query def
+    let def = context.find_query_def(&main_ident);
+    let def = def.cloned().unwrap_or_default();
+    validate_query_def(&def)?;
+
+    // find all tables in the root module
+    let tables = TableExtractor::extract(&context.root_mod);
+
+    // prune and toposort
+    let tables = toposort_tables(tables, &main_ident);
+
+    // lower tables
     let mut l = Lowerer::new(context);
+    let mut main_relation = None;
+    for (fq_ident, table) in tables {
+        let is_main = fq_ident == main_ident;
 
-    TableExtractor::extract(&mut l)?;
+        l.lower_table_decl(table, fq_ident)?;
 
-    let def = statements
-        .into_iter()
-        .find_map(|stmt| match stmt.kind {
-            StmtKind::QueryDef(def) => Some(def),
-            _ => None,
-        })
-        .unwrap_or_default();
-
-    let relation = find_main_relation(&mut l)
-        .ok_or_else(|| Error::new_simple("Missing query").with_code("E0001"))?;
+        if is_main {
+            let main_table = l.table_buffer.pop().unwrap();
+            main_relation = Some(main_table.relation);
+        }
+    }
 
     Ok(Query {
         def,
         tables: l.table_buffer,
-        relation,
+        relation: main_relation.unwrap(),
     })
 }
 
-fn find_main_relation(l: &mut Lowerer) -> Option<rq::Relation> {
-    let main = Ident::from_name("main");
-    let main_tid = l.table_mapping.get(&main)?;
+fn extern_ref_to_relation(
+    mut columns: Vec<RelationColumn>,
+    fq_ident: &Ident,
+) -> (rq::Relation, Option<String>) {
+    let extern_name = if fq_ident.starts_with_part(NS_DEFAULT_DB) {
+        let (_, remainder) = fq_ident.clone().pop_front();
+        remainder.unwrap()
+    } else {
+        // tables that are not from default_db
+        todo!()
+    };
 
-    let main = l
-        .table_buffer
-        .pluck(|t| if &t.id == main_tid { Ok(t) } else { Err(t) });
+    // put wildcards last
+    columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
 
-    let main = main.into_iter().next()?;
-    Some(main.relation)
+    let relation = rq::Relation {
+        kind: rq::RelationKind::ExternRef(extern_name),
+        columns,
+    };
+    (relation, None)
+}
+
+fn validate_query_def(query_def: &QueryDef) -> Result<()> {
+    if let Some(requirement) = &query_def.version {
+        if !requirement.matches(&COMPILER_VERSION) {
+            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.").into());
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -107,6 +143,31 @@ impl Lowerer {
             pipeline: Vec::new(),
             table_buffer: Vec::new(),
         }
+    }
+
+    fn lower_table_decl(&mut self, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
+        let context::TableDecl { columns, expr } = table;
+
+        let (relation, name) = match expr {
+            TableExpr::RelationVar(expr) => {
+                // a CTE
+                (self.lower_relation(*expr)?, Some(fq_ident.name.clone()))
+            }
+            TableExpr::LocalTable => extern_ref_to_relation(columns, &fq_ident),
+            TableExpr::Param(_) => unreachable!(),
+            TableExpr::None => return Ok(()),
+        };
+
+        let id = *self
+            .table_mapping
+            .entry(fq_ident)
+            .or_insert_with(|| self.tid.gen());
+
+        log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
+
+        let table = TableDecl { id, name, relation };
+        self.table_buffer.push(table);
+        Ok(())
     }
 
     /// Lower an expression into a instance of a table in the query
@@ -834,7 +895,6 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
     }
 }
 
-// Collects all ExternRefs and
 #[derive(Default)]
 struct TableExtractor {
     path: Vec<String>,
@@ -843,26 +903,21 @@ struct TableExtractor {
 }
 
 impl TableExtractor {
-    fn extract(lowerer: &mut Lowerer) -> Result<()> {
+    /// Finds table declarations in a module, recursively.
+    fn extract(root_module: &Module) -> Vec<(Ident, context::TableDecl)> {
         let mut te = TableExtractor::default();
-
-        te.extract_from_namespace(&lowerer.context.root_mod);
-
-        let tables = toposort_tables(te.tables);
-
-        for (fq_ident, table) in tables {
-            lower_table(lowerer, table, fq_ident)?;
-        }
-        Ok(())
+        te.extract_from_module(root_module);
+        te.tables
     }
 
-    fn extract_from_namespace(&mut self, namespace: &Module) {
+    /// Finds table declarations in a module, recursively.
+    fn extract_from_module(&mut self, namespace: &Module) {
         for (name, entry) in &namespace.names {
             self.path.push(name.clone());
 
             match &entry.kind {
                 DeclKind::Module(ns) => {
-                    self.extract_from_namespace(ns);
+                    self.extract_from_module(ns);
                 }
                 DeclKind::TableDecl(table) => {
                     let fq_ident = Ident::from_path(self.path.clone());
@@ -875,68 +930,30 @@ impl TableExtractor {
     }
 }
 
-fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
-    let context::TableDecl { columns, expr } = table;
-
-    let (relation, name) = match expr {
-        TableExpr::RelationVar(expr) => {
-            // a CTE
-            (lowerer.lower_relation(*expr)?, Some(fq_ident.name.clone()))
-        }
-        TableExpr::LocalTable => extern_ref_to_relation(columns, &fq_ident),
-        TableExpr::Param(_) => unreachable!(),
-        TableExpr::None => return Ok(()),
-    };
-
-    let id = *lowerer
-        .table_mapping
-        .entry(fq_ident)
-        .or_insert_with(|| lowerer.tid.gen());
-
-    log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
-
-    let table = TableDecl { id, name, relation };
-    lowerer.table_buffer.push(table);
-    Ok(())
-}
-
-fn extern_ref_to_relation(
-    mut columns: Vec<RelationColumn>,
-    fq_ident: &Ident,
-) -> (rq::Relation, Option<String>) {
-    let extern_name = if fq_ident.starts_with_part(NS_DEFAULT_DB) {
-        let (_, remainder) = fq_ident.clone().pop_front();
-        remainder.unwrap()
-    } else {
-        // tables that are not from default_db
-        todo!()
-    };
-
-    // put wildcards last
-    columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
-
-    let relation = rq::Relation {
-        kind: rq::RelationKind::ExternRef(extern_name),
-        columns,
-    };
-    (relation, None)
-}
-
-fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, context::TableDecl)> {
+/// Does a topological sort of the pipeline definitions and prunes all definitions that
+/// are not needed for the main pipeline. To do this, it needs to collect references
+/// between pipelines.
+fn toposort_tables(
+    tables: Vec<(Ident, context::TableDecl)>,
+    main_table: &Ident,
+) -> Vec<(Ident, context::TableDecl)> {
     let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
 
-    let mut dependencies: Vec<(Ident, Vec<Ident>)> = tables
-        .iter()
-        .map(|(ident, table)| {
-            let deps = (table.expr.clone().into_relation_var())
-                .map(|e| TableDepsCollector::collect(*e))
-                .unwrap_or_default();
-            (ident.clone(), deps)
-        })
-        .collect();
+    let mut dependencies: Vec<(Ident, Vec<Ident>)> = Vec::new();
+    for (ident, table) in &tables {
+        let deps = if let TableExpr::RelationVar(e) = &table.expr {
+            TableDepsCollector::collect(*e.clone())
+        } else {
+            vec![]
+        };
+
+        dependencies.push((ident.clone(), deps));
+    }
+
+    // sort just to make sure lowering is stable
     dependencies.sort_by(|a, b| a.0.cmp(&b.0));
 
-    let sort = toposort(&dependencies).unwrap();
+    let sort = toposort(&dependencies, Some(main_table)).unwrap();
 
     let mut tables = tables;
     sort.into_iter()

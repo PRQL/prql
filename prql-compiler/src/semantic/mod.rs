@@ -9,38 +9,44 @@ mod static_analysis;
 mod transforms;
 mod type_resolver;
 
+use anyhow::Result;
+use itertools::Itertools;
+use std::path::{Path, PathBuf};
+
 pub use self::context::Context;
 pub use self::module::Module;
 
-use crate::ast::pl::frame::{Frame, FrameColumn};
-use crate::ast::pl::Stmt;
+use crate::ast::pl::{Frame, FrameColumn, Stmt};
 use crate::ast::rq::Query;
-use crate::semantic::module::NS_STD;
-use crate::PRQL_VERSION;
-
-use anyhow::{bail, Result};
-use semver::{Version, VersionReq};
+use crate::error::WithErrorInfo;
+use crate::{Error, FileTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     let context = load_std_lib();
 
-    let (statements, context) = resolver::resolve(statements, vec![], context)?;
+    let context = resolver::resolve(statements, vec![], context)?;
 
-    let query = lowering::lower_ast_to_ir(statements, context)?;
+    let query = lowering::lower_to_ir(context, &[])?;
 
-    if let Some(ref version) = query.def.version {
-        check_query_version(version, &PRQL_VERSION)?;
+    Ok(query)
+}
+
+/// Runs semantic analysis on the query and lowers PL to RQ.
+pub fn resolve_tree(file_tree: FileTree<Vec<Stmt>>, main_path: Vec<String>) -> Result<Query> {
+    let mut context = load_std_lib();
+
+    for (path, stmts) in normalize(file_tree)? {
+        context = resolver::resolve(stmts, path, context)?;
     }
+
+    let query = lowering::lower_to_ir(context, &main_path)?;
 
     Ok(query)
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve_only(
-    statements: Vec<Stmt>,
-    context: Option<Context>,
-) -> Result<(Vec<Stmt>, Context)> {
+pub fn resolve_only(statements: Vec<Stmt>, context: Option<Context>) -> Result<Context> {
     let context = context.unwrap_or_else(load_std_lib);
 
     resolver::resolve(statements, vec![], context)
@@ -56,17 +62,82 @@ pub fn load_std_lib() -> Context {
         ..Context::default()
     };
 
-    let (_, context) = resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap();
-    context
+    resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap()
 }
 
-fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
-    if !query_version.matches(prql_version) {
-        bail!("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
+pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
+    // remove file format extension
+    let path = path.with_extension("");
+
+    // split by /
+    path.components()
+        .map(|x| {
+            x.as_os_str()
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Invalid file path: {path:?}"))
+                .map(str::to_string)
+        })
+        .try_collect()
+}
+
+fn normalize(mut tree: FileTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt>)>> {
+    // find root
+    let root_path = PathBuf::from("");
+
+    if tree.files.get(&root_path).is_none() {
+        if tree.files.len() == 1 {
+            // if there is only one file, use that as the root
+            let (_, only) = tree.files.drain().exactly_one().unwrap();
+            tree.files.insert(root_path, only);
+        } else if let Some(under) = tree.files.keys().find(|p| path_starts_with(p, "_")) {
+            // if there is a path that starts with `_`, that's the root
+            let under = tree.files.remove(&under.clone()).unwrap();
+            tree.files.insert(root_path, under);
+        } else {
+            return Err(Error::new_simple("Cannot find the root module.")
+                .with_help("root module should be prefixed with `_`")
+                .into());
+        }
     }
 
-    Ok(())
+    // TODO: make sure that the module tree is normalized
+
+    // TODO: find correct resolution order
+
+    let mut modules = Vec::with_capacity(tree.files.len());
+    for (path, stmts) in tree.files {
+        let path = os_path_to_prql_path(path)?;
+        modules.push((path, stmts));
+    }
+    modules.sort_unstable_by_key(|(path, _)| path.join("."));
+    modules.reverse();
+
+    Ok(modules)
 }
+
+fn path_starts_with(p: &Path, prefix: &str) -> bool {
+    p.components()
+        .next()
+        .and_then(|x| x.as_os_str().to_str())
+        .map_or(false, |x| x.starts_with(prefix))
+}
+
+pub const NS_STD: &str = "std";
+pub const NS_FRAME: &str = "_frame";
+pub const NS_FRAME_RIGHT: &str = "_right";
+pub const NS_PARAM: &str = "_param";
+pub const NS_DEFAULT_DB: &str = "default_db";
+pub const NS_QUERY_DEF: &str = "prql";
+pub const NS_MAIN: &str = "main";
+
+// refers to the containing module (direct parent)
+pub const NS_SELF: &str = "_self";
+
+// implies we can infer new non-module declarations in the containing module
+pub const NS_INFER: &str = "_infer";
+
+// implies we can infer new module declarations in the containing module
+pub const NS_INFER_MODULE: &str = "_infer_module";
 
 #[cfg(test)]
 mod test {
