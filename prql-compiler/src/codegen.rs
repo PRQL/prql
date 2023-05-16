@@ -170,6 +170,38 @@ impl WriteSource for pl::Pipeline {
     }
 }
 
+impl WriteSource for pl::Stmt {
+    fn write(&self, opt: WriteOpt) -> Option<String> {
+        match &self.kind {
+            pl::StmtKind::QueryDef(query) => {
+                let mut r = String::new();
+                r += "prql";
+                if let Some(version) = &query.version {
+                    r += &format!(" version:{}", version);
+                }
+                for (key, value) in &query.other {
+                    r += &format!(" {key}:{value}");
+                }
+                Some(r)
+            }
+            pl::StmtKind::Main(expr) => match &expr.kind {
+                pl::ExprKind::Pipeline(pipeline) => pipeline.write(opt),
+                kind => kind.write(opt),
+            },
+            pl::StmtKind::FuncDef(_) => {
+                // fallback to old framework
+                Some(self.to_string())
+            }
+            pl::StmtKind::VarDef(var) => {
+                // fallback to old framework
+                Some(format!("let {} = {}\n\n", self.name, var.value.to_string()))
+            }
+            pl::StmtKind::TypeDef(_) => todo!(),
+            pl::StmtKind::ModuleDef(_) => todo!(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
