@@ -608,7 +608,7 @@ impl Display for Expr {
             ExprKind::Param(id) => {
                 writeln!(f, "${id}")?;
             }
-            ExprKind::FuncDef(func_def) => write!(f, "{:?}", func_def)?,
+            ExprKind::FuncDef(func_def) => write!(f, "{func_def}")?,
         }
 
         Ok(())
