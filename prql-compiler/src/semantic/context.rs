@@ -55,8 +55,6 @@ pub enum DeclKind {
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(Box<DeclKind>),
 
-    FuncDef(FuncDef_),
-
     Expr(Box<Expr>),
 
     QueryDef(QueryDef),
@@ -538,7 +536,6 @@ impl std::fmt::Display for DeclKind {
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
-            Self::FuncDef(_) => write!(f, "FuncDef"),
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }

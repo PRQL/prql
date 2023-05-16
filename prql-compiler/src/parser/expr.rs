@@ -300,6 +300,7 @@ fn lambda_func() -> impl Parser<Token, FuncDef_, Error = Simple<Token>> {
             positional_params: pos,
             named_params: nam,
             body,
+            return_ty: None, // TODO: lambda return type annotations
         }
     })
     // .map(StmtKind::FuncDef)

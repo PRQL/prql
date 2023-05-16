@@ -55,6 +55,7 @@ pub struct FuncDef_ {
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,
+    pub return_ty: Option<Box<Expr>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

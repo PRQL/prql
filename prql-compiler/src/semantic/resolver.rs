@@ -184,18 +184,6 @@ impl AstFold for Resolver {
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
-                    // convert ident to function without args
-                    DeclKind::FuncDef(func_def) => {
-                        // FIXME: Here our plan to merge VarDef and FuncDef breaks down...
-                        let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
-
-                        if self.in_func_call_name {
-                            Expr::from(ExprKind::Closure(Box::new(closure)))
-                        } else {
-                            self.fold_function(closure, vec![], HashMap::new(), node.span)?
-                        }
-                    }
-
                     DeclKind::Infer(_) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: entry.declared_at,
@@ -221,7 +209,21 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
+                    DeclKind::Expr(expr) => {
+                        if let ExprKind::FuncDef(func_def) = &expr.kind {
+                            // TODO: remove this function call entirely when ExprKind::FuncDef is merged with ExprKind::Closure
+                            let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
+
+                            if self.in_func_call_name {
+                                Expr::from(ExprKind::Closure(Box::new(closure)))
+                            } else {
+                                // this branch is equivalent to the last branch, if ExprKind::Closure is equal to ExprKind::FuncDef
+                                self.fold_function(closure, vec![], HashMap::new(), node.span)?
+                            }
+                        } else {
+                            self.fold_expr(expr.as_ref().clone())?
+                        }
+                    }
 
                     DeclKind::InstanceOf(_) => {
                         return Err(Error::new_simple(
@@ -768,18 +770,12 @@ impl Resolver {
         }))
     }
 
-    fn closure_of_func_def(&mut self, var_def: VarDef, fq_ident: Ident) -> Result<Closure> {
-        let body_ty = self.fold_type_expr(var_def.ty_expr)?;
-
-        let func_def = &var_def
-            .value
-            .kind
-            .as_func_def()
-            .ok_or_else(|| anyhow!("not a function"))?;
+    fn closure_of_func_def(&mut self, func_def: FuncDef_, fq_ident: Ident) -> Result<Closure> {
+        let body_ty = self.fold_type_expr(None)?;
 
         Ok(Closure {
             name: Some(fq_ident),
-            body: var_def.value,
+            body: func_def.body,
             body_ty,
 
             params: self.fold_func_params(&func_def.positional_params)?,

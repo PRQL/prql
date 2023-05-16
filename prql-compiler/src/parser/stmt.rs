@@ -113,11 +113,12 @@ fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
         .ignore_then(ident_part())
         .then_ignore(ctrl('='))
         // FIXME: add in type
-        .then(
-            expr_call()
-                .map(Box::new)
-                .map(|value| StmtKind::VarDef(VarDef { value, ty_expr: None, })),
-        )
+        .then(expr_call().map(Box::new).map(|value| {
+            StmtKind::VarDef(VarDef {
+                value,
+                ty_expr: None,
+            })
+        }))
         .labelled("variable definition")
 }
 
