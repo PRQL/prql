@@ -250,7 +250,7 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(prql: &FileTree) -> Result<FileTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
     parser::parse_tree(prql).map_err(error::downcast)
-    // .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed(prql, false))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
