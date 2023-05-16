@@ -25,7 +25,6 @@ pub struct Stmt {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum StmtKind {
     QueryDef(QueryDef),
-    FuncDef(FuncDef),
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
@@ -39,14 +38,22 @@ pub struct QueryDef {
     pub other: HashMap<String, String>,
 }
 
+// /// Function definition.
+// #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+// pub struct FuncDef {
+//     pub name: String,
+//     pub positional_params: Vec<FuncParam>, // ident
+//     pub named_params: Vec<FuncParam>,      // named expr
+//     pub body: Box<Expr>,
+//     pub return_ty: Option<Expr>,
+// }
+
 /// Function definition.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncDef {
-    pub name: String,
+pub struct FuncDef_ {
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,
-    pub return_ty: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -64,6 +71,7 @@ pub struct FuncParam {
 pub struct VarDef {
     pub name: String,
     pub value: Box<Expr>,
+    pub ty_expr: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -127,9 +135,6 @@ impl Display for StmtKind {
                 }
                 _ => writeln!(f, "{}", expr)?,
             },
-            StmtKind::FuncDef(func_def) => {
-                writeln!(f, "{func_def}\n")?;
-            }
             StmtKind::VarDef(var) => {
                 let pipeline = &var.value;
                 match &pipeline.kind {
@@ -161,9 +166,9 @@ impl Display for StmtKind {
     }
 }
 
-impl Display for FuncDef {
+impl Display for FuncDef_ {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "func {}", self.name)?;
+        // write!(f, "func {}", self.name)?;
         for arg in &self.positional_params {
             write!(f, " {}", arg.name)?;
         }

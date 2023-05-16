@@ -17,7 +17,7 @@ Functions have two types of parameters:
 So this function is named `fahrenheit_to_celsius` and has one parameter `temp`:
 
 ```prql no-fmt
-func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
+let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 
 from cities
 derive temp_c = (fahrenheit_to_celsius temp_f)
@@ -29,7 +29,7 @@ and `x`, and one named parameter named `low` which takes a default argument of
 `high`.
 
 ```prql
-func interp low:0 high x -> (x - low) / (high - low)
+let interp = low:0 high x -> (x - low) / (high - low)
 
 from students
 derive [
@@ -47,7 +47,7 @@ positional parameter of the function. Here's the same result as the examples
 above with an alternative construction:
 
 ```prql
-func interp low:0 high x -> (x - low) / (high - low)
+let interp = low:0 high x -> (x - low) / (high - low)
 
 from students
 derive [
@@ -59,7 +59,7 @@ derive [
 and
 
 ```prql
-func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
+let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 
 from cities
 derive temp_c = (temp_f | fahrenheit_to_celsius)
@@ -68,8 +68,8 @@ derive temp_c = (temp_f | fahrenheit_to_celsius)
 We can combine a chain of functions, which makes logic more readable:
 
 ```prql
-func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
-func interp low:0 high x -> (x - low) / (high - low)
+let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
+let interp = low:0 high x -> (x - low) / (high - low)
 
 from kettles
 derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
@@ -84,7 +84,7 @@ For example, here `cost_total` refers to the column that's introduced in the
 `from`.
 
 ```prql
-func cost_share cost -> cost / cost_total
+let cost_share = cost -> cost / cost_total
 
 from costs
 select [materials, labor, overhead, cost_total]

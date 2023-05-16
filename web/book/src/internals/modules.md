@@ -249,8 +249,8 @@ connector (i.e. JDBC) where no other files can be loaded.
 # root module of every project
 module project {
 	module std {
-		func sum a -> ...
-		func mean a -> ...
+		let sum = a -> ...
+		let mean = a -> ...
 	}
 
 	module default_db {
@@ -316,7 +316,7 @@ let orders_2024 = (...)
 ```
 # util.prql
 
-func pretty_print_num col -> (...)
+let pretty_print_num = col -> (...)
 ```
 
 ---

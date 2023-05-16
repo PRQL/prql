@@ -20,6 +20,7 @@ pub struct Context {
     pub(crate) span_map: HashMap<usize, Span>,
 }
 
+/// A struct containing information about a single declaration.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
     pub declared_at: Option<usize>,
@@ -31,6 +32,7 @@ pub struct Decl {
     pub order: usize,
 }
 
+/// The Declaration itself.
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum DeclKind {
     /// A nested namespace
@@ -51,7 +53,7 @@ pub enum DeclKind {
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(Box<DeclKind>),
 
-    FuncDef(FuncDef),
+    FuncDef(FuncDef_),
 
     Expr(Box<Expr>),
 }

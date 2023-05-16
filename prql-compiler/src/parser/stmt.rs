@@ -26,7 +26,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
             .labelled("module definition");
 
-        choice((type_def(), var_def(), function_def(), module_def))
+        choice((type_def(), var_def(), module_def))
             .map_with_span(into_stmt)
             .separated_by(new_line().repeated())
             .allow_leading()
@@ -109,7 +109,12 @@ fn var_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
         .ignore_then(ident_part())
         .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
-        .map(|(name, value)| VarDef { name, value })
+        // FIXME: add in type
+        .map(|(name, value)| VarDef {
+            name,
+            value,
+            ty_expr: None,
+        })
         .map(StmtKind::VarDef)
         .labelled("variable definition")
 }
@@ -123,43 +128,44 @@ fn type_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
         .labelled("type definition")
 }
 
-fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
-    keyword("func")
-        .ignore_then(
-            // func name
-            ident_part().then(type_expr().or_not()),
-        )
-        .then(
-            // params
-            ident_part()
-                .then(type_expr().or_not())
-                .then(ctrl(':').ignore_then(expr()).or_not())
-                .repeated(),
-        )
-        .then_ignore(just(Token::ArrowThin))
-        .then(expr_call().map(Box::new))
-        .then_ignore(new_line())
-        .map(|(((name, return_ty), params), body)| {
-            let (pos, nam) = params
-                .into_iter()
-                .map(|((name, ty_expr), default_value)| FuncParam {
-                    name,
-                    ty_expr,
-                    default_value,
-                })
-                .partition(|p| p.default_value.is_none());
+// fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
+//     keyword("let")
+//         .ignore_then(
+//             // func name
+//             ident_part().then(type_expr().or_not()),
+//         )
+//         .then_ignore(ctrl('='))
+//         .then(
+//             // params
+//             ident_part()
+//                 .then(type_expr().or_not())
+//                 .then(ctrl(':').ignore_then(expr()).or_not())
+//                 .repeated(),
+//         )
+//         .then_ignore(just(Token::ArrowThin))
+//         .then(expr_call().map(Box::new))
+//         .then_ignore(new_line())
+//         .map(|(((name, return_ty), params), body)| {
+//             let (pos, nam) = params
+//                 .into_iter()
+//                 .map(|((name, ty_expr), default_value)| FuncParam {
+//                     name,
+//                     ty_expr,
+//                     default_value,
+//                 })
+//                 .partition(|p| p.default_value.is_none());
 
-            FuncDef {
-                name,
-                positional_params: pos,
-                named_params: nam,
-                body,
-                return_ty,
-            }
-        })
-        .map(StmtKind::FuncDef)
-        .labelled("function definition")
-}
+//             FuncDef {
+//                 name,
+//                 positional_params: pos,
+//                 named_params: nam,
+//                 body,
+//                 return_ty,
+//             }
+//         })
+//         .map(StmtKind::FuncDef)
+//         .labelled("function definition")
+// }
 
 pub fn type_expr() -> impl Parser<Token, Expr, Error = Simple<Token>> {
     let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };

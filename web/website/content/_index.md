@@ -211,7 +211,7 @@ showcase_section:
     - id: functions
       label: Functions
       prql: |
-        func fahrenheit_from_celsius temp -> temp * 9/5 + 32
+        let fahrenheit_from_celsius = temp -> temp * 9/5 + 32
 
         from weather
         select temp_f = (fahrenheit_from_celsius temp_c)

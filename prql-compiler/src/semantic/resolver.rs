@@ -80,17 +80,17 @@ impl AstFold for Resolver {
 
             let kind = match stmt.kind {
                 StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
-                StmtKind::FuncDef(func_def) => {
-                    let ident = Ident {
-                        path: self.current_module_path.clone(),
-                        name: func_def.name.clone(),
-                    };
+                // StmtKind::FuncDef(func_def) => {
+                //     let ident = Ident {
+                //         path: self.current_module_path.clone(),
+                //         name: func_def.name.clone(),
+                //     };
 
-                    let decl = DeclKind::FuncDef(func_def);
+                //     let decl = DeclKind::FuncDef(func_def);
 
-                    self.context.declare(ident, decl, stmt.id);
-                    continue;
-                }
+                //     self.context.declare(ident, decl, stmt.id);
+                //     continue;
+                // }
                 StmtKind::VarDef(var_def) => {
                     let var_def = self.fold_var_def(var_def)?;
                     let ident = Ident {
@@ -109,6 +109,8 @@ impl AstFold for Resolver {
                             e.ty = Some(Ty::TypeExpr(TypeExpr::Type));
                             e
                         })),
+                        // FIXME
+                        ty_expr: None,
                     };
 
                     let var_def = self.fold_var_def(var_def)?;
@@ -131,6 +133,7 @@ impl AstFold for Resolver {
                     let var_def = VarDef {
                         name: "main".to_string(),
                         value: Box::new(expr),
+                        ty_expr: None,
                     };
                     let ident = Ident {
                         path: self.current_module_path.clone(),
@@ -170,6 +173,7 @@ impl AstFold for Resolver {
         Ok(VarDef {
             name: var_def.name,
             value: Box::new(Flattener::fold(self.fold_expr(*var_def.value)?)),
+            ty_expr: var_def.ty_expr,
         })
     }
 
@@ -199,6 +203,7 @@ impl AstFold for Resolver {
                 match &entry.kind {
                     // convert ident to function without args
                     DeclKind::FuncDef(func_def) => {
+                        // FIXME: Here our plan to merge VarDef and FuncDef breaks down...
                         let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
 
                         if self.in_func_call_name {
@@ -780,12 +785,18 @@ impl Resolver {
         }))
     }
 
-    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
-        let body_ty = self.fold_type_expr(func_def.return_ty)?;
+    fn closure_of_func_def(&mut self, var_def: VarDef, fq_ident: Ident) -> Result<Closure> {
+        let body_ty = self.fold_type_expr(var_def.ty_expr)?;
+
+        let func_def = &var_def
+            .value
+            .kind
+            .as_func_def()
+            .ok_or_else(|| anyhow!("not a function"))?;
 
         Ok(Closure {
             name: Some(fq_ident),
-            body: func_def.body,
+            body: var_def.value,
             body_ty,
 
             params: self.fold_func_params(&func_def.positional_params)?,
@@ -889,7 +900,7 @@ mod test {
     fn test_functions_1() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func subtract a b -> a - b
+            let subtract = a b -> a - b
 
             from employees
             derive [
@@ -904,8 +915,8 @@ mod test {
     fn test_functions_nested() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func lag_day x -> s"lag_day_todo({x})"
-            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
+            let lag_day = x -> s"lag_day_todo({x})"
+            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
             from a
             derive (ret b c)
@@ -926,8 +937,8 @@ mod test {
 
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func plus_one x -> x + 1
-            func plus x y -> x + y
+            let plus_one = x -> x + 1
+            let plus = x y -> x + y
 
             from a
             derive [b = (sum foo | plus_one | plus 2)]
@@ -939,7 +950,7 @@ mod test {
     fn test_named_args() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func add x to:1 -> x + to
+            let add = x to:1 -> x + to
 
             from foo_table
             derive [

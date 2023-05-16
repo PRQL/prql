@@ -40,6 +40,7 @@ pub trait AstFold {
         Ok(VarDef {
             name: var_def.name,
             value: Box::new(self.fold_expr(*var_def.value)?),
+            ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
         })
     }
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
@@ -54,9 +55,9 @@ pub trait AstFold {
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
         fold_pipeline(self, pipeline)
     }
-    fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
-        fold_func_def(self, function)
-    }
+    // fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
+    //     fold_func_def(self, function)
+    // }
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
     }
@@ -122,14 +123,14 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) | Type(_) => expr_kind,
+        Literal(_) | Type(_) | FuncDef(_) => expr_kind,
     })
 }
 
 pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) -> Result<StmtKind> {
     use StmtKind::*;
     Ok(match stmt_kind {
-        FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
+        // FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
         Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
@@ -308,15 +309,15 @@ pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Resu
     })
 }
 
-pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
-    Ok(FuncDef {
-        name: func_def.name,
-        positional_params: fold_func_param(fold, func_def.positional_params)?,
-        named_params: fold_func_param(fold, func_def.named_params)?,
-        body: Box::new(fold.fold_expr(*func_def.body)?),
-        return_ty: func_def.return_ty,
-    })
-}
+// pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
+//     Ok(FuncDef {
+//         name: func_def.name,
+//         positional_params: fold_func_param(fold, func_def.positional_params)?,
+//         named_params: fold_func_param(fold, func_def.named_params)?,
+//         body: Box::new(fold.fold_expr(*func_def.body)?),
+//         return_ty: func_def.return_ty,
+//     })
+// }
 
 pub fn fold_func_param<T: ?Sized + AstFold>(
     fold: &mut T,

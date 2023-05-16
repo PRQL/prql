@@ -99,7 +99,7 @@ Here's that model using PRQL[^1], including the prql Jinja tags.
 
 ```elm
 {% prql %}
-func filter_amount method -> s"sum(case when payment_method = '{method}' then amount end) as {method}_amount"
+let filter_amount = method -> s"sum(case when payment_method = '{method}' then amount end) as {method}_amount"
 
 from {{ ref('raw_payments') }}
 group order_id (
@@ -135,7 +135,7 @@ come, check out the current version on
     or
 
     ```elm
-    func filter_amount method -> amount | filter payment_method == method | sum
+    let filter_amount = method -> amount | filter payment_method == method | sum
 
     from {{ ref('raw_payments') }}
     group order_id (

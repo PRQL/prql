@@ -1,13 +1,13 @@
-func min <scalar || column> column ->  s"MIN({column})"
-func max <scalar || column> column ->  s"MAX({column})"
-func sum <scalar || column> column ->  s"SUM({column})"
-func avg <scalar || column> column ->  s"AVG({column})"
-func stddev <scalar || column> column ->  s"STDDEV({column})"
-func average <scalar || column> column ->  s"AVG({column})"
-func count <scalar || column> non_null:s"*" ->  s"COUNT({non_null})"
+let min = <scalar || column> column ->  s"MIN({column})"
+let max = <scalar || column> column ->  s"MAX({column})"
+let sum = <scalar || column> column ->  s"SUM({column})"
+let avg = <scalar || column> column ->  s"AVG({column})"
+let stddev = <scalar || column> column ->  s"STDDEV({column})"
+let average = <scalar || column> column ->  s"AVG({column})"
+let count = <scalar || column> non_null:s"*" ->  s"COUNT({non_null})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func count_distinct <scalar || column> column ->  s"COUNT(DISTINCT {column})"
+let count_distinct = <scalar || column> column ->  s"COUNT(DISTINCT {column})"
 
 # Window functions
 func lag<column> offset column ->  s"LAG({column}, {offset})"
@@ -23,26 +23,26 @@ func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
 func as<scalar> `noresolve.type` column ->  s"CAST({column} AS {type})"
 
 # String functions
-func lower <text> column -> s"LOWER({column})"
-func upper <text> column -> s"UPPER({column})"
+let lower = <text> column -> s"LOWER({column})"
+let upper = <text> column -> s"UPPER({column})"
 
 # Source-reading functions, primarily for DuckDB
 func read_parquet<table> source<text> -> s"SELECT * FROM read_parquet({source})"
 func read_csv<table> source<text> -> s"SELECT * FROM read_csv_auto({source})"
 
-func mul l r -> null
-func div l r -> null
-func mod l r -> null
-func add l r -> null
-func sub l r -> null
-func eq l r -> null
-func ne l r -> null
-func gt l r -> null
-func lt l r -> null
-func gte l r -> null
-func lte l r -> null
-func and l r -> null
-func or l r -> null
-func coalesce l r -> s"COALESCE({l}, {r})"
-func neg l -> null
-func not l -> null
+let mul = l r -> null
+let div = l r -> null
+let mod = l r -> null
+let add = l r -> null
+let sub = l r -> null
+let eq = l r -> null
+let ne = l r -> null
+let gt = l r -> null
+let lt = l r -> null
+let gte = l r -> null
+let lte = l r -> null
+let and = l r -> null
+let or = l r -> null
+let coalesce = l r -> s"COALESCE({l}, {r})"
+let neg = l -> null
+let not = l -> null

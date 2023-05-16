@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "func fahrenheit_to_celsius temp -> (temp - 32) / 1.8\n\nfrom cities\nderive temp_c = (temp_f | fahrenheit_to_celsius)\n"
+expression: "let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8\n\nfrom cities\nderive temp_c = (temp_f | fahrenheit_to_celsius)\n"
 ---
 SELECT
   *,

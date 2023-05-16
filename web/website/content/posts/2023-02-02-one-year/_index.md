@@ -99,7 +99,7 @@ invite you to read more in
 [the language documentation](https://prql-lang.org/book/internals/functional-lang.html).
 
 ```prql
-func take_oldest n rel -> (
+let take_oldest = n rel -> (
     rel
     sort [-invoice_date]
     take n

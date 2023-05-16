@@ -1099,7 +1099,7 @@ Canada
 
     #[test]
     fn test_function() {
-        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: plus_one
@@ -1118,7 +1118,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func identity x ->  x\n").unwrap()
+        assert_yaml_snapshot!(parse("let identity = x ->  x\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1132,7 +1132,7 @@ Canada
                 - x
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func plus_one x ->  (x + 1)\n").unwrap()
+        assert_yaml_snapshot!(parse("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1152,7 +1152,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap()
+        assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1173,7 +1173,7 @@ Canada
             return_ty: ~
         "###);
 
-        assert_yaml_snapshot!(parse("func foo x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
+        assert_yaml_snapshot!(parse("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1224,7 +1224,7 @@ Canada
             return_ty: ~
         "###);
 
-        assert_yaml_snapshot!(parse(r#"func count X -> s"SUM({X})"
+        assert_yaml_snapshot!(parse(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
         - FuncDef:
@@ -1245,7 +1245,7 @@ Canada
 
         assert_yaml_snapshot!(parse(
             r#"
-            func lag_day x ->  (
+            let lag_day = x ->  (
                 window x
                 by sec_id
                 sort date
@@ -1295,7 +1295,7 @@ Canada
             return_ty: ~
         "###);
 
-        assert_yaml_snapshot!(parse("func add x to:a ->  x + to\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse("let add = x to:a ->  x + to\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: add
@@ -1644,7 +1644,7 @@ Canada
                   - Literal:
                       Integer: 50
         "###);
-        assert_yaml_snapshot!(parse("func median x -> (x | percentile 50)\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: median

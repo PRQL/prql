@@ -1,7 +1,7 @@
 # The PRQL standard library defines the following functions and transforms.
 # The definitions are whitespace insensitive, and have this form:
 #
-# func my_func <return_type> param1 param2 ...  -> body_expr
+# let my_func = <return_type> param1 param2 ...  -> body_expr
 # where:
 #   * my_func is the name of the function
 #   * <return_type> is the type of result wrapped in "< ... >"
@@ -12,16 +12,16 @@
 
 # Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
-func min <scalar || column> column -> null
-func max <scalar || column> column -> null
-func sum <scalar || column> column -> null
-func avg <scalar || column> column -> null
-func stddev <scalar || column> column -> null
-func average <scalar || column> column -> null
-func count <scalar || column> non_null:s"*" -> null
+let min = <scalar || column> column -> null
+let max = <scalar || column> column -> null
+let sum = <scalar || column> column -> null
+let avg = <scalar || column> column -> null
+let stddev = <scalar || column> column -> null
+let average = <scalar || column> column -> null
+let count = <scalar || column> non_null:s"*" -> null
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func count_distinct <scalar || column> column -> null
+let count_distinct = <scalar || column> column -> null
 
 # Window functions
 func lag<column> offset column -> null
@@ -70,14 +70,14 @@ func all<bool> list<list> -> null
 func map<list> fn list<list> -> null
 func zip<list> a<list> b<list> -> null
 func _eq<list> a<list> -> null
-func _is_null a -> _param.a == null
+let _is_null = a -> _param.a == null
 
 # Misc
 func from_text<table> input<text> `noresolve.format`:csv -> null
 
 # String functions
-func lower <text> column -> null
-func upper <text> column -> null
+let lower = <text> column -> null
+let upper = <text> column -> null
 
 # type primitives
 type int
