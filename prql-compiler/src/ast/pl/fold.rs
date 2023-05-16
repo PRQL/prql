@@ -95,6 +95,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
             expr: Box::new(fold.fold_expr(*expr)?),
         },
         List(items) => List(fold.fold_exprs(items)?),
+        Array(items) => Array(fold.fold_exprs(items)?),
         Range(range) => Range(fold_range(fold, range)?),
         Pipeline(p) => Pipeline(fold.fold_pipeline(p)?),
         SString(items) => SString(

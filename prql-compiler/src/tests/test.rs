@@ -3614,3 +3614,20 @@ fn test_into() {
     "###
     );
 }
+
+#[test]
+fn test_array() {
+    assert_display_snapshot!(compile(r#"
+    let a = {1, 2, false}
+    "#).unwrap_err(),
+        @r###"
+    Error:
+       ╭─[:2:20]
+       │
+     2 │     let a = {1, 2, false}
+       │                    ──┬──
+       │                      ╰──── array expected types of all of its elements to be int, but found bool
+    ───╯
+    "###
+    );
+}

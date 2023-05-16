@@ -3,6 +3,7 @@ use std::fmt::{Display, Write};
 
 use anyhow::{anyhow, Result};
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 use semver::VersionReq;
 
 use serde::{Deserialize, Serialize};
@@ -56,7 +57,10 @@ pub enum ExprKind {
     },
     Literal(Literal),
     Pipeline(Pipeline),
+
+    /// Also known as tuple or struct
     List(Vec<Expr>),
+    Array(Vec<Expr>),
     Range(Range),
     Binary {
         left: Box<Expr>,
@@ -524,6 +528,10 @@ impl Display for Expr {
                     }
                     f.write_str("]")?;
                 }
+            }
+            ExprKind::Array(items) => {
+                let items = items.into_iter().map(|x| x.to_string()).join(", ");
+                write!(f, "{{{items}}}")?;
             }
             ExprKind::Range(r) => {
                 if let Some(start) = &r.start {

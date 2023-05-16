@@ -343,6 +343,34 @@ impl AstFold for Resolver {
                 }
             }
 
+            ExprKind::Array(exprs) => {
+                let exprs = self.fold_exprs(exprs)?;
+
+                // validate that all elements have the same type
+                let mut item_ty = None;
+                for expr in &exprs {
+                    let ty = expr.ty.as_ref().unwrap();
+                    if let Some(item_ty) = item_ty {
+                        if item_ty != ty {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("array".to_string()),
+                                expected: format!("types of all of its elements to be {item_ty}"),
+                                found: ty.to_string(),
+                            })
+                            .with_span(expr.span)
+                            .into());
+                        }
+                    } else {
+                        item_ty = Some(ty);
+                    }
+                }
+
+                Expr {
+                    kind: ExprKind::List(exprs),
+                    ..node
+                }
+            }
+
             item => Expr {
                 kind: fold_expr_kind(self, item)?,
                 ..node

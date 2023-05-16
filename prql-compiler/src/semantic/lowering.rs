@@ -781,6 +781,7 @@ impl Lowerer {
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
             | pl::ExprKind::List(_)
+            | pl::ExprKind::Array(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
