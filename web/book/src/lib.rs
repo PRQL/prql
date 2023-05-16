@@ -159,27 +159,22 @@ fn replace_examples(text: &str) -> Result<String> {
         };
 
         let prql = text.to_string();
-        let options = prql_compiler::Options::default().no_signature();
+        let options = prql_compiler::Options::default()
+            .no_signature()
+            .with_color(true);
         let result = compile(&prql, &options);
 
         if lang_tags.contains(&LangTag::NoTest) {
             cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
         } else if lang_tags.contains(&LangTag::Error) {
-            cmark_acc.push(Event::Html(
-                table_of_error(
-                    &prql,
-                    result
-                        .expect_err(
-                            &format!(
-                                "Query was labeled to raise an error, but succeeded.\n {prql}\n\n"
-                            )
-                            .to_string(),
-                        )
-                        .to_string()
-                        .as_str(),
-                )
-                .into(),
-            ))
+            let error_message = match result {
+                Ok(prql) => {
+                    panic!("Query was labeled to raise an error, but succeeded.\n{prql}\n\n")
+                }
+                Err(e) => ansi_to_html::convert_escaped(e.to_string().as_str()).unwrap(),
+            };
+
+            cmark_acc.push(Event::Html(table_of_error(&prql, &error_message).into()))
         } else {
             // Either a bare `prql` or with `no-fmt`
             cmark_acc.push(Event::Html(
@@ -256,7 +251,7 @@ fn table_of_prql_only(prql: &str) -> String {
 }
 
 // Exactly the same as `table_of_comparison`, but with a different title for the second column.
-fn table_of_error(prql: &str, error: &str) -> String {
+fn table_of_error(prql: &str, message: &str) -> String {
     format!(
         r#"
 <div class="comparison">
@@ -273,16 +268,14 @@ fn table_of_error(prql: &str, error: &str) -> String {
 <div>
 <h4>Error</h4>
 
-```
-{error}
-```
+<pre><code class="hljs language-undefined">{message}</code></pre>
 
 </div>
 
 </div>
 "#,
         prql = prql.trim(),
-        error = error,
+        message = message,
     )
     .trim_start()
     .to_string()
@@ -356,16 +349,14 @@ this is an error
     <div>
     <h4>Error</h4>
 
-    ```
-    Error:
-       ╭─[:1:1]
-       │
-     1 │ this is an error
-       │ ──┬─
-       │   ╰─── Unknown name this
-    ───╯
-
-    ```
+    <pre><code class="hljs language-undefined"><span style='color:#a00'>Error:</span>
+       <span style='color:#949494'>╭─[</span>:1:1<span style='color:#949494'>]</span>
+       <span style='color:#949494'>│</span>
+     <span style='color:#949494'>1 │</span> this<span style='color:#b2b2b2'> is an error</span>
+     <span style='color:#585858'>  │</span> ──┬─
+     <span style='color:#585858'>  │</span>   ╰─── Unknown name this
+    <span style='color:#949494'>───╯</span>
+    </code></pre>
 
     </div>
 

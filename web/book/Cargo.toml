@@ -16,6 +16,7 @@ name = "mdbook-prql"
 test = false
 
 [dependencies]
+ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
 globset = "0.4.8"
 itertools = "0.10.3"
