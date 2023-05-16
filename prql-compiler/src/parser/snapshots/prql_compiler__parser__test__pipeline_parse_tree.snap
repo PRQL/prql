@@ -2,7 +2,8 @@
 source: prql-compiler/src/parser/mod.rs
 expression: "parse(include_str!(\"../../examples/compile-files/queries/variables.prql\")).unwrap()"
 ---
-- Main:
+- name: main
+  Main:
     Pipeline:
       exprs:
         - FuncCall:

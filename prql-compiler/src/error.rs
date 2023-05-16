@@ -1,11 +1,17 @@
 pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
+use itertools::Itertools;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
+
+use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
+use std::path::PathBuf;
+
+use crate::FileTree;
 
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct Span {
@@ -242,28 +248,38 @@ impl ErrorMessages {
     }
 
     /// Computes message location and builds the pretty display.
-    pub fn composed(mut self, source_id: &str, source: &str, color: bool) -> Self {
-        for e in &mut self.inner {
-            let source = Source::from(source);
-            let cache = (source_id, source);
+    pub fn composed(mut self, sources: &FileTree, color: bool) -> Self {
+        let mut cache = FileTreeCache::new(sources);
 
-            e.location = e.compose_location(&cache.1);
-            e.display = e.compose_display(source_id, cache, color);
+        // TODO: get id from the error
+        let Ok((id, _)) = sources.files.iter().exactly_one() else {
+            return self;
+        };
+
+        for e in &mut self.inner {
+            let Ok(source) = cache.fetch(id) else {
+                continue
+            };
+            e.location = e.compose_location(source);
+
+            e.display = e.compose_display(id.clone(), &mut cache, color);
         }
         self
     }
 }
 
 impl ErrorMessage {
-    fn compose_display<'a, C>(&self, source_id: &'a str, cache: C, color: bool) -> Option<String>
-    where
-        C: Cache<&'a str>,
-    {
+    fn compose_display(
+        &self,
+        source_id: PathBuf,
+        cache: &mut FileTreeCache,
+        color: bool,
+    ) -> Option<String> {
         let config = Config::default().with_color(color);
 
         let span = Range::from(self.span?);
 
-        let mut report = Report::build(ReportKind::Error, source_id, span.start)
+        let mut report = Report::build(ReportKind::Error, source_id.clone(), span.start)
             .with_config(config)
             .with_label(Label::new((source_id, span)).with_message(&self.reason));
 
@@ -289,6 +305,40 @@ impl ErrorMessage {
             start: (start.1, start.2),
             end: (end.1, end.2),
         })
+    }
+}
+
+struct FileTreeCache<'a> {
+    file_tree: &'a FileTree,
+    cache: HashMap<PathBuf, Source>,
+}
+impl<'a> FileTreeCache<'a> {
+    fn new(file_tree: &'a FileTree) -> Self {
+        FileTreeCache {
+            file_tree,
+            cache: HashMap::new(),
+        }
+    }
+}
+
+impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
+    fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
+        let file_contents = match self.file_tree.files.get(id) {
+            Some(v) => v,
+            None => return Err(Box::new(format!("Unknown file `{id:?}`"))),
+        };
+
+        Ok(self
+            .cache
+            .entry(id.clone())
+            .or_insert_with(|| Source::from(file_contents)))
+    }
+
+    fn display<'b>(&self, id: &'b PathBuf) -> Option<Box<dyn fmt::Display + 'b>> {
+        match id.as_os_str().to_str() {
+            Some(s) => Some(Box::new(s)),
+            None => None,
+        }
     }
 }
 

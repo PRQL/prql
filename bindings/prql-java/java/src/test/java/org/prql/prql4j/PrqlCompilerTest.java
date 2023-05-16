@@ -5,7 +5,7 @@ import org.junit.Test;
 public class PrqlCompilerTest {
     @Test
     public void compile() throws Exception {
-        String found = PrqlCompiler.toSql("from table", "sql.mysql", true, true);
+        String found = PrqlCompiler.toSql("from my_table", "sql.mysql", true, true);
 
         // remove signature
         found = found.substring(0, found.indexOf("\n\n--"));
@@ -13,7 +13,7 @@ public class PrqlCompilerTest {
         String expected = "SELECT\n" +
                 "  *\n" +
                 "FROM\n" +
-                "  table";
+                "  my_table";
         assert expected.equalsIgnoreCase(found);
     }
 

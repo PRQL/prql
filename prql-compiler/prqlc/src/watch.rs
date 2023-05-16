@@ -28,7 +28,7 @@ pub fn run(command: &mut WatchArgs) -> Result<()> {
         target: prql_compiler::Target::Sql(None),
         signature_comment: !command.no_signature,
         // TODO: potentially offer this as an arg?
-        color: false,
+        color: true,
     };
     let path = Path::new(&command.path);
 
@@ -120,8 +120,9 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
     let sql_string = match prql_compiler::compile(&prql_string, opt) {
         Ok(sql_string) => sql_string,
         Err(err) => {
-            let source_id = &prql_path.to_str().unwrap_or_default();
-            print_error(anyhow!(err), source_id, &prql_string);
+            for err in downcast(anyhow!(err)).inner {
+                println!("{err}");
+            }
             return Err(anyhow!("failed to compile"));
         }
     };
@@ -133,12 +134,4 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
     fs::write(sql_path, sql_string)?;
 
     Ok(())
-}
-
-fn print_error(err: anyhow::Error, source_id: &str, source: &str) {
-    let messages = downcast(err).composed(source_id, source, true);
-
-    for err in messages.inner {
-        println!("{err}");
-    }
 }

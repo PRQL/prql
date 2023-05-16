@@ -40,25 +40,29 @@ from employees
 sort [s"substr({first_name}, 2, 5)"]
 ```
 
-## Notes
+## Ordering guarantees
 
-### Ordering guarantees
+In PRQL, a relation is an _array of tuples_ and not a set or a bag. The
+difference is that array has inherent ordering. This makes the order of the
+relation persist trough sub-queries and intermediate table definitions.
 
-Most DBs will persist ordering through most transforms; for example, you can
-expect this result to be ordered by `tenure`.
+In SQL, on the other hand, relations do not have an order and can be ordered
+only in the context of query result, `TAKE` clause or window functions. This has
+a unexpected effect where a previously ordered relation would get reshuffled
+because of following JOIN or windowing operations.
 
-```prql
-from employees
-sort tenure
-derive name = f"{first_name} {last_name}"
+For example, this query:
+
+```sql
+SELECT * FROM (SELECT * FROM albums ORDER BY title) sub_query
 ```
 
-But:
+... does not guarantee any row order, according to the SQL standard. Even though
+most SQL engine implementations will return albums ordered by title, this order
+may be destroyed by a subsequent JOIN or windowing operation.
 
-- This is an implementation detail of the DB. If there are instances where this
-  doesn't hold, please open an issue, and we'll consider how to manage it.
-- Some transforms which change the existence of rows, such as `join` or `group`,
-  won't persist ordering; for example:
+In practice, ORDER BY clauses to be pushed down the pipeline until a TAKE clause
+or end of the query:
 
 ```prql
 from employees
@@ -66,4 +70,11 @@ sort tenure
 join locations [==employee_id]
 ```
 
-See [Issue #1363](https://github.com/PRQL/prql/issues/1363) for more details.
+Observe how PRQL compiles the `ORDER BY` to the _end_ of the query.
+
+Most relation transforms retain the row order, but there are a few exceptions:
+
+- `sort` applies a new order (obviously),
+- `group` resets the order,
+- `join` retains the order of the left relation,
+- database tables have unknown order.

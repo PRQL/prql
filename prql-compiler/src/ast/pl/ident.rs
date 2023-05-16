@@ -18,6 +18,7 @@ impl Ident {
         }
     }
 
+    /// Creates a new ident from a non-empty path.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
         Ident {

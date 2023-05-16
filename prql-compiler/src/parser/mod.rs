@@ -3,6 +3,8 @@ mod interpolation;
 mod lexer;
 mod stmt;
 
+use std::collections::HashMap;
+
 use anyhow::Result;
 use chumsky::{
     error::{Cheap, SimpleReason},
@@ -16,6 +18,7 @@ use self::lexer::Token;
 use super::ast::pl::*;
 
 use crate::error::{Error, Errors, Reason, WithErrorInfo};
+use crate::FileTree;
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(source: &str) -> Result<Vec<Stmt>> {
@@ -47,6 +50,15 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     } else {
         Err(Errors(errors).into())
     }
+}
+
+pub fn parse_tree(file_tree: &FileTree<String>) -> Result<FileTree<Vec<Stmt>>> {
+    let mut res = HashMap::new();
+    for (ident, source) in &file_tree.files {
+        let stmts = parse(source)?;
+        res.insert(ident.clone(), stmts);
+    }
+    Ok(FileTree { files: res })
 }
 
 fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
@@ -160,10 +172,12 @@ mod common {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
+    pub fn into_stmt((name, kind): (String, StmtKind), span: std::ops::Range<usize>) -> Stmt {
         Stmt {
+            id: None,
+            name,
+            kind,
             span: into_span(span),
-            ..Stmt::from(kind)
         }
     }
 
@@ -216,7 +230,8 @@ mod test {
 
         assert_yaml_snapshot!(parse(r#"take 10"#).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -228,7 +243,8 @@ mod test {
 
         assert_yaml_snapshot!(parse(r#"take ..10"#).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -243,7 +259,8 @@ mod test {
 
         assert_yaml_snapshot!(parse(r#"take 1..10"#).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -494,7 +511,8 @@ mod test {
         select a"#
         ).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -823,7 +841,8 @@ Canada
         assert_yaml_snapshot!(
             parse(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -842,7 +861,8 @@ Canada
         assert_yaml_snapshot!(
             parse(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -876,7 +896,8 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -910,7 +931,8 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -1101,8 +1123,8 @@ Canada
     fn test_function() {
         assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: plus_one
+        - name: plus_one
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1121,8 +1143,8 @@ Canada
         assert_yaml_snapshot!(parse("let identity = x ->  x\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: identity
+        - name: identity
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1135,8 +1157,8 @@ Canada
         assert_yaml_snapshot!(parse("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: plus_one
+        - name: plus_one
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1155,8 +1177,8 @@ Canada
         assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: plus_one
+        - name: plus_one
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1176,8 +1198,8 @@ Canada
         assert_yaml_snapshot!(parse("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: foo
+        - name: foo
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1214,8 +1236,8 @@ Canada
 
         assert_yaml_snapshot!(parse("func return_constant ->  42\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: return_constant
+        - name: return_constant
+          FuncDef:
             positional_params: []
             named_params: []
             body:
@@ -1227,8 +1249,8 @@ Canada
         assert_yaml_snapshot!(parse(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
-        - FuncDef:
-            name: count
+        - name: count
+          FuncDef:
             positional_params:
               - name: X
                 default_value: ~
@@ -1255,8 +1277,8 @@ Canada
         )
         .unwrap(), @r###"
         ---
-        - FuncDef:
-            name: lag_day
+        - name: lag_day
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1297,8 +1319,8 @@ Canada
 
         assert_yaml_snapshot!(parse("let add = x to:a ->  x + to\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: add
+        - name: add
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1499,8 +1521,8 @@ Canada
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
         ---
-        - VarDef:
-            name: newest_employees
+        - name: newest_employees
+          VarDef:
             value:
               FuncCall:
                 name:
@@ -1525,8 +1547,8 @@ Canada
         )"#.trim()).unwrap(),
          @r###"
         ---
-        - VarDef:
-            name: newest_employees
+        - name: newest_employees
+          VarDef:
             value:
               Pipeline:
                 exprs:
@@ -1578,8 +1600,8 @@ Canada
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: e
+        - name: e
+          VarDef:
             value:
               SString:
                 - String: SELECT * FROM employees
@@ -1597,8 +1619,8 @@ Canada
           from x"
         ).unwrap(), @r###"
         ---
-        - VarDef:
-            name: x
+        - name: x
+          VarDef:
             value:
               Pipeline:
                 exprs:
@@ -1617,7 +1639,8 @@ Canada
                         - Ident:
                             - foo
                           alias: only_in_x
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -1646,8 +1669,8 @@ Canada
         "###);
         assert_yaml_snapshot!(parse("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: median
+        - name: median
+          FuncDef:
             positional_params:
               - name: x
                 default_value: ~
@@ -1678,7 +1701,8 @@ Canada
         ]
         "#).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1737,7 +1761,8 @@ join `my-proj`.`dataset`.`table`
 
         assert_yaml_snapshot!(parse(prql).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1803,7 +1828,8 @@ join `my-proj`.`dataset`.`table`
         sort [issued_at, -amount, +num_of_articles]
         ").unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1877,7 +1903,8 @@ join `my-proj`.`dataset`.`table`
         derive [age_plus_two_years = (age + 2years)]
         ").unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1936,7 +1963,8 @@ join `my-proj`.`dataset`.`table`
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -1955,7 +1983,8 @@ join `my-proj`.`dataset`.`table`
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1988,7 +2017,8 @@ join `my-proj`.`dataset`.`table`
         derive x = true
         "###).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:
@@ -2009,7 +2039,8 @@ join `my-proj`.`dataset`.`table`
         select [_employees._underscored_column]
         "###).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2066,7 +2097,8 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2138,7 +2170,8 @@ from employees
 join s=salaries [==id]
         "###).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2240,7 +2273,8 @@ join s=salaries [==id]
         let source = "from tète";
         assert_yaml_snapshot!(parse(source).unwrap(), @r###"
         ---
-        - Main:
+        - name: main
+          Main:
             FuncCall:
               name:
                 Ident:

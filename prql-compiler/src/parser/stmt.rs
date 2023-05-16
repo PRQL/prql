@@ -5,6 +5,8 @@ use chumsky::prelude::*;
 use semver::VersionReq;
 
 use crate::ast::pl::*;
+use crate::semantic::NS_MAIN;
+use crate::semantic::NS_QUERY_DEF;
 
 use super::common::*;
 use super::expr::*;
@@ -23,7 +25,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
         let module_def = keyword("module")
             .ignore_then(ident_part())
             .then(module_contents.delimited_by(ctrl('{'), ctrl('}')))
-            .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
+            .map(|(name, stmts)| (name, StmtKind::ModuleDef(ModuleDef { stmts })))
             .labelled("module definition");
 
         choice((type_def(), var_def(), module_def))
@@ -40,6 +42,7 @@ fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
         .map_with_span(into_expr)
         .map(Box::new)
         .map(StmtKind::Main)
+        .map(|kind| (NS_MAIN.to_string(), kind))
         .map_with_span(into_stmt)
         .labelled("main pipeline")
 }
@@ -100,41 +103,43 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 
             Ok(StmtKind::QueryDef(QueryDef { version, other }))
         })
+        .map(|kind| (NS_QUERY_DEF.to_string(), kind))
         .map_with_span(into_stmt)
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
+fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
     keyword("let")
         .ignore_then(ident_part())
         .then_ignore(ctrl('='))
-        .then(expr_call().map(Box::new))
         // FIXME: add in type
-        .map(|(name, value)| VarDef {
-            name,
-            value,
-            ty_expr: None,
-        })
-        .map(StmtKind::VarDef)
+        .then(
+            expr_call()
+                .map(Box::new)
+                .map(|value| StmtKind::VarDef(VarDef { value, ty_expr: None, })),
+        )
         .labelled("variable definition")
 }
 
-fn type_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
+fn type_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
     keyword("type")
         .ignore_then(ident_part())
-        .then(ctrl('=').ignore_then(expr_call()).or_not())
-        .map(|(name, value)| TypeDef { name, value })
-        .map(StmtKind::TypeDef)
+        .then(
+            ctrl('=')
+                .ignore_then(expr_call())
+                .or_not()
+                .map(|value| TypeDef { value })
+                .map(StmtKind::TypeDef),
+        )
         .labelled("type definition")
 }
 
-// fn function_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
-//     keyword("let")
+// fn function_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
+//     keyword("func")
 //         .ignore_then(
 //             // func name
 //             ident_part().then(type_expr().or_not()),
 //         )
-//         .then_ignore(ctrl('='))
 //         .then(
 //             // params
 //             ident_part()
@@ -155,15 +160,14 @@ fn type_def() -> impl Parser<Token, StmtKind, Error = Simple<Token>> {
 //                 })
 //                 .partition(|p| p.default_value.is_none());
 
-//             FuncDef {
-//                 name,
+//             let func_def = StmtKind::FuncDef(FuncDef {
 //                 positional_params: pos,
 //                 named_params: nam,
 //                 body,
 //                 return_ty,
-//             }
+//             });
+//             (name, func_def)
 //         })
-//         .map(StmtKind::FuncDef)
 //         .labelled("function definition")
 // }
 
