@@ -111,14 +111,14 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
         .map(token_to_string)
         .collect_vec();
 
-    let while_parsing = e.label().map(|l| format!(" while parsing {l}")).unwrap_or_default();
+    let while_parsing = e
+        .label()
+        .map(|l| format!(" while parsing {l}"))
+        .unwrap_or_default();
 
     if expected.is_empty() || expected.len() > 10 {
         let label = token_to_string(e.found().cloned());
-        return Error::new_simple(
-            format!("unexpected {label}{while_parsing}")
-        )
-        .with_span(span);
+        return Error::new_simple(format!("unexpected {label}{while_parsing}")).with_span(span);
     }
 
     let mut expected = expected;
