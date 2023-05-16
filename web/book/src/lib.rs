@@ -126,6 +126,7 @@ pub fn code_block_lang_tags(event: &Event) -> Option<Vec<LangTag>> {
         None
     }
 }
+use ansi_to_html;
 
 fn replace_examples(text: &str) -> Result<String> {
     let mut parser = Parser::new_ext(text, Options::all());
@@ -159,7 +160,9 @@ fn replace_examples(text: &str) -> Result<String> {
         };
 
         let prql = text.to_string();
-        let options = prql_compiler::Options::default().no_signature();
+        let options = prql_compiler::Options::default()
+            .no_signature()
+            .with_color(true);
         let result = compile(&prql, &options);
 
         if lang_tags.contains(&LangTag::NoTest) {
@@ -169,6 +172,7 @@ fn replace_examples(text: &str) -> Result<String> {
                 table_of_error(
                     &prql,
                     result
+                        .map_err(|e| ansi_to_html::convert_escaped(e.to_string().as_str()).unwrap())
                         .expect_err(
                             &format!(
                                 "Query was labeled to raise an error, but succeeded.\n {prql}\n\n"
@@ -357,13 +361,13 @@ this is an error
     <h4>Error</h4>
 
     ```
-    Error:
-       ╭─[:1:1]
-       │
-     1 │ this is an error
-       │ ──┬─
-       │   ╰─── Unknown name this
-    ───╯
+    <span style='color:#a00'>Error:</span>
+       <span style='color:#949494'>╭</span><span style='color:#949494'>─</span><span style='color:#949494'>[</span>:1:1<span style='color:#949494'>]</span>
+       <span style='color:#949494'>│</span>
+     <span style='color:#949494'>1 │</span> this<span style='color:#b2b2b2'> </span><span style='color:#b2b2b2'>i</span><span style='color:#b2b2b2'>s</span><span style='color:#b2b2b2'> </span><span style='color:#b2b2b2'>a</span><span style='color:#b2b2b2'>n</span><span style='color:#b2b2b2'> </span><span style='color:#b2b2b2'>e</span><span style='color:#b2b2b2'>r</span><span style='color:#b2b2b2'>r</span><span style='color:#b2b2b2'>o</span><span style='color:#b2b2b2'>r</span>
+     <span style='color:#585858'>  │</span> ──┬─
+     <span style='color:#585858'>  │</span>   ╰─── Unknown name this
+    <span style='color:#949494'>───╯</span>
 
     ```
 
