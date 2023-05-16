@@ -1127,145 +1127,168 @@ Canada
         assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap(), @r###"
         ---
         - name: plus_one
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Literal:
-                    Integer: 1
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Literal:
+                        Integer: 1
+                return_ty: ~
+            ty_expr: ~
         "###);
         assert_yaml_snapshot!(parse("let identity = x ->  x\n").unwrap()
         , @r###"
         ---
         - name: identity
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Ident:
-                - x
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  Ident:
+                    - x
+                return_ty: ~
+            ty_expr: ~
         "###);
         assert_yaml_snapshot!(parse("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
         - name: plus_one
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Literal:
-                    Integer: 1
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Literal:
+                        Integer: 1
+                return_ty: ~
+            ty_expr: ~
         "###);
         assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
         ---
         - name: plus_one
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Literal:
-                    Integer: 1
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Literal:
+                        Integer: 1
+                return_ty: ~
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
         - name: foo
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              FuncCall:
-                name:
-                  Ident:
-                    - some_func
-                args:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - foo
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - bar
-                            op: Add
-                            right:
-                              Literal:
-                                Integer: 1
-                  - Binary:
-                      left:
-                        Ident:
-                          - plax
-                      op: Sub
-                      right:
-                        Ident:
-                          - baz
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  FuncCall:
+                    name:
+                      Ident:
+                        - some_func
+                    args:
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - foo
+                          args:
+                            - Binary:
+                                left:
+                                  Ident:
+                                    - bar
+                                op: Add
+                                right:
+                                  Literal:
+                                    Integer: 1
+                      - Binary:
+                          left:
+                            Ident:
+                              - plax
+                          op: Sub
+                          right:
+                            Ident:
+                              - baz
+                return_ty: ~
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse("func return_constant ->  42\n").unwrap(), @r###"
         ---
-        - name: return_constant
-          FuncDef:
-            positional_params: []
-            named_params: []
-            body:
-              Literal:
-                Integer: 42
-            return_ty: ~
+        - name: main
+          Main:
+            FuncDef:
+              positional_params:
+                - name: func
+                  default_value: ~
+                - name: return_constant
+                  default_value: ~
+              named_params: []
+              body:
+                Literal:
+                  Integer: 42
+              return_ty: ~
         "###);
 
         assert_yaml_snapshot!(parse(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
         - name: count
-          FuncDef:
-            positional_params:
-              - name: X
-                default_value: ~
-            named_params: []
-            body:
-              SString:
-                - String: SUM(
-                - Expr:
-                    Ident:
-                      - X
-                - String: )
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: X
+                    default_value: ~
+                named_params: []
+                body:
+                  SString:
+                    - String: SUM(
+                    - Expr:
+                        Ident:
+                          - X
+                    - String: )
+                return_ty: ~
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse(
@@ -1281,67 +1304,73 @@ Canada
         .unwrap(), @r###"
         ---
         - name: lag_day
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - window
-                      args:
-                        - Ident:
-                            - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - by
-                      args:
-                        - Ident:
-                            - sec_id
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Ident:
-                            - date
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - lag
-                      args:
-                        - Literal:
-                            Integer: 1
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  Pipeline:
+                    exprs:
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - window
+                          args:
+                            - Ident:
+                                - x
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - by
+                          args:
+                            - Ident:
+                                - sec_id
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - sort
+                          args:
+                            - Ident:
+                                - date
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - lag
+                          args:
+                            - Literal:
+                                Integer: 1
+                return_ty: ~
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse("let add = x to:a ->  x + to\n").unwrap(), @r###"
         ---
         - name: add
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params:
-              - name: to
-                default_value:
-                  Ident:
-                    - a
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Ident:
-                    - to
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params:
+                  - name: to
+                    default_value:
+                      Ident:
+                        - a
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Ident:
+                        - to
+                return_ty: ~
+            ty_expr: ~
         "###);
     }
 
@@ -1534,6 +1563,7 @@ Canada
                 args:
                   - Ident:
                       - employees
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse(
@@ -1597,6 +1627,7 @@ Canada
                       args:
                         - Literal:
                             Integer: 50
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse(r#"
@@ -1608,6 +1639,7 @@ Canada
             value:
               SString:
                 - String: SELECT * FROM employees
+            ty_expr: ~
         "###);
 
         assert_yaml_snapshot!(parse(
@@ -1642,6 +1674,7 @@ Canada
                         - Ident:
                             - foo
                           alias: only_in_x
+            ty_expr: ~
         - name: main
           Main:
             FuncCall:
@@ -1673,24 +1706,27 @@ Canada
         assert_yaml_snapshot!(parse("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
         - name: median
-          FuncDef:
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Pipeline:
-                exprs:
-                  - Ident:
-                      - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - percentile
-                      args:
-                        - Literal:
-                            Integer: 50
-            return_ty: ~
+          VarDef:
+            value:
+              FuncDef:
+                positional_params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                body:
+                  Pipeline:
+                    exprs:
+                      - Ident:
+                          - x
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - percentile
+                          args:
+                            - Literal:
+                                Integer: 50
+                return_ty: ~
+            ty_expr: ~
         "###);
     }
 
@@ -2351,9 +2387,9 @@ join s=salaries [==id]
                     span: Some(
                         span-chars-6-7,
                     ),
-                    reason: Unexpected {
-                        found: ":",
-                    },
+                    reason: Simple(
+                        "unexpected : while parsing function call",
+                    ),
                     help: None,
                     code: None,
                 },

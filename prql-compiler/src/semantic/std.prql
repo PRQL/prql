@@ -12,72 +12,72 @@
 
 # Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
-let min = <scalar || column> column -> null
-let max = <scalar || column> column -> null
-let sum = <scalar || column> column -> null
-let avg = <scalar || column> column -> null
-let stddev = <scalar || column> column -> null
-let average = <scalar || column> column -> null
-let count = <scalar || column> non_null:s"*" -> null
+let min = column -> <scalar || column> null
+let max = column -> <scalar || column> null
+let sum = column -> <scalar || column> null
+let avg = column -> <scalar || column> null
+let stddev = column -> <scalar || column> null
+let average = column -> <scalar || column> null
+let count = column non_null:s"*" -> <scalar || column> null
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-let count_distinct = <scalar || column> column -> null
+let count_distinct = column -> <scalar || column> null
 
 # Window functions
-func lag<column> offset column -> null
-func lead<column> offset column -> null
-func first<column> offset column -> null
-func last<column> offset column -> null
-func rank<column> -> null
-func rank_dense<column> -> null
-func row_number<column> -> null
+let lag = offset column -> <column> null
+let lead = offset column -> <column> null
+let first = offset column -> <column> null
+let last = offset column -> <column> null
+let rank = -> <column> null
+let rank_dense = -> <column> null
+let row_number = -> <column> null
 
 # Other functions
-func round<scalar> n_digits column -> null
-func as<scalar> `noresolve.type` column -> null
-func in<bool> pattern value -> null
+let round = n_digits column -> <scalar> null
+let as = `noresolve.type` column -> <scalar> null
+let in = pattern value -> <bool> null
 
 # Transform type definitions
-func from<table> `default_db.source`<table> -> null
-func select<table> columns<column> tbl<table> -> null
-func filter<table> condition<bool> tbl<table> -> null
-func derive<table> columns<column> tbl<table> -> null
-func aggregate<table> a<column> tbl<table> -> null
-func sort<table> by tbl<table> -> null
-func take<table> expr tbl<table> -> null
-func join<table> `default_db.with`<table> filter `noresolve.side`:inner tbl<table> -> null
-func group<table> by pipeline tbl<table> -> null
-func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> null
+let from = `default_db.source`<table> -> <table> null
+let select = columns<column> tbl<table> -> <table> null
+let filter = condition<bool> tbl<table> -> <table> null
+let derive = columns<column> tbl<table> -> <table> null
+let aggregate = a<column> tbl<table> -> <table> null
+let sort = by tbl<table> -> <table> null
+let take = expr tbl<table> -> <table> null
+let join = `default_db.with`<table> filter `noresolve.side`:inner tbl<table> -> <table> null
+let group = by pipeline tbl<table> -> <table> null
+let window = rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> <table> null
 
-func noop x -> x
+let noop = x -> x
 
-func append<table> `default_db.bottom`<table> top<table> -> null
-func intersect<table> `default_db.bottom`<table> top<table> -> (
+let append = `default_db.bottom`<table> top<table> -> <table> null
+let intersect = `default_db.bottom`<table> top<table> -> <table> (
     noop t = top
     join (noop b = bottom) (all (map _eq (zip t.* b.*)))
     select t.*
 )
-func remove<table> `default_db.bottom`<table> top<table> -> (
+let remove = `default_db.bottom`<table> top<table> -> <table> (
     noop t = top
     join side:left (noop b = bottom) (all (map _eq (zip t.* b.*)))
     filter (all (map _is_null b.*))
     select t.*
 )
-func loop<table> pipeline top<table> -> null
+let loop = pipeline top<table> -> <table> null
 
 # List functions
-func all<bool> list<list> -> null
-func map<list> fn list<list> -> null
-func zip<list> a<list> b<list> -> null
-func _eq<list> a<list> -> null
+let all = list<list> -> <bool> null
+let map = fn list<list> -> <list> null
+let zip = a<list> b<list> -> <list> null
+let _eq = a<list> -> <list> null
 let _is_null = a -> _param.a == null
 
 # Misc
-func from_text<table> input<text> `noresolve.format`:csv -> null
+let from_text = input<text> `noresolve.format`:csv -> <table> null
 
 # String functions
-let lower = <text> column -> null
-let upper = <text> column -> null
+let lower = column -> <text> null
+let upper = column -> <text> null
 
 # type primitives
 type int
@@ -93,5 +93,5 @@ type list
 type scalar
 
 # Source-reading functions, primarily for DuckDB
-func read_parquet<table> source<text> -> s"SELECT * FROM read_parquet({source})"
-func read_csv<table> source<text> -> s"SELECT * FROM read_csv_auto({source})"
+let read_parquet = source<text> -> <table> s"SELECT * FROM read_parquet({source})"
+let read_csv = source<text> -> <table> s"SELECT * FROM read_csv_auto({source})"

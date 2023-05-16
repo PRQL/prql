@@ -135,43 +135,6 @@ fn type_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
         .labelled("type definition")
 }
 
-// fn function_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
-//     keyword("func")
-//         .ignore_then(
-//             // func name
-//             ident_part().then(type_expr().or_not()),
-//         )
-//         .then(
-//             // params
-//             ident_part()
-//                 .then(type_expr().or_not())
-//                 .then(ctrl(':').ignore_then(expr()).or_not())
-//                 .repeated(),
-//         )
-//         .then_ignore(just(Token::ArrowThin))
-//         .then(expr_call().map(Box::new))
-//         .then_ignore(new_line())
-//         .map(|(((name, return_ty), params), body)| {
-//             let (pos, nam) = params
-//                 .into_iter()
-//                 .map(|((name, ty_expr), default_value)| FuncParam {
-//                     name,
-//                     ty_expr,
-//                     default_value,
-//                 })
-//                 .partition(|p| p.default_value.is_none());
-
-//             let func_def = StmtKind::FuncDef(FuncDef {
-//                 positional_params: pos,
-//                 named_params: nam,
-//                 body,
-//                 return_ty,
-//             });
-//             (name, func_def)
-//         })
-//         .labelled("function definition")
-// }
-
 pub fn type_expr() -> impl Parser<Token, Expr, Error = Simple<Token>> {
     let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
