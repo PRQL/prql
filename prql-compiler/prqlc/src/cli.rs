@@ -595,15 +595,17 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         //   operations but are always inserted for function calls)
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from table.subdivision
-        derive `želva_means_turtle` = `column with spaces` + 1 * 3
-        group a_column (
+        let main = (
+          from table.subdivision
+          derive `želva_means_turtle` = `column with spaces` + 1 * 3
+          group a_column (
           take 10
           sort b_column
           derive [
           the_number = rank,
           last = lag 1 c_column,
         ]
+        )
         )
         "###);
     }
@@ -692,23 +694,26 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         files:
           '':
           - name: main
-            Main:
-              Pipeline:
-                exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                      - from
-                    args:
-                    - Ident:
-                      - x
-                - FuncCall:
-                    name:
-                      Ident:
-                      - select
-                    args:
-                    - Ident:
-                      - y
+            VarDef:
+              value:
+                Pipeline:
+                  exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - from
+                      args:
+                      - Ident:
+                        - x
+                  - FuncCall:
+                      name:
+                        Ident:
+                        - select
+                      args:
+                      - Ident:
+                        - y
+              ty_expr: null
+              kind: Main
         "###);
     }
     #[test]

@@ -2,10 +2,12 @@
 
 At the moment, PRQL uses only four keywords:
 
-- `prql`
 - `let`
-- `func`
+- `into`
 - `case`
+- `prql`
+- `type`
+- `module`
 
 To use these names as columns or relations, use backticks: `` `case` ``.
 

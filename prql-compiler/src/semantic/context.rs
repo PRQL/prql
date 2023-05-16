@@ -90,13 +90,19 @@ pub enum TableColumn {
 }
 
 impl Context {
-    pub fn declare(&mut self, ident: Ident, decl: DeclKind, id: Option<usize>) {
+    pub fn declare(&mut self, ident: Ident, decl: DeclKind, id: Option<usize>) -> Result<()> {
+        let existing = self.root_mod.get(&ident);
+        if existing.is_some() {
+            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
+        }
+
         let decl = Decl {
             kind: decl,
             declared_at: id,
             order: 0,
         };
         self.root_mod.insert(ident, decl).unwrap();
+        Ok(())
     }
 
     pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> Result<DeclKind> {

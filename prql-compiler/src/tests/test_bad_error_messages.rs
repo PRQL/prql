@@ -29,7 +29,7 @@ fn test_bad_error_messages() {
        │
      3 │     group
        │     ──┬──
-       │       ╰──── main relation expected type `table<[]>`, but found type `func infer table<[]> -> table<[]>`
+       │       ╰──── main expected type `table<[]>`, but found type `func infer table<[]> -> table<[]>`
        │
        │ Help: Have you forgotten an argument to function std.group?
     ───╯

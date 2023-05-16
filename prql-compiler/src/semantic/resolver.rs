@@ -81,13 +81,15 @@ impl Resolver {
 
             let ident = Ident {
                 path: self.current_module_path.clone(),
-                name: stmt.name,
+                name: stmt.name.clone(),
             };
 
             let mut def = match stmt.kind {
                 StmtKind::QueryDef(d) => {
                     let decl = DeclKind::QueryDef(d);
-                    self.context.declare(ident, decl, stmt.id);
+                    self.context
+                        .declare(ident, decl, stmt.id)
+                        .with_span(stmt.span)?;
                     continue;
                 }
                 StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
@@ -100,6 +102,7 @@ impl Resolver {
                         })),
                         // FIXME
                         ty_expr: None,
+                        kind: VarDefKind::Let,
                     };
 
                     // This is a hacky way to provide values to std.int and friends.
@@ -110,20 +113,6 @@ impl Resolver {
                     }
 
                     self.fold_var_def(var_def)?
-                }
-                StmtKind::Main(expr) => {
-                    let expr = Box::new(Flattener::fold(self.fold_expr(*expr)?));
-
-                    let ty = Ty::Table(Frame::default());
-                    self.context
-                        .validate_type(&expr, &ty, || Some("main relation".to_string()))?;
-
-                    VarDef {
-                        ty_expr: Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
-                            "std", "table",
-                        ])))),
-                        value: expr,
-                    }
                 }
                 StmtKind::ModuleDef(module_def) => {
                     self.current_module_path.push(ident.name);
@@ -146,9 +135,16 @@ impl Resolver {
                 }
             };
 
+            if let VarDefKind::Main = def.kind {
+                def.ty_expr = Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
+                    "std", "table",
+                ]))));
+            }
+
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
             if let Some(ty) = expected_ty {
-                let inferred = self.context.validate_type(&def.value, &ty, || None)?;
+                let who = || Some(stmt.name);
+                let inferred = self.context.validate_type(&def.value, &ty, who)?;
                 def.value.ty = Some(inferred);
             }
 
@@ -157,7 +153,9 @@ impl Resolver {
                 .prepare_expr_decl(def.value)
                 .with_span(stmt.span)?;
 
-            self.context.declare(ident, decl, stmt.id);
+            self.context
+                .declare(ident, decl, stmt.id)
+                .with_span(stmt.span)?;
         }
         Ok(())
     }
@@ -172,6 +170,7 @@ impl AstFold for Resolver {
         Ok(VarDef {
             value: Box::new(Flattener::fold(self.fold_expr(*var_def.value)?)),
             ty_expr: var_def.ty_expr,
+            kind: var_def.kind,
         })
     }
 
