@@ -78,6 +78,7 @@
 #![allow(clippy::result_large_err)]
 
 pub mod ast;
+mod codegen;
 mod error;
 mod parser;
 pub mod semantic;
