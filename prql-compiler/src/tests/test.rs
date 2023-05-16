@@ -1646,17 +1646,11 @@ fn test_bare_s_string() {
         tbl
       GROUP BY
         GROUPING SETS ((b, c, d), (d), (b, d))
-    ),
-    grouping AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      grouping
+      table_2 AS table_1
     "###
     );
 
@@ -1674,17 +1668,11 @@ fn test_bare_s_string() {
         insensitive
       from
         rude
-    ),
-    a AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      a
+      table_2 AS table_1
     "###
     );
 
@@ -1702,17 +1690,11 @@ fn test_bare_s_string() {
         insensitive
       from
         rude
-    ),
-    a AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      a
+      table_2 AS table_1
     "###
     );
 
@@ -2537,7 +2519,7 @@ fn test_unused_alias() {
 #[test]
 fn test_table_s_string() {
     assert_display_snapshot!(compile(r###"
-    s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
+    let main <table> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
     "###).unwrap(),
         @r###"
     WITH table_2 AS (
@@ -2953,7 +2935,7 @@ fn test_static_analysis() {
 fn test_closures_and_pipelines() {
     assert_display_snapshot!(compile(
         r###"
-    func addthree<column> a b c -> s"{a} || {b} || {c}"
+    let addthree = a b c -> <column> s"{a} || {b} || {c}"
     let arg = myarg myfunc -> ( myfunc myarg )
 
     from y

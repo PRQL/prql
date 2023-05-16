@@ -1,34 +1,34 @@
-let min = <scalar || column> column ->  s"MIN({column})"
-let max = <scalar || column> column ->  s"MAX({column})"
-let sum = <scalar || column> column ->  s"SUM({column})"
-let avg = <scalar || column> column ->  s"AVG({column})"
-let stddev = <scalar || column> column ->  s"STDDEV({column})"
-let average = <scalar || column> column ->  s"AVG({column})"
-let count = <scalar || column> non_null:s"*" ->  s"COUNT({non_null})"
+let min = column -> <scalar || column> s"MIN({column})"
+let max = column -> <scalar || column> s"MAX({column})"
+let sum = column -> <scalar || column> s"SUM({column})"
+let avg = column -> <scalar || column> s"AVG({column})"
+let stddev = column -> <scalar || column> s"STDDEV({column})"
+let average = column -> <scalar || column> s"AVG({column})"
+let count = non_null:s"*" -> <scalar || column> s"COUNT({non_null})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-let count_distinct = <scalar || column> column ->  s"COUNT(DISTINCT {column})"
+let count_distinct = column -> <scalar || column> s"COUNT(DISTINCT {column})"
 
 # Window functions
-func lag<column> offset column ->  s"LAG({column}, {offset})"
-func lead<column> offset column ->  s"LEAD({column}, {offset})"
-func first<column> offset column ->  s"FIRST_VALUE({column}, {offset})"
-func last<column> offset column ->  s"LAST_VALUE({column}, {offset})"
-func rank<column> ->  s"RANK()"
-func rank_dense<column> ->  s"DENSE_RANK()"
-func row_number<column> ->  s"ROW_NUMBER()"
+let lag = offset column -> <column> s"LAG({column}, {offset})"
+let lead = offset column -> <column> s"LEAD({column}, {offset})"
+let first = offset column -> <column> s"FIRST_VALUE({column}, {offset})"
+let last = offset column -> <column> s"LAST_VALUE({column}, {offset})"
+let rank = -> <column> s"RANK()"
+let rank_dense = -> <column> s"DENSE_RANK()"
+let row_number = -> <column> s"ROW_NUMBER()"
 
 # Other functions
-func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
-func as<scalar> `noresolve.type` column ->  s"CAST({column} AS {type})"
+let round = n_digits column -> <scalar> s"ROUND({column}, {n_digits})"
+let as = `noresolve.type` column -> <scalar> s"CAST({column} AS {type})"
 
 # String functions
-let lower = <text> column -> s"LOWER({column})"
-let upper = <text> column -> s"UPPER({column})"
+let lower = column -> <text> s"LOWER({column})"
+let upper = column -> <text> s"UPPER({column})"
 
 # Source-reading functions, primarily for DuckDB
-func read_parquet<table> source<text> -> s"SELECT * FROM read_parquet({source})"
-func read_csv<table> source<text> -> s"SELECT * FROM read_csv_auto({source})"
+let read_parquet = source<text> -> <table> s"SELECT * FROM read_parquet({source})"
+let read_csv = source<text> -> <table> s"SELECT * FROM read_csv_auto({source})"
 
 let mul = l r -> null
 let div = l r -> null

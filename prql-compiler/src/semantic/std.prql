@@ -18,7 +18,7 @@ let sum = column -> <scalar || column> null
 let avg = column -> <scalar || column> null
 let stddev = column -> <scalar || column> null
 let average = column -> <scalar || column> null
-let count = column non_null:s"*" -> <scalar || column> null
+let count = non_null:s"*" -> <scalar || column> null
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
 let count_distinct = column -> <scalar || column> null
