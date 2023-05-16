@@ -111,14 +111,13 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
     keyword("let")
         .ignore_then(ident_part())
-        .then_ignore(ctrl('='))
-        // FIXME: add in type
-        .then(expr_call().map(Box::new).map(|value| {
-            StmtKind::VarDef(VarDef {
-                value,
-                ty_expr: None,
-            })
-        }))
+        .then(
+            type_expr()
+                .or_not()
+                .then_ignore(ctrl('='))
+                .then(expr_call().map(Box::new))
+                .map(|(ty_expr, value)| StmtKind::VarDef(VarDef { value, ty_expr })),
+        )
         .labelled("variable definition")
 }
 

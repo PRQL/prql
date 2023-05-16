@@ -84,13 +84,13 @@ impl Resolver {
                 name: stmt.name,
             };
 
-            let decl = match stmt.kind {
-                StmtKind::QueryDef(d) => DeclKind::QueryDef(d),
-                StmtKind::VarDef(var_def) => {
-                    let value = self.fold_var_def(var_def)?.value;
-
-                    self.context.prepare_expr_decl(value).with_span(stmt.span)?
+            let mut def = match stmt.kind {
+                StmtKind::QueryDef(d) => {
+                    let decl = DeclKind::QueryDef(d);
+                    self.context.declare(ident, decl, stmt.id);
+                    continue;
                 }
+                StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
                     let mut var_def = VarDef {
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
@@ -109,8 +109,7 @@ impl Resolver {
                         }
                     }
 
-                    let value = self.fold_var_def(var_def)?.value;
-                    self.context.prepare_expr_decl(value).with_span(stmt.span)?
+                    self.fold_var_def(var_def)?
                 }
                 StmtKind::Main(expr) => {
                     let expr = Box::new(Flattener::fold(self.fold_expr(*expr)?));
@@ -119,7 +118,12 @@ impl Resolver {
                     self.context
                         .validate_type(&expr, &ty, || Some("main relation".to_string()))?;
 
-                    self.context.prepare_expr_decl(expr).with_span(stmt.span)?
+                    VarDef {
+                        ty_expr: Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
+                            "std", "table",
+                        ])))),
+                        value: expr,
+                    }
                 }
                 StmtKind::ModuleDef(module_def) => {
                     self.current_module_path.push(ident.name);
@@ -141,6 +145,17 @@ impl Resolver {
                     continue;
                 }
             };
+
+            let expected_ty = self.fold_type_expr(def.ty_expr)?;
+            if let Some(ty) = expected_ty {
+                let inferred = self.context.validate_type(&def.value, &ty, || None)?;
+                def.value.ty = Some(inferred);
+            }
+
+            let decl = self
+                .context
+                .prepare_expr_decl(def.value)
+                .with_span(stmt.span)?;
 
             self.context.declare(ident, decl, stmt.id);
         }

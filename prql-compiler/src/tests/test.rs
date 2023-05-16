@@ -1717,17 +1717,11 @@ fn test_bare_s_string() {
         foo
       FROM
         bar
-    ),
-    a AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      a
+      table_2 AS table_1
     "###);
 
     assert_display_snapshot!(compile(r###"
@@ -2612,7 +2606,7 @@ fn test_table_s_string() {
 
     assert_display_snapshot!(compile(r###"
     let weeks_between = start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
-    func current_week -> s"date(date_trunc('week', current_date))"
+    let current_week = -> s"date(date_trunc('week', current_date))"
 
     weeks_between @2022-06-03 (current_week + 4)
     "###).unwrap(),
