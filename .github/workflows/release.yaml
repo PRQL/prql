@@ -31,7 +31,7 @@ jobs:
         prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{
         matrix.target }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
