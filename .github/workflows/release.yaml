@@ -26,10 +26,6 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
-    env:
-      ARTIFACT_BASE_NAME:
-        prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{
-        matrix.target }}
     strategy:
       fail-fast: false
       matrix:
@@ -48,24 +44,14 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/build-prqlc
+        id: build-artifact
         with:
           target: ${{ matrix.target }}
-      - name: Create artifact for Linux and macOS
-        if: runner.os != 'Windows'
-        run: |
-          echo "ARTIFACT_NAME=${{ env.ARTIFACT_BASE_NAME }}.tar.gz" >>"$GITHUB_ENV"
-          chmod +x target/${{ matrix.target }}/release/prqlc
-          tar czf ${{ env.ARTIFACT_NAME }} target/${{ matrix.target }}/release/prqlc
-      - name: Create artifact for Windows
-        if: runner.os == 'Windows'
-        run: |
-          echo "ARTIFACT_NAME=${{ env.ARTIFACT_BASE_NAME }}.zip" >>"$env:GITHUB_ENV"
-          7z a ${{ env.ARTIFACT_NAME }} target/${{ matrix.target }}/release/prqlc.exe
       - name: Upload release artifact
         uses: softprops/action-gh-release@v1
         with:
           append_body: true
-          files: ${{ env.ARTIFACT_NAME }}
+          files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   build-deb-package:
     # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
