@@ -91,7 +91,7 @@ pub enum ExprKind {
         args: Vec<Expr>,
     },
 
-    Set(PrimitiveSet),
+    Type(TyKind),
 
     /// a placeholder for values provided after query is compiled
     Param(String),
@@ -639,7 +639,7 @@ impl Display for Expr {
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
             }
-            ExprKind::Set(_) => {
+            ExprKind::Type(_) => {
                 writeln!(f, "<type-expr>")?;
             }
             ExprKind::Param(id) => {

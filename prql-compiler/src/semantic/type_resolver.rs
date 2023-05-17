@@ -19,9 +19,9 @@ fn coerce_to_named_type(expr: Expr, context: &Context) -> Result<(Option<String>
 }
 
 fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error> {
-    // primitives
-    if let ExprKind::Set(set_expr) = expr {
-        return Ok(TyKind::Primitive(set_expr));
+    // already resolved type expressions (mostly primitives)
+    if let ExprKind::Type(set_expr) = expr {
+        return Ok(set_expr);
     }
 
     // singletons

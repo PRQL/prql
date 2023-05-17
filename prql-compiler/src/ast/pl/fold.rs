@@ -123,7 +123,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) | Set(_) | FuncDef(_) => expr_kind,
+        Literal(_) | Type(_) | FuncDef(_) => expr_kind,
     })
 }
 

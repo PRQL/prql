@@ -94,28 +94,26 @@ impl Resolver {
                 }
                 StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
-                    let mut var_def = VarDef {
-                        value: Box::new(ty_def.value.unwrap_or_else(|| {
-                            let mut e = Expr::null();
-                            e.ty = Some(Ty {
-                                kind: TyKind::Set,
-                                name: None,
-                            });
-                            e
-                        })),
-                        // FIXME
-                        ty_expr: None,
-                        kind: VarDefKind::Let,
+                    let mut value = if let Some(value) = ty_def.value {
+                        value
+                    } else {
+                        Expr::null()
                     };
 
                     // This is a hacky way to provide values to std.int and friends.
                     if self.current_module_path == vec![NS_STD] {
                         if let Some(kind) = get_stdlib_decl(&ident.name) {
-                            var_def.value.kind = kind;
+                            value.kind = kind;
                         }
                     }
 
-                    self.fold_var_def(var_def)?
+                    let ty = self.fold_type_expr(Some(value))?.unwrap();
+
+                    VarDef {
+                        value: Box::new(Expr::from(ExprKind::Type(ty.kind))),
+                        ty_expr: None,
+                        kind: VarDefKind::Let,
+                    }
                 }
                 StmtKind::ModuleDef(module_def) => {
                     self.current_module_path.push(ident.name);
@@ -912,7 +910,7 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "timestamp" => PrimitiveSet::Timestamp,
         _ => return None,
     };
-    Some(ExprKind::Set(set))
+    Some(ExprKind::Type(TyKind::Primitive(set)))
 }
 
 #[cfg(test)]

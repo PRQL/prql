@@ -1133,10 +1133,10 @@ mod tests {
         let res = ctx.find_main(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
-        - id: 28
+        - id: 37
           TransformCall:
             input:
-              id: 6
+              id: 8
               Ident:
                 - default_db
                 - c_invoice
@@ -1152,7 +1152,7 @@ mod tests {
                       input_name: c_invoice
                       except: []
                 inputs:
-                  - id: 6
+                  - id: 8
                     name: c_invoice
                     table:
                       - default_db
@@ -1160,28 +1160,28 @@ mod tests {
             kind:
               Aggregate:
                 assigns:
-                  - id: 22
+                  - id: 29
                     BuiltInFunction:
                       name: std.average
                       args:
-                        - id: 27
+                        - id: 36
                           Ident:
                             - _frame
                             - c_invoice
                             - amount
-                          target_id: 6
+                          target_id: 8
                     ty:
                       kind:
                         Array:
                           Singleton: "Null"
                       name: array
             partition:
-              - id: 12
+              - id: 16
                 Ident:
                   - _frame
                   - c_invoice
                   - issued_at
-                target_id: 6
+                target_id: 8
           ty:
             kind:
               Array:
@@ -1193,12 +1193,12 @@ mod tests {
                   name:
                     - c_invoice
                     - issued_at
-                  expr_id: 12
+                  expr_id: 16
               - Single:
                   name: ~
-                  expr_id: 22
+                  expr_id: 29
             inputs:
-              - id: 6
+              - id: 8
                 name: c_invoice
                 table:
                   - default_db

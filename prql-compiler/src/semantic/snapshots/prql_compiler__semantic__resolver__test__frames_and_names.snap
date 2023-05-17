@@ -7,22 +7,22 @@ columns:
       name:
         - orders
         - customer_no
-      expr_id: 19
+      expr_id: 27
   - Single:
       name:
         - orders
         - gross
-      expr_id: 20
+      expr_id: 28
   - Single:
       name:
         - orders
         - tax
-      expr_id: 21
+      expr_id: 29
   - Single:
       name: ~
-      expr_id: 22
+      expr_id: 30
 inputs:
-  - id: 6
+  - id: 8
     name: orders
     table:
       - default_db
