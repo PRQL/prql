@@ -39,6 +39,22 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
       ty: Infer
   ty:
     TypeExpr:
-      Primitive: Column
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
   alias: b
 

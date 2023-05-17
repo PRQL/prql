@@ -81,6 +81,10 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
+
+    // TODO: it does not make sense to have Type also be an expression.
+    // This should be renamed to "Set" (which can later be converted into a TypeExpr).
+    // Also, it'd be nice if we can tighten what's allowed and only have [TyLit] inside.
     Type(TypeExpr),
 
     /// a placeholder for values provided after query is compiled
@@ -530,7 +534,7 @@ impl Display for Expr {
                 }
             }
             ExprKind::Array(items) => {
-                let items = items.into_iter().map(|x| x.to_string()).join(", ");
+                let items = items.iter().map(|x| x.to_string()).join(", ");
                 write!(f, "{{{items}}}")?;
             }
             ExprKind::Range(r) => {

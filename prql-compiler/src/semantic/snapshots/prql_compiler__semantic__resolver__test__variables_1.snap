@@ -23,7 +23,23 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       ty: Infer
   ty:
     TypeExpr:
-      Primitive: Column
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
   alias: gross_salary
 - id: 16
   Binary:
@@ -45,6 +61,22 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       ty: Infer
   ty:
     TypeExpr:
-      Primitive: Column
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
   alias: gross_cost
 

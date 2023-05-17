@@ -2942,7 +2942,7 @@ fn test_static_analysis() {
 fn test_closures_and_pipelines() {
     assert_display_snapshot!(compile(
         r###"
-    let addthree = a b c -> <column> s"{a} || {b} || {c}"
+    let addthree = a b c -> s"{a} || {b} || {c}"
     let arg = myarg myfunc -> ( myfunc myarg )
 
     from y

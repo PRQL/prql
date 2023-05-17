@@ -366,7 +366,7 @@ impl AstFold for Resolver {
                 }
 
                 Expr {
-                    kind: ExprKind::List(exprs),
+                    kind: ExprKind::Array(exprs),
                     ..node
                 }
             }
@@ -517,7 +517,7 @@ impl Resolver {
             // evaluate
             let needs_window = (closure.body_ty)
                 .as_ref()
-                .map(|ty| ty.is_superset_of(&Ty::TypeExpr(TypeExpr::Primitive(TyLit::Column))))
+                .map(|ty| ty.is_array())
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
@@ -652,11 +652,7 @@ impl Resolver {
         let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
             .enumerate()
             .partition(|(_, (param, _))| {
-                let is_table = param
-                    .ty
-                    .as_ref()
-                    .map(|t| matches!(t, Ty::Table(_)))
-                    .unwrap_or_default();
+                let is_table = param.ty.as_ref().map(|t| t.is_table()).unwrap_or_default();
 
                 is_table
             });
@@ -673,11 +669,19 @@ impl Resolver {
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let arg = self.fold_and_type_check(arg, param, func_name)?;
+                let mut arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
-                let frame = arg.ty.as_ref().unwrap().as_table().unwrap();
+                let arg_ty = arg.ty.as_mut().unwrap();
+                let frame = match arg_ty {
+                    Ty::Table(frame) => frame,
+                    _ => {
+                        // TODO: remove this workaround when Ty::Table has been merged into Ty::TypeExpr
+                        *arg_ty = Ty::Table(Frame::default());
+                        arg_ty.as_table().unwrap()
+                    }
+                };
                 if is_last {
                     self.context.root_mod.insert_frame(frame, NS_FRAME);
                 } else {
@@ -848,11 +852,6 @@ impl Resolver {
 
                 let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
 
-                // TODO: workaround
-                if let TypeExpr::Array(_) = set_expr {
-                    return Ok(Some(Ty::Table(Frame::default())));
-                }
-
                 Some(Ty::TypeExpr(set_expr))
             }
             None => None,
@@ -885,15 +884,6 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "date" => TyLit::Date,
         "time" => TyLit::Time,
         "timestamp" => TyLit::Timestamp,
-        "table" => {
-            // TODO: this is just a dummy that gets intercepted when resolving types
-            return Some(ExprKind::Type(TypeExpr::Array(Box::new(
-                TypeExpr::Singleton(Literal::Null),
-            ))));
-        }
-        "column" => TyLit::Column,
-        "list" => TyLit::List,
-        "scalar" => TyLit::Scalar,
         _ => return None,
     };
     Some(ExprKind::Type(TypeExpr::Primitive(ty_lit)))

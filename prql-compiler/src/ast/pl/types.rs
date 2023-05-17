@@ -35,15 +35,15 @@ pub enum TupleElement {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
-    /// Value is an element of this [SetExpr]
+    /// Value is an element of this [TypeExpr]
     TypeExpr(TypeExpr),
 
     /// Value is a function described by [TyFunc]
-    // TODO: convert into [Ty::Domain].
+    // TODO: convert into [TypeExpr].
     Function(TyFunc),
 
     /// Special type for relations.
-    // TODO: convert into [Ty::Domain].
+    // TODO: convert into [TypeExpr].
     Table(Frame),
 
     /// Means that we have no information about the type of the variable and
@@ -55,15 +55,6 @@ pub enum Ty {
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
 )]
 pub enum TyLit {
-    // TODO: convert to a named expression
-    #[strum(to_string = "list")]
-    List,
-    // TODO: convert to a named expression
-    #[strum(to_string = "column")]
-    Column,
-    // TODO: convert to a named expression
-    #[strum(to_string = "scalar")]
-    Scalar,
     #[strum(to_string = "int")]
     Int,
     #[strum(to_string = "float")]
@@ -93,6 +84,12 @@ impl Ty {
             // Not handled here. See type_resolver.
             (Ty::Infer, _) | (_, Ty::Infer) => false,
 
+            (Ty::TypeExpr(TypeExpr::Array(_)), Ty::Table(_)) => {
+                // TODO: a temporary workaround that says "tables are subtypes of arrays"
+                // so we can have a distinct type for tables (which should get merged into array of tuples)
+                true
+            }
+
             (Ty::TypeExpr(left), Ty::TypeExpr(right)) => left.is_superset_of(right),
 
             (Ty::Table(_), Ty::Table(_)) => true,
@@ -100,16 +97,28 @@ impl Ty {
             (l, r) => l == r,
         }
     }
+
+    pub fn is_array(&self) -> bool {
+        match self {
+            Ty::TypeExpr(e) => e.is_array(),
+            _ => false,
+        }
+    }
+
+    pub fn is_table(&self) -> bool {
+        match self {
+            Ty::Table(_) => true,
+            Ty::TypeExpr(TypeExpr::Array(elem)) => {
+                matches!(elem.as_ref(), TypeExpr::Tuple(_))
+            }
+            _ => false,
+        }
+    }
 }
 
 impl TypeExpr {
     fn is_superset_of(&self, subset: &TypeExpr) -> bool {
         match (self, subset) {
-            // TODO: convert these to array
-            (TypeExpr::Primitive(TyLit::Column), TypeExpr::Primitive(TyLit::Column)) => true,
-            (TypeExpr::Primitive(TyLit::Column), TypeExpr::Primitive(_)) => true,
-            (TypeExpr::Primitive(_), TypeExpr::Primitive(TyLit::Column)) => false,
-
             (TypeExpr::Primitive(l0), TypeExpr::Primitive(r0)) => l0 == r0,
             (TypeExpr::Union(many), one) => many.iter().any(|(_, any)| any.is_superset_of(one)),
             (one, TypeExpr::Union(many)) => many.iter().all(|(_, each)| one.is_superset_of(each)),
@@ -117,12 +126,20 @@ impl TypeExpr {
             (l, r) => l == r,
         }
     }
+
+    pub fn is_array(&self) -> bool {
+        match self {
+            TypeExpr::Array(_) => true,
+            TypeExpr::Union(elements) => elements.iter().any(|(_, e)| e.is_array()),
+            _ => false,
+        }
+    }
 }
 
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self {
-            Ty::TypeExpr(lit) => write!(f, "{:}", lit),
+            Ty::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
             Ty::Table(frame) => write!(f, "table<{frame}>"),
             Ty::Infer => write!(f, "infer"),
             Ty::Function(func) => {
@@ -154,7 +171,10 @@ impl Display for TypeExpr {
             TypeExpr::Singleton(lit) => write!(f, "{:}", lit),
             TypeExpr::Tuple(elements) => {
                 write!(f, "[")?;
-                for e in elements {
+                for (index, e) in elements.iter().enumerate() {
+                    if index > 0 {
+                        write!(f, ", ")?
+                    }
                     match e {
                         TupleElement::Wildcard => {
                             write!(f, "*")?;
@@ -166,12 +186,12 @@ impl Display for TypeExpr {
                             write!(f, "{expr}")?
                         }
                     }
-                    write!(f, ",")?
                 }
+                write!(f, "]")?;
                 Ok(())
             }
             TypeExpr::Type => write!(f, "set"),
-            TypeExpr::Array(_) => todo!(),
+            TypeExpr::Array(elem) => write!(f, "{{{elem}}}"),
         }
     }
 }

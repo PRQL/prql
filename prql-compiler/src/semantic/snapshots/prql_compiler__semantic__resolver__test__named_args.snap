@@ -22,7 +22,23 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
           Primitive: Int
   ty:
     TypeExpr:
-      Primitive: Column
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
   alias: added
 - id: 26
   Binary:
@@ -44,6 +60,22 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
           Primitive: Int
   ty:
     TypeExpr:
-      Primitive: Column
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
   alias: added_default
 

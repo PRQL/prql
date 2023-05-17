@@ -54,5 +54,21 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
       ty: Infer
   ty:
     TypeExpr:
-      Primitive: Column
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
 

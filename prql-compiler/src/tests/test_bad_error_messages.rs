@@ -29,7 +29,7 @@ fn test_bad_error_messages() {
        │
      3 │     group
        │     ──┬──
-       │       ╰──── main expected type `table<[]>`, but found type `func infer table<[]> -> table<[]>`
+       │       ╰──── main expected type `{[]}`, but found type `func infer {[]} -> {[]}`
        │
        │ Help: Have you forgotten an argument to function std.group?
     ───╯
@@ -60,6 +60,6 @@ fn test_2270() {
     "###,
     )
     .unwrap_err(), @r###"
-    Error: Expected a function that could operate on a table, but instead found func table<[]> -> table<[]>
+    Error: Expected a function that could operate on a table, but instead found func {[]} -> {[]}
     "###);
 }

@@ -1147,7 +1147,8 @@ mod tests {
                           ty: Infer
                     ty:
                       TypeExpr:
-                        Primitive: Column
+                        Array:
+                          Singleton: "Null"
             partition:
               - id: 12
                 Ident:

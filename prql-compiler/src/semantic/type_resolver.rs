@@ -41,6 +41,19 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
         return Ok(TypeExpr::Tuple(set_elements));
     }
 
+    // arrays
+    if let ExprKind::Array(elements) = expr {
+        if elements.len() != 1 {
+            return Err(Error::new_simple(
+                "For type expressions, arrays must contain exactly one element.",
+            ));
+        }
+        let items_type = elements.into_iter().next().unwrap();
+        let items_type = coerce_to_set(items_type, context)?;
+
+        return Ok(TypeExpr::Array(Box::new(items_type)));
+    }
+
     // unions
     if let ExprKind::Binary {
         left,
@@ -99,7 +112,7 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
-        ExprKind::List(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::List)),
+        ExprKind::List(_) => Ty::Infer, // TODO
 
         _ => Ty::Infer,
     })
@@ -135,7 +148,7 @@ impl Context {
             return Ok(found_ty);
         }
         if let Ty::Infer = found_ty {
-            return Ok(if !matches!(expected, Ty::Table(_)) {
+            return Ok(if !expected.is_table() {
                 // base case: infer expected type
                 expected.clone()
             } else {
