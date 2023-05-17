@@ -50,7 +50,7 @@ runs:
         cd target/${{ matrix.target }}/release
         tar czf "../../../${ARTIFACT_NAME}" prqlc
 
-    - name: Create artifact for Linux and macOS
+    - name: Create artifact for Windows
       shell: bash
       if: runner.os == 'Windows'
       run: |
