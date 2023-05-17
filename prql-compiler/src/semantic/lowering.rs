@@ -263,11 +263,13 @@ impl Lowerer {
 
                 // pull columns from the table decl
                 let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.get(0).unwrap();
-
-                let table_decl = self.context.root_mod.get(&input.table).unwrap();
-                let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let columns = table_decl.columns.clone();
+                let columns = (frame.columns.iter())
+                    .map(|c| {
+                        RelationColumn::Single(
+                            c.as_single().unwrap().0.as_ref().map(|i| i.name.clone()),
+                        )
+                    })
+                    .collect_vec();
 
                 let lit = RelationLiteral {
                     columns: columns

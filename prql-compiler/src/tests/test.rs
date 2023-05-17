@@ -3630,4 +3630,40 @@ fn test_array() {
     ───╯
     "###
     );
+
+    assert_snapshot!(compile(r#"
+    let my_relation = {
+        [a = 3, b = false],
+        [a = 4, b = true],
+    }
+
+    let main = (my_relation | filter b)
+    "#).unwrap(),
+        @r###"
+    WITH table_2 AS (
+      SELECT
+        3 AS a,
+        false AS b
+      UNION
+      ALL
+      SELECT
+        4 AS a,
+        true AS b
+    ),
+    my_relation AS (
+      SELECT
+        a,
+        b
+      FROM
+        table_2 AS table_1
+    )
+    SELECT
+      a,
+      b
+    FROM
+      my_relation
+    WHERE
+      b
+    "###
+    );
 }

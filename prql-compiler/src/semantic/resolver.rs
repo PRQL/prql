@@ -5,6 +5,7 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
+use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::transforms::coerce_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
@@ -214,6 +215,8 @@ impl AstFold for Resolver {
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
+
+                            // TODO: this should go into a helper function
                             ty: Some(Ty {
                                 kind: TyKind::Array(Box::new(TyKind::Tuple(
                                     lineage
@@ -404,6 +407,22 @@ impl AstFold for Resolver {
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_type(&self.context)?);
+            } else if let ExprKind::Array(elements) = &r.kind {
+                if let Some(ExprKind::List(elements)) = elements.first().map(|x| &x.kind) {
+                    // infer relations lineage
+
+                    let columns: Option<Vec<RelationColumn>> = Some(
+                        elements
+                            .iter()
+                            .map(|x| RelationColumn::Single(x.alias.clone()))
+                            .collect_vec(),
+                    );
+
+                    let name = r.alias.clone();
+                    let frame = self.context.declare_table_for_literal(id, columns, name);
+
+                    r.lineage = Some(frame)
+                }
             }
         }
         if let Some(frame) = &mut r.lineage {
