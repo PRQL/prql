@@ -348,6 +348,24 @@ pub enum TransformKind {
     Loop(Box<Expr>),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ColumnSort<T = Expr> {
+    pub direction: SortDirection,
+    pub column: T,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SortDirection {
+    Asc,
+    Desc,
+}
+
+impl Default for SortDirection {
+    fn default() -> Self {
+        SortDirection::Asc
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
