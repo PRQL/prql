@@ -5,6 +5,10 @@ inputs:
   target:
     description: Build target
     required: true
+outputs:
+  artifact-name:
+    description: The name of the artifact
+    value: ${{ steps.echo-artifact-name.outputs.artifact-name }}
 
 runs:
   using: composite
@@ -37,10 +41,30 @@ runs:
         command: build
         args: --package prqlc --release --locked --target=${{ inputs.target }}
 
+    - name: Create artifact for Linux and macOS
+      shell: bash
+      if: runner.os != 'Windows'
+      run: |
+        export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
+        echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
+        cd target/${{ matrix.target }}/release
+        tar czf "../../../${ARTIFACT_NAME}" prqlc
+
+    - name: Create artifact for Windows
+      shell: bash
+      if: runner.os == 'Windows'
+      run: |
+        export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
+        echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
+        cd target/${{ matrix.target }}/release
+        7z a "../../../${ARTIFACT_NAME}" prqlc.exe
+
     - name: Upload prqlc
       uses: actions/upload-artifact@v3
       with:
         name: prqlc-${{ inputs.target }}
-        path:
-          target/${{ inputs.target }}/release/${{ runner.os == 'Windows' &&
-          'prqlc.exe' || 'prqlc' }}
+        path: ${{ env.ARTIFACT_NAME }}
+
+    - id: echo-artifact-name
+      shell: bash
+      run: echo "artifact-name=${{ env.ARTIFACT_NAME }}" >>"$GITHUB_OUTPUT"
