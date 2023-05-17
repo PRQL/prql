@@ -7,22 +7,18 @@ use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
 pub fn coerce_to_type(expr: Expr, context: &Context) -> Result<Ty, Error> {
-    let (name, ty_expr) = coerce_to_named_type(expr, context)?;
-    let kind = TyKind::TypeExpr(ty_expr);
+    let (name, kind) = coerce_to_named_type(expr, context)?;
     Ok(Ty { name, kind })
 }
 
-fn coerce_to_named_type(
-    expr: Expr,
-    context: &Context,
-) -> Result<(Option<String>, TypeExpr), Error> {
+fn coerce_to_named_type(expr: Expr, context: &Context) -> Result<(Option<String>, TyKind), Error> {
     let name = expr.alias;
     let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
 
     Ok((name, expr))
 }
 
-fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Error> {
+fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error> {
     // primitives
     if let ExprKind::Type(set_expr) = expr {
         return Ok(set_expr);
@@ -30,7 +26,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
 
     // singletons
     if let ExprKind::Literal(lit) = expr {
-        return Ok(TypeExpr::Singleton(lit));
+        return Ok(TyKind::Singleton(lit));
     }
 
     // tuples
@@ -43,7 +39,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
             set_elements.push(TupleElement::Single(name, ty));
         }
 
-        return Ok(TypeExpr::Tuple(set_elements));
+        return Ok(TyKind::Tuple(set_elements));
     }
 
     // arrays
@@ -56,7 +52,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
         let items_type = elements.into_iter().next().unwrap();
         let (_, items_type) = coerce_to_named_type(items_type, context)?;
 
-        return Ok(TypeExpr::Array(Box::new(items_type)));
+        return Ok(TyKind::Array(Box::new(items_type)));
     }
 
     // unions
@@ -71,18 +67,18 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
 
         // flatten nested unions
         let mut options = Vec::with_capacity(2);
-        if let TypeExpr::Union(parts) = left.1 {
+        if let TyKind::Union(parts) = left.1 {
             options.extend(parts);
         } else {
             options.push(left);
         }
-        if let TypeExpr::Union(parts) = right.1 {
+        if let TyKind::Union(parts) = right.1 {
             options.extend(parts);
         } else {
             options.push(right);
         }
 
-        return Ok(TypeExpr::Union(options));
+        return Ok(TyKind::Union(options));
     }
 
     Err(Error::new_simple(format!(
@@ -99,13 +95,13 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     let kind = match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
             Literal::Null => return Ok(None),
-            Literal::Integer(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Int)),
-            Literal::Float(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Float)),
-            Literal::Boolean(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Bool)),
-            Literal::String(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
-            Literal::Date(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Date)),
-            Literal::Time(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Time)),
-            Literal::Timestamp(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Timestamp)),
+            Literal::Integer(_) => TyKind::Primitive(TyLit::Int),
+            Literal::Float(_) => TyKind::Primitive(TyLit::Float),
+            Literal::Boolean(_) => TyKind::Primitive(TyLit::Bool),
+            Literal::String(_) => TyKind::Primitive(TyLit::Text),
+            Literal::Date(_) => TyKind::Primitive(TyLit::Date),
+            Literal::Time(_) => TyKind::Primitive(TyLit::Time),
+            Literal::Timestamp(_) => TyKind::Primitive(TyLit::Timestamp),
             Literal::ValueAndUnit(_) => return Ok(None), // TODO
             Literal::Relation(_) => return Ok(None),     // TODO
         },
@@ -113,7 +109,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => return Ok(None),
 
         ExprKind::SString(_) => return Ok(None),
-        ExprKind::FString(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
+        ExprKind::FString(_) => TyKind::Primitive(TyLit::Text),
         ExprKind::Range(_) => return Ok(None), // TODO
 
         ExprKind::TransformCall(_) => return Ok(None), // TODO

@@ -10,8 +10,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
         Integer: 2
       ty:
         kind:
-          TypeExpr:
-            Primitive: Int
+          Primitive: Int
         name: ~
     op: Add
     right:
@@ -35,29 +34,27 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
             Integer: 1
           ty:
             kind:
-              TypeExpr:
-                Primitive: Int
+              Primitive: Int
             name: ~
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
   alias: b
 

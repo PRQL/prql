@@ -37,8 +37,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             Integer: 1
           ty:
             kind:
-              TypeExpr:
-                Primitive: Int
+              Primitive: Int
             name: ~
     op: Add
     right:
@@ -50,23 +49,22 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
       target_id: 10
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
 

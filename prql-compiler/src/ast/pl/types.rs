@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use super::Literal;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum TypeExpr {
+pub enum TyKind {
     /// Type of a built-in primitive type
     Primitive(TyLit),
 
@@ -14,13 +14,13 @@ pub enum TypeExpr {
     Singleton(Literal),
 
     /// Union of sets (sum)
-    Union(Vec<(Option<String>, TypeExpr)>),
+    Union(Vec<(Option<String>, TyKind)>),
 
     /// Type of tuples (product)
     Tuple(Vec<TupleElement>),
 
     /// Type of arrays
-    Array(Box<TypeExpr>),
+    Array(Box<TyKind>),
 
     /// Type of sets
     /// Used for expressions that can be converted to TypeExpr.
@@ -33,7 +33,7 @@ pub enum TypeExpr {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TupleElement {
     // Named tuple element.
-    Single(Option<String>, TypeExpr),
+    Single(Option<String>, TyKind),
 
     // Placeholder for possibly many elements.
     Wildcard,
@@ -45,12 +45,6 @@ pub struct Ty {
 
     /// Name inferred from the type declaration.
     pub name: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum TyKind {
-    /// Value is an element of this [TypeExpr]
-    TypeExpr(TypeExpr),
 }
 
 #[derive(
@@ -86,46 +80,42 @@ impl Ty {
             return true;
         }
 
-        match (&self.kind, &subset.kind) {
-            (TyKind::TypeExpr(left), TyKind::TypeExpr(right)) => left.is_superset_of(right),
-        }
+        self.kind.is_superset_of(&subset.kind)
     }
 
     pub fn is_array(&self) -> bool {
-        match &self.kind {
-            TyKind::TypeExpr(e) => e.is_array(),
-        }
+        self.kind.is_array()
     }
 
     pub fn is_table(&self) -> bool {
         match &self.kind {
-            TyKind::TypeExpr(TypeExpr::Array(elem)) => {
-                matches!(elem.as_ref(), TypeExpr::Tuple(_))
+            TyKind::Array(elem) => {
+                matches!(elem.as_ref(), TyKind::Tuple(_))
             }
             _ => false,
         }
     }
 
     pub fn is_function(&self) -> bool {
-        matches!(self.kind, TyKind::TypeExpr(TypeExpr::Function(_)))
+        matches!(self.kind, TyKind::Function(_))
     }
 }
 
-impl TypeExpr {
-    fn is_superset_of(&self, subset: &TypeExpr) -> bool {
+impl TyKind {
+    fn is_superset_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
-            (TypeExpr::Primitive(l0), TypeExpr::Primitive(r0)) => l0 == r0,
-            (TypeExpr::Union(many), one) => many.iter().any(|(_, any)| any.is_superset_of(one)),
-            (one, TypeExpr::Union(many)) => many.iter().all(|(_, each)| one.is_superset_of(each)),
+            (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
+            (TyKind::Union(many), one) => many.iter().any(|(_, any)| any.is_superset_of(one)),
+            (one, TyKind::Union(many)) => many.iter().all(|(_, each)| one.is_superset_of(each)),
 
             (l, r) => l == r,
         }
     }
 
-    pub fn is_array(&self) -> bool {
+    fn is_array(&self) -> bool {
         match self {
-            TypeExpr::Array(_) => true,
-            TypeExpr::Union(elements) => elements.iter().any(|(_, e)| e.is_array()),
+            TyKind::Array(_) => true,
+            TyKind::Union(elements) => elements.iter().any(|(_, e)| e.is_array()),
             _ => false,
         }
     }
@@ -136,10 +126,7 @@ impl Display for Ty {
         if let Some(name) = &self.name {
             return write!(f, "{}", name);
         }
-
-        match &self.kind {
-            TyKind::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
-        }
+        write!(f, "{:}", self.kind)
     }
 }
 
@@ -150,11 +137,11 @@ pub fn display_ty(ty: &Option<Ty>) -> String {
     }
 }
 
-impl Display for TypeExpr {
+impl Display for TyKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self {
-            TypeExpr::Primitive(lit) => write!(f, "{:}", lit),
-            TypeExpr::Union(ts) => {
+            TyKind::Primitive(lit) => write!(f, "{:}", lit),
+            TyKind::Union(ts) => {
                 for (i, (_, e)) in ts.iter().enumerate() {
                     write!(f, "{e}")?;
                     if i < ts.len() - 1 {
@@ -163,8 +150,8 @@ impl Display for TypeExpr {
                 }
                 Ok(())
             }
-            TypeExpr::Singleton(lit) => write!(f, "{:}", lit),
-            TypeExpr::Tuple(elements) => {
+            TyKind::Singleton(lit) => write!(f, "{:}", lit),
+            TyKind::Tuple(elements) => {
                 write!(f, "[")?;
                 for (index, e) in elements.iter().enumerate() {
                     if index > 0 {
@@ -185,9 +172,9 @@ impl Display for TypeExpr {
                 write!(f, "]")?;
                 Ok(())
             }
-            TypeExpr::Set => write!(f, "set"),
-            TypeExpr::Array(elem) => write!(f, "{{{elem}}}"),
-            TypeExpr::Function(func) => {
+            TyKind::Set => write!(f, "set"),
+            TyKind::Array(elem) => write!(f, "{{{elem}}}"),
+            TyKind::Function(func) => {
                 write!(f, "func")?;
 
                 for t in &func.args {

@@ -18,29 +18,27 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
         Integer: 3
       ty:
         kind:
-          TypeExpr:
-            Primitive: Int
+          Primitive: Int
         name: ~
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
   alias: added
 - id: 26
@@ -59,29 +57,27 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
         Integer: 1
       ty:
         kind:
-          TypeExpr:
-            Primitive: Int
+          Primitive: Int
         name: ~
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
   alias: added_default
 

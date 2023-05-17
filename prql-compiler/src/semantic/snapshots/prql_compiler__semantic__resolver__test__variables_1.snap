@@ -21,24 +21,23 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       target_id: 6
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
   alias: gross_salary
 - id: 16
@@ -59,24 +58,23 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       target_id: 6
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
   alias: gross_cost
 

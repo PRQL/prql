@@ -1131,10 +1131,9 @@ mod tests {
                 - c_invoice
               ty:
                 kind:
-                  TypeExpr:
-                    Array:
-                      Tuple:
-                        - Wildcard
+                  Array:
+                    Tuple:
+                      - Wildcard
                 name: ~
               lineage:
                 columns:
@@ -1162,9 +1161,8 @@ mod tests {
                           target_id: 6
                     ty:
                       kind:
-                        TypeExpr:
-                          Array:
-                            Singleton: "Null"
+                        Array:
+                          Singleton: "Null"
                       name: array
             partition:
               - id: 12
@@ -1175,9 +1173,8 @@ mod tests {
                 target_id: 6
           ty:
             kind:
-              TypeExpr:
-                Array:
-                  Tuple: []
+              Array:
+                Tuple: []
             name: table
           lineage:
             columns:

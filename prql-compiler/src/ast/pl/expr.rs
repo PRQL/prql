@@ -94,7 +94,7 @@ pub enum ExprKind {
     // TODO: it does not make sense to have Type also be an expression.
     // This should be renamed to "Set" (which can later be converted into a TypeExpr).
     // Also, it'd be nice if we can tighten what's allowed and only have [TyLit] inside.
-    Type(TypeExpr),
+    Type(TyKind),
 
     /// a placeholder for values provided after query is compiled
     Param(String),

@@ -14,24 +14,23 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
         target_id: 6
   ty:
     kind:
-      TypeExpr:
-        Union:
-          - - ~
-            - Primitive: Int
-          - - ~
-            - Primitive: Float
-          - - ~
-            - Primitive: Bool
-          - - ~
-            - Primitive: Text
-          - - ~
-            - Primitive: Date
-          - - ~
-            - Primitive: Time
-          - - ~
-            - Primitive: Timestamp
-          - - ~
-            - Singleton: "Null"
+      Union:
+        - - ~
+          - Primitive: Int
+        - - ~
+          - Primitive: Float
+        - - ~
+          - Primitive: Bool
+        - - ~
+          - Primitive: Text
+        - - ~
+          - Primitive: Date
+        - - ~
+          - Primitive: Time
+        - - ~
+          - Primitive: Timestamp
+        - - ~
+          - Singleton: "Null"
     name: scalar
   alias: one
 

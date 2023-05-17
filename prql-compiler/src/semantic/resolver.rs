@@ -98,7 +98,7 @@ impl Resolver {
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
                             let mut e = Expr::null();
                             e.ty = Some(Ty {
-                                kind: TyKind::TypeExpr(TypeExpr::Set),
+                                kind: TyKind::Set,
                                 name: None,
                             });
                             e
@@ -217,7 +217,7 @@ impl AstFold for Resolver {
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
                             ty: Some(Ty {
-                                kind: TyKind::TypeExpr(TypeExpr::Array(Box::new(TypeExpr::Tuple(
+                                kind: TyKind::Array(Box::new(TyKind::Tuple(
                                     lineage
                                         .columns
                                         .iter()
@@ -226,12 +226,12 @@ impl AstFold for Resolver {
                                             LineageColumn::Single { name, .. } => {
                                                 TupleElement::Single(
                                                     name.as_ref().map(|i| i.name.clone()),
-                                                    TypeExpr::Singleton(Literal::Null),
+                                                    TyKind::Singleton(Literal::Null),
                                                 )
                                             }
                                         })
                                         .collect(),
-                                )))),
+                                ))),
                                 name: None,
                             }),
                             lineage: Some(lineage),
@@ -604,7 +604,7 @@ impl Resolver {
 
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
             node.ty = Some(Ty {
-                kind: TyKind::TypeExpr(TypeExpr::Function(ty)),
+                kind: TyKind::Function(ty),
                 name: None,
             });
 
@@ -908,7 +908,7 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "timestamp" => TyLit::Timestamp,
         _ => return None,
     };
-    Some(ExprKind::Type(TypeExpr::Primitive(ty_lit)))
+    Some(ExprKind::Type(TyKind::Primitive(ty_lit)))
 }
 
 #[cfg(test)]
