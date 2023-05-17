@@ -2,6 +2,10 @@ name: build-wheel
 description:
   "Use maturin to build python dists of prql-python. Conditional if checks
   ensure only the correct OS build is called."
+inputs:
+  target:
+    description: Build target, or 'source' for source distribution
+    required: false
 
 runs:
   using: composite
@@ -11,18 +15,24 @@ runs:
         save-if: ${{ github.ref == 'refs/heads/main' }}
         prefix-key: 0.8.1
     - uses: messense/maturin-action@v1
-      if: runner.os == 'Linux'
+      if: inputs.target == 'source'
       with:
+        command: sdist
+        args: -o dist -m bindings/prql-python/Cargo.toml
+    - uses: messense/maturin-action@v1
+      if: runner.os == 'Linux' && inputs.target != 'source'
+      with:
+        target: ${{ inputs.target }}
         manylinux: auto
         command: build
         args: --release -o dist -m bindings/prql-python/Cargo.toml
     - uses: messense/maturin-action@v1
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
         args: --release -o dist -m bindings/prql-python/Cargo.toml
     - uses: messense/maturin-action@v1
-      if: runner.os == 'macOS'
+      if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
         args: --release -o dist --universal2 -m bindings/prql-python/Cargo.toml
