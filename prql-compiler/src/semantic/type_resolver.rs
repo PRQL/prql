@@ -103,7 +103,6 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
             Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
             Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
             Literal::ValueAndUnit(_) => return Ok(None), // TODO
-            Literal::Relation(_) => return Ok(None),     // TODO
         },
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => return Ok(None),

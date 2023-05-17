@@ -367,7 +367,18 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 Some(input_name),
             );
 
-            let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
+            let res = Expr::from(ExprKind::Array(
+                res.rows
+                    .into_iter()
+                    .map(|row| {
+                        Expr::from(ExprKind::List(
+                            row.into_iter()
+                                .map(|lit| Expr::from(ExprKind::Literal(lit)))
+                                .collect(),
+                        ))
+                    })
+                    .collect(),
+            ));
             let res = Expr {
                 lineage: Some(frame),
                 id: text_expr.id,

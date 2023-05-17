@@ -351,7 +351,6 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                 fractional_seconds_precision: None,
             }
         }
-        Literal::Relation(_) => unreachable!(),
     })
 }
 

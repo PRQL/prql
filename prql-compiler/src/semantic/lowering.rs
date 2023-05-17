@@ -9,7 +9,7 @@ use itertools::Itertools;
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
     self, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range,
-    SwitchCase, WindowFrame,
+    RelationLiteral, SwitchCase, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -255,7 +255,7 @@ impl Lowerer {
                 self.create_a_table_instance(id, None, tid)
             }
 
-            ExprKind::Literal(pl::Literal::Relation(lit)) => {
+            ExprKind::Array(elements) => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -268,6 +268,24 @@ impl Lowerer {
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
                 let columns = table_decl.columns.clone();
+
+                let lit = RelationLiteral {
+                    columns: columns
+                        .iter()
+                        .map(|c| c.as_single().unwrap().clone().unwrap())
+                        .collect_vec(),
+                    rows: elements
+                        .into_iter()
+                        .map(|row| {
+                            row.kind
+                                .into_list()
+                                .unwrap()
+                                .into_iter()
+                                .map(|element| element.kind.into_literal().unwrap())
+                                .collect()
+                        })
+                        .collect(),
+                };
 
                 log::debug!("lowering literal relation table, columns = {columns:?}");
                 let relation = rq::Relation {
