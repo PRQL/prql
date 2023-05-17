@@ -9,7 +9,7 @@ use itertools::Itertools;
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
     self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, QueryDef, Range, SwitchCase,
-    Ty, WindowFrame,
+    Ty, TyKind, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -173,11 +173,16 @@ impl Lowerer {
     /// Lower an expression into a instance of a table in the query
     fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
         let mut expr = expr;
-        if let Some(Ty::Infer) = expr.ty {
+        if let Some(Ty {
+            kind: TyKind::Infer,
+            ..
+        }) = expr.ty
+        {
             // make sure that type of this expr has been inferred to be a table
-            let inferred =
-                self.context
-                    .validate_type(&expr, &Ty::Table(Frame::default()), || None)?;
+            let expected = Ty {
+                kind: TyKind::Table(Frame::default()),
+            };
+            let inferred = self.context.validate_type(&expr, &expected, || None)?;
             expr.ty = Some(inferred);
         }
 
@@ -192,7 +197,7 @@ impl Lowerer {
                 let input_name = expr
                     .ty
                     .as_ref()
-                    .and_then(|t| t.as_table())
+                    .and_then(|t| t.kind.as_table())
                     .and_then(|f| f.inputs.first())
                     .map(|i| i.name.clone());
                 let name = input_name.or(Some(fq_table_name.name));
@@ -233,7 +238,7 @@ impl Lowerer {
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.ty.as_ref().unwrap().as_table().unwrap();
+                let frame = expr.ty.as_ref().unwrap().kind.as_table().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
@@ -266,7 +271,7 @@ impl Lowerer {
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.ty.as_ref().unwrap().as_table().unwrap();
+                let frame = expr.ty.as_ref().unwrap().kind.as_table().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
@@ -506,7 +511,7 @@ impl Lowerer {
         ty: Option<pl::Ty>,
         transforms: &mut Vec<Transform>,
     ) -> Result<Vec<RelationColumn>> {
-        let frame = ty.unwrap().into_table().unwrap_or_default();
+        let frame = ty.unwrap().kind.into_table().unwrap_or_default();
 
         log::debug!("push_select of a frame: {:?}", frame);
 
@@ -980,7 +985,11 @@ impl AstFold for TableDepsCollector {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
-                if let Some(Ty::Table(_)) = &expr.ty {
+                if let Some(Ty {
+                    kind: TyKind::Table(_),
+                    ..
+                }) = &expr.ty
+                {
                     self.deps.push(ident.clone());
                 }
                 expr.kind

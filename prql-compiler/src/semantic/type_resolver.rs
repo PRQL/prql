@@ -86,35 +86,35 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
     )))
 }
 
-pub fn infer_type(node: &Expr, context: &Context) -> Result<Ty> {
+pub fn infer_type(node: &Expr, context: &Context) -> Result<TyKind> {
     if let Some(ty) = &node.ty {
-        return Ok(ty.clone());
+        return Ok(ty.kind.clone());
     }
 
     Ok(match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
-            Literal::Null => Ty::Infer,
-            Literal::Integer(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Int)),
-            Literal::Float(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Float)),
-            Literal::Boolean(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Bool)),
-            Literal::String(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
-            Literal::Date(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Date)),
-            Literal::Time(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Time)),
-            Literal::Timestamp(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Timestamp)),
-            Literal::ValueAndUnit(_) => Ty::Infer, // TODO
+            Literal::Null => TyKind::Infer,
+            Literal::Integer(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Int)),
+            Literal::Float(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Float)),
+            Literal::Boolean(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Bool)),
+            Literal::String(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
+            Literal::Date(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Date)),
+            Literal::Time(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Time)),
+            Literal::Timestamp(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Timestamp)),
+            Literal::ValueAndUnit(_) => TyKind::Infer, // TODO
             Literal::Relation(_) => unreachable!(),
         },
 
-        ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
+        ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => TyKind::Infer,
 
-        ExprKind::SString(_) => Ty::Infer,
-        ExprKind::FString(_) => Ty::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
-        ExprKind::Range(_) => Ty::Infer, // TODO
+        ExprKind::SString(_) => TyKind::Infer,
+        ExprKind::FString(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
+        ExprKind::Range(_) => TyKind::Infer, // TODO
 
-        ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
-        ExprKind::List(_) => Ty::Infer, // TODO
+        ExprKind::TransformCall(call) => TyKind::Table(call.infer_type(context)?),
+        ExprKind::List(_) => TyKind::Infer, // TODO
 
-        _ => Ty::Infer,
+        _ => TyKind::Infer,
     })
 }
 
@@ -144,10 +144,10 @@ impl Context {
         let found_ty = found.ty.clone().unwrap();
 
         // infer
-        if let Ty::Infer = expected {
+        if let TyKind::Infer = expected.kind {
             return Ok(found_ty);
         }
-        if let Ty::Infer = found_ty {
+        if let TyKind::Infer = found_ty.kind {
             return Ok(if !expected.is_table() {
                 // base case: infer expected type
                 expected.clone()
@@ -160,7 +160,9 @@ impl Context {
                     self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
-                Ty::Table(frame)
+                Ty {
+                    kind: TyKind::Table(frame),
+                }
             });
         }
 
@@ -191,8 +193,14 @@ pub fn type_of_closure(closure: &Closure) -> TyFunc {
         args: closure
             .params
             .iter()
-            .map(|a| a.ty.clone().unwrap_or(Ty::Infer))
+            .map(|a| {
+                a.ty.clone().unwrap_or(Ty {
+                    kind: TyKind::Infer,
+                })
+            })
             .collect(),
-        return_ty: Box::new(closure.body_ty.clone().unwrap_or(Ty::Infer)),
+        return_ty: Box::new(closure.body_ty.clone().unwrap_or(Ty {
+            kind: TyKind::Infer,
+        })),
     }
 }

@@ -36,8 +36,13 @@ pub enum TupleElement {
     Wildcard,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Ty {
+    pub kind: TyKind,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum Ty {
+pub enum TyKind {
     /// Value is an element of this [TypeExpr]
     TypeExpr(TypeExpr),
 
@@ -79,35 +84,35 @@ pub struct TyFunc {
 
 impl Ty {
     pub fn is_superset_of(&self, subset: &Ty) -> bool {
-        match (self, subset) {
+        match (&self.kind, &subset.kind) {
             // Not handled here. See type_resolver.
-            (Ty::Infer, _) | (_, Ty::Infer) => false,
+            (TyKind::Infer, _) | (_, TyKind::Infer) => false,
 
-            (Ty::TypeExpr(TypeExpr::Array(_)), Ty::Table(_)) => {
+            (TyKind::TypeExpr(TypeExpr::Array(_)), TyKind::Table(_)) => {
                 // TODO: a temporary workaround that says "tables are subtypes of arrays"
                 // so we can have a distinct type for tables (which should get merged into array of tuples)
                 true
             }
 
-            (Ty::TypeExpr(left), Ty::TypeExpr(right)) => left.is_superset_of(right),
+            (TyKind::TypeExpr(left), TyKind::TypeExpr(right)) => left.is_superset_of(right),
 
-            (Ty::Table(_), Ty::Table(_)) => true,
+            (TyKind::Table(_), TyKind::Table(_)) => true,
 
             (l, r) => l == r,
         }
     }
 
     pub fn is_array(&self) -> bool {
-        match self {
-            Ty::TypeExpr(e) => e.is_array(),
+        match &self.kind {
+            TyKind::TypeExpr(e) => e.is_array(),
             _ => false,
         }
     }
 
     pub fn is_table(&self) -> bool {
-        match self {
-            Ty::Table(_) => true,
-            Ty::TypeExpr(TypeExpr::Array(elem)) => {
+        match &self.kind {
+            TyKind::Table(_) => true,
+            TyKind::TypeExpr(TypeExpr::Array(elem)) => {
                 matches!(elem.as_ref(), TypeExpr::Tuple(_))
             }
             _ => false,
@@ -115,7 +120,7 @@ impl Ty {
     }
 
     pub fn is_function(&self) -> bool {
-        matches!(self, Ty::TypeExpr(TypeExpr::Function(_)))
+        matches!(self.kind, TyKind::TypeExpr(TypeExpr::Function(_)))
     }
 }
 
@@ -141,10 +146,10 @@ impl TypeExpr {
 
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match &self {
-            Ty::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
-            Ty::Table(frame) => write!(f, "table<{frame}>"),
-            Ty::Infer => write!(f, "infer"),
+        match &self.kind {
+            TyKind::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
+            TyKind::Table(frame) => write!(f, "table<{frame}>"),
+            TyKind::Infer => write!(f, "infer"),
         }
     }
 }

@@ -97,7 +97,9 @@ impl Resolver {
                     let mut var_def = VarDef {
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
                             let mut e = Expr::null();
-                            e.ty = Some(Ty::TypeExpr(TypeExpr::Set));
+                            e.ty = Some(Ty {
+                                kind: TyKind::TypeExpr(TypeExpr::Set),
+                            });
                             e
                         })),
                         // FIXME
@@ -217,7 +219,9 @@ impl AstFold for Resolver {
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
-                            ty: Some(Ty::Table(instance_frame)),
+                            ty: Some(Ty {
+                                kind: TyKind::Table(instance_frame),
+                            }),
                             alias: None,
                             ..node
                         }
@@ -381,9 +385,13 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(infer_type(&r, &self.context)?);
+            r.ty = Some(Ty { kind: infer_type(&r, &self.context)? });
         }
-        if let Some(Ty::Table(frame)) = &mut r.ty {
+        if let Some(Ty {
+            kind: TyKind::Table(frame),
+            ..
+        }) = &mut r.ty
+        {
             if let Some(alias) = r.alias.take() {
                 frame.rename(alias);
             }
@@ -578,7 +586,9 @@ impl Resolver {
             ty.args = ty.args[args_len..].to_vec();
 
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
-            node.ty = Some(Ty::TypeExpr(TypeExpr::Function(ty)));
+            node.ty = Some(Ty {
+                kind: TyKind::TypeExpr(TypeExpr::Function(ty)),
+            });
 
             node
         };
@@ -674,12 +684,14 @@ impl Resolver {
 
                 // add table's frame into scope
                 let arg_ty = arg.ty.as_mut().unwrap();
-                let frame = match arg_ty {
-                    Ty::Table(frame) => frame,
+                let frame = match &arg_ty.kind {
+                    TyKind::Table(frame) => frame,
                     _ => {
                         // TODO: remove this workaround when Ty::Table has been merged into Ty::TypeExpr
-                        *arg_ty = Ty::Table(Frame::default());
-                        arg_ty.as_table().unwrap()
+                        *arg_ty = Ty {
+                            kind: TyKind::Table(Frame::default()),
+                        };
+                        arg_ty.kind.as_table().unwrap()
                     }
                 };
                 if is_last {
@@ -740,7 +752,10 @@ impl Resolver {
         // don't validate types of unresolved exprs
         if arg.ty.is_some() {
             // validate type
-            let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
+            let infer = Ty {
+                kind: TyKind::Infer,
+            };
+            let param_ty = param.ty.as_ref().unwrap_or(&infer);
             let assumed_ty = self.context.validate_type(&arg, param_ty, || {
                 func_name
                     .as_ref()
@@ -852,7 +867,9 @@ impl Resolver {
 
                 let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
 
-                Some(Ty::TypeExpr(set_expr))
+                Some(Ty {
+                    kind: TyKind::TypeExpr(set_expr),
+                })
             }
             None => None,
         })
@@ -894,7 +911,7 @@ mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{Expr, Ty};
+    use crate::ast::pl::{Expr, Ty, TyKind};
     use crate::semantic::resolve_only;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
@@ -904,7 +921,10 @@ mod test {
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {
-        Ok(parse_and_resolve(query)?.ty.unwrap_or(Ty::Infer))
+        let infer = Ty {
+            kind: TyKind::Infer,
+        };
+        Ok(parse_and_resolve(query)?.ty.unwrap_or(infer))
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {

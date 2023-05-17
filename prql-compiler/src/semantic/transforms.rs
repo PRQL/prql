@@ -366,7 +366,9 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
             let res = Expr {
-                ty: Some(Ty::Table(frame)),
+                ty: Some(Ty {
+                    kind: TyKind::Table(frame),
+                }),
                 id: text_expr.id,
                 ..res
             };
@@ -486,7 +488,7 @@ impl TransformCall {
         fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
             expr.ty
                 .as_ref()
-                .and_then(|t| t.as_table())
+                .and_then(|t| t.kind.as_table())
                 .cloned()
                 .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
         }
@@ -511,7 +513,7 @@ impl TransformCall {
 
                 // TODO: See #2270 — this is a bad error message and likely
                 // should be handled prior to reaching this point.
-                let mut frame = body.ty.clone().unwrap().into_table().map_err(|_| {
+                let mut frame = body.ty.clone().unwrap().kind.into_table().map_err(|_| {
                     Error::new_simple(format!(
                         "Expected a function that could operate on a table, but instead found {}",
                         body.ty.clone().unwrap(),
@@ -541,7 +543,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
-                body.ty.clone().unwrap().into_table().unwrap()
+                body.ty.clone().unwrap().kind.into_table().unwrap()
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;

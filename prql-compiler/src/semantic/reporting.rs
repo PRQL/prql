@@ -143,7 +143,7 @@ impl AstFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
-                let frame = expr.ty.as_ref().and_then(|t| t.as_table().cloned());
+                let frame = expr.ty.as_ref().and_then(|t| t.kind.as_table().cloned());
                 if let Some(frame) = frame {
                     self.frames.push((span, frame));
                 }

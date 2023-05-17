@@ -107,16 +107,22 @@ impl Context {
 
     pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> Result<DeclKind> {
         match &value.ty {
-            Some(Ty::Table(_)) => {
+            Some(Ty {
+                kind: TyKind::Table(_),
+                ..
+            }) => {
                 let mut value = value;
 
                 let ty = value.ty.clone().unwrap();
-                let frame = ty.into_table().unwrap_or_else(|_| {
+                let frame = ty.kind.into_table().unwrap_or_else(|_| {
+                    let expected = Ty {
+                        kind: TyKind::Table(Frame::default()),
+                    };
                     let assumed = self
-                        .validate_type(value.as_ref(), &Ty::Table(Frame::default()), || None)
+                        .validate_type(value.as_ref(), &expected, || None)
                         .unwrap();
                     value.ty = Some(assumed.clone());
-                    assumed.into_table().unwrap()
+                    assumed.kind.into_table().unwrap()
                 });
 
                 let columns = (frame.columns.iter())
@@ -361,7 +367,11 @@ impl Context {
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
+            if let Some(Ty {
+                kind: TyKind::Table(frame),
+                ..
+            }) = expr.ty.as_ref()
+            {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_all())
                     .collect_vec();
