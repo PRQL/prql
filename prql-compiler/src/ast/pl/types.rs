@@ -24,7 +24,10 @@ pub enum TypeExpr {
 
     /// Type of sets.
     /// Used for exprs that can be converted to SetExpr and then used as a Ty.
-    Type,
+    Set,
+
+    /// Type of functions with defined params and return types.
+    Function(TyFunc),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -37,10 +40,6 @@ pub enum TupleElement {
 pub enum Ty {
     /// Value is an element of this [TypeExpr]
     TypeExpr(TypeExpr),
-
-    /// Value is a function described by [TyFunc]
-    // TODO: convert into [TypeExpr].
-    Function(TyFunc),
 
     /// Special type for relations.
     // TODO: convert into [TypeExpr].
@@ -114,6 +113,10 @@ impl Ty {
             _ => false,
         }
     }
+
+    pub fn is_function(&self) -> bool {
+        matches!(self, Ty::TypeExpr(TypeExpr::Function(_)))
+    }
 }
 
 impl TypeExpr {
@@ -142,15 +145,6 @@ impl Display for Ty {
             Ty::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
             Ty::Table(frame) => write!(f, "table<{frame}>"),
             Ty::Infer => write!(f, "infer"),
-            Ty::Function(func) => {
-                write!(f, "func")?;
-
-                for t in &func.args {
-                    write!(f, " {t}")?;
-                }
-                write!(f, " -> {}", func.return_ty)?;
-                Ok(())
-            }
         }
     }
 }
@@ -190,8 +184,17 @@ impl Display for TypeExpr {
                 write!(f, "]")?;
                 Ok(())
             }
-            TypeExpr::Type => write!(f, "set"),
+            TypeExpr::Set => write!(f, "set"),
             TypeExpr::Array(elem) => write!(f, "{{{elem}}}"),
+            TypeExpr::Function(func) => {
+                write!(f, "func")?;
+
+                for t in &func.args {
+                    write!(f, " {t}")?;
+                }
+                write!(f, " -> {}", func.return_ty)?;
+                Ok(())
+            }
         }
     }
 }

@@ -97,7 +97,7 @@ impl Resolver {
                     let mut var_def = VarDef {
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
                             let mut e = Expr::null();
-                            e.ty = Some(Ty::TypeExpr(TypeExpr::Type));
+                            e.ty = Some(Ty::TypeExpr(TypeExpr::Set));
                             e
                         })),
                         // FIXME
@@ -578,7 +578,7 @@ impl Resolver {
             ty.args = ty.args[args_len..].to_vec();
 
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
-            node.ty = Some(Ty::Function(ty));
+            node.ty = Some(Ty::TypeExpr(TypeExpr::Function(ty)));
 
             node
         };
