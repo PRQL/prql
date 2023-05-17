@@ -91,7 +91,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
     )))
 }
 
-pub fn infer_type(node: &Expr, context: &Context) -> Result<Option<Ty>> {
+pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     if let Some(ty) = &node.ty {
         return Ok(Some(ty.clone()));
     }
@@ -107,7 +107,7 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Option<Ty>> {
             Literal::Time(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Time)),
             Literal::Timestamp(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Timestamp)),
             Literal::ValueAndUnit(_) => return Ok(None), // TODO
-            Literal::Relation(_) => unreachable!(),
+            Literal::Relation(_) => return Ok(None),     // TODO
         },
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => return Ok(None),
@@ -116,8 +116,8 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Option<Ty>> {
         ExprKind::FString(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
         ExprKind::Range(_) => return Ok(None), // TODO
 
-        ExprKind::TransformCall(call) => TyKind::Table(call.infer_type(context)?),
-        ExprKind::List(_) => return Ok(None), // TODO
+        ExprKind::TransformCall(_) => return Ok(None), // TODO
+        ExprKind::List(_) => return Ok(None),          // TODO
 
         _ => return Ok(None),
     };
@@ -145,10 +145,10 @@ impl Context {
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
-        found: &Expr,
+        found: &mut Expr,
         expected: &Option<Ty>,
         who: F,
-    ) -> Result<Option<Ty>, Error>
+    ) -> Result<(), Error>
     where
         F: FnOnce() -> Option<String>,
     {
@@ -156,14 +156,14 @@ impl Context {
 
         // infer
         let Some(expected) = expected else {
-            return Ok(found_ty);
+            // expected is none: there is no validation to be done
+            return Ok(());
         };
 
         let Some(found_ty) = found_ty else {
-            return Ok(if !expected.is_table() {
-                // base case: infer expected type
-                Some(expected.clone())
-            } else {
+            // found is none: infer from expected
+
+            if found.lineage.is_none() && expected.is_table() {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns
@@ -172,11 +172,13 @@ impl Context {
                     self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
-                Some(Ty {
-                    kind: TyKind::Table(frame),
-                    name: None,
-                })
-            });
+                found.lineage = Some(frame)
+            }
+
+            // base case: infer expected type
+            found.ty = Some(expected.clone());
+
+            return Ok(());
         };
 
         let expected_is_above = expected.is_superset_of(&found_ty);
@@ -197,7 +199,7 @@ impl Context {
             };
             return e;
         }
-        Ok(Some(found_ty))
+        Ok(())
     }
 }
 

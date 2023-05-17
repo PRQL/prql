@@ -9,7 +9,7 @@ use std::process::exit;
 use std::str::FromStr;
 
 use prql_compiler::semantic::{self, reporting::*};
-use prql_compiler::{ast::pl::Frame, pl_to_prql};
+use prql_compiler::{ast::pl::Lineage, pl_to_prql};
 use prql_compiler::{downcast, Options, Target};
 use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, FileTree, Span};
 
@@ -326,7 +326,7 @@ impl Command {
     }
 }
 
-fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);

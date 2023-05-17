@@ -13,7 +13,7 @@ use crate::error::{Error, Reason, WithErrorInfo};
 use super::context::{Decl, DeclKind};
 use super::module::Module;
 use super::resolver::Resolver;
-use super::{Context, Frame};
+use super::{Context, Lineage};
 use super::{NS_FRAME, NS_PARAM};
 
 /// try to convert function call with enough args into transform
@@ -126,7 +126,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             let by = coerce_and_flatten(by)?;
 
-            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
 
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
@@ -179,7 +180,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
 
             let transform_kind = TransformKind::Window {
                 kind,
@@ -196,7 +198,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.loop" => {
             let [pipeline, tbl] = unpack::<2>(closure);
 
-            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
 
             (TransformKind::Loop(Box::new(pipeline)), tbl)
         }
@@ -366,10 +369,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
             let res = Expr {
-                ty: Some(Ty {
-                    kind: TyKind::Table(frame),
-                    name: None,
-                }),
+                lineage: Some(frame),
                 id: text_expr.id,
                 ..res
             };
@@ -427,7 +427,7 @@ pub fn coerce_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
 fn fold_by_simulating_eval(
     resolver: &mut Resolver,
     pipeline: Expr,
-    val_type: Ty,
+    val_lineage: Lineage,
 ) -> Result<Expr, anyhow::Error> {
     log::debug!("fold by simulating evaluation");
 
@@ -442,7 +442,7 @@ fn fold_by_simulating_eval(
     // chunk and instruct resolver to apply the transform on that.
 
     let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.ty = Some(val_type);
+    dummy.lineage = Some(val_lineage);
 
     let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
         name: Box::new(pipeline),
@@ -483,14 +483,12 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, context: &Context) -> Result<Frame> {
+    pub fn infer_type(&self, context: &Context) -> Result<Lineage> {
         use TransformKind::*;
 
-        fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
-            expr.ty
-                .as_ref()
-                .and_then(|t| t.kind.as_table())
-                .cloned()
+        fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
+            expr.lineage
+                .clone()
                 .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
         }
 
@@ -514,12 +512,18 @@ impl TransformCall {
 
                 // TODO: See #2270 — this is a bad error message and likely
                 // should be handled prior to reaching this point.
-                let mut frame = body.ty.clone().unwrap().kind.into_table().map_err(|_| {
-                    Error::new_simple(format!(
-                        "Expected a function that could operate on a table, but instead found {}",
-                        body.ty.clone().unwrap(),
-                    ))
-                })?;
+                if let Some(ty) = &body.ty {
+                    if !ty.is_table() {
+                        return Err(
+                            Error::new_simple(format!(
+                                "Expected a function that could operate on a table, but instead found {}",
+                                body.ty.clone().unwrap(),
+                            ))
+                            .into()
+                        );
+                    }
+                }
+                let mut frame = body.lineage.clone().unwrap();
 
                 log::debug!("inferring type of group with pipeline: {body}");
 
@@ -544,7 +548,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
-                body.ty.clone().unwrap().kind.into_table().unwrap()
+                body.lineage.clone().unwrap()
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
@@ -569,13 +573,13 @@ impl TransformCall {
     }
 }
 
-fn join(mut lhs: Frame, rhs: Frame) -> Frame {
+fn join(mut lhs: Lineage, rhs: Lineage) -> Lineage {
     lhs.columns.extend(rhs.columns);
     lhs.inputs.extend(rhs.inputs);
     lhs
 }
 
-fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
     if top.columns.len() != bottom.columns.len() {
         return Err(Error::new_simple(
             "cannot append two relations with non-matching number of columns.",
@@ -591,23 +595,23 @@ fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (FrameColumn::All { input_name, except }, FrameColumn::All { .. }) => {
-                FrameColumn::All { input_name, except }
+            (LineageColumn::All { input_name, except }, LineageColumn::All { .. }) => {
+                LineageColumn::All { input_name, except }
             }
             (
-                FrameColumn::Single {
+                LineageColumn::Single {
                     name: name_t,
                     expr_id,
                 },
-                FrameColumn::Single { name: name_b, .. },
+                LineageColumn::Single { name: name_b, .. },
             ) => match (name_t, name_b) {
                 (None, None) => {
                     let name = None;
-                    FrameColumn::Single { name, expr_id }
+                    LineageColumn::Single { name, expr_id }
                 }
                 (None, Some(name)) | (Some(name), _) => {
                     let name = Some(name);
-                    FrameColumn::Single { name, expr_id }
+                    LineageColumn::Single { name, expr_id }
                 }
             },
             (t, b) => return Err(Error::new_simple(format!(
@@ -623,7 +627,7 @@ fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     Ok(top)
 }
 
-impl Frame {
+impl Lineage {
     pub fn clear(&mut self) {
         self.prev_columns.clear();
         self.prev_columns.append(&mut self.columns);
@@ -653,7 +657,7 @@ impl Frame {
                             continue;
                         }
                         let prev_col = self.prev_columns.iter().find(|c| match c {
-                            FrameColumn::Single { expr_id, .. } => expr_id == target_id,
+                            LineageColumn::Single { expr_id, .. } => expr_id == target_id,
                             _ => false,
                         });
                         self.columns.extend(prev_col.cloned());
@@ -674,7 +678,7 @@ impl Frame {
         // remove names from columns with the same name
         if name.is_some() {
             for c in &mut self.columns {
-                if let FrameColumn::Single { name: n, .. } = c {
+                if let LineageColumn::Single { name: n, .. } = c {
                     if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
                         *n = None;
                     }
@@ -682,7 +686,8 @@ impl Frame {
             }
         }
 
-        self.columns.push(FrameColumn::Single { name, expr_id: id });
+        self.columns
+            .push(LineageColumn::Single { name, expr_id: id });
     }
 
     pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
@@ -691,7 +696,7 @@ impl Frame {
         }
     }
 
-    pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
+    pub fn find_input(&self, input_name: &str) -> Option<&LineageInput> {
         self.inputs.iter().find(|i| i.name == input_name)
     }
 
@@ -703,8 +708,8 @@ impl Frame {
 
         for col in &mut self.columns {
             match col {
-                FrameColumn::All { input_name, .. } => *input_name = alias.clone(),
-                FrameColumn::Single {
+                LineageColumn::All { input_name, .. } => *input_name = alias.clone(),
+                LineageColumn::Single {
                     name: Some(name), ..
                 } => name.path = vec![alias.clone()],
                 _ => {}
@@ -713,8 +718,8 @@ impl Frame {
     }
 }
 
-impl FrameInput {
-    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
+impl LineageInput {
+    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<LineageColumn> {
         let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
@@ -742,7 +747,7 @@ impl FrameInput {
                 .map(|i| i.name.clone())
                 .collect();
 
-            return vec![FrameColumn::All {
+            return vec![LineageColumn::All {
                 input_name: self.name.clone(),
                 except,
             }];
@@ -754,7 +759,7 @@ impl FrameInput {
             .iter()
             .map(|col| {
                 let name = col.as_single().unwrap().clone().map(Ident::from_name);
-                FrameColumn::Single {
+                LineageColumn::Single {
                     name,
                     expr_id: self.id,
                 }
@@ -862,6 +867,7 @@ impl AstFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
+                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -886,6 +892,7 @@ impl AstFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
+                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -1124,18 +1131,22 @@ mod tests {
                 - c_invoice
               ty:
                 kind:
-                  Table:
-                    columns:
-                      - All:
-                          input_name: c_invoice
-                          except: []
-                    inputs:
-                      - id: 6
-                        name: c_invoice
-                        table:
-                          - default_db
-                          - c_invoice
+                  TypeExpr:
+                    Array:
+                      Tuple:
+                        - Wildcard
                 name: ~
+              lineage:
+                columns:
+                  - All:
+                      input_name: c_invoice
+                      except: []
+                inputs:
+                  - id: 6
+                    name: c_invoice
+                    table:
+                      - default_db
+                      - c_invoice
             kind:
               Aggregate:
                 assigns:
@@ -1164,23 +1175,26 @@ mod tests {
                 target_id: 6
           ty:
             kind:
-              Table:
-                columns:
-                  - Single:
-                      name:
-                        - c_invoice
-                        - issued_at
-                      expr_id: 12
-                  - Single:
-                      name: ~
-                      expr_id: 22
-                inputs:
-                  - id: 6
-                    name: c_invoice
-                    table:
-                      - default_db
-                      - c_invoice
-            name: ~
+              TypeExpr:
+                Array:
+                  Tuple: []
+            name: table
+          lineage:
+            columns:
+              - Single:
+                  name:
+                    - c_invoice
+                    - issued_at
+                  expr_id: 12
+              - Single:
+                  name: ~
+                  expr_id: 22
+            inputs:
+              - id: 6
+                name: c_invoice
+                table:
+                  - default_db
+                  - c_invoice
         - - main
         "###);
     }

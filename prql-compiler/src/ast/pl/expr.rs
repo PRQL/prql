@@ -37,6 +37,13 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
 
+    /// Information about where data of this expression will come from.
+    ///
+    /// Currently, this is used to infer relational pipeline frames.
+    /// Must always exists if ty is a relation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<Lineage>,
+
     #[serde(skip)]
     pub needs_window: bool,
 
@@ -45,6 +52,7 @@ pub struct Expr {
 
     /// When true on [ExprKind::List], this list will be flattened when placed
     /// in some other list.
+    // TODO: maybe we should have a special ExprKind instead of this flag?
     #[serde(skip)]
     pub flatten: bool,
 }
@@ -449,6 +457,7 @@ impl From<ExprKind> for Expr {
             target_id: None,
             target_ids: Vec::new(),
             ty: None,
+            lineage: None,
             needs_window: false,
             alias: None,
             flatten: false,

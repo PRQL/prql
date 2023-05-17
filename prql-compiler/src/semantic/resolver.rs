@@ -147,10 +147,11 @@ impl Resolver {
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
             if expected_ty.is_some() {
                 let who = || Some(stmt.name.clone());
-                def.value.ty = self.context.validate_type(&def.value, &expected_ty, who)?;
+                self.context
+                    .validate_type(&mut def.value, &expected_ty, who)?;
             }
 
-            let decl = self.context.prepare_expr_decl(def.value, &stmt.name);
+            let decl = self.context.prepare_expr_decl(def.value);
 
             self.context
                 .declare(ident, decl, stmt.id)
@@ -211,15 +212,29 @@ impl AstFold for Resolver {
                     DeclKind::TableDecl(_) => {
                         let input_name = ident.name.clone();
 
-                        let instance_frame =
-                            self.context.table_decl_to_frame(&fq_ident, input_name, id);
+                        let lineage = self.context.table_decl_to_frame(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
                             ty: Some(Ty {
-                                kind: TyKind::Table(instance_frame),
+                                kind: TyKind::TypeExpr(TypeExpr::Array(Box::new(TypeExpr::Tuple(
+                                    lineage
+                                        .columns
+                                        .iter()
+                                        .map(|col| match col {
+                                            LineageColumn::All { .. } => TupleElement::Wildcard,
+                                            LineageColumn::Single { name, .. } => {
+                                                TupleElement::Single(
+                                                    name.as_ref().map(|i| i.name.clone()),
+                                                    TypeExpr::Singleton(Literal::Null),
+                                                )
+                                            }
+                                        })
+                                        .collect(),
+                                )))),
                                 name: None,
                             }),
+                            lineage: Some(lineage),
                             alias: None,
                             ..node
                         }
@@ -386,13 +401,14 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = infer_type(&r, &self.context)?;
+            r.ty = infer_type(&r)?;
         }
-        if let Some(Ty {
-            kind: TyKind::Table(frame),
-            ..
-        }) = &mut r.ty
-        {
+        if r.lineage.is_none() {
+            if let ExprKind::TransformCall(call) = &r.kind {
+                r.lineage = Some(call.infer_type(&self.context)?);
+            }
+        }
+        if let Some(frame) = &mut r.lineage {
             if let Some(alias) = r.alias.take() {
                 frame.rename(alias);
             }
@@ -685,18 +701,7 @@ impl Resolver {
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add table's frame into scope
-                let arg_ty = arg.ty.as_mut().unwrap();
-                let frame = match &arg_ty.kind {
-                    TyKind::Table(frame) => frame,
-                    _ => {
-                        // TODO: remove this workaround when Ty::Table has been merged into Ty::TypeExpr
-                        *arg_ty = Ty {
-                            kind: TyKind::Table(Frame::default()),
-                            name: None,
-                        };
-                        arg_ty.kind.as_table().unwrap()
-                    }
-                };
+                let frame = arg.lineage.get_or_insert_with(Lineage::default);
                 if is_last {
                     self.context.root_mod.insert_frame(frame, NS_FRAME);
                 } else {
@@ -761,7 +766,7 @@ impl Resolver {
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
-            arg.ty = self.context.validate_type(&arg, &param.ty, who)?;
+            self.context.validate_type(&mut arg, &param.ty, who)?;
         }
 
         Ok(arg)
@@ -911,7 +916,7 @@ mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{Expr, TyKind};
+    use crate::ast::pl::{Expr, Lineage};
     use crate::semantic::resolve_only;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
@@ -920,8 +925,8 @@ mod test {
         Ok(main.clone())
     }
 
-    fn resolve_type(query: &str) -> Result<TyKind> {
-        Ok(parse_and_resolve(query)?.ty.unwrap().kind)
+    fn resolve_lineage(query: &str) -> Result<Lineage> {
+        Ok(parse_and_resolve(query)?.lineage.unwrap())
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
@@ -1016,7 +1021,7 @@ mod test {
 
     #[test]
     fn test_frames_and_names() {
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from orders
             select [customer_no, gross, tax, gross - tax]
@@ -1025,7 +1030,7 @@ mod test {
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from table_1
             join customers [==customer_no]
@@ -1033,7 +1038,7 @@ mod test {
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from e = employees
             join salaries [==emp_no]

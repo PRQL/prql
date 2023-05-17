@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter, Result, Write};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::{Frame, Literal};
+use super::Literal;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TypeExpr {
@@ -32,7 +32,10 @@ pub enum TypeExpr {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TupleElement {
+    // Named tuple element.
     Single(Option<String>, TypeExpr),
+
+    // Placeholder for possibly many elements.
     Wildcard,
 }
 
@@ -48,10 +51,6 @@ pub struct Ty {
 pub enum TyKind {
     /// Value is an element of this [TypeExpr]
     TypeExpr(TypeExpr),
-
-    /// Special type for relations.
-    // TODO: convert into [TypeExpr].
-    Table(Frame),
 }
 
 #[derive(
@@ -83,31 +82,23 @@ pub struct TyFunc {
 
 impl Ty {
     pub fn is_superset_of(&self, subset: &Ty) -> bool {
+        if self.is_table() && subset.is_table() {
+            return true;
+        }
+
         match (&self.kind, &subset.kind) {
-            (TyKind::TypeExpr(TypeExpr::Array(_)), TyKind::Table(_)) => {
-                // TODO: a temporary workaround that says "tables are subtypes of arrays"
-                // so we can have a distinct type for tables (which should get merged into array of tuples)
-                true
-            }
-
             (TyKind::TypeExpr(left), TyKind::TypeExpr(right)) => left.is_superset_of(right),
-
-            (TyKind::Table(_), TyKind::Table(_)) => true,
-
-            (l, r) => l == r,
         }
     }
 
     pub fn is_array(&self) -> bool {
         match &self.kind {
             TyKind::TypeExpr(e) => e.is_array(),
-            _ => false,
         }
     }
 
     pub fn is_table(&self) -> bool {
         match &self.kind {
-            TyKind::Table(_) => true,
             TyKind::TypeExpr(TypeExpr::Array(elem)) => {
                 matches!(elem.as_ref(), TypeExpr::Tuple(_))
             }
@@ -148,7 +139,6 @@ impl Display for Ty {
 
         match &self.kind {
             TyKind::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
-            TyKind::Table(frame) => write!(f, "table<{frame}>"),
         }
     }
 }

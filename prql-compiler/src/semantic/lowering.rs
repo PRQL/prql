@@ -8,8 +8,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, Frame, FrameColumn, Ident, InterpolateItem, QueryDef, Range, SwitchCase,
-    Ty, TyKind, WindowFrame,
+    self, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range,
+    SwitchCase, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -173,13 +173,9 @@ impl Lowerer {
     /// Lower an expression into a instance of a table in the query
     fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
         let mut expr = expr;
-        if expr.ty.is_none() {
+        if expr.lineage.is_none() {
             // make sure that type of this expr has been inferred to be a table
-            let expected = Some(Ty {
-                kind: TyKind::Table(Frame::default()),
-                name: None,
-            });
-            expr.ty = self.context.validate_type(&expr, &expected, || None)?;
+            expr.lineage = Some(Lineage::default());
         }
 
         Ok(match expr.kind {
@@ -191,9 +187,8 @@ impl Lowerer {
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
                 let input_name = expr
-                    .ty
+                    .lineage
                     .as_ref()
-                    .and_then(|t| t.kind.as_table())
                     .and_then(|f| f.inputs.first())
                     .map(|i| i.name.clone());
                 let name = input_name.or(Some(fq_table_name.name));
@@ -234,7 +229,7 @@ impl Lowerer {
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.ty.as_ref().unwrap().kind.as_table().unwrap();
+                let frame = expr.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
@@ -267,7 +262,7 @@ impl Lowerer {
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.ty.as_ref().unwrap().kind.as_table().unwrap();
+                let frame = expr.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
@@ -355,13 +350,13 @@ impl Lowerer {
     }
 
     fn lower_relation(&mut self, expr: Expr) -> Result<rq::Relation> {
-        let ty = expr.ty.clone();
+        let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_pipeline(expr, None)?;
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
-        let columns = self.push_select(ty, &mut transforms)?;
+        let columns = self.push_select(lineage, &mut transforms)?;
 
         self.pipeline = prev_pipeline;
 
@@ -504,26 +499,26 @@ impl Lowerer {
     /// Append a Select of final table columns derived from frame
     fn push_select(
         &mut self,
-        ty: Option<pl::Ty>,
+        lineage: Option<Lineage>,
         transforms: &mut Vec<Transform>,
     ) -> Result<Vec<RelationColumn>> {
-        let frame = ty.unwrap().kind.into_table().unwrap_or_default();
+        let lineage = lineage.unwrap_or_default();
 
-        log::debug!("push_select of a frame: {:?}", frame);
+        log::debug!("push_select of a frame: {:?}", lineage);
 
         let mut columns = Vec::new();
 
         // normal columns
-        for col in &frame.columns {
+        for col in &lineage.columns {
             match col {
-                FrameColumn::Single { name, expr_id } => {
+                LineageColumn::Single { name, expr_id } => {
                     let name = name.clone().map(|n| n.name);
                     let cid = self.lookup_cid(*expr_id, name.as_ref())?;
 
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                FrameColumn::All { input_name, except } => {
-                    let input = frame.find_input(input_name).unwrap();
+                LineageColumn::All { input_name, except } => {
+                    let input = lineage.find_input(input_name).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),
@@ -981,12 +976,10 @@ impl AstFold for TableDepsCollector {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
-                if let Some(Ty {
-                    kind: TyKind::Table(_),
-                    ..
-                }) = &expr.ty
-                {
-                    self.deps.push(ident.clone());
+                if let Some(ty) = &expr.ty {
+                    if ty.is_table() {
+                        self.deps.push(ident.clone());
+                    }
                 }
                 expr.kind
             }

@@ -8,7 +8,7 @@ use crate::ast::pl::{Expr, Ident};
 use crate::ast::rq::RelationColumn;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{Frame, FrameColumn, NS_PARAM, NS_STD};
+use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
 use super::{NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_SELF};
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
@@ -214,15 +214,15 @@ impl Module {
         res
     }
 
-    pub(super) fn insert_frame(&mut self, frame: &Frame, namespace: &str) {
+    pub(super) fn insert_frame(&mut self, frame: &Lineage, namespace: &str) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
         for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
             let input_name = match column {
-                FrameColumn::All { input_name, .. } => Some(input_name),
-                FrameColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
+                LineageColumn::All { input_name, .. } => Some(input_name),
+                LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
             // get or create input namespace
@@ -259,7 +259,7 @@ impl Module {
 
             // insert column decl
             match column {
-                FrameColumn::All { input_name, .. } => {
+                LineageColumn::All { input_name, .. } => {
                     let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
 
                     let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
@@ -271,7 +271,7 @@ impl Module {
                     };
                     ns.names.insert(NS_INFER.to_string(), decl);
                 }
-                FrameColumn::Single {
+                LineageColumn::Single {
                     name: Some(name),
                     expr_id,
                 } => {
