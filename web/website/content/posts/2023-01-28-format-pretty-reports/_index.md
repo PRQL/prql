@@ -24,7 +24,7 @@ multiple times:
 
 ```prql
 # dollars displays a numeric value as whole dollars with commas
-let dollars = d -> s"""printf("$%,d",{d})"""
+func dollars d -> s"""printf("$%,d",{d})"""
 
 select [
     (dollars App_Total2020),
@@ -37,7 +37,7 @@ I also want to compute the percent change between values. It's easy to create a
 
 ```prql
 # percent_diff computes the amount (percent) the new differs from old
-let percent_diff = old new -> 100.0*( new - old ) / old
+func percent_diff old new -> 100.0*( new - old ) / old
 ```
 
 One final function: the `percent_diff` function returns a floating point number
@@ -47,7 +47,7 @@ results, with a trailing `%`. So I wrote a `format_percent` function that uses a
 
 ```prql
 # format_percent prints a floating point number with "%"
-let format_percent = v -> s'printf("%1.1f%", {v})'
+func format_percent v -> s'printf("%1.1f%", {v})'
 ```
 
 ## Column Headings
@@ -92,13 +92,13 @@ produces.
 
 ```prql
 # dollars displays a numeric value as dollars with commas
-let dollars = d -> s"""printf("$%,d",{d})"""
+func dollars d -> s"""printf("$%,d",{d})"""
 
 # percent_diff computes the amount (percent) the new differs from old
-let percent_diff = old new -> 100.0*( new - old ) / old
+func percent_diff old new -> 100.0*( new - old ) / old
 
 # format_percent prints a floating point number with "%"
-let format_percent = v -> s'printf("%1.1f%", {v})'
+func format_percent v -> s'printf("%1.1f%", {v})'
 
 # Step 1: First calculate important columns
 from PropertyData

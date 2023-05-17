@@ -50,7 +50,7 @@ $ pq --backend=duckdb \
 
 ```prql
 # function declaration that is a wrapper for substr SQL function
-let substr = text start len -> s"substr({text}, {start}, {len})"
+func substr text start len -> s"substr({text}, {start}, {len})"
 
 
 # start of the pipeline
