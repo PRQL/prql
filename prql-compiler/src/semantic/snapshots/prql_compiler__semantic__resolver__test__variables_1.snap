@@ -11,7 +11,6 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - employees
         - salary
       target_id: 6
-      ty: Infer
     op: Add
     right:
       id: 15
@@ -20,26 +19,26 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - employees
         - payroll_tax
       target_id: 6
-      ty: Infer
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: gross_salary
 - id: 16
   Binary:
@@ -49,7 +48,6 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - _frame
         - gross_salary
       target_id: 13
-      ty: Infer
     op: Add
     right:
       id: 18
@@ -58,25 +56,25 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - employees
         - benefits_cost
       target_id: 6
-      ty: Infer
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: gross_cost
 

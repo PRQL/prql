@@ -49,10 +49,6 @@ pub enum TyKind {
     /// Special type for relations.
     // TODO: convert into [TypeExpr].
     Table(Frame),
-
-    /// Means that we have no information about the type of the variable and
-    /// that it should be inferred from other usages.
-    Infer,
 }
 
 #[derive(
@@ -78,16 +74,13 @@ pub enum TyLit {
 // Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
-    pub args: Vec<Ty>,
-    pub return_ty: Box<Ty>,
+    pub args: Vec<Option<Ty>>,
+    pub return_ty: Box<Option<Ty>>,
 }
 
 impl Ty {
     pub fn is_superset_of(&self, subset: &Ty) -> bool {
         match (&self.kind, &subset.kind) {
-            // Not handled here. See type_resolver.
-            (TyKind::Infer, _) | (_, TyKind::Infer) => false,
-
             (TyKind::TypeExpr(TypeExpr::Array(_)), TyKind::Table(_)) => {
                 // TODO: a temporary workaround that says "tables are subtypes of arrays"
                 // so we can have a distinct type for tables (which should get merged into array of tuples)
@@ -149,8 +142,14 @@ impl Display for Ty {
         match &self.kind {
             TyKind::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
             TyKind::Table(frame) => write!(f, "table<{frame}>"),
-            TyKind::Infer => write!(f, "infer"),
         }
+    }
+}
+
+pub fn display_ty(ty: &Option<Ty>) -> String {
+    match ty {
+        Some(ty) => ty.to_string(),
+        None => "infer".to_string(),
     }
 }
 
@@ -195,9 +194,9 @@ impl Display for TypeExpr {
                 write!(f, "func")?;
 
                 for t in &func.args {
-                    write!(f, " {t}")?;
+                    write!(f, " {}", display_ty(t))?;
                 }
-                write!(f, " -> {}", func.return_ty)?;
+                write!(f, " -> {}", display_ty(&func.return_ty))?;
                 Ok(())
             }
         }

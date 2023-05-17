@@ -173,17 +173,12 @@ impl Lowerer {
     /// Lower an expression into a instance of a table in the query
     fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
         let mut expr = expr;
-        if let Some(Ty {
-            kind: TyKind::Infer,
-            ..
-        }) = expr.ty
-        {
+        if expr.ty.is_none() {
             // make sure that type of this expr has been inferred to be a table
-            let expected = Ty {
+            let expected = Some(Ty {
                 kind: TyKind::Table(Frame::default()),
-            };
-            let inferred = self.context.validate_type(&expr, &expected, || None)?;
-            expr.ty = Some(inferred);
+            });
+            expr.ty = self.context.validate_type(&expr, &expected, || None)?;
         }
 
         Ok(match expr.kind {

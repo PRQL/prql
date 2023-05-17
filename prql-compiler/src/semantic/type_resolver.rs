@@ -86,14 +86,14 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
     )))
 }
 
-pub fn infer_type(node: &Expr, context: &Context) -> Result<TyKind> {
+pub fn infer_type(node: &Expr, context: &Context) -> Result<Option<Ty>> {
     if let Some(ty) = &node.ty {
-        return Ok(ty.kind.clone());
+        return Ok(Some(ty.clone()));
     }
 
-    Ok(match &node.kind {
+    let kind = match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
-            Literal::Null => TyKind::Infer,
+            Literal::Null => return Ok(None),
             Literal::Integer(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Int)),
             Literal::Float(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Float)),
             Literal::Boolean(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Bool)),
@@ -101,21 +101,22 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<TyKind> {
             Literal::Date(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Date)),
             Literal::Time(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Time)),
             Literal::Timestamp(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Timestamp)),
-            Literal::ValueAndUnit(_) => TyKind::Infer, // TODO
+            Literal::ValueAndUnit(_) => return Ok(None), // TODO
             Literal::Relation(_) => unreachable!(),
         },
 
-        ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => TyKind::Infer,
+        ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => return Ok(None),
 
-        ExprKind::SString(_) => TyKind::Infer,
+        ExprKind::SString(_) => return Ok(None),
         ExprKind::FString(_) => TyKind::TypeExpr(TypeExpr::Primitive(TyLit::Text)),
-        ExprKind::Range(_) => TyKind::Infer, // TODO
+        ExprKind::Range(_) => return Ok(None), // TODO
 
         ExprKind::TransformCall(call) => TyKind::Table(call.infer_type(context)?),
-        ExprKind::List(_) => TyKind::Infer, // TODO
+        ExprKind::List(_) => return Ok(None), // TODO
 
-        _ => TyKind::Infer,
-    })
+        _ => return Ok(None),
+    };
+    Ok(Some(Ty { kind }))
 }
 
 #[allow(dead_code)]
@@ -137,20 +138,26 @@ fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -
 
 impl Context {
     /// Validates that found node has expected type. Returns assumed type of the node.
-    pub fn validate_type<F>(&mut self, found: &Expr, expected: &Ty, who: F) -> Result<Ty, Error>
+    pub fn validate_type<F>(
+        &mut self,
+        found: &Expr,
+        expected: &Option<Ty>,
+        who: F,
+    ) -> Result<Option<Ty>, Error>
     where
         F: FnOnce() -> Option<String>,
     {
-        let found_ty = found.ty.clone().unwrap();
+        let found_ty = found.ty.clone();
 
         // infer
-        if let TyKind::Infer = expected.kind {
+        let Some(expected) = expected else {
             return Ok(found_ty);
-        }
-        if let TyKind::Infer = found_ty.kind {
+        };
+
+        let Some(found_ty) = found_ty else {
             return Ok(if !expected.is_table() {
                 // base case: infer expected type
-                expected.clone()
+                Some(expected.clone())
             } else {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
@@ -160,11 +167,11 @@ impl Context {
                     self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
-                Ty {
+                Some(Ty {
                     kind: TyKind::Table(frame),
-                }
+                })
             });
-        }
+        };
 
         let expected_is_above = expected.is_superset_of(&found_ty);
         if !expected_is_above {
@@ -184,23 +191,13 @@ impl Context {
             };
             return e;
         }
-        Ok(found_ty)
+        Ok(Some(found_ty))
     }
 }
 
 pub fn type_of_closure(closure: &Closure) -> TyFunc {
     TyFunc {
-        args: closure
-            .params
-            .iter()
-            .map(|a| {
-                a.ty.clone().unwrap_or(Ty {
-                    kind: TyKind::Infer,
-                })
-            })
-            .collect(),
-        return_ty: Box::new(closure.body_ty.clone().unwrap_or(Ty {
-            kind: TyKind::Infer,
-        })),
+        args: closure.params.iter().map(|a| a.ty.clone()).collect(),
+        return_ty: Box::new(closure.body_ty.clone()),
     }
 }

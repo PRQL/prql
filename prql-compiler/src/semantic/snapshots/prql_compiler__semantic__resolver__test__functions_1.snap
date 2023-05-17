@@ -11,7 +11,6 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
         - employees
         - gross_salary
       target_id: 8
-      ty: Infer
     op: Sub
     right:
       id: 18
@@ -20,25 +19,25 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
         - employees
         - tax
       target_id: 8
-      ty: Infer
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: net_salary
 

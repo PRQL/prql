@@ -32,7 +32,8 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub target_ids: Vec<usize>,
 
-    /// Type of expression this node represents. [None] means type has not yet been determined.
+    /// Type of expression this node represents.
+    /// [None] means that type should be inferred.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
 

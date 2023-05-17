@@ -9,8 +9,9 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
       Literal:
         Integer: 2
       ty:
-        TypeExpr:
-          Primitive: Int
+        kind:
+          TypeExpr:
+            Primitive: Int
     op: Add
     right:
       id: 30
@@ -26,35 +27,34 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                   - a
                   - foo
                 target_id: 10
-                ty: Infer
-          ty: Infer
         op: Add
         right:
           id: 32
           Literal:
             Integer: 1
           ty:
-            TypeExpr:
-              Primitive: Int
-      ty: Infer
+            kind:
+              TypeExpr:
+                Primitive: Int
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: b
 

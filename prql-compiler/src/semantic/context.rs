@@ -115,14 +115,14 @@ impl Context {
 
                 let ty = value.ty.clone().unwrap();
                 let frame = ty.kind.into_table().unwrap_or_else(|_| {
-                    let expected = Ty {
+                    let expected = Some(Ty {
                         kind: TyKind::Table(Frame::default()),
-                    };
+                    });
                     let assumed = self
                         .validate_type(value.as_ref(), &expected, || None)
                         .unwrap();
-                    value.ty = Some(assumed.clone());
-                    assumed.kind.into_table().unwrap()
+                    value.ty = assumed.clone();
+                    assumed.unwrap().kind.into_table().unwrap()
                 });
 
                 let columns = (frame.columns.iter())
@@ -137,8 +137,7 @@ impl Context {
                 let expr = TableExpr::RelationVar(value);
                 Ok(DeclKind::TableDecl(TableDecl { columns, expr }))
             }
-            Some(_) => Ok(DeclKind::Expr(value)),
-            None => Err(Error::new_simple("Cannot infer type. Type annotations needed.").into()),
+            _ => Ok(DeclKind::Expr(value)),
         }
     }
 

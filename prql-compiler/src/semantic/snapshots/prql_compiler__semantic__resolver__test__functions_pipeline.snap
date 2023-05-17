@@ -12,25 +12,25 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
           - a
           - foo
         target_id: 6
-        ty: Infer
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: one
 

@@ -1122,17 +1122,18 @@ mod tests {
                 - default_db
                 - c_invoice
               ty:
-                Table:
-                  columns:
-                    - All:
-                        input_name: c_invoice
-                        except: []
-                  inputs:
-                    - id: 6
-                      name: c_invoice
-                      table:
-                        - default_db
-                        - c_invoice
+                kind:
+                  Table:
+                    columns:
+                      - All:
+                          input_name: c_invoice
+                          except: []
+                    inputs:
+                      - id: 6
+                        name: c_invoice
+                        table:
+                          - default_db
+                          - c_invoice
             kind:
               Aggregate:
                 assigns:
@@ -1146,11 +1147,11 @@ mod tests {
                             - c_invoice
                             - amount
                           target_id: 6
-                          ty: Infer
                     ty:
-                      TypeExpr:
-                        Array:
-                          Singleton: "Null"
+                      kind:
+                        TypeExpr:
+                          Array:
+                            Singleton: "Null"
             partition:
               - id: 12
                 Ident:
@@ -1158,24 +1159,24 @@ mod tests {
                   - c_invoice
                   - issued_at
                 target_id: 6
-                ty: Infer
           ty:
-            Table:
-              columns:
-                - Single:
-                    name:
+            kind:
+              Table:
+                columns:
+                  - Single:
+                      name:
+                        - c_invoice
+                        - issued_at
+                      expr_id: 12
+                  - Single:
+                      name: ~
+                      expr_id: 22
+                inputs:
+                  - id: 6
+                    name: c_invoice
+                    table:
+                      - default_db
                       - c_invoice
-                      - issued_at
-                    expr_id: 12
-                - Single:
-                    name: ~
-                    expr_id: 22
-              inputs:
-                - id: 6
-                  name: c_invoice
-                  table:
-                    - default_db
-                    - c_invoice
         - - main
         "###);
     }

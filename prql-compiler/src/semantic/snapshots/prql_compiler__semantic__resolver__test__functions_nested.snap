@@ -17,7 +17,6 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 - a
                 - b
               target_id: 10
-              ty: Infer
             op: Div
             right:
               id: 28
@@ -30,19 +29,16 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                       - a
                       - b
                     target_id: 10
-                    ty: Infer
                 - String: )
-              ty: Infer
-          ty: Infer
         op: Sub
         right:
           id: 30
           Literal:
             Integer: 1
           ty:
-            TypeExpr:
-              Primitive: Int
-      ty: Infer
+            kind:
+              TypeExpr:
+                Primitive: Int
     op: Add
     right:
       id: 20
@@ -51,24 +47,24 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
         - a
         - c
       target_id: 10
-      ty: Infer
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
 

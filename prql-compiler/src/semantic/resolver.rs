@@ -144,10 +144,9 @@ impl Resolver {
             }
 
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
-            if let Some(ty) = expected_ty {
+            if expected_ty.is_some() {
                 let who = || Some(stmt.name);
-                let inferred = self.context.validate_type(&def.value, &ty, who)?;
-                def.value.ty = Some(inferred);
+                def.value.ty = self.context.validate_type(&def.value, &expected_ty, who)?;
             }
 
             let decl = self
@@ -353,13 +352,16 @@ impl AstFold for Resolver {
                 // validate that all elements have the same type
                 let mut item_ty = None;
                 for expr in &exprs {
-                    let ty = expr.ty.as_ref().unwrap();
+                    let ty = &expr.ty;
                     if let Some(item_ty) = item_ty {
                         if item_ty != ty {
                             return Err(Error::new(Reason::Expected {
                                 who: Some("array".to_string()),
-                                expected: format!("types of all of its elements to be {item_ty}"),
-                                found: ty.to_string(),
+                                expected: format!(
+                                    "types of all of its elements to be {}",
+                                    display_ty(item_ty)
+                                ),
+                                found: display_ty(ty),
                             })
                             .with_span(expr.span)
                             .into());
@@ -385,7 +387,7 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(Ty { kind: infer_type(&r, &self.context)? });
+            r.ty = infer_type(&r, &self.context)?;
         }
         if let Some(Ty {
             kind: TyKind::Table(frame),
@@ -750,18 +752,15 @@ impl Resolver {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // don't validate types of unresolved exprs
-        if arg.ty.is_some() {
+        if arg.id.is_some() {
             // validate type
-            let infer = Ty {
-                kind: TyKind::Infer,
-            };
-            let param_ty = param.ty.as_ref().unwrap_or(&infer);
-            let assumed_ty = self.context.validate_type(&arg, param_ty, || {
+
+            let who = || {
                 func_name
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
-            })?;
-            arg.ty = Some(assumed_ty);
+            };
+            arg.ty = self.context.validate_type(&arg, &param.ty, who)?;
         }
 
         Ok(arg)
@@ -911,7 +910,7 @@ mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{Expr, Ty, TyKind};
+    use crate::ast::pl::{Expr, TyKind};
     use crate::semantic::resolve_only;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
@@ -920,11 +919,8 @@ mod test {
         Ok(main.clone())
     }
 
-    fn resolve_type(query: &str) -> Result<Ty> {
-        let infer = Ty {
-            kind: TyKind::Infer,
-        };
-        Ok(parse_and_resolve(query)?.ty.unwrap_or(infer))
+    fn resolve_type(query: &str) -> Result<TyKind> {
+        Ok(parse_and_resolve(query)?.ty.unwrap().kind)
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {

@@ -11,34 +11,35 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
         - foo_table
         - bar
       target_id: 8
-      ty: Infer
     op: Add
     right:
       id: 17
       Literal:
         Integer: 3
       ty:
-        TypeExpr:
-          Primitive: Int
+        kind:
+          TypeExpr:
+            Primitive: Int
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: added
 - id: 26
   Binary:
@@ -49,33 +50,34 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
         - foo_table
         - bar
       target_id: 8
-      ty: Infer
     op: Add
     right:
       id: 24
       Literal:
         Integer: 1
       ty:
-        TypeExpr:
-          Primitive: Int
+        kind:
+          TypeExpr:
+            Primitive: Int
   ty:
-    TypeExpr:
-      Union:
-        - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+    kind:
+      TypeExpr:
+        Union:
+          - - ~
+            - Primitive: Int
+          - - ~
+            - Primitive: Float
+          - - ~
+            - Primitive: Bool
+          - - ~
+            - Primitive: Text
+          - - ~
+            - Primitive: Date
+          - - ~
+            - Primitive: Time
+          - - ~
+            - Primitive: Timestamp
+          - - ~
+            - Singleton: "Null"
   alias: added_default
 
