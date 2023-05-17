@@ -67,7 +67,6 @@
 
 - [Integrations](./integrations/README.md)
 
-  - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
