@@ -47,8 +47,8 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        chmod +x target/${{ matrix.target }}/release/prqlc
-        tar czf "${ARTIFACT_NAME}" target/${{ matrix.target }}/release/prqlc
+        cd target/${{ matrix.target }}/release
+        tar czf "../../../${ARTIFACT_NAME}" prqlc
 
     - name: Create artifact for Linux and macOS
       shell: bash
@@ -56,7 +56,8 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        7z a "${ARTIFACT_NAME}" target/${{ matrix.target }}/release/prqlc.exe
+        cd target/${{ matrix.target }}/release
+        7z a "../../../${ARTIFACT_NAME}" prqlc.exe
 
     - name: Upload prqlc
       uses: actions/upload-artifact@v3
