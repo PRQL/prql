@@ -368,6 +368,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             let res = Expr {
                 ty: Some(Ty {
                     kind: TyKind::Table(frame),
+                    name: None,
                 }),
                 id: text_expr.id,
                 ..res
@@ -1134,6 +1135,7 @@ mod tests {
                         table:
                           - default_db
                           - c_invoice
+                name: ~
             kind:
               Aggregate:
                 assigns:
@@ -1152,6 +1154,7 @@ mod tests {
                         TypeExpr:
                           Array:
                             Singleton: "Null"
+                      name: array
             partition:
               - id: 12
                 Ident:
@@ -1177,6 +1180,7 @@ mod tests {
                     table:
                       - default_db
                       - c_invoice
+            name: ~
         - - main
         "###);
     }

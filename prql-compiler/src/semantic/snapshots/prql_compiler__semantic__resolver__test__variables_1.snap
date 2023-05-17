@@ -39,6 +39,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
             - Primitive: Timestamp
           - - ~
             - Singleton: "Null"
+    name: scalar
   alias: gross_salary
 - id: 16
   Binary:
@@ -76,5 +77,6 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
             - Primitive: Timestamp
           - - ~
             - Singleton: "Null"
+    name: scalar
   alias: gross_cost
 

@@ -32,5 +32,6 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
             - Primitive: Timestamp
           - - ~
             - Singleton: "Null"
+    name: scalar
   alias: one
 

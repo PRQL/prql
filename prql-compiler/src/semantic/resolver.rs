@@ -99,6 +99,7 @@ impl Resolver {
                             let mut e = Expr::null();
                             e.ty = Some(Ty {
                                 kind: TyKind::TypeExpr(TypeExpr::Set),
+                                name: None,
                             });
                             e
                         })),
@@ -145,14 +146,11 @@ impl Resolver {
 
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
             if expected_ty.is_some() {
-                let who = || Some(stmt.name);
+                let who = || Some(stmt.name.clone());
                 def.value.ty = self.context.validate_type(&def.value, &expected_ty, who)?;
             }
 
-            let decl = self
-                .context
-                .prepare_expr_decl(def.value)
-                .with_span(stmt.span)?;
+            let decl = self.context.prepare_expr_decl(def.value, &stmt.name);
 
             self.context
                 .declare(ident, decl, stmt.id)
@@ -220,6 +218,7 @@ impl AstFold for Resolver {
                             kind: ExprKind::Ident(fq_ident),
                             ty: Some(Ty {
                                 kind: TyKind::Table(instance_frame),
+                                name: None,
                             }),
                             alias: None,
                             ..node
@@ -590,6 +589,7 @@ impl Resolver {
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
             node.ty = Some(Ty {
                 kind: TyKind::TypeExpr(TypeExpr::Function(ty)),
+                name: None,
             });
 
             node
@@ -692,6 +692,7 @@ impl Resolver {
                         // TODO: remove this workaround when Ty::Table has been merged into Ty::TypeExpr
                         *arg_ty = Ty {
                             kind: TyKind::Table(Frame::default()),
+                            name: None,
                         };
                         arg_ty.kind.as_table().unwrap()
                     }
@@ -862,13 +863,13 @@ impl Resolver {
     fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
+                let name = expr.kind.as_ident().map(|i| i.name.clone());
+
                 let expr = self.fold_expr(expr)?;
 
-                let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
-
-                Some(Ty {
-                    kind: TyKind::TypeExpr(set_expr),
-                })
+                let mut set_expr = type_resolver::coerce_to_type(expr, &self.context)?;
+                set_expr.name = set_expr.name.or(name);
+                Some(set_expr)
             }
             None => None,
         })

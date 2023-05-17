@@ -105,7 +105,7 @@ impl Context {
         Ok(())
     }
 
-    pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> Result<DeclKind> {
+    pub fn prepare_expr_decl(&mut self, value: Box<Expr>, name: &str) -> DeclKind {
         match &value.ty {
             Some(Ty {
                 kind: TyKind::Table(_),
@@ -117,6 +117,7 @@ impl Context {
                 let frame = ty.kind.into_table().unwrap_or_else(|_| {
                     let expected = Some(Ty {
                         kind: TyKind::Table(Frame::default()),
+                        name: Some(name.to_owned()),
                     });
                     let assumed = self
                         .validate_type(value.as_ref(), &expected, || None)
@@ -135,9 +136,9 @@ impl Context {
                     .collect();
 
                 let expr = TableExpr::RelationVar(value);
-                Ok(DeclKind::TableDecl(TableDecl { columns, expr }))
+                DeclKind::TableDecl(TableDecl { columns, expr })
             }
-            _ => Ok(DeclKind::Expr(value)),
+            _ => DeclKind::Expr(value),
         }
     }
 

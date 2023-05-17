@@ -177,6 +177,7 @@ impl Lowerer {
             // make sure that type of this expr has been inferred to be a table
             let expected = Some(Ty {
                 kind: TyKind::Table(Frame::default()),
+                name: None,
             });
             expr.ty = self.context.validate_type(&expr, &expected, || None)?;
         }

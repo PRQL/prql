@@ -6,11 +6,16 @@ use crate::error::{Error, Reason, WithErrorInfo};
 use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
-pub fn coerce_to_set(expr: Expr, context: &Context) -> Result<TypeExpr, Error> {
-    coerce_to_named_set(expr, context).map(|(_, s)| s)
+pub fn coerce_to_type(expr: Expr, context: &Context) -> Result<Ty, Error> {
+    let (name, ty_expr) = coerce_to_named_type(expr, context)?;
+    let kind = TyKind::TypeExpr(ty_expr);
+    Ok(Ty { name, kind })
 }
 
-fn coerce_to_named_set(expr: Expr, context: &Context) -> Result<(Option<String>, TypeExpr), Error> {
+fn coerce_to_named_type(
+    expr: Expr,
+    context: &Context,
+) -> Result<(Option<String>, TypeExpr), Error> {
     let name = expr.alias;
     let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
 
@@ -33,7 +38,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
         let mut set_elements = Vec::with_capacity(elements.len());
 
         for e in elements {
-            let (name, ty) = coerce_to_named_set(e, context)?;
+            let (name, ty) = coerce_to_named_type(e, context)?;
 
             set_elements.push(TupleElement::Single(name, ty));
         }
@@ -49,7 +54,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
             ));
         }
         let items_type = elements.into_iter().next().unwrap();
-        let items_type = coerce_to_set(items_type, context)?;
+        let (_, items_type) = coerce_to_named_type(items_type, context)?;
 
         return Ok(TypeExpr::Array(Box::new(items_type)));
     }
@@ -61,8 +66,8 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TypeExpr, Err
         right,
     } = expr
     {
-        let left = coerce_to_named_set(*left, context)?;
-        let right = coerce_to_named_set(*right, context)?;
+        let left = coerce_to_named_type(*left, context)?;
+        let right = coerce_to_named_type(*right, context)?;
 
         // flatten nested unions
         let mut options = Vec::with_capacity(2);
@@ -116,7 +121,7 @@ pub fn infer_type(node: &Expr, context: &Context) -> Result<Option<Ty>> {
 
         _ => return Ok(None),
     };
-    Ok(Some(Ty { kind }))
+    Ok(Some(Ty { kind, name: None }))
 }
 
 #[allow(dead_code)]
@@ -169,6 +174,7 @@ impl Context {
                 // override the empty frame with frame of the new table
                 Some(Ty {
                     kind: TyKind::Table(frame),
+                    name: None,
                 })
             });
         };

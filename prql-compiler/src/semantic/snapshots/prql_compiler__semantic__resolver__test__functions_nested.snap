@@ -39,6 +39,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             kind:
               TypeExpr:
                 Primitive: Int
+            name: ~
     op: Add
     right:
       id: 20
@@ -67,4 +68,5 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             - Primitive: Timestamp
           - - ~
             - Singleton: "Null"
+    name: scalar
 

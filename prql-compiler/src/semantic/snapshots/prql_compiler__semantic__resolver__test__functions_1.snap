@@ -39,5 +39,6 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
             - Primitive: Timestamp
           - - ~
             - Singleton: "Null"
+    name: scalar
   alias: net_salary
 

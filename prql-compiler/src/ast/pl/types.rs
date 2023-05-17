@@ -10,7 +10,7 @@ pub enum TypeExpr {
     /// Type of a built-in primitive type
     Primitive(TyLit),
 
-    /// Type that contains only a literal value
+    /// Type that contains only a one value
     Singleton(Literal),
 
     /// Union of sets (sum)
@@ -22,8 +22,8 @@ pub enum TypeExpr {
     /// Type of arrays
     Array(Box<TypeExpr>),
 
-    /// Type of sets.
-    /// Used for exprs that can be converted to SetExpr and then used as a Ty.
+    /// Type of sets
+    /// Used for expressions that can be converted to TypeExpr.
     Set,
 
     /// Type of functions with defined params and return types.
@@ -39,6 +39,9 @@ pub enum TupleElement {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
+
+    /// Name inferred from the type declaration.
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -139,6 +142,10 @@ impl TypeExpr {
 
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if let Some(name) = &self.name {
+            return write!(f, "{}", name);
+        }
+
         match &self.kind {
             TyKind::TypeExpr(ty_expr) => write!(f, "{:}", ty_expr),
             TyKind::Table(frame) => write!(f, "table<{frame}>"),
