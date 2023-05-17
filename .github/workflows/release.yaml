@@ -122,6 +122,8 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/build-prql-python
+        with:
+          target: ${{ matrix.target }}
 
   publish-prql-python:
     runs-on: ubuntu-latest
