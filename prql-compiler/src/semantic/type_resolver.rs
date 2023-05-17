@@ -20,8 +20,8 @@ fn coerce_to_named_type(expr: Expr, context: &Context) -> Result<(Option<String>
 
 fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error> {
     // primitives
-    if let ExprKind::Type(set_expr) = expr {
-        return Ok(set_expr);
+    if let ExprKind::Set(set_expr) = expr {
+        return Ok(TyKind::Primitive(set_expr));
     }
 
     // singletons
@@ -95,13 +95,13 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     let kind = match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
             Literal::Null => return Ok(None),
-            Literal::Integer(_) => TyKind::Primitive(TyLit::Int),
-            Literal::Float(_) => TyKind::Primitive(TyLit::Float),
-            Literal::Boolean(_) => TyKind::Primitive(TyLit::Bool),
-            Literal::String(_) => TyKind::Primitive(TyLit::Text),
-            Literal::Date(_) => TyKind::Primitive(TyLit::Date),
-            Literal::Time(_) => TyKind::Primitive(TyLit::Time),
-            Literal::Timestamp(_) => TyKind::Primitive(TyLit::Timestamp),
+            Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
+            Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
+            Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
+            Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
+            Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
+            Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
+            Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
             Literal::ValueAndUnit(_) => return Ok(None), // TODO
             Literal::Relation(_) => return Ok(None),     // TODO
         },
@@ -109,7 +109,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => return Ok(None),
 
         ExprKind::SString(_) => return Ok(None),
-        ExprKind::FString(_) => TyKind::Primitive(TyLit::Text),
+        ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
         ExprKind::Range(_) => return Ok(None), // TODO
 
         ExprKind::TransformCall(_) => return Ok(None), // TODO

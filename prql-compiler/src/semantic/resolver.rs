@@ -898,17 +898,17 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
 }
 
 fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
-    let ty_lit = match name {
-        "int" => TyLit::Int,
-        "float" => TyLit::Float,
-        "bool" => TyLit::Bool,
-        "text" => TyLit::Text,
-        "date" => TyLit::Date,
-        "time" => TyLit::Time,
-        "timestamp" => TyLit::Timestamp,
+    let set = match name {
+        "int" => PrimitiveSet::Int,
+        "float" => PrimitiveSet::Float,
+        "bool" => PrimitiveSet::Bool,
+        "text" => PrimitiveSet::Text,
+        "date" => PrimitiveSet::Date,
+        "time" => PrimitiveSet::Time,
+        "timestamp" => PrimitiveSet::Timestamp,
         _ => return None,
     };
-    Some(ExprKind::Type(TyKind::Primitive(ty_lit)))
+    Some(ExprKind::Set(set))
 }
 
 #[cfg(test)]

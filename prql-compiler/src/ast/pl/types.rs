@@ -8,7 +8,7 @@ use super::Literal;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TyKind {
     /// Type of a built-in primitive type
-    Primitive(TyLit),
+    Primitive(PrimitiveSet),
 
     /// Type that contains only a one value
     Singleton(Literal),
@@ -47,10 +47,11 @@ pub struct Ty {
     pub name: Option<String>,
 }
 
+/// Built-in sets.
 #[derive(
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
 )]
-pub enum TyLit {
+pub enum PrimitiveSet {
     #[strum(to_string = "int")]
     Int,
     #[strum(to_string = "float")]
