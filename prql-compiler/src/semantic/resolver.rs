@@ -140,7 +140,7 @@ impl Resolver {
 
             if let VarDefKind::Main = def.kind {
                 def.ty_expr = Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
-                    "std", "table",
+                    "std", "relation",
                 ]))));
             }
 
@@ -677,22 +677,26 @@ impl Resolver {
 
         let func_name = &closure.name;
 
-        let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
+        let (relations, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
             .enumerate()
             .partition(|(_, (param, _))| {
-                let is_table = param.ty.as_ref().map(|t| t.is_table()).unwrap_or_default();
+                let is_relation = param
+                    .ty
+                    .as_ref()
+                    .map(|t| t.is_relation())
+                    .unwrap_or_default();
 
-                is_table
+                is_relation
             });
 
-        let has_tables = !tables.is_empty();
+        let has_relations = !relations.is_empty();
 
-        // resolve tables
-        if has_tables {
+        // resolve relational args
+        if has_relations {
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
-            for pos in tables.into_iter().with_position() {
+            for pos in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
                 let (index, (param, arg)) = pos.into_inner();
 
@@ -700,7 +704,7 @@ impl Resolver {
                 let mut arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
-                // add table's frame into scope
+                // add relation frame into scope
                 let frame = arg.lineage.get_or_insert_with(Lineage::default);
                 if is_last {
                     self.context.root_mod.insert_frame(frame, NS_FRAME);
@@ -741,7 +745,7 @@ impl Resolver {
             closure.args[index] = arg;
         }
 
-        if has_tables {
+        if has_relations {
             self.context.root_mod.unshadow(NS_FRAME);
             self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }

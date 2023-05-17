@@ -977,7 +977,7 @@ impl AstFold for TableDepsCollector {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
                 if let Some(ty) = &expr.ty {
-                    if ty.is_table() {
+                    if ty.is_relation() {
                         self.deps.push(ident.clone());
                     }
                 }

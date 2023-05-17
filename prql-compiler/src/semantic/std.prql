@@ -38,32 +38,32 @@ let as = `noresolve.type` column -> <scalar> null
 let in = pattern value -> <bool> null
 
 # Transform type definitions
-let from = `default_db.source`<table> -> <table> null
-let select = columns<scalar> tbl<table> -> <table> null
-let filter = condition<bool> tbl<table> -> <table> null
-let derive = columns<scalar> tbl<table> -> <table> null
-let aggregate = columns<array> tbl<table> -> <table> null
-let sort = by<scalar> tbl<table> -> <table> null
-let take = expr<scalar> tbl<table> -> <table> null
-let join = `default_db.with`<table> filter `noresolve.side`:inner tbl<table> -> <table> null
-let group = by pipeline tbl<table> -> <table> null
-let window = rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> <table> null
+let from = `default_db.source`<relation> -> <relation> null
+let select = columns<scalar> tbl<relation> -> <relation> null
+let filter = condition<bool> tbl<relation> -> <relation> null
+let derive = columns<scalar> tbl<relation> -> <relation> null
+let aggregate = columns<array> tbl<relation> -> <relation> null
+let sort = by<scalar> tbl<relation> -> <relation> null
+let take = expr<scalar> tbl<relation> -> <relation> null
+let join = `default_db.with`<relation> filter `noresolve.side`:inner tbl<relation> -> <relation> null
+let group = by pipeline tbl<relation> -> <relation> null
+let window = rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<relation> -> <relation> null
 
 let noop = x -> x
 
-let append = `default_db.bottom`<table> top<table> -> <table> null
-let intersect = `default_db.bottom`<table> top<table> -> <table> (
+let append = `default_db.bottom`<relation> top<relation> -> <relation> null
+let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
     noop t = top
     join (noop b = bottom) (all (map _eq (zip t.* b.*)))
     select t.*
 )
-let remove = `default_db.bottom`<table> top<table> -> <table> (
+let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
     noop t = top
     join side:left (noop b = bottom) (all (map _eq (zip t.* b.*)))
     filter (all (map _is_null b.*))
     select t.*
 )
-let loop = pipeline top<table> -> <table> null
+let loop = pipeline top<relation> -> <relation> null
 
 # List functions
 let all = list -> <bool> null
@@ -73,7 +73,7 @@ let _eq = a -> null
 let _is_null = a -> _param.a == null
 
 # Misc
-let from_text = input<text> `noresolve.format`:csv -> <table> null
+let from_text = input<text> `noresolve.format`:csv -> <relation> null
 
 # String functions
 let lower = column -> <text> null
@@ -92,7 +92,7 @@ type timestamp
 type list = []
 
 # relation is an array of tupes
-type table = {[]}
+type relation = {[]}
 
 # TODO: an array of anything
 type array = {null}
@@ -100,5 +100,5 @@ type array = {null}
 type scalar = int || float || bool || text || date || time || timestamp || null
 
 # Source-reading functions, primarily for DuckDB
-let read_parquet = source<text> -> <table> s"SELECT * FROM read_parquet({source})"
-let read_csv = source<text> -> <table> s"SELECT * FROM read_csv_auto({source})"
+let read_parquet = source<text> -> <relation> s"SELECT * FROM read_parquet({source})"
+let read_csv = source<text> -> <relation> s"SELECT * FROM read_csv_auto({source})"

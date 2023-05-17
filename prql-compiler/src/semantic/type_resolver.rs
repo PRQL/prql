@@ -159,7 +159,7 @@ impl Context {
         let Some(found_ty) = found_ty else {
             // found is none: infer from expected
 
-            if found.lineage.is_none() && expected.is_table() {
+            if found.lineage.is_none() && expected.is_relation() {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns

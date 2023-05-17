@@ -77,7 +77,7 @@ pub struct TyFunc {
 
 impl Ty {
     pub fn is_superset_of(&self, subset: &Ty) -> bool {
-        if self.is_table() && subset.is_table() {
+        if self.is_relation() && subset.is_relation() {
             return true;
         }
 
@@ -88,7 +88,7 @@ impl Ty {
         self.kind.is_array()
     }
 
-    pub fn is_table(&self) -> bool {
+    pub fn is_relation(&self) -> bool {
         match &self.kind {
             TyKind::Array(elem) => {
                 matches!(elem.as_ref(), TyKind::Tuple(_))

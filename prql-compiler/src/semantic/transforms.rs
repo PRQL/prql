@@ -513,7 +513,7 @@ impl TransformCall {
                 // TODO: See #2270 — this is a bad error message and likely
                 // should be handled prior to reaching this point.
                 if let Some(ty) = &body.ty {
-                    if !ty.is_table() {
+                    if !ty.is_relation() {
                         return Err(
                             Error::new_simple(format!(
                                 "Expected a function that could operate on a table, but instead found {}",
@@ -1175,7 +1175,7 @@ mod tests {
             kind:
               Array:
                 Tuple: []
-            name: table
+            name: relation
           lineage:
             columns:
               - Single:

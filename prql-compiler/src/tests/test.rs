@@ -2526,7 +2526,7 @@ fn test_unused_alias() {
 #[test]
 fn test_table_s_string() {
     assert_display_snapshot!(compile(r###"
-    let main <table> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
+    let main <relation> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
     "###).unwrap(),
         @r###"
     WITH table_2 AS (
