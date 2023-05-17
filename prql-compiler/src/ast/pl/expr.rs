@@ -81,6 +81,7 @@ pub enum ExprKind {
 
     /// a placeholder for values provided after query is compiled
     Param(String),
+    FuncDef(FuncDef_),
 }
 
 impl ExprKind {
@@ -607,6 +608,7 @@ impl Display for Expr {
             ExprKind::Param(id) => {
                 writeln!(f, "${id}")?;
             }
+            ExprKind::FuncDef(func_def) => write!(f, "{func_def}")?,
         }
 
         Ok(())

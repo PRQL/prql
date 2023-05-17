@@ -22,6 +22,7 @@ pub struct Context {
     pub(crate) span_map: HashMap<usize, Span>,
 }
 
+/// A struct containing information about a single declaration.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
     pub declared_at: Option<usize>,
@@ -33,6 +34,7 @@ pub struct Decl {
     pub order: usize,
 }
 
+/// The Declaration itself.
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum DeclKind {
     /// A nested namespace
@@ -52,8 +54,6 @@ pub enum DeclKind {
 
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(Box<DeclKind>),
-
-    FuncDef(FuncDef),
 
     Expr(Box<Expr>),
 
@@ -101,7 +101,7 @@ impl Context {
 
     pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> Result<DeclKind> {
         match &value.ty {
-            Some(Ty::Table(_) | Ty::Infer) => {
+            Some(Ty::Table(_)) => {
                 let mut value = value;
 
                 let ty = value.ty.clone().unwrap();
@@ -531,12 +531,11 @@ impl std::fmt::Display for DeclKind {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
             Self::TableDecl(TableDecl { columns, expr }) => {
-                write!(f, "TableDef: {} {expr:?}", RelationColumns(columns))
+                write!(f, "TableDecl: {} {expr:?}", RelationColumns(columns))
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
-            Self::FuncDef(_) => write!(f, "FuncDef"),
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }

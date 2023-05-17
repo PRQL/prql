@@ -31,7 +31,8 @@ pub(super) fn translate_built_in(expr: rq::Expr, ctx: &mut Context) -> Result<sq
     let name = name.strip_prefix("std.").unwrap();
 
     let entry = STD.get(&pl::Ident::from_name(name)).unwrap();
-    let func_def = entry.kind.as_func_def().unwrap();
+    let func_def = entry.kind.as_expr().unwrap();
+    let func_def = func_def.kind.as_func_def().unwrap();
 
     let params = func_def
         .named_params

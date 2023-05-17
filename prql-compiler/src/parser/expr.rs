@@ -4,12 +4,14 @@ use chumsky::prelude::*;
 
 use crate::ast::pl::*;
 
-use super::common::*;
 use super::interpolation;
 use super::lexer::Token;
+use super::{common::*, stmt::type_expr};
 
 pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
-    func_call(expr())
+    let expr = expr();
+
+    lambda_func(expr.clone()).or(func_call(expr))
 }
 
 pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
@@ -18,7 +20,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let ident_kind = ident().map(ExprKind::Ident);
 
-        let nested_expr = pipeline(func_call(expr.clone())).boxed();
+        let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
         let list = ident_part()
             .then_ignore(ctrl('='))
@@ -76,7 +78,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .ignore_then(
                 func_call(expr.clone())
                     .then_ignore(just(Token::ArrowFat))
-                    .then(func_call(expr))
+                    .then(func_call(expr.clone()))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
                     .separated_by(ctrl(','))
@@ -271,6 +273,44 @@ where
         })
         .map_with_span(into_expr)
         .labelled("function call")
+}
+
+fn lambda_func<E>(expr: E) -> impl Parser<Token, Expr, Error = Simple<Token>>
+where
+    E: Parser<Token, Expr, Error = Simple<Token>> + Clone,
+{
+    (
+        // params
+        ident_part()
+            .then(type_expr().or_not())
+            .then(ctrl(':').ignore_then(expr.clone()).or_not())
+            .repeated()
+    )
+    .then_ignore(just(Token::ArrowThin))
+    .then(type_expr().or_not())
+    .then(func_call(expr).map(Box::new))
+    .then_ignore(new_line())
+    // .map(|(((name, return_ty), params), body)| {
+    .map(|((params, return_ty), body)| {
+        let (pos, nam) = params
+            .into_iter()
+            .map(|((name, ty_expr), default_value)| FuncParam {
+                name,
+                ty_expr,
+                default_value,
+            })
+            .partition(|p| p.default_value.is_none());
+
+        FuncDef_ {
+            positional_params: pos,
+            named_params: nam,
+            body,
+            return_ty: return_ty.map(Box::new),
+        }
+    })
+    .map(ExprKind::FuncDef)
+    .map_with_span(into_expr)
+    .labelled("function definition")
 }
 
 pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {

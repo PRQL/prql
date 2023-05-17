@@ -84,7 +84,6 @@ impl<'a> AstFold for Labeler<'a> {
                         DeclKind::Column { .. } => Color::Yellow,
                         DeclKind::InstanceOf(_) => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
-                        DeclKind::FuncDef(_) => Color::Magenta,
                         DeclKind::Module(_) => Color::Cyan,
                         DeclKind::LayeredModules(_) => Color::Cyan,
                         DeclKind::Infer(_) => Color::White,

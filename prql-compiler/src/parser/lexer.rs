@@ -54,7 +54,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let ident = ident_part().map(Token::Ident);
 
     let keyword = choice((
-        just("func"),
+        // just("func"),
         just("let"),
         just("case"),
         just("prql"),

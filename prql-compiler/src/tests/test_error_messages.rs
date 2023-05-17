@@ -9,7 +9,7 @@ use insta::assert_display_snapshot;
 #[test]
 fn test_errors() {
     assert_display_snapshot!(compile(r###"
-    func addadd a b -> a + b
+    let addadd = a b -> a + b
 
     from x
     derive y = (addadd 4 5 6)
@@ -104,7 +104,7 @@ fn test_errors() {
        │
      1 │ Answer: T-H-A-T!
        │       ┬
-       │       ╰── unexpected :
+       │       ╰── unexpected : while parsing function call
     ───╯
     "###);
 }

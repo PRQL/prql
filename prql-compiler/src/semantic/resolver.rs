@@ -84,14 +84,13 @@ impl Resolver {
                 name: stmt.name,
             };
 
-            let decl = match stmt.kind {
-                StmtKind::QueryDef(d) => DeclKind::QueryDef(d),
-                StmtKind::FuncDef(func_def) => DeclKind::FuncDef(func_def),
-                StmtKind::VarDef(var_def) => {
-                    let value = self.fold_var_def(var_def)?.value;
-
-                    self.context.prepare_expr_decl(value).with_span(stmt.span)?
+            let mut def = match stmt.kind {
+                StmtKind::QueryDef(d) => {
+                    let decl = DeclKind::QueryDef(d);
+                    self.context.declare(ident, decl, stmt.id);
+                    continue;
                 }
+                StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
                     let mut var_def = VarDef {
                         value: Box::new(ty_def.value.unwrap_or_else(|| {
@@ -99,6 +98,8 @@ impl Resolver {
                             e.ty = Some(Ty::TypeExpr(TypeExpr::Type));
                             e
                         })),
+                        // FIXME
+                        ty_expr: None,
                     };
 
                     // This is a hacky way to provide values to std.int and friends.
@@ -108,8 +109,7 @@ impl Resolver {
                         }
                     }
 
-                    let value = self.fold_var_def(var_def)?.value;
-                    self.context.prepare_expr_decl(value).with_span(stmt.span)?
+                    self.fold_var_def(var_def)?
                 }
                 StmtKind::Main(expr) => {
                     let expr = Box::new(Flattener::fold(self.fold_expr(*expr)?));
@@ -118,7 +118,12 @@ impl Resolver {
                     self.context
                         .validate_type(&expr, &ty, || Some("main relation".to_string()))?;
 
-                    self.context.prepare_expr_decl(expr).with_span(stmt.span)?
+                    VarDef {
+                        ty_expr: Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
+                            "std", "table",
+                        ])))),
+                        value: expr,
+                    }
                 }
                 StmtKind::ModuleDef(module_def) => {
                     self.current_module_path.push(ident.name);
@@ -141,6 +146,17 @@ impl Resolver {
                 }
             };
 
+            let expected_ty = self.fold_type_expr(def.ty_expr)?;
+            if let Some(ty) = expected_ty {
+                let inferred = self.context.validate_type(&def.value, &ty, || None)?;
+                def.value.ty = Some(inferred);
+            }
+
+            let decl = self
+                .context
+                .prepare_expr_decl(def.value)
+                .with_span(stmt.span)?;
+
             self.context.declare(ident, decl, stmt.id);
         }
         Ok(())
@@ -155,6 +171,7 @@ impl AstFold for Resolver {
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
         Ok(VarDef {
             value: Box::new(Flattener::fold(self.fold_expr(*var_def.value)?)),
+            ty_expr: var_def.ty_expr,
         })
     }
 
@@ -182,17 +199,6 @@ impl AstFold for Resolver {
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
-                    // convert ident to function without args
-                    DeclKind::FuncDef(func_def) => {
-                        let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
-
-                        if self.in_func_call_name {
-                            Expr::from(ExprKind::Closure(Box::new(closure)))
-                        } else {
-                            self.fold_function(closure, vec![], HashMap::new(), node.span)?
-                        }
-                    }
-
                     DeclKind::Infer(_) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: entry.declared_at,
@@ -218,7 +224,21 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
+                    DeclKind::Expr(expr) => {
+                        if let ExprKind::FuncDef(func_def) = &expr.kind {
+                            // TODO: remove this function call entirely when ExprKind::FuncDef is merged with ExprKind::Closure
+                            let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
+
+                            if self.in_func_call_name {
+                                Expr::from(ExprKind::Closure(Box::new(closure)))
+                            } else {
+                                // this branch is equivalent to the last branch, if ExprKind::Closure is equal to ExprKind::FuncDef
+                                self.fold_function(closure, vec![], HashMap::new(), node.span)?
+                            }
+                        } else {
+                            self.fold_expr(expr.as_ref().clone())?
+                        }
+                    }
 
                     DeclKind::InstanceOf(_) => {
                         return Err(Error::new_simple(
@@ -765,8 +785,8 @@ impl Resolver {
         }))
     }
 
-    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
-        let body_ty = self.fold_type_expr(func_def.return_ty)?;
+    fn closure_of_func_def(&mut self, func_def: FuncDef_, fq_ident: Ident) -> Result<Closure> {
+        let body_ty = self.fold_type_expr(func_def.return_ty.clone().map(|x| *x))?;
 
         Ok(Closure {
             name: Some(fq_ident),
@@ -898,7 +918,7 @@ mod test {
     fn test_functions_1() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func subtract a b -> a - b
+            let subtract = a b -> a - b
 
             from employees
             derive [
@@ -913,8 +933,8 @@ mod test {
     fn test_functions_nested() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func lag_day x -> s"lag_day_todo({x})"
-            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
+            let lag_day = x -> s"lag_day_todo({x})"
+            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
             from a
             derive (ret b c)
@@ -935,8 +955,8 @@ mod test {
 
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func plus_one x -> x + 1
-            func plus x y -> x + y
+            let plus_one = x -> x + 1
+            let plus = x y -> x + y
 
             from a
             derive [b = (sum foo | plus_one | plus 2)]
@@ -948,7 +968,7 @@ mod test {
     fn test_named_args() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func add x to:1 -> x + to
+            let add = x to:1 -> x + to
 
             from foo_table
             derive [

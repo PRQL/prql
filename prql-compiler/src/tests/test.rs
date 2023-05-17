@@ -65,7 +65,7 @@ fn test_precedence() {
     "###);
 
     assert_display_snapshot!((compile(r###"
-    func add x y -> x + y
+    let add = x y -> x + y
 
     from numbers
     derive [sum_1 = a + b, sum_2 = add a b]
@@ -214,8 +214,8 @@ fn test_append() {
     "###);
 
     assert_display_snapshot!(compile(r###"
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
-    func union `default_db.bottom` top -> (top | append bottom | distinct)
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
+    let union = `default_db.bottom` top -> (top | append bottom | distinct)
 
     from employees
     union managers
@@ -233,8 +233,8 @@ fn test_append() {
     "###);
 
     assert_display_snapshot!(compile(r###"
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
-    func union `default_db.bottom` top -> (top | append bottom | distinct)
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
+    let union = `default_db.bottom` top -> (top | append bottom | distinct)
 
     from employees
     append managers
@@ -345,8 +345,8 @@ fn test_remove() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
-    func except `default_db.bottom` top -> (top | distinct | remove bottom)
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
+    let except = `default_db.bottom` top -> (top | distinct | remove bottom)
 
     from album
     select [artist_id, title]
@@ -376,8 +376,8 @@ fn test_remove() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
-    func except `default_db.bottom` top -> (top | distinct | remove bottom)
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
+    let except = `default_db.bottom` top -> (top | distinct | remove bottom)
 
     from album
     except artist
@@ -444,7 +444,7 @@ fn test_intersect() {
     );
 
     assert_display_snapshot!(compile(r#"
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
 
     from album
     select artist_id
@@ -481,7 +481,7 @@ fn test_intersect() {
     );
 
     assert_display_snapshot!(compile(r#"
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
 
     from album
     select artist_id
@@ -517,7 +517,7 @@ fn test_intersect() {
     );
 
     assert_display_snapshot!(compile(r#"
-    func distinct rel -> (noop t = rel | group [t.*] (take 1))
+    let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
 
     from album
     select artist_id
@@ -1646,17 +1646,11 @@ fn test_bare_s_string() {
         tbl
       GROUP BY
         GROUPING SETS ((b, c, d), (d), (b, d))
-    ),
-    grouping AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      grouping
+      table_2 AS table_1
     "###
     );
 
@@ -1674,17 +1668,11 @@ fn test_bare_s_string() {
         insensitive
       from
         rude
-    ),
-    a AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      a
+      table_2 AS table_1
     "###
     );
 
@@ -1702,17 +1690,11 @@ fn test_bare_s_string() {
         insensitive
       from
         rude
-    ),
-    a AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      a
+      table_2 AS table_1
     "###
     );
 
@@ -1735,17 +1717,11 @@ fn test_bare_s_string() {
         foo
       FROM
         bar
-    ),
-    a AS (
-      SELECT
-        *
-      FROM
-        table_2 AS table_1
     )
     SELECT
       *
     FROM
-      a
+      table_2 AS table_1
     "###);
 
     assert_display_snapshot!(compile(r###"
@@ -2550,7 +2526,7 @@ fn test_unused_alias() {
 #[test]
 fn test_table_s_string() {
     assert_display_snapshot!(compile(r###"
-    s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
+    let main <table> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
     "###).unwrap(),
         @r###"
     WITH table_2 AS (
@@ -2642,8 +2618,8 @@ fn test_table_s_string() {
     );
 
     assert_display_snapshot!(compile(r###"
-    func weeks_between start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
-    func current_week -> s"date(date_trunc('week', current_date))"
+    let weeks_between = start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
+    let current_week = -> s"date(date_trunc('week', current_date))"
 
     weeks_between @2022-06-03 (current_week + 4)
     "###).unwrap(),
@@ -2966,8 +2942,8 @@ fn test_static_analysis() {
 fn test_closures_and_pipelines() {
     assert_display_snapshot!(compile(
         r###"
-    func addthree<column> a b c -> s"{a} || {b} || {c}"
-    func arg myarg myfunc -> ( myfunc myarg )
+    let addthree = a b c -> <column> s"{a} || {b} || {c}"
+    let arg = myarg myfunc -> ( myfunc myarg )
 
     from y
     select x = (

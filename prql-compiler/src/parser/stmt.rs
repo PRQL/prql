@@ -28,7 +28,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
             .map(|(name, stmts)| (name, StmtKind::ModuleDef(ModuleDef { stmts })))
             .labelled("module definition");
 
-        choice((type_def(), var_def(), function_def(), module_def))
+        choice((type_def(), var_def(), module_def))
             .map_with_span(into_stmt)
             .separated_by(new_line().repeated())
             .allow_leading()
@@ -111,11 +111,12 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
     keyword("let")
         .ignore_then(ident_part())
-        .then_ignore(ctrl('='))
         .then(
-            expr_call()
-                .map(Box::new)
-                .map(|value| StmtKind::VarDef(VarDef { value })),
+            type_expr()
+                .or_not()
+                .then_ignore(ctrl('='))
+                .then(expr_call().map(Box::new))
+                .map(|(ty_expr, value)| StmtKind::VarDef(VarDef { value, ty_expr })),
         )
         .labelled("variable definition")
 }
@@ -131,43 +132,6 @@ fn type_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
                 .map(StmtKind::TypeDef),
         )
         .labelled("type definition")
-}
-
-fn function_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
-    keyword("func")
-        .ignore_then(
-            // func name
-            ident_part().then(type_expr().or_not()),
-        )
-        .then(
-            // params
-            ident_part()
-                .then(type_expr().or_not())
-                .then(ctrl(':').ignore_then(expr()).or_not())
-                .repeated(),
-        )
-        .then_ignore(just(Token::ArrowThin))
-        .then(expr_call().map(Box::new))
-        .then_ignore(new_line())
-        .map(|(((name, return_ty), params), body)| {
-            let (pos, nam) = params
-                .into_iter()
-                .map(|((name, ty_expr), default_value)| FuncParam {
-                    name,
-                    ty_expr,
-                    default_value,
-                })
-                .partition(|p| p.default_value.is_none());
-
-            let func_def = StmtKind::FuncDef(FuncDef {
-                positional_params: pos,
-                named_params: nam,
-                body,
-                return_ty,
-            });
-            (name, func_def)
-        })
-        .labelled("function definition")
 }
 
 pub fn type_expr() -> impl Parser<Token, Expr, Error = Simple<Token>> {

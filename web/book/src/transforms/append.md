@@ -40,10 +40,10 @@ To imitate set operations i.e. (`UNION`, `EXCEPT` and `INTERSECT`), you can use
 the following functions:
 
 ```prql no-eval
-func distinct rel -> (noop t = rel | group [t.*] (take 1))
-func union `default_db.bottom` top -> (top | append bottom | distinct)
-func except `default_db.bottom` top -> (top | distinct | remove bottom)
-func intersect_distinct `default_db.bottom` top -> (top | intersect bottom | distinct)
+let distinct = rel -> (from t = _param.rel | group [t.*] (take 1))
+let union = `default_db.bottom` top -> (top | append bottom | distinct)
+let except = `default_db.bottom` top -> (top | distinct | remove bottom)
+let intersect_distinct = `default_db.bottom` top -> (top | intersect bottom | distinct)
 ```
 
 Don't mind the `default_db.` and `noop`, these are compiler implementation

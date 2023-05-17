@@ -26,7 +26,6 @@ pub struct Stmt {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum StmtKind {
     QueryDef(QueryDef),
-    FuncDef(FuncDef),
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
@@ -40,13 +39,23 @@ pub struct QueryDef {
     pub other: HashMap<String, String>,
 }
 
+// /// Function definition.
+// #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+// pub struct FuncDef {
+//     pub name: String,
+//     pub positional_params: Vec<FuncParam>, // ident
+//     pub named_params: Vec<FuncParam>,      // named expr
+//     pub body: Box<Expr>,
+//     pub return_ty: Option<Expr>,
+// }
+
 /// Function definition.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncDef {
+pub struct FuncDef_ {
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,
-    pub return_ty: Option<Expr>,
+    pub return_ty: Option<Box<Expr>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -63,6 +72,7 @@ pub struct FuncParam {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
     pub value: Box<Expr>,
+    pub ty_expr: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -114,16 +124,6 @@ impl Display for Stmt {
                 }
                 _ => writeln!(f, "{}", expr)?,
             },
-            StmtKind::FuncDef(func_def) => {
-                write!(f, "func {}", self.name)?;
-                for arg in &func_def.positional_params {
-                    write!(f, " {}", arg.name)?;
-                }
-                for arg in &func_def.named_params {
-                    write!(f, " {}:{}", arg.name, arg.default_value.as_ref().unwrap())?;
-                }
-                writeln!(f, " -> {}", func_def.body)?;
-            }
             StmtKind::VarDef(var) => {
                 let pipeline = &var.value;
                 match &pipeline.kind {
@@ -152,5 +152,18 @@ impl Display for Stmt {
             }
         }
         Ok(())
+    }
+}
+
+impl Display for FuncDef_ {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // write!(f, "func {}", self.name)?;
+        for arg in &self.positional_params {
+            write!(f, " {}", arg.name)?;
+        }
+        for arg in &self.named_params {
+            write!(f, " {}:{}", arg.name, arg.default_value.as_ref().unwrap())?;
+        }
+        write!(f, " -> {}", self.body)
     }
 }

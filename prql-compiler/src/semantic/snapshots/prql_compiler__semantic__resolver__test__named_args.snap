@@ -1,20 +1,20 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n            from foo_table\n            derive [\n                added = add bar to:3,\n                added_default = add bar\n            ]\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n            from foo_table\n            derive [\n                added = add bar to:3,\n                added_default = add bar\n            ]\n            \"#).unwrap()"
 ---
-- id: 18
+- id: 19
   Binary:
     left:
-      id: 17
+      id: 18
       Ident:
         - _frame
         - foo_table
         - bar
-      target_id: 7
+      target_id: 8
       ty: Infer
     op: Add
     right:
-      id: 16
+      id: 17
       Literal:
         Integer: 3
       ty:
@@ -24,19 +24,19 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
     TypeExpr:
       Primitive: Column
   alias: added
-- id: 25
+- id: 26
   Binary:
     left:
-      id: 24
+      id: 25
       Ident:
         - _frame
         - foo_table
         - bar
-      target_id: 7
+      target_id: 8
       ty: Infer
     op: Add
     right:
-      id: 23
+      id: 24
       Literal:
         Integer: 1
       ty:
