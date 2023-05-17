@@ -2166,7 +2166,20 @@ fn test_table_alias() {
       LEFT JOIN salaries ON salaries.emp_no = e.emp_no
     GROUP BY
       e.emp_no
-    "###)
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from e=employees
+    select e.first_name
+    filter e.first_name == "Fred"
+    "###).unwrap()), @r###"
+    SELECT
+      first_name
+    FROM
+      employees AS e
+    WHERE
+      first_name = 'Fred'
+    "###);
 }
 
 #[test]
