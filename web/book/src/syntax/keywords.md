@@ -1,6 +1,6 @@
 # Keywords
 
-At the moment, PRQL uses only four keywords:
+PRQL uses a few terms as keywords:
 
 - `let`
 - `into`
