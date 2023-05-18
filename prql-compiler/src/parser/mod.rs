@@ -2518,4 +2518,34 @@ join s=salaries [==id]
             kind: Main
         "###);
     }
+
+    #[test]
+    fn test_array() {
+        assert_yaml_snapshot!(parse(r#"
+        let a = {1, 2,}
+        let a = {false, "hello"}
+        "#).unwrap(), @r###"
+        ---
+        - name: a
+          VarDef:
+            value:
+              Array:
+                - Literal:
+                    Integer: 1
+                - Literal:
+                    Integer: 2
+            ty_expr: ~
+            kind: Let
+        - name: a
+          VarDef:
+            value:
+              Array:
+                - Literal:
+                    Boolean: false
+                - Literal:
+                    String: hello
+            ty_expr: ~
+            kind: Let
+        "###);
+    }
 }

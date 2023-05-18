@@ -60,7 +60,7 @@ pub enum DeclKind {
     QueryDef(QueryDef),
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
     /// Columns layout
     pub columns: Vec<RelationColumn>,
@@ -105,34 +105,22 @@ impl Context {
         Ok(())
     }
 
-    pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> Result<DeclKind> {
-        match &value.ty {
-            Some(Ty::Table(_)) => {
-                let mut value = value;
-
-                let ty = value.ty.clone().unwrap();
-                let frame = ty.into_table().unwrap_or_else(|_| {
-                    let assumed = self
-                        .validate_type(value.as_ref(), &Ty::Table(Frame::default()), || None)
-                        .unwrap();
-                    value.ty = Some(assumed.clone());
-                    assumed.into_table().unwrap()
-                });
-
+    pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> DeclKind {
+        match &value.lineage {
+            Some(frame) => {
                 let columns = (frame.columns.iter())
                     .map(|col| match col {
-                        FrameColumn::All { .. } => RelationColumn::Wildcard,
-                        FrameColumn::Single { name, .. } => {
+                        LineageColumn::All { .. } => RelationColumn::Wildcard,
+                        LineageColumn::Single { name, .. } => {
                             RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
                         }
                     })
                     .collect();
 
                 let expr = TableExpr::RelationVar(value);
-                Ok(DeclKind::TableDecl(TableDecl { columns, expr }))
+                DeclKind::TableDecl(TableDecl { columns, expr })
             }
-            Some(_) => Ok(DeclKind::Expr(value)),
-            None => Err(Error::new_simple("Cannot infer type. Type annotations needed.").into()),
+            _ => DeclKind::Expr(value),
         }
     }
 
@@ -361,7 +349,7 @@ impl Context {
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
+            if let Some(frame) = &expr.lineage {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_all())
                     .collect_vec();
@@ -391,13 +379,13 @@ impl Context {
         table_fq: &Ident,
         input_name: String,
         input_id: usize,
-    ) -> Frame {
+    ) -> Lineage {
         let id = input_id;
         let table_decl = self.root_mod.get(table_fq).unwrap();
         let TableDecl { columns, .. } = table_decl.kind.as_table_decl().unwrap();
 
-        let instance_frame = Frame {
-            inputs: vec![FrameInput {
+        let instance_frame = Lineage {
+            inputs: vec![LineageInput {
                 id,
                 name: input_name.clone(),
                 table: table_fq.clone(),
@@ -405,14 +393,14 @@ impl Context {
             columns: columns
                 .iter()
                 .map(|col| match col {
-                    RelationColumn::Wildcard => FrameColumn::All {
+                    RelationColumn::Wildcard => LineageColumn::All {
                         input_name: input_name.clone(),
                         except: columns
                             .iter()
                             .flat_map(|c| c.as_single().cloned().flatten())
                             .collect(),
                     },
-                    RelationColumn::Single(col_name) => FrameColumn::Single {
+                    RelationColumn::Single(col_name) => LineageColumn::Single {
                         name: col_name
                             .clone()
                             .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
@@ -434,7 +422,7 @@ impl Context {
         input_id: usize,
         columns: Option<Vec<RelationColumn>>,
         name_hint: Option<String>,
-    ) -> Frame {
+    ) -> Lineage {
         let id = input_id;
         let global_name = format!("_literal_{}", id);
 
@@ -566,5 +554,13 @@ impl<'a> std::fmt::Display for RelationColumns<'a> {
             }
         }
         write!(f, "]")
+    }
+}
+
+impl std::fmt::Debug for TableDecl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json = serde_json::to_string(self).unwrap();
+        let json = serde_json::from_str::<serde_json::Value>(&json).unwrap();
+        f.write_str(&serde_yaml::to_string(&json).unwrap())
     }
 }

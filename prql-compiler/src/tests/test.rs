@@ -2526,7 +2526,7 @@ fn test_unused_alias() {
 #[test]
 fn test_table_s_string() {
     assert_display_snapshot!(compile(r###"
-    let main <table> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
+    let main <relation> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
     "###).unwrap(),
         @r###"
     WITH table_2 AS (
@@ -2942,7 +2942,7 @@ fn test_static_analysis() {
 fn test_closures_and_pipelines() {
     assert_display_snapshot!(compile(
         r###"
-    let addthree = a b c -> <column> s"{a} || {b} || {c}"
+    let addthree = a b c -> s"{a} || {b} || {c}"
     let arg = myarg myfunc -> ( myfunc myarg )
 
     from y
@@ -3611,6 +3611,59 @@ fn test_into() {
       y
     FROM
       table_a
+    "###
+    );
+}
+
+#[test]
+fn test_array() {
+    assert_display_snapshot!(compile(r#"
+    let a = {1, 2, false}
+    "#).unwrap_err(),
+        @r###"
+    Error:
+       ╭─[:2:20]
+       │
+     2 │     let a = {1, 2, false}
+       │                    ──┬──
+       │                      ╰──── array expected types of all of its elements to be int, but found bool
+    ───╯
+    "###
+    );
+
+    assert_snapshot!(compile(r#"
+    let my_relation = {
+        [a = 3, b = false],
+        [a = 4, b = true],
+    }
+
+    let main = (my_relation | filter b)
+    "#).unwrap(),
+        @r###"
+    WITH table_2 AS (
+      SELECT
+        3 AS a,
+        false AS b
+      UNION
+      ALL
+      SELECT
+        4 AS a,
+        true AS b
+    ),
+    my_relation AS (
+      SELECT
+        a,
+        b
+      FROM
+        table_2 AS table_1
+    )
+    SELECT
+      a,
+      b
+    FROM
+      my_relation
+    WHERE
+      b
     "###
     );
 }

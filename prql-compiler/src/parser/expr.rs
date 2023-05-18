@@ -38,11 +38,33 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 [
                     (Token::Control('['), Token::Control(']')),
                     (Token::Control('('), Token::Control(')')),
+                    (Token::Control('{'), Token::Control('}')),
                 ],
                 |_| vec![],
             ))
             .map(ExprKind::List)
             .labelled("list");
+
+        let array = nested_expr
+            .clone()
+            .map_with_span(into_expr)
+            .padded_by(new_line().repeated())
+            .separated_by(ctrl(','))
+            .allow_trailing()
+            .then_ignore(new_line().repeated())
+            .delimited_by(ctrl('{'), ctrl('}'))
+            .recover_with(nested_delimiters(
+                Token::Control('{'),
+                Token::Control('}'),
+                [
+                    (Token::Control('['), Token::Control(']')),
+                    (Token::Control('('), Token::Control(')')),
+                    (Token::Control('{'), Token::Control('}')),
+                ],
+                |_| vec![],
+            ))
+            .map(ExprKind::Array)
+            .labelled("array");
 
         let pipeline =
             nested_expr
@@ -93,6 +115,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let term = choice((
             literal,
             list,
+            array,
             pipeline,
             interpolation,
             ident_kind,

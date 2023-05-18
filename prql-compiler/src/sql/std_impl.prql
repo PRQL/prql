@@ -10,25 +10,25 @@ let count = non_null:s"*" -> <scalar || column> s"COUNT({non_null})"
 let count_distinct = column -> <scalar || column> s"COUNT(DISTINCT {column})"
 
 # Window functions
-let lag = offset column -> <column> s"LAG({column}, {offset})"
-let lead = offset column -> <column> s"LEAD({column}, {offset})"
-let first = offset column -> <column> s"FIRST_VALUE({column}, {offset})"
-let last = offset column -> <column> s"LAST_VALUE({column}, {offset})"
-let rank = -> <column> s"RANK()"
-let rank_dense = -> <column> s"DENSE_RANK()"
-let row_number = -> <column> s"ROW_NUMBER()"
+let lag = offset column -> s"LAG({column}, {offset})"
+let lead = offset column -> s"LEAD({column}, {offset})"
+let first = offset column -> s"FIRST_VALUE({column}, {offset})"
+let last = offset column -> s"LAST_VALUE({column}, {offset})"
+let rank = -> s"RANK()"
+let rank_dense = -> s"DENSE_RANK()"
+let row_number = -> s"ROW_NUMBER()"
 
 # Other functions
-let round = n_digits column -> <scalar> s"ROUND({column}, {n_digits})"
-let as = `noresolve.type` column -> <scalar> s"CAST({column} AS {type})"
+let round = n_digits column -> s"ROUND({column}, {n_digits})"
+let as = `noresolve.type` column -> s"CAST({column} AS {type})"
 
 # String functions
 let lower = column -> <text> s"LOWER({column})"
 let upper = column -> <text> s"UPPER({column})"
 
 # Source-reading functions, primarily for DuckDB
-let read_parquet = source<text> -> <table> s"SELECT * FROM read_parquet({source})"
-let read_csv = source<text> -> <table> s"SELECT * FROM read_csv_auto({source})"
+let read_parquet = source<text> -> s"SELECT * FROM read_parquet({source})"
+let read_csv = source<text> -> s"SELECT * FROM read_csv_auto({source})"
 
 let mul = l r -> null
 let div = l r -> null

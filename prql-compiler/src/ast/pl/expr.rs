@@ -3,6 +3,7 @@ use std::fmt::{Display, Write};
 
 use anyhow::{anyhow, Result};
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 use semver::VersionReq;
 
 use serde::{Deserialize, Serialize};
@@ -31,9 +32,17 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub target_ids: Vec<usize>,
 
-    /// Type of expression this node represents. [None] means type has not yet been determined.
+    /// Type of expression this node represents.
+    /// [None] means that type should be inferred.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
+
+    /// Information about where data of this expression will come from.
+    ///
+    /// Currently, this is used to infer relational pipeline frames.
+    /// Must always exists if ty is a relation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<Lineage>,
 
     #[serde(skip)]
     pub needs_window: bool,
@@ -43,6 +52,7 @@ pub struct Expr {
 
     /// When true on [ExprKind::List], this list will be flattened when placed
     /// in some other list.
+    // TODO: maybe we should have a special ExprKind instead of this flag?
     #[serde(skip)]
     pub flatten: bool,
 }
@@ -56,7 +66,10 @@ pub enum ExprKind {
     },
     Literal(Literal),
     Pipeline(Pipeline),
+
+    /// Also known as tuple or struct
     List(Vec<Expr>),
+    Array(Vec<Expr>),
     Range(Range),
     Binary {
         left: Box<Expr>,
@@ -77,7 +90,8 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
-    Type(TypeExpr),
+
+    Type(TyKind),
 
     /// a placeholder for values provided after query is compiled
     Param(String),
@@ -340,6 +354,24 @@ pub enum TransformKind {
     Loop(Box<Expr>),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ColumnSort<T = Expr> {
+    pub direction: SortDirection,
+    pub column: T,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SortDirection {
+    Asc,
+    Desc,
+}
+
+impl Default for SortDirection {
+    fn default() -> Self {
+        SortDirection::Asc
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
@@ -422,6 +454,7 @@ impl From<ExprKind> for Expr {
             target_id: None,
             target_ids: Vec::new(),
             ty: None,
+            lineage: None,
             needs_window: false,
             alias: None,
             flatten: false,
@@ -524,6 +557,10 @@ impl Display for Expr {
                     }
                     f.write_str("]")?;
                 }
+            }
+            ExprKind::Array(items) => {
+                let items = items.iter().map(|x| x.to_string()).join(", ");
+                write!(f, "{{{items}}}")?;
             }
             ExprKind::Range(r) => {
                 if let Some(start) = &r.start {

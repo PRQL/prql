@@ -5,6 +5,7 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
+use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::transforms::coerce_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
@@ -94,25 +95,26 @@ impl Resolver {
                 }
                 StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
-                    let mut var_def = VarDef {
-                        value: Box::new(ty_def.value.unwrap_or_else(|| {
-                            let mut e = Expr::null();
-                            e.ty = Some(Ty::TypeExpr(TypeExpr::Type));
-                            e
-                        })),
-                        // FIXME
-                        ty_expr: None,
-                        kind: VarDefKind::Let,
+                    let mut value = if let Some(value) = ty_def.value {
+                        value
+                    } else {
+                        Expr::null()
                     };
 
                     // This is a hacky way to provide values to std.int and friends.
                     if self.current_module_path == vec![NS_STD] {
                         if let Some(kind) = get_stdlib_decl(&ident.name) {
-                            var_def.value.kind = kind;
+                            value.kind = kind;
                         }
                     }
 
-                    self.fold_var_def(var_def)?
+                    let ty = self.fold_type_expr(Some(value))?.unwrap();
+
+                    VarDef {
+                        value: Box::new(Expr::from(ExprKind::Type(ty.kind))),
+                        ty_expr: None,
+                        kind: VarDefKind::Let,
+                    }
                 }
                 StmtKind::ModuleDef(module_def) => {
                     self.current_module_path.push(ident.name);
@@ -137,21 +139,18 @@ impl Resolver {
 
             if let VarDefKind::Main = def.kind {
                 def.ty_expr = Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
-                    "std", "table",
+                    "std", "relation",
                 ]))));
             }
 
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
-            if let Some(ty) = expected_ty {
-                let who = || Some(stmt.name);
-                let inferred = self.context.validate_type(&def.value, &ty, who)?;
-                def.value.ty = Some(inferred);
+            if expected_ty.is_some() {
+                let who = || Some(stmt.name.clone());
+                self.context
+                    .validate_type(&mut def.value, &expected_ty, who)?;
             }
 
-            let decl = self
-                .context
-                .prepare_expr_decl(def.value)
-                .with_span(stmt.span)?;
+            let decl = self.context.prepare_expr_decl(def.value);
 
             self.context
                 .declare(ident, decl, stmt.id)
@@ -212,12 +211,31 @@ impl AstFold for Resolver {
                     DeclKind::TableDecl(_) => {
                         let input_name = ident.name.clone();
 
-                        let instance_frame =
-                            self.context.table_decl_to_frame(&fq_ident, input_name, id);
+                        let lineage = self.context.table_decl_to_frame(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
-                            ty: Some(Ty::Table(instance_frame)),
+
+                            // TODO: this should go into a helper function
+                            ty: Some(Ty {
+                                kind: TyKind::Array(Box::new(TyKind::Tuple(
+                                    lineage
+                                        .columns
+                                        .iter()
+                                        .map(|col| match col {
+                                            LineageColumn::All { .. } => TupleElement::Wildcard,
+                                            LineageColumn::Single { name, .. } => {
+                                                TupleElement::Single(
+                                                    name.as_ref().map(|i| i.name.clone()),
+                                                    TyKind::Singleton(Literal::Null),
+                                                )
+                                            }
+                                        })
+                                        .collect(),
+                                ))),
+                                name: None,
+                            }),
+                            lineage: Some(lineage),
                             alias: None,
                             ..node
                         }
@@ -343,6 +361,37 @@ impl AstFold for Resolver {
                 }
             }
 
+            ExprKind::Array(exprs) => {
+                let exprs = self.fold_exprs(exprs)?;
+
+                // validate that all elements have the same type
+                let mut item_ty = None;
+                for expr in &exprs {
+                    let ty = &expr.ty;
+                    if let Some(item_ty) = item_ty {
+                        if item_ty != ty {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("array".to_string()),
+                                expected: format!(
+                                    "types of all of its elements to be {}",
+                                    display_ty(item_ty)
+                                ),
+                                found: display_ty(ty),
+                            })
+                            .with_span(expr.span)
+                            .into());
+                        }
+                    } else {
+                        item_ty = Some(ty);
+                    }
+                }
+
+                Expr {
+                    kind: ExprKind::Array(exprs),
+                    ..node
+                }
+            }
+
             item => Expr {
                 kind: fold_expr_kind(self, item)?,
                 ..node
@@ -353,9 +402,30 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(infer_type(&r, &self.context)?);
+            r.ty = infer_type(&r)?;
         }
-        if let Some(Ty::Table(frame)) = &mut r.ty {
+        if r.lineage.is_none() {
+            if let ExprKind::TransformCall(call) = &r.kind {
+                r.lineage = Some(call.infer_type(&self.context)?);
+            } else if let ExprKind::Array(elements) = &r.kind {
+                if let Some(ExprKind::List(elements)) = elements.first().map(|x| &x.kind) {
+                    // infer relations lineage
+
+                    let columns: Option<Vec<RelationColumn>> = Some(
+                        elements
+                            .iter()
+                            .map(|x| RelationColumn::Single(x.alias.clone()))
+                            .collect_vec(),
+                    );
+
+                    let name = r.alias.clone();
+                    let frame = self.context.declare_table_for_literal(id, columns, name);
+
+                    r.lineage = Some(frame)
+                }
+            }
+        }
+        if let Some(frame) = &mut r.lineage {
             if let Some(alias) = r.alias.take() {
                 frame.rename(alias);
             }
@@ -489,7 +559,7 @@ impl Resolver {
             // evaluate
             let needs_window = (closure.body_ty)
                 .as_ref()
-                .map(|ty| ty.is_superset_of(&Ty::TypeExpr(TypeExpr::Primitive(TyLit::Column))))
+                .map(|ty| ty.is_array())
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
@@ -550,7 +620,10 @@ impl Resolver {
             ty.args = ty.args[args_len..].to_vec();
 
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
-            node.ty = Some(Ty::Function(ty));
+            node.ty = Some(Ty {
+                kind: TyKind::Function(ty),
+                name: None,
+            });
 
             node
         };
@@ -621,35 +694,35 @@ impl Resolver {
 
         let func_name = &closure.name;
 
-        let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
+        let (relations, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
             .enumerate()
             .partition(|(_, (param, _))| {
-                let is_table = param
+                let is_relation = param
                     .ty
                     .as_ref()
-                    .map(|t| matches!(t, Ty::Table(_)))
+                    .map(|t| t.is_relation())
                     .unwrap_or_default();
 
-                is_table
+                is_relation
             });
 
-        let has_tables = !tables.is_empty();
+        let has_relations = !relations.is_empty();
 
-        // resolve tables
-        if has_tables {
+        // resolve relational args
+        if has_relations {
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
-            for pos in tables.into_iter().with_position() {
+            for pos in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let arg = self.fold_and_type_check(arg, param, func_name)?;
+                let mut arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
-                // add table's frame into scope
-                let frame = arg.ty.as_ref().unwrap().as_table().unwrap();
+                // add relation frame into scope
+                let frame = arg.lineage.get_or_insert_with(Lineage::default);
                 if is_last {
                     self.context.root_mod.insert_frame(frame, NS_FRAME);
                 } else {
@@ -689,7 +762,7 @@ impl Resolver {
             closure.args[index] = arg;
         }
 
-        if has_tables {
+        if has_relations {
             self.context.root_mod.unshadow(NS_FRAME);
             self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }
@@ -706,15 +779,15 @@ impl Resolver {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // don't validate types of unresolved exprs
-        if arg.ty.is_some() {
+        if arg.id.is_some() {
             // validate type
-            let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
-            let assumed_ty = self.context.validate_type(&arg, param_ty, || {
+
+            let who = || {
                 func_name
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
-            })?;
-            arg.ty = Some(assumed_ty);
+            };
+            self.context.validate_type(&mut arg, &param.ty, who)?;
         }
 
         Ok(arg)
@@ -816,16 +889,13 @@ impl Resolver {
     fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
+                let name = expr.kind.as_ident().map(|i| i.name.clone());
+
                 let expr = self.fold_expr(expr)?;
 
-                let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
-
-                // TODO: workaround
-                if let TypeExpr::Array(_) = set_expr {
-                    return Ok(Some(Ty::Table(Frame::default())));
-                }
-
-                Some(Ty::TypeExpr(set_expr))
+                let mut set_expr = type_resolver::coerce_to_type(expr, &self.context)?;
+                set_expr.name = set_expr.name.or(name);
+                Some(set_expr)
             }
             None => None,
         })
@@ -849,26 +919,17 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
 }
 
 fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
-    let ty_lit = match name {
-        "int" => TyLit::Int,
-        "float" => TyLit::Float,
-        "bool" => TyLit::Bool,
-        "text" => TyLit::Text,
-        "date" => TyLit::Date,
-        "time" => TyLit::Time,
-        "timestamp" => TyLit::Timestamp,
-        "table" => {
-            // TODO: this is just a dummy that gets intercepted when resolving types
-            return Some(ExprKind::Type(TypeExpr::Array(Box::new(
-                TypeExpr::Singleton(Literal::Null),
-            ))));
-        }
-        "column" => TyLit::Column,
-        "list" => TyLit::List,
-        "scalar" => TyLit::Scalar,
+    let set = match name {
+        "int" => PrimitiveSet::Int,
+        "float" => PrimitiveSet::Float,
+        "bool" => PrimitiveSet::Bool,
+        "text" => PrimitiveSet::Text,
+        "date" => PrimitiveSet::Date,
+        "time" => PrimitiveSet::Time,
+        "timestamp" => PrimitiveSet::Timestamp,
         _ => return None,
     };
-    Some(ExprKind::Type(TypeExpr::Primitive(ty_lit)))
+    Some(ExprKind::Type(TyKind::Primitive(set)))
 }
 
 #[cfg(test)]
@@ -876,7 +937,7 @@ mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{Expr, Ty};
+    use crate::ast::pl::{Expr, Lineage};
     use crate::semantic::resolve_only;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
@@ -885,8 +946,8 @@ mod test {
         Ok(main.clone())
     }
 
-    fn resolve_type(query: &str) -> Result<Ty> {
-        Ok(parse_and_resolve(query)?.ty.unwrap_or(Ty::Infer))
+    fn resolve_lineage(query: &str) -> Result<Lineage> {
+        Ok(parse_and_resolve(query)?.lineage.unwrap())
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
@@ -981,7 +1042,7 @@ mod test {
 
     #[test]
     fn test_frames_and_names() {
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from orders
             select [customer_no, gross, tax, gross - tax]
@@ -990,7 +1051,7 @@ mod test {
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from table_1
             join customers [==customer_no]
@@ -998,7 +1059,7 @@ mod test {
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from e = employees
             join salaries [==emp_no]

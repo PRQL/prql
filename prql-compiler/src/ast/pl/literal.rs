@@ -15,7 +15,6 @@ pub enum Literal {
     Time(String),
     Timestamp(String),
     ValueAndUnit(ValueAndUnit),
-    Relation(RelationLiteral),
 }
 
 // Compound units, such as "2 days 3 hours" can be represented as `2days + 3hours`
@@ -87,10 +86,6 @@ impl Display for Literal {
 
             Literal::ValueAndUnit(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
-            }
-
-            Literal::Relation(_) => {
-                write!(f, "<unimplemented relation>")?;
             }
         }
         Ok(())

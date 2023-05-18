@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 pub use self::context::Context;
 pub use self::module::Module;
 
-use crate::ast::pl::{Frame, FrameColumn, Stmt};
+use crate::ast::pl::{Lineage, LineageColumn, Stmt};
 use crate::ast::rq::Query;
 use crate::error::WithErrorInfo;
 use crate::{Error, FileTree};

@@ -1,29 +1,27 @@
-use std::{
-    collections::HashSet,
-    fmt::{Debug, Display, Formatter},
-};
+use std::collections::HashSet;
+use std::fmt::{Debug, Display, Formatter};
 
 use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
 use serde::{Deserialize, Serialize};
 
-use super::{Expr, Ident};
+use super::Ident;
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
-#[derive(Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Frame {
-    pub columns: Vec<FrameColumn>,
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Lineage {
+    pub columns: Vec<LineageColumn>,
 
-    pub inputs: Vec<FrameInput>,
+    pub inputs: Vec<LineageInput>,
 
     // A hack that allows name retention when applying `ExprKind::All { except }`
     #[serde(skip)]
-    pub prev_columns: Vec<FrameColumn>,
+    pub prev_columns: Vec<LineageColumn>,
 }
 
-#[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
-pub struct FrameInput {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineageInput {
     /// Id of the node in AST that declares this input.
     pub id: usize,
 
@@ -35,7 +33,7 @@ pub struct FrameInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum FrameColumn {
+pub enum LineageColumn {
     /// All columns (including unknown ones) from an input (i.e. `foo_table.*`)
     All {
         input_name: String,
@@ -48,42 +46,17 @@ pub enum FrameColumn {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ColumnSort<T = Expr> {
-    pub direction: SortDirection,
-    pub column: T,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum SortDirection {
-    Asc,
-    Desc,
-}
-
-impl Default for SortDirection {
-    fn default() -> Self {
-        SortDirection::Asc
-    }
-}
-
-impl Display for Frame {
+impl Display for Lineage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        display_frame(self, f, false)
+        display_lineage(self, f, false)
     }
 }
 
-impl Debug for Frame {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        display_frame(self, f, true)?;
-        std::fmt::Debug::fmt(&self.inputs, f)
-    }
-}
-
-fn display_frame(frame: &Frame, f: &mut Formatter, display_ids: bool) -> std::fmt::Result {
+fn display_lineage(lineage: &Lineage, f: &mut Formatter, display_ids: bool) -> std::fmt::Result {
     write!(f, "[")?;
-    for col in frame.columns.iter().with_position() {
+    for col in lineage.columns.iter().with_position() {
         let is_last = matches!(col, Position::Last(_) | Position::Only(_));
-        display_frame_column(col.into_inner(), f, display_ids)?;
+        display_lineage_column(col.into_inner(), f, display_ids)?;
         if !is_last {
             write!(f, ", ")?;
         }
@@ -91,16 +64,16 @@ fn display_frame(frame: &Frame, f: &mut Formatter, display_ids: bool) -> std::fm
     write!(f, "]")
 }
 
-fn display_frame_column(
-    col: &FrameColumn,
+fn display_lineage_column(
+    col: &LineageColumn,
     f: &mut Formatter,
     display_ids: bool,
 ) -> std::fmt::Result {
     match col {
-        FrameColumn::All { input_name, .. } => {
+        LineageColumn::All { input_name, .. } => {
             write!(f, "{input_name}.*")?;
         }
-        FrameColumn::Single { name, expr_id } => {
+        LineageColumn::Single { name, expr_id } => {
             if let Some(name) = name {
                 write!(f, "{name}")?
             } else {

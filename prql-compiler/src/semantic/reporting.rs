@@ -6,7 +6,7 @@ use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::context::{DeclKind, RelationColumns, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
-use super::{Context, Frame};
+use super::{Context, Lineage};
 use crate::ast::pl::{fold::*, *};
 use crate::error::Span;
 
@@ -125,7 +125,7 @@ impl<'a> AstFold for Labeler<'a> {
     }
 }
 
-pub fn collect_frames(expr: Expr) -> Vec<(Span, Frame)> {
+pub fn collect_frames(expr: Expr) -> Vec<(Span, Lineage)> {
     let mut collector = FrameCollector { frames: vec![] };
 
     collector.fold_expr(expr).unwrap();
@@ -136,16 +136,16 @@ pub fn collect_frames(expr: Expr) -> Vec<(Span, Frame)> {
 
 /// Traverses AST and collects all node.frame
 struct FrameCollector {
-    frames: Vec<(Span, Frame)>,
+    frames: Vec<(Span, Lineage)>,
 }
 
 impl AstFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
-                let frame = expr.ty.as_ref().and_then(|t| t.as_table().cloned());
-                if let Some(frame) = frame {
-                    self.frames.push((span, frame));
+                let lineage = expr.lineage.clone();
+                if let Some(lineage) = lineage {
+                    self.frames.push((span, lineage));
                 }
             }
         }
