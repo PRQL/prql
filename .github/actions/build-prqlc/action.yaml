@@ -48,7 +48,7 @@ runs:
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/release
-        tar czf "../../../${ARTIFACT_NAME}" prqlc
+        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE -C ../../../prql-compiler/prqlc/ README.md
 
     - name: Create artifact for Windows
       shell: bash
@@ -57,7 +57,7 @@ runs:
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/release
-        7z a "../../../${ARTIFACT_NAME}" prqlc.exe
+        7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE ../../../prql-compiler/prqlc/README.md
 
     - name: Upload prqlc
       uses: actions/upload-artifact@v3
