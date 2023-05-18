@@ -11,10 +11,12 @@ mod type_resolver;
 
 use anyhow::Result;
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub use self::context::Context;
 pub use self::module::Module;
+pub use lowering::lower_to_ir;
 
 use crate::ast::pl::{Lineage, LineageColumn, Stmt};
 use crate::ast::rq::Query;
@@ -22,34 +24,40 @@ use crate::error::WithErrorInfo;
 use crate::{Error, FileTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
-pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
+pub fn resolve_and_lower_single(statements: Vec<Stmt>) -> Result<Query> {
     let context = load_std_lib();
 
     let context = resolver::resolve(statements, vec![], context)?;
 
-    let query = lowering::lower_to_ir(context, &[])?;
+    let (query, _) = lowering::lower_to_ir(context, &[])?;
 
     Ok(query)
 }
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
-pub fn resolve_tree(file_tree: FileTree<Vec<Stmt>>, main_path: Vec<String>) -> Result<Query> {
-    let mut context = load_std_lib();
+pub fn resolve_and_lower(file_tree: FileTree<Vec<Stmt>>, main_path: &[String]) -> Result<Query> {
+    let context = resolve(file_tree, None)?;
 
-    for (path, stmts) in normalize(file_tree)? {
-        context = resolver::resolve(stmts, path, context)?;
-    }
-
-    let query = lowering::lower_to_ir(context, &main_path)?;
-
+    let (query, _) = lowering::lower_to_ir(context, main_path)?;
     Ok(query)
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve_only(statements: Vec<Stmt>, context: Option<Context>) -> Result<Context> {
-    let context = context.unwrap_or_else(load_std_lib);
+pub fn resolve_single(statements: Vec<Stmt>, context: Option<Context>) -> Result<Context> {
+    let tree = FileTree {
+        files: HashMap::from([(PathBuf::from(""), statements)]),
+    };
 
-    resolver::resolve(statements, vec![], context)
+    resolve(tree, context)
+}
+
+/// Runs semantic analysis on the query.
+pub fn resolve(file_tree: FileTree<Vec<Stmt>>, context: Option<Context>) -> Result<Context> {
+    let mut context = context.unwrap_or_else(load_std_lib);
+    for (path, stmts) in normalize(file_tree)? {
+        context = resolver::resolve(stmts, path, context)?;
+    }
+    Ok(context)
 }
 
 pub fn load_std_lib() -> Context {
@@ -144,11 +152,11 @@ mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use super::resolve;
+    use super::resolve_and_lower_single;
     use crate::{ast::rq::Query, parser::parse};
 
     fn parse_and_resolve(query: &str) -> Result<Query> {
-        resolve(parse(query)?)
+        resolve_and_lower_single(parse(query)?)
     }
 
     #[test]

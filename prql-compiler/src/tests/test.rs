@@ -1528,7 +1528,7 @@ derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]"#;
 
     let sql_from_prql = parse(original_prql)
-        .and_then(crate::semantic::resolve)
+        .and_then(crate::semantic::resolve_and_lower_single)
         .and_then(|rq| sql::compile(rq, &Options::default()))
         .unwrap();
 

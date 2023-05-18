@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use ariadne::Source;
 use clap::{Parser, Subcommand};
 use clio::Output;
@@ -191,7 +191,7 @@ impl Command {
                 let (source_id, source) = sources.files.clone().into_iter().exactly_one()?;
                 let stmts = prql_to_pl(&source)?;
 
-                let context = semantic::resolve_only(stmts, None)?;
+                let context = semantic::resolve_single(stmts, None)?;
 
                 let source_id = source_id.to_str().unwrap().to_string();
                 let references = label_references(&context, source_id, source);
@@ -207,7 +207,7 @@ impl Command {
                 let stmts = prql_to_pl(&source)?;
 
                 // resolve
-                let ctx = semantic::resolve_only(stmts, None)?;
+                let ctx = semantic::resolve_single(stmts, None)?;
 
                 let frames = if let Some((main, _)) = ctx.find_main(&[]) {
                     collect_frames(main.clone())
@@ -220,7 +220,7 @@ impl Command {
             }
             Command::Resolve { format, .. } => {
                 let ast = prql_to_pl_tree(sources)?;
-                let ir = pl_to_rq_tree(ast, main_path)?;
+                let ir = pl_to_rq_tree(ast, &main_path)?;
 
                 match format {
                     Format::Json => serde_json::to_string_pretty(&ir)?.into_bytes(),
@@ -238,7 +238,7 @@ impl Command {
                     .with_signature_comment(*include_signature_comment);
 
                 prql_to_pl_tree(sources)
-                    .and_then(|pl| pl_to_rq_tree(pl, main_path))
+                    .and_then(|pl| pl_to_rq_tree(pl, &main_path))
                     .and_then(|rq| rq_to_sql(rq, &opts))
                     .map_err(|e| e.composed(sources, opts.color))?
                     .as_bytes()
@@ -247,13 +247,13 @@ impl Command {
 
             Command::SQLPreprocess { .. } => {
                 let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, main_path)?;
+                let rq = pl_to_rq_tree(ast, &main_path)?;
                 let srq = prql_compiler::sql::internal::preprocess(rq)?;
                 format!("{srq:#?}").as_bytes().to_vec()
             }
             Command::SQLAnchor { format, .. } => {
                 let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, main_path)?;
+                let rq = pl_to_rq_tree(ast, &main_path)?;
                 let srq = prql_compiler::sql::internal::anchor(rq)?;
 
                 let json = serde_json::to_string_pretty(&srq)?;
@@ -297,16 +297,7 @@ impl Command {
 
         let file_tree = input.read_to_tree()?;
 
-        let mut main_path = io_args.main_path.clone();
-        if let Ok(only) = file_tree.files.iter().exactly_one() {
-            if main_path.is_none() {
-                main_path =
-                    Some(prql_compiler::semantic::os_path_to_prql_path(only.0.clone())?.join("."));
-            }
-        }
-
-        let main_path =
-            main_path.ok_or_else(|| anyhow!("Missing the path of the main pipeline"))?;
+        let main_path = io_args.main_path.clone().unwrap_or_default();
 
         Ok((file_tree, main_path))
     }

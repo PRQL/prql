@@ -489,6 +489,11 @@ impl Context {
         let decl = self.root_mod.get(&ident)?;
         decl.kind.as_query_def()
     }
+
+    /// Finds all main pipelines.
+    pub fn find_mains(&self) -> Vec<Ident> {
+        self.root_mod.find_by_suffix(NS_MAIN)
+    }
 }
 
 impl Default for DeclKind {

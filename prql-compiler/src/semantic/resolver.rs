@@ -938,10 +938,10 @@ mod test {
     use insta::assert_yaml_snapshot;
 
     use crate::ast::pl::{Expr, Lineage};
-    use crate::semantic::resolve_only;
+    use crate::semantic::resolve_single;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let ctx = resolve_only(crate::parser::parse(query)?, None)?;
+        let ctx = resolve_single(crate::parser::parse(query)?, None)?;
         let (main, _) = ctx.find_main(&[]).unwrap();
         Ok(main.clone())
     }

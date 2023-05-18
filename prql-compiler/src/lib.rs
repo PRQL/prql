@@ -127,7 +127,7 @@ pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     parser::parse(prql)
-        .and_then(semantic::resolve)
+        .and_then(semantic::resolve_and_lower_single)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
         .map_err(|e| e.composed(&prql.into(), options.color))
@@ -256,15 +256,15 @@ pub fn prql_to_pl_tree(prql: &FileTree) -> Result<FileTree<Vec<ast::pl::Stmt>>, 
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve(pl).map_err(error::downcast)
+    semantic::resolve_and_lower_single(pl).map_err(error::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
     pl: FileTree<Vec<ast::pl::Stmt>>,
-    main_path: Vec<String>,
+    main_path: &[String],
 ) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve_tree(pl, main_path).map_err(error::downcast)
+    semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.

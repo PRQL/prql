@@ -367,6 +367,25 @@ impl Module {
         }
         r
     }
+
+    /// Recursively finds all declarations that end in suffix.
+    pub fn find_by_suffix(&self, suffix: &str) -> Vec<Ident> {
+        let mut res = Vec::new();
+
+        for (name, decl) in &self.names {
+            if let DeclKind::Module(module) = &decl.kind {
+                let nested = module.find_by_suffix(suffix);
+                res.extend(nested.into_iter().map(|x| x.prepend(name.clone())));
+                continue;
+            }
+
+            if name == suffix {
+                res.push(Ident::from_name(name));
+            }
+        }
+
+        res
+    }
 }
 
 impl std::fmt::Debug for Module {
