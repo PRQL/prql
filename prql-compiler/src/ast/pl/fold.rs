@@ -40,6 +40,7 @@ pub trait AstFold {
         Ok(VarDef {
             value: Box::new(self.fold_expr(*var_def.value)?),
             ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
+            kind: var_def.kind,
         })
     }
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
@@ -131,7 +132,6 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
         // FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
-        Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         ModuleDef(module_def) => ModuleDef(fold.fold_module_def(module_def)?),
         QueryDef(_) => stmt_kind,
     })

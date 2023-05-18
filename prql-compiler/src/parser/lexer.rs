@@ -56,6 +56,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let keyword = choice((
         // just("func"),
         just("let"),
+        just("into"),
         just("case"),
         just("prql"),
         just("type"),

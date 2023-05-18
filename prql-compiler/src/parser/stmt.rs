@@ -33,18 +33,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
             .separated_by(new_line().repeated())
             .allow_leading()
             .allow_trailing()
-            .chain(main_pipeline().or_not())
     })
-}
-
-fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
-    pipeline(expr_call())
-        .map_with_span(into_expr)
-        .map(Box::new)
-        .map(StmtKind::Main)
-        .map(|kind| (NS_MAIN.to_string(), kind))
-        .map_with_span(into_stmt)
-        .labelled("main pipeline")
 }
 
 fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
@@ -109,16 +98,40 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 }
 
 fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
-    keyword("let")
+    let let_ = keyword("let")
         .ignore_then(ident_part())
-        .then(
-            type_expr()
-                .or_not()
-                .then_ignore(ctrl('='))
-                .then(expr_call().map(Box::new))
-                .map(|(ty_expr, value)| StmtKind::VarDef(VarDef { value, ty_expr })),
-        )
-        .labelled("variable definition")
+        .then(type_expr().or_not())
+        .then_ignore(ctrl('='))
+        .then(expr_call().map(Box::new))
+        .map(|((name, ty_expr), value)| {
+            let stmt = StmtKind::VarDef(VarDef {
+                value,
+                ty_expr,
+                kind: VarDefKind::Let,
+            });
+            (name, stmt)
+        })
+        .labelled("variable definition");
+
+    let main_or_into = pipeline(expr_call())
+        .map_with_span(into_expr)
+        .map(Box::new)
+        .then(keyword("into").ignore_then(ident_part()).or_not())
+        .map(|(value, into)| {
+            let (kind, name) = match into {
+                None => (VarDefKind::Main, NS_MAIN.to_string()),
+                Some(name) => (VarDefKind::Into, name),
+            };
+            let stmt = StmtKind::VarDef(VarDef {
+                value,
+                ty_expr: None,
+                kind,
+            });
+            (name, stmt)
+        })
+        .labelled("variable definition");
+
+    let_.or(main_or_into)
 }
 
 fn type_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {

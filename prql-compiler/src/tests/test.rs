@@ -3589,3 +3589,28 @@ fn test_intervals() {
     "###
     );
 }
+
+#[test]
+fn test_into() {
+    assert_display_snapshot!(compile(r#"
+    from data
+    into table_a
+
+    from table_a
+    select [x, y]
+    "#).unwrap(),
+        @r###"
+    WITH table_a AS (
+      SELECT
+        *
+      FROM
+        data
+    )
+    SELECT
+      x,
+      y
+    FROM
+      table_a
+    "###
+    );
+}

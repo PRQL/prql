@@ -29,7 +29,6 @@ pub enum StmtKind {
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
-    Main(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
@@ -73,6 +72,14 @@ pub struct FuncParam {
 pub struct VarDef {
     pub value: Box<Expr>,
     pub ty_expr: Option<Expr>,
+    pub kind: VarDefKind,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub enum VarDefKind {
+    Let,
+    Into,
+    Main,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -116,14 +123,6 @@ impl Display for Stmt {
                 }
                 write!(f, "\n\n")?;
             }
-            StmtKind::Main(expr) => match &expr.kind {
-                ExprKind::Pipeline(pipeline) => {
-                    for expr in &pipeline.exprs {
-                        writeln!(f, "{expr}")?;
-                    }
-                }
-                _ => writeln!(f, "{}", expr)?,
-            },
             StmtKind::VarDef(var) => {
                 let pipeline = &var.value;
                 match &pipeline.kind {
