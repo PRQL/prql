@@ -1036,7 +1036,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     use crate::parser::parse;
-    use crate::semantic::{resolve, resolve_only};
+    use crate::semantic::{resolve_and_lower_single, resolve_single};
 
     #[test]
     fn test_aggregate_positional_arg() {
@@ -1051,7 +1051,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query).unwrap();
+        let result = resolve_and_lower_single(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -1105,7 +1105,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query);
+        let result = resolve_and_lower_single(query);
         assert!(result.is_err());
 
         // oops, two arguments
@@ -1116,7 +1116,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query);
+        let result = resolve_and_lower_single(query);
         assert!(result.is_err());
 
         // correct function call
@@ -1129,7 +1129,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let ctx = resolve_only(query, None).unwrap();
+        let ctx = resolve_single(query, None).unwrap();
         let res = ctx.find_main(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
@@ -1221,7 +1221,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = resolve(query).unwrap();
+        let result = resolve_and_lower_single(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:

@@ -25,10 +25,10 @@ mod test {
     use super::*;
 
     use crate::sql::{Context, Dialect};
-    use crate::{parser::parse, semantic::resolve};
+    use crate::{parser::parse, semantic::resolve_and_lower_single};
 
     fn parse_and_resolve(prql: &str) -> Result<(SqlQuery, Context)> {
-        let query = resolve(parse(prql)?)?;
+        let query = resolve_and_lower_single(parse(prql)?)?;
 
         compile_query(query, Some(Dialect::Generic))
     }

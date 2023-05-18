@@ -25,7 +25,7 @@ use super::NS_DEFAULT_DB;
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
-pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<Query> {
+pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Context)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
     let (_, main_ident) = context
@@ -57,11 +57,12 @@ pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<Query> {
         }
     }
 
-    Ok(Query {
+    let query = Query {
         def,
         tables: l.table_buffer,
         relation: main_relation.unwrap(),
-    })
+    };
+    Ok((query, l.context))
 }
 
 fn extern_ref_to_relation(
