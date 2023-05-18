@@ -37,7 +37,7 @@ fn test_bad_error_messages() {
 
     // This should suggest parentheses (this might not be an easy one to solve)
     assert_display_snapshot!(compile(r###"
-    func f -> country == "Canada"
+    let f = country -> country == "Canada"
 
     from employees
     filter f location

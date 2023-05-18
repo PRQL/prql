@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 
-use insta_cmd::assert_cmd_snapshot;
 use insta_cmd::get_cargo_bin;
+use insta_cmd::{assert_cmd_snapshot, StdinCommand};
 use std::process::Command;
 
 // Windows has slightly different outputs (e.g. `prqlc.exe` instead of `prqlc`),
@@ -56,6 +56,21 @@ fn test_get_targets() {
     sql.postgres
     sql.sqlite
     sql.snowflake
+
+    ----- stderr -----
+    "###);
+}
+
+#[test]
+fn test_compile() {
+    let mut cmd = StdinCommand::new(get_cargo_bin("prqlc"), "from tracks");
+
+    // TODO: fix
+    assert_cmd_snapshot!(cmd.arg("compile"), @r###"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+    [E0001] Error: Missing main pipeline
 
     ----- stderr -----
     "###);
