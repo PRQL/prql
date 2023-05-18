@@ -20,19 +20,19 @@ operations and for function calls (see the discussion below.)
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
-|          Group | Operators         | Precedence | Associativity |
-| -------------: | ----------------- | :--------: | :-----------: |
-|    parentheses | `()`              |     0      |   see below   |
-| identifier dot | `.`               |     1      |               |
-|          unary | `- + ! ==`        |     2      |               |
-|          range | `..`              |     3      |               |
-|            mul | `* / %`           |     4      | left-to-right |
-|            add | `+ -`             |     5      | left-to-right |
-|        compare | `== != <= >= < >` |     6      | left-to-right |
-|       coalesce | `??`              |     7      | left-to-right |
-|            and | `&&`              |     8      | left-to-right |
-|             or | <code>\|\|</code> |     9      | left-to-right |
-|  function call |                   |     10     |               |
+|          Group | Operators                   | Precedence | Associativity |
+| -------------: | --------------------------- | :--------: | :-----------: |
+|    parentheses | `()`                        |     0      |   see below   |
+| identifier dot | `.`                         |     1      |               |
+|          unary | `-` `+` `!` `==`            |     2      |               |
+|          range | `..`                        |     3      |               |
+|            mul | `*` `/` `%`                 |     4      | left-to-right |
+|            add | `+` `-`                     |     5      | left-to-right |
+|        compare | `==` `!=` `<=` `>=` `<` `>` |     6      | left-to-right |
+|       coalesce | `??`                        |     7      | left-to-right |
+|            and | `&&`                        |     8      | left-to-right |
+|             or | <code>\|\|</code>           |     9      | left-to-right |
+|  function call |                             |     10     |               |
 
 ## Parentheses
 
