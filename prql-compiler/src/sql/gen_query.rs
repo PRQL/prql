@@ -106,7 +106,12 @@ fn translate_select_pipeline(
 
     let order_by = pipeline.pluck(|t| t.into_sort());
     let takes = pipeline.pluck(|t| t.into_take());
-    let distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
+    let is_distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
+    let distinct = if is_distinct {
+        Some(sql_ast::Distinct::Distinct)
+    } else {
+        None
+    };
 
     // Split the pipeline into before & after the aggregate
     let (mut before_agg, mut after_agg) =
@@ -444,7 +449,7 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
 
 fn default_select() -> Select {
     Select {
-        distinct: false,
+        distinct: None,
         top: None,
         projection: Vec::new(),
         into: None,
@@ -456,6 +461,7 @@ fn default_select() -> Select {
         distribute_by: Vec::new(),
         sort_by: Vec::new(),
         having: None,
+        named_window: vec![],
         qualify: None,
     }
 }
