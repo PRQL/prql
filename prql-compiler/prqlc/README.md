@@ -3,7 +3,8 @@
 ## Installation
 
 `prqlc` is a single, dependency-free binary that compiles PRQL into SQL.
-precompiled binaries are available for Linux, macOS, and Windows on the [PRQL release page](https://github.com/PRQL/prql/releases).
+precompiled binaries are available for Linux, macOS, and Windows on the
+[PRQL release page](https://github.com/PRQL/prql/releases).
 
 If you have Rust toolchain installed, you can install `prqlc` via `cargo`:
 
@@ -40,7 +41,8 @@ WHERE
   has_dog
 ```
 
-PRQL query can be executed with CLI tools working with SQL, such as [DuckDB CLI](https://duckdb.org/docs/api/cli.html).
+PRQL query can be executed with CLI tools working with SQL, such as
+[DuckDB CLI](https://duckdb.org/docs/api/cli.html).
 
 ```sh
 $ curl -sL https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv -o penguins.csv
@@ -55,14 +57,17 @@ $ echo "from `penguins.csv` | take 3" | prqlc compile | duckdb
 └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴─────────────┴─────────┘
 ```
 
-Executing this command without any argument will start interactive mode, allowing you to write PRQL query interactively.
-In this mode, after you write PRQL and press `Ctrl-D` (Linux, macOS) or `Ctrl-Z` (Windows) to display the compiled SQL.
+Executing this command without any argument will start interactive mode,
+allowing you to write PRQL query interactively. In this mode, after you write
+PRQL and press `Ctrl-D` (Linux, macOS) or `Ctrl-Z` (Windows) to display the
+compiled SQL.
 
 ```sh
 $ prqlc compile
 ```
 
-As with using it as a filter, you can pass the SQL string output to the DuckDB CLI, etc.
+As with using it as a filter, you can pass the SQL string output to the DuckDB
+CLI, etc.
 
 ```sh
 $ prqlc compile | duckdb
