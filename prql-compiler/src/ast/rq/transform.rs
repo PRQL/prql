@@ -12,6 +12,7 @@ pub enum Transform {
     From(TableRef),
     Compute(Compute),
     Select(Vec<CId>),
+    DistinctOn(Vec<CId>),
     Filter(Expr),
     Aggregate {
         partition: Vec<CId>,

@@ -163,6 +163,7 @@ impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<
                             // these are not used from here on
                             return Ok(None);
                         }
+                        Transform::DistinctOn(v) => SqlTransform::DistinctOn(v),
                     }
                 } else {
                     fold_sql_transform(self, transform)?

@@ -162,6 +162,10 @@ pub(super) trait DialectHandler: Any + Debug {
         true
     }
 
+    fn supports_distinct_on(&self) -> bool {
+        false
+    }
+
     fn regex_function(&self) -> Option<&'static str> {
         Some("REGEXP")
     }
@@ -337,6 +341,10 @@ impl DialectHandler for DuckDbDialect {
     fn except_all(&self) -> bool {
         // https://duckdb.org/docs/sql/query_syntax/setops.html
         false
+    }
+
+    fn supports_distinct_on(&self) -> bool {
+        true
     }
 
     fn regex_function(&self) -> Option<&'static str> {

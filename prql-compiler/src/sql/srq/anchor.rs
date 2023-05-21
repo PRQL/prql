@@ -438,6 +438,7 @@ pub(super) fn get_requirements(
         Super(Filter(expr) | Transform::Join { filter: expr, .. }) => {
             CidCollector::collect(expr.clone())
         }
+        Super(DistinctOn(cids)) => cids.clone(),
         Super(Sort(sorts)) => sorts.iter().map(|s| s.column).collect(),
         Super(Take(rq::Take { range, .. })) => {
             let mut cids = Vec::new();
@@ -475,6 +476,7 @@ pub(super) fn get_requirements(
         Super(Sort(_)) => (Complexity::Aggregation, true),
         Super(Take(_)) => (Complexity::Plain, false),
         Super(Transform::Join { .. }) => (Complexity::Plain, false),
+        Super(DistinctOn(_)) => (Complexity::Plain, false),
 
         _ => unreachable!(),
     };
