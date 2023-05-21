@@ -57,6 +57,7 @@
 
 - [Bindings](./bindings/README.md)
 
+  - [CLI](./bindings/cli.md)
   - [.NET](./bindings/dotnet.md)
   - [Elixir](./bindings/elixir.md)
   - [Java](./bindings/java.md)
