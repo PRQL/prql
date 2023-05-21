@@ -197,6 +197,7 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             over: None,
             distinct: false,
             special: false,
+            order_by: vec![],
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -343,13 +344,13 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             } else {
                 Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
             };
-            sql_ast::Expr::Interval {
+            sql_ast::Expr::Interval(sqlparser::ast::Interval {
                 value,
                 leading_field: Some(sql_parser_datetime),
                 leading_precision: None,
                 last_field: None,
                 fractional_seconds_precision: None,
-            }
+            })
         }
     })
 }
@@ -407,6 +408,7 @@ fn translate_datetime_literal_with_sqlite_function(
         over: None,
         distinct: false,
         special: false,
+        order_by: vec![],
     })
 }
 
@@ -517,7 +519,7 @@ pub(super) fn translate_query_sstring(
                     projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
                         sql_ast::Ident::new(string),
                     ))],
-                    distinct: false,
+                    distinct: None,
                     top: None,
                     into: None,
                     from: Vec::new(),
@@ -528,6 +530,7 @@ pub(super) fn translate_query_sstring(
                     distribute_by: Vec::new(),
                     sort_by: Vec::new(),
                     having: None,
+                    named_window: vec![],
                     qualify: None,
                 }))),
                 with: None,
@@ -1011,20 +1014,21 @@ mod test {
                 "2020-01-01".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: DATE
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: 2020-01-01
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: DATE
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: 2020-01-01
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1033,20 +1037,21 @@ Function:
                 "03:05".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: TIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "03:05"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: TIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "03:05"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1055,20 +1060,21 @@ Function:
                 "03:05+08:00".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: TIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: TIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1077,20 +1083,21 @@ Function:
                 "03:05+0800".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: TIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: TIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1099,20 +1106,21 @@ Function:
                 "2021-03-14T03:05+0800".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: DATETIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "2021-03-14T03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: DATETIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "2021-03-14T03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1121,20 +1129,21 @@ Function:
                 "2021-03-14T03:05+08:00".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: DATETIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "2021-03-14T03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: DATETIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "2021-03-14T03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         Ok(())

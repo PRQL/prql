@@ -202,6 +202,7 @@ pub(super) trait DialectHandler: Any + Debug {
             over: None,
             distinct: false,
             special: false,
+            order_by: vec![],
         }))
     }
 }
