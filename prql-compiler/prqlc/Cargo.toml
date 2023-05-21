@@ -12,15 +12,15 @@ version.workspace = true
 anyhow = {version = "1.0.57"}
 ariadne = "0.2.0"
 atty = "0.2.14"
-clap = {version = "4.2.0", features = ["derive", "env", "wrap_help"]}
-clio = {version = "0.2.4", features = ['clap-parse']}
+clap = {version = "4.3.0", features = ["derive", "env", "wrap_help"]}
+clio = {version = "0.2.7", features = ['clap-parse']}
 color-eyre = "0.6.1"
 concolor = "0.1.0"
 concolor-clap = {version = "0.1.0", features = ["api"]}
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
 notify = "^6.0.0"
-prql-compiler = {path = '..', version = "0.8.1" }
+prql-compiler = {path = '..', version = "0.8.1"}
 regex = {version = "1.8.1", features = ["std", "unicode"]}
 serde = "^1"
 serde_json = "1.0.81"
