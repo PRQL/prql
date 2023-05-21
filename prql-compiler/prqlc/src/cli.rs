@@ -292,7 +292,7 @@ impl Command {
         // it's confusing whether it's waiting for input or not. This
         // offers the prompt.
         if input.is_stdin() && atty::is(atty::Stream::Stdin) {
-            println!("Enter PRQL, then ctrl-d:\n");
+            println!("# Enter PRQL, then press ctrl-d or ctrl-z (windows) to compile:\n");
         }
 
         let file_tree = input.read_to_tree()?;
