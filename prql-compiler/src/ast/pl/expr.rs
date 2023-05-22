@@ -95,7 +95,7 @@ pub enum ExprKind {
 
     /// a placeholder for values provided after query is compiled
     Param(String),
-    FuncDef(FuncDef_),
+    FuncDef(FuncDef),
 }
 
 impl ExprKind {

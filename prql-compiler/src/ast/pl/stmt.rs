@@ -38,19 +38,9 @@ pub struct QueryDef {
     pub other: HashMap<String, String>,
 }
 
-// /// Function definition.
-// #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-// pub struct FuncDef {
-//     pub name: String,
-//     pub positional_params: Vec<FuncParam>, // ident
-//     pub named_params: Vec<FuncParam>,      // named expr
-//     pub body: Box<Expr>,
-//     pub return_ty: Option<Expr>,
-// }
-
 /// Function definition.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncDef_ {
+pub struct FuncDef {
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,
@@ -154,7 +144,7 @@ impl Display for Stmt {
     }
 }
 
-impl Display for FuncDef_ {
+impl Display for FuncDef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // write!(f, "func {}", self.name)?;
         for arg in &self.positional_params {
