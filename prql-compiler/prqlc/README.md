@@ -14,7 +14,7 @@ cargo install prqlc
 ```
 
 ```sh
-# From GitHub
+# From a local PRQL repository
 cargo install --path prql-compiler/prqlc
 ```
 
