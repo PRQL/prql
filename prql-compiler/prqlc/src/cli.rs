@@ -517,25 +517,11 @@ mod clio_extended {
     }
 }
 
+/// Unit tests for `prqlc`. Integration tests (where we call the actual binary)
+/// are in `prql-compiler/prqlc/tests/test.rs`.
 #[cfg(test)]
 mod tests {
     use insta::{assert_display_snapshot, assert_snapshot};
-
-    // TODO: would be good to test the basic CLI interface — i.e. snapshotting this:
-
-    // $ prqlc parse --help
-    //
-    // Parse PL AST
-    //
-    // Usage: prqlc parse [OPTIONS] [INPUT] [OUTPUT]
-    //
-    // Arguments:
-    //   [INPUT]   [default: -]
-    //   [OUTPUT]  [default: -]
-    //
-    // Options:
-    //       --format <FORMAT>  [possible values: json, yaml]
-    //   -h, --help             Print help
 
     use super::*;
 
