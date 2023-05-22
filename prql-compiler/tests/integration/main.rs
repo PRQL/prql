@@ -36,11 +36,7 @@ fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
 fn test_sql_examples() {
     glob!("queries/**/*.prql", |path| {
         let sql = fs::read_to_string(path).unwrap();
-        assert_snapshot!(
-            path.file_name().unwrap().to_string_lossy().to_string(),
-            compile(&sql).unwrap(),
-            &sql
-        )
+        assert_snapshot!("sql", compile(&sql).unwrap(), &sql)
     });
 }
 
@@ -56,7 +52,7 @@ fn test_rdbms() {
     // for each of the queries
     glob!("queries/**/*.prql", |path| {
         let test_name = path
-            .file_name()
+            .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or_default();
 
@@ -98,7 +94,7 @@ fn test_rdbms() {
         for row in first_result.1 {
             writeln!(&mut result_string, "{}", row.join(",")).unwrap_or_default();
         }
-        assert_snapshot!(result_string);
+        assert_snapshot!("results", result_string, &prql);
     });
 }
 

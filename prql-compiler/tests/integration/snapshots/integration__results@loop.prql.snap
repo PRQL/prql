@@ -1,0 +1,12 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "# skip_mssql (the keyword RECURSIVE is not allowed and you have to declare the columns for CTE)\nfrom_text format:json '[{\"n\": 1 }]'\nselect n = n - 2\nloop (\n    filter n<4\n    select n = n+1\n)\nselect n = n * 2\n"
+input_file: prql-compiler/tests/integration/queries/loop.prql
+---
+-2
+0
+2
+4
+6
+8
+
