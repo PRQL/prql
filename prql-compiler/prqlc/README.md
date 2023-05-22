@@ -45,16 +45,16 @@ PRQL query can be executed with CLI tools working with SQL, such as
 [DuckDB CLI](https://duckdb.org/docs/api/cli.html).
 
 ```sh
-$ curl -sL https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv -o penguins.csv
-$ echo "from `penguins.csv` | take 3" | prqlc compile | duckdb
-┌─────────┬───────────┬────────────────┬───────────────┬───────────────────┬─────────────┬─────────┐
-│ species │  island   │ bill_length_mm │ bill_depth_mm │ flipper_length_mm │ body_mass_g │   sex   │
-│ varchar │  varchar  │     double     │    double     │       int64       │    int64    │ varchar │
-├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼─────────────┼─────────┤
-│ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │        3750 │ MALE    │
-│ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │        3800 │ FEMALE  │
-│ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │        3250 │ FEMALE  │
-└─────────┴───────────┴────────────────┴───────────────┴───────────────────┴─────────────┴─────────┘
+$ curl -sL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
+$ echo "from `albums.csv` | take 3" | prqlc compile | duckdb
+┌──────────┬───────────────────────────────────────┬───────────┐
+│ album_id │                 title                 │ artist_id │
+│  int64   │                varchar                │   int64   │
+├──────────┼───────────────────────────────────────┼───────────┤
+│        1 │ For Those About To Rock We Salute You │         1 │
+│        2 │ Balls to the Wall                     │         2 │
+│        3 │ Restless and Wild                     │         2 │
+└──────────┴───────────────────────────────────────┴───────────┘
 ```
 
 Executing this command without any argument will start interactive mode,
@@ -71,15 +71,15 @@ CLI, etc.
 
 ```sh
 $ prqlc compile | duckdb
-from `penguins.csv`
+from `albums.csv`
 take 3
 
-┌─────────┬───────────┬────────────────┬───────────────┬───────────────────┬─────────────┬─────────┐
-│ species │  island   │ bill_length_mm │ bill_depth_mm │ flipper_length_mm │ body_mass_g │   sex   │
-│ varchar │  varchar  │     double     │    double     │       int64       │    int64    │ varchar │
-├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼─────────────┼─────────┤
-│ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │        3750 │ MALE    │
-│ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │        3800 │ FEMALE  │
-│ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │        3250 │ FEMALE  │
-└─────────┴───────────┴────────────────┴───────────────┴───────────────────┴─────────────┴─────────┘
+┌──────────┬───────────────────────────────────────┬───────────┐
+│ album_id │                 title                 │ artist_id │
+│  int64   │                varchar                │   int64   │
+├──────────┼───────────────────────────────────────┼───────────┤
+│        1 │ For Those About To Rock We Salute You │         1 │
+│        2 │ Balls to the Wall                     │         2 │
+│        3 │ Restless and Wild                     │         2 │
+└──────────┴───────────────────────────────────────┴───────────┘
 ```
