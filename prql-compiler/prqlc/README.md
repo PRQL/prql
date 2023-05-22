@@ -6,7 +6,7 @@
 precompiled binaries are available for Linux, macOS, and Windows on the
 [PRQL release page](https://github.com/PRQL/prql/releases).
 
-If you have Rust toolchain installed, you can install `prqlc` via `cargo`:
+`prqlc` can be installed via `cargo`:
 
 ```sh
 # From crates.io
