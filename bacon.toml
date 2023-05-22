@@ -40,8 +40,8 @@ need_stdout = false
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
-need_stdout = false
+command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"] 
+need_stdout = false 
 on_success = "back" # so that we don't open the browser at each change
 
 # You may define here keybindings that would be specific to
@@ -53,7 +53,7 @@ a = "job:check-all"
 c = "job:clippy"
 d = "job:doc-open"
 f = "job:test-fast"
-# `g` for standard carGo tests
+# `g` for standard cargo tests
 g = "job:test-cargo"
 r = "job:run"
 t = "job:test"
