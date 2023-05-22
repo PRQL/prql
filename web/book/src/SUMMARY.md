@@ -57,7 +57,6 @@
 
 - [Bindings](./bindings/README.md)
 
-  - [CLI](./bindings/cli.md)
   - [.NET](./bindings/dotnet.md)
   - [Elixir](./bindings/elixir.md)
   - [Java](./bindings/java.md)
@@ -68,6 +67,7 @@
 
 - [Integrations](./integrations/README.md)
 
+  - [CLI](./integrations/cli.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
