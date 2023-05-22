@@ -54,9 +54,6 @@ pub trait AstFold {
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
         fold_pipeline(self, pipeline)
     }
-    // fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
-    //     fold_func_def(self, function)
-    // }
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
     }
@@ -306,15 +303,6 @@ pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Resu
         ..closure
     })
 }
-
-// pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
-//     Ok(FuncDef {
-//         positional_params: fold_func_param(fold, func_def.positional_params)?,
-//         named_params: fold_func_param(fold, func_def.named_params)?,
-//         body: Box::new(fold.fold_expr(*func_def.body)?),
-//         return_ty: func_def.return_ty,
-//     })
-// }
 
 pub fn fold_func_param<T: ?Sized + AstFold>(
     fold: &mut T,
