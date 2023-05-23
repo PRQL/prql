@@ -23,7 +23,7 @@ select a
 let my_artists = {
   [artist="Miles Davis"],
   [artist="Marvin Gaye"],
-  [artist="James Brown"]
+  [artist="James Brown"],
 }
 
 from artists
