@@ -30,5 +30,5 @@ select first_name
 ```
 
 ```admonish note
-Tuples were previously named Lists, and represented with `[]` syntax. There may still be references to the old naming.
+Prior to `0.9.0`, tuples were previously named Lists, and represented with `[]` syntax. There may still be references to the old naming.
 ```
