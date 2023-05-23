@@ -22,7 +22,9 @@ fn test_prql_examples() {
     let examples = collect_book_examples().unwrap();
 
     for Example { name, prql, .. } in examples {
-        // Whether it's a success or a failure, get the string.
+        // Whether it's a success or a failure, get the string. (The book
+        // building asserts whether it's a correct success or failure; no need
+        // to repeat that here.)
         let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
         assert_snapshot!(name, &sql, &prql);
     }
