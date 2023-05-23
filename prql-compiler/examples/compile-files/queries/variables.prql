@@ -6,7 +6,7 @@ derive {                                     # This adds columns / variables.
 }
 filter gross_cost > 0
 group {title, country} (                     # For each group use a nested pipeline
-  aggregate {                                # Aggregate each group to a single ro
+  aggregate {                                # Aggregate each group to a single row
     average salary,
     average gross_salary,
     sum salary,
