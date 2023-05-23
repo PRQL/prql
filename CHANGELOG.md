@@ -4,6 +4,18 @@
 
 **Features**:
 
+- We've made one large breaking change — "Lists" are now "Tuples", and
+  represented with brackets `{}` rather than braces `[]`.
+
+  We've made this change to incorporate arrays without having syntax that's the
+  opposite of almost every major language — specifically using `{}` for an array
+  type and `[]` for a tuple type. (Though we recognize that `{}` for tuples is
+  also rare (Hi, Erlang!), but didn't want to further load parentheses with
+  meaning)
+
+  As part of this, we've also formalized tuples as containing both individual
+  items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
+
 - Add a `~=` regex search operator (@max-sixty, #2458). An example:
 
   ```prql no-eval
