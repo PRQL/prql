@@ -1,0 +1,29 @@
+---
+source: web/book/tests/snapshot.rs
+expression: "let my_artists = {\n  [artist=\"Miles Davis\"],\n  [artist=\"Marvin Gaye\"],\n  [artist=\"James Brown\"]\n}\n\nfrom artists\njoin my_artists [==artist]\njoin albums [==artist_id]\nselect artists.title\n"
+---
+WITH table_2 AS (
+  SELECT
+    'Miles Davis' AS artist
+  UNION
+  ALL
+  SELECT
+    'Marvin Gaye' AS artist
+  UNION
+  ALL
+  SELECT
+    'James Brown' AS artist
+),
+my_artists AS (
+  SELECT
+    artist
+  FROM
+    table_2 AS table_1
+)
+SELECT
+  artists.title
+FROM
+  artists
+  JOIN my_artists ON artists.artist = my_artists.artist
+  JOIN albums ON artists.artist_id = albums.artist_id
+

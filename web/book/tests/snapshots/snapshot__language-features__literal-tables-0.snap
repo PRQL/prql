@@ -1,0 +1,21 @@
+---
+source: web/book/tests/snapshot.rs
+expression: "{[a = 5, b = false], [a = 6, b = true]}\nfilter b == true\nselect a\n"
+---
+WITH table_2 AS (
+  SELECT
+    5 AS a,
+    false AS b
+  UNION
+  ALL
+  SELECT
+    6 AS a,
+    true AS b
+)
+SELECT
+  a
+FROM
+  table_2 AS table_1
+WHERE
+  b = true
+

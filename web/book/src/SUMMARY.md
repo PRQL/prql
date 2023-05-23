@@ -43,11 +43,11 @@
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
   - [Dates & times](./language-features/dates-and-times.md)
   - [Distinct](./language-features/distinct.md)
+  - [Literal tables](./language-features/literal-tables.md)
   - [Null handling](./language-features/null.md)
   - [Ranges](./language-features/ranges.md)
   - [Regex](./language-features/regex.md)
   - [Standard library](./language-features/standard-library/README.md)
-    - [From_text](./language-features/standard-library/from_text.md)
     - [Loop](./language-features/standard-library/loop.md)
     - [Reading files](./language-features/standard-library/reading-files.md)
   - [Strings](./language-features/strings.md)
