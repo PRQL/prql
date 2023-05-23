@@ -28,10 +28,10 @@ def test_all():
     prql_query = """
         from employees
         join salaries {==emp_id}
-        group [employees.dept_id, employees.gender] (
-        aggregate {
-            avg_salary = average salaries.salary
-        }
+        group {employees.dept_id, employees.gender} (
+            aggregate {
+                avg_salary = average salaries.salary
+            }
         )
     """
 
