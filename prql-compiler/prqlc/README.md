@@ -29,6 +29,53 @@ cargo install prqlc
 cargo install --path prql-compiler/prqlc
 ```
 
+### Shell completions
+
+The `prqlc shell-completion` command prints a shell completion script for
+supported shells, and saving the printed scripts to files makes for shells to
+load completions for each session.
+
+#### Bash
+
+For Linux:
+
+```sh
+prqlc shell-completion bash >/etc/bash_completion.d/prqlc
+```
+
+For macOS:
+
+```sh
+prqlc shell-completion bash >/usr/local/etc/bash_completion.d/prqlc
+```
+
+#### fish
+
+```sh
+prqlc shell-completion fish >~/.config/fish/completions/prqlc.fish
+```
+
+#### PowerShell
+
+```powershell
+mkdir -Path (Split-Path -Parent $profile) -ErrorAction SilentlyContinue
+prqlc shell-completion powershell >path/to/prqlc.ps1
+echo 'Invoke-Expression -Command path/to/prqlc.ps1' >>$profile
+```
+
+#### zsh
+
+```sh
+prqlc shell-completion zsh >"${fpath[1]}/_prqlc"
+```
+
+Ensure that the following lines are present in `~/.zshrc`:
+
+```sh
+autoload -U compinit
+compinit -i
+```
+
 ## Usage
 
 ### prqlc compile
@@ -68,7 +115,7 @@ PRQL and press `Ctrl-D` (Linux, macOS) or `Ctrl-Z` (Windows) to display the
 compiled SQL.
 
 ```sh
-$ prqlc compile
+prqlc compile
 ```
 
 As with using it as a filter, you can pass the SQL string output to the DuckDB
