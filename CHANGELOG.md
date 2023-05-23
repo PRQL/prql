@@ -36,6 +36,9 @@
 
 **Internal changes**:
 
+- Remove BigQuery's special handling of quoted identifiers, now that our module
+  system handles its semantics (@max-sixty, #2609).
+
 **New Contributors**:
 
 ## 0.8.1 — 2023-04-29
