@@ -34,3 +34,17 @@ prql target:sql.postgres
 from tracks
 filter (name ~= "\\(I Can't Help\\) Falling")
 ```
+
+```prql
+prql target:sql.mysql
+
+from tracks
+filter (name ~= "With You")
+```
+
+```prql no-fmt
+prql target:sql.sqlite
+
+from tracks
+filter (name ~= "But Why Isn't Your Syntax More Similar\\?")
+```
