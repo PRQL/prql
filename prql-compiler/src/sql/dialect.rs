@@ -121,10 +121,6 @@ pub(super) trait DialectHandler: Any + Debug {
         '"'
     }
 
-    fn big_query_quoting(&self) -> bool {
-        false
-    }
-
     fn column_exclude(&self) -> Option<ColumnExclude> {
         None
     }
@@ -162,34 +158,22 @@ pub(super) trait DialectHandler: Any + Debug {
         true
     }
 
-    fn regex_function(&self) -> Option<&'static str> {
-        Some("REGEXP")
-    }
-
     fn translate_regex(
         &self,
         search: sql_ast::Expr,
         target: sql_ast::Expr,
     ) -> anyhow::Result<sql_ast::Expr> {
-        // When
-        // https://github.com/sqlparser-rs/sqlparser-rs/issues/863#issuecomment-1537272570
-        // is fixed, we can implement the infix for the other dialects. Until
-        // then, we still only have the `regex_function` implementations. (But
-        // I'd done the work to allow any Expr to be created before realizing
-        // sqlparser-rs didn't support custom operators, so may as well leave it
-        // in for when they do / we find another approach.)
+        self.translate_regex_with_function(search, target, "REGEXP")
+    }
 
-        let Some(regex_function) = self.regex_function() else {
-            // TODO: name the dialect, but not immediately obvious how to actually
-            // get the dialect string from a `DialectHandler` (though we could
-            // add it to each impl...)
-            //
-            // MSSQL doesn't support them, MySQL & SQLite have a different construction.
-            return Err(Error::new(
-                crate::Reason::Simple("regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)".to_string())
-            ).into())
-        };
-
+    fn translate_regex_with_function(
+        // This `self` isn't actually used, but it's require because of object
+        // safety (open to better ways of doing this...)
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+        function_name: &str,
+    ) -> anyhow::Result<sql_ast::Expr> {
         let args = [search, target]
             .into_iter()
             .map(FunctionArgExpr::Expr)
@@ -197,13 +181,26 @@ pub(super) trait DialectHandler: Any + Debug {
             .collect();
 
         Ok(sql_ast::Expr::Function(Function {
-            name: ObjectName(vec![sql_ast::Ident::new(regex_function)]),
+            name: ObjectName(vec![sql_ast::Ident::new(function_name)]),
             args,
             over: None,
             distinct: false,
             special: false,
             order_by: vec![],
         }))
+    }
+
+    fn translate_regex_with_operator(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+        operator: sql_ast::BinaryOperator,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        Ok(sql_ast::Expr::BinaryOp {
+            left: Box::new(search),
+            op: operator,
+            right: Box::new(target),
+        })
     }
 }
 
@@ -220,8 +217,12 @@ impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
     }
-    fn regex_function(&self) -> std::option::Option<&'static str> {
-        Some("REGEXP_LIKE")
+    fn translate_regex(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        self.translate_regex_with_operator(search, target, sql_ast::BinaryOperator::PGRegexMatch)
     }
 }
 
@@ -242,12 +243,16 @@ impl DialectHandler for SQLiteDialect {
         false
     }
 
-    fn regex_function(&self) -> Option<&'static str> {
-        // Sqlite has a different construction, using `REGEXP` as an operator.
-        // (`foo REGEXP 'bar').
-        //
-        // TODO: change the construction of the function to allow this.
-        None
+    fn translate_regex(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        self.translate_regex_with_operator(
+            search,
+            target,
+            sql_ast::BinaryOperator::Custom("REGEXP".to_string()),
+        )
     }
 }
 
@@ -255,8 +260,15 @@ impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
         true
     }
-    fn regex_function(&self) -> Option<&'static str> {
-        None
+
+    fn translate_regex(
+        &self,
+        _search: sql_ast::Expr,
+        _target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        Err(Error::new(crate::Reason::Simple(
+            "regex functions are not supported by MsSql".to_string(),
+        )))?
     }
 
     // https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16
@@ -279,12 +291,16 @@ impl DialectHandler for MySqlDialect {
         true
     }
 
-    fn regex_function(&self) -> Option<&'static str> {
-        // MySQL has a different construction, using `REGEXP` as an operator.
-        // (`foo REGEXP 'bar'). So
-        //
-        // TODO: change the construction of the function to allow this.
-        None
+    fn translate_regex(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        self.translate_regex_with_operator(
+            search,
+            target,
+            sql_ast::BinaryOperator::Custom("REGEXP".to_string()),
+        )
     }
 }
 
@@ -298,9 +314,6 @@ impl DialectHandler for BigQueryDialect {
     fn ident_quote(&self) -> char {
         '`'
     }
-    fn big_query_quoting(&self) -> bool {
-        true
-    }
     fn column_exclude(&self) -> Option<ColumnExclude> {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except
         Some(ColumnExclude::Except)
@@ -311,8 +324,12 @@ impl DialectHandler for BigQueryDialect {
         true
     }
 
-    fn regex_function(&self) -> Option<&'static str> {
-        Some("REGEXP_CONTAINS")
+    fn translate_regex(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        self.translate_regex_with_function(search, target, "REGEXP_CONTAINS")
     }
 }
 
@@ -339,8 +356,12 @@ impl DialectHandler for DuckDbDialect {
         false
     }
 
-    fn regex_function(&self) -> Option<&'static str> {
-        Some("REGEXP_MATCHES")
+    fn translate_regex(
+        &self,
+        search: sql_ast::Expr,
+        target: sql_ast::Expr,
+    ) -> anyhow::Result<sql_ast::Expr> {
+        self.translate_regex_with_function(search, target, "REGEXP_MATCHES")
     }
 }
 

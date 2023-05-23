@@ -736,13 +736,7 @@ pub(super) fn translate_ident(
     let mut parts = Vec::with_capacity(4);
     if !ctx.query.omit_ident_prefix || column.is_none() {
         if let Some(table) = table_ident {
-            #[allow(clippy::if_same_then_else)]
-            if ctx.dialect.big_query_quoting() {
-                // Special-case this for BigQuery, Ref #852
-                parts.push(table.into_iter().join("."));
-            } else {
-                parts.extend(table.into_iter());
-            }
+            parts.extend(table.into_iter());
         }
     }
 
