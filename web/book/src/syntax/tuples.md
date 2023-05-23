@@ -1,0 +1,30 @@
+# Tuples
+
+Tuples are represented with `{}`. They can span multiple lines. They can contain
+both individual items and assignments. A final trailing comma is optional.
+
+```prql
+from numbers
+derive {x = 1, y = 2}
+derive {               # Span multiple lines
+  a = x,
+  b = y                # Optional trailing comma
+}
+select {
+  c,                   # Individual item
+  d = b,               # Assignment
+}
+```
+
+Most transforms can take either a list or a single item, so these are
+equivalent:
+
+```prql
+from employees
+select {first_name}
+```
+
+```prql
+from employees
+select first_name
+```
