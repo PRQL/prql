@@ -123,9 +123,10 @@ CLI, etc.
 
 ```sh
 $ prqlc compile | duckdb
+Enter PRQL, then press ctrl-d to compile:
+
 from `albums.csv`
 take 3
-
 ┌──────────┬───────────────────────────────────────┬───────────┐
 │ album_id │                 title                 │ artist_id │
 │  int64   │                varchar                │   int64   │
