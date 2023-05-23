@@ -1,12 +1,23 @@
 # prqlc
 
+`prqlc` is a single, dependency-free binary that compiles PRQL into SQL.
+
 ## Installation
 
-`prqlc` is a single, dependency-free binary that compiles PRQL into SQL.
-precompiled binaries are available for Linux, macOS, and Windows on the
+[![Packaging status](https://repology.org/badge/vertical-allrepos/prqlc.svg)](https://repology.org/project/prqlc/versions)
+
+### via Homebrew (macOS, Linux)
+
+```sh
+brew install prqlc
+```
+
+### From GitHub release page
+
+Precompiled binaries are available for Linux, macOS, and Windows on the
 [PRQL release page](https://github.com/PRQL/prql/releases).
 
-`prqlc` can be installed via `cargo`:
+### From source
 
 ```sh
 # From crates.io
@@ -17,12 +28,6 @@ cargo install prqlc
 # From a local PRQL repository
 cargo install --path prql-compiler/prqlc
 ```
-
-<!-- It can be installed via brew too:
-
-```sh
-brew install prql/prql/prql-compiler
-``` -->
 
 ### Shell completions
 
@@ -118,9 +123,10 @@ CLI, etc.
 
 ```sh
 $ prqlc compile | duckdb
+Enter PRQL, then press ctrl-d to compile:
+
 from `albums.csv`
 take 3
-
 ┌──────────┬───────────────────────────────────────┬───────────┐
 │ album_id │                 title                 │ artist_id │
 │  int64   │                varchar                │   int64   │
