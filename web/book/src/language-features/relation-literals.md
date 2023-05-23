@@ -1,6 +1,6 @@
 # Inline relations
 
-It's often useful to make a small table inline, for example when exploring how a
+It's often useful to make a small inline relation, for example when exploring how a
 database will evaluate an expression, or for a small lookup table. This can be
 quite verbose in SQL.
 
