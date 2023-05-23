@@ -698,11 +698,43 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.1.5"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37686beaba5ac9f3ab01ee3172f792fc6ffdd685bfb9e63cfef02c0571a4e8e1"
+checksum = "a04ddfaacc3bc9e6ea67d024575fafc2a813027cf374b8f24f7bc233c6b6be12"
 dependencies = [
  "clap 4.3.0",
+]
+
+[[package]]
+name = "clap_complete_command"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "183495371ea78d4c9ff638bfc6497d46fed2396e4f9c50aebc1278a4a9919a3d"
+dependencies = [
+ "clap 4.3.0",
+ "clap_complete",
+ "clap_complete_fig",
+ "clap_complete_nushell",
+]
+
+[[package]]
+name = "clap_complete_fig"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c73f19beec3b698ecc59d023cf373943f0ff405237ed0d7c6df118fb554334b"
+dependencies = [
+ "clap 4.3.0",
+ "clap_complete",
+]
+
+[[package]]
+name = "clap_complete_nushell"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7fa41f5e6aa83bd151b70fd0ceaee703d68cd669522795dc812df9edad1252c"
+dependencies = [
+ "clap 4.3.0",
+ "clap_complete",
 ]
 
 [[package]]
@@ -2997,6 +3029,7 @@ dependencies = [
  "ariadne",
  "atty",
  "clap 4.3.0",
+ "clap_complete_command",
  "clio",
  "color-eyre",
  "concolor",
