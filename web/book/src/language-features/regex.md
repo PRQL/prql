@@ -35,7 +35,7 @@ from tracks
 filter (name ~= "\\(I Can't Help\\) Falling")
 ```
 
-```prql no-fmt
+```prql
 prql target:sql.mysql
 
 from tracks
