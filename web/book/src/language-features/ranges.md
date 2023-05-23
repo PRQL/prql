@@ -20,7 +20,7 @@ in `take`:
 
 ```prql
 from orders
-sort [-value, created_at]
+sort {-value, created_at}
 take 101..110
 ```
 

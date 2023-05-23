@@ -20,11 +20,11 @@ import prql_python as prql
 
 prql_query = """
     from employees
-    join salaries [==emp_id]
+    join salaries {==emp_id}
     group [employees.dept_id, employees.gender] (
-      aggregate [
+      aggregate {
         avg_salary = average salaries.salary
-      ]
+      }
     )
 """
 

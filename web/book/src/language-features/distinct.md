@@ -39,7 +39,7 @@ aren't all the available columns, we need to use a window function:
 
 ```prql
 from employees
-group [first_name, last_name] (take 1)
+group {first_name, last_name} (take 1)
 ```
 
 ## Roadmap

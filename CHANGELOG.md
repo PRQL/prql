@@ -520,10 +520,10 @@ below in this release).
 
   ```prql no-eval
   from numbers
-  select [
+  select {
       small = 1.000_000_1,
       big = 5_000_000,
-  ]
+  }
   ```
 
 - The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
@@ -668,7 +668,7 @@ We've had to make some modest breaking changes for 0.3:
   ```diff
   from employees
   -join positions [id]
-  +join positions [==id]
+  +join positions {==id}
   ```
 
 - _Table references containing periods must be surrounded by backticks_. For

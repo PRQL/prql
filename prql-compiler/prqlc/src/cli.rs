@@ -534,10 +534,10 @@ mod tests {
             &Command::Annotate(IoArgs::default()),
             &r#"
 from initial_table
-select [f = first_name, l = last_name, gender]
+select {f = first_name, l = last_name, gender}
 derive full_name = f + " " + l
 take 23
-select [l + " " + f, full = full_name, gender]
+select {l + " " + f, full = full_name, gender}
 sort full
         "#
             .into(),
@@ -547,10 +547,10 @@ sort full
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
         from initial_table
-        select [f = first_name, l = last_name, gender]  # [f, l, initial_table.gender]
+        select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
         derive full_name = f + " " + l                  # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
-        select [l + " " + f, full = full_name, gender]  # [?, full, initial_table.gender]
+        select {l + " " + f, full = full_name, gender}  # [?, full, initial_table.gender]
         sort full                                       # [?, full, initial_table.gender]
         "###);
     }
@@ -562,7 +562,7 @@ sort full
             &r#"
 from table.subdivision
  derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
-group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 1 c_column] )
+group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 1 c_column} )
         "#
             .into(),
             "",
@@ -581,10 +581,10 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
           group a_column (
           take 10
           sort b_column
-          derive [
+          derive {
           the_number = rank,
           last = lag 1 c_column,
-        ]
+        }
         )
         )
         "###);
@@ -633,7 +633,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
                     ("_project.prql".into(), "orders.x | select y".to_string()),
                     (
                         "orders.prql".into(),
-                        "let x = (from z | select [y, u])".to_string(),
+                        "let x = (from z | select {y, u})".to_string(),
                     ),
                 ]
                 .into(),

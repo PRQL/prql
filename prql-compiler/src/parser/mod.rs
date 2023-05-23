@@ -417,7 +417,7 @@ mod test {
             Literal:
               String: USA
         "###);
-        assert_yaml_snapshot!(parse_expr("select [a, b, c]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("select {a, b, c}").unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -433,8 +433,8 @@ mod test {
                     - c
         "###);
         assert_yaml_snapshot!(parse_expr(
-            "group [title, country] (
-                aggregate [sum salary]
+            "group {title, country} (
+                aggregate {sum salary}
             )"
         ).unwrap(), @r###"
         ---
@@ -480,7 +480,7 @@ mod test {
                   Literal:
                     String: USA
         "###);
-        assert_yaml_snapshot!(parse_expr("[a, b, c,]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("{a, b, c,}").unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -491,10 +491,10 @@ mod test {
               - c
         "###);
         assert_yaml_snapshot!(parse_expr(
-            r#"[
+            r#"{
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost
-]"#
+}"#
         ).unwrap(), @r###"
         ---
         List:
@@ -537,7 +537,7 @@ mod test {
             kind: Main
         "###);
         assert_yaml_snapshot!(parse_expr(
-            "join side:left country [id==employee_id]"
+            "join side:left country {id==employee_id}"
         ).unwrap(), @r###"
         ---
         FuncCall:
@@ -700,7 +700,7 @@ Canada
 
     #[test]
     fn test_list() {
-        assert_yaml_snapshot!(parse_expr(r#"[1 + 1, 2]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"{1 + 1, 2}"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -714,7 +714,7 @@ Canada
           - Literal:
               Integer: 2
         "###);
-        assert_yaml_snapshot!(parse_expr(r#"[1 + (f 1), 2]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"{1 + (f 1), 2}"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -735,9 +735,9 @@ Canada
         "###);
         // Line breaks
         assert_yaml_snapshot!(parse_expr(
-            r#"[1,
+            r#"{1,
 
-                2]"#
+                2}"#
         ).unwrap(), @r###"
         ---
         List:
@@ -747,8 +747,8 @@ Canada
               Integer: 2
         "###);
         // Function call in a list
-        let ab = parse_expr(r#"[a b]"#).unwrap();
-        let a_comma_b = parse_expr(r#"[a, b]"#).unwrap();
+        let ab = parse_expr(r#"{a b}"#).unwrap();
+        let a_comma_b = parse_expr(r#"{a, b}"#).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
@@ -770,7 +770,7 @@ Canada
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_yaml_snapshot!(parse_expr(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -787,7 +787,7 @@ Canada
                   - amount
         "###);
         // Operators in list items
-        assert_yaml_snapshot!(parse_expr(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -909,8 +909,8 @@ Canada
     #[test]
     fn test_aggregate() {
         let aggregate = parse(
-            r"group [title] (
-                aggregate [sum salary, count]
+            r"group {title} (
+                aggregate {sum salary, count}
               )",
         )
         .unwrap();
@@ -947,8 +947,8 @@ Canada
             kind: Main
         "###);
         let aggregate = parse(
-            r"group [title] (
-                aggregate [sum salary]
+            r"group {title} (
+                aggregate {sum salary}
               )",
         )
         .unwrap();
@@ -987,7 +987,7 @@ Canada
     #[test]
     fn test_derive() {
         assert_yaml_snapshot!(
-            parse_expr(r#"derive [x = 5, y = (-x)]"#).unwrap()
+            parse_expr(r#"derive {x = 5, y = (-x)}"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1024,7 +1024,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            parse_expr(r#"select ![x]"#).unwrap()
+            parse_expr(r#"select !{x}"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1041,7 +1041,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            parse_expr(r#"select [x, y]"#).unwrap()
+            parse_expr(r#"select {x, y}"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1073,10 +1073,10 @@ Canada
               String: USA
         "###);
         assert_yaml_snapshot!(parse_expr(
-                r#"[
+                r#"{
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost,
-]"#).unwrap(), @r###"
+}"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -1607,9 +1607,9 @@ Canada
         let newest_employees = (
           from employees
           group country (
-            aggregate [
+            aggregate {
                 average_country_salary = average salary
-            ]
+            }
           )
           sort tenure
           take 50
@@ -1777,10 +1777,10 @@ Canada
     fn test_sql_parameters() {
         assert_yaml_snapshot!(parse(r#"
         from mytable
-        filter [
+        filter {
           first_name == $1,
           last_name == $2.name
-        ]
+        }
         "#).unwrap(), @r###"
         ---
         - name: main
@@ -1825,7 +1825,7 @@ Canada
         // #284
         parse(
             "from c_invoice
-join doc:c_doctype [==c_invoice_id]
+join doc:c_doctype {==c_invoice_id}
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1838,8 +1838,8 @@ select [
     fn test_backticks() {
         let prql = "
 from `a/*.parquet`
-aggregate [max c]
-join `schema.table` [==id]
+aggregate {max c}
+join `schema.table` {==id}
 join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
@@ -1911,9 +1911,9 @@ join `my-proj`.`dataset`.`table`
         from invoices
         sort issued_at
         sort (-issued_at)
-        sort [issued_at]
-        sort [-issued_at]
-        sort [issued_at, -amount, +num_of_articles]
+        sort {issued_at}
+        sort {-issued_at}
+        sort {issued_at, -amount, +num_of_articles}
         ").unwrap(), @r###"
         ---
         - name: main
@@ -1991,7 +1991,7 @@ join `my-proj`.`dataset`.`table`
     fn test_dates() {
         assert_yaml_snapshot!(parse("
         from employees
-        derive [age_plus_two_years = (age + 2years)]
+        derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
         ---
         - name: main
@@ -2137,9 +2137,9 @@ join `my-proj`.`dataset`.`table`
     fn test_allowed_idents() {
         assert_yaml_snapshot!(parse(r###"
         from employees
-        join _salary [==employee_id] # table with leading underscore
+        join _salary {==employee_id} # table with leading underscore
         filter first_name == $1
-        select [_employees._underscored_column]
+        select {_employees._underscored_column}
         "###).unwrap(), @r###"
         ---
         - name: main
@@ -2276,7 +2276,7 @@ join `my-proj`.`dataset`.`table`
     fn test_assign() {
         assert_yaml_snapshot!(parse(r###"
 from employees
-join s=salaries [==id]
+join s=salaries {==id}
         "###).unwrap(), @r###"
         ---
         - name: main
@@ -2312,7 +2312,7 @@ join s=salaries [==id]
 
     #[test]
     fn test_ident_with_keywords() {
-        assert_yaml_snapshot!(parse_expr(r"select [andrew, orion, lettuce, falsehood, null0]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r"select {andrew, orion, lettuce, falsehood, null0}").unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -2332,7 +2332,7 @@ join s=salaries [==id]
                     - null0
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r"[false]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r"{false}").unwrap(), @r###"
         ---
         List:
           - Literal:
@@ -2342,10 +2342,10 @@ join s=salaries [==id]
 
     #[test]
     fn test_case() {
-        assert_yaml_snapshot!(parse_expr(r#"case [
+        assert_yaml_snapshot!(parse_expr(r#"case {
             nickname != null => nickname,
             true => null
-        ]"#).unwrap(), @r###"
+        }"#).unwrap(), @r###"
         ---
         Case:
           - condition:
@@ -2522,8 +2522,8 @@ join s=salaries [==id]
     #[test]
     fn test_array() {
         assert_yaml_snapshot!(parse(r#"
-        let a = {1, 2,}
-        let a = {false, "hello"}
+        let a = [1, 2,]
+        let a = [false, "hello"]
         "#).unwrap(), @r###"
         ---
         - name: a

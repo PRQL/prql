@@ -25,19 +25,19 @@ sort age
 
 ```prql
 from employees
-sort [-age]
+sort {-age}
 ```
 
 ```prql
 from employees
-sort [age, -tenure, +salary]
+sort {age, -tenure, +salary}
 ```
 
 We can also use expressions:
 
 ```prql
 from employees
-sort [s"substr({first_name}, 2, 5)"]
+sort {s"substr({first_name}, 2, 5)"}
 ```
 
 ## Ordering guarantees
@@ -67,7 +67,7 @@ or end of the query:
 ```prql
 from employees
 sort tenure
-join locations [==employee_id]
+join locations {==employee_id}
 ```
 
 Observe how PRQL compiles the `ORDER BY` to the _end_ of the query.

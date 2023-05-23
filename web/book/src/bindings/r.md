@@ -27,9 +27,9 @@ library(prqlr)
 from employees
 join salaries [emp_id]
 group [dept_id, gender] (
-  aggregate [
+  aggregate {
     avg_salary = average salary
-  ]
+  }
 )
 " |>
   prql_compile()

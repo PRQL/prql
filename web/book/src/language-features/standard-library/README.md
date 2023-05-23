@@ -24,9 +24,9 @@ And a couple of examples:
 
 ```prql
 from employees
-derive [
+derive {
   gross_salary = (salary + payroll_tax | as int),
   gross_salary_rounded = (gross_salary | round 0),
   time = s"NOW()",  # an s-string, given no `now` function exists in PRQL
-]
+}
 ```
