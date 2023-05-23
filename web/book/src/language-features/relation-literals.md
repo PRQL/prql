@@ -29,7 +29,7 @@ let my_artists = {
 from artists
 join my_artists [==artist]
 join albums [==artist_id]
-select artists.title
+select [artists.artist_id, albums.title]
 ```
 
 ## `from_text`
