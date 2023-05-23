@@ -1,8 +1,8 @@
 # Inline relations
 
-It's often useful to make a small inline relation, for example when exploring how a
-database will evaluate an expression, or for a small lookup table. This can be
-quite verbose in SQL.
+It's often useful to make a small inline relation, for example when exploring
+how a database will evaluate an expression, or for a small lookup table. This
+can be quite verbose in SQL.
 
 PRQL offers two approaches — array literals, and a `from_text` transform.
 
