@@ -43,7 +43,7 @@
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
   - [Dates & times](./language-features/dates-and-times.md)
   - [Distinct](./language-features/distinct.md)
-  - [Literal tables](./language-features/literal-tables.md)
+  - [Relation literals](./language-features/relation-literals.md)
   - [Null handling](./language-features/null.md)
   - [Ranges](./language-features/ranges.md)
   - [Regex](./language-features/regex.md)

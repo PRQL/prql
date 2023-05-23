@@ -6,12 +6,12 @@ quite verbose in SQL.
 
 PRQL offers two approaches — array literals, and a `from_text` transform.
 
-## Array literals
+## Relation literals
 
 <!-- TODO: this syntax is about to change... -->
 
-Array literals convert an array (represented by `{}`), of tuples (represented by
-`[]`) into a table:
+Relation literals convert an array (represented by `{}`), of tuples (represented
+by `[]`) into a relation (aka a table):
 
 ```prql
 {[a = 5, b = false], [a = 6, b = true]}
