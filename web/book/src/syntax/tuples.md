@@ -16,8 +16,7 @@ select {
 }
 ```
 
-Most transforms can take either a list or a single item, so these are
-equivalent:
+Most transforms can take single item or a tuple, so these are equivalent:
 
 ```prql
 from employees
