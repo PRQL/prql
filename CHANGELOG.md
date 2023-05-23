@@ -2,9 +2,12 @@
 
 ## 0.8.2 — [unreleased]
 
+_The following unreleased version are only available in the `main` branch.
+They will become the public version at the next release._
+
 **Features**:
 
-- Add a `~=` regex search operator (@max-sixty, #2458). An example:
+- Add a `~=` regex search operator (@max-sixty, https://github.com/PRQL/prql/pull/2458). An example:
 
   ```prql no-eval
   from tracks
@@ -23,6 +26,12 @@
   ```
 
   ...though the exact form differs by dialect.
+
+- Change to function syntax: `let f = x -> ...` See https://github.com/PRQL/prql/blob/main/web/book/src/queries/functions.md
+    
+- Modules allow importing declarations from other files: See https://github.com/PRQL/prql/blob/main/web/book/src/internals/modules.md 
+
+- Relation literals create in-line tables or array literals: See https://github.com/PRQL/prql/pull/2605
 
 **Fixes**:
 
