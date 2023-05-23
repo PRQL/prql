@@ -15,7 +15,7 @@ sort age
 take 10
 ```
 
-```prql no-fmt
+```prql
 prql target:sql.mssql
 
 from employees
