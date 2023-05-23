@@ -100,36 +100,58 @@ fn collect_book_examples() -> Result<Vec<Example>> {
 // compilation. For that to provide a good output, we need to implement a proper
 // autoformatter.
 #[test]
-fn test_display() -> Result<(), ErrorMessages> {
+fn test_display() -> Result<()> {
     collect_book_examples()?
         .iter()
         .try_for_each(|Example { name, tags, prql }| {
-            if tags.contains(&LangTag::Error) || tags.contains(&LangTag::NoFmt) {
-                return Ok(());
-            }
-            prql_to_pl(prql)
+            let result = prql_to_pl(prql)
                 .and_then(pl_to_prql)
-                .and_then(|formatted| compile(&formatted, &Options::default()))
-                .unwrap_or_else(|_| {
-                    panic!(
-                        "
-Failed compiling the formatted result of {name:?}
-To skip this test for an example, use `prql no-fmt` as the language label.
+                .and_then(|formatted| compile(&formatted, &Options::default()));
+            let should_format = !tags.contains(&LangTag::NoFmt);
 
-The original PRQL was:
+            match (should_format, result) {
+                (true, Err(e)) => bail!(
+                    "
+Failed compiling the formatted result of {name:?}
+Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
+
+The original PRQL:
 
 {prql}
 
+And the error:
+
+{e}
+
 ",
-                        name = name,
-                        prql = prql
-                    )
-                });
+                    name = name,
+                    prql = prql,
+                    e = e
+                ),
 
-            Ok::<(), ErrorMessages>(())
-        })?;
+                (false, Ok(formatted_prql)) => bail!(
+                    "
+Succeeded at compiling the formatted result of {name:?}, but example was marked as `no-fmt`.
+Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
 
-    Ok(())
+The original PRQL:
+
+{prql}
+
+And the formatted PRQL:
+
+{formatted_prql}
+
+",
+                    name = name,
+                    prql = prql,
+                    formatted_prql = formatted_prql
+                ),
+                _ => Ok::<(), anyhow::Error>(()),
+            }?;
+
+            Ok(())
+        })
 }
 
 #[test]
