@@ -8,7 +8,7 @@
 
   ```prql no-eval
   from tracks
-  filter (name ~= "Love")
+  filter {name ~= "Love"}
   ```
 
   ...compiles to;

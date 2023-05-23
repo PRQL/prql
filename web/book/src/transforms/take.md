@@ -3,7 +3,7 @@
 Picks rows based on their position.
 
 ```prql no-eval
-take {n|range}
+take (n|range)
 ```
 
 See [Ranges](../language-features/ranges.md) for more details on how ranges

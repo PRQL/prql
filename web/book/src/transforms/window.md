@@ -4,7 +4,7 @@ Applies a pipeline to segments of rows, producing one output value for every
 input value.
 
 ```prql no-eval
-window rows:{range} range:{range} expanding:false rolling:0 {pipeline}
+window rows:(range) range:(range) expanding:false rolling:0 (pipeline)
 ```
 
 For each row, the segment over which the pipeline is applied is determined by

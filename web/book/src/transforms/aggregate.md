@@ -8,7 +8,7 @@ When applied:
 - within a `group` pipeline, it produces one row from each group.
 
 ```prql no-eval
-aggregate [{expression or assign operations}]
+aggregate {expression or assign operations}
 ```
 
 ```admonish note
