@@ -26,8 +26,9 @@ brew install prql/prql/prql-compiler
 
 ### Shell completions
 
-The `prqlc shell-completion` command prints a shell completion script for supported shells,
-and saving the printed scripts to files makes for shells to load completions for each session.
+The `prqlc shell-completion` command prints a shell completion script for
+supported shells, and saving the printed scripts to files makes for shells to
+load completions for each session.
 
 #### Bash
 
