@@ -8,26 +8,139 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
-#[test]
 /// This test:
 /// - Extracts PRQL code blocks from the book
-/// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
-///   there's a diff.
+/// - Compiles them to SQL, comparing to a snapshot.
+/// - We raise an error if they shouldn't pass or shouldn't fail.
+/// - Insta raises an error if there's a snapshot diff.
 ///
-/// This mirrors the process in [replace_examples], which inserts a
-/// comparison table of SQL into the book, and so serves as a snapshot test of
-/// those examples.
-fn test_prql_examples() {
-    let opts = Options::default().no_signature();
-    let examples = collect_book_examples().unwrap();
+/// This mirrors the process in [replace_examples], which inserts a comparison
+/// table of SQL into the book, and so serves as a snapshot test of those
+/// examples.
+//
+// We re-use the code (somewhat copy-paste) for the other compile tests below.
+#[test]
+fn test_prql_examples_compile() -> Result<()> {
+    collect_book_examples()?
+        .iter()
+        .try_for_each(|Example { name, tags, prql }| {
+            let result = compile(prql, &Options::default().no_signature());
+            let should_succeed = !tags.contains(&LangTag::Error);
 
-    for Example { name, prql, .. } in examples {
-        // Whether it's a success or a failure, get the string. (The book
-        // building asserts whether it's a correct success or failure; no need
-        // to repeat that here.)
-        let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
-        assert_snapshot!(name, &sql, &prql);
+            match (should_succeed, result) {
+                (true, Err(e)) => bail!(
+                    "
+Failed compiling {name:?}
+Use `prql error` as the language label to assert an error compiling the PRQL.
+
+The original PRQL:
+
+{prql}
+
+And the error:
+
+{e}
+
+"
+                ),
+
+                (false, Ok(output)) => bail!(
+                    "
+Succeeded compiling {name:?}, but example was marked as `error`.
+Remove `error` as a language label to assert successfully compiling.
+
+The original PRQL:
+
+{prql}
+
+And the result:
+
+{output}
+
+"
+                ),
+                (_, result) => {
+                    assert_snapshot!(
+                        name.to_string(),
+                        result.unwrap_or_else(|e| e.to_string()),
+                        prql
+                    );
+                    Ok(())
+                }
+            }
+        })
+}
+
+#[test]
+fn test_prql_examples_rq_serialize() -> Result<(), ErrorMessages> {
+    for Example { tags, prql, .. } in collect_book_examples()? {
+        // Don't assert that this fails, whether or not they compile to RQ is
+        // undefined.
+        if tags.contains(&LangTag::Error) {
+            continue;
+        }
+        let rq = prql_to_pl(&prql).map(pl_to_rq)?;
+        // Serialize to YAML
+        assert!(serde_yaml::to_string(&rq).is_ok());
     }
+
+    Ok(())
+}
+
+/// Test that the formatted result (the `Display` result) of each example can be
+/// compiled.
+//
+// We previously snapshot all the queries. But that was a lot of output, for
+// something we weren't yet looking at.
+//
+// The ideal would be to auto-format the examples themselves, likely during the
+// compilation. For that to provide a good output, we need to implement a proper
+// autoformatter.
+#[test]
+fn test_prql_examples_display_then_compile() -> Result<()> {
+    collect_book_examples()?
+        .iter()
+        .try_for_each(|Example { name, tags, prql }| {
+            let result = prql_to_pl(prql)
+                .and_then(pl_to_prql)
+                .and_then(|formatted| compile(&formatted, &Options::default()));
+            let should_succeed = !tags.contains(&LangTag::NoFmt);
+
+            match (should_succeed, result) {
+                (true, Err(e)) => bail!(
+                    "
+Failed compiling the formatted result of {name:?}
+Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
+
+The original PRQL:
+
+{prql}
+
+And the error:
+
+{e}
+
+"
+                ),
+
+                (false, Ok(output)) => bail!(
+                    "
+Succeeded at compiling the formatted result of {name:?}, but example was marked as `no-fmt`.
+Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
+
+The original PRQL:
+
+{prql}
+
+And the result:
+
+{output}
+
+"
+                ),
+                _ => Ok(()),
+            }
+        })
 }
 
 struct Example {
@@ -88,82 +201,4 @@ fn collect_book_examples() -> Result<Vec<Example>> {
         .collect();
 
     Ok(examples_in_book)
-}
-
-/// Test that the formatted result (the `Display` result) of each example can be
-/// compiled.
-//
-// We previously snapshot all the queries. But that was a lot of output, for
-// something we weren't yet looking at.
-//
-// The ideal would be to auto-format the examples themselves, likely during the
-// compilation. For that to provide a good output, we need to implement a proper
-// autoformatter.
-#[test]
-fn test_display() -> Result<()> {
-    collect_book_examples()?
-        .iter()
-        .try_for_each(|Example { name, tags, prql }| {
-            let result = prql_to_pl(prql)
-                .and_then(pl_to_prql)
-                .and_then(|formatted| compile(&formatted, &Options::default()));
-            let should_format = !tags.contains(&LangTag::NoFmt);
-
-            match (should_format, result) {
-                (true, Err(e)) => bail!(
-                    "
-Failed compiling the formatted result of {name:?}
-Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
-
-The original PRQL:
-
-{prql}
-
-And the error:
-
-{e}
-
-",
-                    name = name,
-                    prql = prql,
-                    e = e
-                ),
-
-                (false, Ok(formatted_prql)) => bail!(
-                    "
-Succeeded at compiling the formatted result of {name:?}, but example was marked as `no-fmt`.
-Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
-
-The original PRQL:
-
-{prql}
-
-And the formatted PRQL:
-
-{formatted_prql}
-
-",
-                    name = name,
-                    prql = prql,
-                    formatted_prql = formatted_prql
-                ),
-                _ => Ok::<(), anyhow::Error>(()),
-            }?;
-
-            Ok(())
-        })
-}
-
-#[test]
-fn test_rq_serialize() -> Result<(), ErrorMessages> {
-    for Example { tags, prql, .. } in collect_book_examples()? {
-        if tags.contains(&LangTag::Error) {
-            continue;
-        }
-        let rq = prql_to_pl(&prql).map(pl_to_rq)?;
-        // Serialize to YAML
-        assert!(serde_yaml::to_string(&rq).is_ok());
-    }
-
-    Ok(())
 }
