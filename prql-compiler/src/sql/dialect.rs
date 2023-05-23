@@ -121,10 +121,6 @@ pub(super) trait DialectHandler: Any + Debug {
         '"'
     }
 
-    fn big_query_quoting(&self) -> bool {
-        false
-    }
-
     fn column_exclude(&self) -> Option<ColumnExclude> {
         None
     }
@@ -297,9 +293,6 @@ impl DialectHandler for ClickHouseDialect {
 impl DialectHandler for BigQueryDialect {
     fn ident_quote(&self) -> char {
         '`'
-    }
-    fn big_query_quoting(&self) -> bool {
-        true
     }
     fn column_exclude(&self) -> Option<ColumnExclude> {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except
