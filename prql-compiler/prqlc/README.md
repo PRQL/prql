@@ -1,12 +1,23 @@
 # prqlc
 
+`prqlc` is a single, dependency-free binary that compiles PRQL into SQL.
+
 ## Installation
 
-`prqlc` is a single, dependency-free binary that compiles PRQL into SQL.
-precompiled binaries are available for Linux, macOS, and Windows on the
+[![Packaging status](https://repology.org/badge/vertical-allrepos/prqlc.svg)](https://repology.org/project/prqlc/versions)
+
+### via Homebrew (macOS, Linux)
+
+```sh
+brew install prqlc
+```
+
+### From GitHub release page
+
+Precompiled binaries are available for Linux, macOS, and Windows on the
 [PRQL release page](https://github.com/PRQL/prql/releases).
 
-`prqlc` can be installed via `cargo`:
+### From source
 
 ```sh
 # From crates.io
@@ -18,11 +29,52 @@ cargo install prqlc
 cargo install --path prql-compiler/prqlc
 ```
 
-<!-- It can be installed via brew too:
+### Shell completions
+
+The `prqlc shell-completion` command prints a shell completion script for
+supported shells, and saving the printed scripts to files makes for shells to
+load completions for each session.
+
+#### Bash
+
+For Linux:
 
 ```sh
-brew install prql/prql/prql-compiler
-``` -->
+prqlc shell-completion bash >/etc/bash_completion.d/prqlc
+```
+
+For macOS:
+
+```sh
+prqlc shell-completion bash >/usr/local/etc/bash_completion.d/prqlc
+```
+
+#### fish
+
+```sh
+prqlc shell-completion fish >~/.config/fish/completions/prqlc.fish
+```
+
+#### PowerShell
+
+```powershell
+mkdir -Path (Split-Path -Parent $profile) -ErrorAction SilentlyContinue
+prqlc shell-completion powershell >path/to/prqlc.ps1
+echo 'Invoke-Expression -Command path/to/prqlc.ps1' >>$profile
+```
+
+#### zsh
+
+```sh
+prqlc shell-completion zsh >"${fpath[1]}/_prqlc"
+```
+
+Ensure that the following lines are present in `~/.zshrc`:
+
+```sh
+autoload -U compinit
+compinit -i
+```
 
 ## Usage
 
@@ -63,7 +115,7 @@ PRQL and press `Ctrl-D` (Linux, macOS) or `Ctrl-Z` (Windows) to display the
 compiled SQL.
 
 ```sh
-$ prqlc compile
+prqlc compile
 ```
 
 As with using it as a filter, you can pass the SQL string output to the DuckDB
@@ -71,9 +123,10 @@ CLI, etc.
 
 ```sh
 $ prqlc compile | duckdb
+Enter PRQL, then press ctrl-d to compile:
+
 from `albums.csv`
 take 3
-
 ┌──────────┬───────────────────────────────────────┬───────────┐
 │ album_id │                 title                 │ artist_id │
 │  int64   │                varchar                │   int64   │

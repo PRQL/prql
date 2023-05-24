@@ -386,7 +386,7 @@ tools_section:
 
         `cargo install prqlc`
 
-        `brew install prql/PRQL/prqlc`
+        `brew install prqlc`
 
 integrations_section:
   enable: true

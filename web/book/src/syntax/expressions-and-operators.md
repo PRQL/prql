@@ -89,13 +89,21 @@ sort {-distance}
 ```
 
 Note: The `total_distance` statement below generates an error because the
-function is not in a list. (The PRQL compiler should display a better error
+function is not in a list... (The PRQL compiler should display a better error
 message.)
 
-```prql error
+```prql error no-fmt
 from employees
-derive total_distance = sum distance # generates the error shown below
-derive other_distance = (sum distance) # works as expected
+derive total_distance = sum distance
+```
+
+...while with parentheses, it works at expected:
+
+<!-- TODO: why doesn't this format? -->
+
+```prql no-fmt
+from employees
+derive other_distance = (sum distance)
 ```
 
 ```admonish note

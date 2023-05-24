@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ariadne::Source;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::Output;
 use itertools::Itertools;
 use std::io::Write;
@@ -103,18 +103,25 @@ enum Command {
     /// Show available compile target names
     #[command(name = "list-targets")]
     ListTargets,
+
+    /// Print a shell completion for supported shells
+    #[command(name = "shell-completion")]
+    ShellCompletion {
+        #[arg(value_enum)]
+        shell: clap_complete_command::Shell,
+    },
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
-    #[arg(value_parser, default_value = "-")]
+    #[arg(value_parser, default_value = "-", value_hint(ValueHint::FilePath))]
     input: clio_extended::Input,
 
-    #[arg(value_parser, default_value = "-")]
+    #[arg(value_parser, default_value = "-", value_hint(ValueHint::FilePath))]
     output: Output,
 
     /// Identifier of the main pipeline.
-    #[arg(value_parser)]
+    #[arg(value_parser, value_hint(ValueHint::FilePath))]
     main_path: Option<String>,
 }
 
@@ -130,6 +137,10 @@ impl Command {
         match self {
             Command::Watch(command) => watch::run(command),
             Command::ListTargets => self.list_targets(),
+            Command::ShellCompletion { shell } => {
+                shell.generate(&mut Cli::command(), &mut std::io::stdout());
+                Ok(())
+            }
             _ => self.run_io_command(),
         }
     }
