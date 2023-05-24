@@ -49,8 +49,7 @@ website, we have two options:
 > **Note**: This is tested on MacOS, should work on Linux, but won't work on
 > Windows.
 
-- Install Task; either `brew install go-task/tap/go-task` or as described on
-  [Task](https://taskfile.dev/#/installation).
+- [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
   installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
