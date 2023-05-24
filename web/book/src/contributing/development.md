@@ -93,15 +93,13 @@ website, we have two options:
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml) will be a
   good source to copy & paste instructions from.
 
-### Option 3: Use a Dev Container
+### Option 3: Use a [Dev Container](https://containers.dev/)
 
-[Dev Containers](https://containers.dev/) are a way to package a number of
-developer tools (compilers, bundlers, package managers, loaders, etc.) into a
-single object. This is helpful when many people want to contribute to a project:
-each person only has to install the Dev Container on their own machine to start
-working. By definition, the Dev Container has a consistent set of tools that are
-known to work together. This avoids a fuss with finding the proper version of
-each of the build tools.
+This project has a [devcontainer.json file](https://github.com/PRQL/prql/blob/main/.devcontainer/devcontainer.json)
+and a [pre-built dev container base image](https://github.com/PRQL/prql/pkgs/container/prql-devcontainer-base).
+
+Currently, the tools for Rust are already installed in the pre-buit image,
+and, Node.js, Python and others are configured to be installed when build the container.
 
 While there are a variety of tools that support Dev Containers, the focus here
 is on developing with VS Code in a container by
