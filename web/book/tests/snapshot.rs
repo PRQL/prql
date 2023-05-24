@@ -2,8 +2,10 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
+use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
 use prql_compiler::*;
+use pulldown_cmark::Tag;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -144,8 +146,10 @@ And the result:
 }
 
 struct Example {
+    /// Name contains the file, the heading, and the index of the example.
     name: String,
     tags: Vec<LangTag>,
+    /// The PRQL text
     prql: String,
 }
 
@@ -154,7 +158,7 @@ struct Example {
 fn collect_book_examples() -> Result<Vec<Example>> {
     use pulldown_cmark::{Event, Parser};
     let glob = Glob::new("**/*.md")?.compile_matcher();
-    let examples_in_book: Vec<Example> = WalkDir::new(Path::new("./src/"))
+    Ok(WalkDir::new(Path::new("./src/"))
         .into_iter()
         .flatten()
         .filter(|x| glob.is_match(x.path()))
@@ -164,41 +168,62 @@ fn collect_book_examples() -> Result<Vec<Example>> {
             // [lib.rs/replace_examples], but not sure how to avoid it.
             //
             let mut parser = Parser::new(&text);
-            let mut prql_blocks = vec![];
-            while let Some(event) = parser.next() {
-                let Some(lang_tags) = code_block_lang_tags(&event) else {
-                    continue
-                };
-
-                if lang_tags.contains(&LangTag::Prql) && !lang_tags.contains(&LangTag::NoEval) {
-                    let mut prql_text = String::new();
-                    while let Some(Event::Text(line)) = parser.next() {
-                        prql_text.push_str(line.to_string().as_str());
-                    }
-                    if prql_text.is_empty() {
-                        bail!("Expected text after PRQL code block");
-                    }
-                    prql_blocks.push((lang_tags, prql_text));
-                }
-            }
+            let mut prql_blocks: Vec<Example> = vec![];
+            // Keep track of the latest heading, so snapshots can have the
+            // section they're in. This makes them easier to find and means
+            // adding one example at the top of the book doesn't cause a huge
+            // diff in the snapshots of that file's examples..
+            let mut latest_heading = "";
             let file_name = &dir_entry
                 .path()
                 .strip_prefix("./src/")?
                 .to_str()
                 .unwrap()
                 .trim_end_matches(".md");
-            Ok(prql_blocks
-                .into_iter()
-                .enumerate()
-                .map(|(i, (tags, prql))| Example {
-                    name: format!("{file_name}-{i}"),
-                    tags,
-                    prql,
-                })
-                .collect::<Vec<Example>>())
+
+            // Iterate through the markdown file, getting examples.
+            while let Some(event) = parser.next() {
+                if let Event::Start(Tag::Heading(..)) = event.clone() {
+                    if let Some(Event::Text(pulldown_cmark::CowStr::Borrowed(heading))) =
+                        parser.next()
+                    {
+                        latest_heading = heading;
+                    }
+                }
+                let Some(tags) = code_block_lang_tags(&event) else {
+                    continue
+                };
+
+                if tags.contains(&LangTag::Prql) && !tags.contains(&LangTag::NoEval) {
+                    let mut prql = String::new();
+                    while let Some(Event::Text(line)) = parser.next() {
+                        prql.push_str(line.to_string().as_str());
+                    }
+                    if prql.is_empty() {
+                        bail!("Expected text in PRQL code block");
+                    }
+                    let heading = latest_heading.replace(' ', "-").to_ascii_lowercase();
+                    // Only add the heading if it's different from the file name.
+                    let name = if !file_name.ends_with(&heading) {
+                        format!("{file_name}/{heading}")
+                    } else {
+                        file_name.to_string()
+                    };
+
+                    prql_blocks.push(Example { name, tags, prql });
+                }
+            }
+            Ok(prql_blocks)
         })
         .flatten()
-        .collect();
-
-    Ok(examples_in_book)
+        // Add an index suffix to each path's examples (so we group by the path).
+        .group_by(|e| e.name.clone())
+        .into_iter()
+        .flat_map(|(path, blocks)| {
+            blocks.into_iter().enumerate().map(move |(i, e)| Example {
+                name: format!("{path}/{i}"),
+                ..e
+            })
+        })
+        .collect())
 }
