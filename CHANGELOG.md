@@ -22,7 +22,9 @@
     REGEXP(name, 'Love')
   ```
 
-  ...though the exact form differs by dialect.
+  ...though the exact form differs by dialect; see the
+  [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
+  details.
 
 **Fixes**:
 
@@ -33,6 +35,9 @@
 **Integrations**:
 
 **Internal changes**:
+
+- Remove BigQuery's special handling of quoted identifiers, now that our module
+  system handles its semantics (@max-sixty, #2609).
 
 **New Contributors**:
 

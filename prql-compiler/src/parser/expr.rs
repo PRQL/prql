@@ -313,7 +313,6 @@ where
     .then(type_expr().or_not())
     .then(func_call(expr).map(Box::new))
     .then_ignore(new_line())
-    // .map(|(((name, return_ty), params), body)| {
     .map(|((params, return_ty), body)| {
         let (pos, nam) = params
             .into_iter()
@@ -324,7 +323,7 @@ where
             })
             .partition(|p| p.default_value.is_none());
 
-        FuncDef_ {
+        FuncDef {
             positional_params: pos,
             named_params: nam,
             body,

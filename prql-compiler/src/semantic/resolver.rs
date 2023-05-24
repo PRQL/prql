@@ -857,7 +857,7 @@ impl Resolver {
         }))
     }
 
-    fn closure_of_func_def(&mut self, func_def: FuncDef_, fq_ident: Ident) -> Result<Closure> {
+    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
         let body_ty = self.fold_type_expr(func_def.return_ty.clone().map(|x| *x))?;
 
         Ok(Closure {

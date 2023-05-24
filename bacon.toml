@@ -53,7 +53,7 @@ a = "job:check-all"
 c = "job:clippy"
 d = "job:doc-open"
 f = "job:test-fast"
-# `g` for standard carGo tests
+# `g` for standard cargo tests
 g = "job:test-cargo"
 r = "job:run"
 t = "job:test"

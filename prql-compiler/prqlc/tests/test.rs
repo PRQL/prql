@@ -16,17 +16,18 @@ fn test_help() {
     Usage: prqlc [OPTIONS] <COMMAND>
 
     Commands:
-      parse           Parse into PL AST
-      fmt             Parse & generate PRQL code back
-      annotate        Parse, resolve & combine source with comments annotating relation type
-      debug           Parse & resolve, but don't lower into RQ
-      resolve         Parse, resolve & lower into RQ
-      sql:preprocess  Parse, resolve, lower into RQ & preprocess SRQ
-      sql:anchor      Parse, resolve, lower into RQ & preprocess & anchor SRQ
-      compile         Parse, resolve, lower into RQ & compile to SQL
-      watch           Watch a directory and compile .prql files to .sql files
-      list-targets    Show available compile target names
-      help            Print this message or the help of the given subcommand(s)
+      parse             Parse into PL AST
+      fmt               Parse & generate PRQL code back
+      annotate          Parse, resolve & combine source with comments annotating relation type
+      debug             Parse & resolve, but don't lower into RQ
+      resolve           Parse, resolve & lower into RQ
+      sql:preprocess    Parse, resolve, lower into RQ & preprocess SRQ
+      sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor SRQ
+      compile           Parse, resolve, lower into RQ & compile to SQL
+      watch             Watch a directory and compile .prql files to .sql files
+      list-targets      Show available compile target names
+      shell-completion  Print a shell completion for supported shells
+      help              Print this message or the help of the given subcommand(s)
 
     Options:
           --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
@@ -74,4 +75,20 @@ fn test_compile() {
 
     ----- stderr -----
     "###);
+}
+
+#[test]
+fn test_shell_completion() {
+    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
+        .arg("shell-completion")
+        .arg("bash"));
+    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
+        .arg("shell-completion")
+        .arg("fish"));
+    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
+        .arg("shell-completion")
+        .arg("powershell"));
+    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
+        .arg("shell-completion")
+        .arg("zsh"));
 }

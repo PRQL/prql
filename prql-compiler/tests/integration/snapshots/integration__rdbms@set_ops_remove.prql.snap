@@ -1,7 +1,0 @@
----
-source: prql-compiler/tests/integration/main.rs
-expression: result_string
-input_file: prql-compiler/tests/integration/queries/set_ops_remove.prql
----
-3
-
