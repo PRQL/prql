@@ -107,8 +107,29 @@ fn translate_select_pipeline(
     let order_by = pipeline.pluck(|t| t.into_sort());
     let takes = pipeline.pluck(|t| t.into_take());
     let is_distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
+    let distinct_ons = pipeline.pluck(|t| t.into_distinct_on());
     let distinct = if is_distinct {
         Some(sql_ast::Distinct::Distinct)
+    } else if !distinct_ons.is_empty() {
+        // FIXME: this "works" but is very hacky — it's using the
+        // `translate_select_item` to translate each id into an Expr — is that
+        // correct?
+        //
+        // Do we know we won't have more than one DistinctOn? We have that for
+        // `Distinct`. But this will panic if we have more than one.
+        // And if there the `SelectItem` is not an `UnnamedExpr`, it'll panic.
+        Some(sql_ast::Distinct::On(
+            distinct_ons
+                .into_iter()
+                .exactly_one()?
+                .into_iter()
+                .map(|id| translate_select_item(id, ctx).unwrap())
+                .map(|item| match item {
+                    SelectItem::UnnamedExpr(expr) => expr,
+                    _ => unreachable!(),
+                })
+                .collect::<Vec<sql_ast::Expr>>(),
+        ))
     } else {
         None
     };

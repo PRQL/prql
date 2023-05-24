@@ -1486,6 +1486,23 @@ fn test_distinct() {
 }
 
 #[test]
+fn test_distinct_on() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from x
+    select [class, begins]
+    group [begins] (take 1)
+    "###).unwrap()), @r###"
+    SELECT
+      DISTINCT ON (begins) class,
+      begins
+    FROM
+      x
+    "###);
+}
+
+#[test]
 fn test_join() {
     assert_display_snapshot!((compile(r###"
     from x

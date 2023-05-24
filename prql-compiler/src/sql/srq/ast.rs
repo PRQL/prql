@@ -98,6 +98,7 @@ pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
     },
 
     Distinct,
+    DistinctOn(Vec<rq::CId>),
     Except {
         bottom: Rel,
         distinct: bool,
@@ -173,6 +174,7 @@ pub fn fold_sql_transform<
         },
 
         SqlTransform::Distinct => SqlTransform::Distinct,
+        SqlTransform::DistinctOn(ids) => SqlTransform::DistinctOn(fold.fold_cids(ids)?),
         SqlTransform::Union { bottom, distinct } => SqlTransform::Union {
             bottom: fold.fold_rel(bottom)?,
             distinct,
