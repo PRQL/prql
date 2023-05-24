@@ -151,5 +151,5 @@ jobs:
         working-directory: prql-compiler
         run: cargo msrv verify
       - name: Verify minimum rust version — prqlc
-        working-directory: prqlc
+        working-directory: prql-compiler/prqlc
         run: cargo msrv verify
