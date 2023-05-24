@@ -131,7 +131,7 @@ pub(in crate::sql) fn distinct(
                 if take_only_first && sort.is_empty() && matching_columns {
                     res.push(SqlTransform::Distinct);
                 } else if ctx.dialect.supports_distinct_on() {
-                    res.push(SqlTransform::Super(DistinctOn(partition)));
+                    res.push(SqlTransform::DistinctOn(partition));
                 } else {
                     // convert `take range` into:
                     //   derive _rn = s"ROW NUMBER"
