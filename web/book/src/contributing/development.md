@@ -99,11 +99,14 @@ Because of using the `brew` command inside of `Taskfile.yml`.
 
 ### Option 3: Use a [Dev Container](https://containers.dev/)
 
-This project has a [devcontainer.json file](https://github.com/PRQL/prql/blob/main/.devcontainer/devcontainer.json)
-and a [pre-built dev container base Docker image](https://github.com/PRQL/prql/pkgs/container/prql-devcontainer-base).
+This project has a
+[devcontainer.json file](https://github.com/PRQL/prql/blob/main/.devcontainer/devcontainer.json)
+and a
+[pre-built dev container base Docker image](https://github.com/PRQL/prql/pkgs/container/prql-devcontainer-base).
 
-Currently, the tools for Rust are already installed in the pre-buit image,
-and, Node.js, Python and others are configured to be installed when build the container.
+Currently, the tools for Rust are already installed in the pre-built image, and,
+Node.js, Python and others are configured to be installed when build the
+container.
 
 While there are a variety of tools that support Dev Containers, the focus here
 is on developing with VS Code in a container by
