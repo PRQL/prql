@@ -2,13 +2,12 @@
 
 ## 0.8.2 — [unreleased]
 
-_The following unreleased version are only available in the `main` branch. They
+_The following unreleased features are only available in the `main` branch. They
 will become the public version at the next release._
 
 **Features**:
 
-- Add a `~=` regex search operator (@max-sixty,
-  https://github.com/PRQL/prql/pull/2458). An example:
+- Add a `~=` regex search operator (@max-sixty, #2458). An example:
 
   ```prql no-eval
   from tracks
@@ -46,6 +45,9 @@ will become the public version at the next release._
 **Integrations**:
 
 **Internal changes**:
+
+- Remove BigQuery's special handling of quoted identifiers, now that our module
+  system handles its semantics (@max-sixty, #2609).
 
 **New Contributors**:
 
