@@ -1,9 +1,5 @@
 # Developing with Dev Containers
 
-```admonish note
-Currently the Dev Container included in this repository only supports the `amd64` platform.
-```
-
 [Dev Containers](https://containers.dev/) are a way to package a number of
 developer tools (compilers, bundlers, package managers, loaders, etc.) into a
 single object. This is helpful when many people want to contribute to a project:
