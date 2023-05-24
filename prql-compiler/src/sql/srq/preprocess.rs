@@ -130,10 +130,8 @@ pub(in crate::sql) fn distinct(
 
                 if take_only_first && sort.is_empty() && matching_columns {
                     res.push(SqlTransform::Distinct);
-                    continue;
                 } else if ctx.dialect.supports_distinct_on() {
                     res.push(SqlTransform::Super(DistinctOn(partition)));
-                    continue;
                 } else {
                     // convert `take range` into:
                     //   derive _rn = s"ROW NUMBER"
