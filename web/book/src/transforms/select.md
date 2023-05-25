@@ -3,13 +3,13 @@
 Picks and computes columns.
 
 ```prql no-eval
-select [
-  {name} = {expression},
+select {
+  name = expression,
   # or
-  {column},
-]
+  column,
+}
 # or
-select ![{column}]
+select !{column}
 ```
 
 ## Examples
@@ -21,10 +21,10 @@ select name = f"{first_name} {last_name}"
 
 ```prql
 from employees
-select [
+select {
   name = f"{first_name} {last_name}",
   age_eoy = dob - @2022-12-31,
-]
+}
 ```
 
 ```prql
@@ -34,7 +34,7 @@ select first_name
 
 ```prql
 from e=employees
-select [e.first_name, e.last_name]
+select {e.first_name, e.last_name}
 ```
 
 ### Excluding columns
@@ -53,17 +53,17 @@ Some examples:
 ```prql no-fmt
 prql target:sql.bigquery
 from tracks
-select ![milliseconds,bytes]
+select !{milliseconds,bytes}
 ```
 
 ```prql no-fmt
 from tracks
-select [track_id, title, composer, bytes]
-select ![title, composer]
+select {track_id, title, composer, bytes}
+select !{title, composer}
 ```
 
 ```prql no-fmt
 from artists
 derive nick = name
-select ![artists.*]
+select !{artists.*}
 ```

@@ -163,7 +163,7 @@ mod test {
     fn test_resolve_01() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         from employees
-        select ![foo]
+        select !{foo}
         "###).unwrap().relation.columns, @r###"
         ---
         - Wildcard
@@ -176,7 +176,7 @@ mod test {
         from foo
         sort day
         window range:-4..4 (
-            derive [next_four_days = sum b]
+            derive {next_four_days = sum b}
         )
         "###).unwrap().relation.columns, @r###"
         ---
@@ -192,7 +192,7 @@ mod test {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         from a=albums
         filter is_sponsored
-        select [a.*]
+        select {a.*}
         "###).unwrap().relation.columns, @r###"
         ---
         - Single: is_sponsored
@@ -204,7 +204,7 @@ mod test {
     fn test_resolve_04() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         from x
-        select [a, a, a = a + 1]
+        select {a, a, a = a + 1}
         "###).unwrap().relation.columns, @r###"
         ---
         - Single: ~

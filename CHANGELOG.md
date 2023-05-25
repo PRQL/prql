@@ -7,11 +7,23 @@ will become the public version at the next release._
 
 **Features**:
 
+- We've made one large breaking change — "Lists" are now "Tuples", and
+  represented with brackets `{}` rather than braces `[]`.
+
+  We've made this change to incorporate arrays without having syntax that's the
+  opposite of almost every major language — specifically using `{}` for an array
+  type and `[]` for a tuple type. (Though we recognize that `{}` for tuples is
+  also rare (Hi, Erlang!), but didn't want to further load parentheses with
+  meaning)
+
+  As part of this, we've also formalized tuples as containing both individual
+  items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
+
 - Add a `~=` regex search operator (@max-sixty, #2458). An example:
 
   ```prql no-eval
   from tracks
-  filter (name ~= "Love")
+  filter {name ~= "Love"}
   ```
 
   ...compiles to;
@@ -537,10 +549,10 @@ below in this release).
 
   ```prql no-eval
   from numbers
-  select [
+  select {
       small = 1.000_000_1,
       big = 5_000_000,
-  ]
+  }
   ```
 
 - The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
@@ -685,7 +697,7 @@ We've had to make some modest breaking changes for 0.3:
   ```diff
   from employees
   -join positions [id]
-  +join positions [==id]
+  +join positions {==id}
   ```
 
 - _Table references containing periods must be surrounded by backticks_. For

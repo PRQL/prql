@@ -544,11 +544,11 @@ mod test {
     fn test_variable_after_aggregate() {
         let query = &r#"
         from employees
-        group [title, emp_no] (
-            aggregate [emp_salary = average salary]
+        group {title, emp_no} (
+            aggregate {emp_salary = average salary}
         )
-        group [title] (
-            aggregate [avg_salary = average emp_salary]
+        group {title} (
+            aggregate {avg_salary = average emp_salary}
         )
         "#;
 

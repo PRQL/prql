@@ -1,10 +1,10 @@
 from tracks
 derive d = album_id + 1
 group d (
-    aggregate [
+    aggregate {
         n1 = (track_id | sum),
-    ]
+    }
 )
 sort d
 take 10
-select [ d1 = d, n1 ]
+select { d1 = d, n1 }

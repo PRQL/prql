@@ -1,18 +1,18 @@
 # Sort
 
-Orders rows based on the values of one or more columns.
+Orders rows based on the values of one or more expressions (generally columns).
 
 ```prql no-eval
-sort [{direction}{column}]
+sort {(+|-) column}
 ```
 
 ## Parameters
 
-- One column or a list of columns to sort by
-- Each column can be prefixed with:
+- One expression or a list of expression to sort by
+- Each expression can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
-- When using prefixes, even a single column needs to be in a list or
+- When using prefixes, even a single expression needs to be in a list or
   parentheses. (Otherwise, `sort -foo` is parsed as a subtraction between `sort`
   and `foo`.)
 
@@ -25,19 +25,19 @@ sort age
 
 ```prql
 from employees
-sort [-age]
+sort {-age}
 ```
 
 ```prql
 from employees
-sort [age, -tenure, +salary]
+sort {age, -tenure, +salary}
 ```
 
 We can also use expressions:
 
 ```prql
 from employees
-sort [s"substr({first_name}, 2, 5)"]
+sort {s"substr({first_name}, 2, 5)"}
 ```
 
 ## Ordering guarantees
@@ -67,7 +67,7 @@ or end of the query:
 ```prql
 from employees
 sort tenure
-join locations [==employee_id]
+join locations {==employee_id}
 ```
 
 Observe how PRQL compiles the `ORDER BY` to the _end_ of the query.

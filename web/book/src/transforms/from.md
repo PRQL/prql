@@ -3,7 +3,7 @@
 Specifies a data source.
 
 ```prql no-eval
-from {table_reference}
+from table_reference
 ```
 
 Table names containing

@@ -37,8 +37,8 @@ from e = employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary
 take 10
-join d = department [==dept_no]
-select [e.name, gross_salary, d.name]
+join d = department {==dept_no}
+select {e.name, gross_salary, d.name}
 ```
 
 ## See also

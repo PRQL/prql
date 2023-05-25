@@ -4,7 +4,7 @@ Applies a pipeline to segments of rows, producing one output value for every
 input value.
 
 ```prql no-eval
-window rows:{range} range:{range} expanding:false rolling:0 {pipeline}
+window rows:(range) range:(range) expanding:false rolling:0 (pipeline)
 ```
 
 For each row, the segment over which the pipeline is applied is determined by
@@ -47,7 +47,7 @@ from employees
 group employee_id (
   sort month
   window rolling:12 (
-    derive [trail_12_m_comp = sum paycheck]
+    derive {trail_12_m_comp = sum paycheck}
   )
 )
 ```
@@ -56,12 +56,12 @@ group employee_id (
 from orders
 sort day
 window rows:-3..3 (
-  derive [centered_weekly_average = average value]
+  derive {centered_weekly_average = average value}
 )
-group [order_month] (
+group {order_month} (
   sort day
   window expanding:true (
-    derive [monthly_running_total = sum value]
+    derive {monthly_running_total = sum value}
   )
 )
 ```

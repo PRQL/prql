@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "from tracks\nderive d = album_id + 1\ngroup d (\n    aggregate [\n        n1 = (track_id | sum),\n    ]\n)\nsort d\ntake 10\nselect [ d1 = d, n1 ]\n"
+expression: "from tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
 input_file: prql-compiler/tests/integration/queries/group_sort.prql
 ---
 WITH table_3 AS (

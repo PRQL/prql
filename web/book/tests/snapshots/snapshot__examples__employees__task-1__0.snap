@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from salaries\ngroup [emp_no] (\n  aggregate [emp_salary = average salary]\n)\njoin t=titles [==emp_no]\njoin dept_emp side:left [==emp_no]\ngroup [dept_emp.dept_no, t.title] (\n  aggregate [avg_salary = average emp_salary]\n)\njoin departments [==dept_no]\nselect [dept_name, title, avg_salary]\n"
+expression: "from salaries\ngroup [emp_no] (\n  aggregate [emp_salary = average salary]\n)\njoin t=titles {==emp_no}\njoin dept_emp side:left {==emp_no}\ngroup [dept_emp.dept_no, t.title] (\n  aggregate [avg_salary = average emp_salary]\n)\njoin departments {==dept_no}\nselect [dept_name, title, avg_salary]\n"
 ---
 WITH table_3 AS (
   SELECT

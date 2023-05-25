@@ -31,14 +31,14 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .separated_by(ctrl(','))
             .allow_trailing()
             .then_ignore(new_line().repeated())
-            .delimited_by(ctrl('['), ctrl(']'))
+            .delimited_by(ctrl('{'), ctrl('}'))
             .recover_with(nested_delimiters(
-                Token::Control('['),
-                Token::Control(']'),
+                Token::Control('{'),
+                Token::Control('}'),
                 [
-                    (Token::Control('['), Token::Control(']')),
-                    (Token::Control('('), Token::Control(')')),
                     (Token::Control('{'), Token::Control('}')),
+                    (Token::Control('('), Token::Control(')')),
+                    (Token::Control('['), Token::Control(']')),
                 ],
                 |_| vec![],
             ))
@@ -52,14 +52,14 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .separated_by(ctrl(','))
             .allow_trailing()
             .then_ignore(new_line().repeated())
-            .delimited_by(ctrl('{'), ctrl('}'))
+            .delimited_by(ctrl('['), ctrl(']'))
             .recover_with(nested_delimiters(
-                Token::Control('{'),
-                Token::Control('}'),
+                Token::Control('['),
+                Token::Control(']'),
                 [
-                    (Token::Control('['), Token::Control(']')),
-                    (Token::Control('('), Token::Control(')')),
                     (Token::Control('{'), Token::Control('}')),
+                    (Token::Control('('), Token::Control(')')),
+                    (Token::Control('['), Token::Control(']')),
                 ],
                 |_| vec![],
             ))
@@ -106,7 +106,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                     .separated_by(ctrl(','))
                     .allow_trailing()
                     .then_ignore(new_line().repeated())
-                    .delimited_by(ctrl('['), ctrl(']')),
+                    .delimited_by(ctrl('{'), ctrl('}')),
             )
             .map(ExprKind::Case);
 

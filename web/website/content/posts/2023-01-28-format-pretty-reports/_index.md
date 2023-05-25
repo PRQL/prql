@@ -26,10 +26,10 @@ multiple times:
 # dollars displays a numeric value as whole dollars with commas
 let dollars = d -> s"""printf("$%,d",{d})"""
 
-select [
+select {
     (dollars App_Total2020),
     (dollars App_Total2021),
-]
+}
 ```
 
 I also want to compute the percent change between values. It's easy to create a
@@ -102,12 +102,12 @@ let format_percent = v -> s'printf("%1.1f%", {v})'
 
 # Step 1: First calculate important columns
 from PropertyData
-select [
+select {
     Map, Lot,
     App_Total2020,
     App_Total2021,
     pct_change = (percent_diff App_Total2020 App_Total2021),
-]
+}
 
 # Step 2: Sort the resulting table by pct_change
 sort [-pct_change]
