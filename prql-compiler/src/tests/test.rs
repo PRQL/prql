@@ -1491,8 +1491,8 @@ fn test_distinct_on() {
     prql target:sql.duckdb
 
     from x
-    select [class, begins]
-    group [begins] (take 1)
+    select {class, begins}
+    group {begins} (take 1)
     "###).unwrap()), @r###"
     SELECT
       DISTINCT ON (begins) class,
