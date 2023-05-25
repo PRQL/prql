@@ -51,7 +51,6 @@ repos:
         description: We shouldn't merge code with `dbg!` in
         language: pygrep
         types: ["rust"]
-        # A regex searching sql files for either `prj-` or 'tgs-'.
         entry: "dbg!"
   - repo: local
     hooks:
