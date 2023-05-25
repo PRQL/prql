@@ -68,7 +68,7 @@ jobs:
           cp target/release/prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
       - name: 📦 Build .deb package
-        uses: jiro4989/build-deb-action@v2
+        uses: jiro4989/build-deb-action@v3
         with:
           package: prqlc
           package_root: .debpkg
