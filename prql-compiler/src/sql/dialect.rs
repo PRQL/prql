@@ -35,6 +35,7 @@ use crate::Error;
     Clone,
     Copy,
     Serialize,
+    Default,
     Deserialize,
     strum::Display,
     strum::EnumIter,
@@ -48,6 +49,7 @@ pub enum Dialect {
     BigQuery,
     ClickHouse,
     DuckDb,
+    #[default]
     Generic,
     Hive,
     MsSql,
@@ -79,12 +81,6 @@ impl Dialect {
     #[deprecated(note = "Use `Dialect::Variants` instead")]
     pub fn names() -> &'static [&'static str] {
         Dialect::VARIANTS
-    }
-}
-
-impl Default for Dialect {
-    fn default() -> Self {
-        Dialect::Generic
     }
 }
 

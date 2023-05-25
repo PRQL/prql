@@ -368,7 +368,7 @@ impl Token {
 // There are reasons for that, but chumsky::Error needs Hash for the Token, so it can deduplicate
 // tokens in error.
 // So this hack could lead to duplicated tokens in error messages. Oh no.
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 impl std::hash::Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
