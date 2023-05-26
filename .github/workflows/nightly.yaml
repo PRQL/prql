@@ -92,31 +92,34 @@ jobs:
           command: udeps
           args: --all-targets
 
-  test-docker:
-    # We only test the build in `test-all`; this also runs tests.
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
+  # We now use the devcontainer. TODO: is it possible to have a similar test for
+  # that? Or that would require VSCode to install the dependencies?
 
-      - uses: docker/setup-buildx-action@v2
+  # test-docker:
+  #   # We only test the build in `test-all`; this also runs tests.
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📂 Checkout code
+  #       uses: actions/checkout@v3
 
-      - name: Build
-        uses: docker/build-push-action@v4
-        with:
-          tags: prql:latest
-          # Use the GHA cache
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  #     - uses: docker/setup-buildx-action@v2
 
-      # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
-      - name: Test
-        uses: addnab/docker-run-action@v3
-        with:
-          image: prql:latest
-          options: -v ${{ github.workspace }}/:/src
-          run: task test-rust
+  #     - name: Build
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         tags: prql:latest
+  #         # Use the GHA cache
+  #         load: true
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+
+  #     # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
+  #     - name: Test
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: prql:latest
+  #         options: -v ${{ github.workspace }}/:/src
+  #         run: task test-rust
 
   code-ql:
     # Currently almost the default code-ql config
