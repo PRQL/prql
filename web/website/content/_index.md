@@ -437,7 +437,7 @@ comments_section:
   enable: true
   title: "What people are saying"
   comments:
-    # Tweets can be fetched with https://www.tweetic.io/docs
+    # Tweets can be fetched with https://tweetic.zernonia.com
 
     - quote:
         text:
