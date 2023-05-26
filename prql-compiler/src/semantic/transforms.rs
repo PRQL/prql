@@ -117,8 +117,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(coerce_into_tuple_and_flatten(filter)?));
-
+            let filter = Box::new(filter);
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
         }
@@ -1133,7 +1132,7 @@ mod tests {
         let res = ctx.find_main(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
-        - id: 37
+        - id: 40
           TransformCall:
             input:
               id: 8
@@ -1144,7 +1143,7 @@ mod tests {
                 kind:
                   Array:
                     Tuple:
-                      - Wildcard
+                      - Wildcard: ~
                 name: ~
               lineage:
                 columns:
@@ -1160,11 +1159,11 @@ mod tests {
             kind:
               Aggregate:
                 assigns:
-                  - id: 29
+                  - id: 32
                     BuiltInFunction:
                       name: std.average
                       args:
-                        - id: 36
+                        - id: 39
                           Ident:
                             - _frame
                             - c_invoice
@@ -1172,9 +1171,80 @@ mod tests {
                           target_id: 8
                     ty:
                       kind:
-                        Array:
-                          Singleton: "Null"
-                      name: array
+                        Union:
+                          - - scalar_tuple
+                            - kind:
+                                Tuple:
+                                  - Wildcard:
+                                      kind:
+                                        Union:
+                                          - - int
+                                            - kind:
+                                                Primitive: Int
+                                              name: int
+                                          - - float
+                                            - kind:
+                                                Primitive: Float
+                                              name: float
+                                          - - bool
+                                            - kind:
+                                                Primitive: Bool
+                                              name: bool
+                                          - - text
+                                            - kind:
+                                                Primitive: Text
+                                              name: text
+                                          - - date
+                                            - kind:
+                                                Primitive: Date
+                                              name: date
+                                          - - time
+                                            - kind:
+                                                Primitive: Time
+                                              name: time
+                                          - - timestamp
+                                            - kind:
+                                                Primitive: Timestamp
+                                              name: timestamp
+                                          - - ~
+                                            - kind:
+                                                Singleton: "Null"
+                                              name: ~
+                                      name: scalar
+                              name: scalar_tuple
+                          - - int
+                            - kind:
+                                Primitive: Int
+                              name: int
+                          - - float
+                            - kind:
+                                Primitive: Float
+                              name: float
+                          - - bool
+                            - kind:
+                                Primitive: Bool
+                              name: bool
+                          - - text
+                            - kind:
+                                Primitive: Text
+                              name: text
+                          - - date
+                            - kind:
+                                Primitive: Date
+                              name: date
+                          - - time
+                            - kind:
+                                Primitive: Time
+                              name: time
+                          - - timestamp
+                            - kind:
+                                Primitive: Timestamp
+                              name: timestamp
+                          - - ~
+                            - kind:
+                                Singleton: "Null"
+                              name: ~
+                      name: ~
             partition:
               - id: 16
                 Ident:
@@ -1196,7 +1266,7 @@ mod tests {
                   expr_id: 16
               - Single:
                   name: ~
-                  expr_id: 29
+                  expr_id: 32
             inputs:
               - id: 8
                 name: c_invoice

@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_lineage(r#\"\n            from table_1\n            join customers {==customer_no}\n            \"#).unwrap()"
+expression: "resolve_lineage(r#\"\n            from table_1\n            join customers (==customer_no)\n            \"#).unwrap()"
 ---
 columns:
   - All:
@@ -15,7 +15,7 @@ inputs:
     table:
       - default_db
       - table_1
-  - id: 18
+  - id: 20
     name: customers
     table:
       - default_db

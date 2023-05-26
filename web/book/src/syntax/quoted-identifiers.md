@@ -25,8 +25,9 @@ identifiers) in the `SELECT` statement:
 
 ```prql
 prql target:sql.bigquery
+
 from `project-foo.dataset.table`
-join `project-bar.dataset.table` {==col_bax}
+join `project-bar.dataset.table` (==col_bax)
 ```
 
 ## Schemas & database names

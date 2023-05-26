@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from e=employees\njoin salaries {==emp_no}\ngroup [e.emp_no, e.gender] (\n  aggregate [\n    emp_salary = average salaries.salary\n  ]\n)\njoin de=dept_emp {==emp_no}\njoin dm=dept_manager [\n  (dm.dept_no == de.dept_no) && s\"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)\"\n]\ngroup [dm.emp_no, gender] (\n  aggregate [\n    salary_avg = average emp_salary,\n    salary_sd = stddev emp_salary\n  ]\n)\nderive mng_no = emp_no\njoin managers=employees {==emp_no}\nderive mng_name = s\"managers.first_name || ' ' || managers.last_name\"\nselect [mng_name, managers.gender, salary_avg, salary_sd]\n"
+expression: "from e=employees\njoin salaries (==emp_no)\ngroup [e.emp_no, e.gender] (\n  aggregate [\n    emp_salary = average salaries.salary\n  ]\n)\njoin de=dept_emp (==emp_no)\njoin dm=dept_manager [\n  (dm.dept_no == de.dept_no) && s\"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)\"\n]\ngroup [dm.emp_no, gender] (\n  aggregate [\n    salary_avg = average emp_salary,\n    salary_sd = stddev emp_salary\n  ]\n)\nderive mng_no = emp_no\njoin managers=employees (==emp_no)\nderive mng_name = s\"managers.first_name || ' ' || managers.last_name\"\nselect [mng_name, managers.gender, salary_avg, salary_sd]\n"
 ---
 WITH table_4 AS (
   SELECT

@@ -20,7 +20,7 @@ A summary of PRQL syntax:
 | `` ` ` ``                        | [Quoted identifiers](./quoted-identifiers.md)                           | `` select `first name`  ``                              |
 | `#`                              | [Comments](./comments.md)                                               | `# A comment`                                           |
 | `@`                              | [Dates & Times](../language-features/dates-and-times.md#dates--times)   | `@2021-01-01`                                           |
-| `==`                             | [Self-equality in `join`](../transforms/join.md#self-equality-operator) | `join s=salaries {==id}`                                |
+| `==`                             | [Self-equality in `join`](../transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                             | [Function definitions](../queries/functions.md)                         | `let add = a b -> a + b`                                |
 | `=>`                             | [Case statement](../language-features/case.md)                          | `case [a==1 => c, a==2 => d ]`                          |
 | `+`/`-`                          | [Sort order](../transforms/sort.md)                                     | `sort [-amount, +date]`                                 |

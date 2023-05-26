@@ -17,7 +17,7 @@ group customer_id (   # Use a nested pipeline on each group
 )
 sort [-sum_income]    # Decreasing order
 take 10               # Limit to top 10 spenders
-join c=customers {==customer_id}
+join c=customers (==customer_id)
 derive name = f"{c.last_name}, {c.first_name}"
 select [              # Select only these columns
   c.customer_id, name, sum_income
@@ -31,7 +31,7 @@ derive db_version = s"version()" # S-string, escape hatch to SQL
     `let soundtracks = (
   from playlists
   filter name == 'TV Shows'
-  join pt=playlist_track {==playlist_id}
+  join pt=playlist_track (==playlist_id)
   select pt.track_id
 )
 
@@ -43,11 +43,11 @@ let high_energy = (
 from t=tracks
 
 # anti-join soundtracks
-join side:left s=soundtracks {==track_id}
+join side:left s=soundtracks (==track_id)
 filter s.track_id == null
 
 # limit to kicker genres
-join g=high_energy {==genre_id}
+join g=high_energy (==genre_id)
 
 # format output
 select [t.track_id, track = t.name, genre = g.name]
@@ -66,14 +66,14 @@ group album_id (
     album_price = sum unit_price
     }
 )
-join albums {==album_id}
+join albums (==album_id)
 group artist_id (
     aggregate {
     track_count = sum track_count,
     artist_price = sum album_price
     }
 )
-join artists {==artist_id}
+join artists (==artist_id)
 select [artists.name, artist_price, track_count]
 sort [-artist_price]
 derive avg_track_price = artist_price / track_count

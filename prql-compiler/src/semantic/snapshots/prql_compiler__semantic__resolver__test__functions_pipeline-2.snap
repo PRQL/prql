@@ -2,10 +2,10 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
 ---
-- id: 38
+- id: 41
   Binary:
     left:
-      id: 32
+      id: 35
       Literal:
         Integer: 2
       ty:
@@ -14,14 +14,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
         name: ~
     op: Add
     right:
-      id: 35
+      id: 38
       Binary:
         left:
-          id: 21
+          id: 24
           BuiltInFunction:
             name: std.sum
             args:
-              - id: 28
+              - id: 31
                 Ident:
                   - _frame
                   - a
@@ -29,7 +29,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                 target_id: 10
         op: Add
         right:
-          id: 37
+          id: 40
           Literal:
             Integer: 1
           ty:
@@ -39,22 +39,38 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
   ty:
     kind:
       Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+          - kind:
+              Singleton: "Null"
+            name: ~
     name: scalar
   alias: b
 

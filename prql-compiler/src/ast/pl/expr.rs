@@ -90,7 +90,7 @@ pub enum ExprKind {
         args: Vec<Expr>,
     },
 
-    Type(TyKind),
+    Type(Ty),
 
     /// a placeholder for values provided after query is compiled
     Param(String),
@@ -557,7 +557,7 @@ impl Display for Expr {
             }
             ExprKind::Tuple(nodes) => {
                 if nodes.is_empty() {
-                    f.write_str("[]")?;
+                    f.write_str("{}")?;
                 } else if nodes.len() == 1 {
                     write!(f, "{{{}}}", nodes[0])?;
                 } else {
@@ -593,10 +593,10 @@ impl Display for Expr {
                 };
             }
             ExprKind::Unary { op, expr } => match op {
-                UnOp::Neg => write!(f, "-{}", expr)?,
-                UnOp::Add => write!(f, "+{}", expr)?,
-                UnOp::Not => write!(f, "not {}", expr)?,
-                UnOp::EqSelf => write!(f, "=={}", expr)?,
+                UnOp::Neg => write!(f, "(-{})", expr)?,
+                UnOp::Add => write!(f, "(+{})", expr)?,
+                UnOp::Not => write!(f, "!{}", expr)?,
+                UnOp::EqSelf => write!(f, "(=={})", expr)?,
             },
             ExprKind::FuncCall(func_call) => {
                 write!(f, "{:}", func_call.name)?;
@@ -656,17 +656,17 @@ impl Display for Expr {
                 write!(f, "{}", literal)?;
             }
             ExprKind::Case(cases) => {
-                f.write_str("case [\n")?;
+                f.write_str("case {\n")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }
-                f.write_str("]")?;
+                f.write_str("}")?;
             }
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
             }
-            ExprKind::Type(_) => {
-                writeln!(f, "<type-expr>")?;
+            ExprKind::Type(ty) => {
+                writeln!(f, "{ty}")?;
             }
             ExprKind::Param(id) => {
                 writeln!(f, "${id}")?;

@@ -2,16 +2,16 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
 ---
-- id: 24
+- id: 27
   Binary:
     left:
-      id: 25
+      id: 28
       Binary:
         left:
-          id: 26
+          id: 29
           Binary:
             left:
-              id: 22
+              id: 25
               Ident:
                 - _frame
                 - a
@@ -19,11 +19,11 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
               target_id: 10
             op: Div
             right:
-              id: 31
+              id: 34
               SString:
                 - String: lag_day_todo(
                 - Expr:
-                    id: 22
+                    id: 25
                     Ident:
                       - _frame
                       - a
@@ -32,7 +32,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 - String: )
         op: Sub
         right:
-          id: 33
+          id: 36
           Literal:
             Integer: 1
           ty:
@@ -41,7 +41,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             name: ~
     op: Add
     right:
-      id: 23
+      id: 26
       Ident:
         - _frame
         - a
@@ -50,21 +50,77 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
   ty:
     kind:
       Union:
+        - - scalar_tuple
+          - kind:
+              Tuple:
+                - Wildcard:
+                    kind:
+                      Union:
+                        - - int
+                          - kind:
+                              Primitive: Int
+                            name: int
+                        - - float
+                          - kind:
+                              Primitive: Float
+                            name: float
+                        - - bool
+                          - kind:
+                              Primitive: Bool
+                            name: bool
+                        - - text
+                          - kind:
+                              Primitive: Text
+                            name: text
+                        - - date
+                          - kind:
+                              Primitive: Date
+                            name: date
+                        - - time
+                          - kind:
+                              Primitive: Time
+                            name: time
+                        - - timestamp
+                          - kind:
+                              Primitive: Timestamp
+                            name: timestamp
+                        - - ~
+                          - kind:
+                              Singleton: "Null"
+                            name: ~
+                    name: scalar
+            name: scalar_tuple
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
-    name: scalar
+          - kind:
+              Singleton: "Null"
+            name: ~
+    name: ~
 

@@ -2,10 +2,10 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
 ---
-- id: 23
+- id: 26
   Binary:
     left:
-      id: 21
+      id: 24
       Ident:
         - _frame
         - employees
@@ -13,7 +13,7 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
       target_id: 9
     op: Sub
     right:
-      id: 22
+      id: 25
       Ident:
         - _frame
         - employees
@@ -22,22 +22,38 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
   ty:
     kind:
       Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+          - kind:
+              Singleton: "Null"
+            name: ~
     name: scalar
   alias: net_salary
 

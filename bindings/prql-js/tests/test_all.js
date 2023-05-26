@@ -2,16 +2,16 @@ const assert = require("assert");
 const expect = require("chai").expect;
 const prql = require("../dist/node");
 const employee_prql = `from employees
-join salaries {==emp_no}
+join salaries (==emp_no)
 group {employees.emp_no, employees.gender} (
   aggregate {
     emp_salary = average salaries.salary
   }
 )
-join de=dept_emp {==emp_no}
-join dm=dept_manager {
+join de=dept_emp (==emp_no)
+join dm=dept_manager (
   (dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
-}
+)
 group {dm.emp_no, gender} (
   aggregate {
     salary_avg = average emp_salary,
@@ -19,7 +19,7 @@ group {dm.emp_no, gender} (
   }
 )
 derive mng_no = emp_no
-join managers=employees {==emp_no}
+join managers=employees (==emp_no)
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select {mng_name, managers.gender, salary_avg, salary_sd}`;
 

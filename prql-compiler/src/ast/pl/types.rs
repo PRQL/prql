@@ -14,10 +14,10 @@ pub enum TyKind {
     Singleton(Literal),
 
     /// Union of sets (sum)
-    Union(Vec<(Option<String>, TyKind)>),
+    Union(Vec<(Option<String>, Ty)>),
 
     /// Type of tuples (product)
-    Tuple(Vec<TupleElement>),
+    Tuple(Vec<TupleField>),
 
     /// Type of arrays
     Array(Box<TyKind>),
@@ -31,12 +31,12 @@ pub enum TyKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum TupleElement {
+pub enum TupleField {
     // Named tuple element.
-    Single(Option<String>, TyKind),
+    Single(Option<String>, Option<Ty>),
 
     // Placeholder for possibly many elements.
-    Wildcard,
+    Wildcard(Option<Ty>),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -100,14 +100,20 @@ impl Ty {
     pub fn is_function(&self) -> bool {
         matches!(self.kind, TyKind::Function(_))
     }
+
+    pub fn is_tuple(&self) -> bool {
+        matches!(self.kind, TyKind::Tuple(_))
+    }
 }
 
 impl TyKind {
     fn is_superset_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
             (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
-            (TyKind::Union(many), one) => many.iter().any(|(_, any)| any.is_superset_of(one)),
-            (one, TyKind::Union(many)) => many.iter().all(|(_, each)| one.is_superset_of(each)),
+            (TyKind::Union(many), one) => many.iter().any(|(_, any)| any.kind.is_superset_of(one)),
+            (one, TyKind::Union(many)) => {
+                many.iter().all(|(_, each)| one.is_superset_of(&each.kind))
+            }
 
             (l, r) => l == r,
         }
@@ -159,14 +165,19 @@ impl Display for TyKind {
                         write!(f, ", ")?
                     }
                     match e {
-                        TupleElement::Wildcard => {
-                            write!(f, "*")?;
-                        }
-                        TupleElement::Single(name, expr) => {
+                        TupleField::Wildcard(generic_el) => match generic_el {
+                            Some(el) => write!(f, "{el}..")?,
+                            None => write!(f, "*..")?,
+                        },
+                        TupleField::Single(name, expr) => {
                             if let Some(name) = name {
                                 write!(f, "{name} = ")?
                             }
-                            write!(f, "{expr}")?
+                            if let Some(expr) = expr {
+                                write!(f, "{expr}")?
+                            } else {
+                                write!(f, "?")?
+                            }
                         }
                     }
                 }

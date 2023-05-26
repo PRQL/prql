@@ -1,5 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
 use itertools::Itertools;
@@ -23,54 +23,50 @@ use walkdir::WalkDir;
 // We re-use the code (somewhat copy-paste) for the other compile tests below.
 #[test]
 fn test_prql_examples_compile() -> Result<()> {
-    collect_book_examples()?
-        .iter()
-        .try_for_each(|Example { name, tags, prql }| {
-            let result = compile(prql, &Options::default().no_signature());
-            let should_succeed = !tags.contains(&LangTag::Error);
+    let examples = collect_book_examples()?;
 
-            match (should_succeed, result) {
-                (true, Err(e)) => bail!(
-                    "
-Failed compiling {name:?}
-Use `prql error` as the language label to assert an error compiling the PRQL.
+    let mut errs = Vec::new();
+    for Example { name, tags, prql } in examples {
+        let result = compile(&prql, &Options::default().no_signature());
+        let should_succeed = !tags.contains(&LangTag::Error);
 
-The original PRQL:
-
+        match (should_succeed, result) {
+            (true, Err(e)) => errs.push(format!(
+                "
+---- {name} ---- ERROR
+  Use `prql error` as the language label to assert an error compiling the PRQL.
+  -- Original PRQL --
 {prql}
-
-And the error:
-
+  -- Error --
 {e}
-
 "
-                ),
+            )),
 
-                (false, Ok(output)) => bail!(
-                    "
-Succeeded compiling {name:?}, but example was marked as `error`.
-Remove `error` as a language label to assert successfully compiling.
-
-The original PRQL:
-
+            (false, Ok(output)) => errs.push(format!(
+                "
+---- {name} ---- UNEXPECTED SUCCESS
+  Succeeded compiling, but example was marked as `error`.
+  Remove `error` as a language label to assert successfully compiling.
+  -- Original PRQL --
 {prql}
-
-And the result:
-
+  -- Result --
 {output}
-
 "
-                ),
-                (_, result) => {
-                    assert_snapshot!(
-                        name.to_string(),
-                        result.unwrap_or_else(|e| e.to_string()),
-                        prql
-                    );
-                    Ok(())
-                }
+            )),
+            (_, result) => {
+                assert_snapshot!(
+                    name.to_string(),
+                    result.unwrap_or_else(|e| e.to_string()),
+                    &prql
+                );
             }
-        })
+        }
+    }
+    if errs.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow!(errs.join("")))
+    }
 }
 
 #[test]
@@ -100,49 +96,47 @@ fn test_prql_examples_rq_serialize() -> Result<(), ErrorMessages> {
 // autoformatter.
 #[test]
 fn test_prql_examples_display_then_compile() -> Result<()> {
-    collect_book_examples()?
-        .iter()
-        .try_for_each(|Example { name, tags, prql }| {
-            let result = prql_to_pl(prql)
-                .and_then(pl_to_prql)
-                .and_then(|formatted| compile(&formatted, &Options::default()));
-            let should_succeed = !tags.contains(&LangTag::NoFmt);
+    let examples = collect_book_examples()?;
 
-            match (should_succeed, result) {
-                (true, Err(e)) => bail!(
-                    "
-Failed compiling the formatted result of {name:?}
-Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
+    let mut errs = Vec::new();
+    for Example { name, tags, prql } in examples {
+        let formatted = prql_to_pl(&prql).and_then(pl_to_prql).unwrap();
 
-The original PRQL:
+        let result = compile(&formatted, &Options::default().no_signature().no_format());
+        let should_succeed = !tags.contains(&LangTag::NoFmt);
 
+        match (should_succeed, result) {
+            (true, Err(e)) => errs.push(format!(
+                "
+---- {name} ---- ERROR after formatting
+  Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
+  -- Original PRQL --
 {prql}
+  -- Formatted PRQL --
+{formatted}
+  -- Error --
+{e}"
+            )),
 
-And the error:
-
-{e}
-
-"
-                ),
-
-                (false, Ok(output)) => bail!(
-                    "
-Succeeded at compiling the formatted result of {name:?}, but example was marked as `no-fmt`.
-Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
-
-The original PRQL:
-
+            (false, Ok(output)) => errs.push(format!(
+                "
+---- {name} ---- UNEXPECTED SUCCESS after formatting
+  Succeeded at compiling the formatted result, but example was marked as `no-fmt`.
+  Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
+  -- Original PRQL --
 {prql}
-
-And the result:
-
+  -- Result --
 {output}
-
 "
-                ),
-                _ => Ok(()),
-            }
-        })
+            )),
+            _ => {}
+        }
+    }
+    if errs.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow!(errs.join("")))
+    }
 }
 
 struct Example {

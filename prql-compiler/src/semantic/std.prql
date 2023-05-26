@@ -21,9 +21,6 @@ type date
 type time
 type timestamp
 
-# Tuple
-type tuple = {}
-
 # Relation (an array of tupes)
 type relation = [{}]
 
@@ -33,6 +30,7 @@ type array = [null]
 
 # Scalar
 type scalar = int || float || bool || text || date || time || timestamp || null
+type scalar_tuple = {scalar..}
 
 # Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
@@ -63,13 +61,13 @@ let in = pattern value -> <bool> null
 
 # Transform type definitions
 let from = `default_db.source`<relation> -> <relation> null
-let select = columns<scalar> tbl<relation> -> <relation> null
+let select = columns<scalar_tuple || scalar> tbl<relation> -> <relation> null
 let filter = condition<bool> tbl<relation> -> <relation> null
-let derive = columns<scalar> tbl<relation> -> <relation> null
-let aggregate = columns<array> tbl<relation> -> <relation> null
-let sort = by<scalar> tbl<relation> -> <relation> null
+let derive = columns<scalar_tuple || scalar> tbl<relation> -> <relation> null
+let aggregate = columns<scalar_tuple || scalar> tbl<relation> -> <relation> null
+let sort = by<scalar_tuple || scalar> tbl<relation> -> <relation> null
 let take = expr<scalar> tbl<relation> -> <relation> null
-let join = `default_db.with`<relation> filter `noresolve.side`:inner tbl<relation> -> <relation> null
+let join = `default_db.with`<relation> filter<bool> `noresolve.side`:inner tbl<relation> -> <relation> null
 let group = by pipeline tbl<relation> -> <relation> null
 let window = rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<relation> -> <relation> null
 

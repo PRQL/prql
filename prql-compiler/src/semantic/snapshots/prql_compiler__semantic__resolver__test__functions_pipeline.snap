@@ -2,11 +2,11 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
-- id: 20
+- id: 23
   BuiltInFunction:
     name: std.sum
     args:
-      - id: 19
+      - id: 22
         Ident:
           - _frame
           - a
@@ -15,22 +15,78 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
   ty:
     kind:
       Union:
+        - - scalar_tuple
+          - kind:
+              Tuple:
+                - Wildcard:
+                    kind:
+                      Union:
+                        - - int
+                          - kind:
+                              Primitive: Int
+                            name: int
+                        - - float
+                          - kind:
+                              Primitive: Float
+                            name: float
+                        - - bool
+                          - kind:
+                              Primitive: Bool
+                            name: bool
+                        - - text
+                          - kind:
+                              Primitive: Text
+                            name: text
+                        - - date
+                          - kind:
+                              Primitive: Date
+                            name: date
+                        - - time
+                          - kind:
+                              Primitive: Time
+                            name: time
+                        - - timestamp
+                          - kind:
+                              Primitive: Timestamp
+                            name: timestamp
+                        - - ~
+                          - kind:
+                              Singleton: "Null"
+                            name: ~
+                    name: scalar
+            name: scalar_tuple
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
-    name: scalar
+          - kind:
+              Singleton: "Null"
+            name: ~
+    name: ~
   alias: one
 
