@@ -45,7 +45,7 @@ mod test {
         let prql: &str = r###"
         from employees
         filter country == "USA"
-        aggregate [sal = average salary]
+        aggregate {sal = average salary}
         sort sal
         take 20
         "###;
@@ -57,7 +57,7 @@ mod test {
         from employees
         take 20
         filter country == "USA"
-        aggregate [sal = average salary]
+        aggregate {sal = average salary}
         sort sal
         "###;
 
@@ -68,8 +68,8 @@ mod test {
         from employees
         take 20
         filter country == "USA"
-        aggregate [sal = average salary]
-        aggregate [sal2 = average sal]
+        aggregate {sal = average salary}
+        aggregate {sal2 = average sal}
         sort sal2
         "###;
 

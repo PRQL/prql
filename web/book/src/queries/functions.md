@@ -32,10 +32,10 @@ and `x`, and one named parameter named `low` which takes a default argument of
 let interp = low:0 high x -> (x - low) / (high - low)
 
 from students
-derive [
+derive {
   sat_proportion_1 = (interp 1600 sat_score),
   sat_proportion_2 = (interp low:0 1600 sat_score),
-]
+}
 ```
 
 ## Piping
@@ -50,10 +50,10 @@ above with an alternative construction:
 let interp = low:0 high x -> (x - low) / (high - low)
 
 from students
-derive [
+derive {
   sat_proportion_1 = (sat_score | interp 1600),
   sat_proportion_2 = (sat_score | interp low:0 1600),
-]
+}
 ```
 
 and
@@ -87,10 +87,10 @@ For example, here `cost_total` refers to the column that's introduced in the
 let cost_share = cost -> cost / cost_total
 
 from costs
-select [materials, labor, overhead, cost_total]
-derive [
+select {materials, labor, overhead, cost_total}
+derive {
   materials_share = (cost_share materials),
   labor_share = (cost_share labor),
   overhead_share = (cost_share overhead),
-]
+}
 ```

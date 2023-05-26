@@ -12,14 +12,14 @@ transform.
 ```prql
 from employees
 filter department == "Product"
-select [first_name, last_name]
+select {first_name, last_name}
 ```
 
 In the place of a line-break, it's also possible to use the `|` character to
 pipe results, such that this is equivalent:
 
 ```prql
-from employees | filter department == "Product" | select [first_name, last_name]
+from employees | filter department == "Product" | select {first_name, last_name}
 ```
 
 A line-break doesn't create a pipeline in a couple of cases:

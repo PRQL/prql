@@ -6,10 +6,10 @@ pass their result to an "inner transform". The example below applies the
 
 ```prql
 from employees
-group [title, country] (
-  aggregate [
+group {title, country} (
+  aggregate {
     average salary,
     ct = count
-  ]
+  }
 )
 ```

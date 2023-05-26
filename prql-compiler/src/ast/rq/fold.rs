@@ -171,7 +171,6 @@ pub fn fold_transform<T: ?Sized + RqFold>(
             partition: fold.fold_cids(partition)?,
             compute: fold.fold_cids(compute)?,
         },
-
         Select(ids) => Select(fold.fold_cids(ids)?),
         Filter(i) => Filter(fold.fold_expr(i)?),
         Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),

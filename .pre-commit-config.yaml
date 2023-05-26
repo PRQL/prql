@@ -42,8 +42,15 @@ repos:
     rev: v3.11.2
     hooks:
       - id: markdown-link-check
+        name: markdown-link-check-local
         files: \.md$
         args: ["--config=.config/.markdown-link-check-local.json"]
+        # To run across everything (see nightly.yaml for more details)
+      - id: markdown-link-check
+        name: markdown-link-check-all
+        stages: [manual]
+        files: \.md$
+        args: ["--config=.config/.markdown-link-check-all.json"]
   - repo: local
     hooks:
       - id: no-dbg
@@ -51,7 +58,6 @@ repos:
         description: We shouldn't merge code with `dbg!` in
         language: pygrep
         types: ["rust"]
-        # A regex searching sql files for either `prj-` or 'tgs-'.
         entry: "dbg!"
   - repo: local
     hooks:

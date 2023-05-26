@@ -12,7 +12,7 @@ let top_50 = (
   from employees
   sort salary
   take 50
-  aggregate [total_salary = sum salary]
+  aggregate {total_salary = sum salary}
 )
 
 from top_50      # Starts a new pipeline
@@ -42,7 +42,7 @@ We can also assign a variable to `foo` by postfixing with `into foo`:
 from employees
 sort salary
 take 50
-aggregate [total_salary = sum salary]
+aggregate {total_salary = sum salary}
 into top_50
 
 from top_50      # Starts a new pipeline

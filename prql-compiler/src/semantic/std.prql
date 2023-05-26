@@ -89,13 +89,13 @@ type time
 type timestamp
 
 # a tuple
-type list = []
+type list = {}
 
 # relation is an array of tupes
-type relation = {[]}
+type relation = [{}]
 
 # TODO: an array of anything
-type array = {null}
+type array = [null]
 
 type scalar = int || float || bool || text || date || time || timestamp || null
 

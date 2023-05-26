@@ -475,7 +475,6 @@ pub(super) fn get_requirements(
         Super(Sort(_)) => (Complexity::Aggregation, true),
         Super(Take(_)) => (Complexity::Plain, false),
         Super(Transform::Join { .. }) => (Complexity::Plain, false),
-
         _ => unreachable!(),
     };
 

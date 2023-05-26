@@ -6,10 +6,10 @@ alias `circumference` and in the `filter` transform.
 
 ```prql
 from foo
-select [
+select {
   circumference = diameter * 3.14159,
   color,
-]
+}
 filter circumference > 10 && color != "red"
 ```
 
@@ -71,7 +71,7 @@ derive min_capped_distance = (min distance ?? 5)
 derive travel_time = distance / 40
 # No inner parentheses needed around `1+1` because no function call
 derive distance_rounded_2_dp = (round 1+1 distance)
-derive [
+derive {
   # Requires parentheses, because it contains a pipe
   is_far = (distance | in 100..),
   # The left value of the range requires parentheses,
@@ -81,21 +81,29 @@ derive [
   is_negative = (distance | in (-100)..0),
   # Doesn't require parentheses, because it's in a list (confusing, see footnote)!
   average_distance = average distance,
-]
+}
 # Requires parentheses because of the minus sign
 sort (-distance)
 # A list is fine too
-sort [-distance]
+sort {-distance}
 ```
 
 Note: The `total_distance` statement below generates an error because the
-function is not in a list. (The PRQL compiler should display a better error
+function is not in a list... (The PRQL compiler should display a better error
 message.)
 
-```prql error
+```prql error no-fmt
 from employees
-derive total_distance = sum distance # generates the error shown below
-derive other_distance = (sum distance) # works as expected
+derive total_distance = sum distance
+```
+
+...while with parentheses, it works at expected:
+
+<!-- TODO: why doesn't this format? -->
+
+```prql no-fmt
+from employees
+derive other_distance = (sum distance)
 ```
 
 ```admonish note

@@ -91,7 +91,7 @@ general channels such as GitHub or Discord, feel free to reach out to:
 
 - [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
 - [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
-- [**@eitsupi**](https://twitter.com/eitsupi) — SHIMA Tatsuya
+- [**@eitsupi**](https://github.com/eitsupi) — SHIMA Tatsuya
 - [**@snth**](https://github.com/snth) — Tobias Brandt
 
 ### Core team Emeritus

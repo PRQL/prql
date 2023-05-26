@@ -26,12 +26,12 @@ identifiers) in the `SELECT` statement:
 ```prql
 prql target:sql.bigquery
 from `project-foo.dataset.table`
-join `project-bar.dataset.table` [==col_bax]
+join `project-bar.dataset.table` {==col_bax}
 ```
 
-## Quoting schemas
+## Schemas & database names
 
-Identifiers of tables can be prefixed with databases and schema names. Note that
+Identifiers of tables can be prefixed with schema and databases names. Note that
 all of following identifiers will be treated as separate table definitions:
 `tracks`, `public.tracks`, `my_database.public.tracks`.
 

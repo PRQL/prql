@@ -5,8 +5,8 @@ numbers easier:
 
 ```prql
 from numbers
-select [
+select {
     small = 1.000_000_1,
     big = 5_000_000,
-]
+}
 ```

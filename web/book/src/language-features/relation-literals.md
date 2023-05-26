@@ -8,28 +8,26 @@ PRQL offers two approaches — array literals, and a `from_text` transform.
 
 ## Relation literals
 
-<!-- TODO: this syntax is about to change... -->
-
-Relation literals convert an array (represented by `{}`), of tuples (represented
-by `[]`) into a relation (aka a table):
+Relation literals convert an array (represented by `[]`), of tuples (represented
+by `{}`) into a relation (aka a table):
 
 ```prql
-{[a = 5, b = false], [a = 6, b = true]}
+[{a=5, b=false}, {a=6, b=true}]
 filter b == true
 select a
 ```
 
 ```prql no-fmt
-let my_artists = {
-  [artist="Miles Davis"],
-  [artist="Marvin Gaye"],
-  [artist="James Brown"],
-}
+let my_artists = [
+  {artist="Miles Davis"},
+  {artist="Marvin Gaye"},
+  {artist="James Brown"},
+]
 
 from artists
-join my_artists [==artist]
-join albums [==artist_id]
-select [artists.artist_id, albums.title]
+join my_artists (==artist)
+join albums (==artist_id)
+select {artists.artist_id, albums.title}
 ```
 
 ## `from_text`
@@ -49,15 +47,15 @@ a,b,c
 1,2,3
 4,5,6
 """
-derive [
+derive {
     d = b + c,
     answer = 20 * 2 + 2,
-]
+}
 ```
 
 An example of adding a small lookup table:
 
-```prql
+```prql no-fmt
 let temp_format_lookup = from_text format:csv """
 country_code,format
 uk,C
@@ -67,12 +65,12 @@ de,C
 """
 
 from temperatures
-join temp_format_lookup [==country_code]
+join temp_format_lookup (==country_code)
 ```
 
 And JSON:
 
-```prql
+```prql no-fmt
 let x = from_text format:json """{
     "columns": ["a", "b", "c"],
     "data": [
@@ -88,7 +86,7 @@ let y = from_text format:json """
     ]
 """
 
-from x | join y [==a]
+from x | join y (==a)
 ```
 
 ## See also

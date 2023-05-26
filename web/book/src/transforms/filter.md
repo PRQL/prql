@@ -3,7 +3,7 @@
 Picks rows based on their values.
 
 ```prql no-eval
-filter {boolean_expression}
+filter boolean_expression
 ```
 
 ## Examples

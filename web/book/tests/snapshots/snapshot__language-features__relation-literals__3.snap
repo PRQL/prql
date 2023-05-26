@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "let temp_format_lookup = from_text format:csv \"\"\"\ncountry_code,format\nuk,C\nus,F\nlr,F\nde,C\n\"\"\"\n\nfrom temperatures\njoin temp_format_lookup [==country_code]\n"
+expression: "let temp_format_lookup = from_text format:csv \"\"\"\ncountry_code,format\nuk,C\nus,F\nlr,F\nde,C\n\"\"\"\n\nfrom temperatures\njoin temp_format_lookup (==country_code)\n"
 ---
 WITH table_2 AS (
   SELECT

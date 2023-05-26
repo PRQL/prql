@@ -114,27 +114,6 @@ jobs:
         with:
           use_cache: true
 
-  build-docker:
-    # TODO: could extract this into its own workflow and run on any changes to `Dockerfile` on PRs
-    # Note that we only build the image here; we then run tests in `nightly.yaml`
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-
-      - uses: docker/setup-buildx-action@v2
-
-      - name: Build
-        uses: docker/build-push-action@v4
-        with:
-          tags: prql:latest
-          # Use the GHA cache
-          load: true
-          cache-from: type=gha
-          # Only save cache on `main`
-          cache-to:
-            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
-
   test-min-rust-version:
     runs-on: ubuntu-latest
     steps:
@@ -144,9 +123,12 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prql-compiler/Cargo.toml`, because of
+        # `prql-compiler/Cargo.toml` (and `prql-compiler/prqlc/Cargo.toml` below), because of
         # https://github.com/foresterre/cargo-msrv/issues/590
-      - name: Verify minimum rust version
+      - name: Verify minimum rust version — prql-compiler
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
         working-directory: prql-compiler
+        run: cargo msrv verify
+      - name: Verify minimum rust version — prqlc
+        working-directory: prql-compiler/prqlc
         run: cargo msrv verify

@@ -8,11 +8,14 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+metadata.msrv = "1.65.0"
+
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {version = "1.0.57"}
 ariadne = "0.2.0"
 atty = "0.2.14"
 clap = {version = "4.3.0", features = ["derive", "env", "wrap_help"]}
+clap_complete_command = "0.5.1"
 clio = {version = "0.2.7", features = ['clap-parse']}
 color-eyre = "0.6.1"
 concolor = "0.1.0"

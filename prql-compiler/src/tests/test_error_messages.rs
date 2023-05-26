@@ -113,12 +113,12 @@ fn test_errors() {
 fn test_hint_missing_args() {
     assert_display_snapshot!(compile(r###"
     from film
-    select [film_id, lag film_id]
+    select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
     Error:
        ╭─[:3:22]
        │
-     3 │     select [film_id, lag film_id]
+     3 │     select {film_id, lag film_id}
        │                      ─────┬─────
        │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `func infer -> array`
        │
@@ -130,7 +130,7 @@ fn test_hint_missing_args() {
 #[test]
 fn test_regex_dialect() {
     assert_display_snapshot!(compile(r###"
-    prql target:sql.sqlite
+    prql target:sql.mssql
     from foo
     filter bar ~= 'love'
     "###).unwrap_err(), @r###"
@@ -139,7 +139,7 @@ fn test_regex_dialect() {
        │
      4 │     filter bar ~= 'love'
        │            ──────┬──────
-       │                  ╰──────── regex functions are not supported by this dialect (or PRQL doesn't yet implement this dialect)
+       │                  ╰──────── regex functions are not supported by MsSql
     ───╯
     "###)
 }

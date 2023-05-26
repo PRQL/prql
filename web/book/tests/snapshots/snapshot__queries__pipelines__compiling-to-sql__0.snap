@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from e = employees\nderive gross_salary = (salary + payroll_tax)\nsort gross_salary\ntake 10\njoin d = department [==dept_no]\nselect [e.name, gross_salary, d.name]\n"
+expression: "from e = employees\nderive gross_salary = (salary + payroll_tax)\nsort gross_salary\ntake 10\njoin d = department {==dept_no}\nselect [e.name, gross_salary, d.name]\n"
 ---
 WITH table_1 AS (
   SELECT

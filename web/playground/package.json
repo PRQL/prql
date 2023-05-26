@@ -12,7 +12,7 @@
     ]
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "^1.24.0",
+    "@duckdb/duckdb-wasm": "^1.26.0",
     "@monaco-editor/react": "^4.5.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
@@ -24,7 +24,7 @@
     "react-syntax-highlighter": "^15.5.0",
     "wasm-react-scripts": "5.0.3",
     "web-vitals": "^3.3.0",
-    "yaml": "^2.2.2"
+    "yaml": "^2.3.0"
   },
   "devDependencies": {
     "npm-watch": "^0.11.0"

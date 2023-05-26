@@ -159,17 +159,23 @@ fn replace_examples(text: &str) -> Result<String> {
         };
 
         let prql = text.to_string();
-        let options = prql_compiler::Options::default()
-            .no_signature()
-            .with_color(true);
-        let result = compile(&prql, &options);
+        let result = compile(
+            &prql,
+            &prql_compiler::Options::default()
+                .no_signature()
+                .with_color(true),
+        );
 
         if lang_tags.contains(&LangTag::NoTest) {
             cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
         } else if lang_tags.contains(&LangTag::Error) {
+            // This logic is implemented again, and better, in
+            // [../tests/snapshot.rs], so would be fine to just skip here.
             let error_message = match result {
-                Ok(prql) => {
-                    panic!("Query was labeled to raise an error, but succeeded.\n{prql}\n\n")
+                Ok(sql) => {
+                    anyhow::bail!(
+                        "Query was labeled to raise an error, but succeeded.\n{prql}\n\n{sql}\n\n"
+                    )
                 }
                 Err(e) => ansi_to_html::convert_escaped(e.to_string().as_str()).unwrap(),
             };
@@ -181,7 +187,9 @@ fn replace_examples(text: &str) -> Result<String> {
                 table_of_comparison(
                     &prql,
                     result
-                        .map_err(|_| anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n"))?
+                        .map_err(|e| {
+                            anyhow::anyhow!("Query raised an error:\n\n {prql}\n\n{e}\n\n")
+                        })?
                         .as_str(),
                 )
                 .into(),

@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_lineage(r#\"\n            from orders\n            select [customer_no, gross, tax, gross - tax]\n            take 20\n            \"#).unwrap()"
+expression: "resolve_lineage(r#\"\n            from orders\n            select {customer_no, gross, tax, gross - tax}\n            take 20\n            \"#).unwrap()"
 ---
 columns:
   - Single:

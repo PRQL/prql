@@ -1212,11 +1212,11 @@ mod tests {
         let query = parse(
             "
         from invoices
-        sort [issued_at, -amount, +num_of_articles]
+        sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)
-        sort [issued_at]
-        sort [-issued_at]
+        sort {issued_at}
+        sort {-issued_at}
         ",
         )
         .unwrap();

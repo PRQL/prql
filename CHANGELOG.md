@@ -2,13 +2,28 @@
 
 ## 0.8.2 — [unreleased]
 
+_The following unreleased features are only available in the `main` branch. They
+will become the public version at the next release._
+
 **Features**:
+
+- We've made one large breaking change — "Lists" are now "Tuples", and
+  represented with brackets `{}` rather than braces `[]`.
+
+  We've made this change to incorporate arrays without having syntax that's the
+  opposite of almost every major language — specifically using `{}` for an array
+  type and `[]` for a tuple type. (Though we recognize that `{}` for tuples is
+  also rare (Hi, Erlang!), but didn't want to further load parentheses with
+  meaning)
+
+  As part of this, we've also formalized tuples as containing both individual
+  items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
 
 - Add a `~=` regex search operator (@max-sixty, #2458). An example:
 
   ```prql no-eval
   from tracks
-  filter (name ~= "Love")
+  filter {name ~= "Love"}
   ```
 
   ...compiles to;
@@ -22,7 +37,18 @@
     REGEXP(name, 'Love')
   ```
 
-  ...though the exact form differs by dialect.
+  ...though the exact form differs by dialect; see the
+  [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
+  details.
+
+- Change to function syntax: `let f = x -> ...` See
+  https://github.com/PRQL/prql/blob/main/web/book/src/queries/functions.md
+
+- Modules allow importing declarations from other files: See
+  https://github.com/PRQL/prql/blob/main/web/book/src/internals/modules.md
+
+- Relation literals create in-line tables or array literals: See
+  https://github.com/PRQL/prql/pull/2605
 
 **Fixes**:
 
@@ -33,6 +59,9 @@
 **Integrations**:
 
 **Internal changes**:
+
+- Remove BigQuery's special handling of quoted identifiers, now that our module
+  system handles its semantics (@max-sixty, #2609).
 
 **New Contributors**:
 
@@ -520,10 +549,10 @@ below in this release).
 
   ```prql no-eval
   from numbers
-  select [
+  select {
       small = 1.000_000_1,
       big = 5_000_000,
-  ]
+  }
   ```
 
 - The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
@@ -668,7 +697,7 @@ We've had to make some modest breaking changes for 0.3:
   ```diff
   from employees
   -join positions [id]
-  +join positions [==id]
+  +join positions {==id}
   ```
 
 - _Table references containing periods must be surrounded by backticks_. For
