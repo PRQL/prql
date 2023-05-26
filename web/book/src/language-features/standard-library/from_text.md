@@ -20,10 +20,10 @@ a,b,c
 1,2,3
 4,5,6
 """
-derive [
+derive {
     d = b + c,
     answer = 20 * 2 + 2,
-]
+}
 ```
 
 An example of adding a small lookup table:
@@ -38,7 +38,7 @@ de,C
 """
 
 from temperatures
-join temp_format_lookup [==country_code]
+join temp_format_lookup {==country_code}
 ```
 
 And JSON:
@@ -59,5 +59,5 @@ let y = from_text format:json """
     ]
 """
 
-from x | join y [==a]
+from x | join y {==a}
 ```

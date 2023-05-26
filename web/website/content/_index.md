@@ -14,25 +14,25 @@ hero_section:
   prql_example: |
     from invoices
     filter invoice_date >= @1970-01-16
-    derive [
+    derive {
       transaction_fees = 0.8,
       income = total - transaction_fees
-    ]
+    }
     filter income > 1
     group customer_id (
-      aggregate [
+      aggregate {
         average total,
         sum_income = sum income,
         ct = count,
-      ]
+      }
     )
-    sort [-sum_income]
+    sort {-sum_income}
     take 10
-    join c=customers [==customer_id]
+    join c=customers {==customer_id}
     derive name = f"{c.last_name}, {c.first_name}"
-    select [
+    select {
       c.customer_id, name, sum_income
-    ]
+    }
     derive db_version = s"version()"
 
 why_prql_section:
@@ -84,7 +84,7 @@ showcase_section:
       label: Basic example
       prql: |
         from employees
-        select [id, first_name, age]
+        select {id, first_name, age}
         sort age
         take 10
       sql: |
@@ -101,7 +101,7 @@ showcase_section:
         filter (length | in 60..240)         # Ranges with `..`
         filter recorded > @2008-01-01        # Simple date literals
         filter released - recorded < 180days # Nice interval literals
-        sort [-length]                       # Concise order direction
+        sort {-length}                       # Concise order direction
 
       sql: |
         SELECT
@@ -123,7 +123,7 @@ showcase_section:
         # `filter` before aggregations...
         filter start_date > @2021-01-01
         group country (
-          aggregate [max_salary = max salary]
+          aggregate {max_salary = max salary}
         )
         # ...and `filter` after aggregations!
         filter max_salary > 100_000
@@ -159,11 +159,11 @@ showcase_section:
       label: Expressions
       prql: |
         from track_plays
-        derive [
+        derive {
           finished = started + unfinished,
           fin_share = finished / started,        # Use previous definitions
           fin_ratio = fin_share / (1-fin_share), # BTW, hanging commas are optional!
-        ]
+        }
 
       sql: |
         SELECT
@@ -193,7 +193,7 @@ showcase_section:
         group employee_id (
           sort month
           window rolling:12 (
-            derive [trail_12_m_comp = sum paycheck]
+            derive {trail_12_m_comp = sum paycheck}
           )
         )
       sql: |
@@ -267,9 +267,9 @@ showcase_section:
       label: Joins
       prql: |
         from employees
-        join b=benefits [==employee_id]
-        join side:left p=positions [p.id==employees.employee_id]
-        select [employees.employee_id, p.role, b.vision_coverage]
+        join b=benefits {==employee_id}
+        join side:left p=positions {p.id==employees.employee_id}
+        select {employees.employee_id, p.role, b.vision_coverage}
       sql: |
         SELECT
           employees.employee_id,
@@ -437,7 +437,7 @@ comments_section:
   enable: true
   title: "What people are saying"
   comments:
-    # Tweets can be fetched with https://www.tweetic.io/docs
+    # Tweets can be fetched with https://tweetic.zernonia.com
 
     - quote:
         text:

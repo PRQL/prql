@@ -27,7 +27,7 @@
 - [Syntax](./syntax/README.md)
 
   - [Pipes](./syntax/pipes.md)
-  - [Lists](./syntax/lists.md)
+  - [Tuples](./syntax/tuples.md)
   - [Expressions & Operators](./syntax/expressions-and-operators.md)
   - [Inner Transforms](./syntax/inner-transforms.md)
   - [Comments](./syntax/comments.md)
@@ -84,8 +84,6 @@
 - [Contributing to PRQL](./contributing/README.md)
 
   - [Development](./contributing/development.md)
-  - [Developing with Docker](./contributing/developing-with-docker.md)
-  - [Developing with Dev Containers](./contributing/developing-with-dev-containers.md)
 
 - [Internals](./internals/README.md)
 

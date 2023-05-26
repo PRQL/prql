@@ -520,11 +520,11 @@ impl Display for Expr {
                 display_ident(f, s)?;
             }
             ExprKind::All { within, except } => {
-                write!(f, "{within}.![")?;
+                write!(f, "{within}.!{{")?;
                 for e in except {
                     write!(f, "{e},")?;
                 }
-                f.write_str("]")?;
+                f.write_str("}")?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;
@@ -549,18 +549,18 @@ impl Display for Expr {
                 if nodes.is_empty() {
                     f.write_str("[]")?;
                 } else if nodes.len() == 1 {
-                    write!(f, "[{}]", nodes[0])?;
+                    write!(f, "{{{}}}", nodes[0])?;
                 } else {
-                    f.write_str("[\n")?;
+                    f.write_str("{\n")?;
                     for li in nodes {
                         writeln!(f, "  {},", li)?;
                     }
-                    f.write_str("]")?;
+                    f.write_str("}")?;
                 }
             }
             ExprKind::Array(items) => {
                 let items = items.iter().map(|x| x.to_string()).join(", ");
-                write!(f, "{{{items}}}")?;
+                write!(f, "[{items}]")?;
             }
             ExprKind::Range(r) => {
                 if let Some(start) = &r.start {

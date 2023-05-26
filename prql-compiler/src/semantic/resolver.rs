@@ -960,10 +960,10 @@ mod test {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             from employees
-            derive [
+            derive {
                 gross_salary = salary + payroll_tax,
                 gross_cost =   gross_salary + benefits_cost
-            ]
+            }
             "#
         )
         .unwrap());
@@ -981,9 +981,9 @@ mod test {
             let subtract = a b -> a - b
 
             from employees
-            derive [
+            derive {
                 net_salary = subtract gross_salary tax
-            ]
+            }
             "#
         )
         .unwrap());
@@ -1019,7 +1019,7 @@ mod test {
             let plus = x y -> x + y
 
             from a
-            derive [b = (sum foo | plus_one | plus 2)]
+            derive {b = (sum foo | plus_one | plus 2)}
             "#
         )
         .unwrap());
@@ -1031,10 +1031,10 @@ mod test {
             let add = x to:1 -> x + to
 
             from foo_table
-            derive [
+            derive {
                 added = add bar to:3,
                 added_default = add bar
-            ]
+            }
             "#
         )
         .unwrap());
@@ -1045,7 +1045,7 @@ mod test {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
             from orders
-            select [customer_no, gross, tax, gross - tax]
+            select {customer_no, gross, tax, gross - tax}
             take 20
             "#
         )
@@ -1054,7 +1054,7 @@ mod test {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
             from table_1
-            join customers [==customer_no]
+            join customers {==customer_no}
             "#
         )
         .unwrap());
@@ -1062,11 +1062,11 @@ mod test {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
             from e = employees
-            join salaries [==emp_no]
-            group [e.emp_no, e.gender] (
-                aggregate [
+            join salaries {==emp_no}
+            group {e.emp_no, e.gender} (
+                aggregate {
                     emp_salary = average salaries.salary
-                ]
+                }
             )
             "#
         )

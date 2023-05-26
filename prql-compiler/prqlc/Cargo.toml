@@ -8,6 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+metadata.msrv = "1.65.0"
+
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {version = "1.0.57"}
 ariadne = "0.2.0"

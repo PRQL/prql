@@ -2,92 +2,91 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
+use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
 use prql_compiler::*;
+use pulldown_cmark::Tag;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
-#[test]
 /// This test:
 /// - Extracts PRQL code blocks from the book
-/// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
-///   there's a diff.
+/// - Compiles them to SQL, comparing to a snapshot.
+/// - We raise an error if they shouldn't pass or shouldn't fail.
+/// - Insta raises an error if there's a snapshot diff.
 ///
-/// This mirrors the process in [replace_examples], which inserts a
-/// comparison table of SQL into the book, and so serves as a snapshot test of
-/// those examples.
-fn test_prql_examples() {
-    let opts = Options::default().no_signature();
-    let examples = collect_book_examples().unwrap();
+/// This mirrors the process in [replace_examples], which inserts a comparison
+/// table of SQL into the book, and so serves as a snapshot test of those
+/// examples.
+//
+// We re-use the code (somewhat copy-paste) for the other compile tests below.
+#[test]
+fn test_prql_examples_compile() -> Result<()> {
+    collect_book_examples()?
+        .iter()
+        .try_for_each(|Example { name, tags, prql }| {
+            let result = compile(prql, &Options::default().no_signature());
+            let should_succeed = !tags.contains(&LangTag::Error);
 
-    for Example { name, prql, .. } in examples {
-        // Whether it's a success or a failure, get the string. (The book
-        // building asserts whether it's a correct success or failure; no need
-        // to repeat that here.)
-        let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
-        assert_snapshot!(name, &sql, &prql);
-    }
-}
+            match (should_succeed, result) {
+                (true, Err(e)) => bail!(
+                    "
+Failed compiling {name:?}
+Use `prql error` as the language label to assert an error compiling the PRQL.
 
-struct Example {
-    name: String,
-    tags: Vec<LangTag>,
-    prql: String,
-}
+The original PRQL:
 
-/// Collect all the PRQL examples in the book, as [Example]s.
-/// Excludes any with a `no-eval` tag.
-fn collect_book_examples() -> Result<Vec<Example>> {
-    use pulldown_cmark::{Event, Parser};
-    let glob = Glob::new("**/*.md")?.compile_matcher();
-    let examples_in_book: Vec<Example> = WalkDir::new(Path::new("./src/"))
-        .into_iter()
-        .flatten()
-        .filter(|x| glob.is_match(x.path()))
-        .flat_map(|dir_entry| {
-            let text = fs::read_to_string(dir_entry.path())?;
-            // TODO: Still slightly duplicative logic here and in
-            // [lib.rs/replace_examples], but not sure how to avoid it.
-            //
-            let mut parser = Parser::new(&text);
-            let mut prql_blocks = vec![];
-            while let Some(event) = parser.next() {
-                let Some(lang_tags) = code_block_lang_tags(&event) else {
-                    continue
-                };
+{prql}
 
-                if lang_tags.contains(&LangTag::Prql) && !lang_tags.contains(&LangTag::NoEval) {
-                    let mut prql_text = String::new();
-                    while let Some(Event::Text(line)) = parser.next() {
-                        prql_text.push_str(line.to_string().as_str());
-                    }
-                    if prql_text.is_empty() {
-                        bail!("Expected text after PRQL code block");
-                    }
-                    prql_blocks.push((lang_tags, prql_text));
+And the error:
+
+{e}
+
+"
+                ),
+
+                (false, Ok(output)) => bail!(
+                    "
+Succeeded compiling {name:?}, but example was marked as `error`.
+Remove `error` as a language label to assert successfully compiling.
+
+The original PRQL:
+
+{prql}
+
+And the result:
+
+{output}
+
+"
+                ),
+                (_, result) => {
+                    assert_snapshot!(
+                        name.to_string(),
+                        result.unwrap_or_else(|e| e.to_string()),
+                        prql
+                    );
+                    Ok(())
                 }
             }
-            let file_name = &dir_entry
-                .path()
-                .strip_prefix("./src/")?
-                .to_str()
-                .unwrap()
-                .trim_end_matches(".md");
-            Ok(prql_blocks
-                .into_iter()
-                .enumerate()
-                .map(|(i, (tags, prql))| Example {
-                    name: format!("{file_name}-{i}"),
-                    tags,
-                    prql,
-                })
-                .collect::<Vec<Example>>())
         })
-        .flatten()
-        .collect();
+}
 
-    Ok(examples_in_book)
+#[test]
+fn test_prql_examples_rq_serialize() -> Result<(), ErrorMessages> {
+    for Example { tags, prql, .. } in collect_book_examples()? {
+        // Don't assert that this fails, whether or not they compile to RQ is
+        // undefined.
+        if tags.contains(&LangTag::Error) {
+            continue;
+        }
+        let rq = prql_to_pl(&prql).map(pl_to_rq)?;
+        // Serialize to YAML
+        assert!(serde_yaml::to_string(&rq).is_ok());
+    }
+
+    Ok(())
 }
 
 /// Test that the formatted result (the `Display` result) of each example can be
@@ -100,48 +99,131 @@ fn collect_book_examples() -> Result<Vec<Example>> {
 // compilation. For that to provide a good output, we need to implement a proper
 // autoformatter.
 #[test]
-fn test_display() -> Result<(), ErrorMessages> {
+fn test_prql_examples_display_then_compile() -> Result<()> {
     collect_book_examples()?
         .iter()
         .try_for_each(|Example { name, tags, prql }| {
-            if tags.contains(&LangTag::Error) || tags.contains(&LangTag::NoFmt) {
-                return Ok(());
-            }
-            prql_to_pl(prql)
+            let result = prql_to_pl(prql)
                 .and_then(pl_to_prql)
-                .and_then(|formatted| compile(&formatted, &Options::default()))
-                .unwrap_or_else(|_| {
-                    panic!(
-                        "
-Failed compiling the formatted result of {name:?}
-To skip this test for an example, use `prql no-fmt` as the language label.
+                .and_then(|formatted| compile(&formatted, &Options::default()));
+            let should_succeed = !tags.contains(&LangTag::NoFmt);
 
-The original PRQL was:
+            match (should_succeed, result) {
+                (true, Err(e)) => bail!(
+                    "
+Failed compiling the formatted result of {name:?}
+Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
+
+The original PRQL:
 
 {prql}
 
-",
-                        name = name,
-                        prql = prql
-                    )
-                });
+And the error:
 
-            Ok::<(), ErrorMessages>(())
-        })?;
+{e}
 
-    Ok(())
+"
+                ),
+
+                (false, Ok(output)) => bail!(
+                    "
+Succeeded at compiling the formatted result of {name:?}, but example was marked as `no-fmt`.
+Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
+
+The original PRQL:
+
+{prql}
+
+And the result:
+
+{output}
+
+"
+                ),
+                _ => Ok(()),
+            }
+        })
 }
 
-#[test]
-fn test_rq_serialize() -> Result<(), ErrorMessages> {
-    for Example { tags, prql, .. } in collect_book_examples()? {
-        if tags.contains(&LangTag::Error) {
-            continue;
-        }
-        let rq = prql_to_pl(&prql).map(pl_to_rq)?;
-        // Serialize to YAML
-        assert!(serde_yaml::to_string(&rq).is_ok());
-    }
+struct Example {
+    /// Name contains the file, the heading, and the index of the example.
+    name: String,
+    tags: Vec<LangTag>,
+    /// The PRQL text
+    prql: String,
+}
 
-    Ok(())
+/// Collect all the PRQL examples in the book, as [Example]s.
+/// Excludes any with a `no-eval` tag.
+fn collect_book_examples() -> Result<Vec<Example>> {
+    use pulldown_cmark::{Event, Parser};
+    let glob = Glob::new("**/*.md")?.compile_matcher();
+    Ok(WalkDir::new(Path::new("./src/"))
+        .into_iter()
+        .flatten()
+        .filter(|x| glob.is_match(x.path()))
+        .flat_map(|dir_entry| {
+            let text = fs::read_to_string(dir_entry.path())?;
+            // TODO: Still slightly duplicative logic here and in
+            // [lib.rs/replace_examples], but not sure how to avoid it.
+            //
+            let mut parser = Parser::new(&text);
+            let mut prql_blocks: Vec<Example> = vec![];
+            // Keep track of the latest heading, so snapshots can have the
+            // section they're in. This makes them easier to find and means
+            // adding one example at the top of the book doesn't cause a huge
+            // diff in the snapshots of that file's examples..
+            let mut latest_heading = "";
+            let file_name = &dir_entry
+                .path()
+                .strip_prefix("./src/")?
+                .to_str()
+                .unwrap()
+                .trim_end_matches(".md");
+
+            // Iterate through the markdown file, getting examples.
+            while let Some(event) = parser.next() {
+                if let Event::Start(Tag::Heading(..)) = event.clone() {
+                    if let Some(Event::Text(pulldown_cmark::CowStr::Borrowed(heading))) =
+                        parser.next()
+                    {
+                        latest_heading = heading;
+                    }
+                }
+                let Some(tags) = code_block_lang_tags(&event) else {
+                    continue
+                };
+
+                if tags.contains(&LangTag::Prql) && !tags.contains(&LangTag::NoEval) {
+                    let mut prql = String::new();
+                    while let Some(Event::Text(line)) = parser.next() {
+                        prql.push_str(line.to_string().as_str());
+                    }
+                    if prql.is_empty() {
+                        bail!("Expected text in PRQL code block");
+                    }
+                    let heading = latest_heading.replace(' ', "-").to_ascii_lowercase();
+                    // Only add the heading if it's different from the file name.
+                    let name = if !file_name.ends_with(&heading) {
+                        format!("{file_name}/{heading}")
+                    } else {
+                        file_name.to_string()
+                    };
+
+                    prql_blocks.push(Example { name, tags, prql });
+                }
+            }
+            Ok(prql_blocks)
+        })
+        .flatten()
+        // Add an index suffix to each path's examples (so we group by the path).
+        .group_by(|e| e.name.clone())
+        .into_iter()
+        .flat_map(|(path, blocks)| {
+            blocks.into_iter().enumerate().map(move |(i, e)| Example {
+                name: format!("{path}/{i}"),
+                ..e
+            })
+        })
+        .collect())
 }

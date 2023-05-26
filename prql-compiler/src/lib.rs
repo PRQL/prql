@@ -41,7 +41,7 @@
 //!     ```
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
 //!     let sql = prql_compiler::compile(
-//!         "from albums | select [title, artist_id]",
+//!         "from albums | select {title, artist_id}",
 //!          &prql_compiler::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
@@ -54,7 +54,7 @@
 //!     Use `prql-compiler-macros` crate (unreleased), which can be used like
 //!     this:
 //!     ```ignore
-//!     let sql: &str = prql_to_sql!("from albums | select [title, artist_id]");
+//!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
 //! - ... compile .prql files to .sql files at build time.
@@ -112,7 +112,7 @@ pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
 /// ```
 /// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from employees | select [name,age]";
+/// let prql = "from employees | select {name,age}";
 /// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),

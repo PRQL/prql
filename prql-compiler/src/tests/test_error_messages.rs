@@ -113,12 +113,12 @@ fn test_errors() {
 fn test_hint_missing_args() {
     assert_display_snapshot!(compile(r###"
     from film
-    select [film_id, lag film_id]
+    select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
     Error:
        ╭─[:3:22]
        │
-     3 │     select [film_id, lag film_id]
+     3 │     select {film_id, lag film_id}
        │                      ─────┬─────
        │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `func infer -> array`
        │

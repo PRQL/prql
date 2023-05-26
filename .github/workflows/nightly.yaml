@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: .config/.markdown-link-check-global.json
+          config-file: .config/.markdown-link-check-all.json
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -64,17 +64,17 @@ jobs:
   update-rust-toolchain:
     runs-on: ubuntu-latest
     # Don't run on forks; will attempt to create a PR into the fork...
-    # if: ${{ !github.event.pull_request.head.repo.fork }}
+    if: ${{ !github.event.pull_request.head.repo.fork }}
 
-    # Disabling until we resolve what version Debian supports, ref https://github.com/PRQL/prql/pull/1561
-    if: false
+    # Note that this doesn't change the minimum supported version, only the
+    # default to run on. The minimum is defined by Cargo.toml's metadata.msrv.
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
-          minor-version-delta: 3
+          minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
 
@@ -92,31 +92,34 @@ jobs:
           command: udeps
           args: --all-targets
 
-  test-docker:
-    # We only test the build in `test-all`; this also runs tests.
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
+  # We now use the devcontainer. TODO: is it possible to have a similar test for
+  # that? Or that would require VSCode to install the dependencies?
 
-      - uses: docker/setup-buildx-action@v2
+  # test-docker:
+  #   # We only test the build in `test-all`; this also runs tests.
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📂 Checkout code
+  #       uses: actions/checkout@v3
 
-      - name: Build
-        uses: docker/build-push-action@v4
-        with:
-          tags: prql:latest
-          # Use the GHA cache
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  #     - uses: docker/setup-buildx-action@v2
 
-      # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
-      - name: Test
-        uses: addnab/docker-run-action@v3
-        with:
-          image: prql:latest
-          options: -v ${{ github.workspace }}/:/src
-          run: task test-rust
+  #     - name: Build
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         tags: prql:latest
+  #         # Use the GHA cache
+  #         load: true
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+
+  #     # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
+  #     - name: Test
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: prql:latest
+  #         options: -v ${{ github.workspace }}/:/src
+  #         run: task test-rust
 
   code-ql:
     # Currently almost the default code-ql config

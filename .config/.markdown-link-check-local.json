@@ -1,9 +1,10 @@
 {
   "ignorePatterns": [
     {
-      "_comment_1": "Our pipeline should depend only on the work we do.",
-      "_comment_2": "If some third-party website breaks a link, that should produce a warning, and not block our PRs",
-      "pattern": "^(?!https://github\\.com/(PRQL|prql)|https://prql-lang\\.org|https://raw\\.githubusercontent\\.com/PRQL).*$"
+      "_comment_1": "Our pipeline depends only on our assets.",
+      "_comment_2": "If some third-party website breaks a link, we cover that in ./.markdown-link-check-all.json",
+      "_comment_3": "So this excludes anything that's not a relative link to a file in our repo or a link to our file on the web.",
+      "pattern": "^(?!https://github\\.com/(PRQL|prql)|https://prql-lang\\.org|https://raw\\.githubusercontent\\.com/(PRQL|prql)|[./]+|file://).*$"
     }
   ]
 }
