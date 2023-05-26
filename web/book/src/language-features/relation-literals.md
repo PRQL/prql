@@ -8,6 +8,12 @@ PRQL offers two approaches — array literals, and a `from_text` transform.
 
 ## Relation literals
 
+```admonish note
+Relation literals are currently experimental.
+In particular, we're considering requiring them to be
+prefixed with `from`.
+```
+
 Relation literals convert an array (represented by `[]`), of tuples (represented
 by `{}`) into a relation (aka a table):
 
