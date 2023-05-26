@@ -316,7 +316,7 @@ impl Context {
         // We wrap the expr into DeclKind::Expr and save it into context.
         let cols_expr = Expr {
             flatten: true,
-            ..Expr::from(ExprKind::List(fq_cols))
+            ..Expr::from(ExprKind::Tuple(fq_cols))
         };
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";

@@ -17,8 +17,9 @@ use super::{Context, Lineage};
 use super::{NS_FRAME, NS_PARAM};
 
 /// try to convert function call with enough args into transform
-pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
-    let name = closure.name.as_ref().filter(|n| !n.name.contains('.'));
+pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<Expr, Func>> {
+    // TODO: this should not use name_hint
+    let name = closure.name_hint.as_ref().filter(|n| !n.name.contains('.'));
     let name = if let Some(name) = name {
         name.to_string()
     } else {
@@ -34,7 +35,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_and_flatten(assigns)?;
+            let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
@@ -46,19 +47,19 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_and_flatten(assigns)?;
+            let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_and_flatten(assigns)?;
+            let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = coerce_and_flatten(by)?
+            let by = coerce_into_tuple_and_flatten(by)?
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
@@ -116,7 +117,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(coerce_and_flatten(filter)?));
+            let filter = Box::new(Expr::collect_and(coerce_into_tuple_and_flatten(filter)?));
 
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
@@ -124,7 +125,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = coerce_and_flatten(by)?;
+            let by = coerce_into_tuple_and_flatten(by)?;
 
             let pipeline =
                 fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
@@ -231,10 +232,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                         .unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
                     return Ok(Ok(res));
                 }
-                ExprKind::List(_) => {
+                ExprKind::Tuple(_) => {
                     // TODO: should translate into `value IN (...)`
                     //   but RQ currently does not support sub queries or
-                    //   even expressions that evaluate to a list.
+                    //   even expressions that evaluate to a tuple.
                 }
                 _ => {}
             }
@@ -251,7 +252,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
-            let list = list.kind.into_list().unwrap();
+            let list = list.kind.into_tuple().unwrap();
 
             let mut res = None;
             for item in list {
@@ -266,7 +267,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [func, list] = unpack::<2>(closure);
-            let list_items = list.kind.into_list().unwrap();
+            let list_items = list.kind.into_tuple().unwrap();
 
             let list_items = list_items
                 .into_iter()
@@ -280,7 +281,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 .collect_vec();
 
             return Ok(Ok(Expr {
-                kind: ExprKind::List(list_items),
+                kind: ExprKind::Tuple(list_items),
                 ..list
             }));
         }
@@ -289,22 +290,22 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [a, b] = unpack::<2>(closure);
-            let a = a.kind.into_list().unwrap();
-            let b = b.kind.into_list().unwrap();
+            let a = a.kind.into_tuple().unwrap();
+            let b = b.kind.into_tuple().unwrap();
 
             let mut res = Vec::new();
             for (a, b) in std::iter::zip(a, b) {
-                res.push(Expr::from(ExprKind::List(vec![a, b])));
+                res.push(Expr::from(ExprKind::Tuple(vec![a, b])));
             }
 
-            return Ok(Ok(Expr::from(ExprKind::List(res))));
+            return Ok(Ok(Expr::from(ExprKind::Tuple(res))));
         }
 
         "std._eq" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
-            let list = list.kind.into_list().unwrap();
+            let list = list.kind.into_tuple().unwrap();
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
             let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
@@ -371,7 +372,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 res.rows
                     .into_iter()
                     .map(|row| {
-                        Expr::from(ExprKind::List(
+                        Expr::from(ExprKind::Tuple(
                             row.into_iter()
                                 .map(|lit| Expr::from(ExprKind::Literal(lit)))
                                 .collect(),
@@ -400,17 +401,17 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
     Ok(Ok(Expr::from(ExprKind::TransformCall(transform_call))))
 }
 
-/// Wraps non-list Exprs into a singleton List.
+/// Wraps non-tuple Exprs into a singleton Tuple.
 // This function should eventually be applied to all function arguments that
-// expect a list.
-pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
+// expect a tuple.
+pub fn coerce_into_tuple(expr: Expr) -> Result<Vec<Expr>> {
     Ok(match expr.kind {
-        ExprKind::List(items) => {
+        ExprKind::Tuple(items) => {
             if let Some(alias) = expr.alias {
                 bail!(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`")
                 })
-                .with_help(format!("move assign into the list: `[{alias} = ...]`"))
+                .with_help(format!("move assign into the tuple: `[{alias} = ...]`"))
                 .with_span(expr.span))
             }
             items
@@ -420,15 +421,15 @@ pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
 }
 
 /// Converts `a` into `[a]` and `[b, [c, d]]` into `[b, c, d]`.
-pub fn coerce_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
-    let items = coerce_into_vec(expr)?;
+pub fn coerce_into_tuple_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
+    let items = coerce_into_tuple(expr)?;
     let mut res = Vec::with_capacity(items.len());
     for item in items {
-        res.extend(coerce_into_vec(item)?);
+        res.extend(coerce_into_tuple(item)?);
     }
     let mut res2 = Vec::with_capacity(res.len());
     for item in res {
-        res2.extend(coerce_into_vec(item)?);
+        res2.extend(coerce_into_tuple(item)?);
     }
     Ok(res2)
 }
@@ -475,13 +476,13 @@ fn fold_by_simulating_eval(
     // let mut tbl_node = extract_ref_to_first(&mut pipeline);
     // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
 
-    let pipeline = Expr::from(ExprKind::Closure(Box::new(Closure {
-        name: None,
+    let pipeline = Expr::from(ExprKind::Closure(Box::new(Func {
+        name_hint: None,
         body: Box::new(pipeline),
-        body_ty: None,
+        return_ty: None,
 
         args: vec![],
-        params: vec![ClosureParam {
+        params: vec![FuncParam {
             name: param_id.to_string(),
             ty: None,
             default_value: None,
@@ -519,7 +520,7 @@ impl TransformCall {
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+                let Func { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
                 // TODO: See #2270 — this is a bad error message and likely
                 // should be handled prior to reaching this point.
@@ -557,7 +558,7 @@ impl TransformCall {
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+                let Func { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
                 body.lineage.clone().unwrap()
             }
@@ -781,7 +782,7 @@ impl LineageInput {
 
 // Expects closure's args to be resolved.
 // Note that named args are before positional args, in order of declaration.
-fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
+fn unpack<const P: usize>(closure: Func) -> [Expr; P] {
     closure.args.try_into().expect("bad transform cast")
 }
 

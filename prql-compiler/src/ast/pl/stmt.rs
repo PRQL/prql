@@ -38,26 +38,6 @@ pub struct QueryDef {
     pub other: HashMap<String, String>,
 }
 
-/// Function definition.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncDef {
-    pub positional_params: Vec<FuncParam>, // ident
-    pub named_params: Vec<FuncParam>,      // named expr
-    pub body: Box<Expr>,
-    pub return_ty: Option<Box<Expr>>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncParam {
-    pub name: String,
-
-    /// Parsed expression that will be resolved to a type
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty_expr: Option<Expr>,
-
-    pub default_value: Option<Expr>,
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
     pub value: Box<Expr>,
@@ -141,18 +121,5 @@ impl Display for Stmt {
             }
         }
         Ok(())
-    }
-}
-
-impl Display for FuncDef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // write!(f, "func {}", self.name)?;
-        for arg in &self.positional_params {
-            write!(f, " {}", arg.name)?;
-        }
-        for arg in &self.named_params {
-            write!(f, " {}:{}", arg.name, arg.default_value.as_ref().unwrap())?;
-        }
-        write!(f, " -> {}", self.body)
     }
 }

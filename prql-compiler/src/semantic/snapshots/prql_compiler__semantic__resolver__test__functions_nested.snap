@@ -2,37 +2,37 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
 ---
-- id: 26
+- id: 24
   Binary:
     left:
-      id: 27
+      id: 25
       Binary:
         left:
-          id: 28
+          id: 26
           Binary:
             left:
-              id: 24
+              id: 22
               Ident:
                 - _frame
                 - a
                 - b
-              target_id: 12
+              target_id: 10
             op: Div
             right:
-              id: 33
+              id: 31
               SString:
                 - String: lag_day_todo(
                 - Expr:
-                    id: 24
+                    id: 22
                     Ident:
                       - _frame
                       - a
                       - b
-                    target_id: 12
+                    target_id: 10
                 - String: )
         op: Sub
         right:
-          id: 35
+          id: 33
           Literal:
             Integer: 1
           ty:
@@ -41,12 +41,12 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             name: ~
     op: Add
     right:
-      id: 25
+      id: 23
       Ident:
         - _frame
         - a
         - c
-      target_id: 12
+      target_id: 10
   ty:
     kind:
       Union:

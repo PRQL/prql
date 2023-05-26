@@ -202,7 +202,13 @@ impl Command {
                 let (source_id, source) = sources.files.clone().into_iter().exactly_one()?;
                 let stmts = prql_to_pl(&source)?;
 
-                let context = semantic::resolve_single(stmts, None)?;
+                let sources = FileTree::from(source);
+
+                let context = semantic::resolve_single(stmts, None)
+                    .map_err(prql_compiler::downcast)
+                    .map_err(|e| e.composed(&sources, true))?;
+
+                let (_, source) = sources.files.into_iter().exactly_one().unwrap();
 
                 let source_id = source_id.to_str().unwrap().to_string();
                 let references = label_references(&context, source_id, source);

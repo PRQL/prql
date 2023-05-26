@@ -30,7 +30,7 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error
     }
 
     // tuples
-    if let ExprKind::List(elements) = expr {
+    if let ExprKind::Tuple(elements) = expr {
         let mut set_elements = Vec::with_capacity(elements.len());
 
         for e in elements {
@@ -112,7 +112,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
         ExprKind::Range(_) => return Ok(None), // TODO
 
         ExprKind::TransformCall(_) => return Ok(None), // TODO
-        ExprKind::List(_) => return Ok(None),          // TODO
+        ExprKind::Tuple(_) => return Ok(None),         // TODO
 
         _ => return Ok(None),
     };
@@ -141,7 +141,7 @@ impl Context {
     pub fn validate_type<F>(
         &mut self,
         found: &mut Expr,
-        expected: &Option<Ty>,
+        expected: Option<&Ty>,
         who: F,
     ) -> Result<(), Error>
     where
@@ -185,7 +185,7 @@ impl Context {
             })
             .with_span(found.span));
             if found_ty.is_function() && !expected.is_function() {
-                let func_name = found.kind.as_closure().and_then(|c| c.name.as_ref());
+                let func_name = found.kind.as_closure().and_then(|c| c.name_hint.as_ref());
                 let to_what = func_name
                     .map(|n| format!("to function {n}"))
                     .unwrap_or_else(|| "in this function call?".to_string());
@@ -195,12 +195,5 @@ impl Context {
             return e;
         }
         Ok(())
-    }
-}
-
-pub fn type_of_closure(closure: &Closure) -> TyFunc {
-    TyFunc {
-        args: closure.params.iter().map(|a| a.ty.clone()).collect(),
-        return_ty: Box::new(closure.body_ty.clone()),
     }
 }

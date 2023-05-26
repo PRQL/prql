@@ -7,7 +7,7 @@ use itertools::{Itertools, Position};
 use crate::ast::pl::{fold::*, *};
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
-use crate::semantic::transforms::coerce_and_flatten;
+use crate::semantic::transforms::coerce_into_tuple_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
@@ -15,7 +15,7 @@ use super::context::{Context, Decl, DeclKind};
 use super::module::Module;
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
-use super::type_resolver::{self, infer_type, type_of_closure};
+use super::type_resolver::{self, infer_type};
 use super::{NS_FRAME, NS_FRAME_RIGHT, NS_STD};
 
 /// Runs semantic analysis on the query, using current state.
@@ -143,11 +143,17 @@ impl Resolver {
                 ]))));
             }
 
+            if let ExprKind::Closure(closure) = &mut def.value.kind {
+                if closure.name_hint.is_none() {
+                    closure.name_hint = Some(ident.clone());
+                }
+            }
+
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
             if expected_ty.is_some() {
                 let who = || Some(stmt.name.clone());
                 self.context
-                    .validate_type(&mut def.value, &expected_ty, who)?;
+                    .validate_type(&mut def.value, expected_ty.as_ref(), who)?;
             }
 
             let decl = self.context.prepare_expr_decl(def.value);
@@ -166,9 +172,15 @@ impl AstFold for Resolver {
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
+        let value = if matches!(var_def.value.kind, ExprKind::Closure(_)) {
+            var_def.value
+        } else {
+            Box::new(Flattener::fold(self.fold_expr(*var_def.value)?))
+        };
+
         Ok(VarDef {
-            value: Box::new(Flattener::fold(self.fold_expr(*var_def.value)?)),
-            ty_expr: var_def.ty_expr,
+            value,
+            ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
             kind: var_def.kind,
         })
     }
@@ -241,21 +253,20 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Expr(expr) => {
-                        if let ExprKind::FuncDef(func_def) = &expr.kind {
-                            // TODO: remove this function call entirely when ExprKind::FuncDef is merged with ExprKind::Closure
-                            let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
+                    DeclKind::Expr(expr) => match &expr.kind {
+                        ExprKind::Closure(closure) => {
+                            let closure = self.fold_function_types(*closure.clone())?;
+
+                            let expr = Expr::from(ExprKind::Closure(Box::new(closure)));
 
                             if self.in_func_call_name {
-                                Expr::from(ExprKind::Closure(Box::new(closure)))
+                                expr
                             } else {
-                                // this branch is equivalent to the last branch, if ExprKind::Closure is equal to ExprKind::FuncDef
-                                self.fold_function(closure, vec![], HashMap::new(), node.span)?
+                                self.fold_expr(expr)?
                             }
-                        } else {
-                            self.fold_expr(expr.as_ref().clone())?
                         }
-                    }
+                        _ => self.fold_expr(expr.as_ref().clone())?,
+                    },
 
                     DeclKind::InstanceOf(_) => {
                         return Err(Error::new_simple(
@@ -288,7 +299,8 @@ impl AstFold for Resolver {
                 let closure = name.try_cast(|n| n.into_closure(), None, "a function")?;
 
                 // fold function
-                self.fold_function(*closure, args, named_args, node.span)?
+                let closure = self.apply_args_to_closure(*closure, args, named_args)?;
+                self.fold_function(closure, node.span)?
             }
 
             ExprKind::Pipeline(pipeline) => {
@@ -296,9 +308,7 @@ impl AstFold for Resolver {
                 self.resolve_pipeline(pipeline)?
             }
 
-            ExprKind::Closure(closure) => {
-                self.fold_function(*closure, vec![], HashMap::new(), node.span)?
-            }
+            ExprKind::Closure(closure) => self.fold_function(*closure, node.span)?,
 
             ExprKind::Unary {
                 op: UnOp::EqSelf,
@@ -316,7 +326,7 @@ impl AstFold for Resolver {
             ExprKind::Unary {
                 op: UnOp::Not,
                 expr,
-            } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
+            } if matches!(expr.kind, ExprKind::Tuple(_)) => self.resolve_column_exclusion(*expr)?,
 
             ExprKind::All { within, except } => {
                 let decl = self.context.root_mod.get(&within);
@@ -343,20 +353,20 @@ impl AstFold for Resolver {
                 }
             }
 
-            ExprKind::List(exprs) => {
+            ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
 
                 // flatten
                 let exprs = exprs
                     .into_iter()
                     .flat_map(|e| match e.kind {
-                        ExprKind::List(items) if e.flatten => items,
+                        ExprKind::Tuple(items) if e.flatten => items,
                         _ => vec![e],
                     })
                     .collect_vec();
 
                 Expr {
-                    kind: ExprKind::List(exprs),
+                    kind: ExprKind::Tuple(exprs),
                     ..node
                 }
             }
@@ -408,7 +418,7 @@ impl AstFold for Resolver {
             if let ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_type(&self.context)?);
             } else if let ExprKind::Array(elements) = &r.kind {
-                if let Some(ExprKind::List(elements)) = elements.first().map(|x| &x.kind) {
+                if let Some(ExprKind::Tuple(elements)) = elements.first().map(|x| &x.kind) {
                     // infer relations lineage
 
                     let columns: Option<Vec<RelationColumn>> = Some(
@@ -474,13 +484,13 @@ impl Resolver {
 
         // second part of the workaround
         if let Some(closure_param) = closure_param {
-            value = Expr::from(ExprKind::Closure(Box::new(Closure {
-                name: None,
+            value = Expr::from(ExprKind::Closure(Box::new(Func {
+                name_hint: None,
                 body: Box::new(value),
-                body_ty: None,
+                return_ty: None,
 
                 args: vec![],
-                params: vec![ClosureParam {
+                params: vec![FuncParam {
                     name: closure_param.to_string(),
                     default_value: None,
                     ty: None,
@@ -510,14 +520,8 @@ impl Resolver {
         })
     }
 
-    fn fold_function(
-        &mut self,
-        closure: Closure,
-        args: Vec<Expr>,
-        named_args: HashMap<String, Expr>,
-        span: Option<Span>,
-    ) -> Result<Expr, anyhow::Error> {
-        let closure = self.apply_args_to_closure(closure, args, named_args)?;
+    fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr, anyhow::Error> {
+        let closure = self.fold_function_types(closure)?;
         let args_len = closure.args.len();
 
         log::debug!(
@@ -539,17 +543,24 @@ impl Resolver {
         let enough_args = closure.args.len() == closure.params.len();
 
         let mut r = if enough_args {
+            // make sure named args are pushed into params
+            let closure = if !closure.named_params.is_empty() {
+                self.apply_args_to_closure(closure, [].into(), [].into())?
+            } else {
+                closure
+            };
+
             // push the env
             let closure_env = Module::from_exprs(closure.env);
             self.context.root_mod.stack_push(NS_PARAM, closure_env);
-            let closure = Closure {
+            let closure = Func {
                 env: HashMap::new(),
                 ..closure
             };
 
             if log::log_enabled!(log::Level::Debug) {
                 let name = closure
-                    .name
+                    .name_hint
                     .clone()
                     .unwrap_or_else(|| Ident::from_name("<unnamed>"));
                 log::debug!("resolving args of function {}", name);
@@ -557,9 +568,8 @@ impl Resolver {
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
-            let needs_window = (closure.body_ty)
-                .as_ref()
-                .map(|ty| ty.is_array())
+            let needs_window = (closure.return_ty.as_ref())
+                .map(|ty| ty.as_ty().unwrap().is_array())
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
@@ -591,13 +601,13 @@ impl Resolver {
                         let missing = missing.to_vec();
                         inner_closure.params = got.to_vec();
 
-                        Expr::from(ExprKind::Closure(Box::new(Closure {
-                            name: None,
+                        Expr::from(ExprKind::Closure(Box::new(Func {
+                            name_hint: None,
                             args: vec![],
                             params: missing,
                             named_params: vec![],
                             body: Box::new(Expr::from(ExprKind::Closure(inner_closure))),
-                            body_ty: None,
+                            return_ty: None,
                             env: HashMap::new(),
                         })))
                     } else {
@@ -616,7 +626,21 @@ impl Resolver {
             // not enough arguments: don't fold
             log::debug!("returning as closure");
 
-            let mut ty = type_of_closure(&closure);
+            let mut ty = {
+                TyFunc {
+                    args: closure
+                        .params
+                        .iter()
+                        .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
+                        .collect(),
+                    return_ty: Box::new(
+                        closure
+                            .return_ty
+                            .as_ref()
+                            .map(|x| x.as_ty().cloned().unwrap()),
+                    ),
+                }
+            };
             ty.args = ty.args[args_len..].to_vec();
 
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
@@ -631,8 +655,27 @@ impl Resolver {
         Ok(r)
     }
 
-    fn cast_built_in_function(&mut self, closure: Closure) -> Result<Result<Expr, Closure>> {
-        let is_std = closure.name.as_ref().map(|n| n.path.as_slice() == ["std"]);
+    fn fold_function_types(&mut self, mut closure: Func) -> Result<Func> {
+        closure.params = closure
+            .params
+            .into_iter()
+            .map(|p| -> Result<_> {
+                Ok(FuncParam {
+                    ty: self.fold_ty_or_expr(p.ty)?,
+                    ..p
+                })
+            })
+            .try_collect()?;
+        closure.return_ty = self.fold_ty_or_expr(closure.return_ty)?;
+        Ok(closure)
+    }
+
+    fn cast_built_in_function(&mut self, closure: Func) -> Result<Result<Expr, Func>> {
+        // TODO: this should not use name_hint
+        let is_std = closure
+            .name_hint
+            .as_ref()
+            .map(|n| n.path.as_slice() == ["std"]);
 
         if !is_std.unwrap_or_default() {
             return Ok(Err(closure));
@@ -644,7 +687,7 @@ impl Resolver {
 
             // it a std function that should be lowered into a BuiltIn
             Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
-                let name = closure.name.unwrap().to_string();
+                let name = closure.name_hint.unwrap().to_string();
                 let args = closure.args;
 
                 Ok(Expr::from(ExprKind::BuiltInFunction { name, args }))
@@ -657,10 +700,10 @@ impl Resolver {
 
     fn apply_args_to_closure(
         &mut self,
-        mut closure: Closure,
+        mut closure: Func,
         args: Vec<Expr>,
         mut named_args: HashMap<String, Expr>,
-    ) -> Result<Closure> {
+    ) -> Result<Func> {
         // named arguments are consumed only by the first function
 
         // named
@@ -677,7 +720,7 @@ impl Resolver {
             // TODO: report all remaining named_args as separate errors
             anyhow::bail!(
                 "unknown named argument `{name}` to closure {:?}",
-                closure.name
+                closure.name_hint
             )
         }
 
@@ -686,13 +729,13 @@ impl Resolver {
         Ok(closure)
     }
 
-    fn resolve_function_args(&mut self, to_resolve: Closure) -> Result<Closure> {
-        let mut closure = Closure {
+    fn resolve_function_args(&mut self, to_resolve: Func) -> Result<Func> {
+        let mut closure = Func {
             args: vec![Expr::null(); to_resolve.args.len()],
             ..to_resolve
         };
 
-        let func_name = &closure.name;
+        let func_name = &closure.name_hint;
 
         let (relations, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
             .enumerate()
@@ -700,6 +743,7 @@ impl Resolver {
                 let is_relation = param
                     .ty
                     .as_ref()
+                    .and_then(|t| t.as_ty())
                     .map(|t| t.is_relation())
                     .unwrap_or_default();
 
@@ -735,8 +779,8 @@ impl Resolver {
 
         // resolve other positional
         for (index, (param, mut arg)) in other {
-            if let ExprKind::List(items) = arg.kind {
-                // if this is a list, resolve elements separately,
+            if let ExprKind::Tuple(items) = arg.kind {
+                // if this is a tuple, resolve elements separately,
                 // so they can be added to scope, before resolving subsequent elements.
 
                 let mut res = Vec::with_capacity(items.len());
@@ -751,10 +795,10 @@ impl Resolver {
                     res.push(item);
                 }
 
-                // note that this list node has to be resolved itself
+                // note that this tuple node has to be resolved itself
                 // (it's elements are already resolved and so their resolving
                 // should be skipped)
-                arg.kind = ExprKind::List(res);
+                arg.kind = ExprKind::Tuple(res);
             }
 
             let arg = self.fold_and_type_check(arg, param, func_name)?;
@@ -773,7 +817,7 @@ impl Resolver {
     fn fold_and_type_check(
         &mut self,
         arg: Expr,
-        param: &ClosureParam,
+        param: &FuncParam,
         func_name: &Option<Ident>,
     ) -> Result<Expr> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
@@ -787,7 +831,8 @@ impl Resolver {
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
-            self.context.validate_type(&mut arg, &param.ty, who)?;
+            let ty = param.ty.as_ref().map(|t| t.as_ty().unwrap());
+            self.context.validate_type(&mut arg, ty, who)?;
         }
 
         Ok(arg)
@@ -838,8 +883,8 @@ impl Resolver {
 
     fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr, anyhow::Error> {
         let expr = self.fold_expr(expr)?;
-        let list = coerce_and_flatten(expr)?;
-        let except: Vec<Expr> = list
+        let tuple = coerce_into_tuple_and_flatten(expr)?;
+        let except: Vec<Expr> = tuple
             .into_iter()
             .map(|e| match e.kind {
                 ExprKind::Ident(_) | ExprKind::All { .. } => Ok(e),
@@ -857,35 +902,6 @@ impl Resolver {
         }))
     }
 
-    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
-        let body_ty = self.fold_type_expr(func_def.return_ty.clone().map(|x| *x))?;
-
-        Ok(Closure {
-            name: Some(fq_ident),
-            body: func_def.body,
-            body_ty,
-
-            params: self.fold_func_params(&func_def.positional_params)?,
-            named_params: self.fold_func_params(&func_def.named_params)?,
-
-            args: vec![],
-
-            env: HashMap::default(),
-        })
-    }
-
-    fn fold_func_params(&mut self, func_params: &[FuncParam]) -> Result<Vec<ClosureParam>> {
-        let mut params = Vec::with_capacity(func_params.len());
-        for p in func_params.iter().cloned() {
-            params.push(ClosureParam {
-                name: p.name,
-                ty: self.fold_type_expr(p.ty_expr)?,
-                default_value: p.default_value,
-            })
-        }
-        Ok(params)
-    }
-
     fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
@@ -900,9 +916,18 @@ impl Resolver {
             None => None,
         })
     }
+
+    fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
+        Ok(match ty_or_expr {
+            Some(TyOrExpr::Expr(ty_expr)) => {
+                Some(TyOrExpr::Ty(self.fold_type_expr(Some(ty_expr))?.unwrap()))
+            }
+            _ => ty_or_expr,
+        })
+    }
 }
 
-fn env_of_closure(closure: Closure) -> (Module, Expr) {
+fn env_of_closure(closure: Func) -> (Module, Expr) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {

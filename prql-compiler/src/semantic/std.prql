@@ -10,6 +10,30 @@
 #   * -> body_expr defines the function body that creates the result.
 #     It can be PRQL code or "null" to indicate internal compiler code
 
+## Types
+
+# Type primitives
+type int
+type float
+type bool
+type text
+type date
+type time
+type timestamp
+
+# Tuple
+type tuple = {}
+
+# Relation (an array of tupes)
+type relation = [{}]
+
+# Generic array
+# TODO: an array of anything, not just nulls
+type array = [null]
+
+# Scalar
+type scalar = int || float || bool || text || date || time || timestamp || null
+
 # Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
 let min = column -> <scalar || array> null
@@ -65,7 +89,7 @@ let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
 )
 let loop = pipeline top<relation> -> <relation> null
 
-# List functions
+# Array functions
 let all = list -> <bool> null
 let map = fn list -> null
 let zip = a b -> null
@@ -78,26 +102,6 @@ let from_text = input<text> `noresolve.format`:csv -> <relation> null
 # String functions
 let lower = column -> <text> null
 let upper = column -> <text> null
-
-# type primitives
-type int
-type float
-type bool
-type text
-type date
-type time
-type timestamp
-
-# a tuple
-type list = {}
-
-# relation is an array of tupes
-type relation = [{}]
-
-# TODO: an array of anything
-type array = [null]
-
-type scalar = int || float || bool || text || date || time || timestamp || null
 
 # Source-reading functions, primarily for DuckDB
 let read_parquet = source<text> -> <relation> s"SELECT * FROM read_parquet({source})"

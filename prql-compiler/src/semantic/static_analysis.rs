@@ -3,28 +3,6 @@
 use crate::ast::pl::{BinOp, Expr, ExprKind, Literal, UnOp};
 
 pub fn static_analysis(expr: Expr) -> Expr {
-    // let is_const = match &expr.kind {
-    //     ExprKind::Ident(_) => Some(false),
-    //     ExprKind::Literal(_) => Some(true),
-
-    //     ExprKind::Pipeline(pipeline) => pipeline.exprs.iter().map(|e| &e.is_const).all_true(),
-    //     ExprKind::List(items) => items.iter().map(|e| &e.is_const).all_true(),
-    //     ExprKind::Range(r) => {
-    //         let exprs = r.start.iter().chain(r.end.iter());
-
-    //         exprs.map(|e| &e.is_const).all_true()
-    //     }
-
-    //     ExprKind::Binary { left, op: _, right } => {
-    //         let exprs = [left, right];
-
-    //         exprs.iter().map(|e| &e.is_const).all_true()
-    //     }
-    //     ExprKind::Unary { op: _, expr } => expr.is_const.clone(),
-
-    //     _ => None,
-    // };
-
     let kind = eval(expr.kind);
 
     Expr { kind, ..expr }

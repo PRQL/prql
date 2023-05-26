@@ -32,12 +32,12 @@ pub(super) fn translate_built_in(expr: rq::Expr, ctx: &mut Context) -> Result<sq
 
     let entry = STD.get(&pl::Ident::from_name(name)).unwrap();
     let func_def = entry.kind.as_expr().unwrap();
-    let func_def = func_def.kind.as_func_def().unwrap();
+    let func_def = func_def.kind.as_closure().unwrap();
 
     let params = func_def
         .named_params
         .iter()
-        .chain(func_def.positional_params.iter())
+        .chain(func_def.params.iter())
         .map(|x| x.name.split('.').last().unwrap_or(x.name.as_str()));
 
     let mut args: HashMap<&str, _> = zip(params, args.into_iter()).collect();

@@ -70,7 +70,7 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     // Row number will be computed in a CTE that also contains a star.
     // In the main query, star will also include row number, which was not
     // requested.
-    // This function adds that column to the exclusion list.
+    // This function adds that column to the exclusion tuple.
     fn exclude(star: &mut Option<(CId, HashSet<CId>)>, excluded: &mut Excluded) {
         let Some((cid, in_star)) = star.take() else { return };
         if in_star.is_empty() {
