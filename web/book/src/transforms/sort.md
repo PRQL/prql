@@ -47,7 +47,7 @@ Ordering is persistent through a pipeline in PRQL. For example:
 ```prql
 from employees
 sort tenure
-join locations {==employee_id}
+join locations (==employee_id)
 ```
 
 Here, PRQL pushes the `sort` down the pipeline, compiling the `ORDER BY` to the

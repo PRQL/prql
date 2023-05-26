@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from s\"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC\"\njoin s = s\"SELECT * FROM salaries\" {==id}\n"
+expression: "from s\"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC\"\njoin s = s\"SELECT * FROM salaries\" (==id)\n"
 ---
 WITH table_4 AS (
   SELECT

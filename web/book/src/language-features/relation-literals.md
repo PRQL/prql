@@ -23,7 +23,7 @@ filter b == true
 select a
 ```
 
-```prql no-fmt
+```prql
 let my_artists = [
   {artist="Miles Davis"},
   {artist="Marvin Gaye"},
@@ -61,7 +61,7 @@ derive {
 
 An example of adding a small lookup table:
 
-```prql no-fmt
+```prql
 let temp_format_lookup = from_text format:csv """
 country_code,format
 uk,C
@@ -76,7 +76,7 @@ join temp_format_lookup (==country_code)
 
 And JSON:
 
-```prql no-fmt
+```prql
 let x = from_text format:json """{
     "columns": ["a", "b", "c"],
     "data": [

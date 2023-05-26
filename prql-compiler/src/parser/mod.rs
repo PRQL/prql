@@ -537,7 +537,7 @@ mod test {
             kind: Main
         "###);
         assert_yaml_snapshot!(parse_expr(
-            "join side:left country {id==employee_id}"
+            "join side:left country (id==employee_id)"
         ).unwrap(), @r###"
         ---
         FuncCall:
@@ -547,15 +547,14 @@ mod test {
           args:
             - Ident:
                 - country
-            - Tuple:
-                - Binary:
-                    left:
-                      Ident:
-                        - id
-                    op: Eq
-                    right:
-                      Ident:
-                        - employee_id
+            - Binary:
+                left:
+                  Ident:
+                    - id
+                op: Eq
+                right:
+                  Ident:
+                    - employee_id
           named_args:
             side:
               Ident:
@@ -1855,7 +1854,7 @@ Canada
         // #284
         parse(
             "from c_invoice
-join doc:c_doctype {==c_invoice_id}
+join doc:c_doctype (==c_invoice_id)
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1869,7 +1868,7 @@ select [
         let prql = "
 from `a/*.parquet`
 aggregate {max c}
-join `schema.table` {==id}
+join `schema.table` (==id)
 join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
@@ -1908,12 +1907,11 @@ join `my-proj`.`dataset`.`table`
                       args:
                         - Ident:
                             - schema.table
-                        - Tuple:
-                            - Unary:
-                                op: EqSelf
-                                expr:
-                                  Ident:
-                                    - id
+                        - Unary:
+                            op: EqSelf
+                            expr:
+                              Ident:
+                                - id
                   - FuncCall:
                       name:
                         Ident:
@@ -2167,7 +2165,7 @@ join `my-proj`.`dataset`.`table`
     fn test_allowed_idents() {
         assert_yaml_snapshot!(parse(r###"
         from employees
-        join _salary {==employee_id} # table with leading underscore
+        join _salary (==employee_id) # table with leading underscore
         filter first_name == $1
         select {_employees._underscored_column}
         "###).unwrap(), @r###"
@@ -2191,12 +2189,11 @@ join `my-proj`.`dataset`.`table`
                       args:
                         - Ident:
                             - _salary
-                        - Tuple:
-                            - Unary:
-                                op: EqSelf
-                                expr:
-                                  Ident:
-                                    - employee_id
+                        - Unary:
+                            op: EqSelf
+                            expr:
+                              Ident:
+                                - employee_id
                   - FuncCall:
                       name:
                         Ident:
@@ -2306,7 +2303,7 @@ join `my-proj`.`dataset`.`table`
     fn test_assign() {
         assert_yaml_snapshot!(parse(r###"
 from employees
-join s=salaries {==id}
+join s=salaries (==id)
         "###).unwrap(), @r###"
         ---
         - name: main
@@ -2329,12 +2326,11 @@ join s=salaries {==id}
                         - Ident:
                             - salaries
                           alias: s
-                        - Tuple:
-                            - Unary:
-                                op: EqSelf
-                                expr:
-                                  Ident:
-                                    - id
+                        - Unary:
+                            op: EqSelf
+                            expr:
+                              Ident:
+                                - id
             ty_expr: ~
             kind: Main
         "###);

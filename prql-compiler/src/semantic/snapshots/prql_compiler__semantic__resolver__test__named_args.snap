@@ -2,10 +2,10 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add bar to:3,\n                added_default = add bar\n            }\n            \"#).unwrap()"
 ---
-- id: 23
+- id: 26
   Binary:
     left:
-      id: 22
+      id: 25
       Ident:
         - _frame
         - foo_table
@@ -13,7 +13,7 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
       target_id: 9
     op: Add
     right:
-      id: 21
+      id: 24
       Literal:
         Integer: 3
       ty:
@@ -23,28 +23,44 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
   ty:
     kind:
       Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+          - kind:
+              Singleton: "Null"
+            name: ~
     name: scalar
   alias: added
-- id: 30
+- id: 33
   Binary:
     left:
-      id: 29
+      id: 32
       Ident:
         - _frame
         - foo_table
@@ -52,7 +68,7 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
       target_id: 9
     op: Add
     right:
-      id: 28
+      id: 31
       Literal:
         Integer: 1
       ty:
@@ -62,22 +78,38 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
   ty:
     kind:
       Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+          - kind:
+              Singleton: "Null"
+            name: ~
     name: scalar
   alias: added_default
 

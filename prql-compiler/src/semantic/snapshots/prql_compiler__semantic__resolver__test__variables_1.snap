@@ -2,10 +2,10 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from employees\n            derive {\n                gross_salary = salary + payroll_tax,\n                gross_cost =   gross_salary + benefits_cost\n            }\n            \"#).unwrap()"
 ---
-- id: 18
+- id: 21
   Binary:
     left:
-      id: 19
+      id: 22
       Ident:
         - _frame
         - employees
@@ -13,7 +13,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       target_id: 8
     op: Add
     right:
-      id: 20
+      id: 23
       Ident:
         - _frame
         - employees
@@ -22,35 +22,51 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
   ty:
     kind:
       Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+          - kind:
+              Singleton: "Null"
+            name: ~
     name: scalar
   alias: gross_salary
-- id: 21
+- id: 24
   Binary:
     left:
-      id: 22
+      id: 25
       Ident:
         - _frame
         - gross_salary
-      target_id: 18
+      target_id: 21
     op: Add
     right:
-      id: 23
+      id: 26
       Ident:
         - _frame
         - employees
@@ -59,22 +75,38 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
   ty:
     kind:
       Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
         - - ~
-          - Primitive: Int
-        - - ~
-          - Primitive: Float
-        - - ~
-          - Primitive: Bool
-        - - ~
-          - Primitive: Text
-        - - ~
-          - Primitive: Date
-        - - ~
-          - Primitive: Time
-        - - ~
-          - Primitive: Timestamp
-        - - ~
-          - Singleton: "Null"
+          - kind:
+              Singleton: "Null"
+            name: ~
     name: scalar
   alias: gross_cost
 

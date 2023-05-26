@@ -1,5 +1,5 @@
 from a=albums
 take 10
-join tracks {==album_id}
+join tracks (==album_id)
 group {a.album_id, a.title} (aggregate price = ((sum tracks.unit_price)))
 sort album_id

@@ -28,7 +28,7 @@ hero_section:
     )
     sort {-sum_income}
     take 10
-    join c=customers {==customer_id}
+    join c=customers (==customer_id)
     derive name = f"{c.last_name}, {c.first_name}"
     select {
       c.customer_id, name, sum_income
@@ -267,8 +267,8 @@ showcase_section:
       label: Joins
       prql: |
         from employees
-        join b=benefits {==employee_id}
-        join side:left p=positions {p.id==employees.employee_id}
+        join b=benefits (==employee_id)
+        join side:left p=positions (p.id==employees.employee_id)
         select {employees.employee_id, p.role, b.vision_coverage}
       sql: |
         SELECT

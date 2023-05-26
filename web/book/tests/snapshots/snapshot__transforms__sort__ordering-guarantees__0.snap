@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from employees\nsort tenure\njoin locations {==employee_id}\n"
+expression: "from employees\nsort tenure\njoin locations (==employee_id)\n"
 ---
 WITH table_1 AS (
   SELECT

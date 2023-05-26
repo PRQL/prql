@@ -28,12 +28,11 @@ Here's an example of a more involved use of an s-string:
 
 ```prql
 from de=dept_emp
-join s=salaries side:left {
-  (s.emp_no == de.emp_no),
-  s"""({s.from_date}, {s.to_date})
+join s=salaries side:left (s.emp_no == de.emp_no && s"""
+  ({s.from_date}, {s.to_date})
   OVERLAPS
-  ({de.from_date}, {de.to_date})"""
-}
+  ({de.from_date}, {de.to_date})
+""")
 ```
 
 For those who have used Python, s-strings are similar to Python's f-strings, but
@@ -48,7 +47,7 @@ We can also use s-strings to produce a full table:
 
 ```prql
 from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
-join s = s"SELECT * FROM salaries" {==id}
+join s = s"SELECT * FROM salaries" (==id)
 ```
 
 ```admonish note

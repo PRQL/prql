@@ -1,4 +1,5 @@
 use anyhow::Result;
+use itertools::Itertools;
 
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
@@ -7,18 +8,17 @@ use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
 pub fn coerce_to_type(expr: Expr, context: &Context) -> Result<Ty, Error> {
-    let (name, kind) = coerce_to_named_type(expr, context)?;
-    Ok(Ty { name, kind })
+    coerce_kind_to_set(expr.kind, context)
 }
 
-fn coerce_to_named_type(expr: Expr, context: &Context) -> Result<(Option<String>, TyKind), Error> {
+fn coerce_to_aliased_type(expr: Expr, context: &Context) -> Result<(Option<String>, Ty), Error> {
     let name = expr.alias;
     let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
 
     Ok((name, expr))
 }
 
-fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error> {
+fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<Ty, Error> {
     // already resolved type expressions (mostly primitives)
     if let ExprKind::Type(set_expr) = expr {
         return Ok(set_expr);
@@ -26,20 +26,42 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error
 
     // singletons
     if let ExprKind::Literal(lit) = expr {
-        return Ok(TyKind::Singleton(lit));
+        return Ok(Ty {
+            name: None,
+            kind: TyKind::Singleton(lit),
+        });
     }
 
     // tuples
-    if let ExprKind::Tuple(elements) = expr {
+    if let ExprKind::Tuple(mut elements) = expr {
         let mut set_elements = Vec::with_capacity(elements.len());
 
-        for e in elements {
-            let (name, ty) = coerce_to_named_type(e, context)?;
+        // special case: {x..}
+        if elements.len() == 1 {
+            let only = elements.remove(0);
+            if let ExprKind::Range(Range { start, end: None }) = only.kind {
+                let inner = match start {
+                    Some(x) => Some(coerce_to_type(*x, context)?),
+                    None => None,
+                };
 
-            set_elements.push(TupleElement::Single(name, ty));
+                set_elements.push(TupleField::Wildcard(inner))
+            } else {
+                elements.push(only);
+            }
         }
 
-        return Ok(TyKind::Tuple(set_elements));
+        for e in elements {
+            let (name, ty) = coerce_to_aliased_type(e, context)?;
+            let ty = Some(ty);
+
+            set_elements.push(TupleField::Single(name, ty));
+        }
+
+        return Ok(Ty {
+            name: None,
+            kind: TyKind::Tuple(set_elements),
+        });
     }
 
     // arrays
@@ -50,9 +72,12 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error
             ));
         }
         let items_type = elements.into_iter().next().unwrap();
-        let (_, items_type) = coerce_to_named_type(items_type, context)?;
+        let (_, items_type) = coerce_to_aliased_type(items_type, context)?;
 
-        return Ok(TyKind::Array(Box::new(items_type)));
+        return Ok(Ty {
+            name: None,
+            kind: TyKind::Array(Box::new(items_type.kind)),
+        });
     }
 
     // unions
@@ -62,23 +87,26 @@ fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<TyKind, Error
         right,
     } = expr
     {
-        let left = coerce_to_named_type(*left, context)?;
-        let right = coerce_to_named_type(*right, context)?;
+        let left = coerce_to_type(*left, context)?;
+        let right = coerce_to_type(*right, context)?;
 
         // flatten nested unions
         let mut options = Vec::with_capacity(2);
-        if let TyKind::Union(parts) = left.1 {
+        if let TyKind::Union(parts) = left.kind {
             options.extend(parts);
         } else {
-            options.push(left);
+            options.push((left.name.clone(), left));
         }
-        if let TyKind::Union(parts) = right.1 {
+        if let TyKind::Union(parts) = right.kind {
             options.extend(parts);
         } else {
-            options.push(right);
+            options.push((right.name.clone(), right));
         }
 
-        return Ok(TyKind::Union(options));
+        return Ok(Ty {
+            name: None,
+            kind: TyKind::Union(options),
+        });
     }
 
     Err(Error::new_simple(format!(
@@ -112,7 +140,16 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
         ExprKind::Range(_) => return Ok(None), // TODO
 
         ExprKind::TransformCall(_) => return Ok(None), // TODO
-        ExprKind::Tuple(_) => return Ok(None),         // TODO
+        ExprKind::Tuple(fields) => TyKind::Tuple(
+            fields
+                .iter()
+                .map(|x| -> Result<_> {
+                    let ty = infer_type(x)?;
+
+                    Ok(TupleField::Single(None, ty))
+                })
+                .try_collect()?,
+        ),
 
         _ => return Ok(None),
     };
@@ -142,10 +179,10 @@ impl Context {
         &mut self,
         found: &mut Expr,
         expected: Option<&Ty>,
-        who: F,
+        who: &F,
     ) -> Result<(), Error>
     where
-        F: FnOnce() -> Option<String>,
+        F: Fn() -> Option<String>,
     {
         let found_ty = found.ty.clone();
 
@@ -176,14 +213,41 @@ impl Context {
             return Ok(());
         };
 
-        let expected_is_above = expected.is_superset_of(&found_ty);
+        let expected_is_above = match &mut found.kind {
+            // special case of container type: tuple
+            ExprKind::Tuple(found_fields) => {
+                let ok = self.validate_tuple_type(found_fields, expected, who)?;
+                if ok {
+                    return Ok(());
+                }
+                false
+            }
+
+            // base case: compare types
+            _ => expected.is_superset_of(&found_ty),
+        };
         if !expected_is_above {
+            fn display_ty(ty: &Ty) -> String {
+                if ty.is_tuple() {
+                    "a tuple".to_string()
+                } else {
+                    format!("type `{}`", ty)
+                }
+            }
+
+            let who = who();
+            let is_join = who
+                .as_ref()
+                .map(|x| x.contains("std.join"))
+                .unwrap_or_default();
+
             let e = Err(Error::new(Reason::Expected {
-                who: who(),
-                expected: format!("type `{}`", expected),
-                found: format!("type `{}`", found_ty),
+                who,
+                expected: display_ty(expected),
+                found: display_ty(&found_ty),
             })
             .with_span(found.span));
+
             if found_ty.is_function() && !expected.is_function() {
                 let func_name = found.kind.as_closure().and_then(|c| c.name_hint.as_ref());
                 let to_what = func_name
@@ -192,8 +256,65 @@ impl Context {
 
                 return e.with_help(format!("Have you forgotten an argument {to_what}?"));
             };
+
+            if is_join && found_ty.is_tuple() && !expected.is_tuple() {
+                return e.with_help("Try using `(...)` instead of `{...}`");
+            }
+
             return e;
         }
         Ok(())
+    }
+
+    fn validate_tuple_type<F>(
+        &mut self,
+        found_fields: &mut [Expr],
+        expected: &Ty,
+        who: &F,
+    ) -> Result<bool, Error>
+    where
+        F: Fn() -> Option<String>,
+    {
+        let Some(expected_fields) = find_potential_tuple_fields(expected) else{
+            return Ok(false);
+        };
+
+        let mut found = found_fields.iter_mut();
+
+        for expected_field in expected_fields {
+            match expected_field {
+                TupleField::Single(_, expected_kind) => match found.next() {
+                    Some(found_field) => {
+                        self.validate_type(found_field, expected_kind.as_ref(), who)?
+                    }
+                    None => {
+                        return Ok(false);
+                    }
+                },
+                TupleField::Wildcard(expected_wildcard) => {
+                    for found_field in found {
+                        self.validate_type(found_field, expected_wildcard.as_ref(), who)?;
+                    }
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(found.next().is_none())
+    }
+}
+
+fn find_potential_tuple_fields(expected: &Ty) -> Option<&Vec<TupleField>> {
+    match &expected.kind {
+        TyKind::Tuple(fields) => Some(fields),
+        TyKind::Union(variants) => {
+            for (_, variant) in variants {
+                if let Some(fields) = find_potential_tuple_fields(variant) {
+                    return Some(fields);
+                }
+            }
+            None
+        }
+        _ => None,
     }
 }

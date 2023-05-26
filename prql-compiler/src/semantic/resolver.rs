@@ -108,10 +108,11 @@ impl Resolver {
                         }
                     }
 
-                    let ty = self.fold_type_expr(Some(value))?.unwrap();
+                    let mut ty = self.fold_type_expr(Some(value))?.unwrap();
+                    ty.name = Some(ident.name.clone());
 
                     VarDef {
-                        value: Box::new(Expr::from(ExprKind::Type(ty.kind))),
+                        value: Box::new(Expr::from(ExprKind::Type(ty))),
                         ty_expr: None,
                         kind: VarDefKind::Let,
                     }
@@ -153,7 +154,7 @@ impl Resolver {
             if expected_ty.is_some() {
                 let who = || Some(stmt.name.clone());
                 self.context
-                    .validate_type(&mut def.value, expected_ty.as_ref(), who)?;
+                    .validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
             }
 
             let decl = self.context.prepare_expr_decl(def.value);
@@ -235,11 +236,14 @@ impl AstFold for Resolver {
                                         .columns
                                         .iter()
                                         .map(|col| match col {
-                                            LineageColumn::All { .. } => TupleElement::Wildcard,
+                                            LineageColumn::All { .. } => TupleField::Wildcard(None),
                                             LineageColumn::Single { name, .. } => {
-                                                TupleElement::Single(
+                                                TupleField::Single(
                                                     name.as_ref().map(|i| i.name.clone()),
-                                                    TyKind::Singleton(Literal::Null),
+                                                    Some(Ty {
+                                                        kind: TyKind::Singleton(Literal::Null),
+                                                        name: None,
+                                                    }),
                                                 )
                                             }
                                         })
@@ -779,26 +783,26 @@ impl Resolver {
 
         // resolve other positional
         for (index, (param, mut arg)) in other {
-            if let ExprKind::Tuple(items) = arg.kind {
+            if let ExprKind::Tuple(fields) = arg.kind {
                 // if this is a tuple, resolve elements separately,
                 // so they can be added to scope, before resolving subsequent elements.
 
-                let mut res = Vec::with_capacity(items.len());
-                for item in items {
-                    let item = self.fold_and_type_check(item, param, func_name)?;
+                let mut fields_new = Vec::with_capacity(fields.len());
+                for field in fields {
+                    let field = self.fold_within_namespace(field, &param.name)?;
 
                     // add aliased columns into scope
-                    if let Some(alias) = item.alias.clone() {
-                        let id = item.id.unwrap();
+                    if let Some(alias) = field.alias.clone() {
+                        let id = field.id.unwrap();
                         self.context.root_mod.insert_frame_col(NS_FRAME, alias, id);
                     }
-                    res.push(item);
+                    fields_new.push(field);
                 }
 
                 // note that this tuple node has to be resolved itself
                 // (it's elements are already resolved and so their resolving
                 // should be skipped)
-                arg.kind = ExprKind::Tuple(res);
+                arg.kind = ExprKind::Tuple(fields_new);
             }
 
             let arg = self.fold_and_type_check(arg, param, func_name)?;
@@ -832,7 +836,7 @@ impl Resolver {
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
             let ty = param.ty.as_ref().map(|t| t.as_ty().unwrap());
-            self.context.validate_type(&mut arg, ty, who)?;
+            self.context.validate_type(&mut arg, ty, &who)?;
         }
 
         Ok(arg)
@@ -954,7 +958,10 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "timestamp" => PrimitiveSet::Timestamp,
         _ => return None,
     };
-    Some(ExprKind::Type(TyKind::Primitive(set)))
+    Some(ExprKind::Type(Ty {
+        kind: TyKind::Primitive(set),
+        name: None,
+    }))
 }
 
 #[cfg(test)]
@@ -1079,7 +1086,7 @@ mod test {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
             from table_1
-            join customers {==customer_no}
+            join customers (==customer_no)
             "#
         )
         .unwrap());
@@ -1087,7 +1094,7 @@ mod test {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
             from e = employees
-            join salaries {==emp_no}
+            join salaries (==emp_no)
             group {e.emp_no, e.gender} (
                 aggregate {
                     emp_salary = average salaries.salary

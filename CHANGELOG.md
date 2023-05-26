@@ -697,7 +697,7 @@ We've had to make some modest breaking changes for 0.3:
   ```diff
   from employees
   -join positions [id]
-  +join positions {==id}
+  +join positions [==id]
   ```
 
 - _Table references containing periods must be surrounded by backticks_. For

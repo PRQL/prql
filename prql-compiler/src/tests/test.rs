@@ -603,7 +603,7 @@ let UPPER = (
     default_db.lower
 )
 from UPPER
-join `some_schema.tablename` {==id}
+join `some_schema.tablename` (==id)
 derive `from` = 5
     "###).unwrap()), @r###"
     WITH "UPPER" AS (
@@ -624,7 +624,7 @@ derive `from` = 5
     // GH-1493
     let query = r###"
     from `dir/*.parquet`
-        # join files=`*.parquet` {==id}
+        # join files=`*.parquet` (==id)
     "###;
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
@@ -637,8 +637,8 @@ derive `from` = 5
     assert_display_snapshot!((compile(r###"
 prql target:sql.bigquery
 from `db.schema.table`
-join `db.schema.table2` {==id}
-join c = `db.schema.t-able` {`db.schema.table`.id == c.id}
+join `db.schema.table2` (==id)
+join c = `db.schema.t-able` (`db.schema.table`.id == c.id)
     "###).unwrap()), @r###"
     SELECT
       `db.schema.table`.*,
@@ -817,7 +817,7 @@ fn test_window_functions_00() {
 fn test_window_functions_02() {
     let query = r###"
     from co=cust_order
-    join ol=order_line {==order_id}
+    join ol=order_line (==order_id)
     derive {
         order_month = s"TO_CHAR({co.order_date}, '%Y-%m')",
         order_day = s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
@@ -1506,7 +1506,7 @@ fn test_distinct_on() {
 fn test_join() {
     assert_display_snapshot!((compile(r###"
     from x
-    join y {==id}
+    join y (==id)
     "###).unwrap()), @r###"
     SELECT
       x.*,
@@ -1523,16 +1523,16 @@ fn test_join() {
 fn test_from_json() {
     // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
     let original_prql = r#"from e=employees
-join salaries {==emp_no}
+join salaries (==emp_no)
 group {e.emp_no, e.gender} (
 aggregate {
 emp_salary = average salaries.salary
 }
 )
-join de=dept_emp {==emp_no}
-join dm=dept_manager {
+join de=dept_emp (==emp_no)
+join dm=dept_manager (
 (dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
-}
+)
 group {dm.emp_no, gender} (
 aggregate {
 salary_avg = average emp_salary,
@@ -1540,7 +1540,7 @@ salary_sd = stddev emp_salary
 }
 )
 derive mng_no = emp_no
-join managers=employees {==emp_no}
+join managers=employees (==emp_no)
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select {mng_name, managers.gender, salary_avg, salary_sd}"#;
 
@@ -1916,7 +1916,7 @@ fn test_prql_to_sql_table() {
         )
     )
     from newest_employees
-    join average_salaries {==country}
+    join average_salaries (==country)
     select {name, salary, average_country_salary}
     "#;
     let sql = compile(query).unwrap();
@@ -2049,7 +2049,7 @@ fn test_nonatomic_table() {
         group country (aggregate {s"count(*)"})
     )
     from a
-    join b {==country}
+    join b (==country)
     select {name, salary, average_country_salary}
 "###;
 
@@ -2084,10 +2084,10 @@ fn test_nonatomic_table() {
 fn test_table_names_between_splits() {
     let prql = r###"
     from employees
-    join d=department {==dept_no}
+    join d=department (==dept_no)
     take 10
     derive emp_no = employees.emp_no
-    join s=salaries {==emp_no}
+    join s=salaries (==emp_no)
     select {employees.emp_no, d.name, s.salary}
     "###;
     let result = compile(prql).unwrap();
@@ -2114,7 +2114,7 @@ fn test_table_names_between_splits() {
     let prql = r###"
     from e=employees
     take 10
-    join salaries {==emp_no}
+    join salaries (==emp_no)
     select {e.*, salaries.salary}
     "###;
     let result = compile(prql).unwrap();
@@ -2141,7 +2141,7 @@ fn test_table_alias() {
     // Alias on from
     let query = r###"
         from e = employees
-        join salaries side:left {salaries.emp_no == e.emp_no}
+        join salaries side:left (salaries.emp_no == e.emp_no)
         group {e.emp_no} (
             aggregate {
                 emp_salary = average salaries.salary
@@ -2317,7 +2317,7 @@ select foo
 )
 
 from x
-join y {foo == only_in_x}
+join y (foo == only_in_x)
 "###;
 
     assert_display_snapshot!(compile(query).unwrap(),
@@ -2441,7 +2441,7 @@ fn test_inline_tables() {
         from employees
         select {emp_id, name, surname, `type`, amount}
     )
-    join s = (from salaries | select {emp_id, salary}) {==emp_id}
+    join s = (from salaries | select {emp_id, salary}) (==emp_id)
     "###).unwrap(),
         @r###"
     WITH table_2 AS (
@@ -2566,7 +2566,7 @@ fn test_table_s_string() {
     from s"""
         SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC
     """
-    join s = s"SELECT * FROM salaries" {==id}
+    join s = s"SELECT * FROM salaries" (==id)
     "###).unwrap(),
         @r###"
     WITH table_4 AS (
@@ -3522,7 +3522,7 @@ fn test_1535() -> anyhow::Result<()> {
 fn test_read_parquet_duckdb() {
     assert_display_snapshot!(compile(r#"
     from (read_parquet 'x.parquet')
-    join (read_parquet "y.parquet") {==foo}
+    join (read_parquet "y.parquet") (==foo)
     "#).unwrap(),
         @r###"
     WITH table_4 AS (

@@ -1,6 +1,6 @@
 # skip_mssql (error: The function 'LAG' may not have a window frame.)
 from i=invoices
-join ii=invoice_items {==invoice_id}
+join ii=invoice_items (==invoice_id)
 derive {
     city = i.billing_city,
     street = i.billing_address,
