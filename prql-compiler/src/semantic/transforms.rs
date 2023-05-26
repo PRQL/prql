@@ -948,7 +948,6 @@ mod from_text {
             columns: parse_header(rdr.headers()?),
             rows: rdr
                 .records()
-                .into_iter()
                 .map(|row_result| row_result.map(parse_row))
                 .try_collect()?,
         })

@@ -82,10 +82,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
                     span,
                     format!(
                         "unknown query definition arguments {}",
-                        args.keys()
-                            .into_iter()
-                            .map(|x| format!("`{}`", x))
-                            .join(", ")
+                        args.keys().map(|x| format!("`{}`", x)).join(", ")
                     ),
                 ));
             }
