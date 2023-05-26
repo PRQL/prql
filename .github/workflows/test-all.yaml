@@ -114,27 +114,6 @@ jobs:
         with:
           use_cache: true
 
-  build-docker:
-    # TODO: could extract this into its own workflow and run on any changes to `Dockerfile` on PRs
-    # Note that we only build the image here; we then run tests in `nightly.yaml`
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-
-      - uses: docker/setup-buildx-action@v2
-
-      - name: Build
-        uses: docker/build-push-action@v4
-        with:
-          tags: prql:latest
-          # Use the GHA cache
-          load: true
-          cache-from: type=gha
-          # Only save cache on `main`
-          cache-to:
-            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
-
   test-min-rust-version:
     runs-on: ubuntu-latest
     steps:
