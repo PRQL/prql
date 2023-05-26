@@ -19,4 +19,4 @@ We may be able to reduce the boilerplate `WITH table_x AS SELECT * FROM...` in f
 
 ## See also
 
-- [Relation literals](./language-features/relation-literals.md)
+- [Relation literals](./relation-literals.md)
