@@ -58,12 +58,12 @@ The explicit semantics are:
 - `sort` introduces a new order,
 - `group` resets the order,
 - `join` maintains the order of the left relation,
-- database tables don't have a defined order.
+- database tables don't have a known order.
 
 Comparatively, in SQL, relations possess no order, being orderable solely within
-the context of the query result, CTE, or window functions. The lack of inherent
-order can result in an unexpected reshuffling of a previously ordered relation
-from a `JOIN` or windowing operation.
+the context of the query result, `LIMIT` statement, or window function. The lack
+of inherent order can result in an unexpected reshuffling of a previously
+ordered relation from a `JOIN` or windowing operation.
 
 ```admonish info
 To be precise — in PRQL, a relation is an _array of tuples_ and not a set or a bag.
