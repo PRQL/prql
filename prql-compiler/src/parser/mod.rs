@@ -424,7 +424,7 @@ mod test {
             Ident:
               - select
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - a
                 - Ident:
@@ -443,7 +443,7 @@ mod test {
             Ident:
               - group
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - title
                 - Ident:
@@ -453,7 +453,7 @@ mod test {
                   Ident:
                     - aggregate
                 args:
-                  - List:
+                  - Tuple:
                       - FuncCall:
                           name:
                             Ident:
@@ -482,7 +482,7 @@ mod test {
         "###);
         assert_yaml_snapshot!(parse_expr("{a, b, c,}").unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - a
           - Ident:
@@ -497,7 +497,7 @@ mod test {
 }"#
         ).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Ident:
@@ -547,7 +547,7 @@ mod test {
           args:
             - Ident:
                 - country
-            - List:
+            - Tuple:
                 - Binary:
                     left:
                       Ident:
@@ -699,10 +699,10 @@ Canada
     }
 
     #[test]
-    fn test_list() {
+    fn test_tuple() {
         assert_yaml_snapshot!(parse_expr(r#"{1 + 1, 2}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Literal:
@@ -716,7 +716,7 @@ Canada
         "###);
         assert_yaml_snapshot!(parse_expr(r#"{1 + (f 1), 2}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Literal:
@@ -740,18 +740,18 @@ Canada
                 2}"#
         ).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Literal:
               Integer: 1
           - Literal:
               Integer: 2
         "###);
-        // Function call in a list
+        // Function call in a tuple
         let ab = parse_expr(r#"{a b}"#).unwrap();
         let a_comma_b = parse_expr(r#"{a, b}"#).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
-        List:
+        Tuple:
           - FuncCall:
               name:
                 Ident:
@@ -762,7 +762,7 @@ Canada
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - a
           - Ident:
@@ -772,7 +772,7 @@ Canada
 
         assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - amount
           - Unary:
@@ -786,10 +786,10 @@ Canada
                 Ident:
                   - amount
         "###);
-        // Operators in list items
+        // Operators in tuple items
         assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - amount
           - Unary:
@@ -925,7 +925,7 @@ Canada
                   Ident:
                     - group
                 args:
-                  - List:
+                  - Tuple:
                       - Ident:
                           - title
                   - FuncCall:
@@ -933,7 +933,7 @@ Canada
                         Ident:
                           - aggregate
                       args:
-                        - List:
+                        - Tuple:
                             - FuncCall:
                                 name:
                                   Ident:
@@ -963,7 +963,7 @@ Canada
                   Ident:
                     - group
                 args:
-                  - List:
+                  - Tuple:
                       - Ident:
                           - title
                   - FuncCall:
@@ -971,7 +971,7 @@ Canada
                         Ident:
                           - aggregate
                       args:
-                        - List:
+                        - Tuple:
                             - FuncCall:
                                 name:
                                   Ident:
@@ -995,7 +995,7 @@ Canada
             Ident:
               - derive
           args:
-            - List:
+            - Tuple:
                 - Literal:
                     Integer: 5
                   alias: x
@@ -1035,7 +1035,7 @@ Canada
             - Unary:
                 op: Not
                 expr:
-                  List:
+                  Tuple:
                     - Ident:
                         - x
         "###);
@@ -1049,7 +1049,7 @@ Canada
             Ident:
               - select
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - x
                 - Ident:
@@ -1078,7 +1078,7 @@ Canada
   gross_cost   = gross_salary + benefits_cost,
 }"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Ident:
@@ -1153,11 +1153,9 @@ Canada
         - name: plus_one
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1167,7 +1165,12 @@ Canada
                     right:
                       Literal:
                         Integer: 1
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1177,15 +1180,18 @@ Canada
         - name: identity
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Ident:
                     - x
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1195,11 +1201,9 @@ Canada
         - name: plus_one
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1209,7 +1213,12 @@ Canada
                     right:
                       Literal:
                         Integer: 1
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1219,11 +1228,9 @@ Canada
         - name: plus_one
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1233,7 +1240,12 @@ Canada
                     right:
                       Literal:
                         Integer: 1
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1244,11 +1256,9 @@ Canada
         - name: foo
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   FuncCall:
                     name:
@@ -1276,7 +1286,12 @@ Canada
                           right:
                             Ident:
                               - baz
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1286,17 +1301,20 @@ Canada
         - name: main
           VarDef:
             value:
-              FuncDef:
-                positional_params:
+              Closure:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Literal:
+                    Integer: 42
+                params:
                   - name: func
                     default_value: ~
                   - name: return_constant
                     default_value: ~
                 named_params: []
-                body:
-                  Literal:
-                    Integer: 42
-                return_ty: ~
+                args: []
+                env: {}
             ty_expr: ~
             kind: Main
         "###);
@@ -1307,11 +1325,9 @@ Canada
         - name: count
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: X
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   SString:
                     - String: SUM(
@@ -1319,7 +1335,12 @@ Canada
                         Ident:
                           - X
                     - String: )
-                return_ty: ~
+                params:
+                  - name: X
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1339,11 +1360,9 @@ Canada
         - name: lag_day
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Pipeline:
                     exprs:
@@ -1375,7 +1394,12 @@ Canada
                           args:
                             - Literal:
                                 Integer: 1
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1385,15 +1409,9 @@ Canada
         - name: add
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params:
-                  - name: to
-                    default_value:
-                      Ident:
-                        - a
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1403,7 +1421,16 @@ Canada
                     right:
                       Ident:
                         - to
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params:
+                  - name: to
+                    default_value:
+                      Ident:
+                        - a
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1640,7 +1667,7 @@ Canada
                               Ident:
                                 - aggregate
                             args:
-                              - List:
+                              - Tuple:
                                   - FuncCall:
                                       name:
                                         Ident:
@@ -1750,11 +1777,9 @@ Canada
         - name: median
           VarDef:
             value:
-              FuncDef:
-                positional_params:
-                  - name: x
-                    default_value: ~
-                named_params: []
+              Closure:
+                name_hint: ~
+                return_ty: ~
                 body:
                   Pipeline:
                     exprs:
@@ -1767,7 +1792,12 @@ Canada
                           args:
                             - Literal:
                                 Integer: 50
-                return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
             ty_expr: ~
             kind: Let
         "###);
@@ -1800,7 +1830,7 @@ Canada
                         Ident:
                           - filter
                       args:
-                        - List:
+                        - Tuple:
                             - Binary:
                                 left:
                                   Ident:
@@ -1863,7 +1893,7 @@ join `my-proj`.`dataset`.`table`
                         Ident:
                           - aggregate
                       args:
-                        - List:
+                        - Tuple:
                             - FuncCall:
                                 name:
                                   Ident:
@@ -1878,7 +1908,7 @@ join `my-proj`.`dataset`.`table`
                       args:
                         - Ident:
                             - schema.table
-                        - List:
+                        - Tuple:
                             - Unary:
                                 op: EqSelf
                                 expr:
@@ -1950,7 +1980,7 @@ join `my-proj`.`dataset`.`table`
                         Ident:
                           - sort
                       args:
-                        - List:
+                        - Tuple:
                             - Ident:
                                 - issued_at
                   - FuncCall:
@@ -1958,7 +1988,7 @@ join `my-proj`.`dataset`.`table`
                         Ident:
                           - sort
                       args:
-                        - List:
+                        - Tuple:
                             - Unary:
                                 op: Neg
                                 expr:
@@ -1969,7 +1999,7 @@ join `my-proj`.`dataset`.`table`
                         Ident:
                           - sort
                       args:
-                        - List:
+                        - Tuple:
                             - Ident:
                                 - issued_at
                             - Unary:
@@ -2011,7 +2041,7 @@ join `my-proj`.`dataset`.`table`
                         Ident:
                           - derive
                       args:
-                        - List:
+                        - Tuple:
                             - Binary:
                                 left:
                                   Ident:
@@ -2161,7 +2191,7 @@ join `my-proj`.`dataset`.`table`
                       args:
                         - Ident:
                             - _salary
-                        - List:
+                        - Tuple:
                             - Unary:
                                 op: EqSelf
                                 expr:
@@ -2184,7 +2214,7 @@ join `my-proj`.`dataset`.`table`
                         Ident:
                           - select
                       args:
-                        - List:
+                        - Tuple:
                             - Ident:
                                 - _employees
                                 - _underscored_column
@@ -2299,7 +2329,7 @@ join s=salaries {==id}
                         - Ident:
                             - salaries
                           alias: s
-                        - List:
+                        - Tuple:
                             - Unary:
                                 op: EqSelf
                                 expr:
@@ -2319,7 +2349,7 @@ join s=salaries {==id}
             Ident:
               - select
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - andrew
                 - Ident:
@@ -2334,7 +2364,7 @@ join s=salaries {==id}
 
         assert_yaml_snapshot!(parse_expr(r"{false}").unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Literal:
               Boolean: false
         "###);

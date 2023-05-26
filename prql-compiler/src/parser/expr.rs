@@ -22,7 +22,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
-        let list = ident_part()
+        let tuple = ident_part()
             .then_ignore(ctrl('='))
             .or_not()
             .then(nested_expr.clone().map_with_span(into_expr))
@@ -42,8 +42,8 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 ],
                 |_| vec![],
             ))
-            .map(ExprKind::List)
-            .labelled("list");
+            .map(ExprKind::Tuple)
+            .labelled("tuple");
 
         let array = nested_expr
             .clone()
@@ -114,7 +114,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let term = choice((
             literal,
-            list,
+            tuple,
             array,
             pipeline,
             interpolation,
@@ -316,21 +316,26 @@ where
     .map(|((params, return_ty), body)| {
         let (pos, nam) = params
             .into_iter()
-            .map(|((name, ty_expr), default_value)| FuncParam {
+            .map(|((name, ty), default_value)| FuncParam {
                 name,
-                ty_expr,
+                ty: ty.map(TyOrExpr::Expr),
                 default_value,
             })
             .partition(|p| p.default_value.is_none());
 
-        FuncDef {
-            positional_params: pos,
+        Box::new(Func {
+            params: pos,
             named_params: nam,
+
             body,
-            return_ty: return_ty.map(Box::new),
-        }
+            return_ty: return_ty.map(TyOrExpr::Expr),
+
+            name_hint: None,
+            args: Vec::new(),
+            env: HashMap::new(),
+        })
     })
-    .map(ExprKind::FuncDef)
+    .map(ExprKind::Closure)
     .map_with_span(into_expr)
     .labelled("function definition")
 }

@@ -60,7 +60,7 @@ pub trait AstFold {
     fn fold_transform_call(&mut self, transform_call: TransformCall) -> Result<TransformCall> {
         fold_transform_call(self, transform_call)
     }
-    fn fold_closure(&mut self, closure: Closure) -> Result<Closure> {
+    fn fold_closure(&mut self, closure: Func) -> Result<Func> {
         fold_closure(self, closure)
     }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
@@ -91,7 +91,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
             op,
             expr: Box::new(fold.fold_expr(*expr)?),
         },
-        List(items) => List(fold.fold_exprs(items)?),
+        Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
         Range(range) => Range(fold_range(fold, range)?),
         Pipeline(p) => Pipeline(fold.fold_pipeline(p)?),
@@ -120,7 +120,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) | Type(_) | FuncDef(_) => expr_kind,
+        Literal(_) | Type(_) => expr_kind,
     })
 }
 
@@ -292,8 +292,8 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Result<Closure> {
-    Ok(Closure {
+pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Func) -> Result<Func> {
+    Ok(Func {
         body: Box::new(fold.fold_expr(*closure.body)?),
         args: closure
             .args

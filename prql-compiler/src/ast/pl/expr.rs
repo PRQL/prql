@@ -50,7 +50,7 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 
-    /// When true on [ExprKind::List], this list will be flattened when placed
+    /// When true on [ExprKind::Tuple], this list will be flattened when placed
     /// in some other list.
     // TODO: maybe we should have a special ExprKind instead of this flag?
     #[serde(skip)]
@@ -67,8 +67,7 @@ pub enum ExprKind {
     Literal(Literal),
     Pipeline(Pipeline),
 
-    /// Also known as tuple or struct
-    List(Vec<Expr>),
+    Tuple(Vec<Expr>),
     Array(Vec<Expr>),
     Range(Range),
     Binary {
@@ -81,7 +80,7 @@ pub enum ExprKind {
         expr: Box<Expr>,
     },
     FuncCall(FuncCall),
-    Closure(Box<Closure>),
+    Closure(Box<Func>),
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -95,7 +94,6 @@ pub enum ExprKind {
 
     /// a placeholder for values provided after query is compiled
     Param(String),
-    FuncDef(FuncDef),
 }
 
 impl ExprKind {
@@ -164,9 +162,6 @@ pub enum UnOp {
     EqSelf,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ListItem(pub Expr);
-
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
@@ -185,35 +180,55 @@ impl FuncCall {
         }
     }
 }
+
+/// An expression that may have already been converted to a type.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
+pub enum TyOrExpr {
+    Ty(Ty),
+    Expr(Expr),
+}
+
 /// Function called with possibly missing positional arguments.
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Closure {
-    pub name: Option<Ident>,
+pub struct Func {
+    /// Name of the function. Used for user-facing messages only.
+    pub name_hint: Option<Ident>,
+
+    /// Type requirement for the function body expression.
+    pub return_ty: Option<TyOrExpr>,
+
+    /// Expression containing parameter (and environment) references.
     pub body: Box<Expr>,
-    pub body_ty: Option<Ty>,
 
+    /// Positional function parameters.
+    pub params: Vec<FuncParam>,
+
+    /// Named function parameters.
+    pub named_params: Vec<FuncParam>,
+
+    /// Arguments that have already been provided.
     pub args: Vec<Expr>,
-    pub params: Vec<ClosureParam>,
-    pub named_params: Vec<ClosureParam>,
 
+    /// Additional variables that the body of the function may need to be
+    /// evaluated.
     pub env: HashMap<String, Expr>,
 }
 
-impl Closure {
+impl Func {
     pub fn as_debug_name(&self) -> &str {
-        let ident = self.name.as_ref();
+        let ident = self.name_hint.as_ref();
 
         ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
     }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ClosureParam {
+pub struct FuncParam {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Ty>,
+    pub ty: Option<TyOrExpr>,
 
     pub default_value: Option<Expr>,
 }
@@ -540,7 +555,7 @@ impl Display for Expr {
                 }
                 f.write_char(')')?;
             }
-            ExprKind::List(nodes) => {
+            ExprKind::Tuple(nodes) => {
                 if nodes.is_empty() {
                     f.write_str("[]")?;
                 } else if nodes.len() == 1 {
@@ -604,13 +619,29 @@ impl Display for Expr {
                 }
             }
             ExprKind::Closure(c) => {
-                write!(
-                    f,
-                    "<closure over `{}` with {}/{} args>",
-                    &c.body,
-                    c.args.len(),
-                    c.params.len()
-                )?;
+                let mut r = String::new();
+                for param in &c.params {
+                    r += &param.name;
+                    r += " ";
+                }
+                for param in &c.named_params {
+                    r += &param.name;
+                    r += ":";
+                    r += &param.default_value.as_ref().unwrap().to_string();
+                    r += " ";
+                }
+                r += "-> ";
+                r += &c.body.to_string();
+
+                if !c.args.is_empty() {
+                    r = format!("({r})");
+                    for args in &c.args {
+                        r += " ";
+                        r += &args.to_string();
+                    }
+                    r = format!("({r})");
+                }
+                f.write_str(&r)?;
             }
             ExprKind::SString(parts) => {
                 display_interpolation(f, "s", parts)?;
@@ -640,7 +671,6 @@ impl Display for Expr {
             ExprKind::Param(id) => {
                 writeln!(f, "${id}")?;
             }
-            ExprKind::FuncDef(func_def) => write!(f, "{func_def}")?,
         }
 
         Ok(())

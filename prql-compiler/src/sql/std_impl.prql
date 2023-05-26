@@ -1,13 +1,13 @@
-let min = column -> <scalar || column> s"MIN({column})"
-let max = column -> <scalar || column> s"MAX({column})"
-let sum = column -> <scalar || column> s"SUM({column})"
-let avg = column -> <scalar || column> s"AVG({column})"
-let stddev = column -> <scalar || column> s"STDDEV({column})"
-let average = column -> <scalar || column> s"AVG({column})"
-let count = non_null:s"*" -> <scalar || column> s"COUNT({non_null})"
+let min = column -> s"MIN({column})"
+let max = column -> s"MAX({column})"
+let sum = column -> s"SUM({column})"
+let avg = column -> s"AVG({column})"
+let stddev = column -> s"STDDEV({column})"
+let average = column -> s"AVG({column})"
+let count = non_null -> s"COUNT({non_null})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-let count_distinct = column -> <scalar || column> s"COUNT(DISTINCT {column})"
+let count_distinct = column -> s"COUNT(DISTINCT {column})"
 
 # Window functions
 let lag = offset column -> s"LAG({column}, {offset})"
@@ -20,15 +20,15 @@ let row_number = -> s"ROW_NUMBER()"
 
 # Other functions
 let round = n_digits column -> s"ROUND({column}, {n_digits})"
-let as = `noresolve.type` column -> s"CAST({column} AS {type})"
+let as = `type` column -> s"CAST({column} AS {type})"
 
 # String functions
-let lower = column -> <text> s"LOWER({column})"
-let upper = column -> <text> s"UPPER({column})"
+let lower = column ->  s"LOWER({column})"
+let upper = column ->  s"UPPER({column})"
 
 # Source-reading functions, primarily for DuckDB
-let read_parquet = source<text> -> s"SELECT * FROM read_parquet({source})"
-let read_csv = source<text> -> s"SELECT * FROM read_csv_auto({source})"
+let read_parquet = source -> s"SELECT * FROM read_parquet({source})"
+let read_csv = source -> s"SELECT * FROM read_csv_auto({source})"
 
 let mul = l r -> null
 let div = l r -> null

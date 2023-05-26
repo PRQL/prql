@@ -281,7 +281,7 @@ impl Lowerer {
                         .into_iter()
                         .map(|row| {
                             row.kind
-                                .into_list()
+                                .into_tuple()
                                 .unwrap()
                                 .into_iter()
                                 .map(|element| element.kind.into_literal().unwrap())
@@ -309,7 +309,7 @@ impl Lowerer {
             _ => {
                 return Err(Error::new(Reason::Expected {
                     who: None,
-                    expected: "pipeline that resolves to a table".to_string(),
+                    expected: "a pipeline that resolves to a table".to_string(),
                     found: format!("`{expr}`"),
                 })
                 .with_help("are you missing `from` statement?")
@@ -797,12 +797,11 @@ impl Lowerer {
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
-            | pl::ExprKind::List(_)
+            | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
-            | pl::ExprKind::FuncDef(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {

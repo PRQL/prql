@@ -32,7 +32,7 @@ expression: "parse(include_str!(\"../../examples/compile-files/queries/variables
                 Ident:
                   - derive
               args:
-                - List:
+                - Tuple:
                     - Binary:
                         left:
                           Ident:
@@ -69,7 +69,7 @@ expression: "parse(include_str!(\"../../examples/compile-files/queries/variables
                 Ident:
                   - group
               args:
-                - List:
+                - Tuple:
                     - Ident:
                         - title
                     - Ident:
@@ -79,7 +79,7 @@ expression: "parse(include_str!(\"../../examples/compile-files/queries/variables
                       Ident:
                         - aggregate
                     args:
-                      - List:
+                      - Tuple:
                           - FuncCall:
                               name:
                                 Ident:

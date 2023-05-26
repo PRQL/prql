@@ -2,23 +2,23 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
 ---
-- id: 24
+- id: 23
   Binary:
     left:
-      id: 22
+      id: 21
       Ident:
         - _frame
         - employees
         - gross_salary
-      target_id: 10
+      target_id: 9
     op: Sub
     right:
-      id: 23
+      id: 22
       Ident:
         - _frame
         - employees
         - tax
-      target_id: 10
+      target_id: 9
   ty:
     kind:
       Union:

@@ -2535,7 +2535,7 @@ fn test_unused_alias() {
        │                ───────┬──────
        │                       ╰──────── unexpected assign to `n`
        │
-       │ Help: move assign into the list: `[n = ...]`
+       │ Help: move assign into the tuple: `[n = ...]`
     ───╯
     "###)
 }
