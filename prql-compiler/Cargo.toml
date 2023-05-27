@@ -46,7 +46,7 @@ insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 # For integration tests
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 chrono = {version = "0.4", features = [], default-features = false}
-criterion = "0.4.0"
+criterion = "0.5.1"
 csv = "1.2"
 mysql = "24"
 pg_bigdecimal = "0.1"
