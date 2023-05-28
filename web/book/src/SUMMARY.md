@@ -55,6 +55,12 @@
   - [F-strings](./language-features/f-strings.md)
   - [Target & Version](./language-features/target.md)
 
+- [Compiler](./compiler/README.md)
+  - [Reference implementation](./compiler/rust/README.md)
+    - [CLI](./compiler/rust/cli.md)
+  - [Compiler features](./compiler/compiler-features/README.md)
+    - [Target & Version](./compiler/compiler-features/target.md)
+
 - [Bindings](./bindings/README.md)
 
   - [.NET](./bindings/dotnet.md)
@@ -67,7 +73,6 @@
 
 - [Integrations](./integrations/README.md)
 
-  - [CLI](./integrations/cli.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
