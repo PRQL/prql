@@ -166,11 +166,14 @@ fn test_shell_completion() {
 fn project_path() -> PathBuf {
     let mut path = current_dir().unwrap();
 
-    // a hack
-    if !path.ends_with("prqlc") {
-        path.push("prqlc");
+    // a hack that tries to find the correct root
+    if path.ends_with("prqlc") {
+        path.pop();
+    }
+    if path.ends_with("prql") {
+        path.pop();
     }
 
-    path.extend(["tests", "project"]);
+    path.extend(["prqlc", "tests", "project"]);
     path
 }
