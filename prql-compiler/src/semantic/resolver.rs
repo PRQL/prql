@@ -973,7 +973,7 @@ mod test {
     use crate::semantic::resolve_single;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let ctx = resolve_single(crate::parser::parse(query)?, None)?;
+        let ctx = resolve_single(crate::parser::parse_single(query)?, None)?;
         let (main, _) = ctx.find_main_rel(&[]).unwrap();
         Ok(*main.clone().into_relation_var().unwrap())
     }

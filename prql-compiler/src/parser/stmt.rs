@@ -12,7 +12,7 @@ use super::common::*;
 use super::expr::*;
 use super::lexer::Token;
 
-pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
+pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
     query_def()
         .or_not()
         .chain(module_contents())
@@ -20,7 +20,7 @@ pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
         .labelled("source file")
 }
 
-fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
+fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
     recursive(|module_contents| {
         let module_def = keyword("module")
             .ignore_then(ident_part())
@@ -36,7 +36,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
     })
 }
 
-fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
+fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
     new_line()
         .repeated()
         .ignore_then(keyword("prql"))
@@ -94,7 +94,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
+fn var_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
     let let_ = keyword("let")
         .ignore_then(ident_part())
         .then(type_expr().or_not())
@@ -131,7 +131,7 @@ fn var_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
     let_.or(main_or_into)
 }
 
-fn type_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
+fn type_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
         .then(
@@ -144,7 +144,7 @@ fn type_def() -> impl Parser<Token, (String, StmtKind), Error = Simple<Token>> {
         .labelled("type definition")
 }
 
-pub fn type_expr() -> impl Parser<Token, Expr, Error = Simple<Token>> {
+pub fn type_expr() -> impl Parser<Token, Expr, Error = PError> {
     let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
     let ident = ident().map(ExprKind::Ident);

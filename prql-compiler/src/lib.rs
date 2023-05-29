@@ -95,6 +95,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
+use utils::IdGenerator;
 
 pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
     Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prql-compiler version number")
@@ -126,8 +127,10 @@ pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
-    parser::parse(prql)
-        .and_then(semantic::resolve_and_lower_single)
+    let sources = SourceTree::from(prql);
+
+    parser::parse_tree(&sources)
+        .and_then(|ast| semantic::resolve_and_lower(ast, &[]))
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
         .map_err(|e| e.composed(&prql.into(), options.color))
@@ -242,13 +245,16 @@ pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
-    parser::parse(prql)
+    let sources = SourceTree::from(prql);
+
+    parser::parse_tree(&sources)
+        .map(|x| x.sources.into_values().next().unwrap())
         .map_err(error::downcast)
         .map_err(|e| e.composed(&prql.into(), false))
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(prql: &FileTree) -> Result<FileTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
     parser::parse_tree(prql)
         .map_err(error::downcast)
         .map_err(|e| e.composed(prql, false))
@@ -261,7 +267,7 @@ pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages>
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: FileTree<Vec<ast::pl::Stmt>>,
+    pl: SourceTree<Vec<ast::pl::Stmt>>,
     main_path: &[String],
 ) -> Result<ast::rq::Query, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
@@ -302,25 +308,45 @@ pub mod json {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct FileTree<T: Sized + Serialize = String> {
-    /// Mapping from file paths into their contents.
-    pub files: HashMap<PathBuf, T>,
+/// All paths are relative to the project root.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct SourceTree<T: Sized + Serialize = String> {
+    /// Mapping from file ids into their contents.
+    pub sources: HashMap<PathBuf, T>,
+
+    /// Index of source ids to paths. Used to keep [error::Span] lean.
+    source_ids: HashMap<usize, PathBuf>,
 }
 
-impl FileTree<String> {
-    pub fn single<S: ToString>(source_id: PathBuf, source: S) -> Self {
-        FileTree {
-            files: [(source_id, source.to_string())].into(),
+impl<T: Sized + Serialize> SourceTree<T> {
+    pub fn single(path: PathBuf, content: T) -> Self {
+        SourceTree {
+            sources: [(path.clone(), content)].into(),
+            source_ids: [(1, path)].into(),
         }
+    }
+
+    pub fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (PathBuf, T)>,
+    {
+        let mut id_gen = IdGenerator::new();
+        let mut res = SourceTree {
+            sources: HashMap::new(),
+            source_ids: HashMap::new(),
+        };
+
+        for (path, content) in iter {
+            res.sources.insert(path.clone(), content);
+            res.source_ids.insert(id_gen.gen(), path);
+        }
+        res
     }
 }
 
-impl<S: ToString> From<S> for FileTree {
-    fn from(str: S) -> Self {
-        FileTree {
-            files: [(std::path::Path::new("").to_path_buf(), str.to_string())].into(),
-        }
+impl<S: ToString> From<S> for SourceTree {
+    fn from(source: S) -> Self {
+        SourceTree::single(std::path::Path::new("").to_path_buf(), source.to_string())
     }
 }
 

@@ -1034,13 +1034,13 @@ mod from_text {
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::parser::parse;
+    use crate::parser::parse_single;
     use crate::semantic::{resolve_and_lower_single, resolve_single};
 
     #[test]
     fn test_aggregate_positional_arg() {
         // distinct query #292
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         select invoice_no
@@ -1097,7 +1097,7 @@ mod tests {
         "###);
 
         // oops, two arguments #339
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         aggregate average amount
@@ -1108,7 +1108,7 @@ mod tests {
         assert!(result.is_err());
 
         // oops, two arguments
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         group issued_at (aggregate average amount)
@@ -1119,7 +1119,7 @@ mod tests {
         assert!(result.is_err());
 
         // correct function call
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         group issued_at (
@@ -1280,7 +1280,7 @@ mod tests {
 
     #[test]
     fn test_transform_sort() {
-        let query = parse(
+        let query = parse_single(
             "
         from invoices
         sort {issued_at, -amount, +num_of_articles}
