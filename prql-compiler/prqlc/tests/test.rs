@@ -2,6 +2,8 @@
 
 use insta_cmd::get_cargo_bin;
 use insta_cmd::{assert_cmd_snapshot, StdinCommand};
+use std::env::current_dir;
+use std::path::PathBuf;
 use std::process::Command;
 
 // Windows has slightly different outputs (e.g. `prqlc.exe` instead of `prqlc`),
@@ -74,13 +76,10 @@ fn test_compile() {
 #[test]
 fn test_compile_project() {
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
-    cmd.args([
-        "compile",
-        "--hide-signature-comment",
-        "tests/project",
-        "-",
-        "main",
-    ]);
+    cmd.args(["compile", "--hide-signature-comment"]);
+    cmd.arg(project_path());
+    cmd.arg("-");
+    cmd.arg("main");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
@@ -120,13 +119,10 @@ fn test_compile_project() {
     "###);
 
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
-    cmd.args([
-        "compile",
-        "--hide-signature-comment",
-        "tests/project",
-        "-",
-        "favorite_artists",
-    ]);
+    cmd.args(["compile", "--hide-signature-comment"]);
+    cmd.arg(project_path());
+    cmd.arg("-");
+    cmd.arg("main");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
@@ -165,4 +161,10 @@ fn test_shell_completion() {
     assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
         .arg("shell-completion")
         .arg("zsh"));
+}
+
+fn project_path() -> PathBuf {
+    let mut path = current_dir().unwrap();
+    path.extend(["prqlc", "tests", "project"]);
+    path
 }
