@@ -118,7 +118,7 @@ _arguments "${_arguments_options[@]}" \
 '-t+[]:TARGET: ' \
 '--target=[]:TARGET: ' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'--include-signature-comment[]' \
+'--hide-signature-comment[]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \

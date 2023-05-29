@@ -91,8 +91,8 @@ enum Command {
     SQLCompile {
         #[command(flatten)]
         io_args: IoArgs,
-        #[arg(long, default_value = "true")]
-        include_signature_comment: bool,
+        #[arg(long, action = clap::ArgAction::SetFalse)]
+        hide_signature_comment: bool,
         #[arg(short, long, default_value = "sql.any", env = "PRQLC_TARGET")]
         target: String,
     },
@@ -199,21 +199,20 @@ impl Command {
                 pl_to_prql(ast)?.as_bytes().to_vec()
             }
             Command::Debug(_) => {
-                let (source_id, source) = sources.files.clone().into_iter().exactly_one()?;
-                let stmts = prql_to_pl(&source)?;
+                let stmts = prql_to_pl_tree(sources)?;
 
-                let sources = FileTree::from(source);
-
-                let context = semantic::resolve_single(stmts, None)
+                let context = semantic::resolve(stmts, None)
                     .map_err(prql_compiler::downcast)
-                    .map_err(|e| e.composed(&sources, true))?;
+                    .map_err(|e| e.composed(sources, true))?;
 
-                let (_, source) = sources.files.into_iter().exactly_one().unwrap();
+                let mut out = Vec::new();
+                for (source_id, source) in &sources.files {
+                    let source_id = source_id.to_str().unwrap().to_string();
+                    out.extend(label_references(&context, source_id, source.clone()));
+                }
 
-                let source_id = source_id.to_str().unwrap().to_string();
-                let references = label_references(&context, source_id, source);
-
-                [references, format!("\n{context:#?}\n").into_bytes()].concat()
+                out.extend(format!("\n{context:#?}\n").into_bytes());
+                out
             }
             Command::Annotate(_) => {
                 let (_, source) = sources.files.clone().into_iter().exactly_one()?;
@@ -226,8 +225,8 @@ impl Command {
                 // resolve
                 let ctx = semantic::resolve_single(stmts, None)?;
 
-                let frames = if let Some((main, _)) = ctx.find_main(&[]) {
-                    collect_frames(main.clone())
+                let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
+                    collect_frames(*main.clone().into_relation_var().unwrap())
                 } else {
                     vec![]
                 };
@@ -245,14 +244,14 @@ impl Command {
                 }
             }
             Command::SQLCompile {
-                include_signature_comment,
+                hide_signature_comment,
                 target,
                 ..
             } => {
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
                     .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
-                    .with_signature_comment(*include_signature_comment);
+                    .with_signature_comment(*hide_signature_comment);
 
                 prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path))
@@ -436,6 +435,8 @@ mod clio_extended {
                 Input::Pipe(_, pipe) => pipe.read_to_string(&mut only_file)?,
                 Input::File(_, file) => file.read_to_string(&mut only_file)?,
                 Input::Directory(root_path) => {
+                    let root_path = Path::new(root_path);
+
                     // special case: actually walk the dirs
                     let mut files = HashMap::new();
                     for entry in WalkDir::new(root_path) {
@@ -444,7 +445,7 @@ mod clio_extended {
 
                         if path.is_file() && path.extension() == Some(OsStr::new("prql")) {
                             let file_contents = fs::read_to_string(path)?;
-                            let path = path.to_path_buf();
+                            let path = path.strip_prefix(root_path)?.to_path_buf();
 
                             files.insert(path, file_contents);
                         }
@@ -620,7 +621,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
-                include_signature_comment: true,
+                hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
             &"asdf".into(),
@@ -642,7 +643,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
-                include_signature_comment: true,
+                hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
             &FileTree {

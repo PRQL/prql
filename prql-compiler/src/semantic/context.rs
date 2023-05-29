@@ -453,31 +453,49 @@ impl Context {
 
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
-    pub fn find_main(&self, path: &[String]) -> Option<(&Expr, Ident)> {
-        let mut res = None;
+    pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), Option<String>> {
+        let (decl, ident) = self.find_main(path)?;
 
-        // is path referencing "main"?
-        if path.last().map(|x| x.as_str()) == Some(NS_MAIN) {
+        let decl = (decl.kind.as_table_decl())
+            .ok_or(Some(format!("{ident} is not a relational variable")))?;
+
+        Ok((&decl.expr, ident))
+    }
+
+    pub fn find_main(&self, path: &[String]) -> Result<(&Decl, Ident), Option<String>> {
+        let mut tried_idents = Vec::new();
+
+        // is path referencing the relational var directly?
+        if !path.is_empty() {
             let ident = Ident::from_path(path.to_vec());
             let decl = self.root_mod.get(&ident);
-            res = decl.map(|x| (x, ident));
+
+            if let Some(decl) = decl {
+                return Ok((decl, ident));
+            } else {
+                tried_idents.push(ident.to_string());
+            }
         }
 
         // is path referencing the parent module?
-        if res.is_none() {
+        {
             let mut path = path.to_vec();
             path.push(NS_MAIN.to_string());
 
             let ident = Ident::from_path(path);
             let decl = self.root_mod.get(&ident);
-            res = decl.map(|x| (x, ident));
+
+            if let Some(decl) = decl {
+                return Ok((decl, ident));
+            } else {
+                tried_idents.push(ident.to_string());
+            }
         }
 
-        let (decl, ident) = res?;
-        let decl = decl.kind.as_table_decl()?;
-
-        let expr = decl.expr.as_relation_var()?.as_ref();
-        Some((expr, ident))
+        Err(Some(format!(
+            "Expected a declaration at {}",
+            tried_idents.join(" or ")
+        )))
     }
 
     pub fn find_query_def(&self, main: &Ident) -> Option<&QueryDef> {

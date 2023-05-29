@@ -90,8 +90,8 @@ impl Error {
 }
 
 impl WithErrorInfo for crate::Error {
-    fn with_help<S: Into<String>>(mut self, help: S) -> Self {
-        self.help = Some(help.into());
+    fn with_opt_help<S: Into<String>>(mut self, help: Option<S>) -> Self {
+        self.help = help.map(|x| x.into());
         self
     }
 
@@ -135,6 +135,9 @@ impl Display for ErrorMessage {
                 .unwrap_or_default();
 
             writeln!(f, "{}Error: {}", code, &self.reason)?;
+            if let Some(hint) = &self.hint {
+                writeln!(f, " Hint: {}", hint)?;
+            }
         }
         Ok(())
     }
@@ -377,16 +380,20 @@ impl Add<Span> for Span {
     }
 }
 
-pub trait WithErrorInfo {
-    fn with_help<S: Into<String>>(self, help: S) -> Self;
+pub trait WithErrorInfo: Sized {
+    fn with_help<S: Into<String>>(self, help: S) -> Self {
+        self.with_opt_help(Some(help))
+    }
+
+    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
 }
 
 impl WithErrorInfo for anyhow::Error {
-    fn with_help<S: Into<String>>(self, help: S) -> Self {
+    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self {
         self.downcast_ref::<crate::Error>()
-            .map(|e| e.clone().with_help(help).into())
+            .map(|e| e.clone().with_opt_help(help).into())
             .unwrap_or(self)
     }
 
@@ -402,8 +409,8 @@ impl WithErrorInfo for anyhow::Error {
 }
 
 impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
-    fn with_help<S: Into<String>>(self, help: S) -> Self {
-        self.map_err(|e| e.with_help(help))
+    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self {
+        self.map_err(|e| e.with_opt_help(help))
     }
 
     fn with_span(self, span: Option<Span>) -> Self {

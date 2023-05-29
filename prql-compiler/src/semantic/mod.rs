@@ -102,9 +102,18 @@ fn normalize(mut tree: FileTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt
             let under = tree.files.remove(&under.clone()).unwrap();
             tree.files.insert(root_path, under);
         } else {
-            return Err(Error::new_simple("Cannot find the root module.")
-                .with_help("root module should be prefixed with `_`")
-                .into());
+            let file_names = tree
+                .files
+                .keys()
+                .map(|p| format!(" - {}", p.to_str().unwrap_or_default()))
+                .sorted()
+                .join("\n");
+
+            return Err(Error::new_simple(format!(
+                "Cannot find the root module within the following files:\n{file_names}"
+            ))
+            .with_help("root module should be prefixed with `_`")
+            .into());
         }
     }
 

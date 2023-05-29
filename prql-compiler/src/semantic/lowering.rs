@@ -28,9 +28,11 @@ use super::NS_DEFAULT_DB;
 pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Context)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = context
-        .find_main(main_path)
-        .ok_or_else(|| Error::new_simple("Missing main pipeline").with_code("E0001"))?;
+    let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
+        Error::new_simple("Missing main pipeline")
+            .with_code("E0001")
+            .with_opt_help(hint)
+    })?;
 
     // find & validate query def
     let def = context.find_query_def(&main_ident);

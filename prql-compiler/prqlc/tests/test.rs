@@ -63,15 +63,81 @@ fn test_get_targets() {
 }
 
 #[test]
+#[ignore = "insta_cmd::StdinCommand is not working correctly"]
 fn test_compile() {
     let mut cmd = StdinCommand::new(get_cargo_bin("prqlc"), "from tracks");
 
-    // TODO: fix
     assert_cmd_snapshot!(cmd.arg("compile"), @r###"
-    success: false
-    exit_code: 1
+    "###);
+}
+
+#[test]
+fn test_compile_project() {
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    cmd.args([
+        "compile", "--hide-signature-comment", "tests/project", "-", "main"
+    ]);
+    assert_cmd_snapshot!(cmd, @r###"
+    success: true
+    exit_code: 0
     ----- stdout -----
-    [E0001] Error: Missing main pipeline
+    WITH table_5 AS (
+      SELECT
+        120 AS artist_id,
+        DATE '2023-05-18' AS last_listen
+      UNION
+      ALL
+      SELECT
+        7 AS artist_id,
+        DATE '2023-05-16' AS last_listen
+    ),
+    favorite_artists AS (
+      SELECT
+        artist_id,
+        last_listen
+      FROM
+        table_5 AS table_1
+    ),
+    table_4 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('artists.parquet')
+    )
+    SELECT
+      favorite_artists.artist_id,
+      favorite_artists.last_listen,
+      table_3.*
+    FROM
+      favorite_artists
+      LEFT JOIN table_4 AS table_3 ON favorite_artists.artist_id = table_3.artist_id
+
+    ----- stderr -----
+    "###);
+
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    cmd.args([
+        "compile", "--hide-signature-comment", "tests/project", "-", "favorite_artists"
+    ]);
+    assert_cmd_snapshot!(cmd, @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    WITH table_2 AS (
+      SELECT
+        120 AS artist_id,
+        DATE '2023-05-18' AS last_listen
+      UNION
+      ALL
+      SELECT
+        7 AS artist_id,
+        DATE '2023-05-16' AS last_listen
+    )
+    SELECT
+      artist_id,
+      last_listen
+    FROM
+      table_2 AS table_1
 
     ----- stderr -----
     "###);
