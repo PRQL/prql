@@ -165,6 +165,12 @@ fn test_shell_completion() {
 
 fn project_path() -> PathBuf {
     let mut path = current_dir().unwrap();
-    path.extend(["prqlc", "tests", "project"]);
+
+    // a hack
+    if !path.ends_with("prqlc") {
+        path.push("prqlc");
+    }
+
+    path.extend(["tests", "project"]);
     path
 }
