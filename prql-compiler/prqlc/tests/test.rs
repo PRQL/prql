@@ -75,7 +75,11 @@ fn test_compile() {
 fn test_compile_project() {
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
     cmd.args([
-        "compile", "--hide-signature-comment", "tests/project", "-", "main"
+        "compile",
+        "--hide-signature-comment",
+        "tests/project",
+        "-",
+        "main",
     ]);
     assert_cmd_snapshot!(cmd, @r###"
     success: true
@@ -117,7 +121,11 @@ fn test_compile_project() {
 
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
     cmd.args([
-        "compile", "--hide-signature-comment", "tests/project", "-", "favorite_artists"
+        "compile",
+        "--hide-signature-comment",
+        "tests/project",
+        "-",
+        "favorite_artists",
     ]);
     assert_cmd_snapshot!(cmd, @r###"
     success: true
