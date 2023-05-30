@@ -243,7 +243,7 @@ where
                 op,
                 right: Box::new(right.0),
             };
-            (into_expr(kind, span.clone()), span)
+            (into_expr(kind, span), span)
         })
         .map(|(e, _)| e)
         .boxed()
@@ -283,7 +283,7 @@ where
             for (name, arg) in args {
                 if let Some(name) = name {
                     if named_args.contains_key(&name) {
-                        let err = Simple::custom(span.clone(), "argument is used multiple times");
+                        let err = Simple::custom(span, "argument is used multiple times");
                         emit(err)
                     }
                     named_args.insert(name, arg);

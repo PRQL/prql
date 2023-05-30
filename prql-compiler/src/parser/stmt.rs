@@ -57,7 +57,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
                     _ => Err("version must be a string literal".to_string()),
                 })
                 .transpose()
-                .map_err(|msg| Simple::custom(span.clone(), msg))?;
+                .map_err(|msg| Simple::custom(span, msg))?;
 
             // TODO: `QueryDef` is currently implemented as `version` & `other`
             // fields. We want to raise an error if an unsupported field is
@@ -72,7 +72,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
                     _ => Err("target must be a string literal".to_string()),
                 })
                 .transpose()
-                .map_err(|msg| Simple::custom(span.clone(), msg))?
+                .map_err(|msg| Simple::custom(span, msg))?
                 .map_or_else(HashMap::new, |x| {
                     HashMap::from_iter(vec![("target".to_string(), x)])
                 });

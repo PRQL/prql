@@ -326,7 +326,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
         }
     }
 
-    pub fn from_iter<I>(iter: I) -> Self
+    pub fn new<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = (PathBuf, T)>,
     {

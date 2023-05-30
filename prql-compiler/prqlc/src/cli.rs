@@ -451,7 +451,7 @@ mod clio_extended {
                         }
                     }
 
-                    return Ok(SourceTree::from_iter(sources));
+                    return Ok(SourceTree::new(sources));
                 }
             };
 
@@ -644,7 +644,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
-            &SourceTree::from_iter([
+            &SourceTree::new([
                 ("_project.prql".into(), "orders.x | select y".to_string()),
                 (
                     "orders.prql".into(),
