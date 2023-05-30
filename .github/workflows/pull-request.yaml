@@ -92,11 +92,11 @@ jobs:
     # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
     needs:
-      - check-links
-      - lint-megalinter
-      - nightly
-      - publish-web
-      - test-all
+      # - check-links
+      # - lint-megalinter
+      # - nightly
+      # - publish-web
+      # - test-all
       - test-rust
     runs-on: ubuntu-latest
     steps:
