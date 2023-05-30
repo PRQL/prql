@@ -38,7 +38,7 @@ jobs:
       target_option: ${{ matrix.target_option }}
 
   # lint-megalinter:
-    # uses: ./.github/workflows/lint-megalinter.yaml
+  # uses: ./.github/workflows/lint-megalinter.yaml
 
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meaning a breaking change) in the PR title. (We also run on other
