@@ -122,7 +122,7 @@ fn test_compile_project() {
     cmd.args(["compile", "--hide-signature-comment"]);
     cmd.arg(project_path());
     cmd.arg("-");
-    cmd.arg("main");
+    cmd.arg("favorite_artists");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
@@ -170,10 +170,10 @@ fn project_path() -> PathBuf {
     if path.ends_with("prqlc") {
         path.pop();
     }
-    if path.ends_with("prql") {
+    if path.ends_with("prql-compiler") {
         path.pop();
     }
 
-    path.extend(["prqlc", "tests", "project"]);
+    path.extend(["prql-compiler", "prqlc", "tests", "project"]);
     path
 }
