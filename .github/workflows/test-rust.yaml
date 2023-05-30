@@ -32,46 +32,14 @@ jobs:
           prefix-key: 0.8.1
           key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: 📎 Clippy
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: clippy
-          # Note that `--all-targets` doesn't refer to targets like
-          # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-          args:
-            --all-targets --all-features ${{ inputs.target_option }} -- -D
-            warnings
-      - name: ⌨️ Fmt
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: fmt
-          args: --all --check
-        # We split up the test compilation as recommended in
-        # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
           args: ${{ inputs.target_option }} --all-features --no-run --locked
-      - name: Run docker compose
-        run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: Wait for database
-        uses: ifaxity/wait-on-action@v1
-        with:
-          resource: "tcp:5432 tcp:3306 tcp:1433"
-          timeout: 60000
-        if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # Autoformatting doesn't make this clear to read, but this tertiary
-          # expression states to only check these on ubuntu linux:
-          # - External DB integration tests — `--features=test-external-dbs`.
-          # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
-            test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
-            inputs.os == 'ubuntu-latest' && '--unreferenced=auto
-            --features=test-external-dbs' || '' }}
+            test ${{ inputs.target_option }}

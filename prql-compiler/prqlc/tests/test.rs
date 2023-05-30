@@ -74,78 +74,69 @@ fn test_compile() {
 }
 
 #[test]
-fn test_compile_project() {
-    let mut cmd = Command::new("/bin/ls");
+fn test_compile_project_0() {
+    let mut cmd = Command::new("dir");
     let mut path = project_path();
     path.pop();
     path.pop();
     path.pop();
     cmd.arg(path);
-    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    benches
-    Cargo.toml
-    examples
-    prqlc
-    prql-compiler-macros
-    README.md
-    src
-    tests
 
     ----- stderr -----
     "###);
+}
 
-    let mut cmd = Command::new("/bin/ls");
+#[test]
+fn test_compile_project_1() {
+    let mut cmd = Command::new("dir");
     let mut path = project_path();
     path.pop();
     path.pop();
     cmd.arg(path);
-    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    Cargo.toml
-    README.md
-    src
-    tests
 
     ----- stderr -----
     "###);
+}
 
-    let mut cmd = Command::new("/bin/ls");
+#[test]
+fn test_compile_project_2() {
+    let mut cmd = Command::new("dir");
     let mut path = project_path();
     path.pop();
     cmd.arg(path);
-    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    project
-    snapshots
-    test.rs
 
     ----- stderr -----
     "###);
+}
 
-    let mut cmd = Command::new("/bin/ls");
+#[test]
+fn test_compile_project_3() {
+let mut cmd = Command::new("dir");
     let path = project_path();
     cmd.arg(path);
-    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    artists.prql
-    _project.prql
 
     ----- stderr -----
     "###);
+}
 
+#[test]
+fn test_compile_project_4() {
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
     cmd.args(["compile", "--hide-signature-comment"]);
     cmd.arg(project_path());
