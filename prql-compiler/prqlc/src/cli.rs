@@ -401,7 +401,6 @@ mod clio_extended {
                 let path = PathBuf::from(path);
                 let file = File::open(&path)?;
                 if file.metadata()?.is_dir() {
-                    panic!("it's a dir!");
                     return Ok(Input::Directory(path));
                 }
                 if is_fifo(&file)? {
@@ -439,17 +438,15 @@ mod clio_extended {
                 Input::Pipe(_, pipe) => pipe.read_to_string(&mut only_file)?,
                 Input::File(_, file) => file.read_to_string(&mut only_file)?,
                 Input::Directory(root_path) => {
-                    let root_path = Path::new(root_path);
-
                     // special case: actually walk the dirs
                     let mut sources = HashMap::new();
-                    for entry in WalkDir::new(root_path) {
-                        let entry = entry?;
+                    for entry in WalkDir::new(&root_path) {
+                        let entry = entry.unwrap();
                         let path = entry.path();
 
                         if path.is_file() && path.extension() == Some(OsStr::new("prql")) {
                             let file_contents = fs::read_to_string(path)?;
-                            let path = path.strip_prefix(root_path)?.to_path_buf();
+                            let path = path.strip_prefix(&root_path)?.to_path_buf();
 
                             sources.insert(path, file_contents);
                         }
