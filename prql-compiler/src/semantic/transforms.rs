@@ -1129,150 +1129,151 @@ mod tests {
         )
         .unwrap();
         let ctx = resolve_single(query, None).unwrap();
-        let res = ctx.find_main(&[]).unwrap().clone();
+        let res = ctx.find_main_rel(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
-        - id: 40
-          TransformCall:
-            input:
-              id: 8
-              Ident:
-                - default_db
-                - c_invoice
-              ty:
-                kind:
-                  Array:
-                    Tuple:
-                      - Wildcard: ~
-                name: ~
-              lineage:
-                columns:
-                  - All:
-                      input_name: c_invoice
-                      except: []
-                inputs:
-                  - id: 8
-                    name: c_invoice
-                    table:
-                      - default_db
-                      - c_invoice
-            kind:
-              Aggregate:
-                assigns:
-                  - id: 32
-                    BuiltInFunction:
-                      name: std.average
-                      args:
-                        - id: 39
-                          Ident:
-                            - _frame
-                            - c_invoice
-                            - amount
-                          target_id: 8
-                    ty:
-                      kind:
-                        Union:
-                          - - scalar_tuple
-                            - kind:
-                                Tuple:
-                                  - Wildcard:
-                                      kind:
-                                        Union:
-                                          - - int
-                                            - kind:
-                                                Primitive: Int
-                                              name: int
-                                          - - float
-                                            - kind:
-                                                Primitive: Float
-                                              name: float
-                                          - - bool
-                                            - kind:
-                                                Primitive: Bool
-                                              name: bool
-                                          - - text
-                                            - kind:
-                                                Primitive: Text
-                                              name: text
-                                          - - date
-                                            - kind:
-                                                Primitive: Date
-                                              name: date
-                                          - - time
-                                            - kind:
-                                                Primitive: Time
-                                              name: time
-                                          - - timestamp
-                                            - kind:
-                                                Primitive: Timestamp
-                                              name: timestamp
-                                          - - ~
-                                            - kind:
-                                                Singleton: "Null"
-                                              name: ~
-                                      name: scalar
-                              name: scalar_tuple
-                          - - int
-                            - kind:
-                                Primitive: Int
-                              name: int
-                          - - float
-                            - kind:
-                                Primitive: Float
-                              name: float
-                          - - bool
-                            - kind:
-                                Primitive: Bool
-                              name: bool
-                          - - text
-                            - kind:
-                                Primitive: Text
-                              name: text
-                          - - date
-                            - kind:
-                                Primitive: Date
-                              name: date
-                          - - time
-                            - kind:
-                                Primitive: Time
-                              name: time
-                          - - timestamp
-                            - kind:
-                                Primitive: Timestamp
-                              name: timestamp
-                          - - ~
-                            - kind:
-                                Singleton: "Null"
-                              name: ~
-                      name: ~
-            partition:
-              - id: 16
+        - RelationVar:
+            id: 40
+            TransformCall:
+              input:
+                id: 8
                 Ident:
-                  - _frame
-                  - c_invoice
-                  - issued_at
-                target_id: 8
-          ty:
-            kind:
-              Array:
-                Tuple: []
-            name: relation
-          lineage:
-            columns:
-              - Single:
-                  name:
-                    - c_invoice
-                    - issued_at
-                  expr_id: 16
-              - Single:
-                  name: ~
-                  expr_id: 32
-            inputs:
-              - id: 8
-                name: c_invoice
-                table:
                   - default_db
                   - c_invoice
+                ty:
+                  kind:
+                    Array:
+                      Tuple:
+                        - Wildcard: ~
+                  name: ~
+                lineage:
+                  columns:
+                    - All:
+                        input_name: c_invoice
+                        except: []
+                  inputs:
+                    - id: 8
+                      name: c_invoice
+                      table:
+                        - default_db
+                        - c_invoice
+              kind:
+                Aggregate:
+                  assigns:
+                    - id: 32
+                      BuiltInFunction:
+                        name: std.average
+                        args:
+                          - id: 39
+                            Ident:
+                              - _frame
+                              - c_invoice
+                              - amount
+                            target_id: 8
+                      ty:
+                        kind:
+                          Union:
+                            - - scalar_tuple
+                              - kind:
+                                  Tuple:
+                                    - Wildcard:
+                                        kind:
+                                          Union:
+                                            - - int
+                                              - kind:
+                                                  Primitive: Int
+                                                name: int
+                                            - - float
+                                              - kind:
+                                                  Primitive: Float
+                                                name: float
+                                            - - bool
+                                              - kind:
+                                                  Primitive: Bool
+                                                name: bool
+                                            - - text
+                                              - kind:
+                                                  Primitive: Text
+                                                name: text
+                                            - - date
+                                              - kind:
+                                                  Primitive: Date
+                                                name: date
+                                            - - time
+                                              - kind:
+                                                  Primitive: Time
+                                                name: time
+                                            - - timestamp
+                                              - kind:
+                                                  Primitive: Timestamp
+                                                name: timestamp
+                                            - - ~
+                                              - kind:
+                                                  Singleton: "Null"
+                                                name: ~
+                                        name: scalar
+                                name: scalar_tuple
+                            - - int
+                              - kind:
+                                  Primitive: Int
+                                name: int
+                            - - float
+                              - kind:
+                                  Primitive: Float
+                                name: float
+                            - - bool
+                              - kind:
+                                  Primitive: Bool
+                                name: bool
+                            - - text
+                              - kind:
+                                  Primitive: Text
+                                name: text
+                            - - date
+                              - kind:
+                                  Primitive: Date
+                                name: date
+                            - - time
+                              - kind:
+                                  Primitive: Time
+                                name: time
+                            - - timestamp
+                              - kind:
+                                  Primitive: Timestamp
+                                name: timestamp
+                            - - ~
+                              - kind:
+                                  Singleton: "Null"
+                                name: ~
+                        name: ~
+              partition:
+                - id: 16
+                  Ident:
+                    - _frame
+                    - c_invoice
+                    - issued_at
+                  target_id: 8
+            ty:
+              kind:
+                Array:
+                  Tuple: []
+              name: relation
+            lineage:
+              columns:
+                - Single:
+                    name:
+                      - c_invoice
+                      - issued_at
+                    expr_id: 16
+                - Single:
+                    name: ~
+                    expr_id: 32
+              inputs:
+                - id: 8
+                  name: c_invoice
+                  table:
+                    - default_db
+                    - c_invoice
         - - main
         "###);
     }

@@ -13,6 +13,7 @@ lcov.info
 
 /*.prql
 _*.prql
+**/project/**/*.prql
 /*.rq
 _*.rq
 /*.pl

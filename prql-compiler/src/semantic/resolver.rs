@@ -974,8 +974,8 @@ mod test {
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let ctx = resolve_single(crate::parser::parse(query)?, None)?;
-        let (main, _) = ctx.find_main(&[]).unwrap();
-        Ok(main.clone())
+        let (main, _) = ctx.find_main_rel(&[]).unwrap();
+        Ok(*main.clone().into_relation_var().unwrap())
     }
 
     fn resolve_lineage(query: &str) -> Result<Lineage> {

@@ -100,7 +100,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 't')
             [CompletionResult]::new('--target', 'target', [CompletionResultType]::ParameterName, 'target')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('--include-signature-comment', 'include-signature-comment', [CompletionResultType]::ParameterName, 'include-signature-comment')
+            [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'hide-signature-comment')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
