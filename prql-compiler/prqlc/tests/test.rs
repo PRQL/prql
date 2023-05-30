@@ -171,6 +171,6 @@ fn project_path() -> PathBuf {
         path.pop();
     }
 
-    path.extend(["prql-compiler", "prqlc", "tests", "project"]);
+    path.extend(["prqlc", "tests", "project"]);
     path
 }
