@@ -563,7 +563,7 @@ impl Resolver {
 
             // evaluate
             let needs_window = (closure.return_ty.as_ref())
-                .map(|ty| ty.as_ty().unwrap().is_array())
+                .map(|ty| ty.as_ty().unwrap().is_array_like())
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
