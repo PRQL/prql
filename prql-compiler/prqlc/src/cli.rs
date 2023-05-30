@@ -708,7 +708,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
               ty_expr: null
               kind: Main
         source_ids:
-          0: ''
+          1: ''
         "###);
     }
     #[test]
@@ -813,12 +813,12 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                   args:
                   - kind:
                       ColumnRef: 2
-                    span: span-chars-47-53
+                    span: 1:47-53
                   - kind:
                       Literal:
                         Integer: 0
-                    span: span-chars-56-57
-              span: span-chars-47-57
+                    span: 1:56-57
+              span: 1:47-57
           - Sort:
             - direction: Asc
               column: 2
