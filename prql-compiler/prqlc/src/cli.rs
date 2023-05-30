@@ -11,7 +11,7 @@ use std::str::FromStr;
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
 use prql_compiler::{downcast, Options, Target};
-use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, FileTree, Span};
+use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree, Span};
 
 use crate::watch;
 
@@ -177,7 +177,7 @@ impl Command {
         Ok(())
     }
 
-    fn execute<'a>(&self, sources: &'a FileTree, main_path: &'a str) -> Result<Vec<u8>> {
+    fn execute<'a>(&self, sources: &'a SourceTree, main_path: &'a str) -> Result<Vec<u8>> {
         let main_path = main_path
             .split('.')
             .filter(|x| !x.is_empty())
@@ -193,7 +193,7 @@ impl Command {
                 }
             }
             Command::Format(_) => {
-                let (_, source) = sources.files.clone().into_iter().exactly_one()?;
+                let (_, source) = sources.sources.clone().into_iter().exactly_one()?;
                 let ast = prql_to_pl(&source)?;
 
                 pl_to_prql(ast)?.as_bytes().to_vec()
@@ -206,7 +206,7 @@ impl Command {
                     .map_err(|e| e.composed(sources, true))?;
 
                 let mut out = Vec::new();
-                for (source_id, source) in &sources.files {
+                for (source_id, source) in &sources.sources {
                     let source_id = source_id.to_str().unwrap().to_string();
                     out.extend(label_references(&context, source_id, source.clone()));
                 }
@@ -215,7 +215,7 @@ impl Command {
                 out
             }
             Command::Annotate(_) => {
-                let (_, source) = sources.files.clone().into_iter().exactly_one()?;
+                let (_, source) = sources.sources.clone().into_iter().exactly_one()?;
 
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
@@ -287,7 +287,7 @@ impl Command {
         })
     }
 
-    fn read_input(&mut self) -> Result<(FileTree, String)> {
+    fn read_input(&mut self) -> Result<(SourceTree, String)> {
         // Possibly this should be called by the relevant subcommands passing in
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
@@ -376,7 +376,7 @@ mod clio_extended {
     use std::path::Path;
 
     use clap::builder::TypedValueParser;
-    use prql_compiler::FileTree;
+    use prql_compiler::SourceTree;
     use walkdir::WalkDir;
 
     #[derive(Debug)]
@@ -427,7 +427,7 @@ mod clio_extended {
             }
         }
 
-        pub fn read_to_tree(&mut self) -> anyhow::Result<FileTree<String>> {
+        pub fn read_to_tree(&mut self) -> anyhow::Result<SourceTree<String>> {
             let mut only_file = String::new();
 
             match self {
@@ -438,7 +438,7 @@ mod clio_extended {
                     let root_path = Path::new(root_path);
 
                     // special case: actually walk the dirs
-                    let mut files = HashMap::new();
+                    let mut sources = HashMap::new();
                     for entry in WalkDir::new(root_path) {
                         let entry = entry?;
                         let path = entry.path();
@@ -447,18 +447,16 @@ mod clio_extended {
                             let file_contents = fs::read_to_string(path)?;
                             let path = path.strip_prefix(root_path)?.to_path_buf();
 
-                            files.insert(path, file_contents);
+                            sources.insert(path, file_contents);
                         }
                     }
 
-                    return Ok(FileTree { files });
+                    return Ok(SourceTree::new(sources));
                 }
             };
 
             let path = Path::new(self.path()).to_path_buf();
-            Ok(FileTree {
-                files: [(path, only_file)].into(),
-            })
+            Ok(SourceTree::single(path, only_file))
         }
     }
 
@@ -646,16 +644,13 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
-            &FileTree {
-                files: [
-                    ("_project.prql".into(), "orders.x | select y".to_string()),
-                    (
-                        "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
-                    ),
-                ]
-                .into(),
-            },
+            &SourceTree::new([
+                ("_project.prql".into(), "orders.x | select y".to_string()),
+                (
+                    "orders.prql".into(),
+                    "let x = (from z | select {y, u})".to_string(),
+                ),
+            ]),
             "main",
         )
         .unwrap();
@@ -689,7 +684,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         .unwrap();
 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        files:
+        sources:
           '':
           - name: main
             VarDef:
@@ -712,6 +707,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                         - y
               ty_expr: null
               kind: Main
+        source_ids:
+          1: ''
         "###);
     }
     #[test]
@@ -816,12 +813,12 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                   args:
                   - kind:
                       ColumnRef: 2
-                    span: span-chars-47-53
+                    span: 1:47-53
                   - kind:
                       Literal:
                         Integer: 0
-                    span: span-chars-56-57
-              span: span-chars-47-57
+                    span: 1:56-57
+              span: 1:47-57
           - Sort:
             - direction: Asc
               column: 2

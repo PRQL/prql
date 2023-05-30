@@ -11,7 +11,6 @@ mod type_resolver;
 
 use anyhow::Result;
 use itertools::Itertools;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub use self::context::Context;
@@ -21,7 +20,7 @@ pub use lowering::lower_to_ir;
 use crate::ast::pl::{Lineage, LineageColumn, Stmt};
 use crate::ast::rq::Query;
 use crate::error::WithErrorInfo;
-use crate::{Error, FileTree};
+use crate::{Error, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower_single(statements: Vec<Stmt>) -> Result<Query> {
@@ -35,7 +34,7 @@ pub fn resolve_and_lower_single(statements: Vec<Stmt>) -> Result<Query> {
 }
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
-pub fn resolve_and_lower(file_tree: FileTree<Vec<Stmt>>, main_path: &[String]) -> Result<Query> {
+pub fn resolve_and_lower(file_tree: SourceTree<Vec<Stmt>>, main_path: &[String]) -> Result<Query> {
     let context = resolve(file_tree, None)?;
 
     let (query, _) = lowering::lower_to_ir(context, main_path)?;
@@ -44,15 +43,13 @@ pub fn resolve_and_lower(file_tree: FileTree<Vec<Stmt>>, main_path: &[String]) -
 
 /// Runs semantic analysis on the query.
 pub fn resolve_single(statements: Vec<Stmt>, context: Option<Context>) -> Result<Context> {
-    let tree = FileTree {
-        files: HashMap::from([(PathBuf::from(""), statements)]),
-    };
+    let tree = SourceTree::single(PathBuf::from(""), statements);
 
     resolve(tree, context)
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve(file_tree: FileTree<Vec<Stmt>>, context: Option<Context>) -> Result<Context> {
+pub fn resolve(file_tree: SourceTree<Vec<Stmt>>, context: Option<Context>) -> Result<Context> {
     let mut context = context.unwrap_or_else(load_std_lib);
     for (path, stmts) in normalize(file_tree)? {
         context = resolver::resolve(stmts, path, context)?;
@@ -61,9 +58,9 @@ pub fn resolve(file_tree: FileTree<Vec<Stmt>>, context: Option<Context>) -> Resu
 }
 
 pub fn load_std_lib() -> Context {
-    use crate::parser::parse;
-    let std_lib = include_str!("./std.prql");
-    let statements = parse(std_lib).unwrap();
+    let std_lib = SourceTree::from(include_str!("./std.prql"));
+    let statements = crate::parser::parse_tree(&std_lib).unwrap();
+    let statements = statements.sources.into_values().next().unwrap();
 
     let context = Context {
         root_mod: Module::new_root(),
@@ -88,22 +85,22 @@ pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
         .try_collect()
 }
 
-fn normalize(mut tree: FileTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt>)>> {
+fn normalize(mut tree: SourceTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt>)>> {
     // find root
     let root_path = PathBuf::from("");
 
-    if tree.files.get(&root_path).is_none() {
-        if tree.files.len() == 1 {
+    if tree.sources.get(&root_path).is_none() {
+        if tree.sources.len() == 1 {
             // if there is only one file, use that as the root
-            let (_, only) = tree.files.drain().exactly_one().unwrap();
-            tree.files.insert(root_path, only);
-        } else if let Some(under) = tree.files.keys().find(|p| path_starts_with(p, "_")) {
+            let (_, only) = tree.sources.drain().exactly_one().unwrap();
+            tree.sources.insert(root_path, only);
+        } else if let Some(under) = tree.sources.keys().find(|p| path_starts_with(p, "_")) {
             // if there is a path that starts with `_`, that's the root
-            let under = tree.files.remove(&under.clone()).unwrap();
-            tree.files.insert(root_path, under);
+            let under = tree.sources.remove(&under.clone()).unwrap();
+            tree.sources.insert(root_path, under);
         } else {
             let file_names = tree
-                .files
+                .sources
                 .keys()
                 .map(|p| format!(" - {}", p.to_str().unwrap_or_default()))
                 .sorted()
@@ -112,7 +109,8 @@ fn normalize(mut tree: FileTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt
             return Err(Error::new_simple(format!(
                 "Cannot find the root module within the following files:\n{file_names}"
             ))
-            .with_help("root module should be prefixed with `_`")
+            .with_help("add a file prefixed with `_` to the root directory")
+            .with_code("E0002")
             .into());
         }
     }
@@ -121,8 +119,8 @@ fn normalize(mut tree: FileTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt
 
     // TODO: find correct resolution order
 
-    let mut modules = Vec::with_capacity(tree.files.len());
-    for (path, stmts) in tree.files {
+    let mut modules = Vec::with_capacity(tree.sources.len());
+    for (path, stmts) in tree.sources {
         let path = os_path_to_prql_path(path)?;
         modules.push((path, stmts));
     }
@@ -162,10 +160,10 @@ mod test {
     use insta::assert_yaml_snapshot;
 
     use super::resolve_and_lower_single;
-    use crate::{ast::rq::Query, parser::parse};
+    use crate::{ast::rq::Query, parser::parse_single};
 
     fn parse_and_resolve(query: &str) -> Result<Query> {
-        resolve_and_lower_single(parse(query)?)
+        resolve_and_lower_single(parse_single(query)?)
     }
 
     #[test]
@@ -291,7 +289,7 @@ mod test {
         "#,
             env!("CARGO_PKG_VERSION_MAJOR")
         );
-        assert!(parse(&stmt).is_ok());
+        assert!(parse_single(&stmt).is_ok());
 
         let stmt = format!(
             r#"
@@ -300,7 +298,7 @@ mod test {
             env!("CARGO_PKG_VERSION_MAJOR"),
             env!("CARGO_PKG_VERSION_MINOR")
         );
-        assert!(parse(&stmt).is_ok());
+        assert!(parse_single(&stmt).is_ok());
 
         let stmt = format!(
             r#"
@@ -310,7 +308,7 @@ mod test {
             env!("CARGO_PKG_VERSION_MINOR"),
             env!("CARGO_PKG_VERSION_PATCH"),
         );
-        assert!(parse(&stmt).is_ok());
+        assert!(parse_single(&stmt).is_ok());
     }
 
     #[test]
@@ -319,6 +317,6 @@ mod test {
             "prql version:{}\n",
             env!("CARGO_PKG_VERSION_MAJOR").parse::<usize>().unwrap() + 1
         );
-        assert!(parse(&stmt).is_err());
+        assert!(parse_single(&stmt).is_err());
     }
 }
