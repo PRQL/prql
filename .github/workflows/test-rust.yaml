@@ -41,5 +41,4 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          args:
-            test ${{ inputs.target_option }}
+          args: test ${{ inputs.target_option }}
