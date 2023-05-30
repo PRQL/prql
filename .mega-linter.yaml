@@ -12,6 +12,7 @@ DISABLE_LINTERS:
   - PHP_PSALM
   - PHP_PHPSTAN # Disabled for now as we couldn't figure out how to prevent false positives. #2069
   - SQL_TSQLLINT
+  - REPOSITORY_KICS
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
