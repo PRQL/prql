@@ -77,7 +77,7 @@ fn test_compile() {
 fn test_compile_project() {
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
     cmd.args(["compile", "--hide-signature-comment"]);
-    cmd.arg(project_path());
+    cmd.arg(project_path().display().to_string());
     cmd.arg("-");
     cmd.arg("main");
     assert_cmd_snapshot!(cmd, @r###"
@@ -120,7 +120,7 @@ fn test_compile_project() {
 
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
     cmd.args(["compile", "--hide-signature-comment"]);
-    cmd.arg(project_path());
+    cmd.arg(project_path().display().to_string());
     cmd.arg("-");
     cmd.arg("favorite_artists");
     assert_cmd_snapshot!(cmd, @r###"
@@ -164,10 +164,13 @@ fn test_shell_completion() {
 }
 
 fn project_path() -> PathBuf {
-    current_dir()
+    let path = current_dir()
         .unwrap()
         // We canonicalize so that it doesn't matter where the cwd is.
         .canonicalize()
         .unwrap()
-        .join("tests/project")
+        .join("tests/project");
+    assert!(path.exists());
+    assert!(path.is_dir());
+    path
 }
