@@ -81,6 +81,7 @@ fn test_compile_project() {
     path.pop();
     path.pop();
     cmd.arg(path);
+    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
@@ -102,6 +103,7 @@ fn test_compile_project() {
     path.pop();
     path.pop();
     cmd.arg(path);
+    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
@@ -118,6 +120,7 @@ fn test_compile_project() {
     let mut path = project_path();
     path.pop();
     cmd.arg(path);
+    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
@@ -132,6 +135,7 @@ fn test_compile_project() {
     let mut cmd = Command::new("/bin/ls");
     let path = project_path();
     cmd.arg(path);
+    cmd.arg("-S");
     assert_cmd_snapshot!(cmd, @r###"
     success: true
     exit_code: 0
