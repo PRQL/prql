@@ -504,9 +504,20 @@ impl Resolver {
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
-        let res = self
+        let mut ident = ident.clone().prepend(self.current_module_path.clone());
+
+        let mut res = self
             .context
-            .resolve_ident(ident, self.default_namespace.as_ref());
+            .resolve_ident(&ident, self.default_namespace.as_ref());
+        for _ in &self.current_module_path {
+            if res.is_ok() {
+                break;
+            }
+            ident = ident.pop_front().1.unwrap();
+            res = self
+                .context
+                .resolve_ident(&ident, self.default_namespace.as_ref());
+        }
 
         res.map_err(|e| {
             log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);

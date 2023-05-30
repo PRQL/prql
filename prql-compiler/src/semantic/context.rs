@@ -162,7 +162,7 @@ impl Context {
         }
 
         let ident = if let Some(default_namespace) = default_namespace {
-            let ident = ident.clone().prepend(default_namespace.clone());
+            let ident = ident.clone().prepend(vec![default_namespace.clone()]);
 
             let decls = self.root_mod.lookup(&ident);
             match decls.len() {
