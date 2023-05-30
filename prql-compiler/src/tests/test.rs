@@ -675,9 +675,9 @@ fn test_sorts() {
     FROM
       invoices
     ORDER BY
-      issued_at,
-      amount DESC,
-      num_of_articles
+      issued_at NULLS LAST,
+      amount DESC NULLS LAST,
+      num_of_articles NULLS LAST
     "###);
 
     assert_display_snapshot!((compile(r###"
@@ -699,7 +699,7 @@ fn test_sorts() {
     FROM
       table_1 AS table_0
     ORDER BY
-      _expr_0
+      _expr_0 NULLS LAST
     "###);
 }
 
@@ -865,16 +865,16 @@ fn test_window_functions_02() {
       SUM(num_books) OVER (
         PARTITION BY order_month
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          order_day NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ) AS running_total_num_books,
       LAG(num_books, 7) OVER (
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+          order_day NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       ) AS num_books_last_week
     FROM
       table_1 AS table_0
     ORDER BY
-      order_day
+      order_day NULLS LAST
     "###);
 }
 
@@ -933,7 +933,7 @@ fn test_window_functions_05() {
       RANK() OVER (
         PARTITION BY month
         ORDER BY
-          num_orders ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          num_orders NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ),
       LAG(num_orders, 7) OVER () AS num_orders_last_week
     FROM
@@ -1024,12 +1024,12 @@ fn test_window_functions_10() {
       *,
       SUM(b) OVER (
         ORDER BY
-          day RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
+          day NULLS LAST RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
       ) AS next_four_days
     FROM
       foo
     ORDER BY
-      day
+      day NULLS LAST
     "###);
 
     // TODO: add test for preceding
@@ -1258,7 +1258,7 @@ fn test_take() {
     FROM
       table_1 AS table_0
     ORDER BY
-      name
+      name NULLS LAST
     LIMIT
       5
     "###);
@@ -1423,7 +1423,7 @@ fn test_distinct() {
         ROW_NUMBER() OVER (
           PARTITION BY department
           ORDER BY
-            salary
+            salary NULLS LAST
         ) AS _expr_0
       FROM
         employees
@@ -1446,7 +1446,7 @@ fn test_distinct() {
         ROW_NUMBER() OVER (
           PARTITION BY department
           ORDER BY
-            salary
+            salary NULLS LAST
         ) AS _expr_0
       FROM
         employees
@@ -1483,7 +1483,7 @@ fn test_distinct() {
     WHERE
       _expr_0 <= 1
     ORDER BY
-      billing_city
+      billing_city NULLS LAST
     "###);
 }
 
@@ -1634,7 +1634,7 @@ fn test_sql_of_ast_1() {
       title,
       country
     ORDER BY
-      title
+      title NULLS LAST
     LIMIT
       20
     "###
@@ -1895,7 +1895,7 @@ take 20
     HAVING
       COUNT(*) > 200
     ORDER BY
-      sum_gross_cost
+      sum_gross_cost NULLS LAST
     LIMIT
       20
     "###);
@@ -1931,7 +1931,7 @@ fn test_prql_to_sql_table() {
       FROM
         employees
       ORDER BY
-        tenure
+        tenure NULLS LAST
       LIMIT
         50
     ), average_salaries AS (
@@ -1951,7 +1951,7 @@ fn test_prql_to_sql_table() {
       newest_employees
       JOIN average_salaries ON newest_employees.country = average_salaries.country
     ORDER BY
-      employees.tenure
+      employees.tenure NULLS LAST
     "###
     );
 }
@@ -2009,7 +2009,7 @@ fn test_nonatomic() {
       title,
       country
     ORDER BY
-      sum_gross_cost
+      sum_gross_cost NULLS LAST
     "###);
 
     // A aggregate, then sort and filter
@@ -2037,7 +2037,7 @@ fn test_nonatomic() {
     HAVING
       AVG(salary) > 0
     ORDER BY
-      sum_gross_cost
+      sum_gross_cost NULLS LAST
     "###);
 }
 
@@ -3127,7 +3127,7 @@ fn test_custom_transforms() {
     FROM
       tab
     ORDER BY
-      name
+      name NULLS LAST
     LIMIT
       3
     "###
@@ -3574,7 +3574,7 @@ fn test_excess_columns() {
     FROM
       table_1 AS table_0
     ORDER BY
-      _expr_0
+      _expr_0 NULLS LAST
     "###
     );
 }

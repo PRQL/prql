@@ -7,7 +7,7 @@ SELECT
 FROM
   employees
 ORDER BY
-  age
+  age NULLS LAST
 LIMIT
   10
 
