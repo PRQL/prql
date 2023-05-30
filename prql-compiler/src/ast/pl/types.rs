@@ -137,7 +137,7 @@ impl Display for Ty {
     }
 }
 
-pub fn display_ty(ty: &Option<Ty>) -> String {
+pub fn display_ty(ty: Option<&Ty>) -> String {
     match ty {
         Some(ty) => ty.to_string(),
         None => "infer".to_string(),
@@ -159,7 +159,7 @@ impl Display for TyKind {
             }
             TyKind::Singleton(lit) => write!(f, "{:}", lit),
             TyKind::Tuple(elements) => {
-                write!(f, "[")?;
+                write!(f, "{{")?;
                 for (index, e) in elements.iter().enumerate() {
                     if index > 0 {
                         write!(f, ", ")?
@@ -181,7 +181,7 @@ impl Display for TyKind {
                         }
                     }
                 }
-                write!(f, "]")?;
+                write!(f, "}}")?;
                 Ok(())
             }
             TyKind::Set => write!(f, "set"),
@@ -190,9 +190,9 @@ impl Display for TyKind {
                 write!(f, "func")?;
 
                 for t in &func.args {
-                    write!(f, " {}", display_ty(t))?;
+                    write!(f, " {}", display_ty(t.as_ref()))?;
                 }
-                write!(f, " -> {}", display_ty(&func.return_ty))?;
+                write!(f, " -> {}", display_ty((*func.return_ty).as_ref()))?;
                 Ok(())
             }
         }

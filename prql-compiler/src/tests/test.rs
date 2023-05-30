@@ -3646,7 +3646,7 @@ fn test_array() {
        │
      2 │     let a = [1, 2, false]
        │                    ──┬──
-       │                      ╰──── array expected types of all of its elements to be int, but found bool
+       │                      ╰──── array expected type `int`, but found type `bool`
     ───╯
     "###
     );
