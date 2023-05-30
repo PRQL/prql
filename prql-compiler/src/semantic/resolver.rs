@@ -505,7 +505,7 @@ impl Resolver {
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
         let res = if let Some(default_namespace) = &self.default_namespace {
-            self.context.resolve_ident(&ident, Some(default_namespace))
+            self.context.resolve_ident(ident, Some(default_namespace))
         } else {
             let mut ident = ident.clone().prepend(self.current_module_path.clone());
 
