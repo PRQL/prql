@@ -222,13 +222,10 @@ fn test_shell_completion() {
 }
 
 fn project_path() -> PathBuf {
-    let mut path = current_dir().unwrap();
-
-    // a hack that tries to find the correct root
-    if path.ends_with("prqlc") {
-        path.pop();
-    }
-
-    path.extend(["prqlc", "tests", "project"]);
-    path
+    current_dir()
+        .unwrap()
+        // We canonicalize so that it doesn't matter where the cwd is.
+        .canonicalize()
+        .unwrap()
+        .join("tests/project")
 }
