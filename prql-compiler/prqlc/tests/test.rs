@@ -170,9 +170,6 @@ fn project_path() -> PathBuf {
     if path.ends_with("prqlc") {
         path.pop();
     }
-    if path.ends_with("prql-compiler") {
-        path.pop();
-    }
 
     path.extend(["prql-compiler", "prqlc", "tests", "project"]);
     path
