@@ -719,7 +719,7 @@ pub(super) fn translate_column_sort(
         } else {
             Some(false)
         },
-        nulls_first: None,
+        nulls_first: ctx.dialect.nulls_first(),
     })
 }
 

@@ -1,11 +1,11 @@
 ---
 source: web/book/tests/snapshot.rs
-expression: "from artists\nsort {artist_id != null, artist_id} # nulls first\n"
+expression: "from artists\nsort {artist_id == null, artist_id} # nulls last\n"
 ---
 WITH table_1 AS (
   SELECT
     *,
-    artist_id IS NOT NULL AS _expr_0
+    artist_id IS NULL AS _expr_0
   FROM
     artists
 )

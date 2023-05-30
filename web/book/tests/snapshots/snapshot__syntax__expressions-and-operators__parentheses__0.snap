@@ -16,5 +16,5 @@ SELECT
 FROM
   employees
 ORDER BY
-  distance DESC
+  distance DESC NULLS LAST
 
