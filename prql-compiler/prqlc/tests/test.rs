@@ -75,63 +75,59 @@ fn test_compile() {
 
 #[test]
 fn test_compile_project_0() {
-    let mut cmd = Command::new("dir");
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
     let mut path = project_path();
     path.pop();
     path.pop();
     path.pop();
-    cmd.arg(path);
-    assert_cmd_snapshot!(cmd, @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
 
-    ----- stderr -----
+    cmd.args(["compile", "--hide-signature-comment"]);
+    cmd.arg(path);
+    cmd.arg("-");
+    cmd.arg("main");
+    assert_cmd_snapshot!(cmd, @r###"
     "###);
 }
 
 #[test]
 fn test_compile_project_1() {
-    let mut cmd = Command::new("dir");
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
     let mut path = project_path();
     path.pop();
     path.pop();
-    cmd.arg(path);
-    assert_cmd_snapshot!(cmd, @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
 
-    ----- stderr -----
+    cmd.args(["compile", "--hide-signature-comment"]);
+    cmd.arg(path);
+    cmd.arg("-");
+    cmd.arg("main");
+    assert_cmd_snapshot!(cmd, @r###"
     "###);
 }
 
 #[test]
 fn test_compile_project_2() {
-    let mut cmd = Command::new("dir");
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
     let mut path = project_path();
     path.pop();
-    cmd.arg(path);
-    assert_cmd_snapshot!(cmd, @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
 
-    ----- stderr -----
+    cmd.args(["compile", "--hide-signature-comment"]);
+    cmd.arg(path);
+    cmd.arg("-");
+    cmd.arg("main");
+    assert_cmd_snapshot!(cmd, @r###"
     "###);
 }
 
 #[test]
 fn test_compile_project_3() {
-let mut cmd = Command::new("dir");
-    let path = project_path();
-    cmd.arg(path);
-    assert_cmd_snapshot!(cmd, @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    let mut path = project_path();
 
-    ----- stderr -----
+    cmd.args(["compile", "--hide-signature-comment"]);
+    cmd.arg(path);
+    cmd.arg("-");
+    cmd.arg("main");
+    assert_cmd_snapshot!(cmd, @r###"
     "###);
 }
 

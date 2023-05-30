@@ -401,6 +401,7 @@ mod clio_extended {
                 let path = PathBuf::from(path);
                 let file = File::open(&path)?;
                 if file.metadata()?.is_dir() {
+                    panic!("it's a dir!");
                     return Ok(Input::Directory(path));
                 }
                 if is_fifo(&file)? {
