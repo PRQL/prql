@@ -376,27 +376,17 @@ impl AstFold for Resolver {
             }
 
             ExprKind::Array(exprs) => {
-                let exprs = self.fold_exprs(exprs)?;
+                let mut exprs = self.fold_exprs(exprs)?;
 
                 // validate that all elements have the same type
-                let mut item_ty = None;
-                for expr in &exprs {
-                    let ty = &expr.ty;
-                    if let Some(item_ty) = item_ty {
-                        if item_ty != ty {
-                            return Err(Error::new(Reason::Expected {
-                                who: Some("array".to_string()),
-                                expected: format!(
-                                    "types of all of its elements to be {}",
-                                    display_ty(item_ty)
-                                ),
-                                found: display_ty(ty),
-                            })
-                            .with_span(expr.span)
-                            .into());
+                let mut expected_ty: Option<&Ty> = None;
+                for expr in &mut exprs {
+                    if expr.ty.is_some() {
+                        if expected_ty.is_some() {
+                            let who = || Some("array".to_string());
+                            self.context.validate_type(expr, expected_ty, &who)?;
                         }
-                    } else {
-                        item_ty = Some(ty);
+                        expected_ty = expr.ty.as_ref();
                     }
                 }
 
@@ -514,9 +504,21 @@ impl Resolver {
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
-        let res = self
-            .context
-            .resolve_ident(ident, self.default_namespace.as_ref());
+        let res = if let Some(default_namespace) = &self.default_namespace {
+            self.context.resolve_ident(ident, Some(default_namespace))
+        } else {
+            let mut ident = ident.clone().prepend(self.current_module_path.clone());
+
+            let mut res = self.context.resolve_ident(&ident, None);
+            for _ in &self.current_module_path {
+                if res.is_ok() {
+                    break;
+                }
+                ident = ident.pop_front().1.unwrap();
+                res = self.context.resolve_ident(&ident, None);
+            }
+            res
+        };
 
         res.map_err(|e| {
             log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
@@ -573,7 +575,7 @@ impl Resolver {
 
             // evaluate
             let needs_window = (closure.return_ty.as_ref())
-                .map(|ty| ty.as_ty().unwrap().is_array())
+                .map(|ty| ty.as_ty().unwrap().is_sub_type_of_array())
                 .unwrap_or_default();
 
             let mut res = match self.cast_built_in_function(closure)? {
@@ -973,9 +975,9 @@ mod test {
     use crate::semantic::resolve_single;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let ctx = resolve_single(crate::parser::parse(query)?, None)?;
-        let (main, _) = ctx.find_main(&[]).unwrap();
-        Ok(main.clone())
+        let ctx = resolve_single(crate::parser::parse_single(query)?, None)?;
+        let (main, _) = ctx.find_main_rel(&[]).unwrap();
+        Ok(*main.clone().into_relation_var().unwrap())
     }
 
     fn resolve_lineage(query: &str) -> Result<Lineage> {

@@ -11,7 +11,7 @@ use std::str::FromStr;
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
 use prql_compiler::{downcast, Options, Target};
-use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, FileTree, Span};
+use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree, Span};
 
 use crate::watch;
 
@@ -91,8 +91,8 @@ enum Command {
     SQLCompile {
         #[command(flatten)]
         io_args: IoArgs,
-        #[arg(long, default_value = "true")]
-        include_signature_comment: bool,
+        #[arg(long, action = clap::ArgAction::SetFalse)]
+        hide_signature_comment: bool,
         #[arg(short, long, default_value = "sql.any", env = "PRQLC_TARGET")]
         target: String,
     },
@@ -177,7 +177,7 @@ impl Command {
         Ok(())
     }
 
-    fn execute<'a>(&self, sources: &'a FileTree, main_path: &'a str) -> Result<Vec<u8>> {
+    fn execute<'a>(&self, sources: &'a SourceTree, main_path: &'a str) -> Result<Vec<u8>> {
         let main_path = main_path
             .split('.')
             .filter(|x| !x.is_empty())
@@ -193,30 +193,29 @@ impl Command {
                 }
             }
             Command::Format(_) => {
-                let (_, source) = sources.files.clone().into_iter().exactly_one()?;
+                let (_, source) = sources.sources.clone().into_iter().exactly_one()?;
                 let ast = prql_to_pl(&source)?;
 
                 pl_to_prql(ast)?.as_bytes().to_vec()
             }
             Command::Debug(_) => {
-                let (source_id, source) = sources.files.clone().into_iter().exactly_one()?;
-                let stmts = prql_to_pl(&source)?;
+                let stmts = prql_to_pl_tree(sources)?;
 
-                let sources = FileTree::from(source);
-
-                let context = semantic::resolve_single(stmts, None)
+                let context = semantic::resolve(stmts, None)
                     .map_err(prql_compiler::downcast)
-                    .map_err(|e| e.composed(&sources, true))?;
+                    .map_err(|e| e.composed(sources, true))?;
 
-                let (_, source) = sources.files.into_iter().exactly_one().unwrap();
+                let mut out = Vec::new();
+                for (source_id, source) in &sources.sources {
+                    let source_id = source_id.to_str().unwrap().to_string();
+                    out.extend(label_references(&context, source_id, source.clone()));
+                }
 
-                let source_id = source_id.to_str().unwrap().to_string();
-                let references = label_references(&context, source_id, source);
-
-                [references, format!("\n{context:#?}\n").into_bytes()].concat()
+                out.extend(format!("\n{context:#?}\n").into_bytes());
+                out
             }
             Command::Annotate(_) => {
-                let (_, source) = sources.files.clone().into_iter().exactly_one()?;
+                let (_, source) = sources.sources.clone().into_iter().exactly_one()?;
 
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
@@ -226,8 +225,8 @@ impl Command {
                 // resolve
                 let ctx = semantic::resolve_single(stmts, None)?;
 
-                let frames = if let Some((main, _)) = ctx.find_main(&[]) {
-                    collect_frames(main.clone())
+                let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
+                    collect_frames(*main.clone().into_relation_var().unwrap())
                 } else {
                     vec![]
                 };
@@ -245,14 +244,14 @@ impl Command {
                 }
             }
             Command::SQLCompile {
-                include_signature_comment,
+                hide_signature_comment,
                 target,
                 ..
             } => {
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
                     .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
-                    .with_signature_comment(*include_signature_comment);
+                    .with_signature_comment(*hide_signature_comment);
 
                 prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path))
@@ -288,7 +287,7 @@ impl Command {
         })
     }
 
-    fn read_input(&mut self) -> Result<(FileTree, String)> {
+    fn read_input(&mut self) -> Result<(SourceTree, String)> {
         // Possibly this should be called by the relevant subcommands passing in
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
@@ -370,14 +369,14 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
 /// [clio::Input], extended to also allow consuming directories
 mod clio_extended {
     use std::collections::HashMap;
-    use std::ffi::{OsStr, OsString};
+    use std::ffi::OsStr;
     use std::fs::{self, File};
     use std::io::{self, Read, Stdin};
     use std::marker::PhantomData;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use clap::builder::TypedValueParser;
-    use prql_compiler::FileTree;
+    use prql_compiler::SourceTree;
     use walkdir::WalkDir;
 
     #[derive(Debug)]
@@ -385,11 +384,11 @@ mod clio_extended {
         /// a [`Stdin`] when the path was `-`
         Stdin(Stdin),
         /// a [`File`] representing the named pipe e.g. if called with `<(cat /dev/null)`
-        Pipe(OsString, File),
+        Pipe(PathBuf, File),
         /// a normal [`File`] opened from the path
-        File(OsString, File),
-        /// a normal [`File`] opened from the path
-        Directory(OsString),
+        File(PathBuf, File),
+        /// a Directory
+        Directory(PathBuf),
     }
 
     impl Input {
@@ -399,14 +398,15 @@ mod clio_extended {
             if path == "-" {
                 Ok(Self::std())
             } else {
-                let file = File::open(path)?;
-                if file.metadata()?.is_dir() {
-                    return Ok(Input::Directory(path.to_os_string()));
+                let pathbuf = PathBuf::from(path);
+                if pathbuf.is_dir() {
+                    return Ok(Input::Directory(pathbuf));
                 }
+                let file = File::open(&pathbuf)?;
                 if is_fifo(&file)? {
-                    Ok(Input::Pipe(path.to_os_string(), file))
+                    Ok(Input::Pipe(pathbuf, file))
                 } else {
-                    Ok(Input::File(path.to_os_string(), file))
+                    Ok(Input::File(pathbuf, file))
                 }
             }
         }
@@ -424,11 +424,13 @@ mod clio_extended {
         pub fn path(&self) -> &OsStr {
             match self {
                 Input::Stdin(_) => "-".as_ref(),
-                Input::Pipe(path, _) | Input::File(path, _) | Input::Directory(path) => path,
+                Input::Pipe(pathbuf, _) | Input::File(pathbuf, _) | Input::Directory(pathbuf) => {
+                    pathbuf.as_os_str()
+                }
             }
         }
 
-        pub fn read_to_tree(&mut self) -> anyhow::Result<FileTree<String>> {
+        pub fn read_to_tree(&mut self) -> anyhow::Result<SourceTree<String>> {
             let mut only_file = String::new();
 
             match self {
@@ -437,27 +439,25 @@ mod clio_extended {
                 Input::File(_, file) => file.read_to_string(&mut only_file)?,
                 Input::Directory(root_path) => {
                     // special case: actually walk the dirs
-                    let mut files = HashMap::new();
-                    for entry in WalkDir::new(root_path) {
-                        let entry = entry?;
+                    let mut sources = HashMap::new();
+                    for entry in WalkDir::new(&root_path) {
+                        let entry = entry.unwrap();
                         let path = entry.path();
 
                         if path.is_file() && path.extension() == Some(OsStr::new("prql")) {
                             let file_contents = fs::read_to_string(path)?;
-                            let path = path.to_path_buf();
+                            let path = path.strip_prefix(&root_path)?.to_path_buf();
 
-                            files.insert(path, file_contents);
+                            sources.insert(path, file_contents);
                         }
                     }
 
-                    return Ok(FileTree { files });
+                    return Ok(SourceTree::new(sources));
                 }
             };
 
             let path = Path::new(self.path()).to_path_buf();
-            Ok(FileTree {
-                files: [(path, only_file)].into(),
-            })
+            Ok(SourceTree::single(path, only_file))
         }
     }
 
@@ -620,7 +620,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
-                include_signature_comment: true,
+                hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
             &"asdf".into(),
@@ -642,19 +642,16 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
-                include_signature_comment: true,
+                hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
-            &FileTree {
-                files: [
-                    ("_project.prql".into(), "orders.x | select y".to_string()),
-                    (
-                        "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
-                    ),
-                ]
-                .into(),
-            },
+            &SourceTree::new([
+                ("_project.prql".into(), "orders.x | select y".to_string()),
+                (
+                    "orders.prql".into(),
+                    "let x = (from z | select {y, u})".to_string(),
+                ),
+            ]),
             "main",
         )
         .unwrap();
@@ -688,7 +685,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         .unwrap();
 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        files:
+        sources:
           '':
           - name: main
             VarDef:
@@ -711,6 +708,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                         - y
               ty_expr: null
               kind: Main
+        source_ids:
+          1: ''
         "###);
     }
     #[test]
@@ -815,12 +814,12 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                   args:
                   - kind:
                       ColumnRef: 2
-                    span: span-chars-47-53
+                    span: 1:47-53
                   - kind:
                       Literal:
                         Integer: 0
-                    span: span-chars-56-57
-              span: span-chars-47-57
+                    span: 1:56-57
+              span: 1:47-57
           - Sort:
             - direction: Asc
               column: 2

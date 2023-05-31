@@ -17,11 +17,14 @@ use self::lexer::Token;
 
 use super::ast::pl::*;
 
-use crate::error::{Error, Errors, Reason, WithErrorInfo};
-use crate::FileTree;
+use crate::{
+    error::{Error, Errors, Reason, WithErrorInfo},
+    utils::IdGenerator,
+};
+use crate::{SourceTree, Span};
 
 /// Build PL AST from a PRQL query string.
-pub fn parse(source: &str) -> Result<Vec<Stmt>> {
+pub fn parse_source(source: &str, source_id: usize) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
@@ -29,12 +32,11 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     errors.extend(
         lex_errors
             .into_iter()
-            .map(|e| convert_lexer_error(source, e)),
+            .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
     let ast = if let Some(tokens) = tokens {
-        let len = source.chars().count();
-        let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+        let stream = prepare_stream(tokens, source, source_id);
 
         let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
@@ -52,16 +54,29 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     }
 }
 
-pub fn parse_tree(file_tree: &FileTree<String>) -> Result<FileTree<Vec<Stmt>>> {
-    let mut res = HashMap::new();
-    for (ident, source) in &file_tree.files {
-        let stmts = parse(source)?;
-        res.insert(ident.clone(), stmts);
+pub fn parse_tree(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
+    let mut res = SourceTree::default();
+
+    let ids: HashMap<_, _> = file_tree.source_ids.iter().map(|(a, b)| (b, a)).collect();
+    let mut id_gen = IdGenerator::new();
+
+    for (path, source) in &file_tree.sources {
+        let id = ids.get(path).map(|x| **x).unwrap_or_else(|| id_gen.gen());
+        let stmts = parse_source(source, id)?;
+
+        res.sources.insert(path.clone(), stmts);
+        res.source_ids.insert(id, path.clone());
     }
-    Ok(FileTree { files: res })
+    Ok(res)
 }
 
-fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
+/// Helper that does not track source_ids
+#[cfg(test)]
+pub fn parse_single(source: &str) -> Result<Vec<Stmt>> {
+    parse_source(source, 0)
+}
+
+fn convert_lexer_error(source: &str, e: Cheap<char>, source_id: usize) -> Error {
     // TODO: is there a neater way of taking a span? We want to take it based on
     // the chars, not the bytes, so can't just index into the str.
     let found = source
@@ -69,27 +84,29 @@ fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
         .skip(e.span().start)
         .take(e.span().end() - e.span().start)
         .collect();
-    let span = common::into_span(e.span());
+    let span = Some(Span {
+        start: e.span().start,
+        end: e.span().end,
+        source_id,
+    });
 
     Error::new(Reason::Unexpected { found }).with_span(span)
 }
 
-fn convert_parser_error(e: Simple<Token>) -> Error {
-    let mut span = common::into_span(e.span());
+fn convert_parser_error(e: common::PError) -> Error {
+    let mut span = e.span();
 
     if e.found().is_none() {
         // found end of file
         // fix for span outside of source
-        if let Some(span) = &mut span {
-            if span.start > 0 && span.end > 0 {
-                span.start -= 1;
-                span.end -= 1;
-            }
+        if span.start > 0 && span.end > 0 {
+            span.start -= 1;
+            span.end -= 1;
         }
     }
 
     if let SimpleReason::Custom(message) = e.reason() {
-        return Error::new_simple(message).with_span(span);
+        return Error::new_simple(message).with_span(Some(span));
     }
 
     fn token_to_string(t: Option<Token>) -> String {
@@ -118,7 +135,8 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
 
     if expected.is_empty() || expected.len() > 10 {
         let label = token_to_string(e.found().cloned());
-        return Error::new_simple(format!("unexpected {label}{while_parsing}")).with_span(span);
+        return Error::new_simple(format!("unexpected {label}{while_parsing}"))
+            .with_span(Some(span));
     }
 
     let mut expected = expected;
@@ -144,7 +162,24 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
             "Expected {expected}, but didn't find anything before the end."
         ))),
     }
-    .with_span(span)
+    .with_span(Some(span))
+}
+
+fn prepare_stream(
+    tokens: Vec<(Token, std::ops::Range<usize>)>,
+    source: &str,
+    source_id: usize,
+) -> Stream<Token, Span, impl Iterator<Item = (Token, Span)> + Sized> {
+    let tokens = tokens
+        .into_iter()
+        .map(move |(t, s)| (t, Span::new(source_id, s)));
+    let len = source.chars().count();
+    let eoi = Span {
+        start: len,
+        end: len + 1,
+        source_id,
+    };
+    Stream::from_iter(eoi, tokens)
 }
 
 mod common {
@@ -153,8 +188,10 @@ mod common {
     use super::lexer::Token;
     use crate::{ast::pl::*, Span};
 
-    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
-        select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
+    pub type PError = Simple<Token, Span>;
+
+    pub fn ident_part() -> impl Parser<Token, String, Error = PError> {
+        select! { Token::Ident(ident) => ident }.map_err(|e: PError| {
             Simple::expected_input_found(
                 e.span(),
                 [Some(Token::Ident("".to_string()))],
@@ -163,39 +200,58 @@ mod common {
         })
     }
 
-    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = PError> + Clone {
         just(Token::Keyword(kw.to_string())).ignored()
     }
 
-    pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    pub fn new_line() -> impl Parser<Token, (), Error = PError> + Clone {
         just(Token::NewLine).ignored()
     }
 
-    pub fn ctrl(char: char) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    pub fn ctrl(char: char) -> impl Parser<Token, (), Error = PError> + Clone {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt((name, kind): (String, StmtKind), span: std::ops::Range<usize>) -> Stmt {
+    pub fn into_stmt((name, kind): (String, StmtKind), span: Span) -> Stmt {
         Stmt {
             id: None,
             name,
             kind,
-            span: into_span(span),
+            span: Some(span),
         }
     }
 
-    pub fn into_expr(kind: ExprKind, span: std::ops::Range<usize>) -> Expr {
+    pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
         Expr {
-            span: into_span(span),
+            span: Some(span),
             ..Expr::from(kind)
         }
     }
 
-    pub fn into_span(span: std::ops::Range<usize>) -> Option<Span> {
-        Some(Span {
-            start: span.start,
-            end: span.end,
-        })
+    impl chumsky::Span for Span {
+        type Context = usize;
+
+        type Offset = usize;
+
+        fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
+            Span {
+                start: range.start,
+                end: range.end,
+                source_id: context,
+            }
+        }
+
+        fn context(&self) -> Self::Context {
+            self.source_id
+        }
+
+        fn start(&self) -> Self::Offset {
+            self.start
+        }
+
+        fn end(&self) -> Self::Offset {
+            self.end
+        }
     }
 }
 
@@ -209,19 +265,18 @@ mod test {
     fn parse_expr(source: &str) -> Result<Expr, Vec<anyhow::Error>> {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
             errs.into_iter()
-                .map(|e| anyhow!(convert_lexer_error(source, e)))
+                .map(|e| anyhow!(convert_lexer_error(source, e, 0)))
                 .collect_vec()
         })?;
 
-        let len = source.chars().count();
-        let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+        let stream = prepare_stream(tokens, source, 0);
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())
     }
 
     #[test]
     fn test_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse(include_str!(
+        assert_yaml_snapshot!(parse_single(include_str!(
             "../../examples/compile-files/queries/variables.prql"
         ))
         .unwrap());
@@ -229,9 +284,9 @@ mod test {
 
     #[test]
     fn test_take() {
-        parse("take 10").unwrap();
+        parse_single("take 10").unwrap();
 
-        assert_yaml_snapshot!(parse(r#"take 10"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(r#"take 10"#).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -247,7 +302,7 @@ mod test {
             kind: Main
         "###);
 
-        assert_yaml_snapshot!(parse(r#"take ..10"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -266,7 +321,7 @@ mod test {
             kind: Main
         "###);
 
-        assert_yaml_snapshot!(parse(r#"take 1..10"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -518,7 +573,7 @@ mod test {
             alias: gross_cost
         "###);
         // Currently not putting comments in our parse tree, so this is blank.
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             r#"# this is a comment
         select a"#
         ).unwrap(), @r###"
@@ -688,7 +743,7 @@ Canada
     #[test]
     #[ignore]
     fn test_jinja() {
-        parse(
+        parse_single(
             r#"
         from {{ ref('stg_orders') }}
         aggregate (sum order_id)
@@ -853,7 +908,7 @@ Canada
     #[test]
     fn test_filter() {
         assert_yaml_snapshot!(
-            parse(r#"filter country == "USA""#).unwrap(), @r###"
+            parse_single(r#"filter country == "USA""#).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -876,7 +931,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            parse(r#"filter (upper country) == "USA""#).unwrap(), @r###"
+            parse_single(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -907,7 +962,7 @@ Canada
 
     #[test]
     fn test_aggregate() {
-        let aggregate = parse(
+        let aggregate = parse_single(
             r"group {title} (
                 aggregate {sum salary, count}
               )",
@@ -945,7 +1000,7 @@ Canada
             ty_expr: ~
             kind: Main
         "###);
-        let aggregate = parse(
+        let aggregate = parse_single(
             r"group {title} (
                 aggregate {sum salary}
               )",
@@ -1147,7 +1202,7 @@ Canada
 
     #[test]
     fn test_function() {
-        assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap(), @r###"
         ---
         - name: plus_one
           VarDef:
@@ -1173,7 +1228,7 @@ Canada
             ty_expr: ~
             kind: Let
         "###);
-        assert_yaml_snapshot!(parse("let identity = x ->  x\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
         , @r###"
         ---
         - name: identity
@@ -1194,7 +1249,7 @@ Canada
             ty_expr: ~
             kind: Let
         "###);
-        assert_yaml_snapshot!(parse("let plus_one = x ->  (x + 1)\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
         - name: plus_one
@@ -1221,7 +1276,7 @@ Canada
             ty_expr: ~
             kind: Let
         "###);
-        assert_yaml_snapshot!(parse("let plus_one = x ->  x + 1\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
         ---
         - name: plus_one
@@ -1249,7 +1304,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
         - name: foo
@@ -1295,7 +1350,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse("func return_constant ->  42\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -1318,7 +1373,7 @@ Canada
             kind: Main
         "###);
 
-        assert_yaml_snapshot!(parse(r#"let count = X -> s"SUM({X})"
+        assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
         - name: count
@@ -1344,7 +1399,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             r#"
             let lag_day = x ->  (
                 window x
@@ -1403,7 +1458,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse("let add = x to:a ->  x + to\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
         ---
         - name: add
           VarDef:
@@ -1610,7 +1665,7 @@ Canada
 
     #[test]
     fn test_var_def() {
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
         ---
@@ -1628,7 +1683,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             r#"
         let newest_employees = (
           from employees
@@ -1693,7 +1748,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
         ---
@@ -1706,7 +1761,7 @@ Canada
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
           "let x = (
 
             from x_table
@@ -1771,7 +1826,7 @@ Canada
                   - Literal:
                       Integer: 50
         "###);
-        assert_yaml_snapshot!(parse("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
         - name: median
           VarDef:
@@ -1804,7 +1859,7 @@ Canada
 
     #[test]
     fn test_sql_parameters() {
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
         from mytable
         filter {
           first_name == $1,
@@ -1852,7 +1907,7 @@ Canada
     #[test]
     fn test_tab_characters() {
         // #284
-        parse(
+        parse_single(
             "from c_invoice
 join doc:c_doctype (==c_invoice_id)
 select [
@@ -1873,7 +1928,7 @@ join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
 
-        assert_yaml_snapshot!(parse(prql).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(prql).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -1935,7 +1990,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_sort() {
-        assert_yaml_snapshot!(parse("
+        assert_yaml_snapshot!(parse_single("
         from invoices
         sort issued_at
         sort (-issued_at)
@@ -2017,7 +2072,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_dates() {
-        assert_yaml_snapshot!(parse("
+        assert_yaml_snapshot!(parse_single("
         from employees
         derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
@@ -2081,7 +2136,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_multiline_string() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
@@ -2103,7 +2158,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_coalesce() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         from employees
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
@@ -2141,7 +2196,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_literal() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         derive x = true
         "###).unwrap(), @r###"
         ---
@@ -2163,7 +2218,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_allowed_idents() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         from employees
         join _salary (==employee_id) # table with leading underscore
         filter first_name == $1
@@ -2222,7 +2277,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_gt_lt_gte_lte() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         from people
         filter age >= 100
         filter num_grandchildren <= 10
@@ -2301,7 +2356,7 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_assign() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
 from employees
 join s=salaries (==id)
         "###).unwrap(), @r###"
@@ -2409,7 +2464,7 @@ join s=salaries (==id)
     #[test]
     fn test_unicode() {
         let source = "from tète";
-        assert_yaml_snapshot!(parse(source).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(source).unwrap(), @r###"
         ---
         - name: main
           VarDef:
@@ -2430,21 +2485,21 @@ join s=salaries (==id)
     fn test_error_unicode_string() {
         // Test various unicode strings successfully parse errors. We were
         // getting loops in the lexer before.
-        parse("s’ ").unwrap_err();
-        parse("s’").unwrap_err();
-        parse(" s’").unwrap_err();
-        parse(" ’ s").unwrap_err();
-        parse("’s").unwrap_err();
-        parse("👍 s’").unwrap_err();
+        parse_single("s’ ").unwrap_err();
+        parse_single("s’").unwrap_err();
+        parse_single(" s’").unwrap_err();
+        parse_single(" ’ s").unwrap_err();
+        parse_single("’s").unwrap_err();
+        parse_single("👍 s’").unwrap_err();
 
         let source = "Mississippi has four S’s and four I’s.";
-        assert_debug_snapshot!(parse(source).unwrap_err(), @r###"
+        assert_debug_snapshot!(parse_single(source).unwrap_err(), @r###"
         Errors(
             [
                 Error {
                     kind: Error,
                     span: Some(
-                        span-chars-22-23,
+                        0:22-23,
                     ),
                     reason: Unexpected {
                         found: "’",
@@ -2455,7 +2510,7 @@ join s=salaries (==id)
                 Error {
                     kind: Error,
                     span: Some(
-                        span-chars-35-36,
+                        0:35-36,
                     ),
                     reason: Unexpected {
                         found: "’",
@@ -2466,7 +2521,7 @@ join s=salaries (==id)
                 Error {
                     kind: Error,
                     span: Some(
-                        span-chars-37-38,
+                        0:37-38,
                     ),
                     reason: Simple(
                         "Expected * or an identifier, but didn't find anything before the end.",
@@ -2481,13 +2536,13 @@ join s=salaries (==id)
 
     #[test]
     fn test_error_unexpected() {
-        assert_debug_snapshot!(parse("Answer: T-H-A-T!").unwrap_err(), @r###"
+        assert_debug_snapshot!(parse_single("Answer: T-H-A-T!").unwrap_err(), @r###"
         Errors(
             [
                 Error {
                     kind: Error,
                     span: Some(
-                        span-chars-6-7,
+                        0:6-7,
                     ),
                     reason: Simple(
                         "unexpected : while parsing source file",
@@ -2502,7 +2557,7 @@ join s=salaries (==id)
 
     #[test]
     fn test_var_defs() {
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
         let a = (
             x
         )
@@ -2517,7 +2572,7 @@ join s=salaries (==id)
             kind: Let
         "###);
 
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
         x
         into a
         "#).unwrap(), @r###"
@@ -2531,7 +2586,7 @@ join s=salaries (==id)
             kind: Into
         "###);
 
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
         x
         "#).unwrap(), @r###"
         ---
@@ -2547,7 +2602,7 @@ join s=salaries (==id)
 
     #[test]
     fn test_array() {
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
         let a = [1, 2,]
         let a = [false, "hello"]
         "#).unwrap(), @r###"

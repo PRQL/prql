@@ -43,7 +43,7 @@ complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -l color -d 'Contr
 complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -r
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
-complete -c prqlc -n "__fish_seen_subcommand_from compile" -l include-signature-comment
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l hide-signature-comment
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c prqlc -n "__fish_seen_subcommand_from watch" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
 complete -c prqlc -n "__fish_seen_subcommand_from watch" -l no-format

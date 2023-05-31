@@ -110,6 +110,20 @@ fn test_errors() {
 }
 
 #[test]
+fn test_union_all_sqlite() {
+    // TODO: `SQLiteDialect` would be better as `sql.sqlite` or `sqlite`.
+    assert_display_snapshot!(compile(r###"
+    prql target:sql.sqlite
+
+    from film
+    remove film2
+    "###).unwrap_err(), @r###"
+    Error: The dialect SQLiteDialect does not support EXCEPT ALL
+    Hint: Providing more column information will allow the query to be translated to an anti-join.
+    "###)
+}
+
+#[test]
 fn test_hint_missing_args() {
     assert_display_snapshot!(compile(r###"
     from film

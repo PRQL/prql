@@ -138,7 +138,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__compile)
-            opts="-t -h --include-signature-comment --target --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-t -h --hide-signature-comment --target --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

@@ -1034,13 +1034,13 @@ mod from_text {
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::parser::parse;
+    use crate::parser::parse_single;
     use crate::semantic::{resolve_and_lower_single, resolve_single};
 
     #[test]
     fn test_aggregate_positional_arg() {
         // distinct query #292
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         select invoice_no
@@ -1097,7 +1097,7 @@ mod tests {
         "###);
 
         // oops, two arguments #339
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         aggregate average amount
@@ -1108,7 +1108,7 @@ mod tests {
         assert!(result.is_err());
 
         // oops, two arguments
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         group issued_at (aggregate average amount)
@@ -1119,7 +1119,7 @@ mod tests {
         assert!(result.is_err());
 
         // correct function call
-        let query = parse(
+        let query = parse_single(
             "
         from c_invoice
         group issued_at (
@@ -1129,157 +1129,158 @@ mod tests {
         )
         .unwrap();
         let ctx = resolve_single(query, None).unwrap();
-        let res = ctx.find_main(&[]).unwrap().clone();
+        let res = ctx.find_main_rel(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
-        - id: 40
-          TransformCall:
-            input:
-              id: 8
-              Ident:
-                - default_db
-                - c_invoice
-              ty:
-                kind:
-                  Array:
-                    Tuple:
-                      - Wildcard: ~
-                name: ~
-              lineage:
-                columns:
-                  - All:
-                      input_name: c_invoice
-                      except: []
-                inputs:
-                  - id: 8
-                    name: c_invoice
-                    table:
-                      - default_db
-                      - c_invoice
-            kind:
-              Aggregate:
-                assigns:
-                  - id: 32
-                    BuiltInFunction:
-                      name: std.average
-                      args:
-                        - id: 39
-                          Ident:
-                            - _frame
-                            - c_invoice
-                            - amount
-                          target_id: 8
-                    ty:
-                      kind:
-                        Union:
-                          - - scalar_tuple
-                            - kind:
-                                Tuple:
-                                  - Wildcard:
-                                      kind:
-                                        Union:
-                                          - - int
-                                            - kind:
-                                                Primitive: Int
-                                              name: int
-                                          - - float
-                                            - kind:
-                                                Primitive: Float
-                                              name: float
-                                          - - bool
-                                            - kind:
-                                                Primitive: Bool
-                                              name: bool
-                                          - - text
-                                            - kind:
-                                                Primitive: Text
-                                              name: text
-                                          - - date
-                                            - kind:
-                                                Primitive: Date
-                                              name: date
-                                          - - time
-                                            - kind:
-                                                Primitive: Time
-                                              name: time
-                                          - - timestamp
-                                            - kind:
-                                                Primitive: Timestamp
-                                              name: timestamp
-                                          - - ~
-                                            - kind:
-                                                Singleton: "Null"
-                                              name: ~
-                                      name: scalar
-                              name: scalar_tuple
-                          - - int
-                            - kind:
-                                Primitive: Int
-                              name: int
-                          - - float
-                            - kind:
-                                Primitive: Float
-                              name: float
-                          - - bool
-                            - kind:
-                                Primitive: Bool
-                              name: bool
-                          - - text
-                            - kind:
-                                Primitive: Text
-                              name: text
-                          - - date
-                            - kind:
-                                Primitive: Date
-                              name: date
-                          - - time
-                            - kind:
-                                Primitive: Time
-                              name: time
-                          - - timestamp
-                            - kind:
-                                Primitive: Timestamp
-                              name: timestamp
-                          - - ~
-                            - kind:
-                                Singleton: "Null"
-                              name: ~
-                      name: ~
-            partition:
-              - id: 16
+        - RelationVar:
+            id: 40
+            TransformCall:
+              input:
+                id: 8
                 Ident:
-                  - _frame
-                  - c_invoice
-                  - issued_at
-                target_id: 8
-          ty:
-            kind:
-              Array:
-                Tuple: []
-            name: relation
-          lineage:
-            columns:
-              - Single:
-                  name:
-                    - c_invoice
-                    - issued_at
-                  expr_id: 16
-              - Single:
-                  name: ~
-                  expr_id: 32
-            inputs:
-              - id: 8
-                name: c_invoice
-                table:
                   - default_db
                   - c_invoice
+                ty:
+                  kind:
+                    Array:
+                      Tuple:
+                        - Wildcard: ~
+                  name: ~
+                lineage:
+                  columns:
+                    - All:
+                        input_name: c_invoice
+                        except: []
+                  inputs:
+                    - id: 8
+                      name: c_invoice
+                      table:
+                        - default_db
+                        - c_invoice
+              kind:
+                Aggregate:
+                  assigns:
+                    - id: 32
+                      BuiltInFunction:
+                        name: std.average
+                        args:
+                          - id: 39
+                            Ident:
+                              - _frame
+                              - c_invoice
+                              - amount
+                            target_id: 8
+                      ty:
+                        kind:
+                          Union:
+                            - - scalar_tuple
+                              - kind:
+                                  Tuple:
+                                    - Wildcard:
+                                        kind:
+                                          Union:
+                                            - - int
+                                              - kind:
+                                                  Primitive: Int
+                                                name: int
+                                            - - float
+                                              - kind:
+                                                  Primitive: Float
+                                                name: float
+                                            - - bool
+                                              - kind:
+                                                  Primitive: Bool
+                                                name: bool
+                                            - - text
+                                              - kind:
+                                                  Primitive: Text
+                                                name: text
+                                            - - date
+                                              - kind:
+                                                  Primitive: Date
+                                                name: date
+                                            - - time
+                                              - kind:
+                                                  Primitive: Time
+                                                name: time
+                                            - - timestamp
+                                              - kind:
+                                                  Primitive: Timestamp
+                                                name: timestamp
+                                            - - ~
+                                              - kind:
+                                                  Singleton: "Null"
+                                                name: ~
+                                        name: scalar
+                                name: scalar_tuple
+                            - - int
+                              - kind:
+                                  Primitive: Int
+                                name: int
+                            - - float
+                              - kind:
+                                  Primitive: Float
+                                name: float
+                            - - bool
+                              - kind:
+                                  Primitive: Bool
+                                name: bool
+                            - - text
+                              - kind:
+                                  Primitive: Text
+                                name: text
+                            - - date
+                              - kind:
+                                  Primitive: Date
+                                name: date
+                            - - time
+                              - kind:
+                                  Primitive: Time
+                                name: time
+                            - - timestamp
+                              - kind:
+                                  Primitive: Timestamp
+                                name: timestamp
+                            - - ~
+                              - kind:
+                                  Singleton: "Null"
+                                name: ~
+                        name: ~
+              partition:
+                - id: 16
+                  Ident:
+                    - _frame
+                    - c_invoice
+                    - issued_at
+                  target_id: 8
+            ty:
+              kind:
+                Array:
+                  Tuple: []
+              name: relation
+            lineage:
+              columns:
+                - Single:
+                    name:
+                      - c_invoice
+                      - issued_at
+                    expr_id: 16
+                - Single:
+                    name: ~
+                    expr_id: 32
+              inputs:
+                - id: 8
+                  name: c_invoice
+                  table:
+                    - default_db
+                    - c_invoice
         - - main
         "###);
     }
 
     #[test]
     fn test_transform_sort() {
-        let query = parse(
+        let query = parse_single(
             "
         from invoices
         sort {issued_at, -amount, +num_of_articles}

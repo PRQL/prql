@@ -28,9 +28,11 @@ use super::NS_DEFAULT_DB;
 pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Context)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = context
-        .find_main(main_path)
-        .ok_or_else(|| Error::new_simple("Missing main pipeline").with_code("E0001"))?;
+    let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
+        Error::new_simple("Missing main pipeline")
+            .with_code("E0001")
+            .with_opt_help(hint)
+    })?;
 
     // find & validate query def
     let def = context.find_query_def(&main_ident);
@@ -90,7 +92,7 @@ fn extern_ref_to_relation(
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
         if !requirement.matches(&COMPILER_VERSION) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.").into());
+            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by the prql-compiler. Please upgrade the compiler.").into());
         }
     }
     Ok(())

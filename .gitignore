@@ -11,12 +11,8 @@ lcov.info
 **/.vscode/tasks.json
 .idea
 
-/*.prql
 _*.prql
-/*.rq
-_*.rq
-/*.pl
-_*.pl
+/*.prql
 /*.sql
 _*.sql
 

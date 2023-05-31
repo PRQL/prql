@@ -375,7 +375,7 @@ impl Module {
         for (name, decl) in &self.names {
             if let DeclKind::Module(module) = &decl.kind {
                 let nested = module.find_by_suffix(suffix);
-                res.extend(nested.into_iter().map(|x| x.prepend(name.clone())));
+                res.extend(nested.into_iter().map(|x| x.prepend(vec![name.clone()])));
                 continue;
             }
 

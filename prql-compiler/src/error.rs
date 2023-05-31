@@ -1,7 +1,6 @@
 pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
-use itertools::Itertools;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
@@ -11,12 +10,14 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
 use std::path::PathBuf;
 
-use crate::FileTree;
+use crate::SourceTree;
 
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
+
+    pub source_id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -90,8 +91,8 @@ impl Error {
 }
 
 impl WithErrorInfo for crate::Error {
-    fn with_help<S: Into<String>>(mut self, help: S) -> Self {
-        self.help = Some(help.into());
+    fn with_opt_help<S: Into<String>>(mut self, help: Option<S>) -> Self {
+        self.help = help.map(|x| x.into());
         self
     }
 
@@ -135,6 +136,9 @@ impl Display for ErrorMessage {
                 .unwrap_or_default();
 
             writeln!(f, "{}Error: {}", code, &self.reason)?;
+            if let Some(hint) = &self.hint {
+                writeln!(f, "Hint: {}", hint)?;
+            }
         }
         Ok(())
     }
@@ -248,21 +252,23 @@ impl ErrorMessages {
     }
 
     /// Computes message location and builds the pretty display.
-    pub fn composed(mut self, sources: &FileTree, color: bool) -> Self {
+    pub fn composed(mut self, sources: &SourceTree, color: bool) -> Self {
         let mut cache = FileTreeCache::new(sources);
 
-        // TODO: get id from the error
-        let Ok((id, _)) = sources.files.iter().exactly_one() else {
-            return self;
-        };
-
         for e in &mut self.inner {
-            let Ok(source) = cache.fetch(id) else {
+            let Some(span) = e.span else {
+                continue;
+            };
+            let Some(source_path) = sources.source_ids.get(&span.source_id) else {
+                continue;
+            };
+
+            let Ok(source) = cache.fetch(source_path) else {
                 continue
             };
             e.location = e.compose_location(source);
 
-            e.display = e.compose_display(id.clone(), &mut cache, color);
+            e.display = e.compose_display(source_path.clone(), &mut cache, color);
         }
         self
     }
@@ -271,7 +277,7 @@ impl ErrorMessages {
 impl ErrorMessage {
     fn compose_display(
         &self,
-        source_id: PathBuf,
+        source_path: PathBuf,
         cache: &mut FileTreeCache,
         color: bool,
     ) -> Option<String> {
@@ -279,9 +285,9 @@ impl ErrorMessage {
 
         let span = Range::from(self.span?);
 
-        let mut report = Report::build(ReportKind::Error, source_id.clone(), span.start)
+        let mut report = Report::build(ReportKind::Error, source_path.clone(), span.start)
             .with_config(config)
-            .with_label(Label::new((source_id, span)).with_message(&self.reason));
+            .with_label(Label::new((source_path, span)).with_message(&self.reason));
 
         if let Some(code) = &self.code {
             report = report.with_code(code);
@@ -309,11 +315,11 @@ impl ErrorMessage {
 }
 
 struct FileTreeCache<'a> {
-    file_tree: &'a FileTree,
+    file_tree: &'a SourceTree,
     cache: HashMap<PathBuf, Source>,
 }
 impl<'a> FileTreeCache<'a> {
-    fn new(file_tree: &'a FileTree) -> Self {
+    fn new(file_tree: &'a SourceTree) -> Self {
         FileTreeCache {
             file_tree,
             cache: HashMap::new(),
@@ -323,7 +329,7 @@ impl<'a> FileTreeCache<'a> {
 
 impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
     fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
-        let file_contents = match self.file_tree.files.get(id) {
+        let file_contents = match self.file_tree.sources.get(id) {
             Some(v) => v,
             None => return Err(Box::new(format!("Unknown file `{id:?}`"))),
         };
@@ -366,27 +372,32 @@ impl From<Span> for Range<usize> {
     }
 }
 
-impl Add<Span> for Span {
+impl Add<usize> for Span {
     type Output = Span;
 
-    fn add(self, rhs: Span) -> Span {
+    fn add(self, rhs: usize) -> Span {
         Span {
-            start: self.start.min(rhs.start),
-            end: self.end.max(rhs.end),
+            start: self.start + rhs,
+            end: self.end + rhs,
+            source_id: self.source_id,
         }
     }
 }
 
-pub trait WithErrorInfo {
-    fn with_help<S: Into<String>>(self, help: S) -> Self;
+pub trait WithErrorInfo: Sized {
+    fn with_help<S: Into<String>>(self, help: S) -> Self {
+        self.with_opt_help(Some(help))
+    }
+
+    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
 }
 
 impl WithErrorInfo for anyhow::Error {
-    fn with_help<S: Into<String>>(self, help: S) -> Self {
+    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self {
         self.downcast_ref::<crate::Error>()
-            .map(|e| e.clone().with_help(help).into())
+            .map(|e| e.clone().with_opt_help(help).into())
             .unwrap_or(self)
     }
 
@@ -402,8 +413,8 @@ impl WithErrorInfo for anyhow::Error {
 }
 
 impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
-    fn with_help<S: Into<String>>(self, help: S) -> Self {
-        self.map_err(|e| e.with_help(help))
+    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self {
+        self.map_err(|e| e.with_opt_help(help))
     }
 
     fn with_span(self, span: Option<Span>) -> Self {
@@ -413,7 +424,7 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 
 impl Debug for Span {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "span-chars-{}-{}", self.start, self.end)
+        write!(f, "{}:{}-{}", self.source_id, self.start, self.end)
     }
 }
 
@@ -438,7 +449,7 @@ impl<'de> Deserialize<'de> for Span {
             type Value = Span;
 
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "A span string of form `span-chars-x-y`")
+                write!(f, "A span string of form `file_id:x-y`")
             }
 
             fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
@@ -447,8 +458,12 @@ impl<'de> Deserialize<'de> for Span {
             {
                 use serde::de;
 
-                if let Some(span) = v.strip_prefix("span-chars-") {
-                    if let Some((start, end)) = span.split_once('-') {
+                if let Some((file_id, char_span)) = v.split_once(':') {
+                    let file_id = file_id
+                        .parse::<usize>()
+                        .map_err(|e| de::Error::custom(e.to_string()))?;
+
+                    if let Some((start, end)) = char_span.split_once('-') {
                         let start = start
                             .parse::<usize>()
                             .map_err(|e| de::Error::custom(e.to_string()))?;
@@ -456,9 +471,14 @@ impl<'de> Deserialize<'de> for Span {
                             .parse::<usize>()
                             .map_err(|e| de::Error::custom(e.to_string()))?;
 
-                        return Ok(Span { start, end });
+                        return Ok(Span {
+                            start,
+                            end,
+                            source_id: file_id,
+                        });
                     }
                 }
+
                 Err(de::Error::custom("malformed span"))
             }
 

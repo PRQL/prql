@@ -1,6 +1,6 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 // use super::*;
-use crate::{parser::parse, sql, Options, Target};
+use crate::{parser::parse_single, sql, Options, Target};
 use insta::{assert_display_snapshot, assert_snapshot};
 
 pub fn compile(prql: &str) -> Result<String, crate::ErrorMessages> {
@@ -338,7 +338,8 @@ fn test_remove() {
     remove artist
     "#).unwrap_err(),
         @r###"
-    Error: Your dialect does not support EXCEPT ALL
+    Error: The dialect SQLiteDialect does not support EXCEPT ALL
+    Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 
@@ -553,7 +554,8 @@ fn test_intersect() {
     intersect artist
     "#).unwrap_err(),
         @r###"
-    Error: Your dialect does not support INTERCEPT ALL
+    Error: The dialect SQLiteDialect does not support INTERSECT ALL
+    Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 }
@@ -1544,7 +1546,7 @@ join managers=employees (==emp_no)
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select {mng_name, managers.gender, salary_avg, salary_sd}"#;
 
-    let sql_from_prql = parse(original_prql)
+    let sql_from_prql = parse_single(original_prql)
         .and_then(crate::semantic::resolve_and_lower_single)
         .and_then(|rq| sql::compile(rq, &Options::default()))
         .unwrap();
@@ -1745,6 +1747,7 @@ fn test_bare_s_string() {
     from s"SELECTfoo"
     "###).unwrap_err(), @r###"
     Error: s-strings representing a table must start with `SELECT `
+    Hint: this is a limitation by current compiler implementation
     "###);
 }
 
@@ -3643,7 +3646,7 @@ fn test_array() {
        │
      2 │     let a = [1, 2, false]
        │                    ──┬──
-       │                      ╰──── array expected types of all of its elements to be int, but found bool
+       │                      ╰──── array expected type `int`, but found type `bool`
     ───╯
     "###
     );

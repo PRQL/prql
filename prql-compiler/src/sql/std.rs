@@ -13,9 +13,9 @@ use crate::semantic;
 static STD: Lazy<semantic::Module> = Lazy::new(load_std_impl);
 
 fn load_std_impl() -> semantic::Module {
-    use crate::parser::parse;
-    let std_lib = include_str!("./std_impl.prql");
-    let statements = parse(std_lib).unwrap();
+    let std_lib = crate::SourceTree::from(include_str!("./std_impl.prql"));
+    let statements = crate::parser::parse_tree(&std_lib).unwrap();
+    let statements = statements.sources.into_values().next().unwrap();
 
     let context = semantic::Context {
         root_mod: semantic::Module::default(),

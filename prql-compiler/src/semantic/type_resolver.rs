@@ -122,7 +122,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
 
     let kind = match &node.kind {
         ExprKind::Literal(ref literal) => match literal {
-            Literal::Null => return Ok(None),
+            Literal::Null => TyKind::Singleton(Literal::Null),
             Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
             Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
             Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
@@ -224,7 +224,7 @@ impl Context {
             }
 
             // base case: compare types
-            _ => expected.is_superset_of(&found_ty),
+            _ => expected.is_super_type_of(&found_ty),
         };
         if !expected_is_above {
             fn display_ty(ty: &Ty) -> String {
