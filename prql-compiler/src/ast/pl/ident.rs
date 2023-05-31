@@ -43,8 +43,7 @@ impl Ident {
         }
     }
 
-    pub fn prepend(self, part: String) -> Ident {
-        let mut parts = vec![part];
+    pub fn prepend(self, mut parts: Vec<String>) -> Ident {
         parts.extend(self.into_iter());
         Ident::from_path(parts)
     }
