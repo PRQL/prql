@@ -144,5 +144,8 @@ jobs:
 
     steps:
       - uses: fastify/github-action-merge-dependabot@v3
-        with:
-          use-github-auto-merge: true
+      # Doesn't appear to work, so we instead add a `needs` so it runs at the end
+      # with:
+      #   use-github-auto-merge: true
+    needs:
+      - check-ok-to-merge
