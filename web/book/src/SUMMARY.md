@@ -74,6 +74,7 @@
 
 - [Integrations](./integrations/README.md)
 
+  - [CLI](./integrations/cli.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
