@@ -134,7 +134,7 @@ fn test_hint_missing_args() {
        │
      3 │     select {film_id, lag film_id}
        │                      ─────┬─────
-       │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `func infer -> array`
+       │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `infer -> array`
        │
        │ Help: Have you forgotten an argument to function std.lag?
     ───╯

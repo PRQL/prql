@@ -24,7 +24,15 @@ pub fn write(stmts: &Vec<pl::Stmt>) -> String {
 
 impl std::fmt::Display for pl::Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.write(WriteOpt::default()).unwrap())
+        let opt = WriteOpt::new_width(u16::MAX);
+        f.write_str(&self.write(opt).unwrap())
+    }
+}
+
+impl std::fmt::Display for pl::Ty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let opt = WriteOpt::new_width(u16::MAX);
+        f.write_str(&self.write(opt).unwrap())
     }
 }
 
@@ -74,6 +82,14 @@ impl Default for WriteOpt {
 }
 
 impl WriteOpt {
+    fn new_width(max_width: u16) -> Self {
+        WriteOpt {
+            max_width,
+            rem_width: max_width,
+            ..WriteOpt::default()
+        }
+    }
+
     fn consume_width(mut self, width: u16) -> Option<Self> {
         self.rem_width = self.rem_width.checked_sub(width)?;
         Some(self)
@@ -229,10 +245,7 @@ impl WriteSource for pl::ExprKind {
                 Some(r)
             }
             BuiltInFunction { .. } => Some("<built-in>".to_string()),
-            Type(ty) => {
-                // TODO: convert Display::fmt() for Ty into WriteSource
-                Some(ty.to_string())
-            }
+            Type(ty) => ty.write(opt),
             Param(id) => Some(format!("${id}")),
         }
     }
@@ -401,6 +414,90 @@ impl WriteSource for pl::SwitchCase {
         r += " => ";
         r += &self.value.write(opt)?;
         Some(r)
+    }
+}
+
+impl WriteSource for &pl::Ty {
+    fn write(&self, opt: WriteOpt) -> Option<String> {
+        if let Some(name) = &self.name {
+            Some(name.clone())
+        } else {
+            self.kind.write(opt)
+        }
+    }
+}
+
+impl WriteSource for Option<&pl::Ty> {
+    fn write(&self, opt: WriteOpt) -> Option<String> {
+        match self {
+            Some(ty) => ty.write(opt),
+            None => Some("infer".to_string()),
+        }
+    }
+}
+
+impl WriteSource for pl::TyKind {
+    fn write(&self, opt: WriteOpt) -> Option<String> {
+        use pl::TyKind::*;
+
+        match &self {
+            Primitive(prim) => Some(prim.to_string()),
+            Union(variants) => {
+                let variants: Vec<_> = variants.iter().map(|x| &x.1).collect();
+
+                SeparatedExprs {
+                    exprs: &variants,
+                    inline: " || ",
+                    line_end: " ||",
+                }
+                .write(opt)
+            }
+            Singleton(lit) => Some(lit.to_string()),
+            Tuple(elements) => SeparatedExprs {
+                exprs: elements,
+                inline: ", ",
+                line_end: ",",
+            }
+            .write(opt),
+            Set => Some("set".to_string()),
+            Array(elem) => Some(format!("{{{}}}", elem.write(opt)?)),
+            Function(func) => {
+                let mut r = String::new();
+
+                for t in &func.args {
+                    r += &t.as_ref().write(opt)?;
+                    r += " ";
+                }
+                r += "-> ";
+                r += &(*func.return_ty).as_ref().write(opt)?;
+                Some(r)
+            }
+        }
+    }
+}
+
+impl WriteSource for pl::TupleField {
+    fn write(&self, opt: WriteOpt) -> Option<String> {
+        match self {
+            Self::Wildcard(generic_el) => match generic_el {
+                Some(el) => Some(format!("{}..", el.write(opt)?)),
+                None => Some("*..".to_string()),
+            },
+            Self::Single(name, expr) => {
+                let mut r = String::new();
+
+                if let Some(name) = name {
+                    r += name;
+                    r += " = ";
+                }
+                if let Some(expr) = expr {
+                    r += &expr.write(opt)?;
+                } else {
+                    r += "?";
+                }
+                Some(r)
+            }
+        }
     }
 }
 

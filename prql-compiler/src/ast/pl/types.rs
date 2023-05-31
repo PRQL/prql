@@ -1,5 +1,3 @@
-use std::fmt::{Debug, Display, Formatter, Result, Write};
-
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
@@ -122,77 +120,6 @@ impl TyKind {
                 .all(|(_, each)| one.is_super_type_of(&each.kind)),
 
             (l, r) => l == r,
-        }
-    }
-}
-
-impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(name) = &self.name {
-            return write!(f, "{}", name);
-        }
-        write!(f, "{:}", self.kind)
-    }
-}
-
-pub fn display_ty(ty: Option<&Ty>) -> String {
-    match ty {
-        Some(ty) => ty.to_string(),
-        None => "infer".to_string(),
-    }
-}
-
-impl Display for TyKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match &self {
-            TyKind::Primitive(lit) => write!(f, "{:}", lit),
-            TyKind::Union(ts) => {
-                for (i, (_, e)) in ts.iter().enumerate() {
-                    write!(f, "{e}")?;
-                    if i < ts.len() - 1 {
-                        f.write_char('|')?;
-                    }
-                }
-                Ok(())
-            }
-            TyKind::Singleton(lit) => write!(f, "{:}", lit),
-            TyKind::Tuple(elements) => {
-                write!(f, "{{")?;
-                for (index, e) in elements.iter().enumerate() {
-                    if index > 0 {
-                        write!(f, ", ")?
-                    }
-                    match e {
-                        TupleField::Wildcard(generic_el) => match generic_el {
-                            Some(el) => write!(f, "{el}..")?,
-                            None => write!(f, "*..")?,
-                        },
-                        TupleField::Single(name, expr) => {
-                            if let Some(name) = name {
-                                write!(f, "{name} = ")?
-                            }
-                            if let Some(expr) = expr {
-                                write!(f, "{expr}")?
-                            } else {
-                                write!(f, "?")?
-                            }
-                        }
-                    }
-                }
-                write!(f, "}}")?;
-                Ok(())
-            }
-            TyKind::Set => write!(f, "set"),
-            TyKind::Array(elem) => write!(f, "{{{elem}}}"),
-            TyKind::Function(func) => {
-                write!(f, "func")?;
-
-                for t in &func.args {
-                    write!(f, " {}", display_ty(t.as_ref()))?;
-                }
-                write!(f, " -> {}", display_ty((*func.return_ty).as_ref()))?;
-                Ok(())
-            }
         }
     }
 }
