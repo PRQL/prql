@@ -9,7 +9,6 @@ pub fn write(stmts: &Vec<pl::Stmt>) -> String {
             match stmt.write(opt) {
                 Some(s) => {
                     r += &s;
-                    r += "\n";
                 }
                 None => {
                     r.clear();
@@ -341,10 +340,12 @@ impl WriteSource for pl::Stmt {
             pl::StmtKind::VarDef(var_def) => {
                 let mut r = String::new();
 
+                r += "\n";
                 match var_def.kind {
                     pl::VarDefKind::Let => {
                         r += &format!("let {} = ", self.name);
                         r += &var_def.value.write(opt)?;
+                        r += "\n";
                     }
                     pl::VarDefKind::Into | pl::VarDefKind::Main => {
                         match &var_def.value.kind {
@@ -361,10 +362,10 @@ impl WriteSource for pl::Stmt {
 
                         if let pl::VarDefKind::Into = var_def.kind {
                             r += &format!("into {}", self.name);
+                            r += "\n";
                         }
                     }
                 }
-                r += "\n";
                 Some(r)
             }
             pl::StmtKind::TypeDef(_) => todo!(),
