@@ -12,12 +12,6 @@ lcov.info
 .idea
 
 /*.prql
-_*.prql
-**/project/**/*.prql
-/*.rq
-_*.rq
-/*.pl
-_*.pl
 /*.sql
 _*.sql
 
