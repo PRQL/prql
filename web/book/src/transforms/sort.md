@@ -57,7 +57,7 @@ The explicit semantics are:
 
 - `sort` introduces a new order,
 - `group` resets the order,
-- `join` maintains the order of the left relation,
+- `join` retains the order of the left relation,
 - database tables don't have a known order.
 
 Comparatively, in SQL, relations possess no order, being orderable solely within
