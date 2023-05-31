@@ -85,7 +85,7 @@ jobs:
     # world where all tasks are defined in a single workflow, and we use
     # job-level criteria to decide what to run. But it's quite a change, I
     # (@max-sixty) have probably done too much devops already, and it's possible
-    # that GitHub release something to enable path triggers within workflows
+    # that GitHub releases something to enable path triggers within workflows
     # natively.
     #
     # Check out `test-all.yaml` for more ideas on organizing these.
@@ -131,3 +131,18 @@ jobs:
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
+
+  automerge-dependabot:
+    # This would arguably fit more naturally in `pull-request-target`, but
+    # that's unsupported
+    # https://github.com/fastify/github-action-merge-dependabot/issues/355.
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: fastify/github-action-merge-dependabot@v3
+        with:
+          use-github-auto-merge: true
