@@ -29,16 +29,15 @@ jobs:
     strategy:
       matrix:
         # We use a matrix here to mirror `test-all`, so they share a cache.
-        os: [windows-latest]
-        target_option: [""]
-
+        os: [ubuntu-latest]
+        target_option: ["", "--target=wasm32-unknown-unknown"]
     uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
       target_option: ${{ matrix.target_option }}
 
-  # lint-megalinter:
-  # uses: ./.github/workflows/lint-megalinter.yaml
+  lint-megalinter:
+    uses: ./.github/workflows/lint-megalinter.yaml
 
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meaning a breaking change) in the PR title. (We also run on other
@@ -92,11 +91,11 @@ jobs:
     # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
     needs:
-      # - check-links
-      # - lint-megalinter
-      # - nightly
-      # - publish-web
-      # - test-all
+      - check-links
+      - lint-megalinter
+      - nightly
+      - publish-web
+      - test-all
       - test-rust
     runs-on: ubuntu-latest
     steps:
@@ -110,25 +109,25 @@ jobs:
           allowed-skips: test-all, publish-web, nightly
           jobs: ${{ toJSON(needs) }}
 
-  # build-prqlc:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #         - os: ubuntu-latest
-  #           target: x86_64-unknown-linux-musl
-  #         - os: ubuntu-latest
-  #           target: aarch64-unknown-linux-musl
-  #         - os: macos-latest
-  #           target: x86_64-apple-darwin
-  #         - os: macos-latest
-  #           target: aarch64-apple-darwin
-  #         - os: windows-latest
-  #           target: x86_64-pc-windows-msvc
-  #   steps:
-  #     - name: 📂 Checkout code
-  #       uses: actions/checkout@v3
-  #     - uses: ./.github/actions/build-prqlc
-  #       with:
-  #         target: ${{ matrix.target }}
+  build-prqlc:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/build-prqlc
+        with:
+          target: ${{ matrix.target }}
