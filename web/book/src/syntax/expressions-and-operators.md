@@ -59,7 +59,7 @@ PRQL uses parentheses `()` for several purposes:
 
 Here's a set of examples of these rules:
 
-```prql no-fmt
+```prql
 from employees
 # Requires parentheses, because it contains a pipe
 derive is_proximate = (distance | in 0..20)
@@ -101,7 +101,7 @@ derive total_distance = sum distance
 
 <!-- TODO: why doesn't this format? -->
 
-```prql no-fmt
+```prql
 from employees
 derive other_distance = (sum distance)
 ```

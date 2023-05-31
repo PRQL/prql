@@ -16,11 +16,11 @@ fn test_errors() {
     "###).unwrap_err(),
         @r###"
     Error:
-       ╭─[:5:16]
+       ╭─[:5:17]
        │
      5 │     derive y = (addadd 4 5 6)
-       │                ───────┬──────
-       │                       ╰──────── Too many arguments to function `addadd`
+       │                 ──────┬─────
+       │                       ╰─────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -32,8 +32,8 @@ fn test_errors() {
        ╭─[:2:5]
        │
      2 │     from a select b
-       │     ────────┬───────
-       │             ╰───────── Too many arguments to function `from`
+       │     ───────┬───────
+       │            ╰───────── Too many arguments to function `from`
     ───╯
     "###);
 
