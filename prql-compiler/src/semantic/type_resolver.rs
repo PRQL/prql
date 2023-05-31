@@ -224,7 +224,7 @@ impl Context {
             }
 
             // base case: compare types
-            _ => expected.is_superset_of(&found_ty),
+            _ => expected.is_super_type_of(&found_ty),
         };
         if !expected_is_above {
             fn display_ty(ty: &Ty) -> String {

@@ -76,16 +76,20 @@ pub struct TyFunc {
 }
 
 impl Ty {
-    pub fn is_superset_of(&self, subset: &Ty) -> bool {
+    pub fn is_super_type_of(&self, subset: &Ty) -> bool {
         if self.is_relation() && subset.is_relation() {
             return true;
         }
 
-        self.kind.is_superset_of(&subset.kind)
+        self.kind.is_super_type_of(&subset.kind)
     }
 
-    pub fn is_superset_of_array(&self) -> bool {
-        self.kind.is_superset_of_array()
+    pub fn is_sub_type_of_array(&self) -> bool {
+        match &self.kind {
+            TyKind::Array(_) => true,
+            TyKind::Union(elements) => elements.iter().any(|(_, e)| e.is_sub_type_of_array()),
+            _ => false,
+        }
     }
 
     pub fn is_relation(&self) -> bool {
@@ -107,23 +111,17 @@ impl Ty {
 }
 
 impl TyKind {
-    fn is_superset_of(&self, subset: &TyKind) -> bool {
+    fn is_super_type_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
             (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
-            (TyKind::Union(many), one) => many.iter().any(|(_, any)| any.kind.is_superset_of(one)),
-            (one, TyKind::Union(many)) => {
-                many.iter().all(|(_, each)| one.is_superset_of(&each.kind))
+            (TyKind::Union(many), one) => {
+                many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
             }
+            (one, TyKind::Union(many)) => many
+                .iter()
+                .all(|(_, each)| one.is_super_type_of(&each.kind)),
 
             (l, r) => l == r,
-        }
-    }
-
-    fn is_superset_of_array(&self) -> bool {
-        match self {
-            TyKind::Array(_) => true,
-            TyKind::Union(elements) => elements.iter().any(|(_, e)| e.is_superset_of_array()),
-            _ => false,
         }
     }
 }
