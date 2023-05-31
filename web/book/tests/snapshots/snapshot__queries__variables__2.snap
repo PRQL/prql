@@ -8,7 +8,7 @@ WITH table_1 AS (
   FROM
     employees
   ORDER BY
-    salary NULLS LAST
+    salary
   LIMIT
     50
 ), top_50 AS (

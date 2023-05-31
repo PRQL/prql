@@ -90,7 +90,7 @@ showcase_section:
       sql: |
         SELECT id, first_name, age
         FROM employees
-        ORDER BY age NULLS LAST
+        ORDER BY age
         LIMIT 10
 
     - id: friendly-syntax
@@ -114,7 +114,7 @@ showcase_section:
           AND recorded > DATE '2008-01-01'
           AND released - recorded < INTERVAL 180 DAY
         ORDER BY
-          length DESC NULLS LAST
+          length DESC
 
     - id: orthogonal
       label: Orthogonality
@@ -202,7 +202,7 @@ showcase_section:
           SUM(paycheck) OVER (
             PARTITION BY employee_id
             ORDER BY
-              month NULLS LAST ROWS BETWEEN 11 PRECEDING
+              month ROWS BETWEEN 11 PRECEDING
               AND CURRENT ROW
           ) AS trail_12_m_comp
         FROM
@@ -238,7 +238,7 @@ showcase_section:
             ROW_NUMBER() OVER (
               PARTITION BY role
               ORDER BY
-                join_date NULLS LAST
+                join_date
             ) AS _expr_0
           FROM
             employees

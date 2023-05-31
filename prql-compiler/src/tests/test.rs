@@ -338,8 +338,8 @@ fn test_remove() {
     remove artist
     "#).unwrap_err(),
         @r###"
-    Error: Your dialect does not support EXCEPT ALL
-     Hint: If you provide more column information, your query can be translated to an anti join.
+    Error: The dialect SQLiteDialect does not support EXCEPT ALL
+    Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 
@@ -554,8 +554,8 @@ fn test_intersect() {
     intersect artist
     "#).unwrap_err(),
         @r###"
-    Error: Your dialect does not support INTERCEPT ALL
-     Hint: If you provide more column information, your query can be translated to an inner join.
+    Error: The dialect SQLiteDialect does not support INTERSECT ALL
+    Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 }
@@ -675,9 +675,9 @@ fn test_sorts() {
     FROM
       invoices
     ORDER BY
-      issued_at NULLS LAST,
-      amount DESC NULLS LAST,
-      num_of_articles NULLS LAST
+      issued_at,
+      amount DESC,
+      num_of_articles
     "###);
 
     assert_display_snapshot!((compile(r###"
@@ -699,7 +699,7 @@ fn test_sorts() {
     FROM
       table_1 AS table_0
     ORDER BY
-      _expr_0 NULLS LAST
+      _expr_0
     "###);
 }
 
@@ -865,16 +865,16 @@ fn test_window_functions_02() {
       SUM(num_books) OVER (
         PARTITION BY order_month
         ORDER BY
-          order_day NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ) AS running_total_num_books,
       LAG(num_books, 7) OVER (
         ORDER BY
-          order_day NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       ) AS num_books_last_week
     FROM
       table_1 AS table_0
     ORDER BY
-      order_day NULLS LAST
+      order_day
     "###);
 }
 
@@ -933,7 +933,7 @@ fn test_window_functions_05() {
       RANK() OVER (
         PARTITION BY month
         ORDER BY
-          num_orders NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          num_orders ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ),
       LAG(num_orders, 7) OVER () AS num_orders_last_week
     FROM
@@ -1024,12 +1024,12 @@ fn test_window_functions_10() {
       *,
       SUM(b) OVER (
         ORDER BY
-          day NULLS LAST RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
+          day RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
       ) AS next_four_days
     FROM
       foo
     ORDER BY
-      day NULLS LAST
+      day
     "###);
 
     // TODO: add test for preceding
@@ -1258,7 +1258,7 @@ fn test_take() {
     FROM
       table_1 AS table_0
     ORDER BY
-      name NULLS LAST
+      name
     LIMIT
       5
     "###);
@@ -1423,7 +1423,7 @@ fn test_distinct() {
         ROW_NUMBER() OVER (
           PARTITION BY department
           ORDER BY
-            salary NULLS LAST
+            salary
         ) AS _expr_0
       FROM
         employees
@@ -1446,7 +1446,7 @@ fn test_distinct() {
         ROW_NUMBER() OVER (
           PARTITION BY department
           ORDER BY
-            salary NULLS LAST
+            salary
         ) AS _expr_0
       FROM
         employees
@@ -1483,7 +1483,7 @@ fn test_distinct() {
     WHERE
       _expr_0 <= 1
     ORDER BY
-      billing_city NULLS LAST
+      billing_city
     "###);
 }
 
@@ -1634,7 +1634,7 @@ fn test_sql_of_ast_1() {
       title,
       country
     ORDER BY
-      title NULLS LAST
+      title
     LIMIT
       20
     "###
@@ -1747,7 +1747,7 @@ fn test_bare_s_string() {
     from s"SELECTfoo"
     "###).unwrap_err(), @r###"
     Error: s-strings representing a table must start with `SELECT `
-     Hint: this is a limitation by current compiler implementation
+    Hint: this is a limitation by current compiler implementation
     "###);
 }
 
@@ -1895,7 +1895,7 @@ take 20
     HAVING
       COUNT(*) > 200
     ORDER BY
-      sum_gross_cost NULLS LAST
+      sum_gross_cost
     LIMIT
       20
     "###);
@@ -1931,7 +1931,7 @@ fn test_prql_to_sql_table() {
       FROM
         employees
       ORDER BY
-        tenure NULLS LAST
+        tenure
       LIMIT
         50
     ), average_salaries AS (
@@ -1951,7 +1951,7 @@ fn test_prql_to_sql_table() {
       newest_employees
       JOIN average_salaries ON newest_employees.country = average_salaries.country
     ORDER BY
-      employees.tenure NULLS LAST
+      employees.tenure
     "###
     );
 }
@@ -2009,7 +2009,7 @@ fn test_nonatomic() {
       title,
       country
     ORDER BY
-      sum_gross_cost NULLS LAST
+      sum_gross_cost
     "###);
 
     // A aggregate, then sort and filter
@@ -2037,7 +2037,7 @@ fn test_nonatomic() {
     HAVING
       AVG(salary) > 0
     ORDER BY
-      sum_gross_cost NULLS LAST
+      sum_gross_cost
     "###);
 }
 
@@ -3127,7 +3127,7 @@ fn test_custom_transforms() {
     FROM
       tab
     ORDER BY
-      name NULLS LAST
+      name
     LIMIT
       3
     "###
@@ -3574,7 +3574,7 @@ fn test_excess_columns() {
     FROM
       table_1 AS table_0
     ORDER BY
-      _expr_0 NULLS LAST
+      _expr_0
     "###
     );
 }
