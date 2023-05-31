@@ -170,14 +170,13 @@ impl WriteSource for pl::ExprKind {
             Binary { op, left, right } => {
                 let mut r = String::new();
 
-                // TODO: proper precedence handling
-                r += &left.write_between("(", ")", opt)?;
+                r += &write_expr(left, self, opt)?;
 
                 r += " ";
                 r += &op.to_string();
                 r += " ";
 
-                r += &right.write_between("(", ")", opt)?;
+                r += &write_expr(right, self, opt)?;
                 Some(r)
             }
             Unary { op, expr } => Some(match op {
@@ -188,17 +187,17 @@ impl WriteSource for pl::ExprKind {
             }),
             FuncCall(func_call) => {
                 let mut r = String::new();
-                r += &func_call.name.write_between("(", ")", opt)?;
+                r += &write_expr(&func_call.name, self, opt)?;
 
                 for (name, arg) in &func_call.named_args {
                     r += " ";
                     r += name;
                     r += ":";
-                    r += &arg.write(opt)?;
+                    r += &write_expr(arg, self, opt)?;
                 }
                 for arg in &func_call.args {
                     r += " ";
-                    r += &arg.write_between("(", ")", opt)?;
+                    r += &write_expr(arg, self, opt)?;
                 }
                 Some(r)
             }
@@ -248,6 +247,46 @@ impl WriteSource for pl::ExprKind {
             Type(ty) => ty.write(opt),
             Param(id) => Some(format!("${id}")),
         }
+    }
+}
+
+/// Writes an optionally parenthesized expression
+fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
+    let strength_self = binding_strength(&expr.kind);
+    let strength_parent = binding_strength(parent);
+
+    if strength_parent <= strength_self {
+        expr.write_between("(", ")", opt)
+    } else {
+        expr.write(opt)
+    }
+}
+
+fn binding_strength(expr: &pl::ExprKind) -> i32 {
+    match expr {
+        pl::ExprKind::Ident(_) => 1,
+        pl::ExprKind::All { .. } => 1,
+
+        pl::ExprKind::Range(_) => 3,
+        pl::ExprKind::Binary { op, .. } => match op {
+            pl::BinOp::Mul | pl::BinOp::Div | pl::BinOp::Mod => 4,
+            pl::BinOp::Add | pl::BinOp::Sub => 5,
+            pl::BinOp::Eq
+            | pl::BinOp::Ne
+            | pl::BinOp::Gt
+            | pl::BinOp::Lt
+            | pl::BinOp::Gte
+            | pl::BinOp::Lte
+            | pl::BinOp::RegexSearch => 6,
+            pl::BinOp::And => 8,
+            pl::BinOp::Or => 9,
+            pl::BinOp::Coalesce => 7,
+        },
+        pl::ExprKind::Unary { .. } => 2,
+        pl::ExprKind::FuncCall(_) => 10,
+        pl::ExprKind::Closure(_) => 10,
+
+        _ => 0,
     }
 }
 
