@@ -14,5 +14,5 @@ SELECT
 FROM
   table_1 AS table_0
 ORDER BY
-  _expr_0 NULLS LAST
+  _expr_0
 

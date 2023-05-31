@@ -7,5 +7,5 @@ SELECT
 FROM
   employees
 ORDER BY
-  age NULLS LAST
+  age
 

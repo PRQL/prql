@@ -34,7 +34,7 @@ GROUP BY
 HAVING
   COUNT(*) > 200
 ORDER BY
-  sum_gross_cost NULLS LAST
+  sum_gross_cost
 LIMIT
   20
 

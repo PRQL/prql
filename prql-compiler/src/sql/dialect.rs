@@ -202,10 +202,6 @@ pub(super) trait DialectHandler: Any + Debug {
             right: Box::new(target),
         })
     }
-
-    fn nulls_first(&self) -> Option<bool> {
-        Some(false)
-    }
 }
 
 impl dyn DialectHandler {
@@ -283,11 +279,6 @@ impl DialectHandler for MsSqlDialect {
     fn set_ops_distinct(&self) -> bool {
         false
     }
-
-    fn nulls_first(&self) -> Option<bool> {
-        // Unsupported for MSSQL
-        None
-    }
 }
 
 impl DialectHandler for MySqlDialect {
@@ -310,11 +301,6 @@ impl DialectHandler for MySqlDialect {
             target,
             sql_ast::BinaryOperator::Custom("REGEXP".to_string()),
         )
-    }
-
-    fn nulls_first(&self) -> Option<bool> {
-        // Unsupported for MySQL
-        None
     }
 }
 
@@ -380,11 +366,6 @@ impl DialectHandler for DuckDbDialect {
         target: sql_ast::Expr,
     ) -> anyhow::Result<sql_ast::Expr> {
         self.translate_regex_with_function(search, target, "REGEXP_MATCHES")
-    }
-
-    fn nulls_first(&self) -> Option<bool> {
-        // `NULLS LAST` is default for DuckDB
-        None
     }
 }
 
