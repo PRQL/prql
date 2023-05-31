@@ -311,8 +311,8 @@ pub(in crate::sql) fn except(
             // EXCEPT ALL is not supported
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
-                return Err(Error::new_simple("Your dialect does not support EXCEPT ALL")
-                    .with_help("If you provide more column information, your query can be translated to an anti join.")
+                return Err(Error::new_simple(format!("The dialect {:?} does not support EXCEPT ALL", ctx.dialect))
+                    .with_help("Providing more column information will allow the query to be translated to an anti-join.")
                     .into());
             } else {
                 // Don't create Except, fallback to anti-join.
@@ -391,8 +391,8 @@ pub(in crate::sql) fn intersect(
             // INTERCEPT ALL is not supported
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
-                return Err(Error::new_simple("Your dialect does not support INTERCEPT ALL")
-                    .with_help("If you provide more column information, your query can be translated to an inner join.")
+                return Err(Error::new_simple(format!("The dialect {:?} does not support INTERSECT ALL", ctx.dialect))
+                    .with_help("Providing more column information will allow the query to be translated to an anti-join.")
                     .into());
             } else {
                 // Don't create Intercept, fallback to inner join.
