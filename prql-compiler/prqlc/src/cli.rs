@@ -387,7 +387,7 @@ mod clio_extended {
         Pipe(PathBuf, File),
         /// a normal [`File`] opened from the path
         File(PathBuf, File),
-        /// a normal [`File`] opened from the path
+        /// a Directory
         Directory(PathBuf),
     }
 
@@ -398,19 +398,15 @@ mod clio_extended {
             if path == "-" {
                 Ok(Self::std())
             } else {
-                let path = PathBuf::from(path);
-                if path.is_dir() {
-                    dbg!(&path);
-                    return Ok(Input::Directory(path));
+                let pathbuf = PathBuf::from(path);
+                if pathbuf.is_dir() {
+                    return Ok(Input::Directory(pathbuf));
                 }
-                let file = File::open(&path)?;
-                if file.metadata()?.is_dir() {
-                    panic!("it's a dir!");
-                }
+                let file = File::open(&pathbuf)?;
                 if is_fifo(&file)? {
-                    Ok(Input::Pipe(path, file))
+                    Ok(Input::Pipe(pathbuf, file))
                 } else {
-                    Ok(Input::File(path, file))
+                    Ok(Input::File(pathbuf, file))
                 }
             }
         }
@@ -428,8 +424,8 @@ mod clio_extended {
         pub fn path(&self) -> &OsStr {
             match self {
                 Input::Stdin(_) => "-".as_ref(),
-                Input::Pipe(path, _) | Input::File(path, _) | Input::Directory(path) => {
-                    path.as_os_str()
+                Input::Pipe(pathbuf, _) | Input::File(pathbuf, _) | Input::Directory(pathbuf) => {
+                    pathbuf.as_os_str()
                 }
             }
         }
