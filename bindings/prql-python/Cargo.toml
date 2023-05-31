@@ -23,7 +23,7 @@ prql-compiler = {path = "../../prql-compiler", default-features = false}
 insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 
 [build-dependencies]
-pyo3-build-config = "0.18.0"
+pyo3-build-config = "0.19.0"
 
 [package.metadata.release]
 tag-name = "{{version}}"
