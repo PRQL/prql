@@ -7,8 +7,8 @@ SELECT
 FROM
   orders
 ORDER BY
-  value DESC NULLS LAST,
-  created_at NULLS LAST
+  value DESC,
+  created_at
 LIMIT
   10 OFFSET 100
 

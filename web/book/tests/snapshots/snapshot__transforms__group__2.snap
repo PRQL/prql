@@ -8,7 +8,7 @@ WITH table_1 AS (
     ROW_NUMBER() OVER (
       PARTITION BY role
       ORDER BY
-        join_date NULLS LAST
+        join_date
     ) AS _expr_0
   FROM
     employees

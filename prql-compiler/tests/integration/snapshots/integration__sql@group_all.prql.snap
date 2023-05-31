@@ -23,5 +23,5 @@ GROUP BY
   table_0.album_id,
   table_0.title
 ORDER BY
-  table_0.album_id NULLS LAST
+  table_0.album_id
 

@@ -8,7 +8,7 @@ WITH newest_employees AS (
   FROM
     employees
   ORDER BY
-    tenure NULLS LAST
+    tenure
   LIMIT
     50
 ), average_salaries AS (
@@ -28,5 +28,5 @@ FROM
   newest_employees
   JOIN average_salaries ON newest_employees.country = average_salaries.country
 ORDER BY
-  employees.tenure NULLS LAST
+  employees.tenure
 

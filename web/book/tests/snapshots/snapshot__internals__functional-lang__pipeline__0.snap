@@ -9,5 +9,5 @@ FROM
 WHERE
   age > 50
 ORDER BY
-  name NULLS LAST
+  name
 

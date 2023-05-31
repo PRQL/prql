@@ -92,7 +92,7 @@ fn extern_ref_to_relation(
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
         if !requirement.matches(&COMPILER_VERSION) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.").into());
+            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by the prql-compiler. Please upgrade the compiler.").into());
         }
     }
     Ok(())

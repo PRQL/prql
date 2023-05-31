@@ -16,6 +16,6 @@ SELECT
 FROM
   table_1 AS table_0
 ORDER BY
-  album_id NULLS LAST,
-  genre_id NULLS LAST
+  album_id,
+  genre_id
 
