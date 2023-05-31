@@ -400,12 +400,12 @@ mod clio_extended {
             } else {
                 let path = PathBuf::from(path);
                 if path.is_dir() {
-                    panic!("the pathbuf is a dir!");
+                    dbg!(&path);
+                    return Ok(Input::Directory(path));
                 }
                 let file = File::open(&path)?;
                 if file.metadata()?.is_dir() {
                     panic!("it's a dir!");
-                    return Ok(Input::Directory(path));
                 }
                 if is_fifo(&file)? {
                     Ok(Input::Pipe(path, file))
