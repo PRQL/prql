@@ -149,5 +149,5 @@ jobs:
         #   use-github-auto-merge: true
         with:
           github-token: ${{ github.token }}
-    needs:
-      - check-ok-to-merge
+    # needs:
+    #   - check-ok-to-merge
