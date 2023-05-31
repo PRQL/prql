@@ -84,8 +84,8 @@ impl Ty {
         self.kind.is_superset_of(&subset.kind)
     }
 
-    pub fn is_array_like(&self) -> bool {
-        self.kind.is_array_like()
+    pub fn is_superset_of_array(&self) -> bool {
+        self.kind.is_superset_of_array()
     }
 
     pub fn is_relation(&self) -> bool {
@@ -119,10 +119,10 @@ impl TyKind {
         }
     }
 
-    fn is_array_like(&self) -> bool {
+    fn is_superset_of_array(&self) -> bool {
         match self {
             TyKind::Array(_) => true,
-            TyKind::Union(elements) => elements.iter().any(|(_, e)| e.is_array_like()),
+            TyKind::Union(elements) => elements.iter().any(|(_, e)| e.is_superset_of_array()),
             _ => false,
         }
     }
