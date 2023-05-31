@@ -62,15 +62,3 @@ jobs:
           # We only use `website` atm
           label_pattern: "^pr-backport-(?<base>([^ ]+))$"
           title_template: "chore: Backport #<%= number%> to `web`"
-
-  automerge-dependabot:
-    runs-on: ubuntu-latest
-
-    permissions:
-      pull-requests: write
-      contents: write
-
-    steps:
-      - uses: fastify/github-action-merge-dependabot@v3
-        with:
-          use-github-auto-merge: true
