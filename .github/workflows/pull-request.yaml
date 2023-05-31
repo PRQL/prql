@@ -145,7 +145,7 @@ jobs:
     steps:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           # Doesn't appear to work, so we instead add a `needs` so it runs at the end
           use-github-auto-merge: true
     # needs:
