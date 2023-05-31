@@ -369,11 +369,11 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
 /// [clio::Input], extended to also allow consuming directories
 mod clio_extended {
     use std::collections::HashMap;
-    use std::ffi::{OsStr, OsString};
+    use std::ffi::OsStr;
     use std::fs::{self, File};
     use std::io::{self, Read, Stdin};
     use std::marker::PhantomData;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use clap::builder::TypedValueParser;
     use prql_compiler::SourceTree;
@@ -384,11 +384,11 @@ mod clio_extended {
         /// a [`Stdin`] when the path was `-`
         Stdin(Stdin),
         /// a [`File`] representing the named pipe e.g. if called with `<(cat /dev/null)`
-        Pipe(OsString, File),
+        Pipe(PathBuf, File),
         /// a normal [`File`] opened from the path
-        File(OsString, File),
-        /// a normal [`File`] opened from the path
-        Directory(OsString),
+        File(PathBuf, File),
+        /// a Directory
+        Directory(PathBuf),
     }
 
     impl Input {
@@ -398,14 +398,15 @@ mod clio_extended {
             if path == "-" {
                 Ok(Self::std())
             } else {
-                let file = File::open(path)?;
-                if file.metadata()?.is_dir() {
-                    return Ok(Input::Directory(path.to_os_string()));
+                let pathbuf = PathBuf::from(path);
+                if pathbuf.is_dir() {
+                    return Ok(Input::Directory(pathbuf));
                 }
+                let file = File::open(&pathbuf)?;
                 if is_fifo(&file)? {
-                    Ok(Input::Pipe(path.to_os_string(), file))
+                    Ok(Input::Pipe(pathbuf, file))
                 } else {
-                    Ok(Input::File(path.to_os_string(), file))
+                    Ok(Input::File(pathbuf, file))
                 }
             }
         }
@@ -423,7 +424,9 @@ mod clio_extended {
         pub fn path(&self) -> &OsStr {
             match self {
                 Input::Stdin(_) => "-".as_ref(),
-                Input::Pipe(path, _) | Input::File(path, _) | Input::Directory(path) => path,
+                Input::Pipe(pathbuf, _) | Input::File(pathbuf, _) | Input::Directory(pathbuf) => {
+                    pathbuf.as_os_str()
+                }
             }
         }
 
@@ -435,17 +438,15 @@ mod clio_extended {
                 Input::Pipe(_, pipe) => pipe.read_to_string(&mut only_file)?,
                 Input::File(_, file) => file.read_to_string(&mut only_file)?,
                 Input::Directory(root_path) => {
-                    let root_path = Path::new(root_path);
-
                     // special case: actually walk the dirs
                     let mut sources = HashMap::new();
-                    for entry in WalkDir::new(root_path) {
-                        let entry = entry?;
+                    for entry in WalkDir::new(&root_path) {
+                        let entry = entry.unwrap();
                         let path = entry.path();
 
                         if path.is_file() && path.extension() == Some(OsStr::new("prql")) {
                             let file_contents = fs::read_to_string(path)?;
-                            let path = path.strip_prefix(root_path)?.to_path_buf();
+                            let path = path.strip_prefix(&root_path)?.to_path_buf();
 
                             sources.insert(path, file_contents);
                         }
