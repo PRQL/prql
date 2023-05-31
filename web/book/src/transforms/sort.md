@@ -57,7 +57,7 @@ The explicit semantics are:
 
 - `sort` introduces a new order,
 - `group` resets the order,
-- `join` retains the order of the left relation,
+- `join` maintains the order of the left relation,
 - database tables don't have a known order.
 
 Comparatively, in SQL, relations possess no order, being orderable solely within
@@ -90,35 +90,9 @@ it).
 
 ## Nulls
 
-At the moment, PRQL does not guarantee any position of null values when
-ordering. To be precise, they are not comparable to any other values, which
-means that an ordered array may contain nulls first, last, or at any position in
-between.
-
-However, prql-compiler will emit `NULLS LAST` (or dialect equivalent) in all
-`ORDER BY` clauses, with intention to make query results deterministic across
-different engines. This behavior may change, see
-[issue #2622](https://github.com/PRQL/prql/issues/).
-
-To enforce `NULLS FIRST` or `NULLS LAST` right now, the following workaround can
-be used:
-
-```prql
-from artists
-sort {artist_id != null, artist_id} # nulls first
-```
-
-```prql
-from artists
-sort {artist_id == null, artist_id} # nulls last
-```
-
-<!--
-TODO:
-
 PRQL defaults to `NULLS LAST` when compiling to SQL. Because databases have
 different defaults, the compiler emits this for all targets for which it's not a
-default{{footnote: except for MSSQL, which don't support this}}.
+default{{footnote: except for MSSQL, which doesn't support this}}.
 
 The main benefit of this approach is that `take 42` will select non-null values
 for both ascending and descending sorts, which is generally what is wanted.
@@ -139,4 +113,4 @@ take 42
 
 ```admonish info
 Check out [DuckDB #7174](https://github.com/duckdb/duckdb/pull/7174) for a survey of various databases' implementations.
-``` -->
+```

@@ -14,7 +14,7 @@ WITH table_1 AS (
   FROM
     tracks
   ORDER BY
-    milliseconds NULLS LAST
+    milliseconds
   LIMIT
     10
 )
@@ -23,5 +23,5 @@ SELECT
 FROM
   table_1 AS table_0
 ORDER BY
-  milliseconds NULLS LAST
+  milliseconds
 

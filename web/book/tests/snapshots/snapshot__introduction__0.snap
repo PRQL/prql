@@ -39,8 +39,8 @@ FROM
 WHERE
   sum_gross_cost > 100000
 ORDER BY
-  sum_gross_cost NULLS LAST,
-  country DESC NULLS LAST
+  sum_gross_cost,
+  country DESC
 LIMIT
   20
 

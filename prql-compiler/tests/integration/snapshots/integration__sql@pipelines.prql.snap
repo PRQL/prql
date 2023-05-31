@@ -14,7 +14,7 @@ WITH table_1 AS (
     REGEXP(name, 'Love')
     AND milliseconds / 1000 / 60 BETWEEN 3 AND 4
   ORDER BY
-    track_id NULLS LAST
+    track_id
   LIMIT
     15
 )
@@ -24,5 +24,5 @@ SELECT
 FROM
   table_1 AS table_0
 ORDER BY
-  track_id NULLS LAST
+  track_id
 

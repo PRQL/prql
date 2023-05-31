@@ -20,7 +20,7 @@ table_2 AS (
   FROM
     table_3 AS table_0
   ORDER BY
-    _expr_0 NULLS LAST
+    _expr_0
   LIMIT
     10
 )
@@ -30,5 +30,5 @@ SELECT
 FROM
   table_2 AS table_1
 ORDER BY
-  _expr_0 NULLS LAST
+  _expr_0
 

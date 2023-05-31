@@ -7,7 +7,7 @@ SELECT
 FROM
   employees
 ORDER BY
-  join_date NULLS LAST
+  join_date
 LIMIT
   1
 

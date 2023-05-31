@@ -8,7 +8,7 @@ WITH table_1 AS (
     ROW_NUMBER() OVER (
       PARTITION BY department
       ORDER BY
-        age NULLS LAST
+        age
     ) AS _expr_0
   FROM
     employees
