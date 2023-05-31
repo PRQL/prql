@@ -556,21 +556,23 @@ mod test {
             "a_really_long_name",
         ])));
 
-        let mut opt = WriteOpt::default();
-        opt.indent = 1;
+        let mut opt = WriteOpt {
+            indent: 1,
+            ..Default::default()
+        };
 
         // short pipelines should be inlined
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
             exprs: vec![short.clone(), short.clone(), short.clone()],
         }));
-        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @"(short | short | short)");
+        assert_snapshot!(pipeline.write(opt).unwrap(), @"(short | short | short)");
 
         // long pipelines should be indented
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
-            exprs: vec![short.clone(), long.clone(), long.clone(), short.clone()],
+            exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
-        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r###"
+        assert_snapshot!(pipeline.write(opt).unwrap(), @r###"
         (
                 short
                 some_module.submodule.a_really_long_name
@@ -582,9 +584,7 @@ mod test {
         // sometimes, there is just not enough space
         opt.rem_width = 10;
         opt.indent = 100;
-        let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
-            exprs: vec![short.clone()],
-        }));
+        let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
     }
 }
