@@ -399,6 +399,9 @@ mod clio_extended {
                 Ok(Self::std())
             } else {
                 let path = PathBuf::from(path);
+                if path.is_dir() {
+                    panic!("the pathbuf is a dir!");
+                }
                 let file = File::open(&path)?;
                 if file.metadata()?.is_dir() {
                     panic!("it's a dir!");
