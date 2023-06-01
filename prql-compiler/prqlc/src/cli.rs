@@ -673,7 +673,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 target: "sql.any".to_string(),
             },
             &mut SourceTree::new([
-                ("_project.prql".into(), "orders.x | select y".to_string()),
+                ("Project.prql".into(), "orders.x | select y".to_string()),
                 (
                     "orders.prql".into(),
                     "let x = (from z | select {y, u})".to_string(),
