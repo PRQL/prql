@@ -26,8 +26,11 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
         let tuple = ident_part()
             .then_ignore(ctrl('='))
             .or_not()
-            .then(nested_expr.clone().map_with_span(into_expr))
-            .map(|(alias, expr)| Expr { alias, ..expr })
+            .then(nested_expr.clone())
+            .map(|(alias, mut expr)| {
+                expr.alias = alias.or(expr.alias);
+                expr
+            })
             .padded_by(new_line().repeated())
             .separated_by(ctrl(','))
             .allow_trailing()
@@ -48,7 +51,6 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
 
         let array = nested_expr
             .clone()
-            .map_with_span(into_expr)
             .padded_by(new_line().repeated())
             .separated_by(ctrl(','))
             .allow_trailing()
@@ -77,7 +79,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
                         (Token::Control('['), Token::Control(']')),
                         (Token::Control('('), Token::Control(')')),
                     ],
-                    |_| Expr::null().kind,
+                    |_| Expr::null(),
                 ));
 
         let interpolation = select! {
@@ -116,13 +118,13 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
             literal,
             tuple,
             array,
-            pipeline,
             interpolation,
             ident_kind,
             case,
             param,
         ))
         .map_with_span(into_expr)
+        .or(pipeline)
         .boxed();
 
         // Unary operators
@@ -196,7 +198,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
     })
 }
 
-pub fn pipeline<E>(expr: E) -> impl Parser<Token, ExprKind, Error = PError>
+pub fn pipeline<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
 where
     E: Parser<Token, Expr, Error = PError>,
 {
@@ -206,13 +208,21 @@ where
     new_line()
         .repeated()
         .ignore_then(
-            expr.separated_by(ctrl('|').or(new_line().repeated().at_least(1).ignored()))
+            ident_part()
+                .then_ignore(ctrl('='))
+                .or_not()
+                .then(expr)
+                .map(|(alias, mut expr)| {
+                    expr.alias = alias.or(expr.alias);
+                    expr
+                })
+                .separated_by(ctrl('|').or(new_line().repeated().at_least(1).ignored()))
                 .at_least(1)
-                .map(|mut exprs| {
+                .map_with_span(|mut exprs, span| {
                     if exprs.len() == 1 {
-                        exprs.remove(0).kind
+                        exprs.remove(0)
                     } else {
-                        ExprKind::Pipeline(Pipeline { exprs })
+                        into_expr(ExprKind::Pipeline(Pipeline { exprs }), span)
                     }
                 }),
         )
@@ -260,15 +270,15 @@ where
         .then_ignore(ctrl(':'))
         .then(expr.clone());
 
-    let assign_call =
+    let positional_arg =
         ident_part()
             .then_ignore(ctrl('='))
-            .then(expr.clone())
-            .map(|(alias, expr)| Expr {
-                alias: Some(alias),
-                ..expr
+            .or_not()
+            .then(expr)
+            .map(|(alias, mut expr)| {
+                expr.alias = alias.or(expr.alias);
+                (None, expr)
             });
-    let positional_arg = assign_call.or(expr).map(|expr| (None, expr));
 
     let args = named_arg.or(positional_arg).repeated();
 

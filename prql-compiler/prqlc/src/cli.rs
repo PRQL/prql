@@ -592,17 +592,12 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         //   operations but are always inserted for function calls)
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        let main = (
-          from table.subdivision
-          derive `želva_means_turtle` = `column with spaces` + 1 * 3
-          group a_column (
-          take 10
-          sort b_column
-          derive {
-          the_number = rank,
-          last = lag 1 c_column,
-        }
-        )
+        from table.subdivision
+        derive `želva_means_turtle` = (`column with spaces` + 1) * 3
+        group a_column (
+            take 10
+            sort b_column
+            derive {the_number = rank, last = lag 1 c_column}
         )
         "###);
     }

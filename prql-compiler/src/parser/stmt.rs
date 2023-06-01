@@ -111,7 +111,6 @@ fn var_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
         .labelled("variable definition");
 
     let main_or_into = pipeline(expr_call())
-        .map_with_span(into_expr)
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
         .map(|(value, into)| {

@@ -99,7 +99,7 @@ select {mng_name, managers.gender, salary_avg, salary_sd}
 
 > Find distributions of titles, salaries and genders for each department.
 
-```prql no-fmt
+```prql
 from de=dept_emp
 join s=salaries side:left (
   (s.emp_no == de.emp_no) && s"({s.from_date}, {s.to_date}) OVERLAPS ({de.from_date}, {de.to_date})"

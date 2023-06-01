@@ -35,8 +35,20 @@ fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
 #[test]
 fn test_sql_examples() {
     glob!("queries/**/*.prql", |path| {
-        let sql = fs::read_to_string(path).unwrap();
-        assert_snapshot!("sql", compile(&sql).unwrap(), &sql)
+        let prql = fs::read_to_string(path).unwrap();
+        assert_snapshot!("sql", compile(&prql).unwrap(), &prql)
+    });
+}
+
+#[test]
+fn test_fmt_examples() {
+    glob!("queries/**/*.prql", |path| {
+        let prql = fs::read_to_string(path).unwrap();
+
+        let pl = prql_compiler::prql_to_pl(&prql).unwrap();
+        let formatted = prql_compiler::pl_to_prql(pl).unwrap();
+
+        assert_snapshot!("fmt", &formatted, &prql)
     });
 }
 
