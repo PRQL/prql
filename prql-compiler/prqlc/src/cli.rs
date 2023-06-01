@@ -488,7 +488,7 @@ mod clio_extended {
                 }
             };
 
-            let path = PathBuf::from("_root.prql");
+            let path = PathBuf::from("Root.prql");
             Ok(SourceTree::single(path, only_file))
         }
     }

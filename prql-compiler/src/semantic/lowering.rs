@@ -566,10 +566,14 @@ impl Lowerer {
         // normal columns
         for col in &lineage.columns {
             match col {
-                LineageColumn::Single { name, expr_id } => {
-                    let name = name.clone().map(|n| n.name);
-                    let cid = self.lookup_cid(*expr_id, name.as_ref())?;
+                LineageColumn::Single {
+                    name,
+                    target_id,
+                    target_name,
+                } => {
+                    let cid = self.lookup_cid(*target_id, target_name.as_ref())?;
 
+                    let name = name.as_ref().map(|i| i.name.clone());
                     columns.push((RelationColumn::Single(name), cid));
                 }
                 LineageColumn::All { input_name, except } => {

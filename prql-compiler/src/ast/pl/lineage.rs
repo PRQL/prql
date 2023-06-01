@@ -34,15 +34,20 @@ pub struct LineageInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum LineageColumn {
+    Single {
+        name: Option<Ident>,
+
+        // id of the defining expr (which can be actual expr or lineage input expr)
+        target_id: usize,
+
+        // if target is a relation, this is the name within the relation
+        target_name: Option<String>,
+    },
+
     /// All columns (including unknown ones) from an input (i.e. `foo_table.*`)
     All {
         input_name: String,
         except: HashSet<String>,
-    },
-
-    Single {
-        name: Option<Ident>,
-        expr_id: usize,
     },
 }
 
@@ -73,14 +78,16 @@ fn display_lineage_column(
         LineageColumn::All { input_name, .. } => {
             write!(f, "{input_name}.*")?;
         }
-        LineageColumn::Single { name, expr_id } => {
+        LineageColumn::Single {
+            name, target_id, ..
+        } => {
             if let Some(name) = name {
                 write!(f, "{name}")?
             } else {
                 write!(f, "?")?
             }
             if display_ids {
-                write!(f, ":{expr_id}")?
+                write!(f, ":{target_id}")?
             }
         }
     }

@@ -411,7 +411,8 @@ impl Context {
                         name: col_name
                             .clone()
                             .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                        expr_id: id,
+                        target_id: id,
+                        target_name: col_name.clone(),
                     },
                 })
                 .collect(),

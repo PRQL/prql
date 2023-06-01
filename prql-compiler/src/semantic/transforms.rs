@@ -596,17 +596,26 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
             (
                 LineageColumn::Single {
                     name: name_t,
-                    expr_id,
+                    target_id,
+                    target_name,
                 },
                 LineageColumn::Single { name: name_b, .. },
             ) => match (name_t, name_b) {
                 (None, None) => {
                     let name = None;
-                    LineageColumn::Single { name, expr_id }
+                    LineageColumn::Single {
+                        name,
+                        target_id,
+                        target_name,
+                    }
                 }
                 (None, Some(name)) | (Some(name), _) => {
                     let name = Some(name);
-                    LineageColumn::Single { name, expr_id }
+                    LineageColumn::Single {
+                        name,
+                        target_id,
+                        target_name,
+                    }
                 }
             },
             (t, b) => return Err(Error::new_simple(format!(
@@ -652,7 +661,9 @@ impl Lineage {
                             continue;
                         }
                         let prev_col = self.prev_columns.iter().find(|c| match c {
-                            LineageColumn::Single { expr_id, .. } => expr_id == target_id,
+                            LineageColumn::Single {
+                                target_id: expr_id, ..
+                            } => expr_id == target_id,
                             _ => false,
                         });
                         self.columns.extend(prev_col.cloned());
@@ -681,8 +692,11 @@ impl Lineage {
             }
         }
 
-        self.columns
-            .push(LineageColumn::Single { name, expr_id: id });
+        self.columns.push(LineageColumn::Single {
+            name,
+            target_id: id,
+            target_name: None,
+        });
     }
 
     pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
@@ -756,7 +770,8 @@ impl LineageInput {
                 let name = col.as_single().unwrap().clone().map(Ident::from_name);
                 LineageColumn::Single {
                     name,
-                    expr_id: self.id,
+                    target_id: self.id,
+                    target_name: None,
                 }
             })
             .collect_vec()
@@ -1350,10 +1365,12 @@ mod tests {
                     name:
                       - c_invoice
                       - issued_at
-                    expr_id: 23
+                    target_id: 23
+                    target_name: ~
                 - Single:
                     name: ~
-                    expr_id: 47
+                    target_id: 47
+                    target_name: ~
               inputs:
                 - id: 8
                   name: c_invoice
