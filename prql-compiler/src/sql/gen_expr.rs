@@ -76,7 +76,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 else_result,
             }
         }
-        ExprKind::BuiltInFunction { ref name, ref args } => {
+        ExprKind::Operator { ref name, ref args } => {
             // A few special cases and then fall-through to the standard approach.
             match name.as_str() {
                 // See notes in `std.rs` re whether we use names vs.
@@ -102,11 +102,6 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                     }
                 }
                 "std.concat" => return process_concat(&expr, ctx),
-                "std.regex_search" => {
-                    if let [search, target] = args.as_slice() {
-                        return process_regex(search, target, ctx).with_span(expr.span);
-                    }
-                }
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr),
                     None => {
@@ -118,7 +113,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                     }
                 },
             }
-            super::std::translate_built_in(expr, ctx)?
+            super::operators::translate_operator_expr(expr, ctx)?
         }
     })
 }
@@ -219,13 +214,6 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     }
 }
 
-fn process_regex(search: &Expr, target: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    let search = translate_expr(search.clone(), ctx)?;
-    let target = translate_expr(target.clone(), ctx)?;
-
-    ctx.dialect.translate_regex(search, target)
-}
-
 fn translate_binary_operator(
     left: &Expr,
     right: &Expr,
@@ -241,7 +229,7 @@ fn translate_binary_operator(
 
 fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
     match &expr.kind {
-        ExprKind::BuiltInFunction { name, args } if name == "std.concat" => {
+        ExprKind::Operator { name, args } if name == "std.concat" => {
             args.iter().flat_map(collect_concat_args).collect()
         }
         _ => vec![expr],
@@ -250,15 +238,15 @@ fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
 
 /// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
 fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>, anyhow::Error> {
-    if let ExprKind::BuiltInFunction { name, args } = &expr.kind {
+    if let ExprKind::Operator { name, args } = &expr.kind {
         if name == "std.and" {
             if let [a, b] = args.as_slice() {
                 if let (
-                    ExprKind::BuiltInFunction {
+                    ExprKind::Operator {
                         name: a_name,
                         args: a_args,
                     },
-                    ExprKind::BuiltInFunction {
+                    ExprKind::Operator {
                         name: b_name,
                         args: b_args,
                     },
@@ -497,56 +485,6 @@ pub(super) fn translate_sstring(
         })
         .collect::<Result<Vec<String>>>()?
         .join(""))
-}
-
-pub(super) fn translate_query_sstring(
-    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Query> {
-    let string = translate_sstring(items, ctx)?;
-
-    let re = Regex::new(r"(?i)^SELECT\b").unwrap();
-    let prefix = if let Some(string) = string.trim().get(0..7) {
-        string
-    } else {
-        ""
-    };
-
-    if re.is_match(prefix) {
-        if let Some(string) = string.trim().strip_prefix(prefix) {
-            return Ok(sql_ast::Query {
-                body: Box::new(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-                    projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
-                        sql_ast::Ident::new(string),
-                    ))],
-                    distinct: None,
-                    top: None,
-                    into: None,
-                    from: Vec::new(),
-                    lateral_views: Vec::new(),
-                    selection: None,
-                    group_by: Vec::new(),
-                    cluster_by: Vec::new(),
-                    distribute_by: Vec::new(),
-                    sort_by: Vec::new(),
-                    having: None,
-                    named_window: vec![],
-                    qualify: None,
-                }))),
-                with: None,
-                order_by: Vec::new(),
-                limit: None,
-                offset: None,
-                fetch: None,
-                locks: vec![],
-            });
-        }
-    }
-
-    bail!(
-        Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
-            .with_help("this is a limitation by current compiler implementation")
-    )
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.

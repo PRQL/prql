@@ -18,7 +18,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
       Binary:
         left:
           id: 24
-          BuiltInFunction:
+          RqOperator:
             name: std.sum
             args:
               - id: 31

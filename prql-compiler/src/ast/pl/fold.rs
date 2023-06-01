@@ -60,8 +60,8 @@ pub trait AstFold {
     fn fold_transform_call(&mut self, transform_call: TransformCall) -> Result<TransformCall> {
         fold_transform_call(self, transform_call)
     }
-    fn fold_closure(&mut self, closure: Func) -> Result<Func> {
-        fold_closure(self, closure)
+    fn fold_func(&mut self, closure: Func) -> Result<Func> {
+        fold_func(self, closure)
     }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
@@ -110,17 +110,16 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Case(cases) => Case(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
-        Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
+        Func(closure) => Func(Box::new(fold.fold_func(*closure)?)),
 
         TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
-        BuiltInFunction { name, args } => BuiltInFunction {
+        RqOperator { name, args } => RqOperator {
             name,
             args: fold.fold_exprs(args)?,
         },
-        Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) | Type(_) => expr_kind,
+        Param(_) | Internal(_) | Literal(_) | Type(_) => expr_kind,
     })
 }
 
@@ -292,15 +291,15 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Func) -> Result<Func> {
+pub fn fold_func<T: ?Sized + AstFold>(fold: &mut T, func: Func) -> Result<Func> {
     Ok(Func {
-        body: Box::new(fold.fold_expr(*closure.body)?),
-        args: closure
+        body: Box::new(fold.fold_expr(*func.body)?),
+        args: func
             .args
             .into_iter()
             .map(|item| fold.fold_expr(item))
             .try_collect()?,
-        ..closure
+        ..func
     })
 }
 

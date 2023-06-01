@@ -4,6 +4,7 @@
 //! few dialects of SQL immediately.
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
+use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, Join, JoinConstraint, JoinOperator, Select, SelectItem, SetExpr, TableAlias,
     TableFactor, TableWithJoins,
@@ -11,12 +12,15 @@ use sqlparser::ast::{
 
 use crate::ast::pl::{Ident, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query};
+use crate::error::WithErrorInfo;
 use crate::utils::{BreakUp, Pluck};
+use crate::Error;
 
 use super::gen_expr::*;
 use super::gen_projection::*;
 use super::srq::ast::{Cte, CteKind, RelationExpr, RelationExprKind, SqlRelation, SqlTransform};
 
+use super::operators::translate_operator;
 use super::{Context, Dialect};
 
 type Transform = SqlTransform<RelationExpr, ()>;
@@ -48,6 +52,7 @@ fn translate_relation(relation: SqlRelation, ctx: &mut Context) -> Result<sql_as
         SqlRelation::AtomicPipeline(pipeline) => translate_pipeline(pipeline, ctx),
         SqlRelation::Literal(data) => translate_relation_literal(data, ctx),
         SqlRelation::SString(items) => translate_query_sstring(items, ctx),
+        SqlRelation::Operator { name, args } => translate_query_operator(name, args, ctx),
     }
 }
 
@@ -434,6 +439,58 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
     Ok(default_query(body))
 }
 
+pub(super) fn translate_query_sstring(
+    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Query> {
+    let string = translate_sstring(items, ctx)?;
+
+    let re = Regex::new(r"(?i)^SELECT\b").unwrap();
+    let prefix = if let Some(string) = string.trim().get(0..7) {
+        string
+    } else {
+        ""
+    };
+
+    if re.is_match(prefix) {
+        if let Some(string) = string.trim().strip_prefix(prefix) {
+            return Ok(default_query(sql_ast::SetExpr::Select(Box::new(
+                sql_ast::Select {
+                    projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
+                        sql_ast::Ident::new(string),
+                    ))],
+                    ..default_select()
+                },
+            ))));
+        }
+    }
+
+    Err(
+        Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
+            .with_help("this is a limitation by current compiler implementation")
+            .into(),
+    )
+}
+
+pub(super) fn translate_query_operator(
+    name: String,
+    args: Vec<Expr>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Query> {
+    let from_s_string = translate_operator(name, args, ctx)?;
+
+    let s_string = format!(" * FROM {from_s_string}");
+
+    Ok(default_query(sql_ast::SetExpr::Select(Box::new(
+        sql_ast::Select {
+            projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
+                sql_ast::Ident::new(s_string),
+            ))],
+            ..default_select()
+        },
+    ))))
+}
+
 fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Option<sql_ast::Expr>> {
     Ok(if let Some(cond) = all(exprs) {
         Some(translate_expr(cond, context)?)
@@ -446,8 +503,8 @@ fn all(mut exprs: Vec<Expr>) -> Option<Expr> {
     let mut condition = exprs.pop()?;
     while let Some(expr) = exprs.pop() {
         condition = Expr {
-            kind: ExprKind::BuiltInFunction {
-                name: super::std::STD_AND.name.to_string(),
+            kind: ExprKind::Operator {
+                name: "std.and".to_string(),
                 args: vec![expr, condition],
             },
             span: None,

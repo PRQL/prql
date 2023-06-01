@@ -35,7 +35,6 @@ pub(in super::super) fn compile_query(
             .unwrap_or_default();
         maybe_dialect.unwrap_or_default()
     };
-    let dialect = dialect.handler();
 
     let (anchor, main_relation) = AnchorContext::of(query);
 
@@ -76,6 +75,9 @@ fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlR
 
                 RelationKind::Literal(lit) => SqlRelation::Literal(lit),
                 RelationKind::SString(items) => SqlRelation::SString(items),
+                RelationKind::BuiltInFunction { name, args } => {
+                    SqlRelation::Operator { name, args }
+                }
 
                 // ref cannot be converted directly into query and does not need it's own CTE
                 RelationKind::ExternRef(_) => unreachable!(),

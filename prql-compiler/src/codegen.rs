@@ -200,7 +200,7 @@ impl WriteSource for pl::ExprKind {
                 }
                 Some(r)
             }
-            Closure(c) => {
+            Func(c) => {
                 let mut r = String::new();
                 for param in &c.params {
                     r += &param.name;
@@ -242,9 +242,10 @@ impl WriteSource for pl::ExprKind {
                 .write_between("{", "}", opt)?;
                 Some(r)
             }
-            BuiltInFunction { .. } => Some("<built-in>".to_string()),
+            RqOperator { .. } => Some("<built-in>".to_string()),
             Type(ty) => ty.write(opt),
             Param(id) => Some(format!("${id}")),
+            Internal(operator_name) => Some(format!("internal {operator_name}")),
         }
     }
 }
@@ -283,7 +284,7 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
         },
         pl::ExprKind::Unary { .. } => 2,
         pl::ExprKind::FuncCall(_) => 10,
-        pl::ExprKind::Closure(_) => 10,
+        pl::ExprKind::Func(_) => 10,
 
         _ => 0,
     }

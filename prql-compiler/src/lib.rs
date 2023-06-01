@@ -128,9 +128,10 @@ pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
-    let sources = SourceTree::from(prql);
+    let mut sources = SourceTree::from(prql);
+    semantic::load_std_lib(&mut sources);
 
-    parser::parse_tree(&sources)
+    parser::parse(&sources)
         .and_then(|ast| semantic::resolve_and_lower(ast, &[]))
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
@@ -248,7 +249,7 @@ pub struct ReadmeDoctests;
 pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
-    parser::parse_tree(&sources)
+    parser::parse(&sources)
         .map(|x| x.sources.into_values().next().unwrap())
         .map_err(error::downcast)
         .map_err(|e| e.composed(&prql.into(), false))
@@ -256,14 +257,15 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
 
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
-    parser::parse_tree(prql)
+    parser::parse(prql)
         .map_err(error::downcast)
         .map_err(|e| e.composed(prql, false))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve_and_lower_single(pl).map_err(error::downcast)
+    let source_tree = SourceTree::single(PathBuf::new(), pl);
+    semantic::resolve_and_lower(source_tree, &[]).map_err(error::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
@@ -342,6 +344,12 @@ impl<T: Sized + Serialize> SourceTree<T> {
             res.source_ids.insert(id_gen.gen(), path);
         }
         res
+    }
+
+    pub fn insert(&mut self, path: PathBuf, content: T) {
+        let last_id = self.source_ids.keys().max().cloned().unwrap_or(0);
+        self.sources.insert(path.clone(), content);
+        self.source_ids.insert(last_id + 1, path);
     }
 }
 

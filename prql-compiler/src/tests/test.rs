@@ -1,6 +1,6 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 // use super::*;
-use crate::{parser::parse_single, sql, Options, Target};
+use crate::{sql, Options, SourceTree, Target};
 use insta::{assert_display_snapshot, assert_snapshot};
 
 pub fn compile(prql: &str) -> Result<String, crate::ErrorMessages> {
@@ -1546,8 +1546,11 @@ join managers=employees (==emp_no)
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select {mng_name, managers.gender, salary_avg, salary_sd}"#;
 
-    let sql_from_prql = parse_single(original_prql)
-        .and_then(crate::semantic::resolve_and_lower_single)
+    let mut source_tree = SourceTree::from(original_prql);
+    crate::semantic::load_std_lib(&mut source_tree);
+
+    let sql_from_prql = crate::parser::parse(&source_tree)
+        .and_then(|ast| crate::semantic::resolve_and_lower(ast, &[]))
         .and_then(|rq| sql::compile(rq, &Options::default()))
         .unwrap();
 

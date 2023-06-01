@@ -54,7 +54,7 @@ pub fn parse_source(source: &str, source_id: usize) -> Result<Vec<Stmt>> {
     }
 }
 
-pub fn parse_tree(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
+pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     let mut res = SourceTree::default();
 
     let ids: HashMap<_, _> = file_tree.source_ids.iter().map(|(a, b)| (b, a)).collect();
@@ -1207,7 +1207,7 @@ Canada
         - name: plus_one
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1234,7 +1234,7 @@ Canada
         - name: identity
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1255,7 +1255,7 @@ Canada
         - name: plus_one
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1282,7 +1282,7 @@ Canada
         - name: plus_one
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1310,7 +1310,7 @@ Canada
         - name: foo
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1355,7 +1355,7 @@ Canada
         - name: main
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1379,7 +1379,7 @@ Canada
         - name: count
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1414,7 +1414,7 @@ Canada
         - name: lag_day
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1463,7 +1463,7 @@ Canada
         - name: add
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:
@@ -1831,7 +1831,7 @@ Canada
         - name: median
           VarDef:
             value:
-              Closure:
+              Func:
                 name_hint: ~
                 return_ty: ~
                 body:

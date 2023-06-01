@@ -6,6 +6,7 @@ use clio::Output;
 use itertools::Itertools;
 use std::io::Write;
 use std::ops::Range;
+use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
@@ -161,9 +162,9 @@ impl Command {
     }
 
     fn run_io_command(&mut self) -> std::result::Result<(), anyhow::Error> {
-        let (file_tree, main_path) = self.read_input()?;
+        let (mut file_tree, main_path) = self.read_input()?;
 
-        let res = self.execute(&file_tree, &main_path);
+        let res = self.execute(&mut file_tree, &main_path);
 
         match res {
             Ok(buf) => {
@@ -178,7 +179,7 @@ impl Command {
         Ok(())
     }
 
-    fn execute<'a>(&self, sources: &'a SourceTree, main_path: &'a str) -> Result<Vec<u8>> {
+    fn execute<'a>(&self, sources: &'a mut SourceTree, main_path: &'a str) -> Result<Vec<u8>> {
         let main_path = main_path
             .split('.')
             .filter(|x| !x.is_empty())
@@ -209,9 +210,10 @@ impl Command {
                 pl_to_prql(ast)?.as_bytes().to_vec()
             }
             Command::Debug(_) => {
+                semantic::load_std_lib(sources);
                 let stmts = prql_to_pl_tree(sources)?;
 
-                let context = semantic::resolve(stmts, None)
+                let context = semantic::resolve(stmts, Default::default())
                     .map_err(prql_compiler::downcast)
                     .map_err(|e| e.composed(sources, true))?;
 
@@ -242,7 +244,8 @@ impl Command {
                 let stmts = prql_to_pl(&source)?;
 
                 // resolve
-                let ctx = semantic::resolve_single(stmts, None)?;
+                let stmts = SourceTree::single(PathBuf::new(), stmts);
+                let ctx = semantic::resolve(stmts, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     collect_frames(*main.clone().into_relation_var().unwrap())
@@ -254,6 +257,8 @@ impl Command {
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
             Command::Resolve { format, .. } => {
+                semantic::load_std_lib(sources);
+
                 let ast = prql_to_pl_tree(sources)?;
                 let ir = pl_to_rq_tree(ast, &main_path)?;
 
@@ -267,6 +272,8 @@ impl Command {
                 target,
                 ..
             } => {
+                semantic::load_std_lib(sources);
+
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
                     .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
@@ -281,12 +288,16 @@ impl Command {
             }
 
             Command::SQLPreprocess { .. } => {
+                semantic::load_std_lib(sources);
+
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path)?;
                 let srq = prql_compiler::sql::internal::preprocess(rq)?;
                 format!("{srq:#?}").as_bytes().to_vec()
             }
             Command::SQLAnchor { format, .. } => {
+                semantic::load_std_lib(sources);
+
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path)?;
                 let srq = prql_compiler::sql::internal::anchor(rq)?;
@@ -570,7 +581,7 @@ mod tests {
     fn layouts() {
         let output = Command::execute(
             &Command::Annotate(IoArgs::default()),
-            &r#"
+            &mut r#"
 from initial_table
 select {f = first_name, l = last_name, gender}
 derive full_name = f + " " + l
@@ -597,7 +608,7 @@ sort full
     fn format() {
         let output = Command::execute(
             &Command::Format(IoArgs::default()),
-            &r#"
+            &mut r#"
 from table.subdivision
  derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
 group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 1 c_column} )
@@ -639,7 +650,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
-            &"asdf".into(),
+            &mut "asdf".into(),
             "",
         );
         assert_display_snapshot!(result.unwrap_err(), @r###"
@@ -661,7 +672,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 hide_signature_comment: true,
                 target: "sql.any".to_string(),
             },
-            &SourceTree::new([
+            &mut SourceTree::new([
                 ("_project.prql".into(), "orders.x | select y".to_string()),
                 (
                     "orders.prql".into(),
@@ -695,7 +706,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &"from x | select y".into(),
+            &mut "from x | select y".into(),
             "",
         )
         .unwrap();
@@ -735,7 +746,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &"from x | select y".into(),
+            &mut "from x | select y".into(),
             "",
         )
         .unwrap();
@@ -779,7 +790,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &"from employees | sort salary | take 3 | filter salary > 0".into(),
+            &mut "from employees | sort salary | take 3 | filter salary > 0".into(),
             "",
         )
         .unwrap();
@@ -825,7 +836,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
             - 3
           - Filter:
               kind:
-                BuiltInFunction:
+                Operator:
                   name: std.gt
                   args:
                   - kind:

@@ -24,7 +24,7 @@ pub enum ExprKind {
 
     Case(Vec<SwitchCase<Expr>>),
 
-    BuiltInFunction {
+    Operator {
         name: String,
         args: Vec<Expr>,
     },

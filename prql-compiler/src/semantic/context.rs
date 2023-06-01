@@ -20,6 +20,13 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
+
+    pub(crate) options: ResolverOptions,
+}
+
+#[derive(Default, Serialize, Deserialize, Clone)]
+pub struct ResolverOptions {
+    pub allow_module_decls: bool,
 }
 
 /// A struct containing information about a single declaration.
