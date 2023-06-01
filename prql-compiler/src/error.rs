@@ -137,7 +137,8 @@ impl Display for ErrorMessage {
 
             writeln!(f, "{}Error: {}", code, &self.reason)?;
             if let Some(hint) = &self.hint {
-                writeln!(f, "Hint: {}", hint)?;
+                // TODO: consider alternative formatting for hints.
+                writeln!(f, "↳ Hint: {}", hint)?;
             }
         }
         Ok(())

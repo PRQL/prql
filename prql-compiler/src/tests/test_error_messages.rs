@@ -119,7 +119,7 @@ fn test_union_all_sqlite() {
     remove film2
     "###).unwrap_err(), @r###"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
-    Hint: Providing more column information will allow the query to be translated to an anti-join.
+    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###)
 }
 
