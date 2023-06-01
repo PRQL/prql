@@ -152,8 +152,6 @@ fn test_format() {
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
     cmd.args(["fmt"]);
     cmd.arg(project_path());
-    // cmd.arg("-");
-    cmd.arg("favorite_artists");
     assert_cmd_snapshot!(cmd, @r###"
     success: false
     exit_code: 1

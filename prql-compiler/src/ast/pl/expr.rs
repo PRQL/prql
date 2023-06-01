@@ -78,20 +78,24 @@ pub enum ExprKind {
         expr: Box<Expr>,
     },
     FuncCall(FuncCall),
-    Closure(Box<Func>),
+    Func(Box<Func>),
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Case(Vec<SwitchCase>),
-    BuiltInFunction {
+    RqOperator {
         name: String,
         args: Vec<Expr>,
     },
 
     Type(Ty),
 
-    /// a placeholder for values provided after query is compiled
+    /// placeholder for values provided after query is compiled
     Param(String),
+
+    /// When used instead of function body, the function will be translated to a RQ operator.
+    /// Contains ident of the RQ operator.
+    Internal(String),
 }
 
 impl ExprKind {
@@ -170,10 +174,10 @@ pub struct FuncCall {
 }
 
 impl FuncCall {
-    pub fn without_args(name: Expr) -> Self {
+    pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {
         FuncCall {
             name: Box::new(name),
-            args: vec![],
+            args,
             named_args: HashMap::new(),
         }
     }

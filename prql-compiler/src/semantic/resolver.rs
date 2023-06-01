@@ -11,7 +11,7 @@ use crate::semantic::transforms::coerce_into_tuple_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
-use super::context::{Context, Decl, DeclKind};
+use super::context::{Context, Decl, DeclKind, ResolverOptions};
 use super::module::Module;
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
@@ -25,16 +25,20 @@ pub fn resolve(stmts: Vec<Stmt>, path: Vec<String>, context: Context) -> Result<
     let mut resolver = Resolver::new(context);
     resolver.current_module_path = path;
 
-    forbid_invalid_stmts(&stmts)?;
+    forbid_invalid_stmts(&stmts, &resolver.context.options)?;
 
     resolver.fold_statements(stmts)?;
 
     Ok(resolver.context)
 }
 
-fn forbid_invalid_stmts(stmts: &Vec<Stmt>) -> Result<()> {
+fn forbid_invalid_stmts(stmts: &Vec<Stmt>, opts: &ResolverOptions) -> Result<()> {
     // Because I added parsing for module declarations for development purposes,
     // but we don't intend to support them, we forbid them here.
+
+    if opts.allow_module_decls {
+        return Ok(());
+    }
 
     for stmt in stmts {
         if let StmtKind::ModuleDef(_) = stmt.kind {
@@ -132,7 +136,7 @@ impl Resolver {
                     let ident = Ident::from_path(self.current_module_path.clone());
                     self.context.root_mod.insert(ident, decl)?;
 
-                    let _ = self.fold_stmts(module_def.stmts)?;
+                    self.fold_statements(module_def.stmts)?;
                     self.current_module_path.pop();
                     continue;
                 }
@@ -144,7 +148,7 @@ impl Resolver {
                 ]))));
             }
 
-            if let ExprKind::Closure(closure) = &mut def.value.kind {
+            if let ExprKind::Func(closure) = &mut def.value.kind {
                 if closure.name_hint.is_none() {
                     closure.name_hint = Some(ident.clone());
                 }
@@ -173,7 +177,7 @@ impl AstFold for Resolver {
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
-        let value = if matches!(var_def.value.kind, ExprKind::Closure(_)) {
+        let value = if matches!(var_def.value.kind, ExprKind::Func(_)) {
             var_def.value
         } else {
             Box::new(Flattener::fold(self.fold_expr(*var_def.value)?))
@@ -187,7 +191,7 @@ impl AstFold for Resolver {
     }
 
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
-        if node.id.is_some() && !matches!(node.kind, ExprKind::Closure(_)) {
+        if node.id.is_some() && !matches!(node.kind, ExprKind::Func(_)) {
             return Ok(node);
         }
 
@@ -258,10 +262,10 @@ impl AstFold for Resolver {
                     }
 
                     DeclKind::Expr(expr) => match &expr.kind {
-                        ExprKind::Closure(closure) => {
+                        ExprKind::Func(closure) => {
                             let closure = self.fold_function_types(*closure.clone())?;
 
-                            let expr = Expr::from(ExprKind::Closure(Box::new(closure)));
+                            let expr = Expr::from(ExprKind::Func(Box::new(closure)));
 
                             if self.in_func_call_name {
                                 expr
@@ -293,18 +297,18 @@ impl AstFold for Resolver {
                 args,
                 named_args,
             }) => {
-                // fold name (or closure)
+                // fold function name
                 self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
                 let name = self.fold_expr(*name)?;
                 self.in_func_call_name = old;
 
-                let closure = name.try_cast(|n| n.into_closure(), None, "a function")?;
+                let func = *name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
-                let closure = self.apply_args_to_closure(*closure, args, named_args)?;
-                self.fold_function(closure, node.span)?
+                let func = self.apply_args_to_closure(func, args, named_args)?;
+                self.fold_function(func, node.span)?
             }
 
             ExprKind::Pipeline(pipeline) => {
@@ -312,7 +316,7 @@ impl AstFold for Resolver {
                 self.resolve_pipeline(pipeline)?
             }
 
-            ExprKind::Closure(closure) => self.fold_function(*closure, node.span)?,
+            ExprKind::Func(closure) => self.fold_function(*closure, node.span)?,
 
             ExprKind::Unary {
                 op: UnOp::EqSelf,
@@ -450,7 +454,7 @@ impl Resolver {
         // Maybe this should not even be supported, or maybe we should have
         // some kind of indication that first element of a pipeline is not a
         // plain value.
-        let closure_param = if let ExprKind::Closure(closure) = &mut value.kind {
+        let closure_param = if let ExprKind::Func(closure) = &mut value.kind {
             // only apply this workaround if closure expects a single arg
             if (closure.params.len() - closure.args.len()) == 1 {
                 let param = "_pip_val";
@@ -468,17 +472,13 @@ impl Resolver {
         for expr in exprs {
             let span = expr.span;
 
-            value = Expr::from(ExprKind::FuncCall(FuncCall {
-                name: Box::new(expr),
-                args: vec![value],
-                named_args: HashMap::new(),
-            }));
+            value = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![value])));
             value.span = span;
         }
 
         // second part of the workaround
         if let Some(closure_param) = closure_param {
-            value = Expr::from(ExprKind::Closure(Box::new(Func {
+            value = Expr::from(ExprKind::Func(Box::new(Func {
                 name_hint: None,
                 body: Box::new(value),
                 return_ty: None,
@@ -573,53 +573,59 @@ impl Resolver {
             }
             let closure = self.resolve_function_args(closure)?;
 
-            // evaluate
             let needs_window = (closure.return_ty.as_ref())
                 .map(|ty| ty.as_ty().unwrap().is_sub_type_of_array())
                 .unwrap_or_default();
 
-            let mut res = match self.cast_built_in_function(closure)? {
-                // this function call is a built-in function
-                Ok(transform) => transform,
+            // evaluate
+            let mut res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
+                // special case: functions that have internal body
 
-                // this function call is not a built-in, proceed with materialization
-                Err(closure) => {
-                    log::debug!("stack_push for {}", closure.as_debug_name());
+                if operator_name.starts_with("std.") {
+                    let name = closure.name_hint.unwrap().to_string();
+                    let args = closure.args;
 
-                    let (func_env, body) = env_of_closure(closure);
+                    Expr::from(ExprKind::RqOperator { name, args })
+                } else {
+                    let expr = transforms::cast_transform(self, closure)?;
+                    self.fold_expr(expr)?
+                }
+            } else {
+                // base case: materialize
+                log::debug!("stack_push for {}", closure.as_debug_name());
 
-                    self.context.root_mod.stack_push(NS_PARAM, func_env);
+                let (func_env, body) = env_of_closure(closure);
 
-                    // fold again, to resolve inner variables & functions
-                    let body = self.fold_expr(body)?;
+                self.context.root_mod.stack_push(NS_PARAM, func_env);
 
-                    // remove param decls
-                    log::debug!("stack_pop: {:?}", body.id);
-                    let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
+                // fold again, to resolve inner variables & functions
+                let body = self.fold_expr(body)?;
 
-                    if let ExprKind::Closure(mut inner_closure) = body.kind {
-                        // body couldn't been resolved - construct a closure to be evaluated later
+                // remove param decls
+                log::debug!("stack_pop: {:?}", body.id);
+                let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
-                        inner_closure.env = func_env.into_exprs();
+                if let ExprKind::Func(mut inner_closure) = body.kind {
+                    // body couldn't been resolved - construct a closure to be evaluated later
 
-                        let (got, missing) =
-                            inner_closure.params.split_at(inner_closure.args.len());
-                        let missing = missing.to_vec();
-                        inner_closure.params = got.to_vec();
+                    inner_closure.env = func_env.into_exprs();
 
-                        Expr::from(ExprKind::Closure(Box::new(Func {
-                            name_hint: None,
-                            args: vec![],
-                            params: missing,
-                            named_params: vec![],
-                            body: Box::new(Expr::from(ExprKind::Closure(inner_closure))),
-                            return_ty: None,
-                            env: HashMap::new(),
-                        })))
-                    } else {
-                        // resolved, return result
-                        body
-                    }
+                    let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
+                    let missing = missing.to_vec();
+                    inner_closure.params = got.to_vec();
+
+                    Expr::from(ExprKind::Func(Box::new(Func {
+                        name_hint: None,
+                        args: vec![],
+                        params: missing,
+                        named_params: vec![],
+                        body: Box::new(Expr::from(ExprKind::Func(inner_closure))),
+                        return_ty: None,
+                        env: HashMap::new(),
+                    })))
+                } else {
+                    // resolved, return result
+                    body
                 }
             };
 
@@ -649,7 +655,7 @@ impl Resolver {
             };
             ty.args = ty.args[args_len..].to_vec();
 
-            let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
+            let mut node = Expr::from(ExprKind::Func(Box::new(closure)));
             node.ty = Some(Ty {
                 kind: TyKind::Function(ty),
                 name: None,
@@ -674,34 +680,6 @@ impl Resolver {
             .try_collect()?;
         closure.return_ty = self.fold_ty_or_expr(closure.return_ty)?;
         Ok(closure)
-    }
-
-    fn cast_built_in_function(&mut self, closure: Func) -> Result<Result<Expr, Func>> {
-        // TODO: this should not use name_hint
-        let is_std = closure
-            .name_hint
-            .as_ref()
-            .map(|n| n.path.as_slice() == ["std"]);
-
-        if !is_std.unwrap_or_default() {
-            return Ok(Err(closure));
-        }
-
-        Ok(match transforms::cast_transform(self, closure)? {
-            // it a transform
-            Ok(e) => Ok(self.fold_expr(e)?),
-
-            // it a std function that should be lowered into a BuiltIn
-            Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
-                let name = closure.name_hint.unwrap().to_string();
-                let args = closure.args;
-
-                Ok(Expr::from(ExprKind::BuiltInFunction { name, args }))
-            }
-
-            // it a normal function that should be resolved
-            Err(closure) => Err(closure),
-        })
     }
 
     fn apply_args_to_closure(
@@ -972,10 +950,9 @@ mod test {
     use insta::assert_yaml_snapshot;
 
     use crate::ast::pl::{Expr, Lineage};
-    use crate::semantic::resolve_single;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let ctx = resolve_single(crate::parser::parse_single(query)?, None)?;
+        let ctx = crate::semantic::test::parse_and_resolve(query)?;
         let (main, _) = ctx.find_main_rel(&[]).unwrap();
         Ok(*main.clone().into_relation_var().unwrap())
     }

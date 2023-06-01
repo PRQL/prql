@@ -27,6 +27,7 @@ pub enum SqlRelation {
     AtomicPipeline(Vec<SqlTransform<RelationExpr, ()>>),
     Literal(RelationLiteral),
     SString(Vec<InterpolateItem<rq::Expr>>),
+    Operator { name: String, args: Vec<rq::Expr> },
 }
 
 #[derive(Debug, Clone, Serialize)]

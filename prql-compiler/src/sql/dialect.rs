@@ -15,11 +15,8 @@
 use core::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{self as sql_ast, Function, FunctionArg, FunctionArgExpr, ObjectName};
 use std::any::{Any, TypeId};
 use strum::VariantNames;
-
-use crate::Error;
 
 /// SQL dialect.
 ///
@@ -157,51 +154,6 @@ pub(super) trait DialectHandler: Any + Debug {
     fn supports_distinct_on(&self) -> bool {
         false
     }
-
-    fn translate_regex(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        self.translate_regex_with_function(search, target, "REGEXP")
-    }
-
-    fn translate_regex_with_function(
-        // This `self` isn't actually used, but it's require because of object
-        // safety (open to better ways of doing this...)
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-        function_name: &str,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        let args = [search, target]
-            .into_iter()
-            .map(FunctionArgExpr::Expr)
-            .map(FunctionArg::Unnamed)
-            .collect();
-
-        Ok(sql_ast::Expr::Function(Function {
-            name: ObjectName(vec![sql_ast::Ident::new(function_name)]),
-            args,
-            over: None,
-            distinct: false,
-            special: false,
-            order_by: vec![],
-        }))
-    }
-
-    fn translate_regex_with_operator(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-        operator: sql_ast::BinaryOperator,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        Ok(sql_ast::Expr::BinaryOp {
-            left: Box::new(search),
-            op: operator,
-            right: Box::new(target),
-        })
-    }
 }
 
 impl dyn DialectHandler {
@@ -216,13 +168,6 @@ impl DialectHandler for GenericDialect {}
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
-    }
-    fn translate_regex(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        self.translate_regex_with_operator(search, target, sql_ast::BinaryOperator::PGRegexMatch)
     }
 }
 
@@ -242,33 +187,11 @@ impl DialectHandler for SQLiteDialect {
     fn stars_in_group(&self) -> bool {
         false
     }
-
-    fn translate_regex(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        self.translate_regex_with_operator(
-            search,
-            target,
-            sql_ast::BinaryOperator::Custom("REGEXP".to_string()),
-        )
-    }
 }
 
 impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
         true
-    }
-
-    fn translate_regex(
-        &self,
-        _search: sql_ast::Expr,
-        _target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        Err(Error::new(crate::Reason::Simple(
-            "regex functions are not supported by MsSql".to_string(),
-        )))?
     }
 
     // https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16
@@ -290,18 +213,6 @@ impl DialectHandler for MySqlDialect {
         // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
         true
     }
-
-    fn translate_regex(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        self.translate_regex_with_operator(
-            search,
-            target,
-            sql_ast::BinaryOperator::Custom("REGEXP".to_string()),
-        )
-    }
 }
 
 impl DialectHandler for ClickHouseDialect {
@@ -322,14 +233,6 @@ impl DialectHandler for BigQueryDialect {
     fn set_ops_distinct(&self) -> bool {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
         true
-    }
-
-    fn translate_regex(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        self.translate_regex_with_function(search, target, "REGEXP_CONTAINS")
     }
 }
 
@@ -358,14 +261,6 @@ impl DialectHandler for DuckDbDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
-    }
-
-    fn translate_regex(
-        &self,
-        search: sql_ast::Expr,
-        target: sql_ast::Expr,
-    ) -> anyhow::Result<sql_ast::Expr> {
-        self.translate_regex_with_function(search, target, "REGEXP_MATCHES")
     }
 }
 

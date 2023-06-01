@@ -515,7 +515,7 @@ pub fn infer_complexity(compute: &Compute) -> Complexity {
 pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
     match &expr.kind {
         rq::ExprKind::Case(_) => Complexity::NonGroup,
-        rq::ExprKind::BuiltInFunction { args, .. } => args
+        rq::ExprKind::Operator { args, .. } => args
             .iter()
             .map(infer_complexity_expr)
             .max()

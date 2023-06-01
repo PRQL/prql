@@ -8,9 +8,10 @@ use itertools::Itertools;
 use crate::ast::pl::{
     ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
-use crate::ast::rq::{self, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window};
+use crate::ast::rq::{
+    self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
+};
 use crate::error::{Error, WithErrorInfo};
-use crate::sql::utils::{maybe_binop, new_binop};
 use crate::sql::Context;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
@@ -196,17 +197,14 @@ fn create_filter_by_row_number(
     // add the two transforms
     let range_int = range.try_map(as_int).unwrap();
 
-    use super::super::std;
-
     let compute = SqlTransform::Super(Transform::Compute(compute));
     let filter = SqlTransform::Super(Transform::Filter(match (range_int.start, range_int.end) {
-        (Some(s), Some(e)) if s == e => new_binop(col_ref, std::STD_EQ, int_expr(s)),
+        (Some(s), Some(e)) if s == e => new_binop(col_ref, "std.eq", int_expr(s)),
         (start, end) => {
-            let start =
-                start.map(|start| new_binop(col_ref.clone(), std::STD_GTE, int_expr(start)));
-            let end = end.map(|end| new_binop(col_ref, std::STD_LTE, int_expr(end)));
+            let start = start.map(|start| new_binop(col_ref.clone(), "std.gte", int_expr(start)));
+            let end = end.map(|end| new_binop(col_ref, "std.lte", int_expr(end)));
 
-            maybe_binop(start, std::STD_AND, end).unwrap_or(Expr {
+            maybe_binop(start, "std.and", end).unwrap_or(Expr {
                 kind: ExprKind::Literal(Literal::Boolean(true)),
                 span: None,
             })
@@ -440,16 +438,12 @@ fn collect_equals(expr: &Expr) -> Result<(Vec<&Expr>, Vec<&Expr>)> {
     let mut lefts = Vec::new();
     let mut rights = Vec::new();
 
-    use super::super::std;
-
     match &expr.kind {
-        ExprKind::BuiltInFunction { name, args } if name == std::STD_EQ.name && args.len() == 2 => {
+        ExprKind::Operator { name, args } if name == "std.eq" && args.len() == 2 => {
             lefts.push(&args[0]);
             rights.push(&args[1]);
         }
-        ExprKind::BuiltInFunction { name, args }
-            if name == std::STD_AND.name && args.len() == 2 =>
-        {
+        ExprKind::Operator { name, args } if name == "std.and" && args.len() == 2 => {
             let (l, r) = collect_equals(&args[0])?;
             lefts.extend(l);
             rights.extend(r);
@@ -528,7 +522,7 @@ impl RqFold for Normalizer {
             ..expr
         };
 
-        if let ExprKind::BuiltInFunction { name, args } = &expr.kind {
+        if let ExprKind::Operator { name, args } = &expr.kind {
             if name == "std.eq" && args.len() == 2 {
                 let (left, right) = (&args[0], &args[1]);
                 let span = expr.span;
@@ -537,7 +531,7 @@ impl RqFold for Normalizer {
                 } else {
                     vec![left.clone(), right.clone()]
                 };
-                let new_kind = ExprKind::BuiltInFunction {
+                let new_kind = ExprKind::Operator {
                     name: name.clone(),
                     args: new_args,
                 };

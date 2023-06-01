@@ -118,6 +118,10 @@ pub fn fold_relation_kind<F: ?Sized + RqFold>(
         }
         RelationKind::Literal(lit) => RelationKind::Literal(lit),
         RelationKind::SString(items) => RelationKind::SString(fold_interpolate_items(fold, items)?),
+        RelationKind::BuiltInFunction { name, args } => RelationKind::BuiltInFunction {
+            name,
+            args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
+        },
     })
 }
 
@@ -216,7 +220,7 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
                 .map(|c| fold_switch_case(fold, c))
                 .try_collect()?,
         ),
-        ExprKind::BuiltInFunction { name, args } => ExprKind::BuiltInFunction {
+        ExprKind::Operator { name, args } => ExprKind::Operator {
             name,
             args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
         },

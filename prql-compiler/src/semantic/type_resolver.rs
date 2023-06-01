@@ -249,7 +249,7 @@ impl Context {
             .with_span(found.span));
 
             if found_ty.is_function() && !expected.is_function() {
-                let func_name = found.kind.as_closure().and_then(|c| c.name_hint.as_ref());
+                let func_name = found.kind.as_func().and_then(|c| c.name_hint.as_ref());
                 let to_what = func_name
                     .map(|n| format!("to function {n}"))
                     .unwrap_or_else(|| "in this function call?".to_string());

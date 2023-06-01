@@ -153,7 +153,7 @@ fn test_regex_dialect() {
        │
      4 │     filter bar ~= 'love'
        │            ──────┬──────
-       │                  ╰──────── regex functions are not supported by MsSql
+       │                  ╰──────── operator std.regex_search is not supported for dialect mssql
     ───╯
     "###)
 }

@@ -1,13 +1,11 @@
 //! Backend for translating RQ into SQL
 
-// mod context;
 mod dialect;
 mod gen_expr;
 mod gen_projection;
 mod gen_query;
+mod operators;
 mod srq;
-pub(crate) mod std;
-pub(crate) mod utils;
 
 pub use dialect::Dialect;
 
@@ -67,7 +65,7 @@ pub mod internal {
 
     fn init(query: Query) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);
-        let ctx = Context::new(dialect::Dialect::Generic.handler(), ctx);
+        let ctx = Context::new(dialect::Dialect::Generic, ctx);
 
         let pipeline = (relation.kind.into_pipeline())
             .map_err(|_| anyhow::anyhow!("Main RQ relation is not a pipeline."))?;
@@ -91,6 +89,8 @@ pub mod internal {
 #[derive(Debug)]
 struct Context {
     pub dialect: Box<dyn DialectHandler>,
+    pub dialect_enum: Dialect,
+
     pub anchor: AnchorContext,
 
     // stuff regarding current query
@@ -132,9 +132,10 @@ impl Default for QueryOpts {
 }
 
 impl Context {
-    fn new(dialect: Box<dyn DialectHandler>, anchor: AnchorContext) -> Self {
+    fn new(dialect: Dialect, anchor: AnchorContext) -> Self {
         Context {
-            dialect,
+            dialect: dialect.handler(),
+            dialect_enum: dialect,
             anchor,
             query: QueryOpts::default(),
             query_stack: Vec::new(),

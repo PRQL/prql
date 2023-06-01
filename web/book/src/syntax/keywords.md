@@ -8,6 +8,7 @@ PRQL uses a few terms as keywords:
 - `prql`
 - `type`
 - `module`
+- `internal`
 
 To use these names as columns or relations, use backticks: `` `case` ``.
 

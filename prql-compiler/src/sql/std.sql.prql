@@ -1,3 +1,12 @@
+#! Implementation of `std` module.
+#!
+#! This file is not really PRQL.
+#! It can contain only:
+#! - functions declarations that don't have named params and s-string-only body,
+#! - module declarations whose names correspond to sql dialect names.
+
+
+# Aggregation functions
 let min = column -> s"MIN({column})"
 let max = column -> s"MAX({column})"
 let sum = column -> s"SUM({column})"
@@ -5,8 +14,6 @@ let avg = column -> s"AVG({column})"
 let stddev = column -> s"STDDEV({column})"
 let average = column -> s"AVG({column})"
 let count = non_null -> s"COUNT({non_null})"
-# TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
-# abbreviation of that?)
 let count_distinct = column -> s"COUNT(DISTINCT {column})"
 
 # Window functions
@@ -23,12 +30,12 @@ let round = n_digits column -> s"ROUND({column}, {n_digits})"
 let as = `type` column -> s"CAST({column} AS {type})"
 
 # String functions
-let lower = column ->  s"LOWER({column})"
-let upper = column ->  s"UPPER({column})"
+let lower = column -> s"LOWER({column})"
+let upper = column -> s"UPPER({column})"
 
 # Source-reading functions, primarily for DuckDB
-let read_parquet = source -> s"SELECT * FROM read_parquet({source})"
-let read_csv = source -> s"SELECT * FROM read_csv_auto({source})"
+let read_parquet = source -> s"read_parquet({source})"
+let read_csv = source -> s"read_csv_auto({source})"
 
 let mul = l r -> null
 let div = l r -> null
@@ -44,5 +51,34 @@ let lte = l r -> null
 let and = l r -> null
 let or = l r -> null
 let coalesce = l r -> s"COALESCE({l}, {r})"
+let regex_search = text pattern -> s"REGEXP({text}, {pattern})"
 let neg = l -> null
 let not = l -> null
+
+module postgres {
+    let regex_search = text pattern -> s"{text} ~ {pattern}"
+}
+
+module sqlite {
+    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+}
+
+module mssql {
+    let regex_search = text pattern -> null
+}
+
+module mysql {
+    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+}
+
+module bigquery {
+    let regex_search = text pattern -> s"REGEXP_CONTAINS({text}, {pattern})"
+}
+
+module duckdb {
+    let regex_search = text pattern -> s"REGEXP_MATCHES({text}, {pattern})"
+}
+
+module duckdb {
+    let regex_search = text pattern -> s"REGEXP_MATCHES({text}, {pattern})"
+}

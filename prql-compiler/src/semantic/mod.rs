@@ -13,7 +13,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
 
-pub use self::context::Context;
+pub use self::context::{Context, ResolverOptions};
 pub use self::module::Module;
 pub use lowering::lower_to_ir;
 
@@ -23,51 +23,49 @@ use crate::error::WithErrorInfo;
 use crate::{Error, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
-pub fn resolve_and_lower_single(statements: Vec<Stmt>) -> Result<Query> {
-    let context = load_std_lib();
-
-    let context = resolver::resolve(statements, vec![], context)?;
-
-    let (query, _) = lowering::lower_to_ir(context, &[])?;
-
-    Ok(query)
-}
-
-/// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(file_tree: SourceTree<Vec<Stmt>>, main_path: &[String]) -> Result<Query> {
-    let context = resolve(file_tree, None)?;
+    let context = resolve(file_tree, Default::default())?;
 
     let (query, _) = lowering::lower_to_ir(context, main_path)?;
     Ok(query)
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve_single(statements: Vec<Stmt>, context: Option<Context>) -> Result<Context> {
-    let tree = SourceTree::single(PathBuf::from(""), statements);
-
-    resolve(tree, context)
-}
-
-/// Runs semantic analysis on the query.
-pub fn resolve(file_tree: SourceTree<Vec<Stmt>>, context: Option<Context>) -> Result<Context> {
-    let mut context = context.unwrap_or_else(load_std_lib);
-    for (path, stmts) in normalize(file_tree)? {
-        context = resolver::resolve(stmts, path, context)?;
+pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -> Result<Context> {
+    // inject std module if it does not exist
+    if !file_tree.sources.contains_key(&PathBuf::from("std.prql")) {
+        let mut source_tree = SourceTree {
+            sources: Default::default(),
+            source_ids: file_tree.source_ids.clone(),
+        };
+        load_std_lib(&mut source_tree);
+        let ast = crate::parser::parse(&source_tree).unwrap();
+        let (path, content) = ast.sources.into_iter().next().unwrap();
+        file_tree.insert(path, content);
     }
-    Ok(context)
-}
 
-pub fn load_std_lib() -> Context {
-    let std_lib = SourceTree::from(include_str!("./std.prql"));
-    let statements = crate::parser::parse_tree(&std_lib).unwrap();
-    let statements = statements.sources.into_values().next().unwrap();
-
-    let context = Context {
+    // init empty context
+    let mut context = Context {
         root_mod: Module::new_root(),
+        options,
         ..Context::default()
     };
 
-    resolver::resolve(statements, vec![NS_STD.to_string()], context).unwrap()
+    // resolve sources one by one
+    // TODO: recursive references
+    for (path, stmts) in normalize(file_tree)? {
+        context = resolver::resolve(stmts, path, context)?;
+    }
+
+    Ok(context)
+}
+
+/// Preferred way of injecting std module.
+pub fn load_std_lib(source_tree: &mut SourceTree) {
+    let path = PathBuf::from("std.prql");
+    let content = include_str!("./std.prql");
+
+    source_tree.insert(path, content.to_string());
 }
 
 pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
@@ -155,20 +153,32 @@ pub const NS_INFER: &str = "_infer";
 pub const NS_INFER_MODULE: &str = "_infer_module";
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use super::resolve_and_lower_single;
-    use crate::{ast::rq::Query, parser::parse_single};
+    use crate::ast::rq::Query;
+    use crate::parser::{parse, parse_single};
 
-    fn parse_and_resolve(query: &str) -> Result<Query> {
-        resolve_and_lower_single(parse_single(query)?)
+    use super::{resolve, resolve_and_lower, Context};
+
+    pub fn parse_resolve_and_lower(query: &str) -> Result<Query> {
+        let mut source_tree = query.into();
+        super::load_std_lib(&mut source_tree);
+
+        resolve_and_lower(parse(&source_tree)?, &[])
+    }
+
+    pub fn parse_and_resolve(query: &str) -> Result<Context> {
+        let mut source_tree = query.into();
+        super::load_std_lib(&mut source_tree);
+
+        resolve(parse(&source_tree)?, Default::default())
     }
 
     #[test]
     fn test_resolve_01() {
-        assert_yaml_snapshot!(parse_and_resolve(r###"
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from employees
         select !{foo}
         "###).unwrap().relation.columns, @r###"
@@ -179,7 +189,7 @@ mod test {
 
     #[test]
     fn test_resolve_02() {
-        assert_yaml_snapshot!(parse_and_resolve(r###"
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from foo
         sort day
         window range:-4..4 (
@@ -196,7 +206,7 @@ mod test {
 
     #[test]
     fn test_resolve_03() {
-        assert_yaml_snapshot!(parse_and_resolve(r###"
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from a=albums
         filter is_sponsored
         select {a.*}
@@ -209,7 +219,7 @@ mod test {
 
     #[test]
     fn test_resolve_04() {
-        assert_yaml_snapshot!(parse_and_resolve(r###"
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         from x
         select {a, a, a = a + 1}
         "###).unwrap().relation.columns, @r###"
@@ -222,7 +232,7 @@ mod test {
 
     #[test]
     fn test_header() {
-        assert_yaml_snapshot!(parse_and_resolve(r###"
+        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
         prql target:sql.mssql version:"0"
 
         from employees
@@ -256,7 +266,7 @@ mod test {
             - Wildcard
         "### );
 
-        assert!(parse_and_resolve(
+        assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.bigquery version:foo
         from employees
@@ -264,7 +274,7 @@ mod test {
         )
         .is_err());
 
-        assert!(parse_and_resolve(
+        assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.bigquery version:"25"
         from employees
@@ -272,7 +282,7 @@ mod test {
         )
         .is_err());
 
-        assert!(parse_and_resolve(
+        assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.yah version:foo
         from employees

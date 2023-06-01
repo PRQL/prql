@@ -17,46 +17,40 @@ use super::{Context, Lineage};
 use super::{NS_FRAME, NS_PARAM};
 
 /// try to convert function call with enough args into transform
-pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<Expr, Func>> {
-    // TODO: this should not use name_hint
-    let name = closure.name_hint.as_ref().filter(|n| !n.name.contains('.'));
-    let name = if let Some(name) = name {
-        name.to_string()
-    } else {
-        return Ok(Err(closure));
-    };
+pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
+    let internal_name = closure.body.kind.as_internal().unwrap();
 
-    let (kind, input) = match name.as_str() {
-        "std.from" => {
+    let (kind, input) = match internal_name.as_str() {
+        "from" => {
             let [source] = unpack::<1>(closure);
 
-            return Ok(Ok(source));
+            return Ok(source);
         }
-        "std.select" => {
+        "select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
-        "std.filter" => {
+        "filter" => {
             let [filter, tbl] = unpack::<2>(closure);
 
             let filter = Box::new(filter);
             (TransformKind::Filter { filter }, tbl)
         }
-        "std.derive" => {
+        "derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
-        "std.aggregate" => {
+        "aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
-        "std.sort" => {
+        "sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
             let by = coerce_into_tuple_and_flatten(by)?
@@ -75,7 +69,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
 
             (TransformKind::Sort { by }, tbl)
         }
-        "std.take" => {
+        "take" => {
             let [expr, tbl] = unpack::<2>(closure);
 
             let range = match expr.kind {
@@ -96,7 +90,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
 
             (TransformKind::Take { range }, tbl)
         }
-        "std.join" => {
+        "join" => {
             let [side, with, filter, tbl] = unpack::<4>(closure);
 
             let side = {
@@ -121,7 +115,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
         }
-        "std.group" => {
+        "group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
             let by = coerce_into_tuple_and_flatten(by)?;
@@ -132,7 +126,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
         }
-        "std.window" => {
+        "window" => {
             let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
 
             let expanding = {
@@ -190,12 +184,12 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             };
             (transform_kind, tbl)
         }
-        "std.append" => {
+        "append" => {
             let [bottom, top] = unpack::<2>(closure);
 
             (TransformKind::Append(Box::new(bottom)), top)
         }
-        "std.loop" => {
+        "loop" => {
             let [pipeline, tbl] = unpack::<2>(closure);
 
             let pipeline =
@@ -204,7 +198,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             (TransformKind::Loop(Box::new(pipeline)), tbl)
         }
 
-        "std.in" => {
+        "in" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [pattern, value] = unpack::<2>(closure);
@@ -229,7 +223,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
                     let res = new_binop(start, BinOp::And, end);
                     let res = res
                         .unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
-                    return Ok(Ok(res));
+                    return Ok(res);
                 }
                 ExprKind::Tuple(_) => {
                     // TODO: should translate into `value IN (...)`
@@ -247,7 +241,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             .into());
         }
 
-        "std.all" => {
+        "all" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
@@ -259,10 +253,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             }
             let res = res.unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
 
-            return Ok(Ok(res));
+            return Ok(res);
         }
 
-        "std.map" => {
+        "map" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [func, list] = unpack::<2>(closure);
@@ -271,21 +265,20 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             let list_items = list_items
                 .into_iter()
                 .map(|item| {
-                    Expr::from(ExprKind::FuncCall(FuncCall {
-                        name: Box::new(func.clone()),
-                        args: vec![item],
-                        named_args: HashMap::new(),
-                    }))
+                    Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                        func.clone(),
+                        vec![item],
+                    )))
                 })
                 .collect_vec();
 
-            return Ok(Ok(Expr {
+            return Ok(Expr {
                 kind: ExprKind::Tuple(list_items),
                 ..list
-            }));
+            });
         }
 
-        "std.zip" => {
+        "zip" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [a, b] = unpack::<2>(closure);
@@ -297,10 +290,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
                 res.push(Expr::from(ExprKind::Tuple(vec![a, b])));
             }
 
-            return Ok(Ok(Expr::from(ExprKind::Tuple(res))));
+            return Ok(Expr::from(ExprKind::Tuple(res)));
         }
 
-        "std._eq" => {
+        "_eq" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
@@ -308,10 +301,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
             let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
-            return Ok(Ok(res));
+            return Ok(res);
         }
 
-        "std.from_text" => {
+        "from_text" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [format, text_expr] = unpack::<2>(closure);
@@ -384,10 +377,15 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
                 id: text_expr.id,
                 ..res
             };
-            return Ok(Ok(res));
+            return Ok(res);
         }
 
-        _ => return Ok(Err(closure)),
+        _ => {
+            return Err(Error::new_simple("unknown operator {internal_name}")
+                .with_help("this is a bug in prql-compiler")
+                .with_span(closure.body.span)
+                .into())
+        }
     };
 
     let transform_call = TransformCall {
@@ -397,7 +395,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Result<E
         frame: WindowFrame::default(),
         sort: Vec::new(),
     };
-    Ok(Ok(Expr::from(ExprKind::TransformCall(transform_call))))
+    Ok(Expr::from(ExprKind::TransformCall(transform_call)))
 }
 
 /// Wraps non-tuple Exprs into a singleton Tuple.
@@ -455,11 +453,10 @@ fn fold_by_simulating_eval(
     let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
     dummy.lineage = Some(val_lineage);
 
-    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
-        name: Box::new(pipeline),
-        args: vec![dummy],
-        named_args: Default::default(),
-    }));
+    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+        pipeline,
+        vec![dummy],
+    )));
 
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
     resolver.context.root_mod.stack_push(NS_PARAM, env);
@@ -475,7 +472,7 @@ fn fold_by_simulating_eval(
     // let mut tbl_node = extract_ref_to_first(&mut pipeline);
     // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
 
-    let pipeline = Expr::from(ExprKind::Closure(Box::new(Func {
+    let pipeline = Expr::from(ExprKind::Func(Box::new(Func {
         name_hint: None,
         body: Box::new(pipeline),
         return_ty: None,
@@ -519,7 +516,7 @@ impl TransformCall {
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Func { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+                let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
                 // TODO: See #2270 — this is a bad error message and likely
                 // should be handled prior to reaching this point.
@@ -557,7 +554,7 @@ impl TransformCall {
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Func { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+                let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
                 body.lineage.clone().unwrap()
             }
@@ -860,7 +857,7 @@ impl AstFold for Flattener {
 
                         let input = self.fold_expr(*t.input)?;
 
-                        let pipeline = pipeline.kind.into_closure().unwrap();
+                        let pipeline = pipeline.kind.into_func().unwrap();
 
                         let table_param = &pipeline.params[0];
                         let param_id = table_param.name.parse::<usize>().unwrap();
@@ -888,7 +885,7 @@ impl AstFold for Flattener {
                         pipeline,
                     } => {
                         let tbl = self.fold_expr(*t.input)?;
-                        let pipeline = pipeline.kind.into_closure().unwrap();
+                        let pipeline = pipeline.kind.into_func().unwrap();
 
                         let table_param = &pipeline.params[0];
                         let param_id = table_param.name.parse::<usize>().unwrap();
@@ -1034,24 +1031,19 @@ mod from_text {
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::parser::parse_single;
-    use crate::semantic::{resolve_and_lower_single, resolve_single};
+    use crate::semantic::test::parse_resolve_and_lower;
 
     #[test]
     fn test_aggregate_positional_arg() {
         // distinct query #292
-        let query = parse_single(
-            "
+
+        assert_yaml_snapshot!(parse_resolve_and_lower("
         from c_invoice
         select invoice_no
         group invoice_no (
             take 1
         )
-        ",
-        )
-        .unwrap();
-        let result = resolve_and_lower_single(query).unwrap();
-        assert_yaml_snapshot!(result, @r###"
+        ").unwrap(), @r###"
         ---
         def:
           version: ~
@@ -1097,29 +1089,25 @@ mod tests {
         "###);
 
         // oops, two arguments #339
-        let query = parse_single(
+        let result = parse_resolve_and_lower(
             "
         from c_invoice
         aggregate average amount
         ",
-        )
-        .unwrap();
-        let result = resolve_and_lower_single(query);
+        );
         assert!(result.is_err());
 
         // oops, two arguments
-        let query = parse_single(
+        let result = parse_resolve_and_lower(
             "
         from c_invoice
         group issued_at (aggregate average amount)
         ",
-        )
-        .unwrap();
-        let result = resolve_and_lower_single(query);
+        );
         assert!(result.is_err());
 
         // correct function call
-        let query = parse_single(
+        let ctx = crate::semantic::test::parse_and_resolve(
             "
         from c_invoice
         group issued_at (
@@ -1128,12 +1116,11 @@ mod tests {
         ",
         )
         .unwrap();
-        let ctx = resolve_single(query, None).unwrap();
         let res = ctx.find_main_rel(&[]).unwrap().clone();
         assert_yaml_snapshot!(res, @r###"
         ---
         - RelationVar:
-            id: 40
+            id: 48
             TransformCall:
               input:
                 id: 8
@@ -1160,9 +1147,9 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 32
-                      BuiltInFunction:
-                        name: std.average
+                    - id: 40
+                      RqOperator:
+                        name: std.avg
                         args:
                           - id: 39
                             Ident:
@@ -1267,7 +1254,7 @@ mod tests {
                     expr_id: 16
                 - Single:
                     name: ~
-                    expr_id: 32
+                    expr_id: 40
               inputs:
                 - id: 8
                   name: c_invoice
@@ -1280,20 +1267,14 @@ mod tests {
 
     #[test]
     fn test_transform_sort() {
-        let query = parse_single(
-            "
+        assert_yaml_snapshot!(parse_resolve_and_lower("
         from invoices
         sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)
         sort {issued_at}
         sort {-issued_at}
-        ",
-        )
-        .unwrap();
-
-        let result = resolve_and_lower_single(query).unwrap();
-        assert_yaml_snapshot!(result, @r###"
+        ").unwrap(), @r###"
         ---
         def:
           version: ~

@@ -263,7 +263,7 @@ fn func_call<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
 where
     E: Parser<Token, Expr, Error = PError> + Clone,
 {
-    let func = expr.clone();
+    let func_name = expr.clone();
 
     let named_arg = ident_part()
         .map(Some)
@@ -280,9 +280,8 @@ where
                 (None, expr)
             });
 
-    let args = named_arg.or(positional_arg).repeated();
-
-    func.then(args)
+    func_name
+        .then(named_arg.or(positional_arg).repeated())
         .validate(|(name, args), span, emit| {
             if args.is_empty() {
                 return name.kind;
@@ -316,6 +315,12 @@ fn lambda_func<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
 where
     E: Parser<Token, Expr, Error = PError> + Clone,
 {
+    let internal = keyword("internal")
+        .ignore_then(ident())
+        .map(|x| x.to_string())
+        .map(ExprKind::Internal)
+        .map_with_span(into_expr);
+
     (
         // params
         ident_part()
@@ -325,7 +330,7 @@ where
     )
     .then_ignore(just(Token::ArrowThin))
     .then(type_expr().or_not())
-    .then(func_call(expr).map(Box::new))
+    .then(choice((internal, func_call(expr))))
     .then_ignore(new_line())
     .map(|((params, return_ty), body)| {
         let (pos, nam) = params
@@ -341,7 +346,7 @@ where
             params: pos,
             named_params: nam,
 
-            body,
+            body: Box::new(body),
             return_ty: return_ty.map(TyOrExpr::Expr),
 
             name_hint: None,
@@ -349,7 +354,7 @@ where
             env: HashMap::new(),
         })
     })
-    .map(ExprKind::Closure)
+    .map(ExprKind::Func)
     .map_with_span(into_expr)
     .labelled("function definition")
 }

@@ -24,17 +24,17 @@ mod test {
     use super::ast::SqlQuery;
     use super::*;
 
-    use crate::sql::{Context, Dialect};
-    use crate::{parser::parse_single, semantic::resolve_and_lower_single};
+    use crate::sql::Dialect;
 
-    fn parse_and_resolve(prql: &str) -> Result<(SqlQuery, Context)> {
-        let query = resolve_and_lower_single(parse_single(prql)?)?;
+    fn parse_and_resolve(source: &str) -> Result<SqlQuery> {
+        let query = crate::semantic::test::parse_resolve_and_lower(source)?;
 
-        compile_query(query, Some(Dialect::Generic))
+        let (sql, _) = compile_query(query, Some(Dialect::Generic))?;
+        Ok(sql)
     }
 
     fn count_atomics(prql: &str) -> Result<usize> {
-        let (query, _ctx) = parse_and_resolve(prql)?;
+        let query = parse_and_resolve(prql)?;
 
         Ok(query.ctes.len() + 1)
     }

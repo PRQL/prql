@@ -257,6 +257,38 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
+            ExprKind::RqOperator { name, args } => {
+                let id = expr.id.unwrap();
+
+                // create a new table
+                let tid = self.tid.gen();
+
+                // pull columns from the table decl
+                let frame = expr.lineage.as_ref().unwrap();
+                let input = frame.inputs.get(0).unwrap();
+
+                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = table_decl.kind.as_table_decl().unwrap();
+                let columns = table_decl.columns.clone();
+
+                log::debug!("lowering function table, columns = {columns:?}");
+
+                // lower the expr
+                let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
+                let relation = rq::Relation {
+                    kind: rq::RelationKind::BuiltInFunction { name, args },
+                    columns,
+                };
+
+                self.table_buffer.push(TableDecl {
+                    id: tid,
+                    name: None,
+                    relation,
+                });
+
+                // return an instance of this new table
+                self.create_a_table_instance(id, None, tid)
+            }
 
             ExprKind::Array(elements) => {
                 let id = expr.id.unwrap();
@@ -394,7 +426,7 @@ impl Lowerer {
     fn lower_pipeline(&mut self, ast: pl::Expr, closure_param: Option<usize>) -> Result<()> {
         let transform_call = match ast.kind {
             pl::ExprKind::TransformCall(transform) => transform,
-            pl::ExprKind::Closure(closure) => {
+            pl::ExprKind::Func(closure) => {
                 let param = closure.params.first();
                 let param = param.and_then(|p| p.name.parse::<usize>().ok());
                 return self.lower_pipeline(*closure.body, param);
@@ -750,7 +782,7 @@ impl Lowerer {
                 .to_string();
                 let args = vec![self.lower_expr(*left)?, self.lower_expr(*right)?];
 
-                rq::ExprKind::BuiltInFunction { name, args }
+                rq::ExprKind::Operator { name, args }
             }
             pl::ExprKind::Unary { op, expr } => {
                 let name = match op {
@@ -761,7 +793,7 @@ impl Lowerer {
                 }
                 .to_string();
                 let args = vec![self.lower_expr(*expr)?];
-                rq::ExprKind::BuiltInFunction { name, args }
+                rq::ExprKind::Operator { name, args }
             }
             pl::ExprKind::SString(items) => {
                 rq::ExprKind::SString(self.lower_interpolations(items)?)
@@ -774,7 +806,7 @@ impl Lowerer {
                         InterpolateItem::Expr(e) => self.lower_expr(*e)?,
                     });
 
-                    res = crate::sql::utils::maybe_binop(res, crate::sql::std::STD_CONCAT, item);
+                    res = rq::maybe_binop(res, "std.concat", item);
                 }
 
                 res.unwrap_or_else(|| str_lit("".to_string())).kind
@@ -790,20 +822,20 @@ impl Lowerer {
                     })
                     .try_collect()?,
             ),
-            pl::ExprKind::BuiltInFunction { name, args } => {
-                // built-in function
+            pl::ExprKind::RqOperator { name, args } => {
                 let args = args.into_iter().map(|x| self.lower_expr(x)).try_collect()?;
 
-                rq::ExprKind::BuiltInFunction { name, args }
+                rq::ExprKind::Operator { name, args }
             }
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
             | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
-            | pl::ExprKind::Closure(_)
+            | pl::ExprKind::Func(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
+            | pl::ExprKind::Internal(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {

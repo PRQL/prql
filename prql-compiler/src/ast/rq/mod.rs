@@ -6,11 +6,13 @@ mod expr;
 mod fold;
 mod ids;
 mod transform;
+mod utils;
 
 pub use expr::{Expr, ExprKind, UnOp};
 pub use fold::*;
 pub use ids::*;
 pub use transform::*;
+pub use utils::*;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
@@ -41,6 +43,7 @@ pub enum RelationKind {
     Pipeline(Vec<Transform>),
     Literal(RelationLiteral),
     SString(Vec<InterpolateItem<Expr>>),
+    BuiltInFunction { name: String, args: Vec<Expr> },
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]
