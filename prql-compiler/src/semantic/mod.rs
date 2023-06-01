@@ -11,7 +11,7 @@ mod type_resolver;
 
 use anyhow::Result;
 use itertools::Itertools;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub use self::context::{Context, ResolverOptions};
 pub use self::module::Module;
@@ -92,7 +92,7 @@ fn normalize(mut tree: SourceTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<St
             // if there is only one file, use that as the root
             let (_, only) = tree.sources.drain().exactly_one().unwrap();
             tree.sources.insert(root_path, only);
-        } else if let Some(under) = tree.sources.keys().find(|p| path_starts_with(p, "_")) {
+        } else if let Some(under) = tree.sources.keys().find(path_starts_with_uppercase) {
             // if there is a path that starts with `_`, that's the root
             let under = tree.sources.remove(&under.clone()).unwrap();
             tree.sources.insert(root_path, under);
@@ -128,11 +128,12 @@ fn normalize(mut tree: SourceTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<St
     Ok(modules)
 }
 
-fn path_starts_with(p: &Path, prefix: &str) -> bool {
+fn path_starts_with_uppercase(p: &&PathBuf) -> bool {
     p.components()
         .next()
         .and_then(|x| x.as_os_str().to_str())
-        .map_or(false, |x| x.starts_with(prefix))
+        .and_then(|x| x.chars().next())
+        .map_or(false, |x| x.is_uppercase())
 }
 
 pub const NS_STD: &str = "std";
