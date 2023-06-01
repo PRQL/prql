@@ -108,7 +108,7 @@ Errors are returned as following object, serialized as a JSON array:
 ```typescript
 interface ErrorMessage {
   /// Message kind. Currently only Error is implemented.
-  kind: 'Error' | 'Warning' | 'Lint';
+  kind: "Error" | "Warning" | "Lint";
   /// Machine-readable identifier of the error
   code: string | null;
   /// Plain text of the error
