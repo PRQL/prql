@@ -26,7 +26,7 @@ pub struct Error {
     pub kind: MessageKind,
     pub span: Option<Span>,
     pub reason: Reason,
-    pub help: Option<String>,
+    pub hints: Vec<String>,
     pub code: Option<&'static str>,
 }
 
@@ -75,7 +75,7 @@ impl Error {
             kind: MessageKind::Error,
             span: None,
             reason,
-            help: None,
+            hints: Vec::new(),
             code: None,
         }
     }
@@ -91,13 +91,18 @@ impl Error {
 }
 
 impl WithErrorInfo for crate::Error {
-    fn with_opt_help<S: Into<String>>(mut self, help: Option<S>) -> Self {
-        self.help = help.map(|x| x.into());
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
+        self.hints = hints.into_iter().map(|x| x.into()).collect();
         self
     }
 
     fn with_span(mut self, span: Option<Span>) -> Self {
         self.span = span;
+        self
+    }
+
+    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
+        self.hints.push(hint.into());
         self
     }
 }
@@ -111,7 +116,7 @@ pub struct ErrorMessage {
     /// Plain text of the error
     pub reason: String,
     /// A list of suggestions of how to fix the error
-    pub hint: Option<String>,
+    pub hints: Vec<String>,
     /// Character offset of error origin within a source file
     pub span: Option<Span>,
     /// Annotated code, containing cause and hints.
@@ -136,7 +141,7 @@ impl Display for ErrorMessage {
                 .unwrap_or_default();
 
             writeln!(f, "{}Error: {}", code, &self.reason)?;
-            if let Some(hint) = &self.hint {
+            for hint in &self.hints {
                 // TODO: consider alternative formatting for hints.
                 writeln!(f, "↳ Hint: {}", hint)?;
             }
@@ -195,7 +200,7 @@ impl Display for ErrorMessages {
 pub fn downcast(error: anyhow::Error) -> ErrorMessages {
     let mut code = None;
     let mut span = None;
-    let mut hint = None;
+    let mut hints = Vec::new();
 
     let error = match error.downcast::<ErrorMessages>() {
         Ok(messages) => return messages,
@@ -219,7 +224,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
         Ok(error) => {
             code = error.code.map(|x| x.to_string());
             span = error.span;
-            hint = error.help;
+            hints.extend(error.hints);
 
             error.reason.message()
         }
@@ -233,7 +238,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
         code,
         kind: MessageKind::Error,
         reason,
-        hint,
+        hints,
         span,
         display: None,
         location: None,
@@ -294,8 +299,15 @@ impl ErrorMessage {
             report = report.with_code(code);
         }
 
-        if let Some(hint) = &self.hint {
-            report.set_help(hint);
+        // I don't know how to set multiple hints...
+        if !self.hints.is_empty() {
+            report.set_help(&self.hints[0]);
+        }
+        if self.hints.len() > 1 {
+            report.set_note(&self.hints[1]);
+        }
+        if self.hints.len() > 2 {
+            report.set_message(&self.hints[2]);
         }
 
         let mut out = Vec::new();
@@ -386,19 +398,23 @@ impl Add<usize> for Span {
 }
 
 pub trait WithErrorInfo: Sized {
-    fn with_help<S: Into<String>>(self, help: S) -> Self {
-        self.with_opt_help(Some(help))
-    }
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self;
 
-    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self;
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
 }
 
 impl WithErrorInfo for anyhow::Error {
-    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self {
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
         self.downcast_ref::<crate::Error>()
-            .map(|e| e.clone().with_opt_help(help).into())
+            .map(|e| e.clone().push_hint(hint).into())
+            .unwrap_or(self)
+    }
+
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
+        self.downcast_ref::<crate::Error>()
+            .map(|e| e.clone().with_hints(hints).into())
             .unwrap_or(self)
     }
 
@@ -414,12 +430,16 @@ impl WithErrorInfo for anyhow::Error {
 }
 
 impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
-    fn with_opt_help<S: Into<String>>(self, help: Option<S>) -> Self {
-        self.map_err(|e| e.with_opt_help(help))
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
+        self.map_err(|e| e.with_hints(hints))
     }
 
     fn with_span(self, span: Option<Span>) -> Self {
         self.map_err(|e| e.with_span(span))
+    }
+
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
+        self.map_err(|e| e.push_hint(hint))
     }
 }
 

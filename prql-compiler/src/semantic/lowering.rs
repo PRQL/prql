@@ -31,7 +31,7 @@ pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Con
     let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
         Error::new_simple("Missing main pipeline")
             .with_code("E0001")
-            .with_opt_help(hint)
+            .with_hints(hint)
     })?;
 
     // find & validate query def
@@ -346,7 +346,7 @@ impl Lowerer {
                     expected: "a pipeline that resolves to a table".to_string(),
                     found: format!("`{expr}`"),
                 })
-                .with_help("are you missing `from` statement?")
+                .push_hint("are you missing `from` statement?")
                 .with_span(expr.span)
                 .into())
             }
@@ -842,7 +842,7 @@ impl Lowerer {
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("`{ast}`"),
                 })
-                .with_help("this is probably a 'bad type' error (we are working on that)")
+                .push_hint("this is probably a 'bad type' error (we are working on that)")
                 .with_span(ast.span)
                 .into());
             }
@@ -881,7 +881,7 @@ impl Lowerer {
                         "This table contains unnamed columns that need to be referenced by name",
                     )
                     .with_span(self.context.span_map.get(&id).cloned())
-                    .with_help("The name may have been overridden later in the pipeline.")
+                    .push_hint("The name may have been overridden later in the pipeline.")
                     .into()),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");

@@ -48,7 +48,7 @@ fn test_errors() {
        │
      4 │     select b
        │            ┬
-       │            ╰── Unknown name b
+       │            ╰── Unknown name
     ───╯
     "###);
 
@@ -137,6 +137,8 @@ fn test_hint_missing_args() {
        │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `infer -> array`
        │
        │ Help: Have you forgotten an argument to function std.lag?
+       │
+       │ Note: Type `scalar` expands to `int || float || bool || text || date || time || timestamp || null`
     ───╯
     "###)
 }
@@ -156,4 +158,24 @@ fn test_regex_dialect() {
        │                  ╰──────── operator std.regex_search is not supported for dialect mssql
     ───╯
     "###)
+}
+
+#[test]
+fn test_bad_function_type() {
+    assert_display_snapshot!(compile(r###"
+    from tracks
+    group foo (take)
+    "###,
+    )
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:16]
+       │
+     3 │     group foo (take)
+       │                ──┬─
+       │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `scalar relation -> relation`
+       │
+       │ Help: Type `transform` expands to `infer -> relation`
+    ───╯
+    "###);
 }

@@ -107,7 +107,7 @@ fn normalize(mut tree: SourceTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<St
             return Err(Error::new_simple(format!(
                 "Cannot find the root module within the following files:\n{file_names}"
             ))
-            .with_help("add a file prefixed with `_` to the root directory")
+            .push_hint("add a file prefixed with `_` to the root directory")
             .with_code("E0002")
             .into());
         }

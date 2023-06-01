@@ -2504,7 +2504,7 @@ join s=salaries (==id)
                     reason: Unexpected {
                         found: "’",
                     },
-                    help: None,
+                    hints: [],
                     code: None,
                 },
                 Error {
@@ -2515,7 +2515,7 @@ join s=salaries (==id)
                     reason: Unexpected {
                         found: "’",
                     },
-                    help: None,
+                    hints: [],
                     code: None,
                 },
                 Error {
@@ -2526,7 +2526,7 @@ join s=salaries (==id)
                     reason: Simple(
                         "Expected * or an identifier, but didn't find anything before the end.",
                     ),
-                    help: None,
+                    hints: [],
                     code: None,
                 },
             ],
@@ -2547,7 +2547,7 @@ join s=salaries (==id)
                     reason: Simple(
                         "unexpected : while parsing source file",
                     ),
-                    help: None,
+                    hints: [],
                     code: None,
                 },
             ],

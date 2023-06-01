@@ -29,9 +29,11 @@ fn test_bad_error_messages() {
        │
      3 │     group
        │     ──┬──
-       │       ╰──── main expected type `relation`, but found type `infer relation -> relation`
+       │       ╰──── main expected type `relation`, but found type `transform relation -> relation`
        │
        │ Help: Have you forgotten an argument to function std.group?
+       │
+       │ Note: Type `relation` expands to `[{scalar..}]`
     ───╯
     "###);
 
@@ -47,19 +49,7 @@ fn test_bad_error_messages() {
        │
      5 │     filter f location
        │              ────┬───
-       │                  ╰───── Unknown name location
+       │                  ╰───── Unknown name
     ───╯
     "###)
-}
-
-#[test]
-fn test_2270() {
-    assert_display_snapshot!(compile(r###"
-    from tracks
-    group foo (take)
-    "###,
-    )
-    .unwrap_err(), @r###"
-    Error: Expected a function that could operate on a table, but instead found relation -> relation
-    "###);
 }

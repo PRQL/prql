@@ -192,13 +192,13 @@ impl Context {
         };
 
         // fallback case: try to match with NS_INFER and infer the declaration from the original ident.
-        match self.resolve_ident_fallback(ident.clone(), NS_INFER) {
+        match self.resolve_ident_fallback(ident, NS_INFER) {
             // The declaration and all needed parent modules were created
             // -> just return the fq ident
             Some(inferred_ident) => Ok(inferred_ident),
 
             // Was not able to infer.
-            None => Err(format!("Unknown name {ident}")),
+            None => Err("Unknown name".to_string()),
         }
     }
 

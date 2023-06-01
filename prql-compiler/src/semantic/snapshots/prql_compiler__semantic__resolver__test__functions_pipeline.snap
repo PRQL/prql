@@ -15,7 +15,39 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
   ty:
     kind:
       Union:
-        - - scalar_tuple
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - bool
+          - kind:
+              Primitive: Bool
+            name: bool
+        - - text
+          - kind:
+              Primitive: Text
+            name: text
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+        - - time
+          - kind:
+              Primitive: Time
+            name: time
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - ~
+          - kind:
+              Singleton: "Null"
+            name: ~
+        - - tuple_of_scalars
           - kind:
               Tuple:
                 - Wildcard:
@@ -54,39 +86,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
                               Singleton: "Null"
                             name: ~
                     name: scalar
-            name: scalar_tuple
-        - - int
-          - kind:
-              Primitive: Int
-            name: int
-        - - float
-          - kind:
-              Primitive: Float
-            name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
-        - - timestamp
-          - kind:
-              Primitive: Timestamp
-            name: timestamp
-        - - ~
-          - kind:
-              Singleton: "Null"
-            name: ~
+            name: tuple_of_scalars
     name: ~
   alias: one
 
