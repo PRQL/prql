@@ -196,7 +196,7 @@ impl Command {
             Command::Format(_) => {
                 let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
                     |_| bail!(
-                        "Currently `fmt` only works with a single source, but found multiple sources: {:?}", 
+                        "Currently `fmt` only works with a single source, but found multiple sources: {:?}",
                         sources.sources.keys().map(|x| format!("'{}'", x.display())).join(", ")
                     )
                 )?;
@@ -223,7 +223,7 @@ impl Command {
             Command::Annotate(_) => {
                 let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
                     |_| bail!(
-                        "Currently `annotate` only works with a single source, but found multiple sources: {:?}", 
+                        "Currently `annotate` only works with a single source, but found multiple sources: {:?}",
                         sources.sources.keys().map(|x| format!("`{}`", x.display())).join(", ")
                     )
                 )?;
