@@ -1,3 +1,4 @@
+use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
@@ -169,7 +170,7 @@ impl Command {
                 self.write_output(&buf)?;
             }
             Err(e) => {
-                print!("{:}", e);
+                eprint!("{:}", e);
                 std::process::exit(1)
             }
         }
@@ -193,7 +194,16 @@ impl Command {
                 }
             }
             Command::Format(_) => {
-                let (_, source) = sources.sources.clone().into_iter().exactly_one()?;
+                let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
+                    |_| bail!(
+                        "Currently `fmt` only works with a single source, but found multiple sources: {:?}",
+                        sources.sources.keys()
+                            .map(|x| x.display().to_string())
+                            .sorted()
+                            .map(|x| format!("`{}`", x))
+                            .join(", ")
+                    )
+                )?;
                 let ast = prql_to_pl(&source)?;
 
                 pl_to_prql(ast)?.as_bytes().to_vec()
@@ -215,7 +225,16 @@ impl Command {
                 out
             }
             Command::Annotate(_) => {
-                let (_, source) = sources.sources.clone().into_iter().exactly_one()?;
+                let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
+                    |_| bail!(
+                        "Currently `annotate` only works with a single source, but found multiple sources: {:?}",
+                        sources.sources.keys()
+                            .map(|x| x.display().to_string())
+                            .sorted()
+                            .map(|x| format!("`{}`", x))
+                            .join(", ")
+                    )
+                )?;
 
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
@@ -298,8 +317,10 @@ impl Command {
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
-            | SQLAnchor { io_args, .. } => io_args,
-            Format(io) | Debug(io) | Annotate(io) => io,
+            | SQLAnchor { io_args, .. }
+            | Format(io_args)
+            | Debug(io_args)
+            | Annotate(io_args) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;

@@ -148,6 +148,23 @@ fn test_compile_project() {
 }
 
 #[test]
+fn test_format() {
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    cmd.args(["fmt"]);
+    cmd.arg(project_path());
+    // cmd.arg("-");
+    cmd.arg("favorite_artists");
+    assert_cmd_snapshot!(cmd, @r###"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    Currently `fmt` only works with a single source, but found multiple sources: "`_project.prql`, `artists.prql`"
+    "###);
+}
+
+#[test]
 fn test_shell_completion() {
     assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
         .arg("shell-completion")
