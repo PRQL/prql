@@ -36,7 +36,7 @@ impl std::fmt::Display for pl::Ty {
 }
 
 pub trait WriteSource {
-    /// Converts self to it's source representation according to specified
+    /// Converts self to its source representation according to specified
     /// options.
     ///
     /// Returns `None` if source does not fit into [WriteOpt::rem_width].
