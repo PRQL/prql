@@ -32,39 +32,6 @@ fn eval(kind: ExprKind) -> ExprKind {
                 (&left.kind, &right.kind)
             {
                 match (op, left, right) {
-                    (BinOp::Mul, Literal::Integer(left), Literal::Integer(right)) => {
-                        Some(Literal::Integer(left * right))
-                    }
-                    (BinOp::Mul, Literal::Float(left), Literal::Float(right)) => {
-                        Some(Literal::Float(left * right))
-                    }
-                    // Don't do int division yet; https://github.com/PRQL/prql/issues/1733
-                    // (BinOp::Div, Literal::Integer(left), Literal::Integer(right)) => {
-                    //     Some(Literal::Integer(left / right))
-                    // }
-                    (BinOp::Div, Literal::Float(left), Literal::Float(right)) => {
-                        Some(Literal::Float(left / right))
-                    }
-                    (BinOp::Mod, Literal::Integer(left), Literal::Integer(right)) => {
-                        Some(Literal::Integer(left % right))
-                    }
-                    (BinOp::Mod, Literal::Float(left), Literal::Float(right)) => {
-                        Some(Literal::Float(left % right))
-                    }
-
-                    (BinOp::Add, Literal::Integer(left), Literal::Integer(right)) => {
-                        Some(Literal::Integer(left + right))
-                    }
-                    (BinOp::Add, Literal::Float(left), Literal::Float(right)) => {
-                        Some(Literal::Float(left + right))
-                    }
-                    (BinOp::Sub, Literal::Integer(left), Literal::Integer(right)) => {
-                        Some(Literal::Integer(left - right))
-                    }
-                    (BinOp::Sub, Literal::Float(left), Literal::Float(right)) => {
-                        Some(Literal::Float(left - right))
-                    }
-
                     (BinOp::Eq, left, right) => {
                         // don't eval comparisons between different types of literals
                         if left.as_ref() != right.as_ref() {

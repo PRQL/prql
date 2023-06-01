@@ -764,7 +764,8 @@ impl Lowerer {
             pl::ExprKind::Binary { left, op, right } => {
                 let name = match op {
                     pl::BinOp::Mul => "std.mul",
-                    pl::BinOp::Div => "std.div",
+                    pl::BinOp::DivInt => "std.div_i",
+                    pl::BinOp::DivFloat => "std.div_f",
                     pl::BinOp::Mod => "std.mod",
                     pl::BinOp::Add => "std.add",
                     pl::BinOp::Sub => "std.sub",

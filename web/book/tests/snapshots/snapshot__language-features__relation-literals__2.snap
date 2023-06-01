@@ -19,7 +19,7 @@ SELECT
   b,
   c,
   b + c AS d,
-  42 AS answer
+  20 * 2 + 2 AS answer
 FROM
   table_2 AS table_1
 

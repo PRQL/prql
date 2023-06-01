@@ -122,8 +122,10 @@ impl ExprKind {
 pub enum BinOp {
     #[strum(to_string = "*")]
     Mul,
+    #[strum(to_string = "//")]
+    DivInt,
     #[strum(to_string = "/")]
-    Div,
+    DivFloat,
     #[strum(to_string = "%")]
     Mod,
     #[strum(to_string = "+")]

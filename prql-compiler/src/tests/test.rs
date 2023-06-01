@@ -59,7 +59,7 @@ fn test_precedence() {
     select temp_c = (temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
-      (temp - 32) / 1.8 AS temp_c
+      (temp - 32 * 1.0 / 1.8) AS temp_c
     FROM
       x
     "###);
@@ -1142,7 +1142,7 @@ fn test_nulls() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      COALESCE(amount + 2, 15) AS amount
+      COALESCE(amount + 2, 3 * 5) AS amount
     FROM
       employees
     "###);
@@ -2403,7 +2403,7 @@ fn test_casting() {
         @r###"
     SELECT
       a,
-      CAST(a AS int) / 10 AS c
+      (CAST(a AS int) * 1.0 / 10) AS c
     FROM
       x
     "###
@@ -2901,24 +2901,6 @@ fn test_static_analysis() {
     select {
         a = (- (-3)),
         b = !(!(!(!(!(true))))),
-        a3 = 3 * 5,
-        a3 = 3 / 5,
-        a3 = 3 % 5,
-        a3 = 3 + 5,
-        a3 = 3 - 5,
-
-        a3 = 3.6 * 5.1,
-        a3 = 3.6 / 5.1,
-        a3 = 3.6 % 5.1,
-        a3 = 3.6 + 5.1,
-        a3 = 3.6 - 5.1,
-
-        a3 = 3.6 * 5,
-        a3 = 3.6 / 5,
-        a3 = 3.6 % 5,
-        a3 = 3.6 + 5,
-        a3 = 3.6 - 5,
-
         a3 = null ?? y,
 
         a3 = case {
@@ -2928,28 +2910,13 @@ fn test_static_analysis() {
             7.3 == 7.3 => 4,
             z => 5,
             true => 6
-        }
+        },
     }
         "###).unwrap(),
         @r###"
     SELECT
       3 AS a,
       false AS b,
-      15,
-      3 / 5,
-      3,
-      8,
-      -2,
-      18.36,
-      0.7058823529411765,
-      3.6,
-      8.7,
-      -1.4999999999999996,
-      3.6 * 5,
-      3.6 / 5,
-      3.6 % 5,
-      3.6 + 5,
-      3.6 - 5,
       y,
       CASE
         WHEN 7 = y THEN 3

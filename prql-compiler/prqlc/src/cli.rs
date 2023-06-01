@@ -405,7 +405,7 @@ mod clio_extended {
     use std::fs::{self, File};
     use std::io::{self, Read, Stdin};
     use std::marker::PhantomData;
-    use std::path::{Path, PathBuf};
+    use std::path::PathBuf;
 
     use clap::builder::TypedValueParser;
     use prql_compiler::SourceTree;
@@ -488,7 +488,7 @@ mod clio_extended {
                 }
             };
 
-            let path = Path::new(self.path()).to_path_buf();
+            let path = PathBuf::from("_root.prql");
             Ok(SourceTree::single(path, only_file))
         }
     }

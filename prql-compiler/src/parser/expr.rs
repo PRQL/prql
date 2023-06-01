@@ -376,7 +376,8 @@ fn operator_unary() -> impl Parser<Token, UnOp, Error = PError> {
 }
 fn operator_mul() -> impl Parser<Token, BinOp, Error = PError> {
     (ctrl('*').to(BinOp::Mul))
-        .or(ctrl('/').to(BinOp::Div))
+        .or(just(Token::DivInt).to(BinOp::DivInt))
+        .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
 }
 fn operator_add() -> impl Parser<Token, BinOp, Error = PError> {

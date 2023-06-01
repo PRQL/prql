@@ -38,8 +38,9 @@ let read_parquet = source -> s"read_parquet({source})"
 let read_csv = source -> s"read_csv_auto({source})"
 
 let mul = l r -> null
-let div = l r -> null
-let mod = l r -> null
+let div_i = l r -> s"FLOOR(FLOOR(ABS({l} / {r})) * SIGN({l} / {r}))"
+let div_f = l r -> s"({l} * 1.0 / {r})"
+let mod = l r -> s"{l} % {r}"
 let add = l r -> null
 let sub = l r -> null
 let eq = l r -> null
@@ -56,11 +57,14 @@ let neg = l -> null
 let not = l -> null
 
 module postgres {
-    let regex_search = text pattern -> s"{text} ~ {pattern}"
+    let div_i = l r -> s"trunc({l} / {r})::bigint"
+    let round = n_digits column -> s"ROUND(({column})::numeric, {n_digits})"
+    let regex_search = text pattern -> s"({text} ~ {pattern})"
 }
 
 module sqlite {
-    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+    let div_i = l r -> s"ROUND(ABS({l} / {r}) - 0.5) * SIGN({l} / {r})"
+    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
 }
 
 module mssql {
@@ -68,7 +72,9 @@ module mssql {
 }
 
 module mysql {
-    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+    let div_f = l r -> s"(CAST({l} AS FLOAT) / {r})"
+    let mod = l r -> s"FLOOR(MOD({l}, {r}))"
+    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
 }
 
 module bigquery {
@@ -76,9 +82,8 @@ module bigquery {
 }
 
 module duckdb {
-    let regex_search = text pattern -> s"REGEXP_MATCHES({text}, {pattern})"
-}
+    # TODO: uncomment when updated on latest DuckDB version
+    # let div_i = l r -> s"({l} // {r})"
 
-module duckdb {
     let regex_search = text pattern -> s"REGEXP_MATCHES({text}, {pattern})"
 }

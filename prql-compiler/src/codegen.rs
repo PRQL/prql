@@ -269,7 +269,7 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
 
         pl::ExprKind::Range(_) => 3,
         pl::ExprKind::Binary { op, .. } => match op {
-            pl::BinOp::Mul | pl::BinOp::Div | pl::BinOp::Mod => 4,
+            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 4,
             pl::BinOp::Add | pl::BinOp::Sub => 5,
             pl::BinOp::Eq
             | pl::BinOp::Ne
