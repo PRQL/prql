@@ -1,4 +1,4 @@
-use crate::ast::pl;
+use crate::{ast::pl, utils::VALID_IDENT};
 
 pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     let mut r = String::new();
@@ -305,20 +305,10 @@ impl WriteSource for pl::Ident {
 }
 
 pub fn write_ident_part(s: &str) -> String {
-    fn forbidden_start(c: char) -> bool {
-        !(c.is_ascii_lowercase() || matches!(c, '_' | '$'))
-    }
-    fn forbidden_subsequent(c: char) -> bool {
-        !(c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '_'))
-    }
-    let needs_escape = s.is_empty()
-        || s.starts_with(forbidden_start)
-        || (s.len() > 1 && s.chars().skip(1).any(forbidden_subsequent));
-
-    if needs_escape {
-        format!("`{s}`")
-    } else {
+    if VALID_IDENT.is_match(s) {
         s.to_string()
+    } else {
+        format!("`{}`", s)
     }
 }
 

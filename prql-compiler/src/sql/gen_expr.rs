@@ -20,7 +20,7 @@ use crate::ast::pl::{
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::sql::srq::context::ColumnDecl;
-use crate::utils::OrMap;
+use crate::utils::{OrMap, VALID_IDENT};
 
 use super::gen_projection::try_into_exprs;
 use super::Context;
@@ -771,17 +771,7 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    static VALID_BARE_IDENT: Lazy<Regex> = Lazy::new(|| {
-        // One of:
-        // - `*`
-        // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
-        //
-        // We could replace this with pomsky (regex<>pomsky : sql<>prql)
-        // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
-        Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
-    });
-
-    let is_bare = VALID_BARE_IDENT.is_match(&ident);
+    let is_bare = VALID_IDENT.is_match(&ident);
 
     if is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
