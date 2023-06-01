@@ -148,5 +148,6 @@ jobs:
           github-token: ${{ github.token }}
           # Doesn't appear to work, so we instead we add a `needs` so it runs at the end
           # use-github-auto-merge: true
+    if: always()
     needs:
       - check-ok-to-merge
