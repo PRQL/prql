@@ -4,7 +4,7 @@ expression: "let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))\
 input_file: prql-compiler/tests/integration/queries/set_ops_remove.prql
 ---
 
-let distinct = rel -> (from t = _param.rel | group {t.`*`} (take 1))
+let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
 
 from_text format:json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'
 distinct
