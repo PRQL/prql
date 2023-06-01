@@ -38,7 +38,7 @@ let read_parquet = source -> s"read_parquet({source})"
 let read_csv = source -> s"read_csv_auto({source})"
 
 let mul = l r -> null
-let div_i = l r -> s"ROUND({l} / {r} - 0.5)"
+let div_i = l r -> s"ROUND({l} / {r} - 0.5, 0)"
 let div_f = l r -> s"(CAST({l} AS FLOAT) / {r})"
 let mod = l r -> null
 let add = l r -> null

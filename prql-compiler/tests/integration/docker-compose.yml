@@ -1,3 +1,4 @@
+version: "2.4"
 services:
   postgres:
     # These aren't tagged yet, since there's no dependabot support for

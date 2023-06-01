@@ -36,10 +36,10 @@ SELECT
   (CAST(a_int AS FLOAT) / b_float),
   (CAST(a_float AS FLOAT) / b_int),
   (CAST(a_float AS FLOAT) / b_float),
-  ROUND(a_int / b_int - 0.5),
-  ROUND(a_int / b_float - 0.5),
-  ROUND(a_float / b_int - 0.5),
-  ROUND(a_float / b_float - 0.5)
+  ROUND(a_int / b_int - 0.5, 0),
+  ROUND(a_int / b_float - 0.5, 0),
+  ROUND(a_float / b_int - 0.5, 0),
+  ROUND(a_float / b_float - 0.5, 0)
 FROM
   table_2 AS table_1
 
