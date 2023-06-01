@@ -339,7 +339,7 @@ fn test_remove() {
     "#).unwrap_err(),
         @r###"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
-    Hint: Providing more column information will allow the query to be translated to an anti-join.
+    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 
@@ -555,7 +555,7 @@ fn test_intersect() {
     "#).unwrap_err(),
         @r###"
     Error: The dialect SQLiteDialect does not support INTERSECT ALL
-    Hint: Providing more column information will allow the query to be translated to an anti-join.
+    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 }
@@ -1747,7 +1747,7 @@ fn test_bare_s_string() {
     from s"SELECTfoo"
     "###).unwrap_err(), @r###"
     Error: s-strings representing a table must start with `SELECT `
-    Hint: this is a limitation by current compiler implementation
+    ↳ Hint: this is a limitation by current compiler implementation
     "###);
 }
 
