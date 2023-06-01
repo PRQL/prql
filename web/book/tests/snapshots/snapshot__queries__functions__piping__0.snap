@@ -4,8 +4,8 @@ expression: "let interp = low:0 high x -> (x - low) / (high - low)\n\nfrom stude
 ---
 SELECT
   *,
-  (CAST(sat_score - 0 AS FLOAT) / 1600 - 0) AS sat_proportion_1,
-  (CAST(sat_score - 0 AS FLOAT) / 1600 - 0) AS sat_proportion_2
+  (sat_score - 0 * 1.0 / 1600 - 0) AS sat_proportion_1,
+  (sat_score - 0 * 1.0 / 1600 - 0) AS sat_proportion_2
 FROM
   students
 

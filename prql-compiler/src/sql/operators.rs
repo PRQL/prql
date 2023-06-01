@@ -52,7 +52,7 @@ pub(super) fn translate_operator(
         .chain(func_def.params.iter())
         .map(|x| x.name.split('.').last().unwrap_or(x.name.as_str()));
 
-    let mut args: HashMap<&str, _> = zip(params, args.into_iter()).collect();
+    let args: HashMap<&str, _> = zip(params, args.into_iter()).collect();
 
     // body can only be an s-string
     let body = match &func_def.body.kind {
@@ -76,8 +76,8 @@ pub(super) fn translate_operator(
                     let ident = ident.as_ref().unwrap();
 
                     // lookup args
-                    let arg = args.remove(ident.name.as_str());
-                    pl::InterpolateItem::<rq::Expr>::Expr(Box::new(arg.unwrap()))
+                    let arg = args.get(ident.name.as_str());
+                    pl::InterpolateItem::<rq::Expr>::Expr(Box::new(arg.cloned().unwrap()))
                 }
                 pl::InterpolateItem::String(s) => pl::InterpolateItem::String(s.clone()),
             }

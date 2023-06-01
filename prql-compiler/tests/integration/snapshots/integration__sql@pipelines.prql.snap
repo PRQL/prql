@@ -12,9 +12,7 @@ WITH table_1 AS (
     tracks
   WHERE
     REGEXP(name, 'Love')
-    AND (
-      CAST((CAST(milliseconds AS FLOAT) / 1000) AS FLOAT) / 60
-    ) BETWEEN 3 AND 4
+    AND ((milliseconds * 1.0 / 1000) * 1.0 / 60) BETWEEN 3 AND 4
   ORDER BY
     track_id
   LIMIT

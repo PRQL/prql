@@ -1,45 +1,77 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "[\n    { a_int =  13, a_float =  13.0, b_int =  5, b_float =  5.0 },\n    { a_int = -13, a_float = -13.0, b_int =  5, b_float =  5.0 },\n    { a_int =  13, a_float =  13.0, b_int = -5, b_float = -5.0 },\n    { a_int = -13, a_float = -13.0, b_int = -5, b_float = -5.0 },\n]\nselect {\n    a_int / b_int,\n    a_int / b_float,\n    a_float / b_int,\n    a_float / b_float,\n    a_int // b_int,\n    a_int // b_float,\n    a_float // b_int,\n    a_float // b_float,\n}"
+expression: "[\n    { x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },\n    { x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },\n    { x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },\n    { x_int = -13, x_float = -13.0, k_int = -5, k_float = -5.0 },\n]\nselect {\n    x_int / k_int,\n    x_int / k_float,\n    x_float / k_int,\n    x_float / k_float,\n    \n    q_ii = x_int // k_int,\n    q_if = x_int // k_float,\n    q_fi = x_float // k_int,\n    q_ff = x_float // k_float,\n\n    r_ii = x_int % k_int,\n    r_if = x_int % k_float,\n    r_fi = x_float % k_int,\n    r_ff = x_float % k_float,\n\n    round 0 (q_ii * k_int + r_ii),\n    round 0 (q_if * k_float + r_if),\n    round 0 (q_fi * k_int + r_fi),\n    round 0 (q_ff * k_float + r_ff),\n}\n"
 input_file: prql-compiler/tests/integration/queries/arithmetic.prql
 ---
 WITH table_2 AS (
   SELECT
-    13 AS a_int,
-    13.0 AS a_float,
-    5 AS b_int,
-    5.0 AS b_float
+    13 AS x_int,
+    13.0 AS x_float,
+    5 AS k_int,
+    5.0 AS k_float
   UNION
   ALL
   SELECT
-    -13 AS a_int,
-    -13.0 AS a_float,
-    5 AS b_int,
-    5.0 AS b_float
+    -13 AS x_int,
+    -13.0 AS x_float,
+    5 AS k_int,
+    5.0 AS k_float
   UNION
   ALL
   SELECT
-    13 AS a_int,
-    13.0 AS a_float,
-    -5 AS b_int,
-    -5.0 AS b_float
+    13 AS x_int,
+    13.0 AS x_float,
+    -5 AS k_int,
+    -5.0 AS k_float
   UNION
   ALL
   SELECT
-    -13 AS a_int,
-    -13.0 AS a_float,
-    -5 AS b_int,
-    -5.0 AS b_float
+    -13 AS x_int,
+    -13.0 AS x_float,
+    -5 AS k_int,
+    -5.0 AS k_float
 )
 SELECT
-  (CAST(a_int AS FLOAT) / b_int),
-  (CAST(a_int AS FLOAT) / b_float),
-  (CAST(a_float AS FLOAT) / b_int),
-  (CAST(a_float AS FLOAT) / b_float),
-  ROUND(a_int / b_int - 0.5, 0),
-  ROUND(a_int / b_float - 0.5, 0),
-  ROUND(a_float / b_int - 0.5, 0),
-  ROUND(a_float / b_float - 0.5, 0)
+  (x_int * 1.0 / k_int),
+  (x_int * 1.0 / k_float),
+  (x_float * 1.0 / k_int),
+  (x_float * 1.0 / k_float),
+  FLOOR(FLOOR(ABS(x_int / k_int)) * SIGN(x_int / k_int)) AS q_ii,
+  FLOOR(
+    FLOOR(ABS(x_int / k_float)) * SIGN(x_int / k_float)
+  ) AS q_if,
+  FLOOR(
+    FLOOR(ABS(x_float / k_int)) * SIGN(x_float / k_int)
+  ) AS q_fi,
+  FLOOR(
+    FLOOR(ABS(x_float / k_float)) * SIGN(x_float / k_float)
+  ) AS q_ff,
+  x_int % k_int AS r_ii,
+  x_int % k_float AS r_if,
+  x_float % k_int AS r_fi,
+  x_float % k_float AS r_ff,
+  ROUND(
+    FLOOR(FLOOR(ABS(x_int / k_int)) * SIGN(x_int / k_int)) * k_int + x_int % k_int,
+    0
+  ),
+  ROUND(
+    FLOOR(
+      FLOOR(ABS(x_int / k_float)) * SIGN(x_int / k_float)
+    ) * k_float + x_int % k_float,
+    0
+  ),
+  ROUND(
+    FLOOR(
+      FLOOR(ABS(x_float / k_int)) * SIGN(x_float / k_int)
+    ) * k_int + x_float % k_int,
+    0
+  ),
+  ROUND(
+    FLOOR(
+      FLOOR(ABS(x_float / k_float)) * SIGN(x_float / k_float)
+    ) * k_float + x_float % k_float,
+    0
+  )
 FROM
   table_2 AS table_1
 

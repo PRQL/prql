@@ -7,9 +7,9 @@ SELECT
   labor,
   overhead,
   cost_total,
-  (CAST(materials AS FLOAT) / cost_total) AS materials_share,
-  (CAST(labor AS FLOAT) / cost_total) AS labor_share,
-  (CAST(overhead AS FLOAT) / cost_total) AS overhead_share
+  (materials * 1.0 / cost_total) AS materials_share,
+  (labor * 1.0 / cost_total) AS labor_share,
+  (overhead * 1.0 / cost_total) AS overhead_share
 FROM
   costs
 

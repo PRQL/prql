@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::{env, fs};
 
+use anyhow::Context;
 use insta::{assert_snapshot, glob};
 use postgres::NoTls;
 use tiberius::{AuthMethod, Client, Config};
@@ -81,7 +82,9 @@ fn test_rdbms() {
             if prql.contains(format!("skip_{}", vendor).as_str()) {
                 continue;
             }
-            results.insert(vendor, run_query(con.as_mut(), prql.as_str(), &runtime));
+            let res = run_query(con.as_mut(), prql.as_str(), &runtime);
+            let res = res.context(format!("Executing for {vendor}")).unwrap();
+            results.insert(vendor, res);
         }
 
         if results.is_empty() {
@@ -184,12 +187,17 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
     }
 }
 
-fn run_query(con: &mut dyn DBConnection, prql: &str, runtime: &Runtime) -> Vec<Row> {
+fn run_query(
+    con: &mut dyn DBConnection,
+    prql: &str,
+    runtime: &Runtime,
+) -> anyhow::Result<Vec<Row>> {
     let options = Options::default().with_target(Sql(Some(con.get_dialect())));
-    let sql = prql_compiler::compile(prql, &options).unwrap();
-    let mut actual_rows = con.run_query(sql.as_str(), runtime).unwrap();
+    let sql = prql_compiler::compile(prql, &options)?;
+
+    let mut actual_rows = con.run_query(sql.as_str(), runtime)?;
     replace_booleans(&mut actual_rows);
-    actual_rows
+    Ok(actual_rows)
 }
 
 // some sql dialects use 1 and 0 instead of true and false
