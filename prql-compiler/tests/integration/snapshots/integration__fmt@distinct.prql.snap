@@ -6,6 +6,6 @@ input_file: prql-compiler/tests/integration/queries/distinct.prql
 
 from tracks
 select {album_id, genre_id}
-group tracks.`*` (take 1)
-sort tracks.`*`
+group tracks.* (take 1)
+sort tracks.*
 

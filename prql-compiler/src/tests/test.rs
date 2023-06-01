@@ -3769,3 +3769,21 @@ fn test_lineage() {
     "###
     );
 }
+
+fn test_type_as_column_name() {
+    // #2503
+    assert_display_snapshot!(compile(r#"
+    let f = tbl -> (
+      t = tbl
+      select t.date
+    )
+
+    from foo
+    f"#)
+    .unwrap(), @r###"
+    SELECT
+      date
+    FROM
+      foo AS t
+    "###);
+}

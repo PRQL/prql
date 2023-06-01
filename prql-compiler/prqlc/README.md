@@ -1,6 +1,7 @@
-# prqlc
+# PRQL compiler CLI — `prqlc`
 
-`prqlc` is a single, dependency-free binary that compiles PRQL into SQL.
+`prqlc` is a CLI for PRQL compiler; A single, dependency-free binary that
+compiles PRQL into SQL.
 
 ## Installation
 
