@@ -1,0 +1,43 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "[\n    { a_int =  13, a_float =  13.0, b_int =  5, b_float =  5.0 },\n    { a_int = -13, a_float = -13.0, b_int =  5, b_float =  5.0 },\n    { a_int =  13, a_float =  13.0, b_int = -5, b_float = -5.0 },\n    { a_int = -13, a_float = -13.0, b_int = -5, b_float = -5.0 },\n]\nselect {\n    a_int / b_int,\n    a_int / b_float,\n    a_float / b_int,\n    a_float / b_float,\n    a_int // b_int,\n    a_int // b_float,\n    a_float // b_int,\n    a_float // b_float,\n}"
+input_file: prql-compiler/tests/integration/queries/arithmetic.prql
+---
+
+[
+    {
+        a_int = 13,
+        a_float = 13,
+        b_int = 5,
+        b_float = 5,
+    },
+    {
+        a_int = (-13),
+        a_float = (-13),
+        b_int = 5,
+        b_float = 5,
+    },
+    {
+        a_int = 13,
+        a_float = 13,
+        b_int = (-5),
+        b_float = (-5),
+    },
+    {
+        a_int = (-13),
+        a_float = (-13),
+        b_int = (-5),
+        b_float = (-5),
+    },
+]
+select {
+    a_int / b_int,
+    a_int / b_float,
+    a_float / b_int,
+    a_float / b_float,
+    a_int // b_int,
+    a_int // b_float,
+    a_float // b_int,
+    a_float // b_float,
+}
+

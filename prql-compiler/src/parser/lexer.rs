@@ -30,6 +30,7 @@ pub enum Token {
     And,         // &&
     Or,          // ||
     Coalesce,    // ??
+    DivInt,      // //
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -47,6 +48,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("&&").then_ignore(end_expr()).to(Token::And),
         just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
+        just("//").to(Token::DivInt),
     ));
 
     let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
@@ -403,6 +405,7 @@ impl std::fmt::Display for Token {
             Self::And => f.write_str("&&"),
             Self::Or => f.write_str("||"),
             Self::Coalesce => f.write_str("??"),
+            Self::DivInt => f.write_str("//"),
 
             Self::Param(id) => write!(f, "${id}"),
 

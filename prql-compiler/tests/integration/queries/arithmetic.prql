@@ -1,0 +1,16 @@
+[
+    { a_int =  13, a_float =  13.0, b_int =  5, b_float =  5.0 },
+    { a_int = -13, a_float = -13.0, b_int =  5, b_float =  5.0 },
+    { a_int =  13, a_float =  13.0, b_int = -5, b_float = -5.0 },
+    { a_int = -13, a_float = -13.0, b_int = -5, b_float = -5.0 },
+]
+select {
+    a_int / b_int,
+    a_int / b_float,
+    a_float / b_int,
+    a_float / b_float,
+    a_int // b_int,
+    a_int // b_float,
+    a_float // b_int,
+    a_float // b_float,
+}

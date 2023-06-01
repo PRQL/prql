@@ -17,7 +17,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 - a
                 - b
               target_id: 10
-            op: Div
+            op: DivFloat
             right:
               id: 34
               SString:

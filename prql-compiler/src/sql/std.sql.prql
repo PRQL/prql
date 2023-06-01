@@ -38,7 +38,8 @@ let read_parquet = source -> s"read_parquet({source})"
 let read_csv = source -> s"read_csv_auto({source})"
 
 let mul = l r -> null
-let div = l r -> null
+let div_i = l r -> s"ROUND({l} / {r} - 0.5)"
+let div_f = l r -> s"(CAST({l} AS FLOAT) / {r})"
 let mod = l r -> null
 let add = l r -> null
 let sub = l r -> null
@@ -56,11 +57,11 @@ let neg = l -> null
 let not = l -> null
 
 module postgres {
-    let regex_search = text pattern -> s"{text} ~ {pattern}"
+    let regex_search = text pattern -> s"({text} ~ {pattern})"
 }
 
 module sqlite {
-    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
 }
 
 module mssql {
@@ -68,7 +69,7 @@ module mssql {
 }
 
 module mysql {
-    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
 }
 
 module bigquery {

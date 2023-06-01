@@ -7,5 +7,7 @@ SELECT
 FROM
   tracks
 WHERE
-  name REGEXP 'But Why Isn''t Your Syntax More Similar\?'
+  (
+    name REGEXP 'But Why Isn''t Your Syntax More Similar\?'
+  )
 

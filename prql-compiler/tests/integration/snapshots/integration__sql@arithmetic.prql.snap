@@ -1,0 +1,45 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "[\n    { a_int =  13, a_float =  13.0, b_int =  5, b_float =  5.0 },\n    { a_int = -13, a_float = -13.0, b_int =  5, b_float =  5.0 },\n    { a_int =  13, a_float =  13.0, b_int = -5, b_float = -5.0 },\n    { a_int = -13, a_float = -13.0, b_int = -5, b_float = -5.0 },\n]\nselect {\n    a_int / b_int,\n    a_int / b_float,\n    a_float / b_int,\n    a_float / b_float,\n    a_int // b_int,\n    a_int // b_float,\n    a_float // b_int,\n    a_float // b_float,\n}"
+input_file: prql-compiler/tests/integration/queries/arithmetic.prql
+---
+WITH table_2 AS (
+  SELECT
+    13 AS a_int,
+    13.0 AS a_float,
+    5 AS b_int,
+    5.0 AS b_float
+  UNION
+  ALL
+  SELECT
+    -13 AS a_int,
+    -13.0 AS a_float,
+    5 AS b_int,
+    5.0 AS b_float
+  UNION
+  ALL
+  SELECT
+    13 AS a_int,
+    13.0 AS a_float,
+    -5 AS b_int,
+    -5.0 AS b_float
+  UNION
+  ALL
+  SELECT
+    -13 AS a_int,
+    -13.0 AS a_float,
+    -5 AS b_int,
+    -5.0 AS b_float
+)
+SELECT
+  (CAST(a_int AS FLOAT) / b_int),
+  (CAST(a_int AS FLOAT) / b_float),
+  (CAST(a_float AS FLOAT) / b_int),
+  (CAST(a_float AS FLOAT) / b_float),
+  ROUND(a_int / b_int - 0.5),
+  ROUND(a_int / b_float - 0.5),
+  ROUND(a_float / b_int - 0.5),
+  ROUND(a_float / b_float - 0.5)
+FROM
+  table_2 AS table_1
+

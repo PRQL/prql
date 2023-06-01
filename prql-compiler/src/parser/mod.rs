@@ -1583,7 +1583,7 @@ Canada
                   left:
                     Literal:
                       Integer: 1
-                  op: Div
+                  op: DivFloat
                   right:
                     Literal:
                       Integer: 2

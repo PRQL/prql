@@ -1,0 +1,10 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "[\n    { a_int =  13, a_float =  13.0, b_int =  5, b_float =  5.0 },\n    { a_int = -13, a_float = -13.0, b_int =  5, b_float =  5.0 },\n    { a_int =  13, a_float =  13.0, b_int = -5, b_float = -5.0 },\n    { a_int = -13, a_float = -13.0, b_int = -5, b_float = -5.0 },\n]\nselect {\n    a_int / b_int,\n    a_int / b_float,\n    a_float / b_int,\n    a_float / b_float,\n    a_int // b_int,\n    a_int // b_float,\n    a_float // b_int,\n    a_float // b_float,\n}"
+input_file: prql-compiler/tests/integration/queries/arithmetic.prql
+---
+2.6,2.6,2.6,2.6,2,2,2,2
+-2.6,-2.6,-2.6,-2.6,-3,-3,-3,-3
+-2.6,-2.6,-2.6,-2.6,-3,-3,-3,-3
+2.6,2.6,2.6,2.6,2,2,2,2
+

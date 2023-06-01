@@ -277,7 +277,6 @@ fn operator_from_name(name: &str) -> Option<BinaryOperator> {
     use BinaryOperator::*;
     match name {
         "std.mul" => Some(Multiply),
-        "std.div" => Some(Divide),
         "std.mod" => Some(Modulo),
         "std.add" => Some(Plus),
         "std.sub" => Some(Minus),
