@@ -35,6 +35,13 @@ impl std::fmt::Display for pl::Ty {
     }
 }
 
+impl std::fmt::Display for pl::TyKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let opt = WriteOpt::new_width(u16::MAX);
+        f.write_str(&self.write(opt).unwrap())
+    }
+}
+
 pub trait WriteSource {
     /// Converts self to its source representation according to specified
     /// options.
@@ -394,7 +401,7 @@ impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
 
             if !exprs.iter().any(|e| e.contains('\n')) {
                 let inline_width = exprs.iter().map(|s| s.len()).sum::<usize>()
-                    + self.inline.len() * (exprs.len() - 1);
+                    + self.inline.len() * (exprs.len().checked_sub(1).unwrap_or_default());
                 if opt.rem_width > inline_width as u16 {
                     return Some(exprs.join(self.inline));
                 }
@@ -499,9 +506,9 @@ impl WriteSource for pl::TyKind {
                 inline: ", ",
                 line_end: ",",
             }
-            .write(opt),
+            .write_between("{", "}", opt),
             Set => Some("set".to_string()),
-            Array(elem) => Some(format!("{{{}}}", elem.write(opt)?)),
+            Array(elem) => Some(format!("[{}]", elem.write(opt)?)),
             Function(func) => {
                 let mut r = String::new();
 

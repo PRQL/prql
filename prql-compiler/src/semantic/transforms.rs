@@ -382,7 +382,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
 
         _ => {
             return Err(Error::new_simple("unknown operator {internal_name}")
-                .with_help("this is a bug in prql-compiler")
+                .push_hint("this is a bug in prql-compiler")
                 .with_span(closure.body.span)
                 .into())
         }
@@ -408,7 +408,7 @@ pub fn coerce_into_tuple(expr: Expr) -> Result<Vec<Expr>> {
                 bail!(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`")
                 })
-                .with_help(format!("move assign into the tuple: `[{alias} = ...]`"))
+                .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
                 .with_span(expr.span))
             }
             items
@@ -518,19 +518,6 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                // TODO: See #2270 — this is a bad error message and likely
-                // should be handled prior to reaching this point.
-                if let Some(ty) = &body.ty {
-                    if !ty.is_relation() {
-                        return Err(
-                            Error::new_simple(format!(
-                                "Expected a function that could operate on a table, but instead found {}",
-                                body.ty.clone().unwrap(),
-                            ))
-                            .into()
-                        );
-                    }
-                }
                 let mut frame = body.lineage.clone().unwrap();
 
                 log::debug!("inferring type of group with pipeline: {body}");
@@ -592,7 +579,7 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
         return Err(Error::new_simple(
             "cannot append two relations with non-matching number of columns.",
         ))
-        .with_help(format!(
+        .push_hint(format!(
             "top has {} columns, but bottom has {}",
             top.columns.len(),
             bottom.columns.len()
@@ -625,7 +612,7 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
             (t, b) => return Err(Error::new_simple(format!(
                 "cannot match columns `{t:?}` and `{b:?}`"
             ))
-            .with_help(
+            .push_hint(
                 "make sure that top and bottom relations of append has the same column layout",
             )),
         });
@@ -1120,7 +1107,7 @@ mod tests {
         assert_yaml_snapshot!(res, @r###"
         ---
         - RelationVar:
-            id: 48
+            id: 55
             TransformCall:
               input:
                 id: 8
@@ -1147,11 +1134,11 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 40
+                    - id: 47
                       RqOperator:
                         name: std.avg
                         args:
-                          - id: 39
+                          - id: 46
                             Ident:
                               - _frame
                               - c_invoice
@@ -1160,7 +1147,39 @@ mod tests {
                       ty:
                         kind:
                           Union:
-                            - - scalar_tuple
+                            - - int
+                              - kind:
+                                  Primitive: Int
+                                name: int
+                            - - float
+                              - kind:
+                                  Primitive: Float
+                                name: float
+                            - - bool
+                              - kind:
+                                  Primitive: Bool
+                                name: bool
+                            - - text
+                              - kind:
+                                  Primitive: Text
+                                name: text
+                            - - date
+                              - kind:
+                                  Primitive: Date
+                                name: date
+                            - - time
+                              - kind:
+                                  Primitive: Time
+                                name: time
+                            - - timestamp
+                              - kind:
+                                  Primitive: Timestamp
+                                name: timestamp
+                            - - ~
+                              - kind:
+                                  Singleton: "Null"
+                                name: ~
+                            - - tuple_of_scalars
                               - kind:
                                   Tuple:
                                     - Wildcard:
@@ -1199,7 +1218,98 @@ mod tests {
                                                   Singleton: "Null"
                                                 name: ~
                                         name: scalar
-                                name: scalar_tuple
+                                name: tuple_of_scalars
+                        name: ~
+              partition:
+                - id: 23
+                  Ident:
+                    - _frame
+                    - c_invoice
+                    - issued_at
+                  target_id: 8
+                  ty:
+                    kind:
+                      Union:
+                        - - int
+                          - kind:
+                              Primitive: Int
+                            name: int
+                        - - float
+                          - kind:
+                              Primitive: Float
+                            name: float
+                        - - bool
+                          - kind:
+                              Primitive: Bool
+                            name: bool
+                        - - text
+                          - kind:
+                              Primitive: Text
+                            name: text
+                        - - date
+                          - kind:
+                              Primitive: Date
+                            name: date
+                        - - time
+                          - kind:
+                              Primitive: Time
+                            name: time
+                        - - timestamp
+                          - kind:
+                              Primitive: Timestamp
+                            name: timestamp
+                        - - ~
+                          - kind:
+                              Singleton: "Null"
+                            name: ~
+                        - - tuple_of_scalars
+                          - kind:
+                              Tuple:
+                                - Wildcard:
+                                    kind:
+                                      Union:
+                                        - - int
+                                          - kind:
+                                              Primitive: Int
+                                            name: int
+                                        - - float
+                                          - kind:
+                                              Primitive: Float
+                                            name: float
+                                        - - bool
+                                          - kind:
+                                              Primitive: Bool
+                                            name: bool
+                                        - - text
+                                          - kind:
+                                              Primitive: Text
+                                            name: text
+                                        - - date
+                                          - kind:
+                                              Primitive: Date
+                                            name: date
+                                        - - time
+                                          - kind:
+                                              Primitive: Time
+                                            name: time
+                                        - - timestamp
+                                          - kind:
+                                              Primitive: Timestamp
+                                            name: timestamp
+                                        - - ~
+                                          - kind:
+                                              Singleton: "Null"
+                                            name: ~
+                                    name: scalar
+                            name: tuple_of_scalars
+                    name: ~
+            ty:
+              kind:
+                Array:
+                  Tuple:
+                    - Wildcard:
+                        kind:
+                          Union:
                             - - int
                               - kind:
                                   Primitive: Int
@@ -1232,18 +1342,7 @@ mod tests {
                               - kind:
                                   Singleton: "Null"
                                 name: ~
-                        name: ~
-              partition:
-                - id: 16
-                  Ident:
-                    - _frame
-                    - c_invoice
-                    - issued_at
-                  target_id: 8
-            ty:
-              kind:
-                Array:
-                  Tuple: []
+                        name: scalar
               name: relation
             lineage:
               columns:
@@ -1251,10 +1350,10 @@ mod tests {
                     name:
                       - c_invoice
                       - issued_at
-                    expr_id: 16
+                    expr_id: 23
                 - Single:
                     name: ~
-                    expr_id: 40
+                    expr_id: 47
               inputs:
                 - id: 8
                   name: c_invoice

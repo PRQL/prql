@@ -386,7 +386,7 @@ mod tests_lib {
                     name: "\"sql.poostgres\"",
                     namespace: "target",
                 },
-                help: None,
+                hints: [],
                 code: None,
             },
         )
@@ -401,7 +401,7 @@ mod tests_lib {
                     name: "\"postgres\"",
                     namespace: "target",
                 },
-                help: None,
+                hints: [],
                 code: None,
             },
         )

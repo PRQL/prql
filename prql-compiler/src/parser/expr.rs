@@ -331,7 +331,6 @@ where
     .then_ignore(just(Token::ArrowThin))
     .then(type_expr().or_not())
     .then(choice((internal, func_call(expr))))
-    .then_ignore(new_line())
     .map(|((params, return_ty), body)| {
         let (pos, nam) = params
             .into_iter()

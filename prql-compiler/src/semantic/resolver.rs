@@ -281,7 +281,7 @@ impl AstFold for Resolver {
                             "table instance cannot be referenced directly",
                         )
                         .with_span(span)
-                        .with_help("did you forget to specify the column name?")
+                        .push_hint("did you forget to specify the column name?")
                         .into());
                     }
 
@@ -638,22 +638,20 @@ impl Resolver {
             // not enough arguments: don't fold
             log::debug!("returning as closure");
 
-            let mut ty = {
-                TyFunc {
-                    args: closure
-                        .params
-                        .iter()
-                        .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
-                        .collect(),
-                    return_ty: Box::new(
-                        closure
-                            .return_ty
-                            .as_ref()
-                            .map(|x| x.as_ty().cloned().unwrap()),
-                    ),
-                }
+            let ty = TyFunc {
+                args: closure
+                    .params
+                    .iter()
+                    .skip(args_len)
+                    .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
+                    .collect(),
+                return_ty: Box::new(
+                    closure
+                        .return_ty
+                        .as_ref()
+                        .map(|x| x.as_ty().cloned().unwrap()),
+                ),
             };
-            ty.args = ty.args[args_len..].to_vec();
 
             let mut node = Expr::from(ExprKind::Func(Box::new(closure)));
             node.ty = Some(Ty {
@@ -886,14 +884,14 @@ impl Resolver {
         }))
     }
 
-    fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
+    pub fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
                 let name = expr.kind.as_ident().map(|i| i.name.clone());
 
                 let expr = self.fold_expr(expr)?;
 
-                let mut set_expr = type_resolver::coerce_to_type(expr, &self.context)?;
+                let mut set_expr = type_resolver::coerce_to_type(self, expr)?;
                 set_expr.name = set_expr.name.or(name);
                 Some(set_expr)
             }

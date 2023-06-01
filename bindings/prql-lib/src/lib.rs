@@ -255,7 +255,11 @@ unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileRes
                 kind: MessageKind::Error,
                 code: option_to_ptr(e.code.map(convert_string)),
                 reason: convert_string(e.reason),
-                hint: option_to_ptr(e.hint.map(convert_string)),
+                hint: option_to_ptr(if e.hints.is_empty() {
+                    None
+                } else {
+                    Some(convert_string(e.hints.join("\n")))
+                }),
                 span: option_to_ptr(e.span.map(convert_span)),
                 display: option_to_ptr(e.display.map(convert_string)),
                 location: option_to_ptr(e.location.map(convert_source_location)),

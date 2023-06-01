@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
@@ -119,7 +121,34 @@ impl TyKind {
                 .iter()
                 .all(|(_, each)| one.is_super_type_of(&each.kind)),
 
+            (TyKind::Function(sup), TyKind::Function(sub)) => {
+                if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
+                    return false;
+                }
+                if sup.args.len() != sub.args.len() {
+                    return false;
+                }
+                for (sup_arg, sub_arg) in zip(&sup.args, &sub.args) {
+                    if is_not_super_type_of(sup_arg, sub_arg) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+
             (l, r) => l == r,
         }
     }
+}
+
+fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
+    if let Some(sub_ret) = sub {
+        if let Some(sup_ret) = sup {
+            if !sup_ret.is_super_type_of(sub_ret) {
+                return true;
+            }
+        }
+    }
+    false
 }

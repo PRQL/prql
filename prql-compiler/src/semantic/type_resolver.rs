@@ -4,115 +4,128 @@ use itertools::Itertools;
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
+use super::resolver::Resolver;
 use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
-pub fn coerce_to_type(expr: Expr, context: &Context) -> Result<Ty, Error> {
-    coerce_kind_to_set(expr.kind, context)
+pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
+    coerce_kind_to_set(resolver, expr.kind)
 }
 
-fn coerce_to_aliased_type(expr: Expr, context: &Context) -> Result<(Option<String>, Ty), Error> {
+fn coerce_to_aliased_type(resolver: &mut Resolver, expr: Expr) -> Result<(Option<String>, Ty)> {
     let name = expr.alias;
-    let expr = coerce_kind_to_set(expr.kind, context).map_err(|e| e.with_span(expr.span))?;
+    let expr = coerce_kind_to_set(resolver, expr.kind).map_err(|e| e.with_span(expr.span))?;
 
     Ok((name, expr))
 }
 
-fn coerce_kind_to_set(expr: ExprKind, context: &Context) -> Result<Ty, Error> {
-    // already resolved type expressions (mostly primitives)
-    if let ExprKind::Type(set_expr) = expr {
-        return Ok(set_expr);
-    }
+fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
+    Ok(match expr {
+        // already resolved type expressions (mostly primitives)
+        ExprKind::Type(set_expr) => set_expr,
 
-    // singletons
-    if let ExprKind::Literal(lit) = expr {
-        return Ok(Ty {
+        // singletons
+        ExprKind::Literal(lit) => Ty {
             name: None,
             kind: TyKind::Singleton(lit),
-        });
-    }
+        },
 
-    // tuples
-    if let ExprKind::Tuple(mut elements) = expr {
-        let mut set_elements = Vec::with_capacity(elements.len());
+        // tuples
+        ExprKind::Tuple(mut elements) => {
+            let mut set_elements = Vec::with_capacity(elements.len());
 
-        // special case: {x..}
-        if elements.len() == 1 {
-            let only = elements.remove(0);
-            if let ExprKind::Range(Range { start, end: None }) = only.kind {
-                let inner = match start {
-                    Some(x) => Some(coerce_to_type(*x, context)?),
-                    None => None,
-                };
+            // special case: {x..}
+            if elements.len() == 1 {
+                let only = elements.remove(0);
+                if let ExprKind::Range(Range { start, end: None }) = only.kind {
+                    let inner = match start {
+                        Some(x) => Some(coerce_to_type(resolver, *x)?),
+                        None => None,
+                    };
 
-                set_elements.push(TupleField::Wildcard(inner))
-            } else {
-                elements.push(only);
+                    set_elements.push(TupleField::Wildcard(inner))
+                } else {
+                    elements.push(only);
+                }
+            }
+
+            for e in elements {
+                let (name, ty) = coerce_to_aliased_type(resolver, e)?;
+                let ty = Some(ty);
+
+                set_elements.push(TupleField::Single(name, ty));
+            }
+
+            Ty {
+                name: None,
+                kind: TyKind::Tuple(set_elements),
             }
         }
 
-        for e in elements {
-            let (name, ty) = coerce_to_aliased_type(e, context)?;
-            let ty = Some(ty);
+        // arrays
+        ExprKind::Array(elements) => {
+            if elements.len() != 1 {
+                return Err(Error::new_simple(
+                    "For type expressions, arrays must contain exactly one element.",
+                )
+                .into());
+            }
+            let items_type = elements.into_iter().next().unwrap();
+            let (_, items_type) = coerce_to_aliased_type(resolver, items_type)?;
 
-            set_elements.push(TupleField::Single(name, ty));
+            Ty {
+                name: None,
+                kind: TyKind::Array(Box::new(items_type.kind)),
+            }
         }
 
-        return Ok(Ty {
+        // unions
+        ExprKind::Binary {
+            left,
+            op: BinOp::Or,
+            right,
+        } => {
+            let left = coerce_to_type(resolver, *left)?;
+            let right = coerce_to_type(resolver, *right)?;
+
+            // flatten nested unions
+            let mut options = Vec::with_capacity(2);
+            if let TyKind::Union(parts) = left.kind {
+                options.extend(parts);
+            } else {
+                options.push((left.name.clone(), left));
+            }
+            if let TyKind::Union(parts) = right.kind {
+                options.extend(parts);
+            } else {
+                options.push((right.name.clone(), right));
+            }
+
+            Ty {
+                name: None,
+                kind: TyKind::Union(options),
+            }
+        }
+
+        // functions
+        ExprKind::Func(func) => Ty {
             name: None,
-            kind: TyKind::Tuple(set_elements),
-        });
-    }
+            kind: TyKind::Function(TyFunc {
+                args: func
+                    .params
+                    .into_iter()
+                    .map(|p| p.ty.map(|t| t.into_ty().unwrap()))
+                    .collect_vec(),
+                return_ty: Box::new(resolver.fold_type_expr(Some(*func.body))?),
+            }),
+        },
 
-    // arrays
-    if let ExprKind::Array(elements) = expr {
-        if elements.len() != 1 {
-            return Err(Error::new_simple(
-                "For type expressions, arrays must contain exactly one element.",
-            ));
+        _ => {
+            return Err(
+                Error::new_simple(format!("not a type expression: {}", Expr::from(expr))).into(),
+            )
         }
-        let items_type = elements.into_iter().next().unwrap();
-        let (_, items_type) = coerce_to_aliased_type(items_type, context)?;
-
-        return Ok(Ty {
-            name: None,
-            kind: TyKind::Array(Box::new(items_type.kind)),
-        });
-    }
-
-    // unions
-    if let ExprKind::Binary {
-        left,
-        op: BinOp::Or,
-        right,
-    } = expr
-    {
-        let left = coerce_to_type(*left, context)?;
-        let right = coerce_to_type(*right, context)?;
-
-        // flatten nested unions
-        let mut options = Vec::with_capacity(2);
-        if let TyKind::Union(parts) = left.kind {
-            options.extend(parts);
-        } else {
-            options.push((left.name.clone(), left));
-        }
-        if let TyKind::Union(parts) = right.kind {
-            options.extend(parts);
-        } else {
-            options.push((right.name.clone(), right));
-        }
-
-        return Ok(Ty {
-            name: None,
-            kind: TyKind::Union(options),
-        });
-    }
-
-    Err(Error::new_simple(format!(
-        "not a type expression: {}",
-        Expr::from(expr)
-    )))
+    })
 }
 
 pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
@@ -164,7 +177,7 @@ fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -
         found: format!("{}", passed_len),
     });
     if passed_len >= 2 {
-        err.with_help(format!(
+        err.push_hint(format!(
             "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
             call.name, call.args[0], call.args[1]
         ))
@@ -241,7 +254,7 @@ impl Context {
                 .map(|x| x.contains("std.join"))
                 .unwrap_or_default();
 
-            let e = Err(Error::new(Reason::Expected {
+            let mut e = Err(Error::new(Reason::Expected {
                 who,
                 expected: display_ty(expected),
                 found: display_ty(&found_ty),
@@ -254,11 +267,16 @@ impl Context {
                     .map(|n| format!("to function {n}"))
                     .unwrap_or_else(|| "in this function call?".to_string());
 
-                return e.with_help(format!("Have you forgotten an argument {to_what}?"));
-            };
+                e = e.push_hint(format!("Have you forgotten an argument {to_what}?"));
+            }
 
             if is_join && found_ty.is_tuple() && !expected.is_tuple() {
-                return e.with_help("Try using `(...)` instead of `{...}`");
+                e = e.push_hint("Try using `(...)` instead of `{...}`");
+            }
+
+            if let Some(expected_name) = &expected.name {
+                let expanded = expected.kind.to_string();
+                e = e.push_hint(format!("Type `{expected_name}` expands to `{expanded}`"));
             }
 
             return e;
