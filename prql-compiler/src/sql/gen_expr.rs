@@ -2,7 +2,7 @@
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
@@ -749,18 +749,16 @@ pub(super) fn translate_ident(
 }
 
 fn is_keyword(ident: &str) -> bool {
-    lazy_static! {
-        /// Keywords which we want to quote when translating to SQL. Currently we're
-        /// being fairly permissive (over-quoting is not a concern), though we don't
-        /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
-        /// and `lower`.
-        static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
-            let mut m = HashSet::new();
-            m.extend(RESERVED_FOR_COLUMN_ALIAS);
-            m.extend(RESERVED_FOR_TABLE_ALIAS);
-            m
-        };
-    }
+    /// Keywords which we want to quote when translating to SQL. Currently we're
+    /// being fairly permissive (over-quoting is not a concern), though we don't
+    /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
+    /// and `lower`.
+    static PRQL_KEYWORDS: Lazy<HashSet<&'static Keyword>> = Lazy::new(|| {
+        let mut m = HashSet::new();
+        m.extend(RESERVED_FOR_COLUMN_ALIAS);
+        m.extend(RESERVED_FOR_TABLE_ALIAS);
+        m
+    });
 
     // Search for the ident in `ALL_KEYWORDS`, and then look it up in
     // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
@@ -773,15 +771,15 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    lazy_static! {
+    static VALID_BARE_IDENT: Lazy<Regex> = Lazy::new(|| {
         // One of:
         // - `*`
         // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
         //
         // We could replace this with pomsky (regex<>pomsky : sql<>prql)
         // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
-        static ref VALID_BARE_IDENT: Regex = Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap();
-    }
+        Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
+    });
 
     let is_bare = VALID_BARE_IDENT.is_match(&ident);
 
