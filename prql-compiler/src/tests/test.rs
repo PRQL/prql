@@ -3657,3 +3657,60 @@ fn test_array() {
     "###
     );
 }
+
+#[test]
+fn test_double_stars() {
+    assert_display_snapshot!(compile(r#"
+    from tb1
+    join tb2 (==c2)
+    take 5
+    filter (tb2.c3 < 100)
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        tb1.*,
+        tb2.*
+      FROM
+        tb1
+        JOIN tb2 ON tb1.c2 = tb2.c2
+      LIMIT
+        5
+    )
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    WHERE
+      c3 < 100
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.duckdb
+
+    from tb1
+    join tb2 (==c2)
+    take 5
+    filter (tb2.c3 < 100)
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        tb1.*,
+        tb2.*
+      FROM
+        tb1
+        JOIN tb2 ON tb1.c2 = tb2.c2
+      LIMIT
+        5
+    )
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    WHERE
+      c3 < 100
+    "###
+    );
+}
