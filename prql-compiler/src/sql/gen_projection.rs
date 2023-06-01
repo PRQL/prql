@@ -82,18 +82,25 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
 
     let mut output = Vec::new();
     for cid in cols {
+        // don't use cols that have been included by preceding star
+        let in_star = star
+            .as_mut()
+            .map(|s: &mut (CId, HashSet<CId>)| s.1.remove(&cid))
+            .unwrap_or_default();
+        if in_star {
+            continue;
+        }
+
         if let ColumnDecl::RelationColumn(riid, _, col) = &ctx.column_decls[&cid] {
             if matches!(col, RelationColumn::Wildcard) {
                 exclude(&mut star, &mut excluded);
 
                 let relation_instance = &ctx.relation_instances[riid];
-                let in_star: HashSet<_> = (relation_instance.table_ref.columns)
+                let mut in_star: HashSet<_> = (relation_instance.table_ref.columns)
                     .iter()
-                    .filter_map(|c| match c {
-                        (RelationColumn::Wildcard, _) => None,
-                        (_, cid) => Some(*cid),
-                    })
+                    .map(|(_, cid)| *cid)
                     .collect();
+                in_star.remove(&cid);
                 star = Some((cid, in_star));
 
                 // remove preceding cols that will be included with this star
@@ -108,11 +115,7 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
             }
         }
 
-        // don't use cols that have been included by preceding star
-        let in_star = star.as_mut().map(|s| s.1.remove(&cid)).unwrap_or_default();
-        if !in_star {
-            output.push(cid);
-        }
+        output.push(cid);
     }
 
     exclude(&mut star, &mut excluded);
