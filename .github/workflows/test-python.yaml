@@ -7,6 +7,11 @@ on:
       - ".github/workflows/test-python.yaml"
   workflow_call:
 
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-python
+  cancel-in-progress: true
+
 jobs:
   build-python-wheels:
     runs-on: ${{ matrix.os }}
