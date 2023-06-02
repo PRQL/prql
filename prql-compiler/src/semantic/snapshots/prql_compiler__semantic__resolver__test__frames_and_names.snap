@@ -7,20 +7,24 @@ columns:
       name:
         - orders
         - customer_no
-      expr_id: 30
+      target_id: 30
+      target_name: ~
   - Single:
       name:
         - orders
         - gross
-      expr_id: 31
+      target_id: 31
+      target_name: ~
   - Single:
       name:
         - orders
         - tax
-      expr_id: 32
+      target_id: 32
+      target_name: ~
   - Single:
       name: ~
-      expr_id: 33
+      target_id: 33
+      target_name: ~
 inputs:
   - id: 8
     name: orders

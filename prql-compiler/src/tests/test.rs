@@ -3716,6 +3716,61 @@ fn test_double_stars() {
 }
 
 #[test]
+fn test_lineage() {
+    // #2627
+    assert_display_snapshot!(compile(r#"
+    from_text """
+    a
+    1
+    2
+    3
+    """
+    derive a = a
+    "#).unwrap(),
+        @r###"
+    WITH table_2 AS (
+      SELECT
+        '    1' AS a
+      UNION
+      ALL
+      SELECT
+        '    2' AS a
+      UNION
+      ALL
+      SELECT
+        '    3' AS a
+    )
+    SELECT
+      a,
+      a
+    FROM
+      table_2 AS table_1
+    "###
+    );
+
+    // #2392
+    assert_display_snapshot!(compile(r#"
+    from_text format:json """{
+        "columns": ["a"],
+        "data": [[1]]
+    }"""
+    derive a = a + 1
+    "#).unwrap(),
+        @r###"
+    WITH table_2 AS (
+      SELECT
+        1 AS a
+    )
+    SELECT
+      a AS _expr_0,
+      a + 1 AS a
+    FROM
+      table_2 AS table_1
+    "###
+    );
+}
+
+#[test]
 fn test_type_as_column_name() {
     // #2503
     assert_display_snapshot!(compile(r#"
