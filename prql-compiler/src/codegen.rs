@@ -585,4 +585,26 @@ mod test {
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
     }
+
+    #[test]
+    fn test_escaped_string() {
+        use itertools::Itertools;
+
+        let escaped_string = crate::prql_to_pl(
+            r#"
+        from tracks
+        filter (name ~= "\\(I Can't Help\\) Falling")
+        "#,
+        )
+        .unwrap()
+        .into_iter()
+        .exactly_one()
+        .unwrap();
+
+        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
+
+        from tracks
+        filter name ~= "\\(I Can't Help\\) Falling"
+        "###);
+    }
 }
