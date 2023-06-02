@@ -585,4 +585,26 @@ mod test {
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
     }
+
+    #[test]
+    fn test_escaped_string() {
+        use itertools::Itertools;
+
+        let escaped_string = crate::prql_to_pl(
+            r#"
+        from tracks
+        filter (name ~= "\\(I Can't Help\\) Falling")
+        "#,
+        )
+        .unwrap()
+        .into_iter()
+        .exactly_one()
+        .unwrap();
+
+        // TODO: should this require `trim`? Possibly a linebreak is being added.
+        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap().trim(), @r###"
+        from tracks
+        filter name ~= "\\(I Can't Help\\) Falling"
+        "###);
+    }
 }
