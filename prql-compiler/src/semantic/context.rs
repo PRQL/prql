@@ -57,8 +57,10 @@ pub enum DeclKind {
 
 #[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
-    /// Columns layout
-    pub columns: Vec<TupleField>,
+    /// This will always be `TyKind::Array(TyKind::Tuple)`.
+    /// It is being preparing to be merged with [DeclKind::Expr].
+    /// It used to keep track of columns.
+    pub ty: Option<Ty>,
 
     pub expr: TableExpr,
 }
@@ -111,9 +113,10 @@ impl Context {
                         }
                     })
                     .collect();
+                let ty = Some(Ty::relation(columns));
 
                 let expr = TableExpr::RelationVar(value);
-                DeclKind::TableDecl(TableDecl { columns, expr })
+                DeclKind::TableDecl(TableDecl { ty, expr })
             }
             _ => DeclKind::Expr(value),
         }
@@ -325,13 +328,16 @@ impl Context {
         let table = self.root_mod.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
-        let has_wildcard =
-            (table_decl.columns.iter()).any(|c| matches!(c, TupleField::Wildcard(_)));
+        let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
+            return Err(format!("Variable {table_ident:?} is not a relation."));
+        };
+
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
-        let exists = table_decl.columns.iter().any(|c| match c {
+        let exists = columns.iter().any(|c| match c {
             TupleField::Single(Some(n), _) => n == col_name,
             _ => false,
         });
@@ -339,8 +345,7 @@ impl Context {
             return Ok(());
         }
 
-        let col = TupleField::Single(Some(col_name.to_string()), None);
-        table_decl.columns.push(col);
+        columns.push(TupleField::Single(Some(col_name.to_string()), None));
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
@@ -441,7 +446,10 @@ impl Resolver {
     ) -> Lineage {
         let id = input_id;
         let table_decl = self.context.root_mod.get(table_fq).unwrap();
-        let TableDecl { columns, .. } = table_decl.kind.as_table_decl().unwrap();
+        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
+
+        // TODO: can this panic?
+        let columns = ty.as_ref().unwrap().as_relation().unwrap();
 
         let mut instance_frame = Lineage {
             inputs: vec![LineageInput {
@@ -500,7 +508,7 @@ impl Resolver {
         table_decl.expr = TableExpr::None;
 
         if let Some(columns) = columns {
-            table_decl.columns = columns;
+            table_decl.ty = Some(Ty::relation(columns));
         }
 
         default_db
@@ -547,8 +555,12 @@ impl std::fmt::Display for DeclKind {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDecl(TableDecl { columns, expr }) => {
-                write!(f, "TableDecl: {} {expr:?}", TyKind::Tuple(columns.clone()))
+            Self::TableDecl(TableDecl { ty, expr }) => {
+                write!(
+                    f,
+                    "TableDecl: {} {expr:?}",
+                    ty.as_ref().map(|t| t.to_string()).unwrap_or_default()
+                )
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),

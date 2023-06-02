@@ -159,7 +159,10 @@ impl Lowerer {
     }
 
     fn lower_table_decl(&mut self, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
-        let context::TableDecl { columns, expr } = table;
+        let context::TableDecl { ty, expr } = table;
+
+        // TODO: can this panic?
+        let columns = ty.unwrap().into_relation().unwrap();
 
         let (relation, name) = match expr {
             TableExpr::RelationVar(expr) => {
@@ -247,7 +250,9 @@ impl Lowerer {
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let columns = table_decl.columns.clone();
+                let ty = table_decl.ty.as_ref();
+                // TODO: can this panic?
+                let columns = ty.unwrap().as_relation().unwrap().clone();
 
                 log::debug!("lowering sstring table, columns = {columns:?}");
 
@@ -279,7 +284,9 @@ impl Lowerer {
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let columns = table_decl.columns.clone();
+                let ty = table_decl.ty.as_ref();
+                // TODO: can this panic?
+                let columns = ty.unwrap().as_relation().unwrap().clone();
 
                 log::debug!("lowering function table, columns = {columns:?}");
 

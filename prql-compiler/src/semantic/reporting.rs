@@ -96,8 +96,11 @@ impl<'a> AstFold for Labeler<'a> {
                         .unwrap_or_default();
 
                     let decl = match &decl.kind {
-                        DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                            format!("table {}", TyKind::Tuple(columns.clone()))
+                        DeclKind::TableDecl(TableDecl { ty, .. }) => {
+                            format!(
+                                "table {}",
+                                ty.as_ref().map(|t| t.to_string()).unwrap_or_default()
+                            )
                         }
                         _ => decl.to_string(),
                     };

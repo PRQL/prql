@@ -77,6 +77,25 @@ pub struct TyFunc {
 }
 
 impl Ty {
+    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+        Ty {
+            kind: TyKind::Array(Box::new(TyKind::Tuple(tuple_fields))),
+            name: None,
+        }
+    }
+
+    pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
+        self.kind.as_array()?.as_tuple()
+    }
+
+    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TupleField>> {
+        self.kind.as_array_mut()?.as_tuple_mut()
+    }
+
+    pub fn into_relation(self) -> Option<Vec<TupleField>> {
+        self.kind.into_array().ok()?.into_tuple().ok()
+    }
+
     pub fn is_super_type_of(&self, subset: &Ty) -> bool {
         if self.is_relation() && subset.is_relation() {
             return true;

@@ -727,11 +727,11 @@ impl LineageInput {
         let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
+        // TODO: can this panic?
+        let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
+
         // special case: wildcard
-        let has_wildcard = rel_def
-            .columns
-            .iter()
-            .any(|c| matches!(c, TupleField::Wildcard(_)));
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
         if has_wildcard {
             // Relation has a wildcard (i.e. we don't know all the columns)
             // which means we cannot list all columns.
@@ -758,8 +758,7 @@ impl LineageInput {
         }
 
         // base case: convert rel_def into frame columns
-        rel_def
-            .columns
+        columns
             .iter()
             .map(|col| {
                 let name = col.as_single().unwrap().0.clone().map(Ident::from_name);

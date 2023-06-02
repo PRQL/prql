@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident, TupleField};
+use crate::ast::pl::{Expr, Ident, TupleField, Ty};
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
@@ -65,7 +65,7 @@ impl Module {
             (
                 NS_INFER.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    columns: vec![TupleField::Wildcard(None)],
+                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
                     expr: TableExpr::LocalTable,
                 })))),
             ),
