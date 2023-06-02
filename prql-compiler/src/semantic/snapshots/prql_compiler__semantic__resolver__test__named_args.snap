@@ -20,6 +20,14 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
       - Literal:
           Integer: 3
@@ -38,6 +46,14 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
   alias: added
 - RqOperator:
@@ -58,6 +74,14 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
       - Literal:
           Integer: 1
@@ -76,6 +100,14 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
   alias: added_default
 

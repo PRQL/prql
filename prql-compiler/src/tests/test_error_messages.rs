@@ -192,7 +192,7 @@ fn test_basic_type_checking() {
        │
      3 │     select (a && b) + c
        │             ───┬──
-       │                ╰──── function std.add, param `left` expected type `int || float`, but found type `bool`
+       │                ╰──── function std.add, param `left` expected type `int || float || timestamp || date`, but found type `bool`
     ───╯
     "###);
 }

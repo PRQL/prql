@@ -6,10 +6,11 @@ derive {
     street = i.billing_address,
 }
 group {city, street} (
+    derive total = ii.unit_price * ii.quantity
     aggregate {
-        num_orders = s"COUNT(DISTINCT {i.invoice_id})",
+        num_orders = count_distinct i.invoice_id,
         num_tracks = sum ii.quantity,
-        total_price = sum (ii.unit_price * ii.quantity),
+        total_price = sum total,
     }
 )
 group {city} (

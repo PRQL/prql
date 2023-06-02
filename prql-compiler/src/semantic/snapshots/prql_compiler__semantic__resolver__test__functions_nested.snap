@@ -52,6 +52,14 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
       - Ident:
           - _frame
@@ -68,6 +76,14 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
   ty:
     kind:
@@ -80,5 +96,13 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
 

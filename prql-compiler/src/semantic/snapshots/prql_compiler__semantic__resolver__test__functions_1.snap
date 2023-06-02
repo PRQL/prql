@@ -20,6 +20,14 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
       - Ident:
           - _frame
@@ -36,6 +44,14 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
   ty:
     kind:
@@ -48,6 +64,14 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
   alias: net_salary
 

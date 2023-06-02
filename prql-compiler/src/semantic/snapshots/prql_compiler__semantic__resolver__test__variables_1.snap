@@ -20,6 +20,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
       - Ident:
           - _frame
@@ -36,6 +44,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
   ty:
     kind:
@@ -48,6 +64,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
   alias: gross_salary
 - RqOperator:
@@ -67,6 +91,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
       - Ident:
           - _frame
@@ -83,6 +115,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
   ty:
     kind:
@@ -95,6 +135,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
   alias: gross_cost
 

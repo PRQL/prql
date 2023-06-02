@@ -23,7 +23,7 @@ process of filling out [std lib](../stdlib.html).
 from employees
 aggregate {
   average salary,
-  ct = count
+  ct = count salary
 }
 ```
 
@@ -32,7 +32,7 @@ from employees
 group {title, country} (
   aggregate {
     average salary,
-    ct = count,
+    ct = count salary,
   }
 )
 ```

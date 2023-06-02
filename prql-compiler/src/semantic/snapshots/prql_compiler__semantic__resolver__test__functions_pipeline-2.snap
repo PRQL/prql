@@ -57,6 +57,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                 - kind:
                     Primitive: Float
                   name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
           name: ~
   ty:
     kind:
@@ -69,6 +77,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
           - kind:
               Primitive: Float
             name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
     name: ~
   alias: b
 
