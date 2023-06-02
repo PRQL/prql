@@ -74,7 +74,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
 
             Ty {
                 name: None,
-                kind: TyKind::Array(Box::new(items_type.kind)),
+                kind: TyKind::Array(Box::new(items_type)),
             }
         }
 
@@ -179,7 +179,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
                 // TODO: return Array(Infer) instead of Infer
                 return Ok(None);
             };
-            TyKind::Array(Box::new(items_ty.kind))
+            TyKind::Array(Box::new(items_ty))
         }
 
         _ => return Ok(None),
@@ -245,7 +245,7 @@ impl Resolver {
                 if ty.is_tuple() {
                     "a tuple".to_string()
                 } else {
-                    format!("type `{}`", ty)
+                    format!("type `{ty}`")
                 }
             }
 

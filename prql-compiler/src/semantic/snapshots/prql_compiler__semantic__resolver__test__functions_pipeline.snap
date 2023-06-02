@@ -2,16 +2,20 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
-- id: 212
-  RqOperator:
+- RqOperator:
     name: std.sum
     args:
-      - id: 211
-        Ident:
+      - Ident:
           - _frame
           - a
           - foo
-        target_id: 178
+        ty:
+          kind:
+            Array:
+              kind:
+                Singleton: "Null"
+              name: ~
+          name: array
   ty:
     kind:
       Union:
@@ -23,35 +27,6 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
-        - - timestamp
-          - kind:
-              Primitive: Timestamp
-            name: timestamp
-        - - ~
-          - kind:
-              Singleton: "Null"
-            name: ~
-        - - array
-          - kind:
-              Array:
-                Singleton: "Null"
-            name: array
     name: ~
   alias: one
 

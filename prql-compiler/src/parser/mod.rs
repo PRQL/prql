@@ -741,18 +741,6 @@ Canada
     }
 
     #[test]
-    #[ignore]
-    fn test_jinja() {
-        parse_single(
-            r#"
-        from {{ ref('stg_orders') }}
-        aggregate (sum order_id)
-        "#,
-        )
-        .unwrap_err();
-    }
-
-    #[test]
     fn test_tuple() {
         assert_yaml_snapshot!(parse_expr(r#"{1 + 1, 2}"#).unwrap(), @r###"
         ---

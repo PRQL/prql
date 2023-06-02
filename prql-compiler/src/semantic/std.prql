@@ -49,7 +49,7 @@ type array = [null]
 
 ## Scalar
 type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple_of_scalars = {(scalar || array)..}
+type tuple_of_scalars = {scalar..}
 
 ## Relation (an array of tupes)
 type relation = [tuple_of_scalars]
@@ -61,9 +61,9 @@ type transform = (relation -> relation)
 
 ## Relational transforms
 let from = `default_db.source`<relation> -> <relation> internal from
-let select = columns<scalar || tuple_of_scalars || array> tbl<relation> -> <relation> internal select
+let select = columns<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal select
 let filter = condition<bool> tbl<relation> -> <relation> internal filter
-let derive = columns<scalar || tuple_of_scalars || array> tbl<relation> -> <relation> internal derive
+let derive = columns<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal derive
 let aggregate = columns<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal aggregate
 let sort = by<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal sort
 let take = expr<scalar> tbl<relation> -> <relation> internal take
@@ -89,25 +89,25 @@ let loop = pipeline top<relation> -> <relation> internal loop
 
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
-let min = column -> <scalar || array> internal std.min
-let max = column -> <scalar || array> internal std.max
-let sum = column -> <scalar || array> internal std.sum
-let avg = column -> <scalar || array> internal std.avg
-let stddev = column -> <scalar || array> internal std.stddev
-let average = column -> <scalar || array> std.avg column
-let count = non_null:s"*" -> <scalar || array> internal std.count
+let min = column <array> -> <int || float> internal std.min
+let max = column <array> -> <int || float> internal std.max
+let sum = column <array> -> <int || float> internal std.sum
+let avg = column <array> -> <int || float> internal std.avg
+let stddev = column <array> -> <int || float> internal std.stddev
+let average = column <array> -> <float> std.avg column
+let count = non_null<array> -> <int> internal std.count
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-let count_distinct = column -> <scalar || array> internal std.count_distinct
+let count_distinct = column <array> -> internal std.count_distinct
 
 ## Window functions
-let lag = offset column -> <array> internal std.lag
-let lead = offset column -> <array> internal std.lead
-let first = offset column -> <array> internal std.first
-let last = offset column -> <array> internal std.last
-let rank = -> <array> internal std.rank
-let rank_dense = -> <array> internal std.rank_dense
-let row_number = -> <array> internal std.row_number
+let lag =   offset <int>    column <array> -> internal std.lag
+let lead =  offset <int>    column <array> -> internal std.lead
+let first = offset <int>    column <array> -> internal std.first
+let last =  offset <int>    column <array> -> internal std.last
+let rank = column <array> -> internal std.rank
+let rank_dense = column <array> -> internal std.rank_dense
+let row_number = column <array> -> internal std.row_number
 
 ## Misc functions
 let round = n_digits column -> <scalar> internal std.round

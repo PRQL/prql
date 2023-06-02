@@ -60,6 +60,12 @@ pub trait WriteSource {
     }
 }
 
+impl<T: WriteSource> WriteSource for &T {
+    fn write(&self, opt: WriteOpt) -> Option<String> {
+        (*self).write(opt)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct WriteOpt {
     /// String to emit as one indentation level
@@ -455,7 +461,7 @@ impl WriteSource for pl::SwitchCase {
     }
 }
 
-impl WriteSource for &pl::Ty {
+impl WriteSource for pl::Ty {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         if let Some(name) = &self.name {
             Some(name.clone())

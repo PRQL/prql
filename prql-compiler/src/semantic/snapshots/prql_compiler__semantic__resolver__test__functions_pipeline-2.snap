@@ -2,31 +2,32 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
 ---
-- id: 269
-  RqOperator:
+- RqOperator:
     name: std.add
     args:
-      - id: 221
-        Literal:
+      - Literal:
           Integer: 2
         ty:
           kind:
             Primitive: Int
           name: ~
-      - id: 225
-        RqOperator:
+      - RqOperator:
           name: std.add
           args:
-            - id: 202
-              RqOperator:
+            - RqOperator:
                 name: std.sum
                 args:
-                  - id: 217
-                    Ident:
+                  - Ident:
                       - _frame
                       - a
                       - foo
-                    target_id: 180
+                    ty:
+                      kind:
+                        Array:
+                          kind:
+                            Singleton: "Null"
+                          name: ~
+                      name: array
               ty:
                 kind:
                   Union:
@@ -39,8 +40,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                           Primitive: Float
                         name: float
                 name: ~
-            - id: 267
-              Literal:
+            - Literal:
                 Integer: 1
               ty:
                 kind:
@@ -69,30 +69,6 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
-        - - timestamp
-          - kind:
-              Primitive: Timestamp
-            name: timestamp
-        - - ~
-          - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+    name: ~
   alias: b
 

@@ -802,12 +802,12 @@ fn test_window_functions_00() {
     assert_display_snapshot!((compile(r###"
     from employees
     group last_name (
-        derive count
+        derive {count first_name}
     )
     "###).unwrap()), @r###"
     SELECT
       *,
-      COUNT(*) OVER (PARTITION BY last_name)
+      COUNT(first_name) OVER (PARTITION BY last_name)
     FROM
       employees
     "###);
@@ -825,7 +825,7 @@ fn test_window_functions_02() {
     group {order_month, order_day} (
         aggregate {
             num_orders = s"COUNT(DISTINCT {co.order_id})",
-            num_books = count non_null:ol.book_id,
+            num_books = count ol.book_id,
             total_price = sum ol.price,
         }
     )
@@ -902,7 +902,7 @@ fn test_window_functions_04() {
     let query = r###"
     from daily_orders
     sort day
-    group month (derive {total_month = rank})
+    group month (derive {total_month = rank day})
     derive {last_week = lag 7 num_orders}
     "###;
 
@@ -922,7 +922,7 @@ fn test_window_functions_05() {
     let query = r###"
     from daily_orders
     sort day
-    group month (sort num_orders | window expanding:true (derive rank))
+    group month (sort num_orders | window expanding:true (derive {rank day}))
     derive {num_orders_last_week = lag 7 num_orders}
     "###;
     assert_display_snapshot!((compile(query).unwrap()), @r###"
@@ -1320,7 +1320,7 @@ fn test_distinct() {
     // window functions cannot materialize into where statement: CTE is needed
     assert_display_snapshot!((compile(r###"
     from employees
-    derive rn = row_number
+    derive {rn = row_number id}
     filter rn > 2
     "###).unwrap()), @r###"
     WITH table_1 AS (
@@ -1803,7 +1803,7 @@ fn test_prql_to_sql_1() {
     assert_display_snapshot!(compile(r#"
     from employees
     aggregate {
-        count non_null:salary,
+        count salary,
         sum salary,
     }
     "#).unwrap(),
@@ -1854,7 +1854,7 @@ aggregate  {                                 # `by` are the columns to group by.
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost = sum gross_cost,
-    ct = count,
+    ct = count salary,
 }
 )
 sort sum_gross_cost
@@ -1868,9 +1868,9 @@ take 20
       SELECT
         title,
         country,
+        salary,
         salary + payroll_tax + benefits_cost AS _expr_0,
-        salary + payroll_tax AS _expr_1,
-        salary
+        salary + payroll_tax AS _expr_1
       FROM
         employees
       WHERE
@@ -1885,7 +1885,7 @@ take 20
       SUM(_expr_1),
       AVG(_expr_0),
       SUM(_expr_0) AS sum_gross_cost,
-      COUNT(*) AS ct
+      COUNT(salary) AS ct
     FROM
       table_1 AS table_0
     WHERE
@@ -1894,7 +1894,7 @@ take 20
       title,
       country
     HAVING
-      COUNT(*) > 200
+      COUNT(salary) > 200
     ORDER BY
       sum_gross_cost
     LIMIT
@@ -2761,7 +2761,7 @@ fn test_group_all() {
     prql target:sql.sqlite
 
     from a=albums
-    group a.* (aggregate count)
+    group a.* (aggregate {count s"*"})
         "###).unwrap_err(), @r###"
     Error: Target dialect does not support * in this position.
     "###);
@@ -2769,7 +2769,7 @@ fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
     from e=albums
-    group !{genre_id} (aggregate count)
+    group !{genre_id} (aggregate {count s"*"})
         "###).unwrap_err(), @r###"
     Error: Excluding columns not supported as this position
     "###);
@@ -2851,7 +2851,7 @@ fn test_case() {
     select category = case {
         length > avg_length => 'long'
     }
-    group category (aggregate count)
+    group category (aggregate {count s"*"})
         "###).unwrap(),
         @r###"
     WITH table_1 AS (
@@ -2954,8 +2954,8 @@ fn test_basic_agg() {
     assert_display_snapshot!(compile(r#"
     from employees
     aggregate {
-      count non_null:salary,
-      count,
+      count salary,
+      count s"*",
     }
     "#).unwrap(),
         @r###"
@@ -2987,7 +2987,7 @@ fn test_exclude_columns() {
     assert_display_snapshot!(compile(r#"
     from tracks
     select {track_id, title, composer, bytes}
-    group !{title, composer} (aggregate count)
+    group !{title, composer} (aggregate {count s"*"})
     "#).unwrap(),
         @r###"
     SELECT

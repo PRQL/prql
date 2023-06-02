@@ -645,9 +645,9 @@ mod test {
 
         let query = &r#"
         from employees
-        derive global_rank = rank
+        derive {global_rank = rank country}
         filter country == "USA"
-        derive rank = rank
+        derive {rank = rank country}
         "#;
 
         let sql_ast = crate::tests::compile(query).unwrap();

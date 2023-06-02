@@ -2,10 +2,13 @@
 
 use crate::ast::pl::{Expr, ExprKind, Literal};
 
-pub fn static_analysis(expr: Expr) -> Expr {
-    let kind = eval(expr.kind);
+pub fn static_analysis(mut expr: Expr) -> Expr {
+    expr.kind = eval(expr.kind);
 
-    Expr { kind, ..expr }
+    if expr.kind.is_literal() {
+        expr.ty = None;
+    }
+    expr
 }
 
 fn eval(kind: ExprKind) -> ExprKind {
@@ -73,7 +76,7 @@ fn eval(kind: ExprKind) -> ExprKind {
 
                 _ => {}
             };
-            return ExprKind::RqOperator { name, args };
+            ExprKind::RqOperator { name, args }
         }
 
         ExprKind::Case(items) => {

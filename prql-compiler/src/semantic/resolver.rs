@@ -189,7 +189,7 @@ impl AstFold for Resolver {
 
         log::trace!("folding expr {node:?}");
 
-        let mut r = match node.kind {
+        let r = match node.kind {
             ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident, node.span)?;
@@ -408,6 +408,7 @@ impl AstFold for Resolver {
                 ..node
             },
         };
+        let mut r = static_analysis::static_analysis(r);
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);
         r.span = r.span.or(span);
@@ -418,22 +419,15 @@ impl AstFold for Resolver {
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_type(&self.context)?);
-            } else if let ExprKind::Array(elements) = &r.kind {
-                if let Some(ExprKind::Tuple(elements)) = elements.first().map(|x| &x.kind) {
-                    // infer relations lineage
+            } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
+                // lineage from ty
 
-                    let columns: Option<Vec<TupleField>> = Some(
-                        elements
-                            .iter()
-                            .map(|x| TupleField::Single(x.alias.clone(), None))
-                            .collect_vec(),
-                    );
+                let columns = Some(relation_columns.clone());
 
-                    let name = r.alias.clone();
-                    let frame = self.declare_table_for_literal(id, columns, name);
+                let name = r.alias.clone();
+                let frame = self.declare_table_for_literal(id, columns, name);
 
-                    r.lineage = Some(frame);
-                }
+                r.lineage = Some(frame);
             }
         }
         if let Some(lineage) = &mut r.lineage {
@@ -445,7 +439,6 @@ impl AstFold for Resolver {
                 }
             }
         }
-        let r = static_analysis::static_analysis(r);
         Ok(r)
     }
 }
@@ -528,7 +521,10 @@ impl Resolver {
         };
 
         res.map_err(|e| {
-            log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
+            log::debug!(
+                "cannot resolve `{ident}`: `{e}`, context={:#?}",
+                self.context
+            );
             anyhow!(Error::new_simple(e).with_span(span))
         })
     }
@@ -580,12 +576,13 @@ impl Resolver {
             }
             let closure = self.resolve_function_args(closure)?;
 
-            let needs_window = (closure.return_ty.as_ref())
-                .map(|ty| ty.as_ty().unwrap().is_sub_type_of_array())
+            let needs_window = (closure.params.last())
+                .and_then(|p| p.ty.as_ref())
+                .map(|t| t.as_ty().unwrap().is_sub_type_of_array())
                 .unwrap_or_default();
 
             // evaluate
-            let mut res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
+            let res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
                 // special case: functions that have internal body
 
                 if operator_name.starts_with("std.") {
@@ -594,6 +591,7 @@ impl Resolver {
 
                     let mut res = Expr::from(ExprKind::RqOperator { name, args });
                     res.ty = closure.return_ty.map(|t| t.into_ty().unwrap());
+                    res.needs_window = needs_window;
                     res
                 } else {
                     let expr = transforms::cast_transform(self, closure)?;
@@ -641,7 +639,6 @@ impl Resolver {
             // pop the env
             self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
-            res.needs_window = needs_window;
             res
         } else {
             // not enough arguments: don't fold
@@ -753,11 +750,11 @@ impl Resolver {
                 let (index, (param, arg)) = pos.into_inner();
 
                 // just fold the argument alone
-                let mut arg = self.fold_and_type_check(arg, param, func_name)?;
+                let arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add relation frame into scope
-                let frame = arg.lineage.get_or_insert_with(Lineage::default);
+                let frame = arg.lineage.as_ref().unwrap();
                 if is_last {
                     self.context.root_mod.insert_frame(frame, NS_FRAME);
                 } else {
@@ -921,25 +918,22 @@ impl Resolver {
 }
 
 fn ty_of_lineage(lineage: &Lineage) -> Ty {
-    Ty {
-        kind: TyKind::Array(Box::new(TyKind::Tuple(
-            lineage
-                .columns
-                .iter()
-                .map(|col| match col {
-                    LineageColumn::All { .. } => TupleField::Wildcard(None),
-                    LineageColumn::Single { name, .. } => TupleField::Single(
-                        name.as_ref().map(|i| i.name.clone()),
-                        Some(Ty {
-                            kind: TyKind::Singleton(Literal::Null),
-                            name: None,
-                        }),
-                    ),
-                })
-                .collect(),
-        ))),
-        name: None,
-    }
+    Ty::relation(
+        lineage
+            .columns
+            .iter()
+            .map(|col| match col {
+                LineageColumn::All { .. } => TupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TupleField::Single(
+                    name.as_ref().map(|i| i.name.clone()),
+                    Some(Ty {
+                        kind: TyKind::Singleton(Literal::Null),
+                        name: None,
+                    }),
+                ),
+            })
+            .collect(),
+    )
 }
 
 fn env_of_closure(closure: Func) -> (Module, Expr) {
@@ -976,11 +970,27 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
 }
 
 #[cfg(test)]
-mod test {
+pub(super) mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{Expr, Lineage};
+    use crate::ast::pl::{fold::AstFold, Expr, Lineage};
+
+    pub fn erase_ids(expr: Expr) -> Expr {
+        IdEraser {}.fold_expr(expr).unwrap()
+    }
+
+    struct IdEraser {}
+
+    impl AstFold for IdEraser {
+        fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+            expr.kind = self.fold_expr_kind(expr.kind)?;
+            expr.id = None;
+            expr.target_id = None;
+            expr.target_ids.clear();
+            Ok(expr)
+        }
+    }
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let ctx = crate::semantic::test::parse_and_resolve(query)?;
@@ -995,8 +1005,11 @@ mod test {
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call()?;
-        Ok(derive.kind.into_derive()?)
+        let exprs = derive.kind.into_derive()?;
+        let exprs = IdEraser {}.fold_exprs(exprs).unwrap();
+        Ok(exprs)
     }
+
     #[test]
     fn test_variables_1() {
         assert_yaml_snapshot!(resolve_derive(
