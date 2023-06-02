@@ -116,14 +116,14 @@ enum Command {
 
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
-    #[arg(value_parser, default_value = "-", value_hint(ValueHint::FilePath))]
+    #[arg(value_parser, default_value = "-", value_hint(ValueHint::AnyPath))]
     input: clio_extended::Input,
 
     #[arg(value_parser, default_value = "-", value_hint(ValueHint::FilePath))]
     output: Output,
 
     /// Identifier of the main pipeline.
-    #[arg(value_parser, value_hint(ValueHint::FilePath))]
+    #[arg(value_parser, value_hint(ValueHint::Unknown))]
     main_path: Option<String>,
 }
 

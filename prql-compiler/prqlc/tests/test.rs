@@ -164,18 +164,11 @@ fn test_format() {
 
 #[test]
 fn test_shell_completion() {
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
-        .arg("shell-completion")
-        .arg("bash"));
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
-        .arg("shell-completion")
-        .arg("fish"));
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
-        .arg("shell-completion")
-        .arg("powershell"));
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
-        .arg("shell-completion")
-        .arg("zsh"));
+    for shell in ["bash", "fish", "powershell", "zsh"].into_iter() {
+        assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
+            .arg("shell-completion")
+            .arg(shell));
+    }
 }
 
 fn project_path() -> PathBuf {
