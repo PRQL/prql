@@ -388,13 +388,17 @@ impl AstFold for Resolver {
                     let name = r.alias.clone();
                     let frame = self.declare_table_for_literal(id, columns, name);
 
-                    r.lineage = Some(frame)
+                    r.lineage = Some(frame);
                 }
             }
         }
-        if let Some(frame) = &mut r.lineage {
+        if let Some(lineage) = &mut r.lineage {
             if let Some(alias) = r.alias.take() {
-                frame.rename(alias);
+                lineage.rename(alias.clone());
+
+                if let Some(ty) = &mut r.ty {
+                    ty.kind.rename_relation(alias);
+                }
             }
         }
         let r = static_analysis::static_analysis(r);

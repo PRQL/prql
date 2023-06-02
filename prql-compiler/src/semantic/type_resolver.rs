@@ -158,10 +158,32 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
                 .map(|x| -> Result<_> {
                     let ty = infer_type(x)?;
 
-                    Ok(TupleField::Single(None, ty))
+                    Ok(TupleField::Single(x.alias.clone(), ty))
                 })
                 .try_collect()?,
         ),
+        ExprKind::Array(items) => {
+            let mut intersection = None;
+            for item in items {
+                let item_ty = infer_type(item)?;
+
+                if let Some(item_ty) = item_ty {
+                    if let Some(intersection) = &intersection {
+                        if intersection != &item_ty {
+                            // TODO: compute type intersection instead
+                            return Ok(None);
+                        }
+                    } else {
+                        intersection = Some(item_ty);
+                    }
+                }
+            }
+            let Some(items_ty) = intersection else {
+                // TODO: return Array(Infer) instead of Infer
+                return Ok(None);
+            };
+            TyKind::Array(Box::new(items_ty.kind))
+        }
 
         _ => return Ok(None),
     };

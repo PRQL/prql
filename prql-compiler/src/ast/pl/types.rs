@@ -160,6 +160,53 @@ impl TyKind {
             (l, r) => l == r,
         }
     }
+
+    /// Analogous to [crate::ast::pl::Lineage::rename()]
+    pub fn rename_relation(&mut self, alias: String) {
+        if let TyKind::Array(items_ty) = self {
+            items_ty.rename_tuples(alias);
+        }
+    }
+
+    fn rename_tuples(&mut self, alias: String) {
+        self.flatten_tuples();
+
+        if let TyKind::Tuple(fields) = self {
+            let inner_fields = std::mem::replace(fields, Vec::new());
+
+            fields.push(TupleField::Single(
+                Some(alias),
+                Some(Ty {
+                    kind: TyKind::Tuple(inner_fields),
+                    name: None,
+                }),
+            ));
+        }
+    }
+
+    fn flatten_tuples(&mut self) {
+        if let TyKind::Tuple(fields) = self {
+            let mut new_fields = Vec::new();
+
+            for field in fields.drain(..) {
+                let TupleField::Single(name, Some(ty)) = field else {
+                    new_fields.push(field);
+                    continue;
+                };
+
+                // recurse
+                // let ty = ty.flatten_tuples();
+
+                let TyKind::Tuple(inner_fields) = ty.kind else {
+                    new_fields.push(TupleField::Single(name, Some(ty)));
+                    continue;
+                };
+                new_fields.extend(inner_fields);
+            }
+
+            fields.extend(new_fields);
+        }
+    }
 }
 
 fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
