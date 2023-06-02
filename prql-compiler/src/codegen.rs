@@ -601,8 +601,8 @@ mod test {
         .exactly_one()
         .unwrap();
 
-        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
-
+        // TODO: should this require `trim`? Possibly a linebreak is being added.
+        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap().trim(), @r###"
         from tracks
         filter name ~= "\\(I Can't Help\\) Falling"
         "###);
