@@ -48,7 +48,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (fmt)
@@ -58,7 +58,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (annotate)
@@ -68,7 +68,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (debug)
@@ -78,7 +78,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (resolve)
@@ -89,7 +89,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (sql:preprocess)
@@ -99,7 +99,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (sql:anchor)
@@ -110,7 +110,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (compile)
@@ -123,7 +123,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \
 '::output:_files' \
-'::main_path -- Identifier of the main pipeline:_files' \
+'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (watch)
