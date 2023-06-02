@@ -338,7 +338,6 @@ impl WriteSource for pl::Stmt {
             pl::StmtKind::VarDef(var_def) => {
                 let mut r = String::new();
 
-                r += "\n";
                 match var_def.kind {
                     pl::VarDefKind::Let => {
                         r += &format!("let {} = ", self.name);
@@ -601,8 +600,7 @@ mod test {
         .exactly_one()
         .unwrap();
 
-        // TODO: should this require `trim`? Possibly a linebreak is being added.
-        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap().trim(), @r###"
+        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
         from tracks
         filter name ~= "\\(I Can't Help\\) Falling"
         "###);
