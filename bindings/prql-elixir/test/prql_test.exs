@@ -26,7 +26,7 @@ defmodule PRQLTest do
             "kind": "Error",
             "code": null,
             "reason": "Unknown name",
-            "hint": null,
+            "hints": null,
             "span": "1:0-7",
             "display": "Error: \n   ╭─[:1:1]\n   │\n 1 │ invalid\n   │ ───┬───  \n   │    ╰───── Unknown name\n───╯\n",
             "location": {
