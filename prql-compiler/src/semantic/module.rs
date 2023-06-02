@@ -273,11 +273,11 @@ impl Module {
                 }
                 LineageColumn::Single {
                     name: Some(name),
-                    target_id: expr_id,
+                    target_id,
                     ..
                 } => {
                     let decl = Decl {
-                        kind: DeclKind::Column(*expr_id),
+                        kind: DeclKind::Column(*target_id),
                         declared_at: None,
                         order: col_index + 1,
                     };

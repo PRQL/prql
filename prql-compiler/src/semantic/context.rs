@@ -439,8 +439,8 @@ impl Context {
 
 impl Resolver {
     /// Converts a identifier that points to a table declaration to a frame of that table.
-    pub fn table_decl_to_frame(
-        &self,
+    pub fn lineage_of_table_decl(
+        &mut self,
         table_fq: &Ident,
         input_name: String,
         input_id: usize,
@@ -449,33 +449,35 @@ impl Resolver {
         let table_decl = self.context.root_mod.get(table_fq).unwrap();
         let TableDecl { columns, .. } = table_decl.kind.as_table_decl().unwrap();
 
-        let instance_frame = Lineage {
+        let mut instance_frame = Lineage {
             inputs: vec![LineageInput {
                 id,
                 name: input_name.clone(),
                 table: table_fq.clone(),
             }],
-            columns: columns
-                .iter()
-                .map(|col| match col {
-                    RelationColumn::Wildcard => LineageColumn::All {
-                        input_name: input_name.clone(),
-                        except: columns
-                            .iter()
-                            .flat_map(|c| c.as_single().cloned().flatten())
-                            .collect(),
-                    },
-                    RelationColumn::Single(col_name) => LineageColumn::Single {
-                        name: col_name
-                            .clone()
-                            .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                        target_id: id,
-                        target_name: col_name.clone(),
-                    },
-                })
-                .collect(),
+            columns: Vec::new(),
             ..Default::default()
         };
+
+        for col in columns {
+            let col = match col {
+                RelationColumn::Wildcard => LineageColumn::All {
+                    input_name: input_name.clone(),
+                    except: columns
+                        .iter()
+                        .flat_map(|c| c.as_single().cloned().flatten())
+                        .collect(),
+                },
+                RelationColumn::Single(col_name) => LineageColumn::Single {
+                    name: col_name
+                        .clone()
+                        .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
+                    target_id: id,
+                    target_name: col_name.clone(),
+                },
+            };
+            instance_frame.columns.push(col);
+        }
 
         log::debug!("instanced table {table_fq} as {instance_frame:?}");
         instance_frame
@@ -514,7 +516,7 @@ impl Resolver {
         // produce a frame of that table
         let input_name = name_hint.unwrap_or_else(|| global_name.clone());
         let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.table_decl_to_frame(&table_fq, input_name, id)
+        self.lineage_of_table_decl(&table_fq, input_name, id)
     }
 }
 

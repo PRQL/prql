@@ -48,7 +48,7 @@ pub enum RelationKind {
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]
 pub enum RelationColumn {
-    /// Description of a single column that may have a name.
+    /// A single column that may have a name.
     /// Unnamed columns cannot be referenced.
     Single(Option<String>),
 

@@ -210,33 +210,11 @@ impl AstFold for Resolver {
                     DeclKind::TableDecl(_) => {
                         let input_name = ident.name.clone();
 
-                        let lineage = self.table_decl_to_frame(&fq_ident, input_name, id);
+                        let lineage = self.lineage_of_table_decl(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
-
-                            // TODO: this should go into a helper function
-                            ty: Some(Ty {
-                                kind: TyKind::Array(Box::new(TyKind::Tuple(
-                                    lineage
-                                        .columns
-                                        .iter()
-                                        .map(|col| match col {
-                                            LineageColumn::All { .. } => TupleField::Wildcard(None),
-                                            LineageColumn::Single { name, .. } => {
-                                                TupleField::Single(
-                                                    name.as_ref().map(|i| i.name.clone()),
-                                                    Some(Ty {
-                                                        kind: TyKind::Singleton(Literal::Null),
-                                                        name: None,
-                                                    }),
-                                                )
-                                            }
-                                        })
-                                        .collect(),
-                                ))),
-                                name: None,
-                            }),
+                            ty: Some(ty_of_lineage(&lineage)),
                             lineage: Some(lineage),
                             alias: None,
                             ..node
@@ -888,6 +866,28 @@ impl Resolver {
             }
             _ => ty_or_expr,
         })
+    }
+}
+
+fn ty_of_lineage(lineage: &Lineage) -> Ty {
+    Ty {
+        kind: TyKind::Array(Box::new(TyKind::Tuple(
+            lineage
+                .columns
+                .iter()
+                .map(|col| match col {
+                    LineageColumn::All { .. } => TupleField::Wildcard(None),
+                    LineageColumn::Single { name, .. } => TupleField::Single(
+                        name.as_ref().map(|i| i.name.clone()),
+                        Some(Ty {
+                            kind: TyKind::Singleton(Literal::Null),
+                            name: None,
+                        }),
+                    ),
+                })
+                .collect(),
+        ))),
+        name: None,
     }
 }
 
