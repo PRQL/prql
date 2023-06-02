@@ -11,65 +11,39 @@ use crate::semantic::transforms::coerce_into_tuple_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
-use super::context::{Context, Decl, DeclKind, ResolverOptions};
+use super::context::{Context, Decl, DeclKind};
 use super::module::Module;
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
 use super::type_resolver::{self, infer_type};
 use super::{NS_FRAME, NS_FRAME_RIGHT, NS_STD};
 
-/// Runs semantic analysis on the query, using current state.
-///
-/// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(stmts: Vec<Stmt>, path: Vec<String>, context: Context) -> Result<Context> {
-    let mut resolver = Resolver::new(context);
-    resolver.current_module_path = path;
-
-    forbid_invalid_stmts(&stmts, &resolver.context.options)?;
-
-    resolver.fold_statements(stmts)?;
-
-    Ok(resolver.context)
-}
-
-fn forbid_invalid_stmts(stmts: &Vec<Stmt>, opts: &ResolverOptions) -> Result<()> {
-    // Because I added parsing for module declarations for development purposes,
-    // but we don't intend to support them, we forbid them here.
-
-    if opts.allow_module_decls {
-        return Ok(());
-    }
-
-    for stmt in stmts {
-        if let StmtKind::ModuleDef(_) = stmt.kind {
-            return Err(
-                Error::new_simple("explicit module declarations are not allowed")
-                    .with_span(stmt.span)
-                    .into(),
-            );
-        }
-    }
-    Ok(())
-}
-
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
     pub context: Context,
 
-    current_module_path: Vec<String>,
+    pub current_module_path: Vec<String>,
 
     default_namespace: Option<String>,
 
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
 
-    pub(super) id: IdGenerator<usize>,
+    pub id: IdGenerator<usize>,
+
+    pub options: ResolverOptions,
+}
+
+#[derive(Default, Clone)]
+pub struct ResolverOptions {
+    pub allow_module_decls: bool,
 }
 
 impl Resolver {
-    fn new(context: Context) -> Self {
+    pub fn new(context: Context, options: ResolverOptions) -> Self {
         Resolver {
             context,
+            options,
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
@@ -77,7 +51,8 @@ impl Resolver {
         }
     }
 
-    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
+    // entry point
+    pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
@@ -122,6 +97,14 @@ impl Resolver {
                     }
                 }
                 StmtKind::ModuleDef(module_def) => {
+                    if !self.options.allow_module_decls {
+                        return Err(Error::new_simple(
+                            "explicit module declarations are not allowed",
+                        )
+                        .with_span(stmt.span)
+                        .into());
+                    }
+
                     self.current_module_path.push(ident.name);
 
                     let decl = Decl {
@@ -157,8 +140,7 @@ impl Resolver {
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
             if expected_ty.is_some() {
                 let who = || Some(stmt.name.clone());
-                self.context
-                    .validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
+                self.validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
             }
 
             let decl = self.context.prepare_expr_decl(def.value);
@@ -228,7 +210,7 @@ impl AstFold for Resolver {
                     DeclKind::TableDecl(_) => {
                         let input_name = ident.name.clone();
 
-                        let lineage = self.context.table_decl_to_frame(&fq_ident, input_name, id);
+                        let lineage = self.table_decl_to_frame(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
@@ -388,7 +370,7 @@ impl AstFold for Resolver {
                     if expr.ty.is_some() {
                         if expected_ty.is_some() {
                             let who = || Some("array".to_string());
-                            self.context.validate_type(expr, expected_ty, &who)?;
+                            self.validate_type(expr, expected_ty, &who)?;
                         }
                         expected_ty = expr.ty.as_ref();
                     }
@@ -427,7 +409,7 @@ impl AstFold for Resolver {
                     );
 
                     let name = r.alias.clone();
-                    let frame = self.context.declare_table_for_literal(id, columns, name);
+                    let frame = self.declare_table_for_literal(id, columns, name);
 
                     r.lineage = Some(frame)
                 }
@@ -814,7 +796,7 @@ impl Resolver {
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
             let ty = param.ty.as_ref().map(|t| t.as_ty().unwrap());
-            self.context.validate_type(&mut arg, ty, &who)?;
+            self.validate_type(&mut arg, ty, &who)?;
         }
 
         Ok(arg)

@@ -2,18 +2,18 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add bar to:3,\n                added_default = add bar\n            }\n            \"#).unwrap()"
 ---
-- id: 26
+- id: 122
   Binary:
     left:
-      id: 25
+      id: 121
       Ident:
         - _frame
         - foo_table
         - bar
-      target_id: 9
+      target_id: 105
     op: Add
     right:
-      id: 24
+      id: 120
       Literal:
         Integer: 3
       ty:
@@ -57,18 +57,18 @@ expression: "resolve_derive(r#\"\n            let add = x to:1 -> x + to\n\n    
             name: ~
     name: scalar
   alias: added
-- id: 33
+- id: 129
   Binary:
     left:
-      id: 32
+      id: 128
       Ident:
         - _frame
         - foo_table
         - bar
-      target_id: 9
+      target_id: 105
     op: Add
     right:
-      id: 31
+      id: 127
       Literal:
         Integer: 1
       ty:

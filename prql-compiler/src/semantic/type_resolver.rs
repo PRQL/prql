@@ -5,7 +5,6 @@ use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::resolver::Resolver;
-use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
 pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
@@ -169,24 +168,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     Ok(Some(Ty { kind, name: None }))
 }
 
-#[allow(dead_code)]
-fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
-    let err = Error::new(Reason::Expected {
-        who: Some(format!("{}", call.name)),
-        expected: format!("{} arguments", expected_len),
-        found: format!("{}", passed_len),
-    });
-    if passed_len >= 2 {
-        err.push_hint(format!(
-            "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            call.name, call.args[0], call.args[1]
-        ))
-    } else {
-        err
-    }
-}
-
-impl Context {
+impl Resolver {
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
@@ -319,6 +301,23 @@ impl Context {
         }
 
         Ok(found.next().is_none())
+    }
+}
+
+#[allow(dead_code)]
+fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
+    let err = Error::new(Reason::Expected {
+        who: Some(format!("{}", call.name)),
+        expected: format!("{} arguments", expected_len),
+        found: format!("{}", passed_len),
+    });
+    if passed_len >= 2 {
+        err.push_hint(format!(
+            "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
+            call.name, call.args[0], call.args[1]
+        ))
+    } else {
+        err
     }
 }
 

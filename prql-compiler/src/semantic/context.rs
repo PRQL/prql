@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::Module;
+use super::resolver::Resolver;
 use super::{
     NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_QUERY_DEF,
     NS_SELF,
@@ -20,13 +21,6 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
-
-    pub(crate) options: ResolverOptions,
-}
-
-#[derive(Default, Serialize, Deserialize, Clone)]
-pub struct ResolverOptions {
-    pub allow_module_decls: bool,
 }
 
 /// A struct containing information about a single declaration.
@@ -380,85 +374,6 @@ impl Context {
         Ok(())
     }
 
-    /// Converts a identifier that points to a table declaration to a frame of that table.
-    pub fn table_decl_to_frame(
-        &self,
-        table_fq: &Ident,
-        input_name: String,
-        input_id: usize,
-    ) -> Lineage {
-        let id = input_id;
-        let table_decl = self.root_mod.get(table_fq).unwrap();
-        let TableDecl { columns, .. } = table_decl.kind.as_table_decl().unwrap();
-
-        let instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
-            columns: columns
-                .iter()
-                .map(|col| match col {
-                    RelationColumn::Wildcard => LineageColumn::All {
-                        input_name: input_name.clone(),
-                        except: columns
-                            .iter()
-                            .flat_map(|c| c.as_single().cloned().flatten())
-                            .collect(),
-                    },
-                    RelationColumn::Single(col_name) => LineageColumn::Single {
-                        name: col_name
-                            .clone()
-                            .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                        target_id: id,
-                        target_name: col_name.clone(),
-                    },
-                })
-                .collect(),
-            ..Default::default()
-        };
-
-        log::debug!("instanced table {table_fq} as {instance_frame:?}");
-        instance_frame
-    }
-
-    /// Declares a new table for a relation literal.
-    /// This is needed for column inference to work properly.
-    pub fn declare_table_for_literal(
-        &mut self,
-        input_id: usize,
-        columns: Option<Vec<RelationColumn>>,
-        name_hint: Option<String>,
-    ) -> Lineage {
-        let id = input_id;
-        let global_name = format!("_literal_{}", id);
-
-        // declare a new table in the `default_db` module
-        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
-        let default_db = self.root_mod.get_mut(&default_db_ident).unwrap();
-        let default_db = default_db.kind.as_module_mut().unwrap();
-
-        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
-        let mut infer_default = *infer_default.kind.into_infer().unwrap();
-
-        let table_decl = infer_default.as_table_decl_mut().unwrap();
-        table_decl.expr = TableExpr::None;
-
-        if let Some(columns) = columns {
-            table_decl.columns = columns;
-        }
-
-        default_db
-            .names
-            .insert(global_name.clone(), Decl::from(infer_default));
-
-        // produce a frame of that table
-        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
-        let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.table_decl_to_frame(&table_fq, input_name, id)
-    }
-
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
     pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), Option<String>> {
@@ -519,6 +434,87 @@ impl Context {
     /// Finds all main pipelines.
     pub fn find_mains(&self) -> Vec<Ident> {
         self.root_mod.find_by_suffix(NS_MAIN)
+    }
+}
+
+impl Resolver {
+    /// Converts a identifier that points to a table declaration to a frame of that table.
+    pub fn table_decl_to_frame(
+        &self,
+        table_fq: &Ident,
+        input_name: String,
+        input_id: usize,
+    ) -> Lineage {
+        let id = input_id;
+        let table_decl = self.context.root_mod.get(table_fq).unwrap();
+        let TableDecl { columns, .. } = table_decl.kind.as_table_decl().unwrap();
+
+        let instance_frame = Lineage {
+            inputs: vec![LineageInput {
+                id,
+                name: input_name.clone(),
+                table: table_fq.clone(),
+            }],
+            columns: columns
+                .iter()
+                .map(|col| match col {
+                    RelationColumn::Wildcard => LineageColumn::All {
+                        input_name: input_name.clone(),
+                        except: columns
+                            .iter()
+                            .flat_map(|c| c.as_single().cloned().flatten())
+                            .collect(),
+                    },
+                    RelationColumn::Single(col_name) => LineageColumn::Single {
+                        name: col_name
+                            .clone()
+                            .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
+                        target_id: id,
+                        target_name: col_name.clone(),
+                    },
+                })
+                .collect(),
+            ..Default::default()
+        };
+
+        log::debug!("instanced table {table_fq} as {instance_frame:?}");
+        instance_frame
+    }
+
+    /// Declares a new table for a relation literal.
+    /// This is needed for column inference to work properly.
+    pub fn declare_table_for_literal(
+        &mut self,
+        input_id: usize,
+        columns: Option<Vec<RelationColumn>>,
+        name_hint: Option<String>,
+    ) -> Lineage {
+        let id = input_id;
+        let global_name = format!("_literal_{}", id);
+
+        // declare a new table in the `default_db` module
+        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
+        let default_db = self.context.root_mod.get_mut(&default_db_ident).unwrap();
+        let default_db = default_db.kind.as_module_mut().unwrap();
+
+        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
+        let mut infer_default = *infer_default.kind.into_infer().unwrap();
+
+        let table_decl = infer_default.as_table_decl_mut().unwrap();
+        table_decl.expr = TableExpr::None;
+
+        if let Some(columns) = columns {
+            table_decl.columns = columns;
+        }
+
+        default_db
+            .names
+            .insert(global_name.clone(), Decl::from(infer_default));
+
+        // produce a frame of that table
+        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
+        let table_fq = default_db_ident + Ident::from_name(global_name);
+        self.table_decl_to_frame(&table_fq, input_name, id)
     }
 }
 

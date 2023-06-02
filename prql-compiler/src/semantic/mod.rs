@@ -13,8 +13,10 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-pub use self::context::{Context, ResolverOptions};
+pub use self::context::Context;
 pub use self::module::Module;
+use self::resolver::Resolver;
+pub use self::resolver::ResolverOptions;
 pub use lowering::lower_to_ir;
 
 use crate::ast::pl::{Lineage, LineageColumn, Stmt};
@@ -45,19 +47,20 @@ pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -
     }
 
     // init empty context
-    let mut context = Context {
+    let context = Context {
         root_mod: Module::new_root(),
-        options,
         ..Context::default()
     };
+    let mut resolver = Resolver::new(context, options);
 
     // resolve sources one by one
     // TODO: recursive references
     for (path, stmts) in normalize(file_tree)? {
-        context = resolver::resolve(stmts, path, context)?;
+        resolver.current_module_path = path;
+        resolver.fold_statements(stmts)?;
     }
 
-    Ok(context)
+    Ok(resolver.context)
 }
 
 /// Preferred way of injecting std module.

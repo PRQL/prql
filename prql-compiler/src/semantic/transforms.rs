@@ -354,11 +354,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .map(RelationColumn::Single)
                 .collect();
 
-            let frame = resolver.context.declare_table_for_literal(
-                expr_id,
-                Some(columns),
-                Some(input_name),
-            );
+            let frame =
+                resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
 
             let res = Expr::from(ExprKind::Array(
                 res.rows
@@ -1122,10 +1119,10 @@ mod tests {
         assert_yaml_snapshot!(res, @r###"
         ---
         - RelationVar:
-            id: 55
+            id: 151
             TransformCall:
               input:
-                id: 8
+                id: 104
                 Ident:
                   - default_db
                   - c_invoice
@@ -1141,7 +1138,7 @@ mod tests {
                         input_name: c_invoice
                         except: []
                   inputs:
-                    - id: 8
+                    - id: 104
                       name: c_invoice
                       table:
                         - default_db
@@ -1149,16 +1146,16 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 47
+                    - id: 143
                       RqOperator:
                         name: std.avg
                         args:
-                          - id: 46
+                          - id: 142
                             Ident:
                               - _frame
                               - c_invoice
                               - amount
-                            target_id: 8
+                            target_id: 104
                       ty:
                         kind:
                           Union:
@@ -1236,12 +1233,12 @@ mod tests {
                                 name: tuple_of_scalars
                         name: ~
               partition:
-                - id: 23
+                - id: 119
                   Ident:
                     - _frame
                     - c_invoice
                     - issued_at
-                  target_id: 8
+                  target_id: 104
                   ty:
                     kind:
                       Union:
@@ -1365,14 +1362,14 @@ mod tests {
                     name:
                       - c_invoice
                       - issued_at
-                    target_id: 23
+                    target_id: 119
                     target_name: ~
                 - Single:
                     name: ~
-                    target_id: 47
+                    target_id: 143
                     target_name: ~
               inputs:
-                - id: 8
+                - id: 104
                   name: c_invoice
                   table:
                     - default_db
