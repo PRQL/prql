@@ -134,12 +134,15 @@ impl TyKind {
     fn is_super_type_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
             (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
-            (TyKind::Union(many), one) => {
-                many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
-            }
+
             (one, TyKind::Union(many)) => many
                 .iter()
                 .all(|(_, each)| one.is_super_type_of(&each.kind)),
+
+            (TyKind::Union(many), one) => {
+                many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
+            }
+
 
             (TyKind::Function(sup), TyKind::Function(sub)) => {
                 if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {

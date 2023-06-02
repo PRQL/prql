@@ -2,16 +2,16 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
-- id: 153
+- id: 212
   RqOperator:
     name: std.sum
     args:
-      - id: 152
+      - id: 211
         Ident:
           - _frame
           - a
           - foo
-        target_id: 136
+        target_id: 178
   ty:
     kind:
       Union:
@@ -47,46 +47,11 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
           - kind:
               Singleton: "Null"
             name: ~
-        - - tuple_of_scalars
+        - - array
           - kind:
-              Tuple:
-                - Wildcard:
-                    kind:
-                      Union:
-                        - - int
-                          - kind:
-                              Primitive: Int
-                            name: int
-                        - - float
-                          - kind:
-                              Primitive: Float
-                            name: float
-                        - - bool
-                          - kind:
-                              Primitive: Bool
-                            name: bool
-                        - - text
-                          - kind:
-                              Primitive: Text
-                            name: text
-                        - - date
-                          - kind:
-                              Primitive: Date
-                            name: date
-                        - - time
-                          - kind:
-                              Primitive: Time
-                            name: time
-                        - - timestamp
-                          - kind:
-                              Primitive: Timestamp
-                            name: timestamp
-                        - - ~
-                          - kind:
-                              Singleton: "Null"
-                            name: ~
-                    name: scalar
-            name: tuple_of_scalars
+              Array:
+                Singleton: "Null"
+            name: array
     name: ~
   alias: one
 

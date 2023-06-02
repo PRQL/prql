@@ -28,6 +28,8 @@ pub struct Resolver {
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
 
+    disable_type_checking: bool,
+
     pub id: IdGenerator<usize>,
 
     pub options: ResolverOptions,
@@ -46,6 +48,7 @@ impl Resolver {
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
+            disable_type_checking: false,
             id: IdGenerator::new(),
         }
     }
@@ -301,10 +304,11 @@ impl AstFold for Resolver {
                     UnOp::Not => ["std", "not"],
                     UnOp::Add | UnOp::EqSelf => unreachable!(),
                 };
-                let func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
                     Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
                     vec![*expr],
                 )));
+                func_call.span = span;
                 self.fold_expr(func_call)?
             }
 
@@ -327,10 +331,11 @@ impl AstFold for Resolver {
                     BinOp::Or => ["std", "or"],
                     BinOp::Coalesce => ["std", "coalesce"],
                 };
-                let func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
                     Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
                     vec![*left, *right],
                 )));
+                func_call.span = span;
                 self.fold_expr(func_call)?
             }
 
@@ -587,7 +592,9 @@ impl Resolver {
                     let name = closure.name_hint.unwrap().to_string();
                     let args = closure.args;
 
-                    Expr::from(ExprKind::RqOperator { name, args })
+                    let mut res = Expr::from(ExprKind::RqOperator { name, args });
+                    res.ty = closure.return_ty.map(|t| t.into_ty().unwrap());
+                    res
                 } else {
                     let expr = transforms::cast_transform(self, closure)?;
                     self.fold_expr(expr)?
@@ -807,7 +814,7 @@ impl Resolver {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // don't validate types of unresolved exprs
-        if arg.id.is_some() {
+        if arg.id.is_some() && !self.disable_type_checking {
             // validate type
 
             let who = || {
@@ -890,7 +897,10 @@ impl Resolver {
             Some(expr) => {
                 let name = expr.kind.as_ident().map(|i| i.name.clone());
 
+                let old = self.disable_type_checking;
+                self.disable_type_checking = true;
                 let expr = self.fold_expr(expr)?;
+                self.disable_type_checking = old;
 
                 let mut set_expr = type_resolver::coerce_to_type(self, expr)?;
                 set_expr.name = set_expr.name.or(name);

@@ -2,17 +2,29 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add_one bar to:3,\n                added_default = add_one bar\n            }\n            \"#).unwrap()"
 ---
-- id: 157
+- id: 216
   RqOperator:
     name: std.add
     args:
-      - id: 155
+      - id: 214
         Ident:
           - _frame
           - foo_table
           - bar
-        target_id: 137
-      - id: 154
+        target_id: 179
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+          name: ~
+      - id: 213
         Literal:
           Integer: 3
         ty:
@@ -30,43 +42,31 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
-        - - timestamp
-          - kind:
-              Primitive: Timestamp
-            name: timestamp
-        - - ~
-          - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+    name: ~
   alias: added
-- id: 166
+- id: 264
   RqOperator:
     name: std.add
     args:
-      - id: 164
+      - id: 262
         Ident:
           - _frame
           - foo_table
           - bar
-        target_id: 137
-      - id: 163
+        target_id: 179
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+          name: ~
+      - id: 261
         Literal:
           Integer: 1
         ty:
@@ -84,30 +84,6 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
-        - - timestamp
-          - kind:
-              Primitive: Timestamp
-            name: timestamp
-        - - ~
-          - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+    name: ~
   alias: added_default
 

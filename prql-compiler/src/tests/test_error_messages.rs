@@ -179,3 +179,20 @@ fn test_bad_function_type() {
     ───╯
     "###);
 }
+
+#[test]
+fn test_basic_type_checking() {
+    assert_display_snapshot!(compile(r#"
+    from foo
+    select (a && b) + c
+    "#)
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:13]
+       │
+     3 │     select (a && b) + c
+       │             ───┬──
+       │                ╰──── function std.add, param `left` expected type `int || float`, but found type `bool`
+    ───╯
+    "###);
+}

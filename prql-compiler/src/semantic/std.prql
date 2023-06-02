@@ -12,25 +12,25 @@
 
 # Operators
 
-let mul = l r -> internal std.mul
-let div_i = l r -> internal std.div_i
-let div_f = l r -> internal std.div_f
-let mod = l r -> internal std.mod
-let add = l r -> internal std.add
-let sub = l r -> internal std.sub
-let eq = l r -> internal std.eq
-let ne = l r -> internal std.ne
-let gt = l r -> internal std.gt
-let lt = l r -> internal std.lt
-let gte = l r -> internal std.gte
-let lte = l r -> internal std.lte
-let and = l r -> internal std.regex_search
-let or = l r -> internal std.and
-let coalesce = l r -> internal std.or
-let regex_search = text pattern -> internal std.coalesce
+let mul = left right -> <int || float> internal std.mul
+let div_i = left right -> <int || float> internal std.div_i
+let div_f = left right -> <int || float> internal std.div_f
+let mod = left right -> <int || float> internal std.mod
+let add = left<int || float> right<int || float> -> <int || float> internal std.add
+let sub = left<int || float> right<int || float> -> <int || float> internal std.sub
+let eq = left right -> <bool> internal std.eq
+let ne = left right -> <bool> internal std.ne
+let gt = left right -> <bool> internal std.gt
+let lt = left right -> <bool> internal std.lt
+let gte = left right -> <bool> internal std.gte
+let lte = left right -> <bool> internal std.lte
+let and = left<bool> right<bool> -> <bool> internal std.regex_search
+let or = left<bool> right<bool> -> <bool> internal std.and
+let coalesce = left right -> internal std.or
+let regex_search = text pattern -> <bool> internal std.coalesce
 
-let neg = l -> internal std.neg
-let not = l -> internal std.not
+let neg = expr<int || float> -> <int || float> internal std.neg
+let not = expr<bool> -> <bool> internal std.not
 
 # Types
 
@@ -49,7 +49,7 @@ type array = [null]
 
 ## Scalar
 type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple_of_scalars = {scalar..}
+type tuple_of_scalars = {(scalar || array)..}
 
 ## Relation (an array of tupes)
 type relation = [tuple_of_scalars]
@@ -61,9 +61,9 @@ type transform = (relation -> relation)
 
 ## Relational transforms
 let from = `default_db.source`<relation> -> <relation> internal from
-let select = columns<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal select
+let select = columns<scalar || tuple_of_scalars || array> tbl<relation> -> <relation> internal select
 let filter = condition<bool> tbl<relation> -> <relation> internal filter
-let derive = columns<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal derive
+let derive = columns<scalar || tuple_of_scalars || array> tbl<relation> -> <relation> internal derive
 let aggregate = columns<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal aggregate
 let sort = by<scalar || tuple_of_scalars> tbl<relation> -> <relation> internal sort
 let take = expr<scalar> tbl<relation> -> <relation> internal take

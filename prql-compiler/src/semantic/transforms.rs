@@ -1116,10 +1116,10 @@ mod tests {
         assert_yaml_snapshot!(res, @r###"
         ---
         - RelationVar:
-            id: 191
+            id: 257
             TransformCall:
               input:
-                id: 136
+                id: 178
                 Ident:
                   - default_db
                   - c_invoice
@@ -1135,7 +1135,7 @@ mod tests {
                         input_name: c_invoice
                         except: []
                   inputs:
-                    - id: 136
+                    - id: 178
                       name: c_invoice
                       table:
                         - default_db
@@ -1143,16 +1143,16 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 181
+                    - id: 241
                       RqOperator:
                         name: std.avg
                         args:
-                          - id: 180
+                          - id: 240
                             Ident:
                               - _frame
                               - c_invoice
                               - amount
-                            target_id: 136
+                            target_id: 178
                       ty:
                         kind:
                           Union:
@@ -1230,12 +1230,12 @@ mod tests {
                                 name: tuple_of_scalars
                         name: ~
               partition:
-                - id: 153
+                - id: 201
                   Ident:
                     - _frame
                     - c_invoice
                     - issued_at
-                  target_id: 136
+                  target_id: 178
                   ty:
                     kind:
                       Union:
@@ -1359,14 +1359,14 @@ mod tests {
                     name:
                       - c_invoice
                       - issued_at
-                    target_id: 153
+                    target_id: 201
                     target_name: ~
                 - Single:
                     name: ~
-                    target_id: 181
+                    target_id: 241
                     target_name: ~
               inputs:
-                - id: 136
+                - id: 178
                   name: c_invoice
                   table:
                     - default_db

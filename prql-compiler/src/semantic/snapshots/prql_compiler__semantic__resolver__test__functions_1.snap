@@ -2,22 +2,46 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
 ---
-- id: 157
+- id: 216
   RqOperator:
     name: std.sub
     args:
-      - id: 154
+      - id: 213
         Ident:
           - _frame
           - employees
           - gross_salary
-        target_id: 137
-      - id: 155
+        target_id: 179
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+          name: ~
+      - id: 214
         Ident:
           - _frame
           - employees
           - tax
-        target_id: 137
+        target_id: 179
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+          name: ~
   ty:
     kind:
       Union:
@@ -29,30 +53,6 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
-        - - timestamp
-          - kind:
-              Primitive: Timestamp
-            name: timestamp
-        - - ~
-          - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+    name: ~
   alias: net_salary
 
