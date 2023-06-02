@@ -2,16 +2,16 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
-- id: 119
+- id: 153
   RqOperator:
     name: std.sum
     args:
-      - id: 118
+      - id: 152
         Ident:
           - _frame
           - a
           - foo
-        target_id: 104
+        target_id: 136
   ty:
     kind:
       Union:

@@ -782,41 +782,7 @@ impl Lowerer {
                 }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
-            pl::ExprKind::Binary { left, op, right } => {
-                let name = match op {
-                    pl::BinOp::Mul => "std.mul",
-                    pl::BinOp::DivInt => "std.div_i",
-                    pl::BinOp::DivFloat => "std.div_f",
-                    pl::BinOp::Mod => "std.mod",
-                    pl::BinOp::Add => "std.add",
-                    pl::BinOp::Sub => "std.sub",
-                    pl::BinOp::Eq => "std.eq",
-                    pl::BinOp::Ne => "std.ne",
-                    pl::BinOp::Gt => "std.gt",
-                    pl::BinOp::Lt => "std.lt",
-                    pl::BinOp::Gte => "std.gte",
-                    pl::BinOp::Lte => "std.lte",
-                    pl::BinOp::RegexSearch => "std.regex_search",
-                    pl::BinOp::And => "std.and",
-                    pl::BinOp::Or => "std.or",
-                    pl::BinOp::Coalesce => "std.coalesce",
-                }
-                .to_string();
-                let args = vec![self.lower_expr(*left)?, self.lower_expr(*right)?];
 
-                rq::ExprKind::Operator { name, args }
-            }
-            pl::ExprKind::Unary { op, expr } => {
-                let name = match op {
-                    pl::UnOp::Neg => "std.neg",
-                    pl::UnOp::Add => panic!("Add not resolved."),
-                    pl::UnOp::Not => "std.not",
-                    pl::UnOp::EqSelf => panic!("EqSelf not resolved."),
-                }
-                .to_string();
-                let args = vec![self.lower_expr(*expr)?];
-                rq::ExprKind::Operator { name, args }
-            }
             pl::ExprKind::SString(items) => {
                 rq::ExprKind::SString(self.lower_interpolations(items)?)
             }
@@ -850,6 +816,7 @@ impl Lowerer {
                 rq::ExprKind::Operator { name, args }
             }
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
+
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
             | pl::ExprKind::Tuple(_)
@@ -857,7 +824,6 @@ impl Lowerer {
             | pl::ExprKind::Func(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
-            | pl::ExprKind::Internal(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {
@@ -866,6 +832,12 @@ impl Lowerer {
                 .push_hint("this is probably a 'bad type' error (we are working on that)")
                 .with_span(ast.span)
                 .into());
+            }
+
+            pl::ExprKind::Unary { .. }
+            | pl::ExprKind::Binary { .. }
+            | pl::ExprKind::Internal(_) => {
+                panic!("Unresolved lowering: {ast}")
             }
         };
 

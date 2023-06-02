@@ -79,13 +79,10 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         }
 
         // unions
-        ExprKind::Binary {
-            left,
-            op: BinOp::Or,
-            right,
-        } => {
-            let left = coerce_to_type(resolver, *left)?;
-            let right = coerce_to_type(resolver, *right)?;
+        ExprKind::RqOperator { name, args } if name == "std.or" => {
+            let [left, right]: [_; 2] = args.try_into().unwrap();
+            let left = coerce_to_type(resolver, left)?;
+            let right = coerce_to_type(resolver, right)?;
 
             // flatten nested unions
             let mut options = Vec::with_capacity(2);

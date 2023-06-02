@@ -56,8 +56,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
-                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
-                            (*expr, SortDirection::Desc)
+                        ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
+                            (args.remove(0), SortDirection::Desc)
                         }
                         _ => (node, SortDirection::default()),
                     };
@@ -1116,10 +1116,10 @@ mod tests {
         assert_yaml_snapshot!(res, @r###"
         ---
         - RelationVar:
-            id: 151
+            id: 191
             TransformCall:
               input:
-                id: 104
+                id: 136
                 Ident:
                   - default_db
                   - c_invoice
@@ -1135,7 +1135,7 @@ mod tests {
                         input_name: c_invoice
                         except: []
                   inputs:
-                    - id: 104
+                    - id: 136
                       name: c_invoice
                       table:
                         - default_db
@@ -1143,16 +1143,16 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 143
+                    - id: 181
                       RqOperator:
                         name: std.avg
                         args:
-                          - id: 142
+                          - id: 180
                             Ident:
                               - _frame
                               - c_invoice
                               - amount
-                            target_id: 104
+                            target_id: 136
                       ty:
                         kind:
                           Union:
@@ -1230,12 +1230,12 @@ mod tests {
                                 name: tuple_of_scalars
                         name: ~
               partition:
-                - id: 119
+                - id: 153
                   Ident:
                     - _frame
                     - c_invoice
                     - issued_at
-                  target_id: 104
+                  target_id: 136
                   ty:
                     kind:
                       Union:
@@ -1359,14 +1359,14 @@ mod tests {
                     name:
                       - c_invoice
                       - issued_at
-                    target_id: 119
+                    target_id: 153
                     target_name: ~
                 - Single:
                     name: ~
-                    target_id: 143
+                    target_id: 181
                     target_name: ~
               inputs:
-                - id: 104
+                - id: 136
                   name: c_invoice
                   table:
                     - default_db

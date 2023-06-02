@@ -2,40 +2,38 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
 ---
-- id: 137
-  Binary:
-    left:
-      id: 131
-      Literal:
-        Integer: 2
-      ty:
-        kind:
-          Primitive: Int
-        name: ~
-    op: Add
-    right:
-      id: 134
-      Binary:
-        left:
-          id: 120
-          RqOperator:
-            name: std.sum
-            args:
-              - id: 127
-                Ident:
-                  - _frame
-                  - a
-                  - foo
-                target_id: 106
-        op: Add
-        right:
-          id: 136
-          Literal:
-            Integer: 1
-          ty:
-            kind:
-              Primitive: Int
-            name: ~
+- id: 176
+  RqOperator:
+    name: std.add
+    args:
+      - id: 167
+        Literal:
+          Integer: 2
+        ty:
+          kind:
+            Primitive: Int
+          name: ~
+      - id: 171
+        RqOperator:
+          name: std.add
+          args:
+            - id: 154
+              RqOperator:
+                name: std.sum
+                args:
+                  - id: 163
+                    Ident:
+                      - _frame
+                      - a
+                      - foo
+                    target_id: 138
+            - id: 174
+              Literal:
+                Integer: 1
+              ty:
+                kind:
+                  Primitive: Int
+                name: ~
   ty:
     kind:
       Union:

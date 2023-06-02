@@ -2,51 +2,48 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
 ---
-- id: 123
-  Binary:
-    left:
-      id: 124
-      Binary:
-        left:
-          id: 125
-          Binary:
-            left:
-              id: 121
-              Ident:
-                - _frame
-                - a
-                - b
-              target_id: 106
-            op: DivFloat
-            right:
-              id: 130
-              SString:
-                - String: lag_day_todo(
-                - Expr:
-                    id: 121
+- id: 158
+  RqOperator:
+    name: std.add
+    args:
+      - id: 161
+        RqOperator:
+          name: std.sub
+          args:
+            - id: 164
+              RqOperator:
+                name: std.div_f
+                args:
+                  - id: 155
                     Ident:
                       - _frame
                       - a
                       - b
-                    target_id: 106
-                - String: )
-        op: Sub
-        right:
-          id: 132
-          Literal:
-            Integer: 1
-          ty:
-            kind:
-              Primitive: Int
-            name: ~
-    op: Add
-    right:
-      id: 122
-      Ident:
-        - _frame
-        - a
-        - c
-      target_id: 106
+                    target_id: 138
+                  - id: 170
+                    SString:
+                      - String: lag_day_todo(
+                      - Expr:
+                          id: 155
+                          Ident:
+                            - _frame
+                            - a
+                            - b
+                          target_id: 138
+                      - String: )
+            - id: 172
+              Literal:
+                Integer: 1
+              ty:
+                kind:
+                  Primitive: Int
+                name: ~
+      - id: 156
+        Ident:
+          - _frame
+          - a
+          - c
+        target_id: 138
   ty:
     kind:
       Union:

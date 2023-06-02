@@ -65,8 +65,6 @@ fn test_precedence() {
     "###);
 
     assert_display_snapshot!((compile(r###"
-    let add = x y -> x + y
-
     from numbers
     derive {sum_1 = a + b, sum_2 = add a b}
     select {result = c * sum_1 + sum_2}

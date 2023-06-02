@@ -295,6 +295,45 @@ impl AstFold for Resolver {
                 expr,
             } if matches!(expr.kind, ExprKind::Tuple(_)) => self.resolve_column_exclusion(*expr)?,
 
+            ExprKind::Unary { expr, op } => {
+                let func_name = match op {
+                    UnOp::Neg => ["std", "neg"],
+                    UnOp::Not => ["std", "not"],
+                    UnOp::Add | UnOp::EqSelf => unreachable!(),
+                };
+                let func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                    Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+                    vec![*expr],
+                )));
+                self.fold_expr(func_call)?
+            }
+
+            ExprKind::Binary { left, op, right } => {
+                let func_name = match op {
+                    BinOp::Mul => ["std", "mul"],
+                    BinOp::DivInt => ["std", "div_i"],
+                    BinOp::DivFloat => ["std", "div_f"],
+                    BinOp::Mod => ["std", "mod"],
+                    BinOp::Add => ["std", "add"],
+                    BinOp::Sub => ["std", "sub"],
+                    BinOp::Eq => ["std", "eq"],
+                    BinOp::Ne => ["std", "ne"],
+                    BinOp::Gt => ["std", "gt"],
+                    BinOp::Lt => ["std", "lt"],
+                    BinOp::Gte => ["std", "gte"],
+                    BinOp::Lte => ["std", "lte"],
+                    BinOp::RegexSearch => ["std", "regex_search"],
+                    BinOp::And => ["std", "and"],
+                    BinOp::Or => ["std", "or"],
+                    BinOp::Coalesce => ["std", "coalesce"],
+                };
+                let func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                    Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+                    vec![*left, *right],
+                )));
+                self.fold_expr(func_call)?
+            }
+
             ExprKind::All { within, except } => {
                 let decl = self.context.root_mod.get(&within);
 
@@ -817,10 +856,9 @@ impl Resolver {
             name: ident.name,
         }));
         right.span = span;
-        let kind = ExprKind::Binary {
-            left: Box::new(left),
-            op: BinOp::Eq,
-            right: Box::new(right),
+        let kind = ExprKind::RqOperator {
+            name: "std.eq".to_string(),
+            args: vec![left, right],
         };
         let kind = fold_expr_kind(self, kind)?;
         Ok(kind)
@@ -1022,12 +1060,12 @@ mod test {
     fn test_named_args() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            let add = x to:1 -> x + to
+            let add_one = x to:1 -> x + to
 
             from foo_table
             derive {
-                added = add bar to:3,
-                added_default = add bar
+                added = add_one bar to:3,
+                added_default = add_one bar
             }
             "#
         )

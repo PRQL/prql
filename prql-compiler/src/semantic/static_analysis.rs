@@ -1,6 +1,6 @@
 //! Static analysis - compile time expression evaluation
 
-use crate::ast::pl::{BinOp, Expr, ExprKind, Literal, UnOp};
+use crate::ast::pl::{Expr, ExprKind, Literal};
 
 pub fn static_analysis(expr: Expr) -> Expr {
     let kind = eval(expr.kind);
@@ -10,70 +10,70 @@ pub fn static_analysis(expr: Expr) -> Expr {
 
 fn eval(kind: ExprKind) -> ExprKind {
     match kind {
-        ExprKind::Unary { op, expr } => {
-            let res = if let ExprKind::Literal(lit) = &expr.kind {
-                match (op, lit) {
-                    (UnOp::Not, Literal::Boolean(val)) => Some(Literal::Boolean(!val)),
-                    (UnOp::Neg, Literal::Integer(val)) => Some(Literal::Integer(-val)),
-                    (UnOp::Neg, Literal::Float(val)) => Some(Literal::Float(-val)),
-                    _ => None,
+        ExprKind::RqOperator { name, mut args } => {
+            match name.as_str() {
+                "std.not" => {
+                    if let ExprKind::Literal(Literal::Boolean(val)) = &args[0].kind {
+                        return ExprKind::Literal(Literal::Boolean(!val));
+                    }
                 }
-            } else {
-                None
-            };
-            if let Some(lit) = res {
-                ExprKind::Literal(lit)
-            } else {
-                ExprKind::Unary { op, expr }
-            }
-        }
-        ExprKind::Binary { left, op, right } => {
-            let res = if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
-                (&left.kind, &right.kind)
-            {
-                match (op, left, right) {
-                    (BinOp::Eq, left, right) => {
+                "std.neg" => match &args[0].kind {
+                    ExprKind::Literal(Literal::Integer(val)) => {
+                        return ExprKind::Literal(Literal::Integer(-val))
+                    }
+                    ExprKind::Literal(Literal::Float(val)) => {
+                        return ExprKind::Literal(Literal::Float(-val))
+                    }
+                    _ => (),
+                },
+
+                "std.eq" => {
+                    if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
+                        (&args[0].kind, &args[1].kind)
+                    {
                         // don't eval comparisons between different types of literals
-                        if left.as_ref() != right.as_ref() {
-                            None
-                        } else {
-                            Some(Literal::Boolean(left == right))
+                        if left.as_ref() == right.as_ref() {
+                            return ExprKind::Literal(Literal::Boolean(left == right));
                         }
                     }
-                    (BinOp::Ne, left, right) => {
+                }
+                "std.ne" => {
+                    if let (ExprKind::Literal(left), ExprKind::Literal(right)) =
+                        (&args[0].kind, &args[1].kind)
+                    {
                         // don't eval comparisons between different types of literals
-                        if left.as_ref() != right.as_ref() {
-                            None
-                        } else {
-                            Some(Literal::Boolean(left == right))
+                        if left.as_ref() == right.as_ref() {
+                            return ExprKind::Literal(Literal::Boolean(left != right));
                         }
                     }
-
-                    (BinOp::Gt, _, _) => None,
-                    (BinOp::Lt, _, _) => None,
-                    (BinOp::Gte, _, _) => None,
-                    (BinOp::Lte, _, _) => None,
-
-                    (BinOp::And, Literal::Boolean(left), Literal::Boolean(right)) => {
-                        Some(Literal::Boolean(*left && *right))
-                    }
-                    (BinOp::Or, Literal::Boolean(left), Literal::Boolean(right)) => {
-                        Some(Literal::Boolean(*left || *right))
-                    }
-
-                    _ => None,
                 }
-            } else {
-                None
-            };
+                "std.and" => {
+                    if let (
+                        ExprKind::Literal(Literal::Boolean(left)),
+                        ExprKind::Literal(Literal::Boolean(right)),
+                    ) = (&args[0].kind, &args[1].kind)
+                    {
+                        return ExprKind::Literal(Literal::Boolean(*left && *right));
+                    }
+                }
+                "std.or" => {
+                    if let (
+                        ExprKind::Literal(Literal::Boolean(left)),
+                        ExprKind::Literal(Literal::Boolean(right)),
+                    ) = (&args[0].kind, &args[1].kind)
+                    {
+                        return ExprKind::Literal(Literal::Boolean(*left || *right));
+                    }
+                }
+                "std.coalesce" => {
+                    if let ExprKind::Literal(Literal::Null) = &args[0].kind {
+                        return args.remove(1).kind;
+                    }
+                }
 
-            if let Some(lit) = res {
-                ExprKind::Literal(lit)
-            } else if let (BinOp::Coalesce, ExprKind::Literal(Literal::Null)) = (op, &left.kind) {
-                right.kind
-            } else {
-                ExprKind::Binary { left, op, right }
-            }
+                _ => {}
+            };
+            return ExprKind::RqOperator { name, args };
         }
 
         ExprKind::Case(items) => {
