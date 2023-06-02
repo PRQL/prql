@@ -42,7 +42,7 @@ let mul = l r -> null
 # following:
 # let div_i = l r -> s"CASE WHEN {l} * {r} < 0 THEN -FLOOR(ABS({l} / {r})) ELSE FLOOR(ABS({l} / {r})) END"
 let div_i = l r -> s"FLOOR(FLOOR(ABS(({l}) / ({r}))) * SIGN(({l}) / ({r})))"
-# Should this even be: 
+# Should this even be:
 #   let div_f = l r -> s"(({l}) * 1.0 / ({r}))"
 # ...given that we can have higher precedence than mul?
 let div_f = l r -> s"({l} * 1.0 / ({r}))"
