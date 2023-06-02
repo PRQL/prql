@@ -5,7 +5,7 @@ expression: "from club_ratings\nfilter rating != null\n# TODO: this is real ugly
 SELECT
   *,
   rating - (
-    AVG(rating) OVER (PARTITION BY year) * 1.0 / STDDEV(rating) OVER (PARTITION BY year)
+    AVG(rating) OVER (PARTITION BY year) * 1.0 / (STDDEV(rating) OVER (PARTITION BY year))
   ) AS rating_norm
 FROM
   club_ratings
