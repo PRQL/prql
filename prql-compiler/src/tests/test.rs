@@ -3770,6 +3770,7 @@ fn test_lineage() {
     );
 }
 
+#[test]
 fn test_type_as_column_name() {
     // #2503
     assert_display_snapshot!(compile(r#"
