@@ -9,7 +9,7 @@ use itertools::Itertools;
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
     self, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range,
-    RelationLiteral, SwitchCase, WindowFrame,
+    RelationLiteral, SwitchCase, TupleField, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -68,7 +68,7 @@ pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Con
 }
 
 fn extern_ref_to_relation(
-    mut columns: Vec<RelationColumn>,
+    mut columns: Vec<TupleField>,
     fq_ident: &Ident,
 ) -> (rq::Relation, Option<String>) {
     let extern_name = if fq_ident.starts_with_part(NS_DEFAULT_DB) {
@@ -80,13 +80,23 @@ fn extern_ref_to_relation(
     };
 
     // put wildcards last
-    columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
+    columns.sort_by_key(|a| matches!(a, TupleField::Wildcard(_)));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
-        columns,
+        columns: tuple_fields_to_relation_columns(columns),
     };
     (relation, None)
+}
+
+fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationColumn> {
+    columns
+        .into_iter()
+        .map(|field| match field {
+            TupleField::Single(name, _) => RelationColumn::Single(name),
+            TupleField::Wildcard(_) => RelationColumn::Wildcard,
+        })
+        .collect_vec()
 }
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
@@ -245,7 +255,7 @@ impl Lowerer {
                 let items = self.lower_interpolations(items)?;
                 let relation = rq::Relation {
                     kind: rq::RelationKind::SString(items),
-                    columns,
+                    columns: tuple_fields_to_relation_columns(columns),
                 };
 
                 self.table_buffer.push(TableDecl {
@@ -277,7 +287,7 @@ impl Lowerer {
                 let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
                 let relation = rq::Relation {
                     kind: rq::RelationKind::BuiltInFunction { name, args },
-                    columns,
+                    columns: tuple_fields_to_relation_columns(columns),
                 };
 
                 self.table_buffer.push(TableDecl {

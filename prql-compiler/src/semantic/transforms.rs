@@ -7,7 +7,6 @@ use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
@@ -350,8 +349,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .columns
                 .iter()
                 .cloned()
-                .map(Some)
-                .map(RelationColumn::Single)
+                .map(|x| TupleField::Single(Some(x), None))
                 .collect();
 
             let frame =
@@ -733,7 +731,7 @@ impl LineageInput {
         let has_wildcard = rel_def
             .columns
             .iter()
-            .any(|c| matches!(c, RelationColumn::Wildcard));
+            .any(|c| matches!(c, TupleField::Wildcard(_)));
         if has_wildcard {
             // Relation has a wildcard (i.e. we don't know all the columns)
             // which means we cannot list all columns.
@@ -764,7 +762,7 @@ impl LineageInput {
             .columns
             .iter()
             .map(|col| {
-                let name = col.as_single().unwrap().clone().map(Ident::from_name);
+                let name = col.as_single().unwrap().0.clone().map(Ident::from_name);
                 LineageColumn::Single {
                     name,
                     target_id: self.id,

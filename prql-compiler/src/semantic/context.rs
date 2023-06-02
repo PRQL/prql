@@ -4,14 +4,8 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::Module;
-use super::resolver::Resolver;
-use super::{
-    NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_QUERY_DEF,
-    NS_SELF,
-};
+use super::*;
 use crate::ast::pl::*;
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Span};
 
 /// Context of the pipeline.
@@ -64,7 +58,7 @@ pub enum DeclKind {
 #[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
     /// Columns layout
-    pub columns: Vec<RelationColumn>,
+    pub columns: Vec<TupleField>,
 
     pub expr: TableExpr,
 }
@@ -111,9 +105,9 @@ impl Context {
             Some(frame) => {
                 let columns = (frame.columns.iter())
                     .map(|col| match col {
-                        LineageColumn::All { .. } => RelationColumn::Wildcard,
+                        LineageColumn::All { .. } => TupleField::Wildcard(None),
                         LineageColumn::Single { name, .. } => {
-                            RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
+                            TupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
                         }
                     })
                     .collect();
@@ -332,20 +326,20 @@ impl Context {
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let has_wildcard =
-            (table_decl.columns.iter()).any(|c| matches!(c, RelationColumn::Wildcard));
+            (table_decl.columns.iter()).any(|c| matches!(c, TupleField::Wildcard(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
         let exists = table_decl.columns.iter().any(|c| match c {
-            RelationColumn::Single(Some(n)) => n == col_name,
+            TupleField::Single(Some(n), _) => n == col_name,
             _ => false,
         });
         if exists {
             return Ok(());
         }
 
-        let col = RelationColumn::Single(Some(col_name.to_string()));
+        let col = TupleField::Single(Some(col_name.to_string()), None);
         table_decl.columns.push(col);
 
         // also add into input tables of this table expression
@@ -461,14 +455,14 @@ impl Resolver {
 
         for col in columns {
             let col = match col {
-                RelationColumn::Wildcard => LineageColumn::All {
+                TupleField::Wildcard(_) => LineageColumn::All {
                     input_name: input_name.clone(),
                     except: columns
                         .iter()
-                        .flat_map(|c| c.as_single().cloned().flatten())
+                        .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
                         .collect(),
                 },
-                RelationColumn::Single(col_name) => LineageColumn::Single {
+                TupleField::Single(col_name, _) => LineageColumn::Single {
                     name: col_name
                         .clone()
                         .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
@@ -488,7 +482,7 @@ impl Resolver {
     pub fn declare_table_for_literal(
         &mut self,
         input_id: usize,
-        columns: Option<Vec<RelationColumn>>,
+        columns: Option<Vec<TupleField>>,
         name_hint: Option<String>,
     ) -> Lineage {
         let id = input_id;
@@ -554,7 +548,7 @@ impl std::fmt::Display for DeclKind {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
             Self::TableDecl(TableDecl { columns, expr }) => {
-                write!(f, "TableDecl: {} {expr:?}", RelationColumns(columns))
+                write!(f, "TableDecl: {} {expr:?}", TyKind::Tuple(columns.clone()))
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
@@ -562,27 +556,6 @@ impl std::fmt::Display for DeclKind {
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }
-    }
-}
-
-pub struct RelationColumns<'a>(pub &'a [RelationColumn]);
-
-impl<'a> std::fmt::Display for RelationColumns<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("[")?;
-        for (index, col) in self.0.iter().enumerate() {
-            let is_last = index == self.0.len() - 1;
-
-            let col = match col {
-                RelationColumn::Wildcard => "*",
-                RelationColumn::Single(name) => name.as_deref().unwrap_or("<unnamed>"),
-            };
-            f.write_str(col)?;
-            if !is_last {
-                f.write_str(", ")?;
-            }
-        }
-        write!(f, "]")
     }
 }
 

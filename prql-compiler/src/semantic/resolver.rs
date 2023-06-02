@@ -5,7 +5,6 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::transforms::coerce_into_tuple_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
@@ -379,10 +378,10 @@ impl AstFold for Resolver {
                 if let Some(ExprKind::Tuple(elements)) = elements.first().map(|x| &x.kind) {
                     // infer relations lineage
 
-                    let columns: Option<Vec<RelationColumn>> = Some(
+                    let columns: Option<Vec<TupleField>> = Some(
                         elements
                             .iter()
-                            .map(|x| RelationColumn::Single(x.alias.clone()))
+                            .map(|x| TupleField::Single(x.alias.clone(), None))
                             .collect_vec(),
                     );
 

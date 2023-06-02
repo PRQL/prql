@@ -30,12 +30,13 @@ pub enum TyKind {
     Function(TyFunc),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TupleField {
-    // Named tuple element.
+    /// Named tuple element.
     Single(Option<String>, Option<Ty>),
 
-    // Placeholder for possibly many elements.
+    /// Placeholder for possibly many elements.
+    /// Means "and other unmentioned columns". Does not mean "all columns".
     Wildcard(Option<Ty>),
 }
 
