@@ -169,8 +169,8 @@ showcase_section:
         SELECT
           *,
           started + unfinished AS finished,
-          (started + unfinished) / started AS fin_share,
-          (started + unfinished) / started / (1 - (started + unfinished) / started) AS fin_ratio
+          (started + unfinished * 1.0 / started) AS fin_share,
+          ( (started + unfinished * 1.0 / started) * 1.0 / 1 - (started + unfinished * 1.0 / started) ) AS fin_ratio
         FROM
           track_plays
 
@@ -217,7 +217,7 @@ showcase_section:
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 9 / 5 + 32 AS temp_f
+          (temp_c * 9 * 1.0 / 5) + 32 AS temp_f
         FROM
           weather
 
