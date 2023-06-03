@@ -9,12 +9,12 @@ fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
     prql_compiler::compile(prql, &Options::default().no_signature())
 }
 
-fn normalize(sql: &str) -> String {
+fn sql_normalize(sql: &str) -> String {
     let re = Regex::new(r"\n\s+").unwrap();
     re.replace_all(sql, " ").trim().to_string()
 }
 
-fn example_queries() -> Vec<Value> {
+fn website_examples() -> Vec<Value> {
     let website_contents = fs::read_to_string(WEBSITE_TOPPAGE)
         .unwrap()
         .replace("---", "");
@@ -32,9 +32,9 @@ fn example_queries() -> Vec<Value> {
 
 #[test]
 fn test_website_examples() {
-    for example in example_queries() {
+    for example in website_examples() {
         let prql = example.get("prql").unwrap().as_str().unwrap();
         let sql = example.get("sql").unwrap().as_str().unwrap();
-        assert_eq!(normalize(&compile(prql).unwrap()), normalize(sql));
+        assert_eq!(sql_normalize(&compile(prql).unwrap()), sql_normalize(sql));
     }
 }
