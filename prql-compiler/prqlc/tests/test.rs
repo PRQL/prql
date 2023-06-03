@@ -2,7 +2,7 @@
 
 use insta_cmd::get_cargo_bin;
 use insta_cmd::{assert_cmd_snapshot, StdinCommand};
-use std::env::current_dir;
+use std::env::{self, current_dir};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -11,7 +11,7 @@ use std::process::Command;
 #[cfg(not(target_family = "windows"))]
 #[test]
 fn test_help() {
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc")).arg("--help"), @r###"
+    assert_cmd_snapshot!(prqlc_command().arg("--help"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -43,7 +43,7 @@ fn test_help() {
 
 #[test]
 fn test_get_targets() {
-    assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc")).arg("list-targets"), @r###"
+    assert_cmd_snapshot!(prqlc_command().arg("list-targets"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -75,7 +75,7 @@ fn test_compile() {
 
 #[test]
 fn test_compile_project() {
-    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    let mut cmd = prqlc_command();
     cmd.args(["compile", "--hide-signature-comment"]);
     cmd.arg(project_path());
     cmd.arg("-");
@@ -118,7 +118,7 @@ fn test_compile_project() {
     ----- stderr -----
     "###);
 
-    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    let mut cmd = prqlc_command();
     cmd.args(["compile", "--hide-signature-comment"]);
     cmd.arg(project_path());
     cmd.arg("-");
@@ -149,7 +149,7 @@ fn test_compile_project() {
 
 #[test]
 fn test_format() {
-    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    let mut cmd = prqlc_command();
     cmd.args(["fmt"]);
     cmd.arg(project_path());
     assert_cmd_snapshot!(cmd, @r###"
@@ -158,16 +158,14 @@ fn test_format() {
     ----- stdout -----
 
     ----- stderr -----
-    Currently `fmt` only works with a single source, but found multiple sources: "`Project.prql`, `artists.prql`"
+    Currently `fmt` only works with a singe source, but found multiple sources: "`Project.prql`, `artists.prql`"
     "###);
 }
 
 #[test]
 fn test_shell_completion() {
     for shell in ["bash", "fish", "powershell", "zsh"].into_iter() {
-        assert_cmd_snapshot!(Command::new(get_cargo_bin("prqlc"))
-            .arg("shell-completion")
-            .arg(shell));
+        assert_cmd_snapshot!(prqlc_command().arg("shell-completion").arg(shell));
     }
 }
 
@@ -178,4 +176,14 @@ fn project_path() -> PathBuf {
         .canonicalize()
         .unwrap()
         .join("tests/project")
+}
+
+fn prqlc_command() -> Command {
+    // We set this in CI to force color output, but we don't want `prqlc` to
+    // output color for our snapshot tests. And it seems to override the
+    // `--color=never` flag.
+    env::remove_var("CLICOLOR_FORCE");
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    cmd.args(["--color=never"]);
+    cmd
 }
