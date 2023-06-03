@@ -1,0 +1,11 @@
+---
+source: prql-compiler/src/lib.rs
+expression: "Target::from_str(&name)"
+---
+Ok(
+    Sql(
+        Some(
+            Postgres,
+        ),
+    ),
+)
