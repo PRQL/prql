@@ -4,9 +4,8 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use sqlparser::ast::{self as sql_ast};
 
-use super::gen_expr::translate_sstring;
+use super::gen_expr::{translate_operand, ExprOrSource};
 use super::{Context, Dialect};
 
 use crate::ast::{pl, rq};
@@ -31,20 +30,24 @@ fn load_std_sql() -> semantic::Module {
     context.root_mod
 }
 
-pub(super) fn translate_operator_expr(expr: rq::Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_operator_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     let (name, args) = expr.kind.into_operator().unwrap();
 
-    let s_string = translate_operator(name, args, ctx).with_span(expr.span)?;
+    let (text, binding_strength) = translate_operator(name, args, ctx).with_span(expr.span)?;
 
-    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(s_string)))
+    Ok(ExprOrSource::Source {
+        text,
+        binding_strength,
+    })
 }
 
 pub(super) fn translate_operator(
     name: String,
     args: Vec<rq::Expr>,
     ctx: &mut Context,
-) -> Result<String> {
-    let func_def = find_operator_impl(&name, ctx.dialect_enum).unwrap();
+) -> Result<(String, i32)> {
+    let (func_def, binding_strength) = find_operator_impl(&name, ctx.dialect_enum).unwrap();
+    let parent_binding_strength = binding_strength.unwrap_or(100);
 
     let params = func_def
         .named_params
@@ -66,32 +69,40 @@ pub(super) fn translate_operator(
         pl::ExprKind::SString(items) => items,
         _ => panic!("Bad RQ operator implementation. Expected s-string or null"),
     };
-    let body = body
-        .iter()
-        .map(|item| {
-            match item {
-                pl::InterpolateItem::Expr { expr, .. } => {
-                    // s-string exprs can only contain idents
-                    let ident = expr.kind.as_ident();
-                    let ident = ident.as_ref().unwrap();
 
-                    // lookup args
-                    let arg = args.get(ident.name.as_str());
+    let mut text = String::new();
 
-                    pl::InterpolateItem::<rq::Expr>::Expr {
-                        expr: Box::new(arg.cloned().unwrap()),
-                        format: None,
-                    }
-                }
-                pl::InterpolateItem::String(s) => pl::InterpolateItem::String(s.clone()),
+    for item in body {
+        match item {
+            pl::InterpolateItem::Expr { expr, format } => {
+                // s-string exprs can only contain idents
+                let ident = expr.kind.as_ident();
+                let ident = ident.as_ref().unwrap();
+
+                // lookup args
+                let arg = args.get(ident.name.as_str()).unwrap().clone();
+
+                // binding strength
+                let required_strength = format
+                    .as_ref()
+                    .and_then(|f| f.parse::<i32>().ok())
+                    .unwrap_or(parent_binding_strength);
+
+                // translate args
+                let arg = translate_operand(arg, required_strength, false, ctx)?;
+
+                text += &arg.into_source();
             }
-        })
-        .collect::<Vec<_>>();
+            pl::InterpolateItem::String(s) => {
+                text += s;
+            }
+        }
+    }
 
-    translate_sstring(body, ctx)
+    Ok((text, parent_binding_strength))
 }
 
-fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<&pl::Func> {
+fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<(&pl::Func, Option<i32>)> {
     let operator_name = operator_name.strip_prefix("std.").unwrap();
 
     let operator_name = pl::Ident::from_name(operator_name);
@@ -109,7 +120,19 @@ fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<&pl::Func
         func_def = STD.get(&operator_name);
     }
 
-    let func_def = func_def?.kind.as_expr().unwrap();
+    let decl = func_def?;
+
+    let func_def = decl.kind.as_expr().unwrap();
     let func_def = func_def.kind.as_func().unwrap();
-    Some(func_def.as_ref())
+
+    let binding_strength = decl
+        .annotations
+        .iter()
+        .find(|x| &x.name.name == "binding_strength")
+        .and_then(|ann| ann.args.get(0))
+        .and_then(|bs| bs.kind.as_literal())
+        .and_then(|bs| bs.as_integer())
+        .map(|x| *x as i32);
+
+    Some((func_def.as_ref(), binding_strength))
 }

@@ -27,6 +27,8 @@ pub struct Decl {
     /// Some declarations (like relation columns) have an order to them.
     /// 0 means that the order is irrelevant.
     pub order: usize,
+
+    pub annotations: Vec<Annotation>,
 }
 
 /// The Declaration itself.
@@ -87,7 +89,13 @@ pub enum TableColumn {
 }
 
 impl Context {
-    pub fn declare(&mut self, ident: Ident, decl: DeclKind, id: Option<usize>) -> Result<()> {
+    pub fn declare(
+        &mut self,
+        ident: Ident,
+        decl: DeclKind,
+        id: Option<usize>,
+        annotations: Vec<Annotation>,
+    ) -> Result<()> {
         let existing = self.root_mod.get(&ident);
         if existing.is_some() {
             return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
@@ -97,6 +105,7 @@ impl Context {
             kind: decl,
             declared_at: id,
             order: 0,
+            annotations,
         };
         self.root_mod.insert(ident, decl).unwrap();
         Ok(())
@@ -540,6 +549,7 @@ impl From<DeclKind> for Decl {
             kind,
             declared_at: None,
             order: 0,
+            annotations: Vec::new(),
         }
     }
 }

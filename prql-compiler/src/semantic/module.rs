@@ -238,14 +238,14 @@ impl Module {
                         let self_decl = Decl {
                             declared_at: Some(input.id),
                             kind: DeclKind::InstanceOf(input.table.clone()),
-                            order: 0,
+                            ..Default::default()
                         };
                         sub_ns.names.insert(NS_SELF.to_string(), self_decl);
 
                         let sub_ns = Decl {
                             declared_at: Some(input.id),
                             kind: DeclKind::Module(sub_ns),
-                            order: 0,
+                            ..Default::default()
                         };
 
                         namespace.names.entry(input_name.clone()).or_insert(sub_ns)
@@ -267,6 +267,7 @@ impl Module {
                         kind,
                         declared_at,
                         order: col_index + 1,
+                        ..Default::default()
                     };
                     ns.names.insert(NS_INFER.to_string(), decl);
                 }
@@ -279,6 +280,7 @@ impl Module {
                         kind: DeclKind::Column(*target_id),
                         declared_at: None,
                         order: col_index + 1,
+                        ..Default::default()
                     };
                     ns.names.insert(name.name.clone(), decl);
                 }

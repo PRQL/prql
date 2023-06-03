@@ -101,6 +101,7 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error 
                 .then(expr().repeated())
                 .delimited_by(ctrl('('), ctrl(')')),
         )
+        .then_ignore(new_line())
         .map_with_span(|(name, args), span| {
             let span = Some(span);
             Annotation { name, args, span }

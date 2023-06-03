@@ -160,4 +160,5 @@ expression: "parse_single(include_str!(\"../../examples/compile-files/queries/va
                     Integer: 20
     ty_expr: ~
     kind: Main
+  annotations: []
 
