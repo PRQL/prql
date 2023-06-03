@@ -158,7 +158,7 @@ fn test_format() {
     ----- stdout -----
 
     ----- stderr -----
-    Currently `fmt` only works with a singe source, but found multiple sources: "`Project.prql`, `artists.prql`"
+    Currently `fmt` only works with a single source, but found multiple sources: "`Project.prql`, `artists.prql`"
     "###);
 }
 
