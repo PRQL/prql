@@ -212,12 +212,16 @@ mod common {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt((name, kind): (String, StmtKind), span: Span) -> Stmt {
+    pub fn into_stmt(
+        (annotations, (name, kind)): (Vec<Annotation>, (String, StmtKind)),
+        span: Span,
+    ) -> Stmt {
         Stmt {
             id: None,
             name,
             kind,
             span: Some(span),
+            annotations,
         }
     }
 

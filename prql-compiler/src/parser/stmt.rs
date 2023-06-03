@@ -25,7 +25,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
         let module_def = keyword("module")
             .ignore_then(ident_part())
             .then(module_contents.delimited_by(ctrl('{'), ctrl('}')))
-            .map(|(name, stmts)| (name, StmtKind::ModuleDef(ModuleDef { stmts })))
+            .map(|(name, stmts)| (Vec::new(), (name, StmtKind::ModuleDef(ModuleDef { stmts }))))
             .labelled("module definition");
 
         choice((type_def(), var_def(), module_def))
@@ -89,12 +89,23 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
 
             Ok(StmtKind::QueryDef(QueryDef { version, other }))
         })
-        .map(|kind| (NS_QUERY_DEF.to_string(), kind))
+        .map(|kind| (Vec::new(), (NS_QUERY_DEF.to_string(), kind)))
         .map_with_span(into_stmt)
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
+fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
+    let annotation = ctrl('@')
+        .ignore_then(
+            ident()
+                .then(expr().repeated())
+                .delimited_by(ctrl('('), ctrl(')')),
+        )
+        .map_with_span(|(name, args), span| {
+            let span = Some(span);
+            Annotation { name, args, span }
+        });
+
     let let_ = keyword("let")
         .ignore_then(ident_part())
         .then(type_expr().or_not())
@@ -127,10 +138,10 @@ fn var_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
         })
         .labelled("variable definition");
 
-    let_.or(main_or_into)
+    annotation.repeated().then(let_.or(main_or_into))
 }
 
-fn type_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
+fn type_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
         .then(
@@ -140,6 +151,7 @@ fn type_def() -> impl Parser<Token, (String, StmtKind), Error = PError> {
                 .map(|value| TypeDef { value })
                 .map(StmtKind::TypeDef),
         )
+        .map(|(name, kind)| (Vec::new(), (name, kind)))
         .labelled("type definition")
 }
 

@@ -51,7 +51,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("//").to(Token::DivInt),
     ));
 
-    let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!{}@").map(Token::Control);
 
     let ident = ident_part().map(Token::Ident);
 

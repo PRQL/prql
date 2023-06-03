@@ -9,9 +9,6 @@ use crate::error::Span;
 
 use super::*;
 
-/// A helper wrapper around Vec<Stmt> so we can impl Display.
-pub struct Statements(pub Vec<Stmt>);
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
     #[serde(skip)]
@@ -21,6 +18,8 @@ pub struct Stmt {
     pub kind: StmtKind,
     #[serde(skip)]
     pub span: Option<Span>,
+
+    pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
@@ -62,21 +61,19 @@ pub struct ModuleDef {
     pub stmts: Vec<Stmt>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Annotation {
+    pub name: Ident,
+    pub args: Vec<Expr>,
+
+    pub span: Option<Span>,
+}
+
 impl From<StmtKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
     fn from(_: StmtKind) -> Self {
         anyhow!("Failed to convert statement")
-    }
-}
-
-impl Display for Statements {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for stmt in &self.0 {
-            write!(f, "{}", stmt)?;
-            write!(f, "\n\n")?;
-        }
-        Ok(())
     }
 }
 
