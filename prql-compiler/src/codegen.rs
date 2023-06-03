@@ -432,7 +432,8 @@ fn display_interpolation(
     r += "\"";
     for part in parts {
         match &part {
-            pl::InterpolateItem::String(s) => r += s,
+            // We use double braces to escape braces
+            pl::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
             pl::InterpolateItem::Expr(e) => {
                 r += "{";
                 r += &e.write(opt)?;
@@ -603,6 +604,28 @@ mod test {
         assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
         from tracks
         filter name ~= "\\(I Can't Help\\) Falling"
+        "###);
+    }
+
+    #[test]
+    fn test_double_braces() {
+        use itertools::Itertools;
+
+        let escaped_string = crate::prql_to_pl(
+            r#"
+        from tracks
+        has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
+        "#,
+        )
+        .unwrap()
+        .into_iter()
+        .exactly_one()
+        .unwrap();
+
+        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
+
+        from tracks
+        has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
         "###);
     }
 }
