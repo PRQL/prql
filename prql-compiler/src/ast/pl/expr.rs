@@ -252,7 +252,7 @@ pub struct Pipeline {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum InterpolateItem<T = Expr> {
     String(String),
-    Expr(Box<T>),
+    Expr { expr: Box<T>, format: Option<String> },
 }
 
 /// Inclusive-inclusive range.

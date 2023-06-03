@@ -791,7 +791,7 @@ impl Lowerer {
                 for item in items {
                     let item = Some(match item {
                         InterpolateItem::String(string) => str_lit(string),
-                        InterpolateItem::Expr(e) => self.lower_expr(*e)?,
+                        InterpolateItem::Expr { expr, .. } => self.lower_expr(*expr)?,
                     });
 
                     res = rq::maybe_binop(res, "std.concat", item);
@@ -856,9 +856,10 @@ impl Lowerer {
             .map(|i| {
                 Ok(match i {
                     InterpolateItem::String(s) => InterpolateItem::String(s),
-                    InterpolateItem::Expr(e) => {
-                        InterpolateItem::Expr(Box::new(self.lower_expr(*e)?))
-                    }
+                    InterpolateItem::Expr { expr, .. } => InterpolateItem::Expr {
+                        expr: Box::new(self.lower_expr(*expr)?),
+                        format: None,
+                    },
                 })
             })
             .try_collect()

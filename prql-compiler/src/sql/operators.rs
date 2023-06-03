@@ -70,14 +70,18 @@ pub(super) fn translate_operator(
         .iter()
         .map(|item| {
             match item {
-                pl::InterpolateItem::Expr(expr) => {
+                pl::InterpolateItem::Expr { expr, .. } => {
                     // s-string exprs can only contain idents
                     let ident = expr.kind.as_ident();
                     let ident = ident.as_ref().unwrap();
 
                     // lookup args
                     let arg = args.get(ident.name.as_str());
-                    pl::InterpolateItem::<rq::Expr>::Expr(Box::new(arg.cloned().unwrap()))
+
+                    pl::InterpolateItem::<rq::Expr>::Expr {
+                        expr: Box::new(arg.cloned().unwrap()),
+                        format: None,
+                    }
                 }
                 pl::InterpolateItem::String(s) => pl::InterpolateItem::String(s.clone()),
             }

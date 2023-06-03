@@ -714,8 +714,10 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Ident:
-                - col
+              expr:
+                Ident:
+                  - col
+              format: ~
           - String: )
         "###);
         assert_yaml_snapshot!(parse_expr(r#"s"SUM({rel.`Col name`})""#).unwrap(), @r###"
@@ -723,9 +725,11 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Ident:
-                - rel
-                - Col name
+              expr:
+                Ident:
+                  - rel
+                  - Col name
+              format: ~
           - String: )
         "###)
     }
@@ -1374,8 +1378,10 @@ Canada
                   SString:
                     - String: SUM(
                     - Expr:
-                        Ident:
-                          - X
+                        expr:
+                          Ident:
+                            - X
+                        format: ~
                     - String: )
                 params:
                   - name: X

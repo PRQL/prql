@@ -18,10 +18,12 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                   - SString:
                       - String: lag_day_todo(
                       - Expr:
-                          Ident:
-                            - _frame
-                            - a
-                            - b
+                          expr:
+                            Ident:
+                              - _frame
+                              - a
+                              - b
+                          format: ~
                       - String: )
               ty:
                 kind:

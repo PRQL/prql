@@ -479,7 +479,9 @@ pub(super) fn translate_sstring(
         .into_iter()
         .map(|s_string_item| match s_string_item {
             InterpolateItem::String(string) => Ok(string),
-            InterpolateItem::Expr(node) => translate_expr(*node, ctx).map(|expr| expr.to_string()),
+            InterpolateItem::Expr { expr, .. } => {
+                translate_expr(*expr, ctx).map(|expr| expr.to_string())
+            }
         })
         .collect::<Result<Vec<String>>>()?
         .join(""))

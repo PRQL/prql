@@ -176,7 +176,10 @@ pub fn fold_interpolate_item<F: ?Sized + AstFold>(
 ) -> Result<InterpolateItem> {
     Ok(match interpolate_item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
-        InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
+        InterpolateItem::Expr { expr, format } => InterpolateItem::Expr {
+            expr: Box::new(fold.fold_expr(*expr)?),
+            format,
+        },
     })
 }
 
