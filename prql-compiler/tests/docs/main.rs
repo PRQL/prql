@@ -52,6 +52,7 @@ fn website_hero_example() -> String {
 fn test_readme_examples() {
     let contents = fs::read_to_string("../README.md").unwrap();
     let re = Regex::new(r"(?s)```(elm|prql)\n(?P<prql>.+?)\n```").unwrap();
+    assert_ne!(re.find_iter(&contents).count(), 0);
     for cap in re.captures_iter(&contents) {
         let prql = &cap["prql"];
         compile(prql).unwrap();
