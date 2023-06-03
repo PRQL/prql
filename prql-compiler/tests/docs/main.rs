@@ -49,6 +49,16 @@ fn website_hero_example() -> String {
 }
 
 #[test]
+fn test_readme_examples() {
+    let contents = fs::read_to_string("../README.md").unwrap();
+    let re = Regex::new(r"(?s)```(elm|prql)\n(?P<prql>.+?)\n```").unwrap();
+    for cap in re.captures_iter(&contents) {
+        let prql = &cap["prql"];
+        compile(prql).unwrap();
+    }
+}
+
+#[test]
 fn test_website_examples() {
     for example in website_examples() {
         let prql = example.get("prql").unwrap().as_str().unwrap();
