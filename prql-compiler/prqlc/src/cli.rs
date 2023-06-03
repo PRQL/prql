@@ -584,9 +584,9 @@ mod tests {
             &mut r#"
 from initial_table
 select {f = first_name, l = last_name, gender}
-derive full_name = f + " " + l
+derive full_name = f"{f} {l}"
 take 23
-select {l + " " + f, full = full_name, gender}
+select {f"{l} {f}", full = full_name, gender}
 sort full
         "#
             .into(),
@@ -597,9 +597,9 @@ sort full
         @r###"
         from initial_table
         select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
-        derive full_name = f + " " + l                  # [f, l, initial_table.gender, full_name]
+        derive full_name = f"{f} {l}"                   # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
-        select {l + " " + f, full = full_name, gender}  # [?, full, initial_table.gender]
+        select {f"{l} {f}", full = full_name, gender}   # [?, full, initial_table.gender]
         sort full                                       # [?, full, initial_table.gender]
         "###);
     }

@@ -4,8 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident};
-use crate::ast::rq::RelationColumn;
+use crate::ast::pl::{Expr, Ident, TupleField, Ty};
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
@@ -66,7 +65,7 @@ impl Module {
             (
                 NS_INFER.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    columns: vec![RelationColumn::Wildcard],
+                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
                     expr: TableExpr::LocalTable,
                 })))),
             ),
@@ -273,11 +272,11 @@ impl Module {
                 }
                 LineageColumn::Single {
                     name: Some(name),
-                    target_id: expr_id,
+                    target_id,
                     ..
                 } => {
                     let decl = Decl {
-                        kind: DeclKind::Column(*expr_id),
+                        kind: DeclKind::Column(*target_id),
                         declared_at: None,
                         order: col_index + 1,
                     };

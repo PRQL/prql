@@ -14,7 +14,7 @@ group {title, country} (                     # For each group use a nested pipel
     sum gross_salary,
     average gross_cost,
     sum_gross_cost = sum gross_cost,
-    ct = count,
+    ct = count s"*",
   }
 )
 sort sum_gross_cost

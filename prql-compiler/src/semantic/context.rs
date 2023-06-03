@@ -4,13 +4,8 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::Module;
-use super::{
-    NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_QUERY_DEF,
-    NS_SELF,
-};
+use super::*;
 use crate::ast::pl::*;
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Span};
 
 /// Context of the pipeline.
@@ -20,13 +15,6 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
-
-    pub(crate) options: ResolverOptions,
-}
-
-#[derive(Default, Serialize, Deserialize, Clone)]
-pub struct ResolverOptions {
-    pub allow_module_decls: bool,
 }
 
 /// A struct containing information about a single declaration.
@@ -69,8 +57,10 @@ pub enum DeclKind {
 
 #[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
-    /// Columns layout
-    pub columns: Vec<RelationColumn>,
+    /// This will always be `TyKind::Array(TyKind::Tuple)`.
+    /// It is being preparing to be merged with [DeclKind::Expr].
+    /// It used to keep track of columns.
+    pub ty: Option<Ty>,
 
     pub expr: TableExpr,
 }
@@ -117,15 +107,16 @@ impl Context {
             Some(frame) => {
                 let columns = (frame.columns.iter())
                     .map(|col| match col {
-                        LineageColumn::All { .. } => RelationColumn::Wildcard,
+                        LineageColumn::All { .. } => TupleField::Wildcard(None),
                         LineageColumn::Single { name, .. } => {
-                            RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
+                            TupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
                         }
                     })
                     .collect();
+                let ty = Some(Ty::relation(columns));
 
                 let expr = TableExpr::RelationVar(value);
-                DeclKind::TableDecl(TableDecl { columns, expr })
+                DeclKind::TableDecl(TableDecl { ty, expr })
             }
             _ => DeclKind::Expr(value),
         }
@@ -337,22 +328,24 @@ impl Context {
         let table = self.root_mod.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
-        let has_wildcard =
-            (table_decl.columns.iter()).any(|c| matches!(c, RelationColumn::Wildcard));
+        let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
+            return Err(format!("Variable {table_ident:?} is not a relation."));
+        };
+
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
-        let exists = table_decl.columns.iter().any(|c| match c {
-            RelationColumn::Single(Some(n)) => n == col_name,
+        let exists = columns.iter().any(|c| match c {
+            TupleField::Single(Some(n), _) => n == col_name,
             _ => false,
         });
         if exists {
             return Ok(());
         }
 
-        let col = RelationColumn::Single(Some(col_name.to_string()));
-        table_decl.columns.push(col);
+        columns.push(TupleField::Single(Some(col_name.to_string()), None));
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
@@ -378,85 +371,6 @@ impl Context {
         }
 
         Ok(())
-    }
-
-    /// Converts a identifier that points to a table declaration to a frame of that table.
-    pub fn table_decl_to_frame(
-        &self,
-        table_fq: &Ident,
-        input_name: String,
-        input_id: usize,
-    ) -> Lineage {
-        let id = input_id;
-        let table_decl = self.root_mod.get(table_fq).unwrap();
-        let TableDecl { columns, .. } = table_decl.kind.as_table_decl().unwrap();
-
-        let instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
-            columns: columns
-                .iter()
-                .map(|col| match col {
-                    RelationColumn::Wildcard => LineageColumn::All {
-                        input_name: input_name.clone(),
-                        except: columns
-                            .iter()
-                            .flat_map(|c| c.as_single().cloned().flatten())
-                            .collect(),
-                    },
-                    RelationColumn::Single(col_name) => LineageColumn::Single {
-                        name: col_name
-                            .clone()
-                            .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                        target_id: id,
-                        target_name: col_name.clone(),
-                    },
-                })
-                .collect(),
-            ..Default::default()
-        };
-
-        log::debug!("instanced table {table_fq} as {instance_frame:?}");
-        instance_frame
-    }
-
-    /// Declares a new table for a relation literal.
-    /// This is needed for column inference to work properly.
-    pub fn declare_table_for_literal(
-        &mut self,
-        input_id: usize,
-        columns: Option<Vec<RelationColumn>>,
-        name_hint: Option<String>,
-    ) -> Lineage {
-        let id = input_id;
-        let global_name = format!("_literal_{}", id);
-
-        // declare a new table in the `default_db` module
-        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
-        let default_db = self.root_mod.get_mut(&default_db_ident).unwrap();
-        let default_db = default_db.kind.as_module_mut().unwrap();
-
-        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
-        let mut infer_default = *infer_default.kind.into_infer().unwrap();
-
-        let table_decl = infer_default.as_table_decl_mut().unwrap();
-        table_decl.expr = TableExpr::None;
-
-        if let Some(columns) = columns {
-            table_decl.columns = columns;
-        }
-
-        default_db
-            .names
-            .insert(global_name.clone(), Decl::from(infer_default));
-
-        // produce a frame of that table
-        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
-        let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.table_decl_to_frame(&table_fq, input_name, id)
     }
 
     /// Finds that main pipeline given a path to either main itself or its parent module.
@@ -522,6 +436,92 @@ impl Context {
     }
 }
 
+impl Resolver {
+    /// Converts a identifier that points to a table declaration to a frame of that table.
+    pub fn lineage_of_table_decl(
+        &mut self,
+        table_fq: &Ident,
+        input_name: String,
+        input_id: usize,
+    ) -> Lineage {
+        let id = input_id;
+        let table_decl = self.context.root_mod.get(table_fq).unwrap();
+        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
+
+        // TODO: can this panic?
+        let columns = ty.as_ref().unwrap().as_relation().unwrap();
+
+        let mut instance_frame = Lineage {
+            inputs: vec![LineageInput {
+                id,
+                name: input_name.clone(),
+                table: table_fq.clone(),
+            }],
+            columns: Vec::new(),
+            ..Default::default()
+        };
+
+        for col in columns {
+            let col = match col {
+                TupleField::Wildcard(_) => LineageColumn::All {
+                    input_name: input_name.clone(),
+                    except: columns
+                        .iter()
+                        .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
+                        .collect(),
+                },
+                TupleField::Single(col_name, _) => LineageColumn::Single {
+                    name: col_name
+                        .clone()
+                        .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
+                    target_id: id,
+                    target_name: col_name.clone(),
+                },
+            };
+            instance_frame.columns.push(col);
+        }
+
+        log::debug!("instanced table {table_fq} as {instance_frame:?}");
+        instance_frame
+    }
+
+    /// Declares a new table for a relation literal.
+    /// This is needed for column inference to work properly.
+    pub fn declare_table_for_literal(
+        &mut self,
+        input_id: usize,
+        columns: Option<Vec<TupleField>>,
+        name_hint: Option<String>,
+    ) -> Lineage {
+        let id = input_id;
+        let global_name = format!("_literal_{}", id);
+
+        // declare a new table in the `default_db` module
+        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
+        let default_db = self.context.root_mod.get_mut(&default_db_ident).unwrap();
+        let default_db = default_db.kind.as_module_mut().unwrap();
+
+        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
+        let mut infer_default = *infer_default.kind.into_infer().unwrap();
+
+        let table_decl = infer_default.as_table_decl_mut().unwrap();
+        table_decl.expr = TableExpr::None;
+
+        if let Some(columns) = columns {
+            table_decl.ty = Some(Ty::relation(columns));
+        }
+
+        default_db
+            .names
+            .insert(global_name.clone(), Decl::from(infer_default));
+
+        // produce a frame of that table
+        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
+        let table_fq = default_db_ident + Ident::from_name(global_name);
+        self.lineage_of_table_decl(&table_fq, input_name, id)
+    }
+}
+
 impl Default for DeclKind {
     fn default() -> Self {
         DeclKind::Module(Module::default())
@@ -555,8 +555,12 @@ impl std::fmt::Display for DeclKind {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDecl(TableDecl { columns, expr }) => {
-                write!(f, "TableDecl: {} {expr:?}", RelationColumns(columns))
+            Self::TableDecl(TableDecl { ty, expr }) => {
+                write!(
+                    f,
+                    "TableDecl: {} {expr:?}",
+                    ty.as_ref().map(|t| t.to_string()).unwrap_or_default()
+                )
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
@@ -564,27 +568,6 @@ impl std::fmt::Display for DeclKind {
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }
-    }
-}
-
-pub struct RelationColumns<'a>(pub &'a [RelationColumn]);
-
-impl<'a> std::fmt::Display for RelationColumns<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("[")?;
-        for (index, col) in self.0.iter().enumerate() {
-            let is_last = index == self.0.len() - 1;
-
-            let col = match col {
-                RelationColumn::Wildcard => "*",
-                RelationColumn::Single(name) => name.as_deref().unwrap_or("<unnamed>"),
-            };
-            f.write_str(col)?;
-            if !is_last {
-                f.write_str(", ")?;
-            }
-        }
-        write!(f, "]")
     }
 }
 

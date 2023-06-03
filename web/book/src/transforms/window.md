@@ -75,7 +75,7 @@ trigger aggregation.
 ```prql
 from employees
 sort age
-derive rnk = rank
+derive {rnk = rank age}
 ```
 
 You can also only apply `group`:
@@ -84,13 +84,13 @@ You can also only apply `group`:
 from employees
 group department (
   sort age
-  derive rnk = rank
+  derive {rnk = rank age}
 )
 ```
 
 ## Window functions as first class citizens
 
-There is no limitaions where windowed expressions can be used:
+There are no limitations on where windowed expressions can be used:
 
 ```prql
 from employees

@@ -134,7 +134,7 @@ fn test_hint_missing_args() {
        │
      3 │     select {film_id, lag film_id}
        │                      ─────┬─────
-       │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `infer -> array`
+       │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `array -> infer`
        │
        │ Help: Have you forgotten an argument to function std.lag?
        │
@@ -176,6 +176,23 @@ fn test_bad_function_type() {
        │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `scalar relation -> relation`
        │
        │ Help: Type `transform` expands to `infer -> relation`
+    ───╯
+    "###);
+}
+
+#[test]
+fn test_basic_type_checking() {
+    assert_display_snapshot!(compile(r#"
+    from foo
+    select (a && b) + c
+    "#)
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:13]
+       │
+     3 │     select (a && b) + c
+       │             ───┬──
+       │                ╰──── function std.add, param `left` expected type `int || float || timestamp || date`, but found type `bool`
     ───╯
     "###);
 }

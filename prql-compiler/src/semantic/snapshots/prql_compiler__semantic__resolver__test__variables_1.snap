@@ -2,23 +2,57 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from employees\n            derive {\n                gross_salary = salary + payroll_tax,\n                gross_cost =   gross_salary + benefits_cost\n            }\n            \"#).unwrap()"
 ---
-- id: 21
-  Binary:
-    left:
-      id: 22
-      Ident:
-        - _frame
-        - employees
-        - salary
-      target_id: 8
-    op: Add
-    right:
-      id: 23
-      Ident:
-        - _frame
-        - employees
-        - payroll_tax
-      target_id: 8
+- RqOperator:
+    name: std.add
+    args:
+      - Ident:
+          - _frame
+          - employees
+          - salary
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Ident:
+          - _frame
+          - employees
+          - payroll_tax
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
   ty:
     kind:
       Union:
@@ -30,48 +64,66 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
         - - timestamp
           - kind:
               Primitive: Timestamp
             name: timestamp
-        - - ~
+        - - date
           - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+              Primitive: Date
+            name: date
+    name: ~
   alias: gross_salary
-- id: 24
-  Binary:
-    left:
-      id: 25
-      Ident:
-        - _frame
-        - gross_salary
-      target_id: 21
-    op: Add
-    right:
-      id: 26
-      Ident:
-        - _frame
-        - employees
-        - benefits_cost
-      target_id: 8
+- RqOperator:
+    name: std.add
+    args:
+      - Ident:
+          - _frame
+          - gross_salary
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Ident:
+          - _frame
+          - employees
+          - benefits_cost
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
   ty:
     kind:
       Union:
@@ -83,30 +135,14 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
         - - timestamp
           - kind:
               Primitive: Timestamp
             name: timestamp
-        - - ~
+        - - date
           - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+              Primitive: Date
+            name: date
+    name: ~
   alias: gross_cost
 

@@ -33,7 +33,7 @@ fn test_bad_error_messages() {
        │
        │ Help: Have you forgotten an argument to function std.group?
        │
-       │ Note: Type `relation` expands to `[{scalar..}]`
+       │ Note: Type `relation` expands to `[tuple_of_scalars]`
     ───╯
     "###);
 

@@ -7,7 +7,6 @@ use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
@@ -57,8 +56,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
-                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
-                            (*expr, SortDirection::Desc)
+                        ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
+                            (args.remove(0), SortDirection::Desc)
                         }
                         _ => (node, SortDirection::default()),
                     };
@@ -350,15 +349,11 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .columns
                 .iter()
                 .cloned()
-                .map(Some)
-                .map(RelationColumn::Single)
+                .map(|x| TupleField::Single(Some(x), None))
                 .collect();
 
-            let frame = resolver.context.declare_table_for_literal(
-                expr_id,
-                Some(columns),
-                Some(input_name),
-            );
+            let frame =
+                resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
 
             let res = Expr::from(ExprKind::Array(
                 res.rows
@@ -732,11 +727,11 @@ impl LineageInput {
         let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
+        // TODO: can this panic?
+        let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
+
         // special case: wildcard
-        let has_wildcard = rel_def
-            .columns
-            .iter()
-            .any(|c| matches!(c, RelationColumn::Wildcard));
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
         if has_wildcard {
             // Relation has a wildcard (i.e. we don't know all the columns)
             // which means we cannot list all columns.
@@ -763,11 +758,10 @@ impl LineageInput {
         }
 
         // base case: convert rel_def into frame columns
-        rel_def
-            .columns
+        columns
             .iter()
             .map(|col| {
-                let name = col.as_single().unwrap().clone().map(Ident::from_name);
+                let name = col.as_single().unwrap().0.clone().map(Ident::from_name);
                 LineageColumn::Single {
                     name,
                     target_id: self.id,
@@ -1118,267 +1112,10 @@ mod tests {
         ",
         )
         .unwrap();
-        let res = ctx.find_main_rel(&[]).unwrap().clone();
-        assert_yaml_snapshot!(res, @r###"
-        ---
-        - RelationVar:
-            id: 55
-            TransformCall:
-              input:
-                id: 8
-                Ident:
-                  - default_db
-                  - c_invoice
-                ty:
-                  kind:
-                    Array:
-                      Tuple:
-                        - Wildcard: ~
-                  name: ~
-                lineage:
-                  columns:
-                    - All:
-                        input_name: c_invoice
-                        except: []
-                  inputs:
-                    - id: 8
-                      name: c_invoice
-                      table:
-                        - default_db
-                        - c_invoice
-              kind:
-                Aggregate:
-                  assigns:
-                    - id: 47
-                      RqOperator:
-                        name: std.avg
-                        args:
-                          - id: 46
-                            Ident:
-                              - _frame
-                              - c_invoice
-                              - amount
-                            target_id: 8
-                      ty:
-                        kind:
-                          Union:
-                            - - int
-                              - kind:
-                                  Primitive: Int
-                                name: int
-                            - - float
-                              - kind:
-                                  Primitive: Float
-                                name: float
-                            - - bool
-                              - kind:
-                                  Primitive: Bool
-                                name: bool
-                            - - text
-                              - kind:
-                                  Primitive: Text
-                                name: text
-                            - - date
-                              - kind:
-                                  Primitive: Date
-                                name: date
-                            - - time
-                              - kind:
-                                  Primitive: Time
-                                name: time
-                            - - timestamp
-                              - kind:
-                                  Primitive: Timestamp
-                                name: timestamp
-                            - - ~
-                              - kind:
-                                  Singleton: "Null"
-                                name: ~
-                            - - tuple_of_scalars
-                              - kind:
-                                  Tuple:
-                                    - Wildcard:
-                                        kind:
-                                          Union:
-                                            - - int
-                                              - kind:
-                                                  Primitive: Int
-                                                name: int
-                                            - - float
-                                              - kind:
-                                                  Primitive: Float
-                                                name: float
-                                            - - bool
-                                              - kind:
-                                                  Primitive: Bool
-                                                name: bool
-                                            - - text
-                                              - kind:
-                                                  Primitive: Text
-                                                name: text
-                                            - - date
-                                              - kind:
-                                                  Primitive: Date
-                                                name: date
-                                            - - time
-                                              - kind:
-                                                  Primitive: Time
-                                                name: time
-                                            - - timestamp
-                                              - kind:
-                                                  Primitive: Timestamp
-                                                name: timestamp
-                                            - - ~
-                                              - kind:
-                                                  Singleton: "Null"
-                                                name: ~
-                                        name: scalar
-                                name: tuple_of_scalars
-                        name: ~
-              partition:
-                - id: 23
-                  Ident:
-                    - _frame
-                    - c_invoice
-                    - issued_at
-                  target_id: 8
-                  ty:
-                    kind:
-                      Union:
-                        - - int
-                          - kind:
-                              Primitive: Int
-                            name: int
-                        - - float
-                          - kind:
-                              Primitive: Float
-                            name: float
-                        - - bool
-                          - kind:
-                              Primitive: Bool
-                            name: bool
-                        - - text
-                          - kind:
-                              Primitive: Text
-                            name: text
-                        - - date
-                          - kind:
-                              Primitive: Date
-                            name: date
-                        - - time
-                          - kind:
-                              Primitive: Time
-                            name: time
-                        - - timestamp
-                          - kind:
-                              Primitive: Timestamp
-                            name: timestamp
-                        - - ~
-                          - kind:
-                              Singleton: "Null"
-                            name: ~
-                        - - tuple_of_scalars
-                          - kind:
-                              Tuple:
-                                - Wildcard:
-                                    kind:
-                                      Union:
-                                        - - int
-                                          - kind:
-                                              Primitive: Int
-                                            name: int
-                                        - - float
-                                          - kind:
-                                              Primitive: Float
-                                            name: float
-                                        - - bool
-                                          - kind:
-                                              Primitive: Bool
-                                            name: bool
-                                        - - text
-                                          - kind:
-                                              Primitive: Text
-                                            name: text
-                                        - - date
-                                          - kind:
-                                              Primitive: Date
-                                            name: date
-                                        - - time
-                                          - kind:
-                                              Primitive: Time
-                                            name: time
-                                        - - timestamp
-                                          - kind:
-                                              Primitive: Timestamp
-                                            name: timestamp
-                                        - - ~
-                                          - kind:
-                                              Singleton: "Null"
-                                            name: ~
-                                    name: scalar
-                            name: tuple_of_scalars
-                    name: ~
-            ty:
-              kind:
-                Array:
-                  Tuple:
-                    - Wildcard:
-                        kind:
-                          Union:
-                            - - int
-                              - kind:
-                                  Primitive: Int
-                                name: int
-                            - - float
-                              - kind:
-                                  Primitive: Float
-                                name: float
-                            - - bool
-                              - kind:
-                                  Primitive: Bool
-                                name: bool
-                            - - text
-                              - kind:
-                                  Primitive: Text
-                                name: text
-                            - - date
-                              - kind:
-                                  Primitive: Date
-                                name: date
-                            - - time
-                              - kind:
-                                  Primitive: Time
-                                name: time
-                            - - timestamp
-                              - kind:
-                                  Primitive: Timestamp
-                                name: timestamp
-                            - - ~
-                              - kind:
-                                  Singleton: "Null"
-                                name: ~
-                        name: scalar
-              name: relation
-            lineage:
-              columns:
-                - Single:
-                    name:
-                      - c_invoice
-                      - issued_at
-                    target_id: 23
-                    target_name: ~
-                - Single:
-                    name: ~
-                    target_id: 47
-                    target_name: ~
-              inputs:
-                - id: 8
-                  name: c_invoice
-                  table:
-                    - default_db
-                    - c_invoice
-        - - main
-        "###);
+        let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
+        let expr = res.clone().into_relation_var().unwrap();
+        let expr = super::super::resolver::test::erase_ids(*expr);
+        assert_yaml_snapshot!(expr);
     }
 
     #[test]

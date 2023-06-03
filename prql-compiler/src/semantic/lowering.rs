@@ -9,7 +9,7 @@ use itertools::Itertools;
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
     self, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range,
-    RelationLiteral, SwitchCase, WindowFrame,
+    RelationLiteral, SwitchCase, TupleField, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -68,7 +68,7 @@ pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Con
 }
 
 fn extern_ref_to_relation(
-    mut columns: Vec<RelationColumn>,
+    mut columns: Vec<TupleField>,
     fq_ident: &Ident,
 ) -> (rq::Relation, Option<String>) {
     let extern_name = if fq_ident.starts_with_part(NS_DEFAULT_DB) {
@@ -80,13 +80,23 @@ fn extern_ref_to_relation(
     };
 
     // put wildcards last
-    columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
+    columns.sort_by_key(|a| matches!(a, TupleField::Wildcard(_)));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
-        columns,
+        columns: tuple_fields_to_relation_columns(columns),
     };
     (relation, None)
+}
+
+fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationColumn> {
+    columns
+        .into_iter()
+        .map(|field| match field {
+            TupleField::Single(name, _) => RelationColumn::Single(name),
+            TupleField::Wildcard(_) => RelationColumn::Wildcard,
+        })
+        .collect_vec()
 }
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
@@ -149,7 +159,10 @@ impl Lowerer {
     }
 
     fn lower_table_decl(&mut self, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
-        let context::TableDecl { columns, expr } = table;
+        let context::TableDecl { ty, expr } = table;
+
+        // TODO: can this panic?
+        let columns = ty.unwrap().into_relation().unwrap();
 
         let (relation, name) = match expr {
             TableExpr::RelationVar(expr) => {
@@ -237,7 +250,9 @@ impl Lowerer {
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let columns = table_decl.columns.clone();
+                let ty = table_decl.ty.as_ref();
+                // TODO: can this panic?
+                let columns = ty.unwrap().as_relation().unwrap().clone();
 
                 log::debug!("lowering sstring table, columns = {columns:?}");
 
@@ -245,7 +260,7 @@ impl Lowerer {
                 let items = self.lower_interpolations(items)?;
                 let relation = rq::Relation {
                     kind: rq::RelationKind::SString(items),
-                    columns,
+                    columns: tuple_fields_to_relation_columns(columns),
                 };
 
                 self.table_buffer.push(TableDecl {
@@ -269,7 +284,9 @@ impl Lowerer {
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let columns = table_decl.columns.clone();
+                let ty = table_decl.ty.as_ref();
+                // TODO: can this panic?
+                let columns = ty.unwrap().as_relation().unwrap().clone();
 
                 log::debug!("lowering function table, columns = {columns:?}");
 
@@ -277,7 +294,7 @@ impl Lowerer {
                 let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
                 let relation = rq::Relation {
                     kind: rq::RelationKind::BuiltInFunction { name, args },
-                    columns,
+                    columns: tuple_fields_to_relation_columns(columns),
                 };
 
                 self.table_buffer.push(TableDecl {
@@ -765,41 +782,7 @@ impl Lowerer {
                 }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
-            pl::ExprKind::Binary { left, op, right } => {
-                let name = match op {
-                    pl::BinOp::Mul => "std.mul",
-                    pl::BinOp::DivInt => "std.div_i",
-                    pl::BinOp::DivFloat => "std.div_f",
-                    pl::BinOp::Mod => "std.mod",
-                    pl::BinOp::Add => "std.add",
-                    pl::BinOp::Sub => "std.sub",
-                    pl::BinOp::Eq => "std.eq",
-                    pl::BinOp::Ne => "std.ne",
-                    pl::BinOp::Gt => "std.gt",
-                    pl::BinOp::Lt => "std.lt",
-                    pl::BinOp::Gte => "std.gte",
-                    pl::BinOp::Lte => "std.lte",
-                    pl::BinOp::RegexSearch => "std.regex_search",
-                    pl::BinOp::And => "std.and",
-                    pl::BinOp::Or => "std.or",
-                    pl::BinOp::Coalesce => "std.coalesce",
-                }
-                .to_string();
-                let args = vec![self.lower_expr(*left)?, self.lower_expr(*right)?];
 
-                rq::ExprKind::Operator { name, args }
-            }
-            pl::ExprKind::Unary { op, expr } => {
-                let name = match op {
-                    pl::UnOp::Neg => "std.neg",
-                    pl::UnOp::Add => panic!("Add not resolved."),
-                    pl::UnOp::Not => "std.not",
-                    pl::UnOp::EqSelf => panic!("EqSelf not resolved."),
-                }
-                .to_string();
-                let args = vec![self.lower_expr(*expr)?];
-                rq::ExprKind::Operator { name, args }
-            }
             pl::ExprKind::SString(items) => {
                 rq::ExprKind::SString(self.lower_interpolations(items)?)
             }
@@ -833,6 +816,7 @@ impl Lowerer {
                 rq::ExprKind::Operator { name, args }
             }
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
+
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
             | pl::ExprKind::Tuple(_)
@@ -840,7 +824,6 @@ impl Lowerer {
             | pl::ExprKind::Func(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
-            | pl::ExprKind::Internal(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {
@@ -849,6 +832,12 @@ impl Lowerer {
                 .push_hint("this is probably a 'bad type' error (we are working on that)")
                 .with_span(ast.span)
                 .into());
+            }
+
+            pl::ExprKind::Unary { .. }
+            | pl::ExprKind::Binary { .. }
+            | pl::ExprKind::Internal(_) => {
+                panic!("Unresolved lowering: {ast}")
             }
         };
 

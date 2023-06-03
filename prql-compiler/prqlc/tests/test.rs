@@ -84,7 +84,7 @@ fn test_compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_5 AS (
+    WITH table_4 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
@@ -99,21 +99,27 @@ fn test_compile_project() {
         artist_id,
         last_listen
       FROM
-        table_5 AS table_1
+        table_4 AS table_3
     ),
-    table_4 AS (
+    table_5 AS (
       SELECT
         *
       FROM
         read_parquet('artists.parquet')
+    ),
+    input AS (
+      SELECT
+        *
+      FROM
+        table_5 AS table_1
     )
     SELECT
       favorite_artists.artist_id,
       favorite_artists.last_listen,
-      table_3.*
+      input.*
     FROM
       favorite_artists
-      LEFT JOIN table_4 AS table_3 ON favorite_artists.artist_id = table_3.artist_id
+      LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
 
     ----- stderr -----
     "###);

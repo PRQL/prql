@@ -20,7 +20,7 @@ pub enum TyKind {
     Tuple(Vec<TupleField>),
 
     /// Type of arrays
-    Array(Box<TyKind>),
+    Array(Box<Ty>),
 
     /// Type of sets
     /// Used for expressions that can be converted to TypeExpr.
@@ -30,12 +30,13 @@ pub enum TyKind {
     Function(TyFunc),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TupleField {
-    // Named tuple element.
+    /// Named tuple element.
     Single(Option<String>, Option<Ty>),
 
-    // Placeholder for possibly many elements.
+    /// Placeholder for possibly many elements.
+    /// Means "and other unmentioned columns". Does not mean "all columns".
     Wildcard(Option<Ty>),
 }
 
@@ -76,6 +77,28 @@ pub struct TyFunc {
 }
 
 impl Ty {
+    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+        Ty {
+            kind: TyKind::Array(Box::new(Ty {
+                kind: TyKind::Tuple(tuple_fields),
+                name: None,
+            })),
+            name: None,
+        }
+    }
+
+    pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
+        self.kind.as_array()?.kind.as_tuple()
+    }
+
+    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TupleField>> {
+        self.kind.as_array_mut()?.kind.as_tuple_mut()
+    }
+
+    pub fn into_relation(self) -> Option<Vec<TupleField>> {
+        self.kind.into_array().ok()?.kind.into_tuple().ok()
+    }
+
     pub fn is_super_type_of(&self, subset: &Ty) -> bool {
         if self.is_relation() && subset.is_relation() {
             return true;
@@ -95,7 +118,7 @@ impl Ty {
     pub fn is_relation(&self) -> bool {
         match &self.kind {
             TyKind::Array(elem) => {
-                matches!(elem.as_ref(), TyKind::Tuple(_))
+                matches!(elem.kind, TyKind::Tuple(_))
             }
             _ => false,
         }
@@ -114,12 +137,14 @@ impl TyKind {
     fn is_super_type_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
             (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
-            (TyKind::Union(many), one) => {
-                many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
-            }
+
             (one, TyKind::Union(many)) => many
                 .iter()
                 .all(|(_, each)| one.is_super_type_of(&each.kind)),
+
+            (TyKind::Union(many), one) => {
+                many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
+            }
 
             (TyKind::Function(sup), TyKind::Function(sub)) => {
                 if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
@@ -138,6 +163,53 @@ impl TyKind {
             }
 
             (l, r) => l == r,
+        }
+    }
+
+    /// Analogous to [crate::ast::pl::Lineage::rename()]
+    pub fn rename_relation(&mut self, alias: String) {
+        if let TyKind::Array(items_ty) = self {
+            items_ty.kind.rename_tuples(alias);
+        }
+    }
+
+    fn rename_tuples(&mut self, alias: String) {
+        self.flatten_tuples();
+
+        if let TyKind::Tuple(fields) = self {
+            let inner_fields = std::mem::take(fields);
+
+            fields.push(TupleField::Single(
+                Some(alias),
+                Some(Ty {
+                    kind: TyKind::Tuple(inner_fields),
+                    name: None,
+                }),
+            ));
+        }
+    }
+
+    fn flatten_tuples(&mut self) {
+        if let TyKind::Tuple(fields) = self {
+            let mut new_fields = Vec::new();
+
+            for field in fields.drain(..) {
+                let TupleField::Single(name, Some(ty)) = field else {
+                    new_fields.push(field);
+                    continue;
+                };
+
+                // recurse
+                // let ty = ty.flatten_tuples();
+
+                let TyKind::Tuple(inner_fields) = ty.kind else {
+                    new_fields.push(TupleField::Single(name, Some(ty)));
+                    continue;
+                };
+                new_fields.extend(inner_fields);
+            }
+
+            fields.extend(new_fields);
         }
     }
 }

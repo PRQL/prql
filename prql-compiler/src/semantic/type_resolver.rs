@@ -5,7 +5,6 @@ use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::resolver::Resolver;
-use super::Context;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
 pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
@@ -75,18 +74,15 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
 
             Ty {
                 name: None,
-                kind: TyKind::Array(Box::new(items_type.kind)),
+                kind: TyKind::Array(Box::new(items_type)),
             }
         }
 
         // unions
-        ExprKind::Binary {
-            left,
-            op: BinOp::Or,
-            right,
-        } => {
-            let left = coerce_to_type(resolver, *left)?;
-            let right = coerce_to_type(resolver, *right)?;
+        ExprKind::RqOperator { name, args } if name == "std.or" => {
+            let [left, right]: [_; 2] = args.try_into().unwrap();
+            let left = coerce_to_type(resolver, left)?;
+            let right = coerce_to_type(resolver, right)?;
 
             // flatten nested unions
             let mut options = Vec::with_capacity(2);
@@ -159,34 +155,39 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
                 .map(|x| -> Result<_> {
                     let ty = infer_type(x)?;
 
-                    Ok(TupleField::Single(None, ty))
+                    Ok(TupleField::Single(x.alias.clone(), ty))
                 })
                 .try_collect()?,
         ),
+        ExprKind::Array(items) => {
+            let mut intersection = None;
+            for item in items {
+                let item_ty = infer_type(item)?;
+
+                if let Some(item_ty) = item_ty {
+                    if let Some(intersection) = &intersection {
+                        if intersection != &item_ty {
+                            // TODO: compute type intersection instead
+                            return Ok(None);
+                        }
+                    } else {
+                        intersection = Some(item_ty);
+                    }
+                }
+            }
+            let Some(items_ty) = intersection else {
+                // TODO: return Array(Infer) instead of Infer
+                return Ok(None);
+            };
+            TyKind::Array(Box::new(items_ty))
+        }
 
         _ => return Ok(None),
     };
     Ok(Some(Ty { kind, name: None }))
 }
 
-#[allow(dead_code)]
-fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
-    let err = Error::new(Reason::Expected {
-        who: Some(format!("{}", call.name)),
-        expected: format!("{} arguments", expected_len),
-        found: format!("{}", passed_len),
-    });
-    if passed_len >= 2 {
-        err.push_hint(format!(
-            "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            call.name, call.args[0], call.args[1]
-        ))
-    } else {
-        err
-    }
-}
-
-impl Context {
+impl Resolver {
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
@@ -244,7 +245,7 @@ impl Context {
                 if ty.is_tuple() {
                     "a tuple".to_string()
                 } else {
-                    format!("type `{}`", ty)
+                    format!("type `{ty}`")
                 }
             }
 
@@ -319,6 +320,23 @@ impl Context {
         }
 
         Ok(found.next().is_none())
+    }
+}
+
+#[allow(dead_code)]
+fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
+    let err = Error::new(Reason::Expected {
+        who: Some(format!("{}", call.name)),
+        expected: format!("{} arguments", expected_len),
+        found: format!("{}", passed_len),
+    });
+    if passed_len >= 2 {
+        err.push_hint(format!(
+            "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
+            call.name, call.args[0], call.args[1]
+        ))
+    } else {
+        err
     }
 }
 

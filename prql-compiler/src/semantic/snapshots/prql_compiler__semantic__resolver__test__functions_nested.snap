@@ -2,51 +2,89 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
 ---
-- id: 27
-  Binary:
-    left:
-      id: 28
-      Binary:
-        left:
-          id: 29
-          Binary:
-            left:
-              id: 25
-              Ident:
-                - _frame
-                - a
-                - b
-              target_id: 10
-            op: DivFloat
-            right:
-              id: 34
-              SString:
-                - String: lag_day_todo(
-                - Expr:
-                    id: 25
-                    Ident:
+- RqOperator:
+    name: std.add
+    args:
+      - RqOperator:
+          name: std.sub
+          args:
+            - RqOperator:
+                name: std.div_f
+                args:
+                  - Ident:
                       - _frame
                       - a
                       - b
-                    target_id: 10
-                - String: )
-        op: Sub
-        right:
-          id: 36
-          Literal:
-            Integer: 1
-          ty:
-            kind:
-              Primitive: Int
-            name: ~
-    op: Add
-    right:
-      id: 26
-      Ident:
-        - _frame
-        - a
-        - c
-      target_id: 10
+                  - SString:
+                      - String: lag_day_todo(
+                      - Expr:
+                          Ident:
+                            - _frame
+                            - a
+                            - b
+                      - String: )
+              ty:
+                kind:
+                  Union:
+                    - - int
+                      - kind:
+                          Primitive: Int
+                        name: int
+                    - - float
+                      - kind:
+                          Primitive: Float
+                        name: float
+                name: ~
+            - Literal:
+                Integer: 1
+              ty:
+                kind:
+                  Primitive: Int
+                name: ~
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Ident:
+          - _frame
+          - a
+          - c
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
   ty:
     kind:
       Union:
@@ -58,69 +96,13 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
         - - timestamp
           - kind:
               Primitive: Timestamp
             name: timestamp
-        - - ~
+        - - date
           - kind:
-              Singleton: "Null"
-            name: ~
-        - - tuple_of_scalars
-          - kind:
-              Tuple:
-                - Wildcard:
-                    kind:
-                      Union:
-                        - - int
-                          - kind:
-                              Primitive: Int
-                            name: int
-                        - - float
-                          - kind:
-                              Primitive: Float
-                            name: float
-                        - - bool
-                          - kind:
-                              Primitive: Bool
-                            name: bool
-                        - - text
-                          - kind:
-                              Primitive: Text
-                            name: text
-                        - - date
-                          - kind:
-                              Primitive: Date
-                            name: date
-                        - - time
-                          - kind:
-                              Primitive: Time
-                            name: time
-                        - - timestamp
-                          - kind:
-                              Primitive: Timestamp
-                            name: timestamp
-                        - - ~
-                          - kind:
-                              Singleton: "Null"
-                            name: ~
-                    name: scalar
-            name: tuple_of_scalars
+              Primitive: Date
+            name: date
     name: ~
 

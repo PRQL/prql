@@ -2,23 +2,57 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
 ---
-- id: 26
-  Binary:
-    left:
-      id: 24
-      Ident:
-        - _frame
-        - employees
-        - gross_salary
-      target_id: 9
-    op: Sub
-    right:
-      id: 25
-      Ident:
-        - _frame
-        - employees
-        - tax
-      target_id: 9
+- RqOperator:
+    name: std.sub
+    args:
+      - Ident:
+          - _frame
+          - employees
+          - gross_salary
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Ident:
+          - _frame
+          - employees
+          - tax
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
   ty:
     kind:
       Union:
@@ -30,30 +64,14 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
           - kind:
               Primitive: Float
             name: float
-        - - bool
-          - kind:
-              Primitive: Bool
-            name: bool
-        - - text
-          - kind:
-              Primitive: Text
-            name: text
-        - - date
-          - kind:
-              Primitive: Date
-            name: date
-        - - time
-          - kind:
-              Primitive: Time
-            name: time
         - - timestamp
           - kind:
               Primitive: Timestamp
             name: timestamp
-        - - ~
+        - - date
           - kind:
-              Singleton: "Null"
-            name: ~
-    name: scalar
+              Primitive: Date
+            name: date
+    name: ~
   alias: net_salary
 
