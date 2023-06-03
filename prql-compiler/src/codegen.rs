@@ -440,9 +440,9 @@ fn display_interpolation(
         match &part {
             // We use double braces to escape braces
             pl::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
-            pl::InterpolateItem::Expr(e) => {
+            pl::InterpolateItem::Expr { expr, .. } => {
                 r += "{";
-                r += &e.write(opt)?;
+                r += &expr.write(opt)?;
                 r += "}"
             }
         }

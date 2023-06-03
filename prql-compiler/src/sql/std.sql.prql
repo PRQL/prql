@@ -4,67 +4,115 @@
 #! It can contain only:
 #! - functions declarations that don't have named params and s-string-only body,
 #! - module declarations whose names correspond to sql dialect names.
+#!
+#! Functions can define `binding_strength` annotation, which signifies how much
+#! precedence does the top-level operation in the s-string provide.
+#! This value defaults to 100 (high precedence).
+#!
+#! S-strings can define required binding strength of the interpolated expression.
+#! This value defaults to binding strength of the function.
+
 
 
 # Aggregation functions
-let min = column -> s"MIN({column})"
-let max = column -> s"MAX({column})"
-let sum = column -> s"SUM({column})"
-let avg = column -> s"AVG({column})"
-let stddev = column -> s"STDDEV({column})"
-let average = column -> s"AVG({column})"
-let count = non_null -> s"COUNT({non_null})"
-let count_distinct = column -> s"COUNT(DISTINCT {column})"
+let min = column -> s"MIN({column:0})"
+let max = column -> s"MAX({column:0})"
+let sum = column -> s"SUM({column:0})"
+let avg = column -> s"AVG({column:0})"
+let stddev = column -> s"STDDEV({column:0})"
+let average = column -> s"AVG({column:0})"
+let count = non_null -> s"COUNT({non_null:0})"
+let count_distinct = column -> s"COUNT(DISTINCT {column:0})"
 
 # Window functions
-let lag = offset column -> s"LAG({column}, {offset})"
-let lead = offset column -> s"LEAD({column}, {offset})"
-let first = offset column -> s"FIRST_VALUE({column}, {offset})"
-let last = offset column -> s"LAST_VALUE({column}, {offset})"
+let lag = offset column -> s"LAG({column:0}, {offset:0})"
+let lead = offset column -> s"LEAD({column:0}, {offset:0})"
+let first = offset column -> s"FIRST_VALUE({column:0}, {offset:0})"
+let last = offset column -> s"LAST_VALUE({column:0}, {offset:0})"
 let rank = -> s"RANK()"
 let rank_dense = -> s"DENSE_RANK()"
 let row_number = -> s"ROW_NUMBER()"
 
 # Other functions
-let round = n_digits column -> s"ROUND({column}, {n_digits})"
-let as = `type` column -> s"CAST({column} AS {type})"
+let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
+let as = `type` column -> s"CAST({column:0} AS {type:0})"
 
 # String functions
-let lower = column -> s"LOWER({column})"
-let upper = column -> s"UPPER({column})"
+let lower = column -> s"LOWER({column:0})"
+let upper = column -> s"UPPER({column:0})"
 
 # Source-reading functions, primarily for DuckDB
-let read_parquet = source -> s"read_parquet({source})"
-let read_csv = source -> s"read_csv_auto({source})"
+let read_parquet = source -> s"read_parquet({source:0})"
+let read_csv = source -> s"read_csv_auto({source:0})"
 
+#[binding_strength 11]
 let mul = l r -> null
-let div_i = l r -> s"FLOOR(FLOOR(ABS({l} / {r})) * SIGN({l} / {r}))"
+
+#[binding_strength 100]
+let div_i = l r -> s"FLOOR(FLOOR(ABS({l:11} / {r:11})) * SIGN({l:11} / {r:11}))"
+
+#[binding_strength 11]
 let div_f = l r -> s"({l} * 1.0 / {r})"
+
+#[binding_strength 11]
 let mod = l r -> s"{l} % {r}"
+
+#[binding_strength 10]
 let add = l r -> null
+
+#[binding_strength 10]
 let sub = l r -> null
+
+#[binding_strength 6]
 let eq = l r -> null
+
+#[binding_strength 6]
 let ne = l r -> null
+
+#[binding_strength 6]
 let gt = l r -> null
+
+#[binding_strength 6]
 let lt = l r -> null
+
+#[binding_strength 6]
 let gte = l r -> null
+
+#[binding_strength 6]
 let lte = l r -> null
+
+#[binding_strength 3]
 let and = l r -> null
+
+#[binding_strength 2]
 let or = l r -> null
-let coalesce = l r -> s"COALESCE({l}, {r})"
-let regex_search = text pattern -> s"REGEXP({text}, {pattern})"
-let neg = l -> null
-let not = l -> null
+
+let coalesce = l r -> s"COALESCE({l:0}, {r:0})"
+
+let regex_search = text pattern -> s"REGEXP({text:0}, {pattern:0})"
+
+#[binding_strength 13]
+let neg = l -> s"-{l}"
+
+#[binding_strength 4]
+let not = l -> s"NOT {l}"
 
 module postgres {
+    #[binding_strength 100]
     let div_i = l r -> s"trunc({l} / {r})::bigint"
-    let round = n_digits column -> s"ROUND(({column})::numeric, {n_digits})"
-    let regex_search = text pattern -> s"({text} ~ {pattern})"
+
+    #[binding_strength 100]
+    let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+
+    #[binding_strength 9]
+    let regex_search = text pattern -> s"{text} ~ {pattern}"
 }
 
 module sqlite {
     let div_i = l r -> s"ROUND(ABS({l} / {r}) - 0.5) * SIGN({l} / {r})"
-    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
+
+    #[binding_strength 9]
+    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
 module mssql {
@@ -72,18 +120,20 @@ module mssql {
 }
 
 module mysql {
-    let div_f = l r -> s"(CAST({l} AS FLOAT) / {r})"
-    let mod = l r -> s"FLOOR(MOD({l}, {r}))"
-    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
+    #[binding_strength 11]
+    let div_f = l r -> s"CAST({l:0} AS FLOAT) / {r}"
+
+    #[binding_strength 100]
+    let mod = l r -> s"FLOOR(MOD({l:0}, {r:0}))"
+
+    #[binding_strength 9]
+    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
 module bigquery {
-    let regex_search = text pattern -> s"REGEXP_CONTAINS({text}, {pattern})"
+    let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
 }
 
 module duckdb {
-    # TODO: uncomment when updated on latest DuckDB version
-    # let div_i = l r -> s"({l} // {r})"
-
-    let regex_search = text pattern -> s"REGEXP_MATCHES({text}, {pattern})"
+    let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 }

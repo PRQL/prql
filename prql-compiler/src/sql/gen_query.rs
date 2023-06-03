@@ -167,7 +167,7 @@ fn translate_select_pipeline(
         let kind = ExprKind::Literal(Literal::Integer(offset));
         let expr = Expr { kind, span: None };
         Some(sqlparser::ast::Offset {
-            value: translate_expr(expr, ctx)?,
+            value: translate_expr(expr, ctx)?.into_ast(),
             rows: sqlparser::ast::OffsetRows::None,
         })
     };
@@ -319,7 +319,7 @@ fn translate_join(
 ) -> Result<Join> {
     let relation = translate_relation_expr(with, ctx)?;
 
-    let constraint = JoinConstraint::On(translate_expr(filter, ctx)?);
+    let constraint = JoinConstraint::On(translate_expr(filter, ctx)?.into_ast());
 
     Ok(Join {
         relation,
@@ -477,7 +477,7 @@ pub(super) fn translate_query_operator(
     args: Vec<Expr>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let from_s_string = translate_operator(name, args, ctx)?;
+    let (from_s_string, _) = translate_operator(name, args, ctx)?;
 
     let s_string = format!(" * FROM {from_s_string}");
 
@@ -493,7 +493,7 @@ pub(super) fn translate_query_operator(
 
 fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Option<sql_ast::Expr>> {
     Ok(if let Some(cond) = all(exprs) {
-        Some(translate_expr(cond, context)?)
+        Some(translate_expr(cond, context)?.into_ast())
     } else {
         None
     })

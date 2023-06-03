@@ -23,12 +23,19 @@ pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Ve
 fn parser(span_base: Span) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
+        .then(
+            just(':')
+                .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                .or_not(),
+        )
         .delimited_by(just('{'), just('}'))
-        .map(Ident::from_path)
-        .map(ExprKind::Ident)
-        .map_with_span(move |e, s| into_expr(e, offset_span(span_base, s)))
-        .map(Box::new)
-        .map(InterpolateItem::Expr);
+        .map_with_span(move |(ident, format), s| {
+            let ident = ExprKind::Ident(Ident::from_path(ident));
+            let expr = into_expr(ident, offset_span(span_base, s));
+            let expr = Box::new(expr);
+
+            InterpolateItem::Expr { expr, format }
+        });
 
     let escape = (just("{{").to('{'))
         .chain(just("}}").not().repeated())

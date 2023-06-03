@@ -212,12 +212,16 @@ mod common {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt((name, kind): (String, StmtKind), span: Span) -> Stmt {
+    pub fn into_stmt(
+        (annotations, (name, kind)): (Vec<Annotation>, (String, StmtKind)),
+        span: Span,
+    ) -> Stmt {
         Stmt {
             id: None,
             name,
             kind,
             span: Some(span),
+            annotations,
         }
     }
 
@@ -300,6 +304,7 @@ mod test {
                       Integer: 10
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
@@ -319,6 +324,7 @@ mod test {
                           Integer: 10
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
@@ -340,6 +346,7 @@ mod test {
                           Integer: 10
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -590,6 +597,7 @@ mod test {
                       - a
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
         assert_yaml_snapshot!(parse_expr(
             "join side:left country (id==employee_id)"
@@ -714,8 +722,10 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Ident:
-                - col
+              expr:
+                Ident:
+                  - col
+              format: ~
           - String: )
         "###);
         assert_yaml_snapshot!(parse_expr(r#"s"SUM({rel.`Col name`})""#).unwrap(), @r###"
@@ -723,9 +733,11 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Ident:
-                - rel
-                - Col name
+              expr:
+                Ident:
+                  - rel
+                  - Col name
+              format: ~
           - String: )
         "###)
     }
@@ -916,6 +928,7 @@ Canada
                           String: USA
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(
@@ -944,6 +957,7 @@ Canada
                           String: USA
             ty_expr: ~
             kind: Main
+          annotations: []
         "###
         );
     }
@@ -987,6 +1001,7 @@ Canada
                                 - count
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
         let aggregate = parse_single(
             r"group {title} (
@@ -1023,6 +1038,7 @@ Canada
                                       - salary
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -1215,6 +1231,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
         assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
         , @r###"
@@ -1236,6 +1253,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
         assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
@@ -1263,6 +1281,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
         assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
@@ -1290,6 +1309,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
@@ -1336,6 +1356,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
@@ -1359,6 +1380,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
@@ -1374,8 +1396,10 @@ Canada
                   SString:
                     - String: SUM(
                     - Expr:
-                        Ident:
-                          - X
+                        expr:
+                          Ident:
+                            - X
+                        format: ~
                     - String: )
                 params:
                   - name: X
@@ -1385,6 +1409,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(
@@ -1444,6 +1469,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
@@ -1475,6 +1501,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
     }
 
@@ -1669,6 +1696,7 @@ Canada
                       - employees
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(
@@ -1734,6 +1762,7 @@ Canada
                             Integer: 50
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"
@@ -1747,6 +1776,7 @@ Canada
                 - String: SELECT * FROM employees
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(
@@ -1783,6 +1813,7 @@ Canada
                           alias: only_in_x
             ty_expr: ~
             kind: Let
+          annotations: []
         - name: main
           VarDef:
             value:
@@ -1795,6 +1826,7 @@ Canada
                       - x
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -1842,6 +1874,7 @@ Canada
                 env: {}
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
     }
 
@@ -1889,6 +1922,7 @@ Canada
                                   Param: 2.name
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -1973,6 +2007,7 @@ join `my-proj`.`dataset`.`table`
                             - table
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -2055,6 +2090,7 @@ join `my-proj`.`dataset`.`table`
                                     - num_of_articles
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -2096,6 +2132,7 @@ join `my-proj`.`dataset`.`table`
                               alias: age_plus_two_years
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
@@ -2141,6 +2178,7 @@ join `my-proj`.`dataset`.`table`
                     alias: x
             ty_expr: ~
             kind: Main
+          annotations: []
         "### )
     }
 
@@ -2179,6 +2217,7 @@ join `my-proj`.`dataset`.`table`
                           alias: amount
             ty_expr: ~
             kind: Main
+          annotations: []
         "### )
     }
 
@@ -2201,6 +2240,7 @@ join `my-proj`.`dataset`.`table`
                     alias: x
             ty_expr: ~
             kind: Main
+          annotations: []
         "###)
     }
 
@@ -2260,6 +2300,7 @@ join `my-proj`.`dataset`.`table`
                                 - _underscored_column
             ty_expr: ~
             kind: Main
+          annotations: []
         "###)
     }
 
@@ -2339,6 +2380,7 @@ join `my-proj`.`dataset`.`table`
                                 Integer: 2
             ty_expr: ~
             kind: Main
+          annotations: []
         "###)
     }
 
@@ -2376,6 +2418,7 @@ join s=salaries (==id)
                                 - id
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -2466,6 +2509,7 @@ join s=salaries (==id)
                       - tète
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -2558,6 +2602,7 @@ join s=salaries (==id)
                 - x
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"
@@ -2572,6 +2617,7 @@ join s=salaries (==id)
                 - x
             ty_expr: ~
             kind: Into
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"
@@ -2585,6 +2631,7 @@ join s=salaries (==id)
                 - x
             ty_expr: ~
             kind: Main
+          annotations: []
         "###);
     }
 
@@ -2605,6 +2652,7 @@ join s=salaries (==id)
                     Integer: 2
             ty_expr: ~
             kind: Let
+          annotations: []
         - name: a
           VarDef:
             value:
@@ -2615,6 +2663,7 @@ join s=salaries (==id)
                     String: hello
             ty_expr: ~
             kind: Let
+          annotations: []
         "###);
     }
 }

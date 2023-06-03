@@ -29,7 +29,7 @@ pub(super) fn try_into_exprs(
 
         let ColumnDecl::RelationColumn(riid, _, RelationColumn::Wildcard) = decl else {
             // base case
-            res.push(translate_cid(cid, ctx)?);
+            res.push(translate_cid(cid, ctx)?.into_ast());
             continue;
         };
 

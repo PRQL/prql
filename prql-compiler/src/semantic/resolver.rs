@@ -70,7 +70,7 @@ impl Resolver {
                 StmtKind::QueryDef(d) => {
                     let decl = DeclKind::QueryDef(d);
                     self.context
-                        .declare(ident, decl, stmt.id)
+                        .declare(ident, decl, stmt.id, Vec::new())
                         .with_span(stmt.span)?;
                     continue;
                 }
@@ -116,7 +116,7 @@ impl Resolver {
                             redirects: Vec::new(),
                             shadowed: None,
                         }),
-                        order: 0,
+                        ..Default::default()
                     };
                     let ident = Ident::from_path(self.current_module_path.clone());
                     self.context.root_mod.insert(ident, decl)?;
@@ -148,7 +148,7 @@ impl Resolver {
             let decl = self.context.prepare_expr_decl(def.value);
 
             self.context
-                .declare(ident, decl, stmt.id)
+                .declare(ident, decl, stmt.id, stmt.annotations)
                 .with_span(stmt.span)?;
         }
         Ok(())
@@ -943,7 +943,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr) {
         let v = Decl {
             declared_at: arg.id,
             kind: DeclKind::Expr(Box::new(arg)),
-            order: 0,
+            ..Default::default()
         };
         let param_name = param.name.split('.').last().unwrap();
         func_env.names.insert(param_name.to_string(), v);

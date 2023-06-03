@@ -25,7 +25,7 @@ use crate::utils::{OrMap, VALID_IDENT};
 use super::gen_projection::try_into_exprs;
 use super::Context;
 
-pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
         ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
 
@@ -33,12 +33,18 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
         ExprKind::SString(s_string_items) => {
-            let string = translate_sstring(s_string_items, ctx)?;
+            let text = translate_sstring(s_string_items, ctx)?;
 
-            sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
+            ExprOrSource::Source {
+                text,
+                binding_strength: 100,
+            }
         }
-        ExprKind::Param(id) => sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("${id}"))),
-        ExprKind::Literal(l) => translate_literal(l, ctx)?,
+        ExprKind::Param(id) => ExprOrSource::Source {
+            text: format!("${id}"),
+            binding_strength: 100,
+        },
+        ExprKind::Literal(l) => translate_literal(l, ctx)?.into(),
         ExprKind::Case(mut cases) => {
             let default = cases
                 .last()
@@ -49,7 +55,8 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                     )
                 })
                 .map(|def| translate_expr(def.value.clone(), ctx))
-                .transpose()?;
+                .transpose()?
+                .map(|x| x.into_ast());
 
             if default.is_some() {
                 cases.pop();
@@ -62,8 +69,8 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
             let cases: Vec<_> = cases
                 .into_iter()
                 .map(|case| -> Result<_> {
-                    let cond = translate_expr(case.condition, ctx)?;
-                    let value = translate_expr(case.value, ctx)?;
+                    let cond = translate_expr(case.condition, ctx)?.into_ast();
+                    let value = translate_expr(case.value, ctx)?.into_ast();
                     Ok((cond, value))
                 })
                 .try_collect()?;
@@ -75,6 +82,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                 results,
                 else_result,
             }
+            .into()
         }
         ExprKind::Operator { ref name, ref args } => {
             // A few special cases and then fall-through to the standard approach.
@@ -90,24 +98,19 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<sql_ast::E
                         if a.kind == ExprKind::Literal(Literal::Null)
                             || b.kind == ExprKind::Literal(Literal::Null)
                         {
-                            return process_null(name, args, ctx);
+                            return Ok(process_null(name, args, ctx)?.into());
                         } else if let Some(op) = operator_from_name(name) {
-                            return translate_binary_operator(a, b, op, ctx);
+                            return Ok(translate_binary_operator(a, b, op, ctx)?.into());
                         }
                     }
                 }
-                "std.neg" | "std.not" => {
-                    if let [arg] = args.as_slice() {
-                        return process_unary(name, arg, ctx);
-                    }
-                }
-                "std.concat" => return process_concat(&expr, ctx),
+                "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
                 _ => match try_into_between(expr.clone(), ctx)? {
-                    Some(between_expr) => return Ok(between_expr),
+                    Some(between_expr) => return Ok(between_expr.into()),
                     None => {
                         if let Some(op) = operator_from_name(name) {
                             if let [left, right] = args.as_slice() {
-                                return translate_binary_operator(left, right, op, ctx);
+                                return Ok(translate_binary_operator(left, right, op, ctx)?.into());
                             }
                         }
                     }
@@ -132,44 +135,16 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
         let strength =
             sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
         let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNull(expr))
     } else if name == "std.ne" {
         let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null)))
             .binding_strength();
         let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNotNull(expr))
     } else {
         unreachable!()
-    }
-}
-
-fn process_unary(name: &str, arg: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    match name {
-        "std.neg" => {
-            let expr = translate_operand(
-                arg.clone(),
-                UnaryOperator::Minus.binding_strength(),
-                false,
-                ctx,
-            )?;
-            Ok(sql_ast::Expr::UnaryOp {
-                op: UnaryOperator::Minus,
-                expr,
-            })
-        }
-        "std.not" => {
-            let expr = translate_operand(
-                arg.clone(),
-                UnaryOperator::Not.binding_strength(),
-                false,
-                ctx,
-            )?;
-            Ok(sql_ast::Expr::UnaryOp {
-                op: UnaryOperator::Not,
-                expr,
-            })
-        }
-        _ => unreachable!(), // We've already covered all cases above
     }
 }
 
@@ -181,8 +156,7 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             .iter()
             .map(|a| {
                 translate_expr((*a).clone(), ctx)
-                    .map(FunctionArgExpr::Expr)
-                    .map(FunctionArg::Unnamed)
+                    .map(|x| FunctionArg::Unnamed(FunctionArgExpr::Expr(x.into_ast())))
             })
             .try_collect()?;
 
@@ -199,10 +173,10 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
 
         let mut iter = concat_args.into_iter();
         let first_expr = iter.next().unwrap();
-        let mut current_expr = translate_expr(first_expr.clone(), ctx)?;
+        let mut current_expr = translate_expr(first_expr.clone(), ctx)?.into_ast();
 
         for arg in iter {
-            let translated_arg = translate_expr(arg.clone(), ctx)?;
+            let translated_arg = translate_expr(arg.clone(), ctx)?.into_ast();
             current_expr = sql_ast::Expr::BinaryOp {
                 left: Box::new(current_expr),
                 op: BinaryOperator::StringConcat,
@@ -224,6 +198,9 @@ fn translate_binary_operator(
     let left = translate_operand(left.clone(), strength, !op.associates_left(), ctx)?;
     let right = translate_operand(right.clone(), strength, !op.associates_right(), ctx)?;
 
+    let left = Box::new(left.into_ast());
+    let right = Box::new(right.into_ast());
+
     Ok(sql_ast::Expr::BinaryOp { left, op, right })
 }
 
@@ -238,10 +215,12 @@ fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
 
 /// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
 fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>, anyhow::Error> {
-    if let ExprKind::Operator { name, args } = &expr.kind {
-        if name == "std.and" {
-            if let [a, b] = args.as_slice() {
-                if let (
+    match expr.kind {
+        ExprKind::Operator { name, args } if name == "std.and" => {
+            let [a, b]: [_; 2] = args.try_into().unwrap();
+
+            match (a.kind, b.kind) {
+                (
                     ExprKind::Operator {
                         name: a_name,
                         args: a_args,
@@ -250,25 +229,25 @@ fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Exp
                         name: b_name,
                         args: b_args,
                     },
-                ) = (&a.kind, &b.kind)
-                {
-                    if a_name == "std.gte" && b_name == "std.lte" {
-                        if let ([a_l, a_r], [b_l, b_r]) = (a_args.as_slice(), b_args.as_slice()) {
-                            // We need for the values on each arm to be the same; e.g. x
-                            // > 3 and x < 5
-                            if a_l == b_l {
-                                return Ok(Some(sql_ast::Expr::Between {
-                                    expr: translate_operand(a_l.clone(), 0, false, ctx)?,
-                                    negated: false,
-                                    low: translate_operand(a_r.clone(), 0, false, ctx)?,
-                                    high: translate_operand(b_r.clone(), 0, false, ctx)?,
-                                }));
-                            }
-                        }
+                ) if a_name == "std.gte" && b_name == "std.lte" => {
+                    let [a_l, a_r]: [_; 2] = a_args.try_into().unwrap();
+                    let [b_l, b_r]: [_; 2] = b_args.try_into().unwrap();
+
+                    // We need for the values on each arm to be the same; e.g. x
+                    // > 3 and x < 5
+                    if a_l == b_l {
+                        return Ok(Some(sql_ast::Expr::Between {
+                            expr: Box::new(translate_operand(a_l, 0, false, ctx)?.into_ast()),
+                            negated: false,
+                            low: Box::new(translate_operand(a_r, 0, false, ctx)?.into_ast()),
+                            high: Box::new(translate_operand(b_r, 0, false, ctx)?.into_ast()),
+                        }));
                     }
                 }
+                _ => (),
             }
         }
+        _ => (),
     }
     Ok(None)
 }
@@ -398,7 +377,7 @@ fn translate_datetime_literal_with_sqlite_function(
     })
 }
 
-pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource> {
     if ctx.query.pre_projection {
         log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
@@ -425,7 +404,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 
                 let table_ident = t.table_ref.name.clone().map(Ident::from_name);
                 let ident = translate_ident(table_ident, Some(column), ctx);
-                sql_ast::Expr::CompoundIdentifier(ident)
+                sql_ast::Expr::CompoundIdentifier(ident).into()
             }
         })
     } else {
@@ -455,7 +434,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
         log::debug!("translating {cid:?} post projection: {ident:?}");
 
         let ident = sql_ast::Expr::CompoundIdentifier(ident);
-        Ok(ident)
+        Ok(ident.into())
     }
 }
 
@@ -479,7 +458,9 @@ pub(super) fn translate_sstring(
         .into_iter()
         .map(|s_string_item| match s_string_item {
             InterpolateItem::String(string) => Ok(string),
-            InterpolateItem::Expr(node) => translate_expr(*node, ctx).map(|expr| expr.to_string()),
+            InterpolateItem::Expr { expr, .. } => {
+                translate_expr(*expr, ctx).map(|expr| expr.into_source())
+            }
         })
         .collect::<Result<Vec<String>>>()?
         .join(""))
@@ -535,14 +516,14 @@ pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
     let kind = ExprKind::Literal(Literal::Integer(take));
     let expr = Expr { kind, span: None };
     Top {
-        quantity: Some(translate_expr(expr, ctx).unwrap()),
+        quantity: Some(translate_expr(expr, ctx).unwrap().into_ast()),
         with_ties: false,
         percent: false,
     }
 }
 
 pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<SelectItem> {
-    let expr = translate_cid(cid, ctx)?;
+    let expr = translate_cid(cid, ctx)?.into_ast();
 
     let inferred_name = match &expr {
         // sql_ast::Expr::Identifier is used for s-strings
@@ -571,11 +552,11 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
 }
 
 fn translate_windowed(
-    expr: sql_ast::Expr,
+    expr: ExprOrSource,
     window: Window,
     ctx: &mut Context,
     span: Option<Span>,
-) -> Result<sql_ast::Expr> {
+) -> Result<ExprOrSource> {
     let default_frame = {
         let (kind, range) = if window.sort.is_empty() {
             (WindowKind::Rows, Range::unbounded())
@@ -607,9 +588,11 @@ fn translate_windowed(
         },
     };
 
-    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(format!(
-        "{expr} OVER ({window})"
-    ))))
+    let expr = expr.into_source();
+    Ok(ExprOrSource::Source {
+        text: format!("{expr} OVER ({window})"),
+        binding_strength: 100,
+    })
 }
 
 fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
@@ -649,7 +632,7 @@ pub(super) fn translate_column_sort(
     ctx: &mut Context,
 ) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
-        expr: translate_cid(sort.column, ctx)?,
+        expr: translate_cid(sort.column, ctx)?.into_ast(),
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -717,23 +700,23 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 }
 
 /// Wraps into parenthesis if binding strength would be less than min_strength
-fn translate_operand(
+pub(super) fn translate_operand(
     expr: Expr,
     parent_strength: i32,
     fix_associativity: bool,
     context: &mut Context,
-) -> Result<Box<sql_ast::Expr>> {
-    let expr = Box::new(translate_expr(expr, context)?);
+) -> Result<ExprOrSource> {
+    let expr = translate_expr(expr, context)?;
 
     let strength = expr.binding_strength();
 
     // Either the binding strength is less than its parent, or it's equal and we
     // need to correct for the associativity of the operator (e.g. `a - (b - c)`)
-    let needs_nesting =
+    let needs_parenthesis =
         strength < parent_strength || (strength == parent_strength && fix_associativity);
 
-    Ok(if needs_nesting {
-        Box::new(sql_ast::Expr::Nested(expr))
+    Ok(if needs_parenthesis {
+        expr.wrap_in_parenthesis()
     } else {
         expr
     })
@@ -766,6 +749,7 @@ trait SQLExpression {
             Associativity::Left | Associativity::Both
         )
     }
+
     /// Returns true iff `a + b + c = a + (b + c)`
     fn associates_right(&self) -> bool {
         matches!(
@@ -829,6 +813,61 @@ impl SQLExpression for UnaryOperator {
             UnaryOperator::Not => 4,
             _ => 9,
         }
+    }
+}
+
+/// A wrapper around sql_ast::Expr, that may have already been converted to source.
+pub enum ExprOrSource {
+    Expr(sql_ast::Expr),
+    Source { text: String, binding_strength: i32 },
+}
+
+impl ExprOrSource {
+    pub fn into_ast(self) -> sql_ast::Expr {
+        match self {
+            ExprOrSource::Expr(ast) => ast,
+            ExprOrSource::Source { text: source, .. } => {
+                // The s-string hack
+                sql_ast::Expr::Identifier(sql_ast::Ident::new(source))
+            }
+        }
+    }
+
+    pub fn into_source(self) -> String {
+        match self {
+            ExprOrSource::Expr(e) => e.to_string(),
+            ExprOrSource::Source { text, .. } => text,
+        }
+    }
+
+    fn wrap_in_parenthesis(self) -> Self {
+        match self {
+            ExprOrSource::Expr(expr) => ExprOrSource::Expr(sql_ast::Expr::Nested(Box::new(expr))),
+            ExprOrSource::Source { text, .. } => {
+                let text = format!("({text})");
+                ExprOrSource::Source {
+                    text,
+                    binding_strength: 100,
+                }
+            }
+        }
+    }
+}
+
+impl SQLExpression for ExprOrSource {
+    fn binding_strength(&self) -> i32 {
+        match self {
+            ExprOrSource::Expr(expr) => expr.binding_strength(),
+            ExprOrSource::Source {
+                binding_strength, ..
+            } => *binding_strength,
+        }
+    }
+}
+
+impl From<sql_ast::Expr> for ExprOrSource {
+    fn from(value: sql_ast::Expr) -> Self {
+        ExprOrSource::Expr(value)
     }
 }
 

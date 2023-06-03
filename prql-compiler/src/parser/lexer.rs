@@ -31,6 +31,7 @@ pub enum Token {
     Or,          // ||
     Coalesce,    // ??
     DivInt,      // //
+    Annotate,    // #[
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -49,6 +50,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
         just("//").to(Token::DivInt),
+        just("#[").to(Token::Annotate),
     ));
 
     let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
@@ -92,7 +94,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let comment = just('#').then(none_of('\n').repeated());
+    let comment = just('#')
+        .then(just('[').not().rewind())
+        .then(none_of('\n').repeated());
     let comments = comment
         .separated_by(new_line.then(whitespace.clone().or_not()))
         .at_least(1)
@@ -406,6 +410,7 @@ impl std::fmt::Display for Token {
             Self::Or => f.write_str("||"),
             Self::Coalesce => f.write_str("??"),
             Self::DivInt => f.write_str("//"),
+            Self::Annotate => f.write_str("#["),
 
             Self::Param(id) => write!(f, "${id}"),
 

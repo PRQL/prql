@@ -169,8 +169,8 @@ showcase_section:
         SELECT
           *,
           started + unfinished AS finished,
-          (started + unfinished * 1.0 / started) AS fin_share,
-          ( (started + unfinished * 1.0 / started) * 1.0 / 1 - (started + unfinished * 1.0 / started) ) AS fin_ratio
+          ((started + unfinished) * 1.0 / started) AS fin_share,
+          ( ((started + unfinished) * 1.0 / started) * 1.0 / (1 - ((started + unfinished) * 1.0 / started)) ) AS fin_ratio
         FROM
           track_plays
 
