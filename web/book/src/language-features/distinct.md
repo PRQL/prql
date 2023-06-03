@@ -44,7 +44,8 @@ group {first_name, last_name} (take 1)
 
 ## Distinct on
 
-When compiling to Postgres or DuckDB dialect, `DISTINCT ON` is used to take one row for each group:
+When compiling to Postgres or DuckDB dialect, `DISTINCT ON` is used to take one
+row for each group:
 
 ```prql
 prql target:sql.postgres
