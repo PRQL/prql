@@ -90,7 +90,7 @@ group department (
 
 ## Window functions as first class citizens
 
-There is no limitations where windowed expressions can be used:
+There are no limitations on where windowed expressions can be used:
 
 ```prql
 from employees
