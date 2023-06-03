@@ -182,7 +182,7 @@ fn replace_examples(text: &str) -> Result<String> {
 
             cmark_acc.push(Event::Html(table_of_error(&prql, &error_message).into()))
         } else {
-            // Either a bare `prql` or with `no-fmt`
+            // Show the comparison
             cmark_acc.push(Event::Html(
                 table_of_comparison(
                     &prql,

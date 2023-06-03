@@ -327,7 +327,7 @@ impl WriteSource for pl::Stmt {
                 let mut r = String::new();
                 r += "prql";
                 if let Some(version) = &query.version {
-                    r += &format!(" version:{}", version);
+                    r += &format!(r#" version:"{}""#, version);
                 }
                 for (key, value) in &query.other {
                     r += &format!(" {key}:{value}");
