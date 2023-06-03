@@ -237,16 +237,10 @@ fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Exp
                     // > 3 and x < 5
                     if a_l == b_l {
                         return Ok(Some(sql_ast::Expr::Between {
-                            expr: Box::new(
-                                translate_operand(a_l, 0, false, ctx)?.into_ast(),
-                            ),
+                            expr: Box::new(translate_operand(a_l, 0, false, ctx)?.into_ast()),
                             negated: false,
-                            low: Box::new(
-                                translate_operand(a_r, 0, false, ctx)?.into_ast(),
-                            ),
-                            high: Box::new(
-                                translate_operand(b_r, 0, false, ctx)?.into_ast(),
-                            ),
+                            low: Box::new(translate_operand(a_r, 0, false, ctx)?.into_ast()),
+                            high: Box::new(translate_operand(b_r, 0, false, ctx)?.into_ast()),
                         }));
                     }
                 }
