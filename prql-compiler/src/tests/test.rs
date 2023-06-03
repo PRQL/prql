@@ -1488,6 +1488,21 @@ fn test_distinct() {
 #[test]
 fn test_distinct_on() {
     assert_display_snapshot!((compile(r###"
+    prql target:sql.postgres
+
+    from employees
+    group department (
+      sort age
+      take 1
+    )
+    "###).unwrap()), @r###"
+    SELECT
+      DISTINCT ON (department) *
+    FROM
+      employees
+    "###);
+
+    assert_display_snapshot!((compile(r###"
     prql target:sql.duckdb
 
     from x

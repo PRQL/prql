@@ -169,6 +169,11 @@ impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
     }
+
+    fn supports_distinct_on(&self) -> bool {
+        // https://www.postgresql.org/docs/current/sql-select.html
+        true
+    }
 }
 
 impl DialectHandler for SQLiteDialect {
@@ -260,6 +265,7 @@ impl DialectHandler for DuckDbDialect {
     }
 
     fn supports_distinct_on(&self) -> bool {
+        // https://duckdb.org/docs/sql/query_syntax/select.html#distinct-on-clause
         true
     }
 }
