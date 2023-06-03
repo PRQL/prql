@@ -95,13 +95,9 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
 }
 
 fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
-    let annotation = ctrl('@')
-        .ignore_then(
-            ident()
-                .then(expr().repeated())
-                .delimited_by(ctrl('('), ctrl(')')),
-        )
-        .then_ignore(new_line())
+    let annotation = just(Token::Annotate)
+        .ignore_then(ident().then(expr().repeated()))
+        .then_ignore(ctrl(']').then(new_line()))
         .map_with_span(|(name, args), span| {
             let span = Some(span);
             Annotation { name, args, span }

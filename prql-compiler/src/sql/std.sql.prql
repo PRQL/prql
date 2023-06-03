@@ -37,73 +37,73 @@ let upper = column -> s"UPPER({column:0})"
 let read_parquet = source -> s"read_parquet({source:0})"
 let read_csv = source -> s"read_csv_auto({source:0})"
 
-@(binding_strength 11)
+#[binding_strength 11]
 let mul = l r -> null
 
-@(binding_strength 100)
+#[binding_strength 100]
 let div_i = l r -> s"FLOOR(FLOOR(ABS({l:11} / {r:11})) * SIGN({l:11} / {r:11}))"
 
-@(binding_strength 11)
+#[binding_strength 11]
 let div_f = l r -> s"({l} * 1.0 / {r})"
 
-@(binding_strength 11)
+#[binding_strength 11]
 let mod = l r -> s"{l} % {r}"
 
-@(binding_strength 10)
+#[binding_strength 10]
 let add = l r -> null
 
-@(binding_strength 10)
+#[binding_strength 10]
 let sub = l r -> null
 
-@(binding_strength 6)
+#[binding_strength 6]
 let eq = l r -> null
 
-@(binding_strength 6)
+#[binding_strength 6]
 let ne = l r -> null
 
-@(binding_strength 6)
+#[binding_strength 6]
 let gt = l r -> null
 
-@(binding_strength 6)
+#[binding_strength 6]
 let lt = l r -> null
 
-@(binding_strength 6)
+#[binding_strength 6]
 let gte = l r -> null
 
-@(binding_strength 6)
+#[binding_strength 6]
 let lte = l r -> null
 
-@(binding_strength 3)
+#[binding_strength 3]
 let and = l r -> null
 
-@(binding_strength 2)
+#[binding_strength 2]
 let or = l r -> null
 
 let coalesce = l r -> s"COALESCE({l:0}, {r:0})"
 
 let regex_search = text pattern -> s"REGEXP({text:0}, {pattern:0})"
 
-@(binding_strength 13)
+#[binding_strength 13]
 let neg = l -> s"-{l}"
 
-@(binding_strength 4)
+#[binding_strength 4]
 let not = l -> s"NOT {l}"
 
 module postgres {
-    @(binding_strength 100)
+    #[binding_strength 100]
     let div_i = l r -> s"trunc({l} / {r})::bigint"
 
-    @(binding_strength 100)
+    #[binding_strength 100]
     let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
 
-    @(binding_strength 9)
+    #[binding_strength 9]
     let regex_search = text pattern -> s"{text} ~ {pattern}"
 }
 
 module sqlite {
     let div_i = l r -> s"ROUND(ABS({l} / {r}) - 0.5) * SIGN({l} / {r})"
 
-    @(binding_strength 9)
+    #[binding_strength 9]
     let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
@@ -112,7 +112,7 @@ module mssql {
 }
 
 module mysql {
-    @(binding_strength 11)
+    #[binding_strength 11]
     let div_f = l r -> s"CAST({l:0} AS FLOAT) / {r}"
 
     let mod = l r -> s"FLOOR(MOD({l:0}, {r:0}))"
