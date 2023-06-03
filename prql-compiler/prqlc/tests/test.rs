@@ -179,11 +179,11 @@ fn project_path() -> PathBuf {
 }
 
 fn prqlc_command() -> Command {
+    let mut cmd = Command::new(get_cargo_bin("prqlc"));
     // We set this in CI to force color output, but we don't want `prqlc` to
     // output color for our snapshot tests. And it seems to override the
     // `--color=never` flag.
-    env::remove_var("CLICOLOR_FORCE");
-    let mut cmd = Command::new(get_cargo_bin("prqlc"));
+    cmd.env_remove("CLICOLOR_FORCE");
     cmd.args(["--color=never"]);
     cmd
 }
