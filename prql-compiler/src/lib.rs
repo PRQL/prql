@@ -407,4 +407,10 @@ mod tests_lib {
         )
         "###);
     }
+    #[test]
+    fn test_target_names() {
+        for name in Target::names() {
+            assert_debug_snapshot!(name, Target::from_str(&name));
+        }
+    }
 }
