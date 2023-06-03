@@ -2,7 +2,7 @@
 
 use insta_cmd::get_cargo_bin;
 use insta_cmd::{assert_cmd_snapshot, StdinCommand};
-use std::env::{self, current_dir};
+use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::Command;
 
