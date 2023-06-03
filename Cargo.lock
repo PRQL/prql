@@ -814,13 +814,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "compile-files"
-version = "0.8.1"
-dependencies = [
- "prql-compiler",
-]
-
-[[package]]
 name = "concolor"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

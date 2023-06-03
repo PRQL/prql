@@ -6,8 +6,6 @@ members = [
   "prql-compiler/prqlc", #
   # Macros
   "prql-compiler/prql-compiler-macros", #
-  # An example
-  "prql-compiler/examples/compile-files", #
   # Bindings
   "bindings/prql-elixir/native/prql",
   "bindings/prql-java",
@@ -15,11 +13,12 @@ members = [
   "bindings/prql-lib",
   "bindings/prql-python", #
   # The book / docs
-  "web/book",
+  "web/book", #
+  # An example
+  # This is temporarily removed because it was causing a stack overflow in
+  # Windows; ref https://github.com/PRQL/prql/pull/2713
+  # "prql-compiler/examples/compile-files", #
 ]
-# Note we don't have a `default-members = ["prql-compiler"]`, since that causes
-# commands like `cargo test` to only run tests from the default package. And
-# `cargo insta test` doesn't have a `--workspace` flag.
 resolver = "2"
 
 [workspace.package]
