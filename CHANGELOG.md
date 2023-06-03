@@ -1,14 +1,16 @@
 # PRQL Changelog
 
-## 0.8.2 — [unreleased]
+## 0.9.0 — [unreleased]
 
 _The following unreleased features are only available in the `main` branch. They
 will become the public version at the next release._
 
 **Features**:
 
-- We've made one large breaking change — "Lists" are now "Tuples", and
-  represented with brackets `{}` rather than braces `[]`.
+- We've made one large breaking change — Lists are now Tuples, and represented
+  with braces `{}` rather than brackets `[]`.
+
+  We now have Arrays, which use the `[]` syntax.
 
   We've made this change to incorporate arrays without having syntax that's the
   opposite of almost every major language — specifically using `{}` for an array
@@ -41,14 +43,38 @@ will become the public version at the next release._
   [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
   details.
 
-- Change to function syntax: `let f = x -> ...` See
-  https://github.com/PRQL/prql/blob/main/web/book/src/queries/functions.md
+- We've changed our function declaration syntax to match other declarations.
+  Functions were one of the first language constructs in PRQL, and since then
+  we've added normal declarations; and there's no compelling reason to have
+  functions be different.
+
+  ```prql no-eval
+  let add = a b -> a + b
+  ```
+
+  Previously, this was:
+
+  ```prql no-eval
+  func add a b -> a + b
+  ```
 
 - Modules allow importing declarations from other files: See
   https://github.com/PRQL/prql/blob/main/web/book/src/internals/modules.md
 
-- Relation literals create in-line tables or array literals: See
-  https://github.com/PRQL/prql/pull/2605
+- "Relation Literals", which create inline relations / tables from data in the
+  query:
+
+  ' # TODO: add `from`?
+
+  ```prql no-eval
+  [{a=5, b=false}, {a=6, b=true}]
+  filter b == true
+  select a
+  ```
+
+  This example demonstrates both the new tuple syntax (`{}`) and arrays `[]`.
+
+  (@aljazerzen, #2605)
 
 **Fixes**:
 
