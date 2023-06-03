@@ -7,7 +7,7 @@ members = [
   # Macros
   "prql-compiler/prql-compiler-macros", #
   # An example
-  "prql-compiler/examples/compile-files", #
+  # "prql-compiler/examples/compile-files", #
   # Bindings
   "bindings/prql-elixir/native/prql",
   "bindings/prql-java",
