@@ -238,14 +238,14 @@ fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Exp
                     if a_l == b_l {
                         return Ok(Some(sql_ast::Expr::Between {
                             expr: Box::new(
-                                translate_operand(a_l.clone(), 0, false, ctx)?.into_ast(),
+                                translate_operand(a_l, 0, false, ctx)?.into_ast(),
                             ),
                             negated: false,
                             low: Box::new(
-                                translate_operand(a_r.clone(), 0, false, ctx)?.into_ast(),
+                                translate_operand(a_r, 0, false, ctx)?.into_ast(),
                             ),
                             high: Box::new(
-                                translate_operand(b_r.clone(), 0, false, ctx)?.into_ast(),
+                                translate_operand(b_r, 0, false, ctx)?.into_ast(),
                             ),
                         }));
                     }
@@ -842,7 +842,7 @@ impl ExprOrSource {
     pub fn into_source(self) -> String {
         match self {
             ExprOrSource::Expr(e) => e.to_string(),
-            ExprOrSource::Source { text, .. } => text.clone(),
+            ExprOrSource::Source { text, .. } => text,
         }
     }
 

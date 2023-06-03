@@ -4,6 +4,14 @@
 #! It can contain only:
 #! - functions declarations that don't have named params and s-string-only body,
 #! - module declarations whose names correspond to sql dialect names.
+#!
+#! Functions can define `binding_strength` annotation, which signifies how much
+#! precedence does the top-level operation in the s-string provide.
+#! This value defaults to 100 (high precedence).
+#!
+#! S-strings can define required binding strength of the interpolated expression.
+#! This value defaults to binding strength of the function.
+
 
 
 # Aggregation functions
@@ -115,8 +123,11 @@ module mysql {
     #[binding_strength 11]
     let div_f = l r -> s"CAST({l:0} AS FLOAT) / {r}"
 
+    #[binding_strength 100]
     let mod = l r -> s"FLOOR(MOD({l:0}, {r:0}))"
-    let regex_search = text pattern -> s"({text} REGEXP {pattern})"
+
+    #[binding_strength 9]
+    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
 module bigquery {
