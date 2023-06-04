@@ -10,15 +10,16 @@ PRQL offers two approaches — array literals, and a `from_text` transform.
 
 ```admonish note
 Relation literals are currently experimental.
-In particular, we're considering requiring them to be
-prefixed with `from`.
 ```
 
 Relation literals convert an array (represented by `[]`), of tuples (represented
 by `{}`) into a relation (aka a table):
 
 ```prql
-[{a=5, b=false}, {a=6, b=true}]
+from [
+  {a=5, b=false},
+  {a=6, b=true},
+]
 filter b == true
 select a
 ```
