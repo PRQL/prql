@@ -130,10 +130,20 @@ pub(in crate::sql) fn distinct(
                 let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
 
                 if take_only_first && sort.is_empty() && matching_columns {
+                    // DISTINCT
+
                     res.push(SqlTransform::Distinct);
                 } else if ctx.dialect.supports_distinct_on() {
-                    res.push(SqlTransform::DistinctOn(partition));
+                    // DISTINCT ON
+
+                    let sort = if sort.is_empty() {
+                        vec![]
+                    } else {
+                        [into_column_sort(&partition), sort].concat()
+                    };
+
                     res.push(SqlTransform::Sort(sort));
+                    res.push(SqlTransform::DistinctOn(partition));
                 } else {
                     // convert `take range` into:
                     //   derive _rn = s"ROW NUMBER"
@@ -147,6 +157,16 @@ pub(in crate::sql) fn distinct(
         }
     }
     Ok(res)
+}
+
+fn into_column_sort(partition: &[CId]) -> Vec<ColumnSort<CId>> {
+    partition
+        .iter()
+        .map(|cid| ColumnSort {
+            direction: crate::ast::pl::SortDirection::Asc,
+            column: *cid,
+        })
+        .collect_vec()
 }
 
 fn create_filter_by_row_number(
