@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\njoin side:left p=positions (employees.id==p.employee_id)\n"
+---
+SELECT
+  employees.*,
+  p.*
+FROM
+  employees
+  LEFT JOIN positions AS p ON employees.id = p.employee_id
+

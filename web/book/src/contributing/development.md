@@ -291,14 +291,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       get into a loop of writing snapshot files, triggering a change, writing a
       snapshot file, etc. -->
 
-- **[Examples](https://github.com/PRQL/prql/tree/main/web/book/tests/examples)**
-  — we compile all examples in the Website, README, and PRQL Book, to test that
-  they produce the SQL we expect, and that changes to our code don't cause any
-  unexpected regressions.
+- **[Documentation](https://github.com/PRQL/prql/tree/main/web/book/tests/documentation)**
+  — we compile all examples from our documentation in the Website, README, and
+  PRQL Book, to test that they produce the SQL we expect, and that changes to
+  our code don't cause any unexpected regressions.
 
 - **[Integration tests](https://github.com/PRQL/prql/blob/main/prql-compiler/tests/integration)**
-  — these run tests against real databases, to ensure we're producing correct
-  SQL.
+  — we run tests with example queries against real databases to ensure we're
+  producing correct SQL.
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run the tests described up to this point on every commit to a pull
@@ -337,7 +337,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   — we run tests that take a long time or are unrelated to code changes, such as
   security checks, or expensive timing benchmarks, every night.
 
-  We can run these tests before a merge by adding a label `pr-cron` to the PR.
+  We can run these tests before a merge by adding a label `pr-nightly` to the
+  PR.
 
 The goal of our tests is to allow us to make changes quickly. If you find
 they're making it more difficult for you to make changes, or there are missing

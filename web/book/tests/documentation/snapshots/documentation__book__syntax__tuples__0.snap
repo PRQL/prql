@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from numbers\nderive {x = 1, y = 2}\nderive {               # Span multiple lines\n  a = x,\n  b = y                # Optional trailing comma\n}\nselect {\n  c,                   # Individual item\n  d = b,               # Assignment\n}\n"
+---
+SELECT
+  c,
+  2 AS d
+FROM
+  numbers
+

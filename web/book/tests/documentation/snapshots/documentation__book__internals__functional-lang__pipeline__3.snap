@@ -1,0 +1,13 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "sort name (filter age > 50 (from employees))\n"
+---
+SELECT
+  *
+FROM
+  employees
+WHERE
+  age > 50
+ORDER BY
+  name
+

@@ -1,0 +1,15 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\ngroup {title, country} (\n  aggregate {\n    average salary,\n    ct = count salary\n  }\n)\n"
+---
+SELECT
+  title,
+  country,
+  AVG(salary),
+  COUNT(salary) AS ct
+FROM
+  employees
+GROUP BY
+  title,
+  country
+
