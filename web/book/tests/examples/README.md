@@ -1,4 +1,3 @@
 # PRQL document tests
 
-This directory contains tests for PRQL documentation  (website, book
-and README).
+This directory contains tests for PRQL documentation (website, book and README).
