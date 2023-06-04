@@ -55,7 +55,7 @@ let div_i = l r -> s"FLOOR(ABS({l:11} / {r:11})) * SIGN({l:0}) * SIGN({r:0})"
 let div_f = l r -> s"({l:11} * 1.0 / {r:11})"
 
 #[binding_strength 11]
-let mod = l r -> s"{l:11} % {r:11}"
+let mod = l r -> s"{l} % {r}"
 
 #[binding_strength 10]
 let add = l r -> null
