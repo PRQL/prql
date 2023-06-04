@@ -133,6 +133,7 @@ pub(in crate::sql) fn distinct(
                     res.push(SqlTransform::Distinct);
                 } else if ctx.dialect.supports_distinct_on() {
                     res.push(SqlTransform::DistinctOn(partition));
+                    res.push(SqlTransform::Sort(sort));
                 } else {
                     // convert `take range` into:
                     //   derive _rn = s"ROW NUMBER"
