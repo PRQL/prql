@@ -7,5 +7,6 @@ SELECT
 FROM
   employees
 ORDER BY
+  department,
   age
 
