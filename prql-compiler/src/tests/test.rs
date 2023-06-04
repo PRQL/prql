@@ -88,54 +88,60 @@ fn test_precedence() {
 
     assert_display_snapshot!((compile(r###"
     from numbers
-    select negated_is_null = (!a) == null
+    select {
+      is_not_equal = !(a==b),
+      is_not_gt = !(a>b),
+      negated_is_null_1 = !a == null,
+      negated_is_null_2 = (!a) == null,
+      is_not_null = !(a == null),
+      (a + b) == null,
+    }
     "###).unwrap()), @r###"
     SELECT
-      (NOT a) IS NULL AS negated_is_null
+      NOT a = b AS is_not_equal,
+      NOT a > b AS is_not_gt,
+      (NOT a) IS NULL AS negated_is_null_1,
+      (NOT a) IS NULL AS negated_is_null_2,
+      NOT a IS NULL AS is_not_null,
+      a + b IS NULL
     FROM
       numbers
     "###);
 
     assert_display_snapshot!((compile(r###"
     from numbers
-    select is_not_null = !(a == null)
+    select {
+      gtz = a > 0,
+      ltz = !(a > 0),
+      zero = !gtz && !ltz
+    }
     "###).unwrap()), @r###"
     SELECT
-      NOT a IS NULL AS is_not_null
+      a > 0 AS gtz,
+      NOT a > 0 AS ltz,
+      NOT a > 0
+      AND NOT NOT a > 0 AS zero
     FROM
       numbers
     "###);
 
     assert_display_snapshot!(compile(
-        r###"
+    r###"
     from numbers
-    select (a + b) == null
+    derive x = (y - z)
+    select {
+    c - (a + b),
+    c + (a - b),
+    c + a - b,
+    c + a + b,
+    (c + a) - b,
+    ((c - d) - (a - b)),
+    ((c + d) + (a - b)),
+    +x,
+    -x,
+    }
     "###
     ).unwrap(), @r###"
-    SELECT
-      a + b IS NULL
-    FROM
-      numbers
-    "###
-    );
-
-    assert_display_snapshot!(compile(
-        r###"
-        from numbers
-        derive x = (y - z)
-        select {
-        c - (a + b),
-        c + (a - b),
-        c + a - b,
-        c + a + b,
-        (c + a) - b,
-        ((c - d) - (a - b)),
-        ((c + d) + (a - b)),
-        +x,
-        -x,
-        }
-        "###
-        ).unwrap(), @r###"
     SELECT
       c - (a + b),
       c + a - b,

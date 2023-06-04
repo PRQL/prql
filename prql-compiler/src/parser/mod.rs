@@ -1618,7 +1618,7 @@ Canada
               Integer: 1
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r#"a && b || c && d"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a && b || !c && d"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1634,8 +1634,11 @@ Canada
           right:
             Binary:
               left:
-                Ident:
-                  - c
+                Unary:
+                  op: Not
+                  expr:
+                    Ident:
+                      - c
               op: And
               right:
                 Ident:
