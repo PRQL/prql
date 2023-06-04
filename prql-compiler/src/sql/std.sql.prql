@@ -52,7 +52,7 @@ let mul = l r -> null
 let div_i = l r -> s"FLOOR(ABS({l:11} / {r:11})) * SIGN({l:0}) * SIGN({r:0})"
 
 #[binding_strength 11]
-let div_f = l r -> s"({l:11} * 1.0 / {r:11})"
+let div_f = l r -> s"({l} * 1.0 / {r})"
 
 #[binding_strength 11]
 let mod = l r -> s"{l} % {r}"
@@ -122,10 +122,10 @@ module mssql {
 
 module mysql {
     #[binding_strength 11]
-    let div_f = l r -> s"({l:11} / {r:11})"
+    let div_f = l r -> s"({l} / {r})"
 
     #[binding_strength 11]
-    let div_i = l r -> s"({l:11} DIV {r:11})"
+    let div_i = l r -> s"({l} DIV {r})"
 
     #[binding_strength 100]
     let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
@@ -141,7 +141,7 @@ module bigquery {
 module duckdb {
     # TODO: Uncomment for DuckDB >= 0.8.0
     # #[binding_strength 11]
-    # let div_f = l r -> s"({l:11} / {r:11})"
+    # let div_f = l r -> s"({l} / {r})"
 
     # #[binding_strength 100]
     # let div_i = l r -> s"TRUNC({l:11} / {r:11})"
