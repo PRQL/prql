@@ -291,8 +291,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       get into a loop of writing snapshot files, triggering a change, writing a
       snapshot file, etc. -->
 
-- **[Examples](https://github.com/PRQL/prql/blob/main/web/book/tests/snapshot.rs)**
-  — we compile all examples in the PRQL Book, to test that they produce the SQL
+- **[Examples](https://github.com/PRQL/prql/tree/main/web/book/tests/examples)**
+  — we compile all examples in the Website, README, and PRQL Book, to test that they produce the SQL
   we expect, and that changes to our code don't cause any unexpected
   regressions.
 
