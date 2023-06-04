@@ -1,9 +1,0 @@
----
-source: web/book/tests/snapshot.rs
-expression: "prql version:\"0.8.1\"\n\nfrom employees\n"
----
-SELECT
-  *
-FROM
-  employees
-

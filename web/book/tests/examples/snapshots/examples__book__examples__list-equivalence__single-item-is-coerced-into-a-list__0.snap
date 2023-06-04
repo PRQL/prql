@@ -1,0 +1,9 @@
+---
+source: web/book/tests/examples/book.rs
+expression: "from employees\nselect salary\n"
+---
+SELECT
+  salary
+FROM
+  employees
+

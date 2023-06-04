@@ -1,9 +1,0 @@
----
-source: web/book/tests/snapshot.rs
-expression: "from employees\nselect department\ngroup department (take 1)\n"
----
-SELECT
-  DISTINCT department
-FROM
-  employees
-

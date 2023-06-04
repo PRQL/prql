@@ -1,9 +1,0 @@
----
-source: web/book/tests/snapshot.rs
-expression: "from my_table\nselect db_version = s\"version()\"\n"
----
-SELECT
-  version() AS db_version
-FROM
-  my_table
-

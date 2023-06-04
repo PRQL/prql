@@ -1,9 +1,0 @@
----
-source: web/book/tests/snapshot.rs
-expression: "from artists\nderive nick = name\nselect ![artists.*]\n"
----
-SELECT
-  name AS nick
-FROM
-  artists
-
