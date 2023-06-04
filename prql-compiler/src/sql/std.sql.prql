@@ -49,7 +49,7 @@ let read_csv = source -> s"read_csv_auto({source:0})"
 let mul = l r -> null
 
 #[binding_strength 100]
-let div_i = l r -> s"ROUND({l:11} / {r:11} - 0.5)"
+let div_i = l r -> s"FLOOR(ABS({l:11} / {r:11})) * SIGN({l:0}) * SIGN({r:0})"
 
 #[binding_strength 11]
 let div_f = l r -> s"({l:11} * 1.0 / {r:11})"
@@ -109,6 +109,9 @@ module postgres {
 }
 
 module sqlite {
+    #[binding_strength 100]
+    let div_i = l r -> s"ROUND(ABS({l:11} / {r:11}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
+
     #[binding_strength 9]
     let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
