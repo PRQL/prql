@@ -1500,6 +1500,8 @@ fn test_distinct_on() {
       DISTINCT ON (department) *
     FROM
       employees
+    ORDER BY
+      age
     "###);
 
     assert_display_snapshot!((compile(r###"
