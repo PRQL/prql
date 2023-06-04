@@ -6,4 +6,6 @@ SELECT
   DISTINCT ON (department) *
 FROM
   employees
+ORDER BY
+  age
 
