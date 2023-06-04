@@ -292,9 +292,9 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       snapshot file, etc. -->
 
 - **[Examples](https://github.com/PRQL/prql/tree/main/web/book/tests/examples)**
-  — we compile all examples in the Website, README, and PRQL Book, to test that they produce the SQL
-  we expect, and that changes to our code don't cause any unexpected
-  regressions.
+  — we compile all examples in the Website, README, and PRQL Book, to test that
+  they produce the SQL we expect, and that changes to our code don't cause any
+  unexpected regressions.
 
 - **[Integration tests](https://github.com/PRQL/prql/blob/main/prql-compiler/tests/integration)**
   — these run tests against real databases, to ensure we're producing correct
