@@ -1,3 +1,4 @@
+version: "2.4"
 services:
   postgres:
     # These aren't tagged yet, since there's no dependabot support for
@@ -18,7 +19,7 @@ services:
     environment:
       MYSQL_DATABASE: dummy
       MYSQL_ROOT_PASSWORD: root
-    command: --secure-file-priv="" --div-precision-increment=2
+    command: --secure-file-priv=""
     volumes: *vol
   #  db2:
   #    image: 'icr.io/db2_community/db2'
