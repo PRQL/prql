@@ -1,0 +1,15 @@
+---
+source: web/book/tests/examples/book.rs
+expression: "let cost_share = cost -> cost / cost_total\n\nfrom costs\nselect {materials, labor, overhead, cost_total}\nderive {\n  materials_share = (cost_share materials),\n  labor_share = (cost_share labor),\n  overhead_share = (cost_share overhead),\n}\n"
+---
+SELECT
+  materials,
+  labor,
+  overhead,
+  cost_total,
+  (materials * 1.0 / cost_total) AS materials_share,
+  (labor * 1.0 / cost_total) AS labor_share,
+  (overhead * 1.0 / cost_total) AS overhead_share
+FROM
+  costs
+

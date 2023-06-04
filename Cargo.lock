@@ -2165,6 +2165,7 @@ dependencies = [
  "prql-compiler",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
+ "regex",
  "semver",
  "serde_json",
  "serde_yaml",
