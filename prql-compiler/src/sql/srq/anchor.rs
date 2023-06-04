@@ -339,7 +339,7 @@ fn is_split_required(transform: &SqlTransform<TableRef>, following: &mut HashSet
             following,
             ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
         ),
-        SqlTransform::Distinct => contains_any(
+        SqlTransform::Distinct | SqlTransform::DistinctOn(_) => contains_any(
             following,
             [
                 "From",

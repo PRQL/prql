@@ -1507,6 +1507,7 @@ fn test_distinct_on() {
     FROM
       employees
     ORDER BY
+      department,
       age
     "###);
 

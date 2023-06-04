@@ -113,7 +113,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
                 }
 
                 // emit Sort before Take
-                SqlTransform::Take(_) => {
+                SqlTransform::Take(_) | SqlTransform::DistinctOn(_) => {
                     result.push(SqlTransform::Sort(sorting.clone()));
                 }
                 _ => {}
