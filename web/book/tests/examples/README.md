@@ -1,4 +1,4 @@
 # PRQL document tests
 
-This directory contains tests for example PRQL code on documents (website, book
+This directory contains tests for PRQL documentation  (website, book
 and README).
