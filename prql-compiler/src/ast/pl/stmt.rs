@@ -68,7 +68,9 @@ pub struct Annotation {
 }
 
 impl Annotation {
-    pub fn items(self) -> anyhow::Result<Vec<(String, ExprKind)>> {
+    /// Find the items in a `@{a=b}`. We're only using annotations with tuples;
+    /// we can consider formalizing this constraint.
+    pub fn tuple_items(self) -> anyhow::Result<Vec<(String, ExprKind)>> {
         match self.expr.kind {
             ExprKind::Tuple(items) => items
                 .into_iter()

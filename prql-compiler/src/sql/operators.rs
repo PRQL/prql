@@ -129,11 +129,10 @@ fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<(&pl::Fun
     let binding_strength = decl
         .clone()
         .annotations
-        .iter()
+        .into_iter()
         .exactly_one()
         .ok()
-        .cloned()
-        .and_then(|x| x.items().ok())
+        .and_then(|x| x.tuple_items().ok())
         .and_then(|items| items.into_iter().find(|bs| bs.0 == "binding_strength"))
         .and_then(|tuple| tuple.1.into_literal().ok())
         .and_then(|literal| literal.into_integer().ok())

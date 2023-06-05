@@ -256,25 +256,22 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         )
         .boxed();
 
-    let date = just('@')
-        // Not an annotation
-        .then(just('{').not().rewind())
+    // Not an annotation
+    let dt_prefix = just('@').then(just('{').not().rewind());
+
+    let date = dt_prefix
         .ignore_then(date_inner.clone())
         .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Date);
 
-    let time = just('@')
-        // Not an annotation
-        .then(just('{').not().rewind())
+    let time = dt_prefix
         .ignore_then(time_inner.clone())
         .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Time);
 
-    let datetime = just('@')
-        // Not an annotation
-        .then(just('{').not().rewind())
+    let datetime = dt_prefix
         .ignore_then(date_inner)
         .chain(just('T'))
         .chain::<char, _, _>(time_inner)
