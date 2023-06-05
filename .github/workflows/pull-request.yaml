@@ -146,13 +146,4 @@ jobs:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
           github-token: ${{ github.token }}
-          # Doesn't appear to work, so we instead we add a `needs` so it runs at
-          # the end, ref https://github.com/fastify/github-action-merge-dependabot/issues/431
-          # use-github-auto-merge: true
-
-    needs:
-      - check-ok-to-merge
-    # This is required because skips flow through multiple children to `needs`,
-    # and so even though `check-ok-to-merge` is always run, its parents can be
-    # skipped, which would skip this.
-    if: always()
+          use-github-auto-merge: true
