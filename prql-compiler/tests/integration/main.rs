@@ -9,6 +9,7 @@ use std::{env, fs};
 use anyhow::Context;
 use insta::{assert_snapshot, glob};
 use postgres::NoTls;
+use regex::Regex;
 use tiberius::{AuthMethod, Client, Config};
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
@@ -197,6 +198,7 @@ fn run_query(
 
     let mut actual_rows = con.run_query(sql.as_str(), runtime)?;
     replace_booleans(&mut actual_rows);
+    remove_trailing_zeros(&mut actual_rows);
     Ok(actual_rows)
 }
 
@@ -208,6 +210,18 @@ fn replace_booleans(rows: &mut Vec<Row>) {
                 *col = "1".to_string();
             } else if col == "false" {
                 *col = "0".to_string();
+            }
+        }
+    }
+}
+
+// MySQL may adds 0s to the end of results of `/` operator
+fn remove_trailing_zeros(rows: &mut Vec<Row>) {
+    let re = Regex::new(r"^(|-)\d+\.\d+0+$").unwrap();
+    for row in rows {
+        for col in row {
+            if re.is_match(col) {
+                *col = Regex::new(r"0+$").unwrap().replace_all(col, "").to_string();
             }
         }
     }
