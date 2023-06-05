@@ -33,13 +33,15 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
 
     if !srq_query.ctes.is_empty() {
         // attach CTEs
-        let cte_tables = srq_query
-            .ctes
-            .into_iter()
-            .map(|cte| translate_cte(cte, &mut ctx))
-            .try_collect()?;
+        let mut cte_tables = Vec::new();
+        let mut recursive = false;
+        for cte in srq_query.ctes {
+            let (cte, rec) = translate_cte(cte, &mut ctx)?;
+            cte_tables.push(cte);
+            recursive = recursive || rec;
+        }
         query.with = Some(sql_ast::With {
-            recursive: false,
+            recursive,
             cte_tables,
         });
     }
@@ -332,7 +334,7 @@ fn translate_join(
     })
 }
 
-fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<sql_ast::Cte> {
+fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
     let decl = ctx.anchor.table_decls.get_mut(&cte.tid).unwrap();
     let cte_name = decl.name.clone().unwrap_or_else(|| {
         let n = Ident::from_name(ctx.anchor.table_name.gen());
@@ -342,66 +344,68 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<sql_ast::Cte> {
 
     let cte_name = translate_ident(Some(cte_name), None, ctx).pop().unwrap();
 
-    let query = match cte.kind {
+    let (query, recursive) = match cte.kind {
         // base case
-        CteKind::Normal(rel) => translate_relation(rel, ctx)?,
+        CteKind::Normal(rel) => (translate_relation(rel, ctx)?, false),
 
         // special: WITH RECURSIVE
-        CteKind::Loop {
-            initial,
-            step,
-            recursive_name,
-        } => {
+        CteKind::Loop { initial, step } => {
             // compile initial
             let initial = query_to_set_expr(translate_relation(initial, ctx)?, ctx);
 
             let step = query_to_set_expr(translate_relation(step, ctx)?, ctx);
 
-            // RECURSIVE can only follow WITH directly, which means that if we want to use it for
-            // an arbitrary query, we have to defined a *nested* WITH RECURSIVE and not use
-            // the top-level list of CTEs.
-
-            let recursive_name = sql_ast::Ident::new(recursive_name);
-
             // build CTE and its SELECT
-            let cte = sql_ast::Cte {
-                alias: simple_table_alias(recursive_name.clone()),
-                query: Box::new(default_query(SetExpr::SetOperation {
-                    op: sql_ast::SetOperator::Union,
-                    set_quantifier: sql_ast::SetQuantifier::All,
-                    left: initial,
-                    right: step,
-                })),
-                from: None,
-            };
-            sql_ast::Query {
-                with: Some(sql_ast::With {
-                    recursive: true,
-                    cte_tables: vec![cte],
-                }),
-                ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-                    projection: vec![SelectItem::Wildcard(
-                        sql_ast::WildcardAdditionalOptions::default(),
-                    )],
-                    from: vec![TableWithJoins {
-                        relation: TableFactor::Table {
-                            name: sql_ast::ObjectName(vec![recursive_name]),
-                            alias: None,
-                            args: None,
-                            with_hints: Vec::new(),
-                        },
-                        joins: vec![],
-                    }],
-                    ..default_select()
-                })))
-            }
+            let inner_query = default_query(SetExpr::SetOperation {
+                op: sql_ast::SetOperator::Union,
+                set_quantifier: sql_ast::SetQuantifier::All,
+                left: initial,
+                right: step,
+            });
+
+            (inner_query, true)
+
+            // RECURSIVE can only follow WITH directly.
+            // Initial implementation assumed that it applies only to the first CTE.
+            // This meant that it had to wrap any-non-first CTE into a *nested* WITH, so the inner
+            // WITH could be RECURSIVE.
+            // This is implementation of that, in case some dialect requires it.
+            // let inner_cte = sql_ast::Cte {
+            //     alias: simple_table_alias(cte_name.clone()),
+            //     query: Box::new(inner_query),
+            //     from: None,
+            // };
+            // let outer_query = sql_ast::Query {
+            //     with: Some(sql_ast::With {
+            //         recursive: true,
+            //         cte_tables: vec![inner_cte],
+            //     }),
+            //     ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
+            //         projection: vec![SelectItem::Wildcard(
+            //             sql_ast::WildcardAdditionalOptions::default(),
+            //         )],
+            //         from: vec![TableWithJoins {
+            //             relation: TableFactor::Table {
+            //                 name: sql_ast::ObjectName(vec![cte_name.clone()]),
+            //                 alias: None,
+            //                 args: None,
+            //                 with_hints: Vec::new(),
+            //             },
+            //             joins: vec![],
+            //         }],
+            //         ..default_select()
+            //     })))
+            // };
+            // (outer_query, false)
         }
     };
-    Ok(sql_ast::Cte {
+
+    let cte = sql_ast::Cte {
         alias: simple_table_alias(cte_name),
         query: Box::new(query),
         from: None,
-    })
+    };
+    Ok((cte, recursive))
 }
 
 fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
