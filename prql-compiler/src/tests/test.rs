@@ -3338,39 +3338,33 @@ fn test_loop() {
     take 4
     "#).unwrap(),
         @r###"
-    WITH table_6 AS (
+    WITH RECURSIVE table_6 AS (
       SELECT
         1 AS n
     ),
-    table_5 AS (
-      WITH RECURSIVE _loop AS (
-        SELECT
-          n - 2 AS _expr_0
-        FROM
-          table_6 AS table_1
-        UNION
-        ALL
-        SELECT
-          _expr_1
-        FROM
-          (
-            SELECT
-              _expr_0 + 1 AS _expr_1
-            FROM
-              _loop AS table_2
-          ) AS table_3
-        WHERE
-          _expr_1 < 5
-      )
+    table_3 AS (
       SELECT
-        *
+        n - 2 AS _expr_0
       FROM
-        _loop
+        table_6 AS table_1
+      UNION
+      ALL
+      SELECT
+        _expr_1
+      FROM
+        (
+          SELECT
+            _expr_0 + 1 AS _expr_1
+          FROM
+            table_3 AS table_2
+        ) AS table_4
+      WHERE
+        _expr_1 < 5
     )
     SELECT
       _expr_0 * 2 AS n
     FROM
-      table_5 AS table_4
+      table_3 AS table_5
     LIMIT
       4
     "###
@@ -3388,37 +3382,31 @@ fn test_loop_2() {
     )
     "#).unwrap(),
         @r###"
-    WITH table_5 AS (
+    WITH RECURSIVE table_5 AS (
       SELECT
         *
       FROM
         read_csv_auto('employees.csv')
     ),
-    table_4 AS (
-      WITH RECURSIVE _loop AS (
-        SELECT
-          *
-        FROM
-          table_5 AS table_1
-        WHERE
-          last_name = 'Mitchell'
-        UNION
-        ALL
-        SELECT
-          manager.*
-        FROM
-          _loop AS table_2
-          JOIN employees AS manager ON manager.employee_id = table_2.reports_to
-      )
+    table_3 AS (
       SELECT
         *
       FROM
-        _loop
+        table_5 AS table_1
+      WHERE
+        last_name = 'Mitchell'
+      UNION
+      ALL
+      SELECT
+        manager.*
+      FROM
+        table_3 AS table_2
+        JOIN employees AS manager ON manager.employee_id = table_2.reports_to
     )
     SELECT
       *
     FROM
-      table_4 AS table_3
+      table_3 AS table_4
     "###
     );
 }

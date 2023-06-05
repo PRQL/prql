@@ -233,7 +233,7 @@ fn compile_loop(
     let step = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
 
-    let recursive_name = "_loop".to_string();
+    let recursive_name = ctx.anchor.table_name.gen();
     let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
     initial.name = Some(Ident::from_name(recursive_name.clone()));
 
@@ -261,18 +261,13 @@ fn compile_loop(
     // this will be table decl that references the whole loop expression
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
 
-    let loop_name = ctx.anchor.table_name.gen();
-    loop_decl.name = Some(Ident::from_name(loop_name));
+    loop_decl.name = Some(Ident::from_name(recursive_name));
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query
     ctx.ctes.push(Cte {
         tid: from.source,
-        kind: CteKind::Loop {
-            initial,
-            step,
-            recursive_name,
-        },
+        kind: CteKind::Loop { initial, step },
     });
 
     Ok(following)
