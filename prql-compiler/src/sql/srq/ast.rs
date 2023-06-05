@@ -34,8 +34,6 @@ pub enum SqlRelation {
 pub struct RelationExpr {
     pub kind: RelationExprKind,
 
-    pub alias: Option<String>,
-
     // TODO: this should not be an Option
     pub riid: Option<RIId>,
 }

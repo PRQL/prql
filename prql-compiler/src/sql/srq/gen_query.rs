@@ -51,7 +51,7 @@ pub(in super::super) fn compile_query(
         ctes,
     };
 
-    let query = postprocess::postprocess(query, &mut ctx)?;
+    let query = postprocess::postprocess(query, &mut ctx);
 
     Ok((query, ctx))
 }
@@ -178,7 +178,6 @@ impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<
 pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<RelationExpr> {
     let relation_instance = ctx.anchor.find_relation_instance(&table_ref);
     let riid = relation_instance.map(|r| r.riid);
-    let alias = table_ref.name;
 
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
 
@@ -193,7 +192,6 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
             let relation = compile_relation(sql_relation, ctx)?;
             return Ok(RelationExpr {
                 kind: RelationExprKind::SubQuery(relation),
-                alias,
                 riid,
             });
         }
@@ -207,7 +205,6 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
 
     Ok(RelationExpr {
         kind: RelationExprKind::Ref(table_ref.source),
-        alias,
         riid,
     })
 }

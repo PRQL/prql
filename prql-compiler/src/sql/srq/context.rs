@@ -43,6 +43,8 @@ pub struct SqlTableDecl {
     #[allow(dead_code)]
     pub id: TId,
 
+    /// Name of the table. Sometimes pull-in from RQ name hints (or database table names).
+    /// Generated in postprocessing.
     pub name: Option<Ident>,
 
     /// Relation that still needs to be defined (usually as CTE) so it can be referenced by name.
@@ -152,7 +154,7 @@ impl AnchorContext {
     /// as needed.
     pub fn create_relation_instance(
         &mut self,
-        mut table_ref: TableRef,
+        table_ref: TableRef,
         cid_redirects: HashMap<CId, CId>,
     ) -> TableRef {
         let riid = self.riid.gen();
@@ -160,10 +162,6 @@ impl AnchorContext {
         for (col, cid) in &table_ref.columns {
             let def = ColumnDecl::RelationColumn(riid, *cid, col.clone());
             self.column_decls.insert(*cid, def);
-        }
-
-        if table_ref.name.is_none() {
-            table_ref.name = Some(self.table_name.gen())
         }
 
         let relation_instance = RelationInstance {
@@ -302,23 +300,17 @@ impl QueryLoader {
     }
 
     fn load_table(&mut self, table: TableDecl) -> Result<()> {
-        let mut decl = fold_table(self, table)?;
-        let mut table_name = decl.name.clone().map(Ident::from_name);
+        let decl = fold_table(self, table)?;
+        let mut name = decl.name.clone().map(Ident::from_name);
 
         // assume name of the LocalTable that the relation is referencing
         if let RelationKind::ExternRef(table) = &decl.relation.kind {
-            decl.name = Some(table.name.clone());
-            table_name = Some(table.clone());
-        }
-
-        // generate name (if not present)
-        if decl.name.is_none() {
-            decl.name = Some(self.context.table_name.gen());
+            name = Some(table.clone());
         }
 
         let sql_decl = SqlTableDecl {
             id: decl.id,
-            name: table_name,
+            name,
             relation: if matches!(decl.relation.kind, RelationKind::ExternRef(_)) {
                 // this relation can be materialized by just using table name as a reference
                 // ... i.e. it's already defined.
@@ -340,12 +332,12 @@ impl RqFold for QueryLoader {
         Ok(compute)
     }
 
-    fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
+    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         let riid = self.context.riid.gen();
 
-        if table_ref.name.is_none() {
-            table_ref.name = Some(self.context.table_name.gen());
-        }
+        // if table_ref.name.is_none() {
+        // table_ref.name = Some(self.context.table_name.gen());
+        // }
 
         // store
         self.context.relation_instances.insert(
