@@ -7,5 +7,5 @@ SELECT
 FROM
   tracks
 WHERE
-  (name) REGEXP ('With You')
+  name REGEXP 'With You'
 
