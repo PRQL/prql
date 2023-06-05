@@ -27,7 +27,7 @@ pub fn toposort<'a, Key: Eq + std::hash::Hash + Clone>(
     // map DAG from Key to usize
     let dag: Dag = dependencies
         .iter()
-        .map(|(_, deps)| deps.iter().map(|d| index[d]).collect())
+        .map(|(_, deps)| deps.iter().flat_map(|d| index.get(d).cloned()).collect())
         .collect();
 
     // init toposort
