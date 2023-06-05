@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.sqlite\n\nfrom tracks\nfilter (name ~= \"But Why Isn't Your Syntax More Similar\\\\?\")\n"
+---
+SELECT
+  *
+FROM
+  tracks
+WHERE
+  name REGEXP 'But Why Isn''t Your Syntax More Similar\?'
+

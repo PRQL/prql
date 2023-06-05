@@ -1,0 +1,15 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees_1\nappend employees_2\n"
+---
+SELECT
+  *
+FROM
+  employees_1
+UNION
+ALL
+SELECT
+  *
+FROM
+  employees_2
+

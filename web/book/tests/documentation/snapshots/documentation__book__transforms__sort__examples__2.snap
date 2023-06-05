@@ -1,0 +1,13 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nsort {age, -tenure, +salary}\n"
+---
+SELECT
+  *
+FROM
+  employees
+ORDER BY
+  age,
+  tenure DESC,
+  salary
+

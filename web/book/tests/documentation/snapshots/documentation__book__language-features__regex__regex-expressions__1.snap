@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.duckdb\n\nfrom artists\nfilter (name ~= \"Love.*You\")\n"
+---
+SELECT
+  *
+FROM
+  artists
+WHERE
+  REGEXP_MATCHES(name, 'Love.*You')
+

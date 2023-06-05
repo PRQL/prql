@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from tracks\nselect {track_id, title, composer, bytes}\nselect !{title, composer}\n"
+---
+SELECT
+  track_id,
+  bytes
+FROM
+  tracks
+
