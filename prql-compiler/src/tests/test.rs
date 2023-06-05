@@ -3377,7 +3377,6 @@ fn test_loop() {
     );
 }
 
-
 #[test]
 fn test_loop_2() {
     assert_display_snapshot!(compile(r#"
