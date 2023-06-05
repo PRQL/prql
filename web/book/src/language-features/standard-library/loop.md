@@ -26,7 +26,7 @@ def loop(step, initial):
 ## Examples
 
 ```prql
-from_text format:json '[{"n": 1 }]'
+from [{n = 1}]
 loop (
     filter n<4
     select n = n+1

@@ -1035,6 +1035,9 @@ impl AstFold for TableDepsCollector {
             pl::ExprKind::TransformCall(tc) => {
                 pl::ExprKind::TransformCall(self.fold_transform_call(tc)?)
             }
+            pl::ExprKind::Func(func) => pl::ExprKind::Func(Box::new(self.fold_func(*func)?)),
+
+            // optimization: don't recurse into anything else than TransformCalls and Func
             _ => expr.kind,
         };
         Ok(expr)

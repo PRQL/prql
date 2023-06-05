@@ -51,7 +51,7 @@ pub(in super::super) fn compile_query(
         ctes,
     };
 
-    let query = postprocess::postprocess(query, &mut ctx)?;
+    let query = postprocess::postprocess(query, &mut ctx);
 
     Ok((query, ctx))
 }
@@ -178,7 +178,6 @@ impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<
 pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<RelationExpr> {
     let relation_instance = ctx.anchor.find_relation_instance(&table_ref);
     let riid = relation_instance.map(|r| r.riid);
-    let alias = table_ref.name;
 
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
 
@@ -193,7 +192,6 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
             let relation = compile_relation(sql_relation, ctx)?;
             return Ok(RelationExpr {
                 kind: RelationExprKind::SubQuery(relation),
-                alias,
                 riid,
             });
         }
@@ -207,7 +205,6 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
 
     Ok(RelationExpr {
         kind: RelationExprKind::Ref(table_ref.source),
-        alias,
         riid,
     })
 }
@@ -233,7 +230,7 @@ fn compile_loop(
     let step = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
 
-    let recursive_name = "_loop".to_string();
+    let recursive_name = ctx.anchor.table_name.gen();
     let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
     initial.name = Some(Ident::from_name(recursive_name.clone()));
 
@@ -261,18 +258,13 @@ fn compile_loop(
     // this will be table decl that references the whole loop expression
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
 
-    let loop_name = ctx.anchor.table_name.gen();
-    loop_decl.name = Some(Ident::from_name(loop_name));
+    loop_decl.name = Some(Ident::from_name(recursive_name));
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query
     ctx.ctes.push(Cte {
         tid: from.source,
-        kind: CteKind::Loop {
-            initial,
-            step,
-            recursive_name,
-        },
+        kind: CteKind::Loop { initial, step },
     });
 
     Ok(following)

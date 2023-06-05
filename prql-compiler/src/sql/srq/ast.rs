@@ -34,8 +34,6 @@ pub enum SqlRelation {
 pub struct RelationExpr {
     pub kind: RelationExprKind,
 
-    pub alias: Option<String>,
-
     // TODO: this should not be an Option
     pub riid: Option<RIId>,
 }
@@ -58,7 +56,6 @@ pub enum CteKind {
     Loop {
         initial: SqlRelation,
         step: SqlRelation,
-        recursive_name: String,
     },
 }
 
@@ -229,14 +226,9 @@ pub trait SrqFold: SrqMapper<RelationExpr, RelationExpr, (), ()> {
             tid: cte.tid,
             kind: match cte.kind {
                 CteKind::Normal(rel) => CteKind::Normal(self.fold_sql_relation(rel)?),
-                CteKind::Loop {
-                    initial,
-                    step,
-                    recursive_name,
-                } => CteKind::Loop {
+                CteKind::Loop { initial, step } => CteKind::Loop {
                     initial: self.fold_sql_relation(initial)?,
                     step: self.fold_sql_relation(step)?,
-                    recursive_name,
                 },
             },
         })

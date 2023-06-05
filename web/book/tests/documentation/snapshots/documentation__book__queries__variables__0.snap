@@ -2,7 +2,7 @@
 source: web/book/tests/documentation/book.rs
 expression: "let top_50 = (\n  from employees\n  sort salary\n  take 50\n  aggregate {total_salary = sum salary}\n)\n\nfrom top_50      # Starts a new pipeline\n"
 ---
-WITH table_1 AS (
+WITH table_0 AS (
   SELECT
     salary
   FROM
@@ -15,7 +15,7 @@ WITH table_1 AS (
   SELECT
     SUM(salary) AS total_salary
   FROM
-    table_1 AS table_0
+    table_0
 )
 SELECT
   total_salary

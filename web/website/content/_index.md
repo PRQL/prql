@@ -232,7 +232,7 @@ showcase_section:
           take 1
         )
       sql: |
-        WITH table_1 AS (
+        WITH table_0 AS (
           SELECT
             *,
             ROW_NUMBER() OVER (
@@ -246,7 +246,7 @@ showcase_section:
         SELECT
           *
         FROM
-          table_1 AS table_0
+          table_0
         WHERE
           _expr_0 <= 1
 
