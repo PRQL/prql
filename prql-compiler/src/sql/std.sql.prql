@@ -49,7 +49,7 @@ let read_csv = source -> s"read_csv_auto({source:0})"
 let mul = l r -> null
 
 @{binding_strength=100}
-let div_i = l r -> s"FLOOR(FLOOR(ABS({l:11} / {r:11})) * SIGN({l:11} / {r:11}))"
+let div_i = l r -> s"FLOOR(ABS({l:11} / {r:11})) * SIGN({l:0}) * SIGN({r:0})"
 
 @{binding_strength=11}
 let div_f = l r -> s"({l} * 1.0 / {r})"
@@ -99,7 +99,7 @@ let not = l -> s"NOT {l}"
 
 module postgres {
     #[binding_strength 100]
-    let div_i = l r -> s"trunc({l} / {r})::bigint"
+    let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
     #[binding_strength 100]
     let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
@@ -109,7 +109,8 @@ module postgres {
 }
 
 module sqlite {
-    let div_i = l r -> s"ROUND(ABS({l} / {r}) - 0.5) * SIGN({l} / {r})"
+    #[binding_strength 100]
+    let div_i = l r -> s"ROUND(ABS({l:11} / {r:11}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
 
     #[binding_strength 9]
     let regex_search = text pattern -> s"{text} REGEXP {pattern}"
@@ -121,10 +122,13 @@ module mssql {
 
 module mysql {
     #[binding_strength 11]
-    let div_f = l r -> s"CAST({l:0} AS FLOAT) / {r}"
+    let div_f = l r -> s"({l} / {r})"
+
+    #[binding_strength 11]
+    let div_i = l r -> s"({l} DIV {r})"
 
     #[binding_strength 100]
-    let mod = l r -> s"FLOOR(MOD({l:0}, {r:0}))"
+    let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
 
     #[binding_strength 9]
     let regex_search = text pattern -> s"{text} REGEXP {pattern}"
@@ -135,5 +139,12 @@ module bigquery {
 }
 
 module duckdb {
+    # TODO: Uncomment for DuckDB >= 0.8.0
+    # #[binding_strength 11]
+    # let div_f = l r -> s"({l} / {r})"
+
+    # #[binding_strength 100]
+    # let div_i = l r -> s"TRUNC({l:11} / {r:11})"
+
     let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 }
