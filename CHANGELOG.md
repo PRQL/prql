@@ -86,6 +86,15 @@ will become the public version at the next release._
 
 **Internal changes**:
 
+- Annotations in PRQL. These have limited support but are currently used to
+  specify binding strengths. They're modeled after Rust's annotations, but with
+  `@` syntax, more similar to traditional decorators.
+
+  ```prql no-eval
+  @{binding_strength=11}
+  let mod = l r -> s"{l} % {r}"
+  ```
+
 - Remove BigQuery's special handling of quoted identifiers, now that our module
   system handles its semantics (@max-sixty, #2609).
 
@@ -293,7 +302,7 @@ This release has 108 commits from 11 contributors. Selected changes:
 
   This pass-through feature existed for integration with dbt.
 
-  we're again considering how to best integrate with dbt, and this change is
+  We're again considering how to best integrate with dbt, and this change is
   based on the idea that the jinja macro should run before the PRQL compiler.
 
   If you're interested in dbt integration, subscribe or 👍 to

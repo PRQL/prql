@@ -98,21 +98,21 @@ let neg = l -> s"-{l}"
 let not = l -> s"NOT {l}"
 
 module postgres {
-    #[binding_strength 100]
+    @{binding_strength=100}
     let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
-    #[binding_strength 100]
+    @{binding_strength=100}
     let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
 
-    #[binding_strength 9]
+    @{binding_strength=9}
     let regex_search = text pattern -> s"{text} ~ {pattern}"
 }
 
 module sqlite {
-    #[binding_strength 100]
+    @{binding_strength=100}
     let div_i = l r -> s"ROUND(ABS({l:11} / {r:11}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
 
-    #[binding_strength 9]
+    @{binding_strength=9}
     let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
@@ -121,16 +121,16 @@ module mssql {
 }
 
 module mysql {
-    #[binding_strength 11]
+    @{binding_strength=11}
     let div_f = l r -> s"({l} / {r})"
 
-    #[binding_strength 11]
+    @{binding_strength=11}
     let div_i = l r -> s"({l} DIV {r})"
 
-    #[binding_strength 100]
+    @{binding_strength=100}
     let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
 
-    #[binding_strength 9]
+    @{binding_strength=9}
     let regex_search = text pattern -> s"{text} REGEXP {pattern}"
 }
 
