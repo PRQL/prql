@@ -21,8 +21,8 @@ table_0 AS (
     titles.title
 )
 SELECT
-  (_expr_0 * 1.0 / 1000) AS salary_k,
-  (_expr_0 * 1.0 / 1000) * 1000 AS salary
+  (_expr_0 / 1000) AS salary_k,
+  (_expr_0 / 1000) * 1000 AS salary
 FROM
   table_0
 LIMIT

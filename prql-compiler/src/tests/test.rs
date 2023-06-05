@@ -59,7 +59,7 @@ fn test_precedence() {
     select temp_c = (temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
-      ((temp - 32) * 1.0 / 1.8) AS temp_c
+      ((temp - 32) / 1.8) AS temp_c
     FROM
       x
     "###);
@@ -2425,7 +2425,7 @@ fn test_casting() {
         @r###"
     SELECT
       a,
-      (CAST(a AS int) * 1.0 / 10) AS c
+      (CAST(a AS int) / 10) AS c
     FROM
       x
     "###
