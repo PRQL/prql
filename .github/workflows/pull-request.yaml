@@ -133,8 +133,8 @@ jobs:
           target: ${{ matrix.target }}
 
   automerge-dependabot:
-    # This would arguably fit more naturally in `pull-request-target`, but
-    # that's unsupported
+    # This would arguably fit more naturally in `pull-request-target`, but it's
+    # more often used to merge after a build-task, rather than just auto-merge.
     # https://github.com/fastify/github-action-merge-dependabot/issues/355.
     runs-on: ubuntu-latest
 
@@ -152,4 +152,7 @@ jobs:
 
     needs:
       - check-ok-to-merge
+    # This is required because skips flow through multiple children to `needs`,
+    # and so even though `check-ok-to-merge` is always run, its parents can be
+    # skipped, which would skip this.
     if: always()
