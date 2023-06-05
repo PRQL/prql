@@ -60,8 +60,8 @@ pub trait AstFold {
     fn fold_transform_call(&mut self, transform_call: TransformCall) -> Result<TransformCall> {
         fold_transform_call(self, transform_call)
     }
-    fn fold_func(&mut self, closure: Func) -> Result<Func> {
-        fold_func(self, closure)
+    fn fold_func(&mut self, func: Func) -> Result<Func> {
+        fold_func(self, func)
     }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)

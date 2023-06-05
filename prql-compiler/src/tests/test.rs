@@ -3328,7 +3328,7 @@ fn test_header_target_error() {
 #[test]
 fn test_loop() {
     assert_display_snapshot!(compile(r#"
-    from_text format:json '[{"n": 1 }]'
+    from [{n = 1}]
     select n = n - 2
     loop (
         select n = n+1
@@ -3373,6 +3373,53 @@ fn test_loop() {
       table_5 AS table_4
     LIMIT
       4
+    "###
+    );
+}
+
+
+#[test]
+fn test_loop_2() {
+    assert_display_snapshot!(compile(r#"
+    from (read_csv 'employees.csv')
+    filter last_name=="Mitchell"
+    loop (
+      join manager=employees (manager.employee_id==_frame.reports_to)
+      select manager.*
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_5 AS (
+      SELECT
+        *
+      FROM
+        read_csv_auto('employees.csv')
+    ),
+    table_4 AS (
+      WITH RECURSIVE _loop AS (
+        SELECT
+          *
+        FROM
+          table_5 AS table_1
+        WHERE
+          last_name = 'Mitchell'
+        UNION
+        ALL
+        SELECT
+          manager.*
+        FROM
+          _loop AS table_2
+          JOIN employees AS manager ON manager.employee_id = table_2.reports_to
+      )
+      SELECT
+        *
+      FROM
+        _loop
+    )
+    SELECT
+      *
+    FROM
+      table_4 AS table_3
     "###
     );
 }
