@@ -1,8 +1,8 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "[{a=5, b=false}, {a=6, b=true}]\nfilter b == true\nselect a\n"
+expression: "from [\n  {a=5, b=false},\n  {a=6, b=true},\n]\nfilter b == true\nselect a\n"
 ---
-WITH table_2 AS (
+WITH table_0 AS (
   SELECT
     5 AS a,
     false AS b
@@ -15,7 +15,7 @@ WITH table_2 AS (
 SELECT
   a
 FROM
-  table_2 AS table_1
+  table_0
 WHERE
   b = true
 

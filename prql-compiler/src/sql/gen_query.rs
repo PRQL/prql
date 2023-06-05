@@ -10,7 +10,7 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
-use crate::ast::pl::{Ident, JoinSide, Literal, RelationLiteral};
+use crate::ast::pl::{JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query};
 use crate::error::WithErrorInfo;
 use crate::utils::{BreakUp, Pluck};
@@ -269,27 +269,27 @@ fn translate_set_ops_pipeline(
 }
 
 fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Result<TableFactor> {
+    let alias = relation_expr
+        .riid
+        .as_ref()
+        .and_then(|riid| ctx.anchor.relation_instances.get(riid))
+        .and_then(|ri| ri.table_ref.name.clone());
+
     Ok(match relation_expr.kind {
         RelationExprKind::Ref(tid) => {
             let decl = ctx.anchor.table_decls.get_mut(&tid).unwrap();
 
             // prepare names
-            let table_name = match &decl.name {
-                None => {
-                    decl.name = Some(Ident::from_name(ctx.anchor.table_name.gen()));
-                    decl.name.clone().unwrap()
-                }
-                Some(n) => n.clone(),
-            };
+            let table_name = decl.name.clone().unwrap();
 
             let name = sql_ast::ObjectName(translate_ident(Some(table_name.clone()), None, ctx));
 
             TableFactor::Table {
                 name,
-                alias: if Some(table_name.name) == relation_expr.alias {
+                alias: if Some(table_name.name) == alias {
                     None
                 } else {
-                    translate_table_alias(relation_expr.alias, ctx)
+                    translate_table_alias(alias, ctx)
                 },
                 args: None,
                 with_hints: vec![],
@@ -298,7 +298,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
         RelationExprKind::SubQuery(query) => {
             let query = translate_relation(query, ctx)?;
 
-            let alias = translate_table_alias(relation_expr.alias, ctx);
+            let alias = translate_table_alias(alias, ctx);
 
             TableFactor::Derived {
                 lateral: false,
@@ -336,11 +336,7 @@ fn translate_join(
 
 fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
     let decl = ctx.anchor.table_decls.get_mut(&cte.tid).unwrap();
-    let cte_name = decl.name.clone().unwrap_or_else(|| {
-        let n = Ident::from_name(ctx.anchor.table_name.gen());
-        decl.name = Some(n.clone());
-        n
-    });
+    let cte_name = decl.name.clone().unwrap();
 
     let cte_name = translate_ident(Some(cte_name), None, ctx).pop().unwrap();
 
@@ -616,7 +612,7 @@ mod test {
         let sql_ast = crate::tests::compile(query).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
-        WITH table_1 AS (
+        WITH table_0 AS (
           SELECT
             title,
             AVG(salary) AS _expr_0
@@ -630,7 +626,7 @@ mod test {
           title,
           AVG(_expr_0) AS avg_salary
         FROM
-          table_1 AS table_0
+          table_0
         GROUP BY
           title
         "###);
@@ -657,7 +653,7 @@ mod test {
         let sql_ast = crate::tests::compile(query).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
-        WITH table_1 AS (
+        WITH table_0 AS (
           SELECT
             *,
             RANK() OVER () AS global_rank
@@ -668,7 +664,7 @@ mod test {
           *,
           RANK() OVER () AS rank
         FROM
-          table_1 AS table_0
+          table_0
         WHERE
           country = 'USA'
         "###);
@@ -683,7 +679,7 @@ mod test {
         "#;
 
         assert_snapshot!(crate::tests::compile(query).unwrap(), @r###"
-        WITH table_1 AS (
+        WITH table_0 AS (
           SELECT
             *,
             AVG(bar) OVER () AS _expr_0
@@ -693,7 +689,7 @@ mod test {
         SELECT
           *
         FROM
-          table_1 AS table_0
+          table_0
         WHERE
           _expr_0 > 3
         "###);

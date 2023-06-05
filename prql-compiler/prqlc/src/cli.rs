@@ -808,7 +808,6 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
               - From:
                   kind:
                     Ref: 0
-                  alias: employees
                   riid: 0
               - Sort:
                 - direction: Asc
@@ -830,7 +829,6 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
           - From:
               kind:
                 Ref: 1
-              alias: table_0
               riid: 1
           - Select:
             - 2

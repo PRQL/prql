@@ -84,7 +84,7 @@ fn test_compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_4 AS (
+    WITH table_1 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
@@ -99,9 +99,9 @@ fn test_compile_project() {
         artist_id,
         last_listen
       FROM
-        table_4 AS table_3
+        table_1
     ),
-    table_5 AS (
+    table_0 AS (
       SELECT
         *
       FROM
@@ -111,7 +111,7 @@ fn test_compile_project() {
       SELECT
         *
       FROM
-        table_5 AS table_1
+        table_0
     )
     SELECT
       favorite_artists.artist_id,
@@ -133,7 +133,7 @@ fn test_compile_project() {
     success: true
     exit_code: 0
     ----- stdout -----
-    WITH table_2 AS (
+    WITH table_0 AS (
       SELECT
         120 AS artist_id,
         DATE '2023-05-18' AS last_listen
@@ -147,7 +147,7 @@ fn test_compile_project() {
       artist_id,
       last_listen
     FROM
-      table_2 AS table_1
+      table_0
 
     ----- stderr -----
     "###);

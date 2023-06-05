@@ -2,7 +2,7 @@
 source: web/book/tests/documentation/book.rs
 expression: "let temp_format_lookup = from_text format:csv \"\"\"\ncountry_code,format\nuk,C\nus,F\nlr,F\nde,C\n\"\"\"\n\nfrom temperatures\njoin temp_format_lookup (==country_code)\n"
 ---
-WITH table_2 AS (
+WITH table_0 AS (
   SELECT
     'uk' AS country_code,
     'C' AS format
@@ -27,7 +27,7 @@ temp_format_lookup AS (
     country_code,
     format
   FROM
-    table_2 AS table_1
+    table_0
 )
 SELECT
   temperatures.*,
