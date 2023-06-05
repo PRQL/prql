@@ -31,7 +31,7 @@ pub enum Token {
     Or,          // ||
     Coalesce,    // ??
     DivInt,      // //
-    Annotate,    // #[
+    Annotate,    // @
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -50,7 +50,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
         just("//").to(Token::DivInt),
-        just("#[").to(Token::Annotate),
+        just("@").then(digits(1).not().rewind()).to(Token::Annotate),
     ));
 
     let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
@@ -94,9 +94,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let comment = just('#')
-        .then(just('[').not().rewind())
-        .then(none_of('\n').repeated());
+    let comment = just('#').then(none_of('\n').repeated());
     let comments = comment
         .separated_by(new_line.then(whitespace.clone().or_not()))
         .at_least(1)
@@ -259,18 +257,24 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .boxed();
 
     let date = just('@')
+        // Not an annotation
+        .then(just('{').not().rewind())
         .ignore_then(date_inner.clone())
         .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Date);
 
     let time = just('@')
+        // Not an annotation
+        .then(just('{').not().rewind())
         .ignore_then(time_inner.clone())
         .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Time);
 
     let datetime = just('@')
+        // Not an annotation
+        .then(just('{').not().rewind())
         .ignore_then(date_inner)
         .chain(just('T'))
         .chain::<char, _, _>(time_inner)
@@ -410,7 +414,7 @@ impl std::fmt::Display for Token {
             Self::Or => f.write_str("||"),
             Self::Coalesce => f.write_str("??"),
             Self::DivInt => f.write_str("//"),
-            Self::Annotate => f.write_str("#["),
+            Self::Annotate => f.write_str("@{"),
 
             Self::Param(id) => write!(f, "${id}"),
 

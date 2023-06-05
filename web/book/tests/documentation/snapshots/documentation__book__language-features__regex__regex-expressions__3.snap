@@ -7,5 +7,5 @@ SELECT
 FROM
   tracks
 WHERE
-  name ~ '\(I Can''t Help\) Falling'
+  (name) ~ ('\(I Can''t Help\) Falling')
 

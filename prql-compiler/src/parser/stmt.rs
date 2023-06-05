@@ -96,11 +96,11 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
 
 fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
     let annotation = just(Token::Annotate)
-        .ignore_then(ident().then(expr().repeated()))
-        .then_ignore(ctrl(']').then(new_line()))
-        .map_with_span(|(name, args), span| {
+        .ignore_then(expr())
+        .then_ignore(new_line())
+        .map_with_span(|expr, span| {
             let span = Some(span);
-            Annotation { name, args, span }
+            Annotation { expr, span }
         });
 
     let let_ = keyword("let")

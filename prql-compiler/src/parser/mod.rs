@@ -2669,4 +2669,46 @@ join s=salaries (==id)
           annotations: []
         "###);
     }
+
+    #[test]
+    fn test_annotation() {
+        assert_yaml_snapshot!(parse_single(r#"
+      @{binding_strength=1}
+      let add = a b -> a + b
+      "#).unwrap(), @r###"
+        ---
+        - name: add
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - a
+                    op: Add
+                    right:
+                      Ident:
+                        - b
+                params:
+                  - name: a
+                    default_value: ~
+                  - name: b
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations:
+            - expr:
+                Tuple:
+                  - Literal:
+                      Integer: 1
+                    alias: binding_strength
+              span: "0:7-29"
+        "###);
+    }
 }

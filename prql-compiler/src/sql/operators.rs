@@ -3,6 +3,7 @@ use std::iter::zip;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 
 use super::gen_expr::{translate_operand, ExprOrSource};
@@ -126,13 +127,17 @@ fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<(&pl::Fun
     let func_def = func_def.kind.as_func().unwrap();
 
     let binding_strength = decl
+        .clone()
         .annotations
         .iter()
-        .find(|x| &x.name.name == "binding_strength")
-        .and_then(|ann| ann.args.get(0))
-        .and_then(|bs| bs.kind.as_literal())
-        .and_then(|bs| bs.as_integer())
-        .map(|x| *x as i32);
+        .exactly_one()
+        .ok()
+        .cloned()
+        .and_then(|x| x.items().ok())
+        .and_then(|items| items.into_iter().find(|bs| bs.0 == "binding_strength"))
+        .and_then(|tuple| tuple.1.into_literal().ok())
+        .and_then(|literal| literal.into_integer().ok())
+        .map(|int| int as i32);
 
     Some((func_def.as_ref(), binding_strength))
 }
