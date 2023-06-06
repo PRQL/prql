@@ -7,7 +7,7 @@ mod gen_query;
 mod operators;
 mod srq;
 
-pub use dialect::Dialect;
+pub use dialect::{Dialect, SupportLevel};
 
 use anyhow::Result;
 
