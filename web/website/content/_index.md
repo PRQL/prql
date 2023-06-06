@@ -88,10 +88,16 @@ showcase_section:
         sort age
         take 10
       sql: |
-        SELECT id, first_name, age
-        FROM employees
-        ORDER BY age
-        LIMIT 10
+        SELECT
+          id,
+          first_name,
+          age
+        FROM
+          employees
+        ORDER BY
+          age
+        LIMIT
+          10
 
     - id: friendly-syntax
       label: Friendly syntax
@@ -169,8 +175,10 @@ showcase_section:
         SELECT
           *,
           started + unfinished AS finished,
-          ((started + unfinished) * 1.0 / started) AS fin_share,
-          ( ((started + unfinished) * 1.0 / started) * 1.0 / (1 - ((started + unfinished) * 1.0 / started)) ) AS fin_ratio
+          ((started + unfinished) / started) AS fin_share,
+          (
+            ((started + unfinished) / started) / (1 - ((started + unfinished) / started))
+          ) AS fin_ratio
         FROM
           track_plays
 
@@ -182,9 +190,10 @@ showcase_section:
         # Just like Python
         select url = f"https://www.{domain}.{tld}/{page}"
       sql: |
-        SELECT CONCAT('https://www.', domain, '.', tld,
-          '/', page) AS url
-        FROM web
+        SELECT
+          CONCAT('https://www.', domain, '.', tld, '/', page) AS url
+        FROM
+          web
     # markdown-link-check-enable
     - id: windows
       label: Windows
@@ -202,8 +211,7 @@ showcase_section:
           SUM(paycheck) OVER (
             PARTITION BY employee_id
             ORDER BY
-              month ROWS BETWEEN 11 PRECEDING
-              AND CURRENT ROW
+              month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
           ) AS trail_12_m_comp
         FROM
           employees
@@ -217,7 +225,7 @@ showcase_section:
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          (temp_c * 9 * 1.0 / 5) + 32 AS temp_f
+          (temp_c * 9 / 5) + 32 AS temp_f
         FROM
           weather
 
