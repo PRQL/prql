@@ -627,9 +627,9 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         from table.subdivision
         derive `želva_means_turtle` = (`column with spaces` + 1) * 3
         group a_column (
-            take 10
-            sort b_column
-            derive {the_number = rank, last = lag 1 c_column}
+          take 10
+          sort b_column
+          derive {the_number = rank, last = lag 1 c_column}
         )
         "###);
     }
