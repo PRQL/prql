@@ -67,7 +67,7 @@ impl IntegrationTest for Dialect {
             Dialect::MsSql => Some({
                 use tiberius::{AuthMethod, Client, Config};
                 use tokio::net::TcpStream;
-                use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
+                use tokio_util::compat::TokioAsyncWriteCompatExt;
 
                 let mut config = Config::new();
                 config.host("127.0.0.1");
@@ -75,15 +75,15 @@ impl IntegrationTest for Dialect {
                 config.trust_cert();
                 config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
 
-                let runtime = &*RUNTIME;
-                let client = runtime.block_on(get_client(config.clone())).unwrap();
-
-                async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
-                    let tcp = TcpStream::connect(config.get_addr()).await?;
-                    tcp.set_nodelay(true).unwrap();
-                    Client::connect(config, tcp.compat_write()).await
-                }
-                Box::new(client)
+                Box::new(
+                    RUNTIME
+                        .block_on(async {
+                            let tcp = TcpStream::connect(config.get_addr()).await?;
+                            tcp.set_nodelay(true).unwrap();
+                            Client::connect(config, tcp.compat_write()).await
+                        })
+                        .unwrap(),
+                )
             }),
             _ => None,
         }
