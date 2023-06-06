@@ -279,11 +279,8 @@ impl DBConnection for mysql::Pool {
 
 impl DBConnection for tiberius::Client<Compat<TcpStream>> {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>> {
-        async fn query(
-            client: &mut tiberius::Client<Compat<TcpStream>>,
-            sql: &str,
-        ) -> Result<Vec<Row>> {
-            let mut stream = client.query(sql, &[]).await?;
+        runtime.block_on(async {
+            let mut stream = self.query(sql, &[]).await?;
             let mut vec = vec![];
             let cols_option = stream.columns().await?;
             if cols_option.is_none() {
@@ -329,8 +326,7 @@ impl DBConnection for tiberius::Client<Compat<TcpStream>> {
             }
 
             Ok(vec)
-        }
-        runtime.block_on(query(self, sql))
+        })
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
