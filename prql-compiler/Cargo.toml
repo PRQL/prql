@@ -57,9 +57,7 @@ tiberius = {version = "0.12", features = ["sql-browser-tokio", "bigdecimal", "ti
 tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7", features = ["compat"]}
 
-# Re-enable on windows when duckdb supports it
-# https://github.com/wangfenjin/duckdb-rs/issues/62
-[target.'cfg(not(any(target_family = "windows", target_family="wasm")))'.dev-dependencies]
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 duckdb = {version = "0.7.0", features = ["bundled", "chrono"]}
 
 [[bench]]
