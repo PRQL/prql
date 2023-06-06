@@ -8,16 +8,13 @@ use std::{env, fs};
 
 use anyhow::Context;
 use insta::{assert_snapshot, glob};
-use postgres::NoTls;
 use regex::Regex;
-use tiberius::{AuthMethod, Client, Config};
-use tokio::net::TcpStream;
-use tokio::runtime::Runtime;
-use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 use connection::*;
 use prql_compiler::{sql::Dialect, Target::Sql};
 use prql_compiler::{Options, Target};
+use strum::IntoEnumIterator;
+use tokio::runtime::Runtime;
 
 mod connection;
 
@@ -34,39 +31,100 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
     prql_compiler::compile(prql, &Options::default().no_signature().with_target(target))
 }
 
-const DIALECTS: [Dialect; 5] = [
-    Dialect::DuckDb,
-    Dialect::SQLite,
-    Dialect::Postgres,
-    Dialect::MySql,
-    Dialect::MsSql,
-];
+enum SupportLevel {
+    Supported,
+    Unsupported,
+    Nascent,
+}
 
 trait IntegrationTest {
     fn should_run_query(&self, prql: &str) -> bool;
+    fn get_connection(&self) -> Option<Box<dyn DBConnection>>;
+    fn support_level(&self) -> SupportLevel;
 }
 
 impl IntegrationTest for Dialect {
+    fn support_level(&self) -> SupportLevel {
+        match self {
+            Dialect::DuckDb
+            | Dialect::SQLite
+            | Dialect::Postgres
+            | Dialect::MySql
+            | Dialect::MsSql => SupportLevel::Supported,
+            Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
+                SupportLevel::Unsupported
+            }
+            Dialect::Hive | Dialect::ClickHouse => SupportLevel::Nascent,
+        }
+    }
+
     fn should_run_query(&self, prql: &str) -> bool {
         !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
+    }
+
+    fn get_connection(&self) -> Option<Box<dyn DBConnection>> {
+        match self {
+            Dialect::DuckDb => Some(Box::new(DuckDBConnection(
+                duckdb::Connection::open_in_memory().unwrap(),
+            ))),
+            Dialect::SQLite => Some(Box::new(SQLiteConnection(
+                rusqlite::Connection::open_in_memory().unwrap(),
+            ))),
+
+            #[cfg(feature = "test-external-dbs")]
+            Dialect::Postgres => {
+                use postgres::NoTls;
+                Some(Box::new(PostgresConnection(
+                    postgres::Client::connect(
+                        "host=localhost user=root password=root dbname=dummy",
+                        NoTls,
+                    )
+                    .unwrap(),
+                )))
+            }
+
+            #[cfg(feature = "test-external-dbs")]
+            Dialect::MySql => Some(Box::new(MysqlConnection(
+                mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
+            ))),
+            #[cfg(feature = "test-external-dbs")]
+            Dialect::MsSql => Some({
+                use tiberius::{AuthMethod, Client, Config};
+                use tokio::net::TcpStream;
+                use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
+
+                let mut config = Config::new();
+                config.host("127.0.0.1");
+                config.port(1433);
+                config.trust_cert();
+                config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
+
+                let client = runtime.block_on(get_client(config.clone()));
+
+                async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
+                    let tcp = TcpStream::connect(config.get_addr()).await?;
+                    tcp.set_nodelay(true).unwrap();
+                    Client::connect(config, tcp.compat_write()).await
+                }
+                client
+            }),
+            _ => None,
+        }
     }
 }
 
 #[test]
-fn test_sql_examples() {
-    for dialect in DIALECTS {
-        glob!("queries/**/*.prql", |path| {
-            let prql = fs::read_to_string(path).unwrap();
-            if !dialect.should_run_query(&prql) {
-                return;
-            }
-            assert_snapshot!(
-                format!("sql_{dialect:?}"),
-                compile(&prql, Target::Sql(Some(dialect))).unwrap(),
-                &prql
-            )
-        });
-    }
+fn test_sql_examples_generic() {
+    // We're currently not testing for each dialect, as it's a lot of snapshots.
+    // We can consider doing that if helpful.
+    glob!("queries/**/*.prql", |path| {
+        let prql = fs::read_to_string(path).unwrap();
+        assert_snapshot!(
+            "sql",
+            compile(&prql, Target::Sql(Some(Dialect::Generic))).unwrap(),
+            &prql
+        )
+    });
 }
 
 #[test]
@@ -84,11 +142,15 @@ fn test_fmt_examples() {
 #[test]
 fn test_rdbms() {
     let runtime = Runtime::new().unwrap();
-    let mut connections = get_connections(&runtime);
 
-    for con in &mut connections {
-        setup_connection(con.as_mut(), &runtime);
-    }
+    let mut connections: Vec<Box<dyn DBConnection>> = Dialect::iter()
+        .filter(|dialect| matches!(dialect.support_level(), SupportLevel::Supported))
+        .filter_map(|dialect| dialect.get_connection())
+        .collect();
+
+    connections.iter_mut().for_each(|con| {
+        setup_connection(&mut **con, &runtime);
+    });
 
     // for each of the queries
     glob!("queries/**/*.prql", |path| {
@@ -110,7 +172,7 @@ fn test_rdbms() {
             if !con.get_dialect().should_run_query(&prql) {
                 continue;
             }
-            let res = run_query(con.as_mut(), prql.as_str(), &runtime);
+            let res = run_query(&mut **con, prql.as_str(), &runtime);
             let res = res.context(format!("Executing for {vendor}")).unwrap();
             results.insert(vendor, res);
         }
@@ -139,52 +201,6 @@ fn test_rdbms() {
         }
         assert_snapshot!("results", result_string, &prql);
     });
-}
-
-fn get_connections(runtime: &Runtime) -> Vec<Box<dyn DBConnection>> {
-    let mut connections: Vec<Box<dyn DBConnection>> = vec![];
-    connections.push(Box::new(DuckDBConnection(
-        duckdb::Connection::open_in_memory().unwrap(),
-    )));
-    connections.push(Box::new(SQLiteConnection(
-        rusqlite::Connection::open_in_memory().unwrap(),
-    )));
-
-    #[cfg(not(feature = "test-external-dbs"))]
-    let include_external_dbs = false;
-    #[cfg(feature = "test-external-dbs")]
-    let include_external_dbs = true;
-    if !include_external_dbs {
-        return connections;
-    }
-
-    connections.push(Box::new(PostgresConnection(
-        postgres::Client::connect("host=localhost user=root password=root dbname=dummy", NoTls)
-            .unwrap(),
-    )));
-    connections.push(Box::new(MysqlConnection(
-        mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
-    )));
-    let ms_client = {
-        let mut config = Config::new();
-        config.host("127.0.0.1");
-        config.port(1433);
-        config.trust_cert();
-        config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
-
-        let client = runtime.block_on(get_client(config.clone()));
-
-        async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
-            let tcp = TcpStream::connect(config.get_addr()).await?;
-            tcp.set_nodelay(true).unwrap();
-            Client::connect(config, tcp.compat_write()).await
-        }
-        client
-    }
-    .unwrap();
-    connections.push(Box::new(MssqlConnection(ms_client)));
-
-    connections
 }
 
 fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
