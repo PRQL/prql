@@ -152,8 +152,9 @@ module mysql {
     @{binding_strength=100}
     let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
 
+    # BINARY is required for case-sensitive regex matching
     @{binding_strength=9}
-    let regex_search = text pattern -> s"{text} REGEXP {pattern}"
+    let regex_search = text pattern -> s"BINARY {text} REGEXP {pattern}"
 }
 
 module postgres {
