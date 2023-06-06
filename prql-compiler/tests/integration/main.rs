@@ -9,12 +9,12 @@ use std::{env, fs};
 use anyhow::Context;
 use insta::{assert_snapshot, glob};
 use regex::Regex;
+use strum::IntoEnumIterator;
+use tokio::runtime::Runtime;
 
 use connection::*;
 use prql_compiler::{sql::Dialect, Target::Sql};
 use prql_compiler::{Options, Target};
-use strum::IntoEnumIterator;
-use tokio::runtime::Runtime;
 
 mod connection;
 
@@ -99,14 +99,15 @@ impl IntegrationTest for Dialect {
                 config.trust_cert();
                 config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
 
-                let client = runtime.block_on(get_client(config.clone()));
+                let runtime = &*RUNTIME;
+                let client = runtime.block_on(get_client(config.clone())).unwrap();
 
                 async fn get_client(config: Config) -> tiberius::Result<Client<Compat<TcpStream>>> {
                     let tcp = TcpStream::connect(config.get_addr()).await?;
                     tcp.set_nodelay(true).unwrap();
                     Client::connect(config, tcp.compat_write()).await
                 }
-                client
+                Box::new(MssqlConnection(client))
             }),
             _ => None,
         }
@@ -269,3 +270,9 @@ fn remove_trailing_zeros(rows: &mut Vec<Row>) {
         }
     }
 }
+
+#[cfg(feature = "test-external-dbs")]
+use once_cell::sync::Lazy;
+#[cfg(feature = "test-external-dbs")]
+static RUNTIME: Lazy<Runtime> =
+    Lazy::new(|| Runtime::new().expect("Failed to create global runtime"));
