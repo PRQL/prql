@@ -7,5 +7,5 @@ SELECT
 FROM
   tracks
 WHERE
-  name REGEXP 'With You'
+  BINARY name REGEXP 'With You'
 
