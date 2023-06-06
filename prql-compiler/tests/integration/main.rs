@@ -8,12 +8,13 @@ use std::{env, fs};
 
 use anyhow::Context;
 use insta::{assert_snapshot, glob};
+use once_cell::sync::Lazy;
 use regex::Regex;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
 use connection::*;
-use prql_compiler::{sql::Dialect, Target::Sql};
+use prql_compiler::{sql::Dialect, sql::SupportLevel, Target::Sql};
 use prql_compiler::{Options, Target};
 
 mod connection;
@@ -31,62 +32,37 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
     prql_compiler::compile(prql, &Options::default().no_signature().with_target(target))
 }
 
-enum SupportLevel {
-    Supported,
-    Unsupported,
-    Nascent,
-}
-
 trait IntegrationTest {
     fn should_run_query(&self, prql: &str) -> bool;
     fn get_connection(&self) -> Option<Box<dyn DBConnection>>;
-    fn support_level(&self) -> SupportLevel;
 }
 
 impl IntegrationTest for Dialect {
-    fn support_level(&self) -> SupportLevel {
-        match self {
-            Dialect::DuckDb
-            | Dialect::SQLite
-            | Dialect::Postgres
-            | Dialect::MySql
-            | Dialect::MsSql => SupportLevel::Supported,
-            Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
-                SupportLevel::Unsupported
-            }
-            Dialect::Hive | Dialect::ClickHouse => SupportLevel::Nascent,
-        }
-    }
-
     fn should_run_query(&self, prql: &str) -> bool {
         !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
     }
 
     fn get_connection(&self) -> Option<Box<dyn DBConnection>> {
         match self {
-            Dialect::DuckDb => Some(Box::new(DuckDBConnection(
-                duckdb::Connection::open_in_memory().unwrap(),
-            ))),
-            Dialect::SQLite => Some(Box::new(SQLiteConnection(
-                rusqlite::Connection::open_in_memory().unwrap(),
-            ))),
+            Dialect::DuckDb => Some(Box::new(duckdb::Connection::open_in_memory().unwrap())),
+            Dialect::SQLite => Some(Box::new(rusqlite::Connection::open_in_memory().unwrap())),
 
             #[cfg(feature = "test-external-dbs")]
             Dialect::Postgres => {
                 use postgres::NoTls;
-                Some(Box::new(PostgresConnection(
+                Some(Box::new(
                     postgres::Client::connect(
                         "host=localhost user=root password=root dbname=dummy",
                         NoTls,
                     )
                     .unwrap(),
-                )))
+                ))
             }
 
             #[cfg(feature = "test-external-dbs")]
-            Dialect::MySql => Some(Box::new(MysqlConnection(
+            Dialect::MySql => Some(Box::new(
                 mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
-            ))),
+            )),
             #[cfg(feature = "test-external-dbs")]
             Dialect::MsSql => Some({
                 use tiberius::{AuthMethod, Client, Config};
@@ -142,7 +118,7 @@ fn test_fmt_examples() {
 
 #[test]
 fn test_rdbms() {
-    let runtime = Runtime::new().unwrap();
+    let runtime = &*RUNTIME;
 
     let mut connections: Vec<Box<dyn DBConnection>> = Dialect::iter()
         .filter(|dialect| matches!(dialect.support_level(), SupportLevel::Supported))
@@ -150,7 +126,7 @@ fn test_rdbms() {
         .collect();
 
     connections.iter_mut().for_each(|con| {
-        setup_connection(&mut **con, &runtime);
+        setup_connection(&mut **con, runtime);
     });
 
     // for each of the queries
@@ -173,7 +149,7 @@ fn test_rdbms() {
             if !con.get_dialect().should_run_query(&prql) {
                 continue;
             }
-            let res = run_query(&mut **con, prql.as_str(), &runtime);
+            let res = run_query(&mut **con, prql.as_str(), runtime);
             let res = res.context(format!("Executing for {vendor}")).unwrap();
             results.insert(vendor, res);
         }
@@ -271,8 +247,5 @@ fn remove_trailing_zeros(rows: &mut Vec<Row>) {
     }
 }
 
-#[cfg(feature = "test-external-dbs")]
-use once_cell::sync::Lazy;
-#[cfg(feature = "test-external-dbs")]
 static RUNTIME: Lazy<Runtime> =
     Lazy::new(|| Runtime::new().expect("Failed to create global runtime"));

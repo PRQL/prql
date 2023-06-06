@@ -21,16 +21,6 @@ use prql_compiler::sql::Dialect;
 
 pub type Row = Vec<String>;
 
-pub struct DuckDBConnection(pub duckdb::Connection);
-
-pub struct SQLiteConnection(pub rusqlite::Connection);
-
-pub struct PostgresConnection(pub postgres::Client);
-
-pub struct MysqlConnection(pub mysql::Pool);
-
-pub struct MssqlConnection(pub tiberius::Client<Compat<TcpStream>>);
-
 pub trait DBConnection {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
 
@@ -45,9 +35,9 @@ pub trait DBConnection {
     }
 }
 
-impl DBConnection for DuckDBConnection {
+impl DBConnection for duckdb::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
-        let mut statement = self.0.prepare(sql)?;
+        let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
         let mut vec = vec![];
         while let Ok(Some(row)) = rows.next() {
@@ -107,9 +97,9 @@ impl DBConnection for DuckDBConnection {
     }
 }
 
-impl DBConnection for SQLiteConnection {
+impl DBConnection for rusqlite::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
-        let mut statement = self.0.prepare(sql)?;
+        let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
         let mut vec = vec![];
         while let Ok(Some(row)) = rows.next() {
@@ -170,9 +160,9 @@ impl DBConnection for SQLiteConnection {
     }
 }
 
-impl DBConnection for PostgresConnection {
+impl DBConnection for postgres::Client {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
-        let rows = self.0.query(sql, &[])?;
+        let rows = self.query(sql, &[])?;
         let mut vec = vec![];
         for row in rows.into_iter() {
             let mut columns = vec![];
@@ -236,9 +226,9 @@ impl DBConnection for PostgresConnection {
     }
 }
 
-impl DBConnection for MysqlConnection {
+impl DBConnection for mysql::Pool {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
-        let mut conn = self.0.get_conn()?;
+        let mut conn = self.get_conn()?;
         let rows: Vec<mysql::Row> = conn.query(sql)?;
         let mut vec = vec![];
         for row in rows.into_iter() {
@@ -287,9 +277,60 @@ impl DBConnection for MysqlConnection {
     }
 }
 
-impl DBConnection for MssqlConnection {
+impl DBConnection for tiberius::Client<Compat<TcpStream>> {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>> {
-        runtime.block_on(self.query(sql))
+        async fn query(
+            client: &mut tiberius::Client<Compat<TcpStream>>,
+            sql: &str,
+        ) -> Result<Vec<Row>> {
+            let mut stream = client.query(sql, &[]).await?;
+            let mut vec = vec![];
+            let cols_option = stream.columns().await?;
+            if cols_option.is_none() {
+                return Ok(vec);
+            }
+            let cols = cols_option.unwrap().to_vec();
+            for row in stream.into_first_result().await.unwrap() {
+                let mut columns = vec![];
+                for (i, col) in cols.iter().enumerate() {
+                    let value = match col.column_type() {
+                        ColumnType::Null => "".to_string(),
+                        ColumnType::Bit => String::from(row.get::<&str, usize>(i).unwrap()),
+                        ColumnType::Intn | ColumnType::Int4 => row
+                            .get::<i32, usize>(i)
+                            .map(|i| i.to_string())
+                            .unwrap_or_else(|| "".to_string()),
+                        ColumnType::Floatn => vec![
+                            row.try_get::<f32, usize>(i).map(|o| o.map(|n| n as f64)),
+                            row.try_get::<f64, usize>(i),
+                        ]
+                        .into_iter()
+                        .find(|r| r.is_ok())
+                        .unwrap()
+                        .unwrap()
+                        .map(|i| i.to_string())
+                        .unwrap_or_else(|| "".to_string()),
+                        ColumnType::Numericn | ColumnType::Decimaln => row
+                            .get::<BigDecimal, usize>(i)
+                            .map(|d| d.normalized())
+                            .unwrap()
+                            .to_string(),
+                        ColumnType::BigVarChar | ColumnType::NVarchar => {
+                            String::from(row.get::<&str, usize>(i).unwrap_or(""))
+                        }
+                        ColumnType::Datetimen => {
+                            row.get::<PrimitiveDateTime, usize>(i).unwrap().to_string()
+                        }
+                        typ => bail!("mssql type {:?}", typ),
+                    };
+                    columns.push(value);
+                }
+                vec.push(columns);
+            }
+
+            Ok(vec)
+        }
+        runtime.block_on(query(self, sql))
     }
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
@@ -304,57 +345,6 @@ impl DBConnection for MssqlConnection {
         sql.replace("TIMESTAMP", "DATETIME")
             .replace("REAL", "FLOAT(53)")
             .replace(" AS TEXT", " AS VARCHAR")
-    }
-}
-
-impl MssqlConnection {
-    async fn query(&mut self, sql: &str) -> Result<Vec<Row>> {
-        let mut stream = self.0.query(sql, &[]).await?;
-        let mut vec = vec![];
-        let cols_option = stream.columns().await?;
-        if cols_option.is_none() {
-            return Ok(vec);
-        }
-        let cols = cols_option.unwrap().to_vec();
-        for row in stream.into_first_result().await.unwrap() {
-            let mut columns = vec![];
-            for (i, col) in cols.iter().enumerate() {
-                let value = match col.column_type() {
-                    ColumnType::Null => "".to_string(),
-                    ColumnType::Bit => String::from(row.get::<&str, usize>(i).unwrap()),
-                    ColumnType::Intn | ColumnType::Int4 => row
-                        .get::<i32, usize>(i)
-                        .map(|i| i.to_string())
-                        .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Floatn => vec![
-                        row.try_get::<f32, usize>(i).map(|o| o.map(|n| n as f64)),
-                        row.try_get::<f64, usize>(i),
-                    ]
-                    .into_iter()
-                    .find(|r| r.is_ok())
-                    .unwrap()
-                    .unwrap()
-                    .map(|i| i.to_string())
-                    .unwrap_or_else(|| "".to_string()),
-                    ColumnType::Numericn | ColumnType::Decimaln => row
-                        .get::<BigDecimal, usize>(i)
-                        .map(|d| d.normalized())
-                        .unwrap()
-                        .to_string(),
-                    ColumnType::BigVarChar | ColumnType::NVarchar => {
-                        String::from(row.get::<&str, usize>(i).unwrap_or(""))
-                    }
-                    ColumnType::Datetimen => {
-                        row.get::<PrimitiveDateTime, usize>(i).unwrap().to_string()
-                    }
-                    typ => bail!("mssql type {:?}", typ),
-                };
-                columns.push(value);
-            }
-            vec.push(columns);
-        }
-
-        Ok(vec)
     }
 }
 
