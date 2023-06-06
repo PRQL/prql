@@ -111,8 +111,9 @@ module bigquery {
 }
 
 module clickhouse {
+    # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions#divide
     @{binding_strength=11}
-    let div_f = l r -> s"({l} * 1.0 / {r})"
+    let div_f = l r -> s"({l} / {r})"
 }
 
 module duckdb {
@@ -181,6 +182,7 @@ module sqlite {
 }
 
 module snowflake {
+    # https://docs.snowflake.com/en/sql-reference/operators-arithmetic#division
     @{binding_strength=11}
-    let div_f = l r -> s"({l} * 1.0 / {r})"
+    let div_f = l r -> s"({l} / {r})"
 }
