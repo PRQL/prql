@@ -83,7 +83,7 @@ impl IntegrationTest for Dialect {
                     tcp.set_nodelay(true).unwrap();
                     Client::connect(config, tcp.compat_write()).await
                 }
-                Box::new(MssqlConnection(client))
+                Box::new(client)
             }),
             _ => None,
         }

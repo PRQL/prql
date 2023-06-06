@@ -1,6 +1,6 @@
 # Initial bacon config file; edits and contributions welcome.
 
-default_job = "check"
+default_job = "clippy"
 
 # PRQL additions
 [jobs.test]
@@ -22,12 +22,12 @@ need_stdout = false
 watch = ["*"]
 
 [jobs.check-all]
-command = ["cargo", "check", "--all-targets", "--color=always"]
+command = ["cargo", "check", "--all-targets", "--all-features", "--color=always"]
 need_stdout = false
 watch = ["*"]
 
 [jobs.clippy]
-command = ["cargo", "clippy", "--all-targets", "--color=always"]
+command = ["cargo", "clippy", "--all-targets", "--all-features", "--color=always"]
 need_stdout = false
 watch = ["*"]
 
@@ -43,8 +43,8 @@ need_stdout = false
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
-need_stdout = false
+command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"] 
+need_stdout = false 
 on_success = "back" # so that we don't open the browser at each change
 
 # You may define here keybindings that would be specific to
