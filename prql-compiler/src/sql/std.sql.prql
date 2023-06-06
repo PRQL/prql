@@ -153,7 +153,7 @@ module mysql {
     let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
 
     # 'c' for case-sensitive
-    let regex_search = text pattern -> s"REGEXP_LIKE({text}, {pattern}, 'c')"
+    let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"
 }
 
 module postgres {
