@@ -16,8 +16,8 @@ use tokio::runtime::Runtime;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 use connection::*;
-use prql_compiler::Options;
-use prql_compiler::Target::Sql;
+use prql_compiler::{sql::Dialect, Target::Sql};
+use prql_compiler::{Options, Target};
 
 mod connection;
 
@@ -30,16 +30,43 @@ mod connection;
 // TODO: an relatively easy thing to do would be to use these as the canonical
 // examples in the book, and then we get this for free.
 
-fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
-    prql_compiler::compile(prql, &Options::default().no_signature())
+fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMessages> {
+    prql_compiler::compile(prql, &Options::default().no_signature().with_target(target))
+}
+
+const DIALECTS: [Dialect; 5] = [
+    Dialect::DuckDb,
+    Dialect::SQLite,
+    Dialect::Postgres,
+    Dialect::MySql,
+    Dialect::MsSql,
+];
+
+trait IntegrationTest {
+    fn should_run_query(&self, prql: &str) -> bool;
+}
+
+impl IntegrationTest for Dialect {
+    fn should_run_query(&self, prql: &str) -> bool {
+        !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
+    }
 }
 
 #[test]
 fn test_sql_examples() {
-    glob!("queries/**/*.prql", |path| {
-        let prql = fs::read_to_string(path).unwrap();
-        assert_snapshot!("sql", compile(&prql).unwrap(), &prql)
-    });
+    for dialect in DIALECTS {
+        glob!("queries/**/*.prql", |path| {
+            let prql = fs::read_to_string(path).unwrap();
+            if !dialect.should_run_query(&prql) {
+                return;
+            }
+            assert_snapshot!(
+                format!("sql_{dialect:?}"),
+                compile(&prql, Target::Sql(Some(dialect))).unwrap(),
+                &prql
+            )
+        });
+    }
 }
 
 #[test]
@@ -80,7 +107,7 @@ fn test_rdbms() {
         let mut results = BTreeMap::new();
         for con in &mut connections {
             let vendor = con.get_dialect().to_string().to_lowercase();
-            if prql.contains(format!("skip_{}", vendor).as_str()) {
+            if !con.get_dialect().should_run_query(&prql) {
                 continue;
             }
             let res = run_query(con.as_mut(), prql.as_str(), &runtime);
