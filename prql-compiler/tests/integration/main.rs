@@ -1,3 +1,5 @@
+#![cfg(not(target_family = "wasm"))]
+
 use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::{env, fs};
