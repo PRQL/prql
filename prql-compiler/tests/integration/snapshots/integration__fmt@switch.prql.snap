@@ -6,9 +6,9 @@ input_file: prql-compiler/tests/integration/queries/switch.prql
 from tracks
 sort milliseconds
 select display = case {
-    composer != null => composer,
-    genre_id < 17 => "no composer",
-    true => f"unknown composer",
+  composer != null => composer,
+  genre_id < 17 => "no composer",
+  true => f"unknown composer",
 }
 take 10
 
