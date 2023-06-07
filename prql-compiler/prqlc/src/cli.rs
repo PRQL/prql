@@ -612,8 +612,11 @@ sort full
         "###);
     }
 
+    #[ignore = "Need to write a fmt test with the full CLI when insta_cmd is fixed"]
     #[test]
     fn format() {
+        // This is the previous previous approach with the Format command; which
+        // now doesn't run through `execute`; instead through `run`.
         let output = Command::execute(
             &Command::Format {
                 input: clio_extended::Input::default(),
