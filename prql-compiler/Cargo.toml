@@ -48,6 +48,7 @@ insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.5.1"
 csv = "1.2"
+duckdb = {version = "0.7.0", features = ["bundled", "chrono"]}
 mysql = "24"
 pg_bigdecimal = "0.1"
 postgres = "0.19"
@@ -56,11 +57,6 @@ rusqlite = {version = "0.29.0", features = ["bundled", "csvtab"]}
 tiberius = {version = "0.12", features = ["sql-browser-tokio", "bigdecimal", "time"]}
 tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7", features = ["compat"]}
-
-# Re-enable on windows when duckdb supports it
-# https://github.com/wangfenjin/duckdb-rs/issues/62
-[target.'cfg(not(any(target_family = "windows", target_family="wasm")))'.dev-dependencies]
-duckdb = {version = "0.7.0", features = ["bundled", "chrono"]}
 
 [[bench]]
 harness = false
