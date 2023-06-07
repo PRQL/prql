@@ -164,19 +164,8 @@ impl Command {
     fn run_io_command(&mut self) -> std::result::Result<(), anyhow::Error> {
         let (mut file_tree, main_path) = self.read_input()?;
 
-        let res = self.execute(&mut file_tree, &main_path);
-
-        match res {
-            Ok(buf) => {
-                self.write_output(&buf)?;
-            }
-            Err(e) => {
-                eprint!("{:}", e);
-                std::process::exit(1)
-            }
-        }
-
-        Ok(())
+        self.execute(&mut file_tree, &main_path)
+            .and_then(|buf| Ok(self.write_output(&buf)?))
     }
 
     fn execute<'a>(&self, sources: &'a mut SourceTree, main_path: &'a str) -> Result<Vec<u8>> {
