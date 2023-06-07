@@ -4,11 +4,11 @@ use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::Output;
 use itertools::Itertools;
-use std::io::Write;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
+use std::{backtrace, io::Write};
 
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
@@ -26,6 +26,17 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
+        // TODO: this is clunky — we're using `backtrace.status()` to check if
+        // backtraces are enabled, but then printing the backtrace from the
+        // error. Is there a way to check whether backtrades are enabled without
+        // capturing another one; e.g. from the error itself?
+        //
+        // Without this, we get a `<disabled>` message most of the time, which
+        // is kinda confusing.
+        if let backtrace::BacktraceStatus::Captured = backtrace::Backtrace::capture().status() {
+            eprintln!("{:#}", error.backtrace());
+        }
+
         exit(1)
     }
 
