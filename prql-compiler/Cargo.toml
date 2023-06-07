@@ -12,7 +12,7 @@ metadata.msrv = "1.65.0"
 
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
-ariadne = "0.2.0"
+ariadne = "0.3.0"
 csv = "1.2.0"
 enum-as-inner = "0.6.0"
 itertools = "0.10.3"
