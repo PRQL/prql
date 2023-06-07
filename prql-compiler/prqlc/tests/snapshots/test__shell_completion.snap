@@ -3,8 +3,11 @@ source: prql-compiler/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
+    - "--color=never"
     - shell-completion
     - bash
+  env:
+    CLICOLOR_FORCE: ""
 ---
 success: true
 exit_code: 0
@@ -182,7 +185,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__fmt)
-            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-h --color --help [INPUT]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
