@@ -56,7 +56,8 @@ jobs:
           args: ${{ inputs.target_option }} --all-features --no-run --locked
         # v2.18.0 breaks; we can remove when the latest version on the runners is v2.18.1
       - name: Update docker compose
-        run: apt-get update && apt-get install -y docker-compose
+        run: sudo apt-get update && sudo apt-get install -y docker-compose
+        if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
