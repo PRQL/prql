@@ -1,6 +1,6 @@
 # Initial bacon config file; edits and contributions welcome.
 
-default_job = "check"
+default_job = "clippy"
 
 # PRQL additions
 [jobs.test]
@@ -22,12 +22,12 @@ need_stdout = false
 watch = ["*"]
 
 [jobs.check-all]
-command = ["cargo", "check", "--all-targets", "--color=always"]
+command = ["cargo", "check", "--all-targets", "--all-features", "--color=always"]
 need_stdout = false
 watch = ["*"]
 
 [jobs.clippy]
-command = ["cargo", "clippy", "--all-targets", "--color=always"]
+command = ["cargo", "clippy", "--all-targets", "--all-features", "--color=always"]
 need_stdout = false
 watch = ["*"]
 

@@ -75,10 +75,30 @@ impl Dialect {
         }
     }
 
+    pub fn support_level(&self) -> SupportLevel {
+        match self {
+            Dialect::DuckDb
+            | Dialect::SQLite
+            | Dialect::Postgres
+            | Dialect::MySql
+            | Dialect::MsSql => SupportLevel::Supported,
+            Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
+                SupportLevel::Unsupported
+            }
+            Dialect::Hive | Dialect::ClickHouse => SupportLevel::Nascent,
+        }
+    }
+
     #[deprecated(note = "Use `Dialect::Variants` instead")]
     pub fn names() -> &'static [&'static str] {
         Dialect::VARIANTS
     }
+}
+
+pub enum SupportLevel {
+    Supported,
+    Unsupported,
+    Nascent,
 }
 
 #[derive(Debug)]
