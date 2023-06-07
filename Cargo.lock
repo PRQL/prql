@@ -145,9 +145,9 @@ dependencies = [
 [[package]]
 name = "ariadne"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "367fd0ad87307588d087544707bc5fbf4805ded96c7db922b70d368fa1cb5702"
+source = "git+https://github.com/zesterer/ariadne#ccd465160129d2546d67f7ee78727a4098a64330"
 dependencies = [
+ "concolor",
  "unicode-width",
  "yansi",
 ]
@@ -2163,6 +2163,7 @@ dependencies = [
  "ansi-to-html",
  "anyhow",
  "clap",
+ "concolor",
  "globset",
  "insta",
  "itertools",
@@ -2882,6 +2883,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "chumsky",
+ "concolor",
  "criterion",
  "csv",
  "duckdb",

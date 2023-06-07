@@ -4,6 +4,7 @@ use crate::{sql, Options, SourceTree, Target};
 use insta::{assert_display_snapshot, assert_snapshot};
 
 pub fn compile(prql: &str) -> Result<String, crate::ErrorMessages> {
+    concolor::set(concolor::ColorChoice::Never); //::set_override(false);
     crate::compile(prql, &Options::default().no_signature())
 }
 

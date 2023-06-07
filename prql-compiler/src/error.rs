@@ -287,7 +287,9 @@ impl ErrorMessage {
         cache: &mut FileTreeCache,
         color: bool,
     ) -> Option<String> {
-        let config = Config::default().with_color(color);
+        let config = Config::default();
+        //.with_color(color);
+        // concolor::set(concolor::Stream::Stderr, color);
 
         let span = Range::from(self.span?);
 

@@ -12,14 +12,15 @@ metadata.msrv = "1.65.0"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {version = "1.0.57"}
-ariadne = "0.2.0"
+# ariadne = "0.2.0"
+ariadne = {version = "0.2.0", features = ["auto-color"], git = "https://github.com/zesterer/ariadne"}
 atty = "0.2.14"
 clap = {version = "4.3.0", features = ["derive", "env", "wrap_help"]}
 clap_complete_command = "0.5.1"
 clio = {version = "0.2.7", features = ['clap-parse']}
 color-eyre = "0.6.1"
-concolor = "0.1.0"
-concolor-clap = {version = "0.1.0", features = ["api"]}
+concolor = {version = "0.1.1", features = ["auto"]}
+concolor-clap = {version = "0.1.0", features = ["auto", "api"]}
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
 notify = "^6.0.0"

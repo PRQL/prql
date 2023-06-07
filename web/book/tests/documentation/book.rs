@@ -25,6 +25,7 @@ use super::compile;
 // We re-use the code (somewhat copy-paste) for the other compile tests below.
 #[test]
 fn test_prql_examples_compile() -> Result<()> {
+    concolor::set(concolor::ColorChoice::Never); //::set_override(false);
     let examples = collect_book_examples()?;
 
     let mut errs = Vec::new();

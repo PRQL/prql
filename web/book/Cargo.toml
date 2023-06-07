@@ -18,6 +18,7 @@ test = false
 [dependencies]
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
+concolor = {version = "0.1.1", features = ["auto"]}
 globset = "0.4.8"
 itertools = "0.10.3"
 prql-compiler = {path = "../../prql-compiler", default-features = false}

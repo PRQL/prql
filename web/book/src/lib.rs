@@ -158,6 +158,7 @@ fn replace_examples(text: &str) -> Result<String> {
             bail!("Expected text within code block")
         };
 
+        concolor::set(concolor::ColorChoice::Always);
         let prql = text.to_string();
         let result = compile(
             &prql,
@@ -293,7 +294,7 @@ fn table_of_error(prql: &str, message: &str) -> String {
 fn test_replace_examples() -> Result<()> {
     use insta::assert_display_snapshot;
 
-    let md = r###"
+    assert_display_snapshot!(replace_examples(r###"
 # PRQL Doc
 
 ```prql
@@ -307,9 +308,9 @@ import sys
 ```prql error
 this is an error
 ```
-    "###;
+    "###
 
-    assert_display_snapshot!(replace_examples(md)?, @r###"
+)?, @r###"
     # PRQL Doc
 
     <div class="comparison">
