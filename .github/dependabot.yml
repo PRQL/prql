@@ -2,6 +2,8 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directory: "/"
+    labels:
+      - pr-test-all
     schedule:
       interval: daily
     ignore:
@@ -48,6 +50,13 @@ updates:
       prefix: "chore: "
 
   - directory: ".github/actions/build-prql-python"
+    commit-message:
+      prefix: "chore: "
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
+
+  - directory: ".github/actions/build-prqlc"
     commit-message:
       prefix: "chore: "
     package-ecosystem: "github-actions"
