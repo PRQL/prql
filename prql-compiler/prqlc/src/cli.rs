@@ -217,7 +217,6 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
-            // Command::Format(input) => {}
             Command::Debug(_) => {
                 semantic::load_std_lib(sources);
                 let stmts = prql_to_pl_tree(sources)?;
