@@ -1,5 +1,5 @@
-//! Compiler for PRQL language.
-//! Targets SQL and exposes PL and RQ abstract syntax trees.
+//! Compiler for PRQL language. Targets SQL and exposes PL and RQ abstract
+//! syntax trees.
 //!
 //! You probably want to start with [compile] wrapper function.
 //!
@@ -34,9 +34,7 @@
 //!
 //! ## Common use-cases
 //!
-//! I want to ...
-//! - ... compile PRQL queries at run time, because I cannot commit them into
-//!     the source tree.
+//! - Compile PRQL queries to SQL at run time.
 //!
 //!     ```
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
@@ -49,23 +47,21 @@
 //!     # }
 //!     ```
 //!
-//! - ... compile PRQL queries to SQL at build time.
+//! - Compile PRQL queries to SQL at build time.
 //!
-//!     Use `prql-compiler-macros` crate (unreleased), which can be used like
-//!     this:
+//!     Use the `prql-compiler-macros` crate; for example:
 //!     ```ignore
 //!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
-//! - ... compile .prql files to .sql files at build time.
+//!     Alternatively, to compile `.prql` files to `.sql` files at build time,
+//!     call `prql-compiler` from `build.rs`. See [this example
+//!     project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
 //!
-//!     Call this crate from `build.rs`. See
-//!     [this example project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
-//!
-//! - ... compile, format & debug PRQL from command line.
+//! - Compile, format & debug PRQL from command line.
 //!
 //!     ```sh
-//!     $ cargo install prqlc
+//!     $ cargo install --locked prqlc
 //!     $ prqlc compile query.prql
 //!     ```
 //!
