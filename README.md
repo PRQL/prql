@@ -28,11 +28,11 @@ PRQL can be as simple as:
 ```elm
 from employees
 filter country == "USA"                       # Each line transforms the previous result
-aggregate [                                   # `aggregate` reduces each column to a value
+aggregate {                                   # `aggregate` reduces each column to a value
   max salary,
   min salary,
-  count,                                      # Trailing commas are allowed
-]
+  count s"*",                                      # Trailing commas are allowed
+}
 ```
 
 Here's a fuller example of the language;
@@ -40,21 +40,21 @@ Here's a fuller example of the language;
 ```elm
 from employees
 filter start_date > @2021-01-01               # Clear date syntax
-derive [                                      # `derive` adds columns / variables
+derive {                                      # `derive` adds columns / variables
   gross_salary = salary + (tax ?? 0),         # Terse coalesce
   gross_cost = gross_salary + benefits_cost,  # Variables can use other variables
-]
+}
 filter gross_cost > 0
-group [title, country] (                      # `group` runs a pipeline over each group
-  aggregate [                                 # `aggregate` reduces each group to a value
+group {title, country} (                      # `group` runs a pipeline over each group
+  aggregate {                                 # `aggregate` reduces each group to a value
     average gross_salary,
     sum_gross_cost = sum gross_cost,          # `=` sets a column name
-  ]
+  }
 )
 filter sum_gross_cost > 100_000               # `filter` replaces both of SQL's `WHERE` & `HAVING`
 derive id = f"{title}_{country}"              # F-strings like Python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
-sort [sum_gross_cost, -country]               # `-country` means descending order
+sort {sum_gross_cost, -country}               # `-country` means descending order
 take 1..20                                    # Range expressions (also valid here as `take 20`)
 ```
 
@@ -65,8 +65,8 @@ For more on the language, more examples & comparisons with SQL, visit
 ## Current Status - April 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
-the intrepid, either as part of one of our supported extensions, or within your
-own tools, using one of our supported language bindings.
+the intrepid, either with our supported integrations, or within your own tools,
+using one of our supported language bindings.
 
 PRQL still has some minor bugs and some missing features, and probably is only
 ready to be rolled out to non-technical teams for fairly simple queries.
@@ -127,7 +127,8 @@ To stay in touch with PRQL:
 This repo is composed of:
 
 - **[prql-compiler](./prql-compiler/)** — the compiler, written in rust, whose
-  main role is to compile PRQL into SQL. It also includes `prqlc`, the CLI.
+  main role is to compile PRQL into SQL. It also includes
+  [prqlc](./prql-compiler/prqlc/), the CLI.
 - **[web](./web/)** — our web content: the [Book][prql book],
   [Website][prql website], and [Playground][prql playground].
 - **[bindings](./bindings/)** — bindings from various languages to

@@ -7,7 +7,7 @@ use std::str::FromStr;
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     query: JString,
     target: JString,
@@ -15,11 +15,11 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
     signature: jboolean,
 ) -> jstring {
     let prql_query: String = env
-        .get_string(query)
+        .get_string(&query)
         .expect("Couldn't get java string!")
         .into();
     let target_str: String = env
-        .get_string(target)
+        .get_string(&target)
         .expect("Couldn't get java string")
         .into();
     let prql_dialect: Target = Target::from_str(&target_str).unwrap_or(Target::Sql(None));
@@ -31,40 +31,40 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         color: false,
     };
     let result = prql_compiler::compile(&prql_query, &opt);
-    java_string_with_exception(result, &env)
+    java_string_with_exception(result, &mut env)
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_format(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     query: JString,
 ) -> jstring {
     let prql_query: String = env
-        .get_string(query)
+        .get_string(&query)
         .expect("Couldn't get java string!")
         .into();
     let result = prql_to_pl(&prql_query).and_then(pl_to_prql);
-    java_string_with_exception(result, &env)
+    java_string_with_exception(result, &mut env)
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     query: JString,
 ) -> jstring {
     let prql_query: String = env
-        .get_string(query)
+        .get_string(&query)
         .expect("Couldn't get java string!")
         .into();
     let result = prql_to_pl(&prql_query).and_then(json::from_pl);
-    java_string_with_exception(result, &env)
+    java_string_with_exception(result, &mut env)
 }
 
-fn java_string_with_exception(result: Result<String, ErrorMessages>, env: &JNIEnv) -> jstring {
+fn java_string_with_exception(result: Result<String, ErrorMessages>, env: &mut JNIEnv) -> jstring {
     if let Ok(text) = result {
         env.new_string(text)
             .expect("Couldn't create java string!")

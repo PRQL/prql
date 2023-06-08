@@ -21,8 +21,8 @@
   },
   "mounts": [
     {
-      "source": "devcontainer-cargo-cache",
-      "target": "/usr/local/cargo",
+      "source": "devcontainer-cargo-cache-${devcontainerId}",
+      "target": "/usr/local/cargo/registry",
       "type": "volume"
     }
   ],

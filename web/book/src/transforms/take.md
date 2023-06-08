@@ -2,8 +2,8 @@
 
 Picks rows based on their position.
 
-```prql_no_test
-take {n|range}
+```prql no-eval
+take (n|range)
 ```
 
 See [Ranges](../language-features/ranges.md) for more details on how ranges
@@ -18,6 +18,6 @@ take 10
 
 ```prql
 from orders
-sort [-value, created_at]
+sort {-value, created_at}
 take 101..110
 ```

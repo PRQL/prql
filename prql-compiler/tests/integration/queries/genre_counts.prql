@@ -1,6 +1,6 @@
 let genre_count = (
     from genres
-    aggregate a = count
+    aggregate {a = count name}
 )
 
 from genre_count

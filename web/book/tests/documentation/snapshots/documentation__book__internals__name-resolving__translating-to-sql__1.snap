@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nderive {first_name, dept_id}\njoin d=departments (==dept_id)\nselect {first_name, d.title}\n"
+---
+SELECT
+  employees.first_name,
+  d.title
+FROM
+  employees
+  JOIN departments AS d ON employees.dept_id = d.dept_id
+

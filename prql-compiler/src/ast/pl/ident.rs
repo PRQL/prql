@@ -18,6 +18,7 @@ impl Ident {
         }
     }
 
+    /// Creates a new ident from a non-empty path.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
         Ident {
@@ -26,6 +27,8 @@ impl Ident {
         }
     }
 
+    /// Remove last part of the ident.
+    /// Result will generally refer to the parent of this ident.
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path;
         path.pop().map(|name| Ident { path, name })
@@ -38,6 +41,11 @@ impl Ident {
             let first = self.path.remove(0);
             (first, Some(self))
         }
+    }
+
+    pub fn prepend(self, mut parts: Vec<String>) -> Ident {
+        parts.extend(self.into_iter());
+        Ident::from_path(parts)
     }
 
     pub fn with_name<S: ToString>(mut self, name: S) -> Self {
@@ -57,6 +65,12 @@ impl Ident {
             .iter()
             .zip(self.iter())
             .all(|(prefix_component, self_component)| prefix_component == self_component)
+    }
+
+    pub fn starts_with_part(&self, prefix: &str) -> bool {
+        self.iter()
+            .next()
+            .map_or(false, |self_component| self_component == prefix)
     }
 }
 
@@ -123,10 +137,10 @@ pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), s
 
 pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
     fn forbidden_start(c: char) -> bool {
-        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+        !(c.is_ascii_lowercase() || matches!(c, '_' | '$'))
     }
     fn forbidden_subsequent(c: char) -> bool {
-        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
+        !(c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '_'))
     }
     let needs_escape = s.is_empty()
         || s.starts_with(forbidden_start)

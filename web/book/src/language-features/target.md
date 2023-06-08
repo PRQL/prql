@@ -15,7 +15,7 @@ sort age
 take 10
 ```
 
-```prql no-fmt
+```prql
 prql target:sql.mssql
 
 from employees
@@ -47,8 +47,8 @@ very welcome.
 
 PRQL allows specifying a version of the language in the PRQL header, like:
 
-```prql no-fmt
-prql version:"0.7.0"
+```prql
+prql version:"0.8.1"
 
 from employees
 ```

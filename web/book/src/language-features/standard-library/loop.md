@@ -2,7 +2,7 @@
 
 > _Experimental_
 
-```prql_no_test
+```prql no-eval
 loop {step_function} {initial_relation}
 ```
 
@@ -26,7 +26,7 @@ def loop(step, initial):
 ## Examples
 
 ```prql
-from_text format:json '[{"n": 1 }]'
+from [{n = 1}]
 loop (
     filter n<4
     select n = n+1

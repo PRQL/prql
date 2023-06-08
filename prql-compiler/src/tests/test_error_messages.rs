@@ -9,18 +9,18 @@ use insta::assert_display_snapshot;
 #[test]
 fn test_errors() {
     assert_display_snapshot!(compile(r###"
-    func addadd a b -> a + b
+    let addadd = a b -> a + b
 
     from x
     derive y = (addadd 4 5 6)
     "###).unwrap_err(),
         @r###"
     Error:
-       ╭─[:5:16]
+       ╭─[:5:17]
        │
      5 │     derive y = (addadd 4 5 6)
-       │                ───────┬──────
-       │                       ╰──────── Too many arguments to function `addadd`
+       │                 ──────┬─────
+       │                       ╰─────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -32,8 +32,8 @@ fn test_errors() {
        ╭─[:2:5]
        │
      2 │     from a select b
-       │     ────────┬───────
-       │             ╰───────── Too many arguments to function `from`
+       │     ───────┬───────
+       │            ╰───────── Too many arguments to function `from`
     ───╯
     "###);
 
@@ -48,7 +48,7 @@ fn test_errors() {
        │
      4 │     select b
        │            ┬
-       │            ╰── Unknown name b
+       │            ╰── Unknown name
     ───╯
     "###);
 
@@ -104,25 +104,41 @@ fn test_errors() {
        │
      1 │ Answer: T-H-A-T!
        │       ┬
-       │       ╰── unexpected :
+       │       ╰── unexpected : while parsing source file
     ───╯
     "###);
+}
+
+#[test]
+fn test_union_all_sqlite() {
+    // TODO: `SQLiteDialect` would be better as `sql.sqlite` or `sqlite`.
+    assert_display_snapshot!(compile(r###"
+    prql target:sql.sqlite
+
+    from film
+    remove film2
+    "###).unwrap_err(), @r###"
+    Error: The dialect SQLiteDialect does not support EXCEPT ALL
+    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
+    "###)
 }
 
 #[test]
 fn test_hint_missing_args() {
     assert_display_snapshot!(compile(r###"
     from film
-    select [film_id, lag film_id]
+    select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
     Error:
        ╭─[:3:22]
        │
-     3 │     select [film_id, lag film_id]
+     3 │     select {film_id, lag film_id}
        │                      ─────┬─────
-       │                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
+       │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `array -> infer`
        │
        │ Help: Have you forgotten an argument to function std.lag?
+       │
+       │ Note: Type `scalar` expands to `int || float || bool || text || date || time || timestamp || null`
     ───╯
     "###)
 }
@@ -142,6 +158,59 @@ fn test_missing_exclude() {
     from tracks
     group title (take 1)
     "###).unwrap_err(), @r###"
-    Error: Excluding columns (_expr_0) is not supported by the current dialect, GenericDialect
+    Error: Excluding columns (_expr_0) is not supported by the current dialect, GenericDialect"###)
+}
+
+#[test]
+fn test_regex_dialect() {
+    assert_display_snapshot!(compile(r###"
+    prql target:sql.mssql
+    from foo
+    filter bar ~= 'love'
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:12]
+       │
+     4 │     filter bar ~= 'love'
+       │            ──────┬──────
+       │                  ╰──────── operator std.regex_search is not supported for dialect mssql
+    ───╯
+    "###)
+}
+
+#[test]
+fn test_bad_function_type() {
+    assert_display_snapshot!(compile(r###"
+    from tracks
+    group foo (take)
+    "###,
+    )
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:16]
+       │
+     3 │     group foo (take)
+       │                ──┬─
+       │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `scalar relation -> relation`
+       │
+       │ Help: Type `transform` expands to `infer -> relation`
+    ───╯
+    "###);
+}
+
+#[test]
+fn test_basic_type_checking() {
+    assert_display_snapshot!(compile(r#"
+    from foo
+    select (a && b) + c
+    "#)
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:13]
+       │
+     3 │     select (a && b) + c
+       │             ───┬──
+       │                ╰──── function std.add, param `left` expected type `int || float || timestamp || date`, but found type `bool`
+    ───╯
     "###);
 }

@@ -4,28 +4,28 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-        exclude: '(.*\.snap|.*render-link.html)'
+        exclude: '(.*\.snap|.*render-link.html|head.hbs)'
       - id: check-yaml
       - id: mixed-line-ending
   - repo: https://github.com/crate-ci/typos
-    rev: v1.14.3
+    rev: v1.14.12
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.6
+    rev: v3.0.0-alpha.9-for-vscode
     hooks:
       - id: prettier
         additional_dependencies:
           - prettier
           - prettier-plugin-go-template
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.259
+    rev: v0.0.270
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.3.0
     hooks:
       - id: black
   - repo: https://github.com/r0x0d/pre-commit-rust
@@ -34,16 +34,22 @@ repos:
       - id: fmt
       - id: clippy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.1.1
+    rev: v1.3.0
     hooks:
       - id: mypy
-        additional_dependencies: ["types-PyYAML==6.0.12.4"]
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.11.0
+    rev: v3.11.2
     hooks:
       - id: markdown-link-check
+        name: markdown-link-check-local
         files: \.md$
-        args: ["--config=.github/.markdown-link-check.json"]
+        args: ["--config=.config/.markdown-link-check-local.json"]
+        # To run across everything (see nightly.yaml for more details)
+      - id: markdown-link-check
+        name: markdown-link-check-all
+        stages: [manual]
+        files: \.md$
+        args: ["--config=.config/.markdown-link-check-all.json"]
   - repo: local
     hooks:
       - id: no-dbg
@@ -51,7 +57,6 @@ repos:
         description: We shouldn't merge code with `dbg!` in
         language: pygrep
         types: ["rust"]
-        # A regex searching sql files for either `prj-` or 'tgs-'.
         entry: "dbg!"
   - repo: local
     hooks:

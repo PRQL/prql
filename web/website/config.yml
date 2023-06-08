@@ -7,6 +7,8 @@ disableKinds:
   - taxonomy
   - term
 
+enableGitInfo: true
+
 menu:
   nav:
     # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
@@ -70,3 +72,5 @@ params:
   title: PRQL
 
   license: "© 2022-2023, PRQL Developers. Apache 2.0 Licensed"
+
+googleAnalytics: G-LQJDD599T4

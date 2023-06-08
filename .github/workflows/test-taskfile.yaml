@@ -12,9 +12,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-taskfile
   cancel-in-progress: true
 
-env:
-  SKIP_INTEGRATION: true
-
 jobs:
   test-taskfile:
     runs-on: macos-latest
@@ -24,6 +21,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: 0.8.1
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: actions/setup-python@v4
         with:

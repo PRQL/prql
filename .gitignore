@@ -11,12 +11,10 @@ lcov.info
 **/.vscode/tasks.json
 .idea
 
-/*.prql
 _*.prql
-/*.rq
-_*.rq
-/*.pl
-_*.pl
+/*.prql
+/*.sql
+_*.sql
 
 # Appears when using Docker container
 .Trash-0
@@ -31,3 +29,5 @@ _*.pl
 # snapshots), we can adjust.
 *.pending-snap
 *.snap.new
+
+*.my.csv

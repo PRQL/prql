@@ -3,7 +3,9 @@ mod only;
 mod toposort;
 
 pub use id_gen::{IdGenerator, NameGenerator};
+use once_cell::sync::Lazy;
 pub use only::*;
+use regex::Regex;
 pub use toposort::toposort;
 
 use anyhow::Result;
@@ -103,4 +105,19 @@ where
         self.cloned()
             .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a && b))
     }
+}
+
+pub static VALID_IDENT: Lazy<Regex> = Lazy::new(|| {
+    // One of:
+    // - `*`
+    // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
+    //
+    // We could replace this with pomsky (regex<>pomsky : sql<>prql)
+    // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
+    Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
+});
+
+#[test]
+fn test_write_ident_part() {
+    assert!(!VALID_IDENT.is_match(""));
 }

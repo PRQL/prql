@@ -4,18 +4,13 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::context::{DeclKind, RelationColumns, TableDecl, TableExpr};
-use super::module::NS_DEFAULT_DB;
-use super::{Context, Frame};
+use super::context::{DeclKind, TableDecl, TableExpr};
+use super::NS_DEFAULT_DB;
+use super::{Context, Lineage};
 use crate::ast::pl::{fold::*, *};
 use crate::error::Span;
 
-pub fn label_references(
-    stmts: Vec<Stmt>,
-    context: &Context,
-    source_id: String,
-    source: String,
-) -> (Vec<u8>, Vec<Stmt>) {
+pub fn label_references(context: &Context, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -28,14 +23,13 @@ pub fn label_references(
         report: &mut report,
     };
     labeler.fold_table_exprs();
-    let stmts = labeler.fold_stmts(stmts).unwrap();
 
     let mut out = Vec::new();
     report
         .finish()
         .write((source_id, source), &mut out)
         .unwrap();
-    (out, stmts)
+    out
 }
 
 /// Traverses AST and add labels for each of the idents and function calls
@@ -90,10 +84,10 @@ impl<'a> AstFold for Labeler<'a> {
                         DeclKind::Column { .. } => Color::Yellow,
                         DeclKind::InstanceOf(_) => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
-                        DeclKind::FuncDef(_) => Color::Magenta,
                         DeclKind::Module(_) => Color::Cyan,
                         DeclKind::LayeredModules(_) => Color::Cyan,
                         DeclKind::Infer(_) => Color::White,
+                        DeclKind::QueryDef(_) => Color::White,
                     };
 
                     let location = decl
@@ -102,8 +96,11 @@ impl<'a> AstFold for Labeler<'a> {
                         .unwrap_or_default();
 
                     let decl = match &decl.kind {
-                        DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                            format!("table {}", RelationColumns(columns))
+                        DeclKind::TableDecl(TableDecl { ty, .. }) => {
+                            format!(
+                                "table {}",
+                                ty.as_ref().map(|t| t.to_string()).unwrap_or_default()
+                            )
                         }
                         _ => decl.to_string(),
                     };
@@ -131,10 +128,10 @@ impl<'a> AstFold for Labeler<'a> {
     }
 }
 
-pub fn collect_frames(stmts: Vec<Stmt>) -> Vec<(Span, Frame)> {
+pub fn collect_frames(expr: Expr) -> Vec<(Span, Lineage)> {
     let mut collector = FrameCollector { frames: vec![] };
 
-    collector.fold_stmts(stmts).unwrap();
+    collector.fold_expr(expr).unwrap();
 
     collector.frames.reverse();
     collector.frames
@@ -142,16 +139,16 @@ pub fn collect_frames(stmts: Vec<Stmt>) -> Vec<(Span, Frame)> {
 
 /// Traverses AST and collects all node.frame
 struct FrameCollector {
-    frames: Vec<(Span, Frame)>,
+    frames: Vec<(Span, Lineage)>,
 }
 
 impl AstFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
-                let frame = expr.ty.as_ref().and_then(|t| t.as_table().cloned());
-                if let Some(frame) = frame {
-                    self.frames.push((span, frame));
+                let lineage = expr.lineage.clone();
+                if let Some(lineage) = lineage {
+                    self.frames.push((span, lineage));
                 }
             }
         }

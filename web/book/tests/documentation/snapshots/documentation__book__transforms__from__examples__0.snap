@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\n"
+---
+SELECT
+  *
+FROM
+  employees
+

@@ -2,8 +2,8 @@
 
 Adds columns from another table, matching rows based on a condition.
 
-```prql_no_test
-join side:{inner|left|right|full} {table} {[conditions]}
+```prql no-eval
+join side:{inner|left|right|full} table (conditions)
 ```
 
 ## Parameters
@@ -19,12 +19,12 @@ join side:{inner|left|right|full} {table} {[conditions]}
 
 ```prql
 from employees
-join side:left positions [employees.id==positions.employee_id]
+join side:left positions (employees.id==positions.employee_id)
 ```
 
 ```prql
 from employees
-join side:left p=positions [employees.id==p.employee_id]
+join side:left p=positions (employees.id==p.employee_id)
 ```
 
 ## Self equality operator
@@ -34,5 +34,5 @@ equality operator":
 
 ```prql
 from employees
-join positions [==emp_no]
+join positions (==emp_no)
 ```

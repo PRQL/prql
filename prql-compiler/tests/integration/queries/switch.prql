@@ -1,10 +1,8 @@
-# skip_mssql
-# skip_mysql (mysql imports empty strings in csv as empty strings instead of null)
 from tracks
 sort milliseconds
-select display = case [
+select display = case {
     composer != null => composer,
     genre_id < 17 => 'no composer',
     true => f'unknown composer'
-]
+}
 take 10

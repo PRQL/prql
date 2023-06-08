@@ -15,7 +15,6 @@ pub enum Literal {
     Time(String),
     Timestamp(String),
     ValueAndUnit(ValueAndUnit),
-    Relation(RelationLiteral),
 }
 
 // Compound units, such as "2 days 3 hours" can be represented as `2days + 3hours`
@@ -47,6 +46,12 @@ impl Display for Literal {
             Literal::Float(i) => write!(f, "{i}")?,
 
             Literal::String(s) => {
+                // We escape all characters apart from quotes, since those we
+                // use the other sort of quotes.
+                // https://github.com/PRQL/prql/issues/1682 has a case which
+                // isn't quite covered; this could be expanded.
+                let s: String = escape_all_except_quotes(s);
+
                 match s.find('"') {
                     Some(_) => {
                         match s.find('\'') {
@@ -88,11 +93,19 @@ impl Display for Literal {
             Literal::ValueAndUnit(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
-
-            Literal::Relation(_) => {
-                write!(f, "<unimplemented relation>")?;
-            }
         }
         Ok(())
     }
+}
+
+fn escape_all_except_quotes(s: &str) -> String {
+    let mut result = String::new();
+    for ch in s.chars() {
+        if ch == '"' || ch == '\'' {
+            result.push(ch);
+        } else {
+            result.extend(ch.escape_default());
+        }
+    }
+    result
 }

@@ -2,14 +2,14 @@
 
 Picks and computes columns.
 
-```prql_no_test
-select [
-  {name} = {expression},
+```prql no-eval
+select {
+  name = expression,
   # or
-  {column},
-]
+  column,
+}
 # or
-select ![{column}]
+select !{column}
 ```
 
 ## Examples
@@ -21,10 +21,10 @@ select name = f"{first_name} {last_name}"
 
 ```prql
 from employees
-select [
+select {
   name = f"{first_name} {last_name}",
   age_eoy = dob - @2022-12-31,
-]
+}
 ```
 
 ```prql
@@ -34,7 +34,7 @@ select first_name
 
 ```prql
 from e=employees
-select [e.first_name, e.last_name]
+select {e.first_name, e.last_name}
 ```
 
 ### Excluding columns
@@ -50,43 +50,20 @@ We can use `!` to exclude a list of columns. This can operate in two ways:
 
 Some examples:
 
-```prql no-fmt
+```prql
 prql target:sql.bigquery
 from tracks
-select ![milliseconds,bytes]
+select !{milliseconds,bytes}
 ```
-
-```prql no-fmt
-from tracks
-select [track_id, title, composer, bytes]
-select ![title, composer]
-```
-
-```prql no-fmt
-from artists
-derive nick = name
-select ![artists.*]
-```
-
-<!-- TODO: I think this should move to a separate "Aliases" page -->
-
-````admonish note
-In the final example above, the `e` representing the table / namespace is no
-longer available after the `select` statement. For example, this would raise an error:
-
-```prql_no_test
-from e=employees
-select e.first_name
-filter e.first_name == "Fred" # Can't find `e.first_name`
-```
-
-To refer to the `e.first_name` column in subsequent transforms,
-either refer to it using `first_name`, or if it requires a different name,
-assign one in the `select` statement:
 
 ```prql
-from e=employees
-select fname = e.first_name
-filter fname == "Fred"
+from tracks
+select {track_id, title, composer, bytes}
+select !{title, composer}
 ```
-````
+
+```prql
+from artists
+derive nick = name
+select !{artists.*}
+```

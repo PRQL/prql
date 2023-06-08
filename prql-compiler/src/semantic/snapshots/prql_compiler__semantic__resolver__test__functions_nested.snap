@@ -1,58 +1,110 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo({x})\"\n            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
 ---
-- id: 19
-  Binary:
-    left:
-      id: 20
-      Binary:
-        left:
-          id: 21
-          Binary:
-            left:
-              id: 17
-              Ident:
-                - _frame
-                - a
-                - b
-              target_id: 8
-              ty: Infer
-            op: Div
-            right:
-              id: 26
-              SString:
-                - String: lag_day_todo(
-                - Expr:
-                    id: 17
-                    Ident:
+- RqOperator:
+    name: std.add
+    args:
+      - RqOperator:
+          name: std.sub
+          args:
+            - RqOperator:
+                name: std.div_f
+                args:
+                  - Ident:
                       - _frame
                       - a
                       - b
-                    target_id: 8
-                    ty: Infer
-                - String: )
-              ty: Infer
-          ty: Infer
-        op: Sub
-        right:
-          id: 28
-          Literal:
-            Integer: 1
-          ty:
-            TypeExpr:
-              Primitive: Int
-      ty: Infer
-    op: Add
-    right:
-      id: 18
-      Ident:
-        - _frame
-        - a
-        - c
-      target_id: 8
-      ty: Infer
+                  - SString:
+                      - String: lag_day_todo(
+                      - Expr:
+                          expr:
+                            Ident:
+                              - _frame
+                              - a
+                              - b
+                          format: ~
+                      - String: )
+              ty:
+                kind:
+                  Union:
+                    - - int
+                      - kind:
+                          Primitive: Int
+                        name: int
+                    - - float
+                      - kind:
+                          Primitive: Float
+                        name: float
+                name: ~
+            - Literal:
+                Integer: 1
+              ty:
+                kind:
+                  Primitive: Int
+                name: ~
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Ident:
+          - _frame
+          - a
+          - c
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
   ty:
-    TypeExpr:
-      Primitive: Column
+    kind:
+      Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+    name: ~
 

@@ -38,21 +38,21 @@ pub trait AstFold {
     }
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
         Ok(VarDef {
-            name: var_def.name,
             value: Box::new(self.fold_expr(*var_def.value)?),
+            ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
+            kind: var_def.kind,
         })
     }
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
         Ok(TypeDef {
-            name: ty_def.name,
             value: ty_def.value.map(|x| self.fold_expr(x)).transpose()?,
         })
     }
+    fn fold_module_def(&mut self, module_def: ModuleDef) -> Result<ModuleDef> {
+        fold_module_def(self, module_def)
+    }
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
         fold_pipeline(self, pipeline)
-    }
-    fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
-        fold_func_def(self, function)
     }
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
@@ -60,8 +60,8 @@ pub trait AstFold {
     fn fold_transform_call(&mut self, transform_call: TransformCall) -> Result<TransformCall> {
         fold_transform_call(self, transform_call)
     }
-    fn fold_closure(&mut self, closure: Closure) -> Result<Closure> {
-        fold_closure(self, closure)
+    fn fold_func(&mut self, func: Func) -> Result<Func> {
+        fold_func(self, func)
     }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
@@ -91,7 +91,8 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
             op,
             expr: Box::new(fold.fold_expr(*expr)?),
         },
-        List(items) => List(fold.fold_exprs(items)?),
+        Tuple(items) => Tuple(fold.fold_exprs(items)?),
+        Array(items) => Array(fold.fold_exprs(items)?),
         Range(range) => Range(fold_range(fold, range)?),
         Pipeline(p) => Pipeline(fold.fold_pipeline(p)?),
         SString(items) => SString(
@@ -109,28 +110,33 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Case(cases) => Case(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
-        Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
+        Func(closure) => Func(Box::new(fold.fold_func(*closure)?)),
 
         TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
-        BuiltInFunction { name, args } => BuiltInFunction {
+        RqOperator { name, args } => RqOperator {
             name,
             args: fold.fold_exprs(args)?,
         },
-        Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
-        Literal(_) | Type(_) => expr_kind,
+        Param(_) | Internal(_) | Literal(_) | Type(_) => expr_kind,
     })
 }
 
 pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) -> Result<StmtKind> {
     use StmtKind::*;
     Ok(match stmt_kind {
-        FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
+        // FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
-        Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
+        ModuleDef(module_def) => ModuleDef(fold.fold_module_def(module_def)?),
         QueryDef(_) => stmt_kind,
+    })
+}
+
+fn fold_module_def<F: ?Sized + AstFold>(fold: &mut F, module_def: ModuleDef) -> Result<ModuleDef> {
+    Ok(ModuleDef {
+        stmts: fold.fold_stmts(module_def.stmts)?,
     })
 }
 
@@ -170,7 +176,10 @@ pub fn fold_interpolate_item<F: ?Sized + AstFold>(
 ) -> Result<InterpolateItem> {
     Ok(match interpolate_item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
-        InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
+        InterpolateItem::Expr { expr, format } => InterpolateItem::Expr {
+            expr: Box::new(fold.fold_expr(*expr)?),
+            format,
+        },
     })
 }
 
@@ -285,25 +294,15 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Result<Closure> {
-    Ok(Closure {
-        body: Box::new(fold.fold_expr(*closure.body)?),
-        args: closure
+pub fn fold_func<T: ?Sized + AstFold>(fold: &mut T, func: Func) -> Result<Func> {
+    Ok(Func {
+        body: Box::new(fold.fold_expr(*func.body)?),
+        args: func
             .args
             .into_iter()
             .map(|item| fold.fold_expr(item))
             .try_collect()?,
-        ..closure
-    })
-}
-
-pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
-    Ok(FuncDef {
-        name: func_def.name,
-        positional_params: fold_func_param(fold, func_def.positional_params)?,
-        named_params: fold_func_param(fold, func_def.named_params)?,
-        body: Box::new(fold.fold_expr(*func_def.body)?),
-        return_ty: func_def.return_ty,
+        ..func
     })
 }
 

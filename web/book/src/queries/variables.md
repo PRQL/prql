@@ -1,13 +1,18 @@
 # Variables
 
-We can define a relation — similar to a CTE in SQL — as a variable with `let`:
+We can define a relation — similar to a CTE in SQL — with two approaches — a
+prefix `let` or a postfix `into.
+
+## `let`
+
+Here we assign a variable to `foo` with `let` by prefixing with `let foo =`:
 
 ```prql
 let top_50 = (
   from employees
   sort salary
   take 50
-  aggregate [total_salary = sum salary]
+  aggregate {total_salary = sum salary}
 )
 
 from top_50      # Starts a new pipeline
@@ -29,13 +34,27 @@ let grouping = s"""
 from grouping
 ```
 
+## `into`
+
+We can also assign a variable to `foo` by postfixing with `into foo`:
+
+```prql
+from employees
+sort salary
+take 50
+aggregate {total_salary = sum salary}
+into top_50
+
+from top_50      # Starts a new pipeline
+```
+
 ```admonish info
-In PRQL `table`s are far less common than CTEs are in SQL, since a linear series
+In PRQL variables are far less common than CTEs are in SQL, since a linear series
 of CTEs can be represented with a single pipeline.
 ```
 
-Currently defining variables with `let` is restricted to relations. We'd like to
-extend this to expressions that evaluate to scalars.
+Currently defining variables is restricted to relations. We'd like to extend
+this to expressions that evaluate to scalars.
 
 <!--
 , like recursive queries:

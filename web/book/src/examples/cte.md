@@ -1,4 +1,4 @@
-```prql no-fmt
+```prql
 let newest_employees = (
   from employees
   sort tenure
@@ -13,6 +13,6 @@ let average_salaries = (
 )
 
 from newest_employees
-join average_salaries [==country]
-select [name, salary, average_country_salary]
+join average_salaries (==country)
+select {name, salary, average_country_salary}
 ```

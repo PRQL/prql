@@ -65,9 +65,9 @@ column names.
 
 ```prql
 from employees
-derive [first_name, dept_id]
-join d=departments [==dept_id]
-select [first_name, d.title]
+derive {first_name, dept_id}
+join d=departments (==dept_id)
+select {first_name, d.title}
 ```
 
 As you can see, `employees.first_name` now needs table prefix, to prevent

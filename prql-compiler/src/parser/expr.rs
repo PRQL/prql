@@ -3,28 +3,54 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 
 use crate::ast::pl::*;
+use crate::Span;
 
-use super::common::*;
 use super::interpolation;
 use super::lexer::Token;
+use super::{common::*, stmt::type_expr};
 
-pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
-    func_call(expr())
+pub fn expr_call() -> impl Parser<Token, Expr, Error = PError> {
+    let expr = expr();
+
+    lambda_func(expr.clone()).or(func_call(expr))
 }
 
-pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
+pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
         let ident_kind = ident().map(ExprKind::Ident);
 
-        let nested_expr = pipeline(func_call(expr.clone())).boxed();
+        let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
-        let list = ident_part()
+        let tuple = ident_part()
             .then_ignore(ctrl('='))
             .or_not()
-            .then(nested_expr.clone().map_with_span(into_expr))
-            .map(|(alias, expr)| Expr { alias, ..expr })
+            .then(nested_expr.clone())
+            .map(|(alias, mut expr)| {
+                expr.alias = alias.or(expr.alias);
+                expr
+            })
+            .padded_by(new_line().repeated())
+            .separated_by(ctrl(','))
+            .allow_trailing()
+            .then_ignore(new_line().repeated())
+            .delimited_by(ctrl('{'), ctrl('}'))
+            .recover_with(nested_delimiters(
+                Token::Control('{'),
+                Token::Control('}'),
+                [
+                    (Token::Control('{'), Token::Control('}')),
+                    (Token::Control('('), Token::Control(')')),
+                    (Token::Control('['), Token::Control(']')),
+                ],
+                |_| vec![],
+            ))
+            .map(ExprKind::Tuple)
+            .labelled("tuple");
+
+        let array = nested_expr
+            .clone()
             .padded_by(new_line().repeated())
             .separated_by(ctrl(','))
             .allow_trailing()
@@ -34,13 +60,14 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 Token::Control('['),
                 Token::Control(']'),
                 [
-                    (Token::Control('['), Token::Control(']')),
+                    (Token::Control('{'), Token::Control('}')),
                     (Token::Control('('), Token::Control(')')),
+                    (Token::Control('['), Token::Control(']')),
                 ],
                 |_| vec![],
             ))
-            .map(ExprKind::List)
-            .labelled("list");
+            .map(ExprKind::Array)
+            .labelled("array");
 
         let pipeline =
             nested_expr
@@ -52,37 +79,36 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                         (Token::Control('['), Token::Control(']')),
                         (Token::Control('('), Token::Control(')')),
                     ],
-                    |_| Expr::null().kind,
+                    |_| Expr::null(),
                 ));
 
-        let interpolation =
-            select! {
-                Token::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
-                Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
-            }
-            .validate(|(finish, string), span: std::ops::Range<usize>, emit| {
-                match interpolation::parse(string, span.start + 2) {
-                    Ok(items) => finish(items),
-                    Err(errors) => {
-                        for err in errors {
-                            emit(err)
-                        }
-                        finish(vec![])
+        let interpolation = select! {
+            Token::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
+            Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+        }
+        .validate(|(finish, string), span: Span, emit| {
+            match interpolation::parse(string, span + 2) {
+                Ok(items) => finish(items),
+                Err(errors) => {
+                    for err in errors {
+                        emit(err)
                     }
+                    finish(vec![])
                 }
-            });
+            }
+        });
 
         let case = keyword("case")
             .ignore_then(
                 func_call(expr.clone())
-                    .then_ignore(just(Token::ArrowDouble))
-                    .then(func_call(expr))
+                    .then_ignore(just(Token::ArrowFat))
+                    .then(func_call(expr.clone()))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
                     .separated_by(ctrl(','))
                     .allow_trailing()
                     .then_ignore(new_line().repeated())
-                    .delimited_by(ctrl('['), ctrl(']')),
+                    .delimited_by(ctrl('{'), ctrl('}')),
             )
             .map(ExprKind::Case);
 
@@ -90,14 +116,15 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let term = choice((
             literal,
-            list,
-            pipeline,
+            tuple,
+            array,
             interpolation,
             ident_kind,
             case,
             param,
         ))
         .map_with_span(into_expr)
+        .or(pipeline)
         .boxed();
 
         // Unary operators
@@ -171,9 +198,9 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
     })
 }
 
-pub fn pipeline<E>(expr: E) -> impl Parser<Token, ExprKind, Error = Simple<Token>>
+pub fn pipeline<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
 where
-    E: Parser<Token, Expr, Error = Simple<Token>>,
+    E: Parser<Token, Expr, Error = PError>,
 {
     // expr has to be a param, because it can be either a normal expr() or
     // a recursive expr called from within expr()
@@ -181,13 +208,21 @@ where
     new_line()
         .repeated()
         .ignore_then(
-            expr.separated_by(ctrl('|').or(new_line().repeated().at_least(1).ignored()))
+            ident_part()
+                .then_ignore(ctrl('='))
+                .or_not()
+                .then(expr)
+                .map(|(alias, mut expr)| {
+                    expr.alias = alias.or(expr.alias);
+                    expr
+                })
+                .separated_by(ctrl('|').or(new_line().repeated().at_least(1).ignored()))
                 .at_least(1)
-                .map(|mut exprs| {
+                .map_with_span(|mut exprs, span| {
                     if exprs.len() == 1 {
-                        exprs.remove(0).kind
+                        exprs.remove(0)
                     } else {
-                        ExprKind::Pipeline(Pipeline { exprs })
+                        into_expr(ExprKind::Pipeline(Pipeline { exprs }), span)
                     }
                 }),
         )
@@ -198,52 +233,55 @@ where
 pub fn binary_op_parser<'a, Term, Op>(
     term: Term,
     op: Op,
-) -> impl Parser<Token, Expr, Error = Simple<Token>> + 'a
+) -> impl Parser<Token, Expr, Error = PError> + 'a
 where
-    Term: Parser<Token, Expr, Error = Simple<Token>> + 'a,
-    Op: Parser<Token, BinOp, Error = Simple<Token>> + 'a,
+    Term: Parser<Token, Expr, Error = PError> + 'a,
+    Op: Parser<Token, BinOp, Error = PError> + 'a,
 {
     let term = term.map_with_span(|e, s| (e, s)).boxed();
 
     (term.clone())
         .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
-            let span = left.1.start..right.1.end;
+            let span = Span {
+                start: left.1.start,
+                end: right.1.end,
+                source_id: left.1.source_id,
+            };
             let kind = ExprKind::Binary {
                 left: Box::new(left.0),
                 op,
                 right: Box::new(right.0),
             };
-            (into_expr(kind, span.clone()), span)
+            (into_expr(kind, span), span)
         })
         .map(|(e, _)| e)
         .boxed()
 }
 
-fn func_call<E>(expr: E) -> impl Parser<Token, Expr, Error = Simple<Token>>
+fn func_call<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
 where
-    E: Parser<Token, Expr, Error = Simple<Token>> + Clone,
+    E: Parser<Token, Expr, Error = PError> + Clone,
 {
-    let func = expr.clone();
+    let func_name = expr.clone();
 
     let named_arg = ident_part()
         .map(Some)
         .then_ignore(ctrl(':'))
         .then(expr.clone());
 
-    let assign_call =
+    let positional_arg =
         ident_part()
             .then_ignore(ctrl('='))
-            .then(expr.clone())
-            .map(|(alias, expr)| Expr {
-                alias: Some(alias),
-                ..expr
+            .or_not()
+            .then(expr)
+            .map(|(alias, mut expr)| {
+                expr.alias = alias.or(expr.alias);
+                (None, expr)
             });
-    let positional_arg = assign_call.or(expr).map(|expr| (None, expr));
 
-    let args = named_arg.or(positional_arg).repeated();
-
-    func.then(args)
+    func_name
+        .then(named_arg.or(positional_arg).repeated())
         .validate(|(name, args), span, emit| {
             if args.is_empty() {
                 return name.kind;
@@ -254,7 +292,7 @@ where
             for (name, arg) in args {
                 if let Some(name) = name {
                     if named_args.contains_key(&name) {
-                        let err = Simple::custom(span.clone(), "argument is used multiple times");
+                        let err = Simple::custom(span, "argument is used multiple times");
                         emit(err)
                     }
                     named_args.insert(name, arg);
@@ -273,7 +311,54 @@ where
         .labelled("function call")
 }
 
-pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
+fn lambda_func<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
+where
+    E: Parser<Token, Expr, Error = PError> + Clone,
+{
+    let internal = keyword("internal")
+        .ignore_then(ident())
+        .map(|x| x.to_string())
+        .map(ExprKind::Internal)
+        .map_with_span(into_expr);
+
+    (
+        // params
+        ident_part()
+            .then(type_expr().or_not())
+            .then(ctrl(':').ignore_then(expr.clone()).or_not())
+            .repeated()
+    )
+    .then_ignore(just(Token::ArrowThin))
+    .then(type_expr().or_not())
+    .then(choice((internal, func_call(expr))))
+    .map(|((params, return_ty), body)| {
+        let (pos, nam) = params
+            .into_iter()
+            .map(|((name, ty), default_value)| FuncParam {
+                name,
+                ty: ty.map(TyOrExpr::Expr),
+                default_value,
+            })
+            .partition(|p| p.default_value.is_none());
+
+        Box::new(Func {
+            params: pos,
+            named_params: nam,
+
+            body: Box::new(body),
+            return_ty: return_ty.map(TyOrExpr::Expr),
+
+            name_hint: None,
+            args: Vec::new(),
+            env: HashMap::new(),
+        })
+    })
+    .map(ExprKind::Func)
+    .map_with_span(into_expr)
+    .labelled("function definition")
+}
+
+pub fn ident() -> impl Parser<Token, Ident, Error = PError> {
     let star = ctrl('*').to("*".to_string());
 
     ident_part()
@@ -282,34 +367,38 @@ pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
         .labelled("identifier")
 }
 
-fn operator_unary() -> impl Parser<Token, UnOp, Error = Simple<Token>> {
+fn operator_unary() -> impl Parser<Token, UnOp, Error = PError> {
     (ctrl('+').to(UnOp::Add))
         .or(ctrl('-').to(UnOp::Neg))
         .or(ctrl('!').to(UnOp::Not))
         .or(just(Token::Eq).to(UnOp::EqSelf))
 }
-fn operator_mul() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+fn operator_mul() -> impl Parser<Token, BinOp, Error = PError> {
     (ctrl('*').to(BinOp::Mul))
-        .or(ctrl('/').to(BinOp::Div))
+        .or(just(Token::DivInt).to(BinOp::DivInt))
+        .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
 }
-fn operator_add() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+fn operator_add() -> impl Parser<Token, BinOp, Error = PError> {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
-fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (just(Token::Eq).to(BinOp::Eq))
-        .or(just(Token::Ne).to(BinOp::Ne))
-        .or(just(Token::Lte).to(BinOp::Lte))
-        .or(just(Token::Gte).to(BinOp::Gte))
-        .or(ctrl('<').to(BinOp::Lt))
-        .or(ctrl('>').to(BinOp::Gt))
+fn operator_compare() -> impl Parser<Token, BinOp, Error = PError> {
+    choice((
+        just(Token::Eq).to(BinOp::Eq),
+        just(Token::Ne).to(BinOp::Ne),
+        just(Token::Lte).to(BinOp::Lte),
+        just(Token::Gte).to(BinOp::Gte),
+        just(Token::RegexSearch).to(BinOp::RegexSearch),
+        ctrl('<').to(BinOp::Lt),
+        ctrl('>').to(BinOp::Gt),
+    ))
 }
-fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+fn operator_and() -> impl Parser<Token, BinOp, Error = PError> {
     just(Token::And).to(BinOp::And)
 }
-pub fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+pub fn operator_or() -> impl Parser<Token, BinOp, Error = PError> {
     just(Token::Or).to(BinOp::Or)
 }
-fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+fn operator_coalesce() -> impl Parser<Token, BinOp, Error = PError> {
     just(Token::Coalesce).to(BinOp::Coalesce)
 }

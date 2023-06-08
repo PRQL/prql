@@ -25,17 +25,21 @@ fn test_bad_error_messages() {
     group
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:?:?]
+       ╭─[:3:5]
        │
+     3 │     group
+       │     ──┬──
+       │       ╰──── main expected type `relation`, but found type `transform relation -> relation`
        │
+       │ Help: Have you forgotten an argument to function std.group?
        │
-       │ Help: are you missing `from` statement?
+       │ Note: Type `relation` expands to `[tuple_of_scalars]`
     ───╯
     "###);
 
     // This should suggest parentheses (this might not be an easy one to solve)
     assert_display_snapshot!(compile(r###"
-    func f -> country == "Canada"
+    let f = country -> country == "Canada"
 
     from employees
     filter f location
@@ -45,7 +49,7 @@ fn test_bad_error_messages() {
        │
      5 │     filter f location
        │              ────┬───
-       │                  ╰───── Unknown name location
+       │                  ╰───── Unknown name
     ───╯
     "###)
 }

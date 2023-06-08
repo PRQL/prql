@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nderive other_distance = (sum distance)\n"
+---
+SELECT
+  *,
+  SUM(distance) OVER () AS other_distance
+FROM
+  employees
+

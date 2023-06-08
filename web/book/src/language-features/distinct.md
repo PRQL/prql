@@ -39,26 +39,20 @@ aren't all the available columns, we need to use a window function:
 
 ```prql
 from employees
-group [first_name, last_name] (take 1)
+group {first_name, last_name} (take 1)
 ```
 
-## Roadmap
+## Distinct on
 
-When using Postgres dialect, we are planning to compile:
+When compiling to Postgres or DuckDB dialect, `DISTINCT ON` is used to take one
+row for each group:
 
-```prql_no_test
-# youngest employee from each department
+```prql
+prql target:sql.postgres
+
 from employees
 group department (
   sort age
   take 1
 )
-```
-
-... to ...
-
-```sql
-SELECT DISTINCT ON (department) *
-FROM employees
-ORDER BY department, age
 ```

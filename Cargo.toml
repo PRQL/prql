@@ -6,8 +6,6 @@ members = [
   "prql-compiler/prqlc", #
   # Macros
   "prql-compiler/prql-compiler-macros", #
-  # An example
-  "prql-compiler/examples/compile-files", #
   # Bindings
   "bindings/prql-elixir/native/prql",
   "bindings/prql-java",
@@ -15,11 +13,12 @@ members = [
   "bindings/prql-lib",
   "bindings/prql-python", #
   # The book / docs
-  "web/book",
+  "web/book", #
+  # An example
+  # This is temporarily removed because it was causing a stack overflow in
+  # Windows; ref https://github.com/PRQL/prql/pull/2713
+  # "prql-compiler/examples/compile-files", #
 ]
-# Note we don't have a `default-members = ["prql-compiler"]`, since that causes
-# commands like `cargo test` to only run tests from the default package. And
-# `cargo insta test` doesn't have a `--workspace` flag.
 resolver = "2"
 
 [workspace.package]
@@ -27,11 +26,16 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.7.0"
+version = "0.8.1"
 
 [profile.release.package.prql-js]
 # Tell `rust-js` to optimize for small code size.
 opt-level = "s"
+# Insta runs faster this way, ref https://insta.rs/docs/quickstart/
+[profile.dev.package.insta]
+opt-level = 3
+[profile.dev.package.similar]
+opt-level = 3
 
 [workspace.metadata.release]
 allow-branch = ["*"]

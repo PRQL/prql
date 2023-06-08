@@ -1,6 +1,6 @@
 # Some of this is shared with /Dockerfile
 
-FROM mcr.microsoft.com/devcontainers/rust:0.203.9-1-bullseye
+FROM mcr.microsoft.com/devcontainers/rust:0.203.11-1-bullseye
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -11,6 +11,7 @@ RUN apt-get update \
 # ========= Install cargo-tools for non-root user (vscode) =========
 COPY Taskfile.yml /tmp/Taskfile.yml
 USER vscode
-RUN task -t /tmp/Taskfile.yml install-cargo-tools
+
+RUN task -t /tmp/Taskfile.yml install-cargo-tools-binstall
 
 USER root

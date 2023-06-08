@@ -1,5 +1,10 @@
-# skip_mssql
+# skip_mssql (https://github.com/PRQL/prql/issues/2448)
+# skip_sqlite (Only works on Sqlite implementations which have the extension installed https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)
+# booleans cannot be selected directly. instead CASE is needed (https://dba.stackexchange.com/a/2774)
 from tracks
+
+filter (name ~= "Love")
+filter ((milliseconds / 1000 / 60) | in 3..4)
 sort track_id
-take 20..25
-select [is_in_range = album_id | in 5..10]
+take 1..15
+select {name, composer}
