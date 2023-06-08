@@ -22,7 +22,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
     let mut cli = Cli::parse();
-    cli.color.apply();
+    cli.color.write_global();
 
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
@@ -33,12 +33,11 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[command(color = concolor_clap::color_choice())]
 struct Cli {
     #[command(subcommand)]
     command: Command,
     #[command(flatten)]
-    color: concolor_clap::Color,
+    color: colorchoice_clap::Color,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -170,7 +169,7 @@ impl Command {
                     }
                 };
 
-                output.write_all(pl_to_prql(ast)?.as_bytes())?;
+                output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 Ok(())
             }
             Command::ShellCompletion { shell } => {
@@ -284,7 +283,13 @@ impl Command {
 
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
-                    .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
+                    // We're currently excluding this, in an attempt to move to
+                    // anstream, and reduce passing down the color option. But
+                    // it's not that well-tested, so we can re-enable it if it
+                    // doesn't work. Assuming no problems, we can remove the
+                    // commented-out line.
+                    //
+                    // .with_color(colorchoice::ColorChoice::::get(concolor::Stream::Stdout).ansi_color())
                     .with_signature_comment(*hide_signature_comment);
 
                 prql_to_pl_tree(sources)
@@ -651,10 +656,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         // Check we get an error on a bad input
         // Disable colors (would be better if this were a proper CLI test and
         // passed in `--color=never`)
-        concolor_clap::Color {
-            color: concolor_clap::ColorChoice::Never,
-        }
-        .apply();
+        colorchoice::ColorChoice::Never.write_global();
 
         let result = Command::execute(
             &Command::SQLCompile {

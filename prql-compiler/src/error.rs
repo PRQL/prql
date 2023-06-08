@@ -287,6 +287,13 @@ impl ErrorMessage {
         cache: &mut FileTreeCache,
         color: bool,
     ) -> Option<String> {
+        let color = match anstream::ColorChoice::global() {
+            anstream::ColorChoice::Always => true,
+            anstream::ColorChoice::Never => false,
+            anstream::ColorChoice::AlwaysAnsi => true,
+            anstream::ColorChoice::Auto => color,
+        };
+
         let config = Config::default().with_color(color);
 
         let span = Range::from(self.span?);

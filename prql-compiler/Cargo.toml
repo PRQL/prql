@@ -11,6 +11,7 @@ version.workspace = true
 metadata.msrv = "1.65.0"
 
 [dependencies]
+anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.3.0"
 csv = "1.2.0"
