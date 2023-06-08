@@ -33,19 +33,3 @@ let opts = &Options {
 let sql = compile(&prql, opts).unwrap();
 assert_eq!("SELECT name, age FROM employees", sql);
 ```
-
-## Terminology
-
-[_Relation_](<https://en.wikipedia.org/wiki/Relation_(database)>): Standard
-definition of a relation in context of databases:
-
-- An ordered set of tuples of form `(d_0, d_1, d_2, ...)`.
-- Set of all `d_x` is called an attribute or a column. It has a name and a type
-  domain `D_x`.
-
-_Frame_: descriptor of a relation. Contains list of columns (with names and
-types). Does not contain data.
-
-[_Table_](<https://en.wikipedia.org/wiki/Table_(database)#Tables_versus_relations>):
-persistently stored relation. Some uses of this term actually mean to say
-"relation".
