@@ -3,8 +3,11 @@ source: prql-compiler/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
+    - "--color=never"
     - shell-completion
     - zsh
+  env:
+    CLICOLOR_FORCE: ""
 ---
 success: true
 exit_code: 0
@@ -57,8 +60,6 @@ _arguments "${_arguments_options[@]}" \
 '-h[Print help]' \
 '--help[Print help]' \
 '::input:_files' \
-'::output:_files' \
-'::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
 (annotate)

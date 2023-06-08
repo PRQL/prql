@@ -84,7 +84,7 @@ pub struct WriteOpt {
 impl Default for WriteOpt {
     fn default() -> Self {
         Self {
-            tab: "    ",
+            tab: "  ",
             max_width: 50,
 
             indent: 0,
@@ -578,11 +578,11 @@ mod test {
         // colons are a workaround to avoid trimming
         assert_snapshot!(pipeline.write(opt).unwrap(), @r###"
         (
-                short
-                some_module.submodule.a_really_long_name
-                some_module.submodule.a_really_long_name
-                short
-            )
+            short
+            some_module.submodule.a_really_long_name
+            some_module.submodule.a_really_long_name
+            short
+          )
         "###);
 
         // sometimes, there is just not enough space

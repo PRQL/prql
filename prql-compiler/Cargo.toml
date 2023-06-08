@@ -12,7 +12,7 @@ metadata.msrv = "1.65.0"
 
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
-ariadne = {version = "0.2.0", features = ["auto-color"], git = "https://github.com/zesterer/ariadne"}
+ariadne = {version = "0.3.0", features = ["auto-color"]}
 concolor = {version = "0.1.1", features = ["auto", "api"]}
 csv = "1.2.0"
 enum-as-inner = "0.6.0"
@@ -49,7 +49,7 @@ insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.5.1"
 csv = "1.2"
-duckdb = {version = "0.8.0", features = ["bundled", "chrono"]}
+duckdb = {version = "0.7.0", features = ["bundled", "chrono"]}
 mysql = "24"
 pg_bigdecimal = "0.1"
 postgres = "0.19"

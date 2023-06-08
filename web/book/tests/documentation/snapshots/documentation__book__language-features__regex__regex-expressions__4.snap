@@ -7,5 +7,5 @@ SELECT
 FROM
   tracks
 WHERE
-  name REGEXP 'With You'
+  REGEXP_LIKE(name, 'With You', 'c')
 
