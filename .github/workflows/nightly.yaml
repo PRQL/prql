@@ -95,6 +95,11 @@ jobs:
           command: udeps
           args: --all-targets
 
+  # This is expensive and very rarely finds an issue so, in addition to running
+  # on any change to the file, we run it in nightly rather than test-all.
+  test-taskfile:
+    uses: ./.github/workflows/test-taskfile.yaml
+
   # We now use the devcontainer. TODO: is it possible to have a similar test for
   # that? Or that would require VSCode to install the dependencies?
 

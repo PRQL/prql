@@ -1,7 +1,8 @@
 name: test-all
 
-# The full suite of tests. These can take up to 20 minutes, so are only run on
-# merges or where we're more concerned about a break outside the core libraries.
+# The quasi-full suite of tests. These can take up to 20 minutes, so are only
+# run on merges or where we're more concerned about a break outside the core
+# libraries.
 #
 # To run these on a PR, label with `pr-test-all`.
 #
@@ -9,9 +10,10 @@ name: test-all
 
 # Possibly we could instead group tests by:
 # - `test-fast` — on pull requests
-# - `test-most` — on merges; with all platforms, bindings, etc
+# - `test-most` — on merges; with all platforms, bindings, etc (currently this file)
 # - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
-#   everything — benchmarks, compilation timing, audits, etc.
+#   everything — benchmarks, compilation timing, audits, etc. (currently this
+#   file + `test-nightly.yaml`)
 #
 # Also see pull-request.yaml#check-ok-to-merge for other thoughts
 
@@ -74,9 +76,6 @@ jobs:
 
   test-lib:
     uses: ./.github/workflows/test-lib.yaml
-
-  test-taskfile:
-    uses: ./.github/workflows/test-taskfile.yaml
 
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
