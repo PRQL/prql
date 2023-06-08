@@ -14,25 +14,25 @@ hero_section:
   prql_example: |
     from invoices
     filter invoice_date >= @1970-01-16
-    derive [
+    derive {
       transaction_fees = 0.8,
       income = total - transaction_fees
-    ]
+    }
     filter income > 1
     group customer_id (
-      aggregate [
+      aggregate {
         average total,
         sum_income = sum income,
-        ct = count,
-      ]
+        ct = count s"*",
+      }
     )
-    sort [-sum_income]
+    sort {-sum_income}
     take 10
-    join c=customers [==customer_id]
+    join c=customers (==customer_id)
     derive name = f"{c.last_name}, {c.first_name}"
-    select [
+    select {
       c.customer_id, name, sum_income
-    ]
+    }
     derive db_version = s"version()"
 
 why_prql_section:
@@ -84,14 +84,20 @@ showcase_section:
       label: Basic example
       prql: |
         from employees
-        select [id, first_name, age]
+        select {id, first_name, age}
         sort age
         take 10
       sql: |
-        SELECT id, first_name, age
-        FROM employees
-        ORDER BY age
-        LIMIT 10
+        SELECT
+          id,
+          first_name,
+          age
+        FROM
+          employees
+        ORDER BY
+          age
+        LIMIT
+          10
 
     - id: friendly-syntax
       label: Friendly syntax
@@ -101,7 +107,7 @@ showcase_section:
         filter (length | in 60..240)         # Ranges with `..`
         filter recorded > @2008-01-01        # Simple date literals
         filter released - recorded < 180days # Nice interval literals
-        sort [-length]                       # Concise order direction
+        sort {-length}                       # Concise order direction
 
       sql: |
         SELECT
@@ -123,7 +129,7 @@ showcase_section:
         # `filter` before aggregations...
         filter start_date > @2021-01-01
         group country (
-          aggregate [max_salary = max salary]
+          aggregate {max_salary = max salary}
         )
         # ...and `filter` after aggregations!
         filter max_salary > 100_000
@@ -159,18 +165,20 @@ showcase_section:
       label: Expressions
       prql: |
         from track_plays
-        derive [
+        derive {
           finished = started + unfinished,
           fin_share = finished / started,        # Use previous definitions
           fin_ratio = fin_share / (1-fin_share), # BTW, hanging commas are optional!
-        ]
+        }
 
       sql: |
         SELECT
           *,
           started + unfinished AS finished,
-          (started + unfinished) / started AS fin_share,
-          (started + unfinished) / started / (1 - (started + unfinished) / started) AS fin_ratio
+          ((started + unfinished) / started) AS fin_share,
+          (
+            ((started + unfinished) / started) / (1 - ((started + unfinished) / started))
+          ) AS fin_ratio
         FROM
           track_plays
 
@@ -182,9 +190,10 @@ showcase_section:
         # Just like Python
         select url = f"https://www.{domain}.{tld}/{page}"
       sql: |
-        SELECT CONCAT('https://www.', domain, '.', tld,
-          '/', page) AS url
-        FROM web
+        SELECT
+          CONCAT('https://www.', domain, '.', tld, '/', page) AS url
+        FROM
+          web
     # markdown-link-check-enable
     - id: windows
       label: Windows
@@ -193,7 +202,7 @@ showcase_section:
         group employee_id (
           sort month
           window rolling:12 (
-            derive [trail_12_m_comp = sum paycheck]
+            derive {trail_12_m_comp = sum paycheck}
           )
         )
       sql: |
@@ -202,8 +211,7 @@ showcase_section:
           SUM(paycheck) OVER (
             PARTITION BY employee_id
             ORDER BY
-              month ROWS BETWEEN 11 PRECEDING
-              AND CURRENT ROW
+              month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
           ) AS trail_12_m_comp
         FROM
           employees
@@ -211,13 +219,13 @@ showcase_section:
     - id: functions
       label: Functions
       prql: |
-        func fahrenheit_from_celsius temp -> temp * 9/5 + 32
+        let fahrenheit_from_celsius = temp -> temp * 9/5 + 32
 
         from weather
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 9 / 5 + 32 AS temp_f
+          (temp_c * 9 / 5) + 32 AS temp_f
         FROM
           weather
 
@@ -232,7 +240,7 @@ showcase_section:
           take 1
         )
       sql: |
-        WITH table_1 AS (
+        WITH table_0 AS (
           SELECT
             *,
             ROW_NUMBER() OVER (
@@ -246,7 +254,7 @@ showcase_section:
         SELECT
           *
         FROM
-          table_1 AS table_0
+          table_0
         WHERE
           _expr_0 <= 1
 
@@ -267,9 +275,9 @@ showcase_section:
       label: Joins
       prql: |
         from employees
-        join b=benefits [==employee_id]
-        join side:left p=positions [p.id==employees.employee_id]
-        select [employees.employee_id, p.role, b.vision_coverage]
+        join b=benefits (==employee_id)
+        join side:left p=positions (p.id==employees.employee_id)
+        select {employees.employee_id, p.role, b.vision_coverage}
       sql: |
         SELECT
           employees.employee_id,
@@ -372,11 +380,10 @@ tools_section:
       text:
         "Online in-browser playground that compiles PRQL to SQL as you type."
 
-    - link: https://github.com/prql/PyPrql
+    - link: https://pyprql.readthedocs.io/
       label: "PyPrql"
       text: |
-        Python TUI for connecting to databases.
-        Provides a native interactive console with auto-complete for column names and Jupyter/IPython cell magic.
+        Provides Jupyter/IPython cell magic and Pandas accessor.
 
         `pip install pyprql`
 
@@ -386,7 +393,8 @@ tools_section:
         A CLI for PRQL compiler, written in Rust.
 
         `cargo install prqlc`
-        `brew install prql/PRQL/prqlc`
+
+        `brew install prqlc`
 
 integrations_section:
   enable: true
@@ -410,13 +418,6 @@ integrations_section:
     - label: "DuckDB"
       link: https://github.com/ywelsch/duckdb-prql
       text: A DuckDB extension to execute PRQL
-
-    - label: dbt
-      link: https://github.com/prql/dbt-prql
-      text:
-        Allows writing PRQL in dbt models. This combines the benefits of PRQL's
-        power & simplicity within queries; with dbt's version control, lineage &
-        testing across queries.
 
 bindings_section:
   enable: true
@@ -444,7 +445,7 @@ comments_section:
   enable: true
   title: "What people are saying"
   comments:
-    # Tweets can be fetched with https://www.tweetic.io/docs
+    # Tweets can be fetched with https://tweetic.zernonia.com
 
     - quote:
         text:

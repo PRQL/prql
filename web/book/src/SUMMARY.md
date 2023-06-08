@@ -17,7 +17,6 @@
   - [Derive](./transforms/derive.md)
   - [Filter](./transforms/filter.md)
   - [From](./transforms/from.md)
-  - [From Text](./transforms/from_text.md)
   - [Group](./transforms/group.md)
   - [Join](./transforms/join.md)
   - [Select](./transforms/select.md)
@@ -25,25 +24,43 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 
-- [Syntax](./syntax.md)
+- [Syntax](./syntax/README.md)
+
+  - [Pipes](./syntax/pipes.md)
+  - [Tuples](./syntax/tuples.md)
+  - [Expressions & Operators](./syntax/expressions-and-operators.md)
+  - [Inner Transforms](./syntax/inner-transforms.md)
+  - [Comments](./syntax/comments.md)
+  - [Quoted Identifiers](./syntax/quoted-identifiers.md)
+  - [Parameters](./syntax/parameters.md)
+  - [Numbers](./syntax/numbers.md)
+  - [Keywords](./syntax/keywords.md)
+
 - [Language features](./language-features/README.md)
 
+  - [Case](./language-features/case.md)
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
   - [Dates & times](./language-features/dates-and-times.md)
   - [Distinct](./language-features/distinct.md)
+  - [Relation literals](./language-features/relation-literals.md)
   - [Null handling](./language-features/null.md)
   - [Ranges](./language-features/ranges.md)
-    <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
   - [Regex](./language-features/regex.md)
   - [Standard library](./language-features/standard-library/README.md)
-    - [From text](./language-features/standard-library/from-text.md)
     - [Loop](./language-features/standard-library/loop.md)
+    - [Reading files](./language-features/standard-library/reading-files.md)
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)
-  - [Case](./language-features/case.md)
   - [Target & Version](./language-features/target.md)
+
+- [Compiler](./compiler/README.md)
+
+  - [Reference implementation](./compiler/rust/README.md)
+    - [CLI](./compiler/rust/cli.md)
+  - [Compiler features](./compiler/compiler-features/README.md)
+    - [Target & Version](./compiler/compiler-features/target.md)
 
 - [Bindings](./bindings/README.md)
 
@@ -57,7 +74,7 @@
 
 - [Integrations](./integrations/README.md)
 
-  - [dbt](./integrations/dbt.md)
+  - [CLI](./integrations/cli.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
@@ -74,12 +91,13 @@
 - [Contributing to PRQL](./contributing/README.md)
 
   - [Development](./contributing/development.md)
-  - [Developing with Docker](./contributing/developing-with-docker.md)
-  - [Developing with Dev Containers](./contributing/developing-with-dev-containers.md)
 
 - [Internals](./internals/README.md)
 
   - [Compiler architecture](./internals/compiler-architecture.md)
+  - [Helpers](./internals/helpers.md)
   - [Name resolving](./internals/name-resolving.md)
   - [Functions](./internals/functional-lang.md)
   - [Syntax highlighting](./internals/syntax-highlighting.md)
+
+- [Changelog](./changelog.md)

@@ -1,0 +1,15 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nsort age\nderive {rnk = rank age}\n"
+---
+SELECT
+  *,
+  RANK() OVER (
+    ORDER BY
+      age ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+  ) AS rnk
+FROM
+  employees
+ORDER BY
+  age
+

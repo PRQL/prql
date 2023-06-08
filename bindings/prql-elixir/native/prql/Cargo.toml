@@ -12,12 +12,14 @@ version.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
+doctest = false
 name = "prql"
 path = "src/lib.rs"
+test = false
 
 [dependencies]
-prql-compiler = {path = "../../../../prql-compiler", default-features = false, version = "0.6.1" }
+prql-compiler = {path = "../../../../prql-compiler", default-features = false, version = "0.8.1"}
 
 # See Readme for details on Mac
 [target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
-rustler = "0.27.0"
+rustler = "0.28.0"

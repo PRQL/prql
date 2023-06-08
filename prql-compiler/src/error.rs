@@ -1,22 +1,32 @@
 pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
+use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
+
+use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
+use std::path::PathBuf;
 
-#[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+use crate::SourceTree;
+
+#[derive(Clone, PartialEq, Eq, Copy)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
+
+    pub source_id: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct Error {
+    /// Message kind. Currently only Error is implemented.
+    pub kind: MessageKind,
     pub span: Option<Span>,
     pub reason: Reason,
-    pub help: Option<String>,
+    pub hints: Vec<String>,
     pub code: Option<&'static str>,
 }
 
@@ -32,6 +42,14 @@ pub struct SourceLocation {
     pub start: (usize, usize),
 
     pub end: (usize, usize),
+}
+
+/// Compile message kind. Currently only Error is implemented.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub enum MessageKind {
+    Error,
+    Warning,
+    Lint,
 }
 
 #[derive(Debug, Clone)]
@@ -54,9 +72,10 @@ pub enum Reason {
 impl Error {
     pub fn new(reason: Reason) -> Self {
         Error {
+            kind: MessageKind::Error,
             span: None,
             reason,
-            help: None,
+            hints: Vec::new(),
             code: None,
         }
     }
@@ -65,33 +84,41 @@ impl Error {
         Error::new(Reason::Simple(reason.to_string()))
     }
 
-    pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
-        self.help = Some(help.into());
-        self
-    }
-
-    pub fn with_span(mut self, span: Option<Span>) -> Self {
-        self.span = span;
-        self
-    }
-
     pub fn with_code(mut self, code: &'static str) -> Self {
         self.code = Some(code);
         self
     }
 }
 
+impl WithErrorInfo for crate::Error {
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
+        self.hints = hints.into_iter().map(|x| x.into()).collect();
+        self
+    }
+
+    fn with_span(mut self, span: Option<Span>) -> Self {
+        self.span = span;
+        self
+    }
+
+    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
+        self.hints.push(hint.into());
+        self
+    }
+}
+
 #[derive(Clone, Serialize)]
 pub struct ErrorMessage {
+    /// Message kind. Currently only Error is implemented.
+    pub kind: MessageKind,
     /// Machine-readable identifier of the error
     pub code: Option<String>,
     /// Plain text of the error
     pub reason: String,
     /// A list of suggestions of how to fix the error
-    pub hint: Option<String>,
+    pub hints: Vec<String>,
     /// Character offset of error origin within a source file
     pub span: Option<Span>,
-
     /// Annotated code, containing cause and hints.
     pub display: Option<String>,
     /// Line and column number of error origin within a source file
@@ -114,6 +141,10 @@ impl Display for ErrorMessage {
                 .unwrap_or_default();
 
             writeln!(f, "{}Error: {}", code, &self.reason)?;
+            for hint in &self.hints {
+                // TODO: consider alternative formatting for hints.
+                writeln!(f, "↳ Hint: {}", hint)?;
+            }
         }
         Ok(())
     }
@@ -169,7 +200,7 @@ impl Display for ErrorMessages {
 pub fn downcast(error: anyhow::Error) -> ErrorMessages {
     let mut code = None;
     let mut span = None;
-    let mut hint = None;
+    let mut hints = Vec::new();
 
     let error = match error.downcast::<ErrorMessages>() {
         Ok(messages) => return messages,
@@ -193,7 +224,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
         Ok(error) => {
             code = error.code.map(|x| x.to_string());
             span = error.span;
-            hint = error.help;
+            hints.extend(error.hints);
 
             error.reason.message()
         }
@@ -205,8 +236,9 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
 
     ErrorMessage {
         code,
+        kind: MessageKind::Error,
         reason,
-        hint,
+        hints,
         span,
         display: None,
         location: None,
@@ -226,37 +258,56 @@ impl ErrorMessages {
     }
 
     /// Computes message location and builds the pretty display.
-    pub fn composed(mut self, source_id: &str, source: &str, color: bool) -> Self {
-        for e in &mut self.inner {
-            let source = Source::from(source);
-            let cache = (source_id, source);
+    pub fn composed(mut self, sources: &SourceTree, color: bool) -> Self {
+        let mut cache = FileTreeCache::new(sources);
 
-            e.location = e.compose_location(&cache.1);
-            e.display = e.compose_display(source_id, cache, color);
+        for e in &mut self.inner {
+            let Some(span) = e.span else {
+                continue;
+            };
+            let Some(source_path) = sources.source_ids.get(&span.source_id) else {
+                continue;
+            };
+
+            let Ok(source) = cache.fetch(source_path) else {
+                continue
+            };
+            e.location = e.compose_location(source);
+
+            e.display = e.compose_display(source_path.clone(), &mut cache, color);
         }
         self
     }
 }
 
 impl ErrorMessage {
-    fn compose_display<'a, C>(&self, source_id: &'a str, cache: C, color: bool) -> Option<String>
-    where
-        C: Cache<&'a str>,
-    {
+    fn compose_display(
+        &self,
+        source_path: PathBuf,
+        cache: &mut FileTreeCache,
+        color: bool,
+    ) -> Option<String> {
         let config = Config::default().with_color(color);
 
         let span = Range::from(self.span?);
 
-        let mut report = Report::build(ReportKind::Error, source_id, span.start)
+        let mut report = Report::build(ReportKind::Error, source_path.clone(), span.start)
             .with_config(config)
-            .with_label(Label::new((source_id, span)).with_message(&self.reason));
+            .with_label(Label::new((source_path, span)).with_message(&self.reason));
 
         if let Some(code) = &self.code {
             report = report.with_code(code);
         }
 
-        if let Some(hint) = &self.hint {
-            report.set_help(hint);
+        // I don't know how to set multiple hints...
+        if !self.hints.is_empty() {
+            report.set_help(&self.hints[0]);
+        }
+        if self.hints.len() > 1 {
+            report.set_note(&self.hints[1]);
+        }
+        if self.hints.len() > 2 {
+            report.set_message(&self.hints[2]);
         }
 
         let mut out = Vec::new();
@@ -273,6 +324,40 @@ impl ErrorMessage {
             start: (start.1, start.2),
             end: (end.1, end.2),
         })
+    }
+}
+
+struct FileTreeCache<'a> {
+    file_tree: &'a SourceTree,
+    cache: HashMap<PathBuf, Source>,
+}
+impl<'a> FileTreeCache<'a> {
+    fn new(file_tree: &'a SourceTree) -> Self {
+        FileTreeCache {
+            file_tree,
+            cache: HashMap::new(),
+        }
+    }
+}
+
+impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
+    fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
+        let file_contents = match self.file_tree.sources.get(id) {
+            Some(v) => v,
+            None => return Err(Box::new(format!("Unknown file `{id:?}`"))),
+        };
+
+        Ok(self
+            .cache
+            .entry(id.clone())
+            .or_insert_with(|| Source::from(file_contents)))
+    }
+
+    fn display<'b>(&self, id: &'b PathBuf) -> Option<Box<dyn fmt::Display + 'b>> {
+        match id.as_os_str().to_str() {
+            Some(s) => Some(Box::new(s)),
+            None => None,
+        }
     }
 }
 
@@ -300,35 +385,132 @@ impl From<Span> for Range<usize> {
     }
 }
 
-impl Add<Span> for Span {
+impl Add<usize> for Span {
     type Output = Span;
 
-    fn add(self, rhs: Span) -> Span {
+    fn add(self, rhs: usize) -> Span {
         Span {
-            start: self.start.min(rhs.start),
-            end: self.end.max(rhs.end),
+            start: self.start + rhs,
+            end: self.end + rhs,
+            source_id: self.source_id,
         }
     }
 }
 
-pub trait WithErrorInfo {
-    fn with_help<S: Into<String>>(self, help: S) -> Self;
+pub trait WithErrorInfo: Sized {
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self;
+
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
 }
 
-impl<T> WithErrorInfo for Result<T, Error> {
-    fn with_help<S: Into<String>>(self, help: S) -> Self {
-        self.map_err(|e| e.with_help(help))
+impl WithErrorInfo for anyhow::Error {
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
+        self.downcast_ref::<crate::Error>()
+            .map(|e| e.clone().push_hint(hint).into())
+            .unwrap_or(self)
+    }
+
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
+        self.downcast_ref::<crate::Error>()
+            .map(|e| e.clone().with_hints(hints).into())
+            .unwrap_or(self)
+    }
+
+    // Add a span of an expression onto the error. We need this implementation
+    // because we often pass `anyhow::Error`, and still want to try adding a
+    // span. So we need to try downcasting it to our error type first, and that
+    // fails, we return the original error.
+    fn with_span(self, span: Option<Span>) -> Self {
+        self.downcast_ref::<crate::Error>()
+            .map(|e| e.clone().with_span(span).into())
+            .unwrap_or(self)
+    }
+}
+
+impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
+        self.map_err(|e| e.with_hints(hints))
     }
 
     fn with_span(self, span: Option<Span>) -> Self {
         self.map_err(|e| e.with_span(span))
     }
+
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
+        self.map_err(|e| e.push_hint(hint))
+    }
 }
 
 impl Debug for Span {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "span-chars-{}-{}", self.start, self.end)
+        write!(f, "{}:{}-{}", self.source_id, self.start, self.end)
+    }
+}
+
+impl Serialize for Span {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let str = format!("{self:?}");
+        serializer.serialize_str(&str)
+    }
+}
+
+impl<'de> Deserialize<'de> for Span {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct SpanVisitor {}
+
+        impl<'de> Visitor<'de> for SpanVisitor {
+            type Value = Span;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "A span string of form `file_id:x-y`")
+            }
+
+            fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                use serde::de;
+
+                if let Some((file_id, char_span)) = v.split_once(':') {
+                    let file_id = file_id
+                        .parse::<usize>()
+                        .map_err(|e| de::Error::custom(e.to_string()))?;
+
+                    if let Some((start, end)) = char_span.split_once('-') {
+                        let start = start
+                            .parse::<usize>()
+                            .map_err(|e| de::Error::custom(e.to_string()))?;
+                        let end = end
+                            .parse::<usize>()
+                            .map_err(|e| de::Error::custom(e.to_string()))?;
+
+                        return Ok(Span {
+                            start,
+                            end,
+                            source_id: file_id,
+                        });
+                    }
+                }
+
+                Err(de::Error::custom("malformed span"))
+            }
+
+            fn visit_string<E>(self, v: String) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.visit_str(&v)
+            }
+        }
+
+        deserializer.deserialize_string(SpanVisitor {})
     }
 }

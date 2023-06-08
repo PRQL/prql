@@ -2,10 +2,10 @@
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use sqlparser::ast::{
-    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
+    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use sqlparser::keywords::{
@@ -14,86 +14,37 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
+    self, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection, WindowFrame,
+    WindowKind,
 };
 use crate::ast::rq::*;
-use crate::error::{Error, Span};
-use crate::sql::context::ColumnDecl;
-use crate::utils::OrMap;
+use crate::error::{Error, Span, WithErrorInfo};
+use crate::sql::srq::context::ColumnDecl;
+use crate::utils::{OrMap, VALID_IDENT};
 
 use super::gen_projection::try_into_exprs;
 use super::Context;
 
-pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    Ok(match item {
+pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
+    Ok(match expr.kind {
         ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
-        ExprKind::Binary { op, left, right } => {
-            if let Some(is_null) = try_into_is_null(&op, &left, &right, ctx)? {
-                is_null
-            } else if let Some(between) = try_into_between(&op, &left, &right, ctx)? {
-                between
-            } else {
-                let op = match op {
-                    BinOp::Mul => BinaryOperator::Multiply,
-                    BinOp::Div => BinaryOperator::Divide,
-                    BinOp::Mod => BinaryOperator::Modulo,
-                    BinOp::Add => BinaryOperator::Plus,
-                    BinOp::Sub => BinaryOperator::Minus,
-                    BinOp::Eq => BinaryOperator::Eq,
-                    BinOp::Ne => BinaryOperator::NotEq,
-                    BinOp::Gt => BinaryOperator::Gt,
-                    BinOp::Lt => BinaryOperator::Lt,
-                    BinOp::Gte => BinaryOperator::GtEq,
-                    BinOp::Lte => BinaryOperator::LtEq,
-                    BinOp::And => BinaryOperator::And,
-                    BinOp::Or => BinaryOperator::Or,
-                    BinOp::Coalesce => {
-                        let left = translate_operand(left.kind, 0, false, ctx)?;
-                        let right = translate_operand(right.kind, 0, false, ctx)?;
-
-                        return Ok(sql_ast::Expr::Function(Function {
-                            name: ObjectName(vec![Ident {
-                                value: "COALESCE".to_string(),
-                                quote_style: None,
-                            }]),
-                            args: vec![
-                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*left)),
-                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*right)),
-                            ],
-                            over: None,
-                            distinct: false,
-                            special: false,
-                        }));
-                    }
-                };
-
-                let strength = op.binding_strength();
-                let left = translate_operand(left.kind, strength, !op.associates_left(), ctx)?;
-                let right = translate_operand(right.kind, strength, !op.associates_right(), ctx)?;
-                sql_ast::Expr::BinaryOp { left, right, op }
-            }
-        }
-
-        ExprKind::Unary { op, expr } => {
-            let op = match op {
-                UnOp::Neg => UnaryOperator::Minus,
-                UnOp::Not => UnaryOperator::Not,
-            };
-            let expr = translate_operand(expr.kind, op.binding_strength(), false, ctx)?;
-            sql_ast::Expr::UnaryOp { op, expr }
-        }
 
         // Fairly hacky — convert everything to a string, then concat it,
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
         ExprKind::SString(s_string_items) => {
-            let string = translate_sstring(s_string_items, ctx)?;
+            let text = translate_sstring(s_string_items, ctx)?;
 
-            sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
+            ExprOrSource::Source {
+                text,
+                binding_strength: 100,
+            }
         }
-        ExprKind::Param(id) => sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("${id}"))),
-        ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
-        ExprKind::Literal(l) => translate_literal(l, ctx)?,
+        ExprKind::Param(id) => ExprOrSource::Source {
+            text: format!("${id}"),
+            binding_strength: 100,
+        },
+        ExprKind::Literal(l) => translate_literal(l, ctx)?.into(),
         ExprKind::Case(mut cases) => {
             let default = cases
                 .last()
@@ -103,8 +54,9 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                         ExprKind::Literal(Literal::Boolean(true))
                     )
                 })
-                .map(|def| translate_expr_kind(def.value.kind.clone(), ctx))
-                .transpose()?;
+                .map(|def| translate_expr(def.value.clone(), ctx))
+                .transpose()?
+                .map(|x| x.into_ast());
 
             if default.is_some() {
                 cases.pop();
@@ -117,8 +69,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
             let cases: Vec<_> = cases
                 .into_iter()
                 .map(|case| -> Result<_> {
-                    let cond = translate_expr_kind(case.condition.kind, ctx)?;
-                    let value = translate_expr_kind(case.value.kind, ctx)?;
+                    let cond = translate_expr(case.condition, ctx)?.into_ast();
+                    let value = translate_expr(case.value, ctx)?.into_ast();
                     Ok((cond, value))
                 })
                 .try_collect()?;
@@ -130,11 +82,193 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 results,
                 else_result,
             }
+            .into()
         }
-        ExprKind::BuiltInFunction { name, args } => {
-            super::std::translate_built_in(name, args, ctx)?
+        ExprKind::Operator { ref name, ref args } => {
+            // A few special cases and then fall-through to the standard approach.
+            match name.as_str() {
+                // See notes in `std.rs` re whether we use names vs.
+                // `FunctionDecl` vs. an Enum; and getting the correct
+                // number of args from there. Currently the error messages
+                // for the wrong number of args will be bad (though it's an
+                // unusual case where RQ contains something like `std.eq`
+                // with the wrong number of args).
+                "std.eq" | "std.ne" => {
+                    if let [a, b] = args.as_slice() {
+                        if a.kind == ExprKind::Literal(Literal::Null)
+                            || b.kind == ExprKind::Literal(Literal::Null)
+                        {
+                            return Ok(process_null(name, args, ctx)?.into());
+                        } else if let Some(op) = operator_from_name(name) {
+                            return Ok(translate_binary_operator(a, b, op, ctx)?.into());
+                        }
+                    }
+                }
+                "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
+                _ => match try_into_between(expr.clone(), ctx)? {
+                    Some(between_expr) => return Ok(between_expr.into()),
+                    None => {
+                        if let Some(op) = operator_from_name(name) {
+                            if let [left, right] = args.as_slice() {
+                                return Ok(translate_binary_operator(left, right, op, ctx)?.into());
+                            }
+                        }
+                    }
+                },
+            }
+            super::operators::translate_operator_expr(expr, ctx)?
         }
     })
+}
+
+/// Translates into IS NULL if possible
+fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+    let (a, b) = (&args[0], &args[1]);
+    let operand = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
+        b
+    } else {
+        a
+    };
+
+    // If this were an Enum, we could match on it (see notes in `std.rs`).
+    if name == "std.eq" {
+        let strength =
+            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
+        let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        let expr = Box::new(expr.into_ast());
+        Ok(sql_ast::Expr::IsNull(expr))
+    } else if name == "std.ne" {
+        let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null)))
+            .binding_strength();
+        let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        let expr = Box::new(expr.into_ast());
+        Ok(sql_ast::Expr::IsNotNull(expr))
+    } else {
+        unreachable!()
+    }
+}
+
+fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
+    if ctx.dialect.has_concat_function() {
+        let concat_args = collect_concat_args(expr);
+
+        let args = concat_args
+            .iter()
+            .map(|a| {
+                translate_expr((*a).clone(), ctx)
+                    .map(|x| FunctionArg::Unnamed(FunctionArgExpr::Expr(x.into_ast())))
+            })
+            .try_collect()?;
+
+        Ok(sql_ast::Expr::Function(Function {
+            name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+            args,
+            over: None,
+            distinct: false,
+            special: false,
+            order_by: vec![],
+        }))
+    } else {
+        let concat_args = collect_concat_args(expr);
+
+        let mut iter = concat_args.into_iter();
+        let first_expr = iter.next().unwrap();
+        let mut current_expr = translate_expr(first_expr.clone(), ctx)?.into_ast();
+
+        for arg in iter {
+            let translated_arg = translate_expr(arg.clone(), ctx)?.into_ast();
+            current_expr = sql_ast::Expr::BinaryOp {
+                left: Box::new(current_expr),
+                op: BinaryOperator::StringConcat,
+                right: Box::new(translated_arg),
+            };
+        }
+
+        Ok(current_expr)
+    }
+}
+
+fn translate_binary_operator(
+    left: &Expr,
+    right: &Expr,
+    op: BinaryOperator,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let strength = op.binding_strength();
+    let left = translate_operand(left.clone(), strength, !op.associates_left(), ctx)?;
+    let right = translate_operand(right.clone(), strength, !op.associates_right(), ctx)?;
+
+    let left = Box::new(left.into_ast());
+    let right = Box::new(right.into_ast());
+
+    Ok(sql_ast::Expr::BinaryOp { left, op, right })
+}
+
+fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
+    match &expr.kind {
+        ExprKind::Operator { name, args } if name == "std.concat" => {
+            args.iter().flat_map(collect_concat_args).collect()
+        }
+        _ => vec![expr],
+    }
+}
+
+/// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
+fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>, anyhow::Error> {
+    match expr.kind {
+        ExprKind::Operator { name, args } if name == "std.and" => {
+            let [a, b]: [_; 2] = args.try_into().unwrap();
+
+            match (a.kind, b.kind) {
+                (
+                    ExprKind::Operator {
+                        name: a_name,
+                        args: a_args,
+                    },
+                    ExprKind::Operator {
+                        name: b_name,
+                        args: b_args,
+                    },
+                ) if a_name == "std.gte" && b_name == "std.lte" => {
+                    let [a_l, a_r]: [_; 2] = a_args.try_into().unwrap();
+                    let [b_l, b_r]: [_; 2] = b_args.try_into().unwrap();
+
+                    // We need for the values on each arm to be the same; e.g. x
+                    // > 3 and x < 5
+                    if a_l == b_l {
+                        return Ok(Some(sql_ast::Expr::Between {
+                            expr: Box::new(translate_operand(a_l, 0, false, ctx)?.into_ast()),
+                            negated: false,
+                            low: Box::new(translate_operand(a_r, 0, false, ctx)?.into_ast()),
+                            high: Box::new(translate_operand(b_r, 0, false, ctx)?.into_ast()),
+                        }));
+                    }
+                }
+                _ => (),
+            }
+        }
+        _ => (),
+    }
+    Ok(None)
+}
+
+fn operator_from_name(name: &str) -> Option<BinaryOperator> {
+    use BinaryOperator::*;
+    match name {
+        "std.mul" => Some(Multiply),
+        "std.add" => Some(Plus),
+        "std.sub" => Some(Minus),
+        "std.eq" => Some(Eq),
+        "std.ne" => Some(NotEq),
+        "std.gt" => Some(Gt),
+        "std.lt" => Some(Lt),
+        "std.gte" => Some(GtEq),
+        "std.lte" => Some(LtEq),
+        "std.and" => Some(And),
+        "std.or" => Some(Or),
+        "std.concat" => Some(StringConcat),
+        _ => None,
+    }
 }
 
 pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
@@ -159,10 +293,13 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
                 "months" => DateTimeField::Month,
+                "weeks" => DateTimeField::Week,
                 "days" => DateTimeField::Day,
                 "hours" => DateTimeField::Hour,
                 "minutes" => DateTimeField::Minute,
                 "seconds" => DateTimeField::Second,
+                "milliseconds" => DateTimeField::Millisecond,
+                "microseconds" => DateTimeField::Microsecond,
                 _ => bail!("Unsupported interval unit: {}", vau.unit),
             };
             let value = if ctx.dialect.requires_quotes_intervals() {
@@ -172,15 +309,14 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             } else {
                 Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
             };
-            sql_ast::Expr::Interval {
+            sql_ast::Expr::Interval(sqlparser::ast::Interval {
                 value,
                 leading_field: Some(sql_parser_datetime),
                 leading_precision: None,
                 last_field: None,
                 fractional_seconds_precision: None,
-            }
+            })
         }
-        Literal::Relation(_) => unreachable!(),
     })
 }
 
@@ -237,10 +373,11 @@ fn translate_datetime_literal_with_sqlite_function(
         over: None,
         distinct: false,
         special: false,
+        order_by: vec![],
     })
 }
 
-pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource> {
     if ctx.query.pre_projection {
         log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
@@ -250,7 +387,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
                 let window = compute.window.clone();
                 let span = compute.expr.span;
 
-                let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
+                let expr = translate_expr(compute.expr.clone(), ctx)?;
 
                 if let Some(window) = window {
                     translate_windowed(expr, window, ctx, span)?
@@ -258,24 +395,25 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
                     expr
                 }
             }
-            ColumnDecl::RelationColumn(tiid, _, col) => {
+            ColumnDecl::RelationColumn(riid, _, col) => {
                 let column = match col.clone() {
                     RelationColumn::Wildcard => translate_star(ctx, None)?,
                     RelationColumn::Single(name) => name.unwrap(),
                 };
-                let t = &ctx.anchor.table_instances[tiid];
+                let t = &ctx.anchor.relation_instances[riid];
 
-                let ident = translate_ident(t.name.clone(), Some(column), ctx);
-                sql_ast::Expr::CompoundIdentifier(ident)
+                let table_ident = t.table_ref.name.clone().map(Ident::from_name);
+                let ident = translate_ident(table_ident, Some(column), ctx);
+                sql_ast::Expr::CompoundIdentifier(ident).into()
             }
         })
     } else {
         // translate into ident
         let column_decl = &&ctx.anchor.column_decls[&cid];
 
-        let table_name = if let ColumnDecl::RelationColumn(tiid, _, _) = column_decl {
-            let t = &ctx.anchor.table_instances[tiid];
-            Some(t.name.clone().unwrap())
+        let table_name = if let ColumnDecl::RelationColumn(riid, _, _) = column_decl {
+            let t = &ctx.anchor.relation_instances[riid];
+            Some(t.table_ref.name.clone().unwrap())
         } else {
             None
         };
@@ -291,12 +429,12 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
             }
         };
 
-        let ident = translate_ident(table_name, Some(column), ctx);
+        let ident = translate_ident(table_name.map(Ident::from_name), Some(column), ctx);
 
         log::debug!("translating {cid:?} post projection: {ident:?}");
 
         let ident = sql_ast::Expr::CompoundIdentifier(ident);
-        Ok(ident)
+        Ok(ident.into())
     }
 }
 
@@ -320,113 +458,12 @@ pub(super) fn translate_sstring(
         .into_iter()
         .map(|s_string_item| match s_string_item {
             InterpolateItem::String(string) => Ok(string),
-            InterpolateItem::Expr(node) => {
-                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
+            InterpolateItem::Expr { expr, .. } => {
+                translate_expr(*expr, ctx).map(|expr| expr.into_source())
             }
         })
         .collect::<Result<Vec<String>>>()?
         .join(""))
-}
-
-pub(super) fn translate_query_sstring(
-    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
-    context: &mut Context,
-) -> Result<sql_ast::Query> {
-    let string = translate_sstring(items, context)?;
-
-    let prefix = if let Some(string) = string.trim().get(0..7) {
-        string
-    } else {
-        ""
-    };
-
-    if prefix.eq_ignore_ascii_case("SELECT ") {
-        if let Some(string) = string.trim().strip_prefix(prefix) {
-            return Ok(sql_ast::Query {
-                body: Box::new(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-                    projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
-                        sql_ast::Ident::new(string),
-                    ))],
-                    distinct: false,
-                    top: None,
-                    into: None,
-                    from: Vec::new(),
-                    lateral_views: Vec::new(),
-                    selection: None,
-                    group_by: Vec::new(),
-                    cluster_by: Vec::new(),
-                    distribute_by: Vec::new(),
-                    sort_by: Vec::new(),
-                    having: None,
-                    qualify: None,
-                }))),
-                with: None,
-                order_by: Vec::new(),
-                limit: None,
-                offset: None,
-                fetch: None,
-                locks: vec![],
-            });
-        }
-    }
-
-    bail!(
-        Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
-            .with_help("this is a limitation by current compiler implementation")
-    )
-}
-
-fn translate_fstring_with_concat_function(
-    items: Vec<InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Expr> {
-    let args = items
-        .into_iter()
-        .map(|item| match item {
-            InterpolateItem::String(string) => {
-                Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
-            }
-            InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
-        })
-        .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(sql_ast::Expr::Function(Function {
-        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
-        args,
-        distinct: false,
-        over: None,
-        special: false,
-    }))
-}
-
-fn translate_fstring_with_concat_operator(
-    items: Vec<InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Expr> {
-    let string = items
-        .into_iter()
-        .map(|f_string_item| match f_string_item {
-            InterpolateItem::String(string) => Ok(Value::SingleQuotedString(string).to_string()),
-            InterpolateItem::Expr(node) => {
-                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
-            }
-        })
-        .collect::<Result<Vec<String>>>()?
-        .join("||");
-
-    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(string)))
-}
-
-pub(super) fn translate_fstring(
-    items: Vec<InterpolateItem<Expr>>,
-    ctx: &mut Context,
-) -> Result<sql_ast::Expr> {
-    if ctx.dialect.has_concat_function() {
-        translate_fstring_with_concat_function(items, ctx)
-    } else {
-        translate_fstring_with_concat_operator(items, ctx)
-    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -476,17 +513,17 @@ pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
 }
 
 pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
+    let kind = ExprKind::Literal(Literal::Integer(take));
+    let expr = Expr { kind, span: None };
     Top {
-        quantity: Some(
-            translate_expr_kind(ExprKind::Literal(Literal::Integer(take)), ctx).unwrap(),
-        ),
+        quantity: Some(translate_expr(expr, ctx).unwrap().into_ast()),
         with_ties: false,
         percent: false,
     }
 }
 
 pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<SelectItem> {
-    let expr = translate_cid(cid, ctx)?;
+    let expr = translate_cid(cid, ctx)?.into_ast();
 
     let inferred_name = match &expr {
         // sql_ast::Expr::Identifier is used for s-strings
@@ -514,68 +551,12 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     Ok(SelectItem::UnnamedExpr(expr))
 }
 
-fn try_into_is_null(
-    op: &BinOp,
-    a: &Expr,
-    b: &Expr,
-    ctx: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
-        let expr = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
-            b.kind.clone()
-        } else if matches!(b.kind, ExprKind::Literal(Literal::Null)) {
-            a.kind.clone()
-        } else {
-            return Ok(None);
-        };
-
-        let strength =
-            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
-        let expr = translate_operand(expr, strength, false, ctx)?;
-
-        return Ok(Some(if matches!(op, BinOp::Eq) {
-            sql_ast::Expr::IsNull(expr)
-        } else {
-            sql_ast::Expr::IsNotNull(expr)
-        }));
-    }
-
-    Ok(None)
-}
-
-fn try_into_between(
-    op: &BinOp,
-    a: &Expr,
-    b: &Expr,
-    ctx: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    if !matches!(op, BinOp::And) {
-        return Ok(None);
-    }
-    let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) else {
-        return Ok(None);
-    };
-    if !(matches!(a.1, BinOp::Gte) && matches!(b.1, BinOp::Lte)) {
-        return Ok(None);
-    }
-    if a.0 != b.0 {
-        return Ok(None);
-    }
-
-    Ok(Some(sql_ast::Expr::Between {
-        expr: translate_operand(a.0.kind.clone(), 0, false, ctx)?,
-        negated: false,
-        low: translate_operand(a.2.kind.clone(), 0, false, ctx)?,
-        high: translate_operand(b.2.kind.clone(), 0, false, ctx)?,
-    }))
-}
-
 fn translate_windowed(
-    expr: sql_ast::Expr,
+    expr: ExprOrSource,
     window: Window,
     ctx: &mut Context,
     span: Option<Span>,
-) -> Result<sql_ast::Expr> {
+) -> Result<ExprOrSource> {
     let default_frame = {
         let (kind, range) = if window.sort.is_empty() {
             (WindowKind::Rows, Range::unbounded())
@@ -607,9 +588,11 @@ fn translate_windowed(
         },
     };
 
-    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(format!(
-        "{expr} OVER ({window})"
-    ))))
+    let expr = expr.into_source();
+    Ok(ExprOrSource::Source {
+        text: format!("{expr} OVER ({window})"),
+        binding_strength: 100,
+    })
 }
 
 fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
@@ -649,7 +632,7 @@ pub(super) fn translate_column_sort(
     ctx: &mut Context,
 ) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
-        expr: translate_cid(sort.column, ctx)?,
+        expr: translate_cid(sort.column, ctx)?.into_ast(),
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -665,39 +648,14 @@ pub(super) fn translate_column_sort(
 // [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
 pub(super) fn translate_ident(
-    table_name: Option<String>,
+    table_ident: Option<pl::Ident>,
     column: Option<String>,
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
     if !ctx.query.omit_ident_prefix || column.is_none() {
-        if let Some(table) = table_name {
-            #[allow(clippy::if_same_then_else)]
-            if ctx.dialect.big_query_quoting() {
-                // Special-case this for BigQuery, Ref #852
-                parts.push(table);
-            } else if table.contains('*') {
-                // This messy and could be cleaned up a lot.
-                // If `parts` is (includung the backticks)
-                //
-                //   `schema.table`
-                //
-                // then we want to split it up, because we need to produce the
-                // result without the surrounding backticks, ref #822.
-                //
-                // But if it's `path/*.parquet`, then we want to retain the
-                // backticks.
-                //
-                // So for the moment, we check whether there's a `*` in there,
-                // and if there is, we don't split it up.
-                //
-                // I think probably we should interpret `schema.table` as a
-                // namespace when it's passed to `from` or `join`, but that
-                // requires handling the types in those transforms.
-                parts.push(table);
-            } else {
-                parts.extend(table.split('.').map(|s| s.to_string()));
-            }
+        if let Some(table) = table_ident {
+            parts.extend(table.into_iter());
         }
     }
 
@@ -710,18 +668,16 @@ pub(super) fn translate_ident(
 }
 
 fn is_keyword(ident: &str) -> bool {
-    lazy_static! {
-        /// Keywords which we want to quote when translating to SQL. Currently we're
-        /// being fairly permissive (over-quoting is not a concern), though we don't
-        /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
-        /// and `lower`.
-        static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
-            let mut m = HashSet::new();
-            m.extend(RESERVED_FOR_COLUMN_ALIAS);
-            m.extend(RESERVED_FOR_TABLE_ALIAS);
-            m
-        };
-    }
+    /// Keywords which we want to quote when translating to SQL. Currently we're
+    /// being fairly permissive (over-quoting is not a concern), though we don't
+    /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
+    /// and `lower`.
+    static PRQL_KEYWORDS: Lazy<HashSet<&'static Keyword>> = Lazy::new(|| {
+        let mut m = HashSet::new();
+        m.extend(RESERVED_FOR_COLUMN_ALIAS);
+        m.extend(RESERVED_FOR_TABLE_ALIAS);
+        m
+    });
 
     // Search for the ident in `ALL_KEYWORDS`, and then look it up in
     // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
@@ -734,17 +690,7 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    lazy_static! {
-        // One of:
-        // - `*`
-        // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
-        //
-        // We could replace this with pomsky (regex<>pomsky : sql<>prql)
-        // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
-        static ref VALID_BARE_IDENT: Regex = Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap();
-    }
-
-    let is_bare = VALID_BARE_IDENT.is_match(&ident);
+    let is_bare = VALID_IDENT.is_match(&ident);
 
     if is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
@@ -754,23 +700,23 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 }
 
 /// Wraps into parenthesis if binding strength would be less than min_strength
-fn translate_operand(
-    expr: ExprKind,
+pub(super) fn translate_operand(
+    expr: Expr,
     parent_strength: i32,
     fix_associativity: bool,
     context: &mut Context,
-) -> Result<Box<sql_ast::Expr>> {
-    let expr = Box::new(translate_expr_kind(expr, context)?);
+) -> Result<ExprOrSource> {
+    let expr = translate_expr(expr, context)?;
 
     let strength = expr.binding_strength();
 
     // Either the binding strength is less than its parent, or it's equal and we
     // need to correct for the associativity of the operator (e.g. `a - (b - c)`)
-    let needs_nesting =
+    let needs_parenthesis =
         strength < parent_strength || (strength == parent_strength && fix_associativity);
 
-    Ok(if needs_nesting {
-        Box::new(sql_ast::Expr::Nested(expr))
+    Ok(if needs_parenthesis {
+        expr.wrap_in_parenthesis()
     } else {
         expr
     })
@@ -803,6 +749,7 @@ trait SQLExpression {
             Associativity::Left | Associativity::Both
         )
     }
+
     /// Returns true iff `a + b + c = a + (b + c)`
     fn associates_right(&self) -> bool {
         matches!(
@@ -869,14 +816,65 @@ impl SQLExpression for UnaryOperator {
     }
 }
 
+/// A wrapper around sql_ast::Expr, that may have already been converted to source.
+pub enum ExprOrSource {
+    Expr(sql_ast::Expr),
+    Source { text: String, binding_strength: i32 },
+}
+
+impl ExprOrSource {
+    pub fn into_ast(self) -> sql_ast::Expr {
+        match self {
+            ExprOrSource::Expr(ast) => ast,
+            ExprOrSource::Source { text: source, .. } => {
+                // The s-string hack
+                sql_ast::Expr::Identifier(sql_ast::Ident::new(source))
+            }
+        }
+    }
+
+    pub fn into_source(self) -> String {
+        match self {
+            ExprOrSource::Expr(e) => e.to_string(),
+            ExprOrSource::Source { text, .. } => text,
+        }
+    }
+
+    fn wrap_in_parenthesis(self) -> Self {
+        match self {
+            ExprOrSource::Expr(expr) => ExprOrSource::Expr(sql_ast::Expr::Nested(Box::new(expr))),
+            ExprOrSource::Source { text, .. } => {
+                let text = format!("({text})");
+                ExprOrSource::Source {
+                    text,
+                    binding_strength: 100,
+                }
+            }
+        }
+    }
+}
+
+impl SQLExpression for ExprOrSource {
+    fn binding_strength(&self) -> i32 {
+        match self {
+            ExprOrSource::Expr(expr) => expr.binding_strength(),
+            ExprOrSource::Source {
+                binding_strength, ..
+            } => *binding_strength,
+        }
+    }
+}
+
+impl From<sql_ast::Expr> for ExprOrSource {
+    fn from(value: sql_ast::Expr) -> Self {
+        ExprOrSource::Expr(value)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::ast::pl::Range;
-    use crate::sql::context::AnchorContext;
-    use crate::{
-        parser::parse, semantic::resolve, sql::dialect::GenericDialect, sql::dialect::SQLiteDialect,
-    };
     use insta::assert_yaml_snapshot;
 
     #[test]
@@ -966,42 +964,6 @@ mod test {
     }
 
     #[test]
-    fn test_translate_fstring() -> Result<()> {
-        let mut context_with_concat_function: Context;
-        let mut context_without_concat_function: Context;
-
-        {
-            let query = resolve(parse("from foo")?)?;
-            let (anchor, _) = AnchorContext::of(query);
-            context_with_concat_function = Context::new(Box::new(GenericDialect {}), anchor);
-        }
-        {
-            let query = resolve(parse("from foo")?)?;
-            let (anchor, _) = AnchorContext::of(query);
-            context_without_concat_function = Context::new(Box::new(SQLiteDialect {}), anchor);
-        }
-
-        fn str_lit(s: &str) -> InterpolateItem<Expr> {
-            InterpolateItem::String(s.to_string())
-        }
-
-        assert_yaml_snapshot!(translate_fstring(vec![
-            str_lit("hello"),
-            str_lit("world"),
-            ], &mut context_with_concat_function)?.to_string(), @r###"
-    ---
-    "CONCAT('hello', 'world')"
-    "###);
-
-        assert_yaml_snapshot!(translate_fstring(vec![str_lit("hello"), str_lit("world")], &mut context_without_concat_function)?.to_string(), @r###"
-    ---
-    "'hello'||'world'"
-    "###);
-
-        Ok(())
-    }
-
-    #[test]
     fn test_translate_datetime_literal_with_sqlite_function() -> Result<()> {
         assert_yaml_snapshot!(
                 translate_datetime_literal_with_sqlite_function(
@@ -1009,20 +971,21 @@ mod test {
                 "2020-01-01".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: DATE
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: 2020-01-01
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: DATE
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: 2020-01-01
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1031,20 +994,21 @@ Function:
                 "03:05".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: TIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "03:05"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: TIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "03:05"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1053,20 +1017,21 @@ Function:
                 "03:05+08:00".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: TIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: TIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1075,20 +1040,21 @@ Function:
                 "03:05+0800".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: TIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: TIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1097,20 +1063,21 @@ Function:
                 "2021-03-14T03:05+0800".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: DATETIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "2021-03-14T03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: DATETIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "2021-03-14T03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         assert_yaml_snapshot!(
@@ -1119,20 +1086,21 @@ Function:
                 "2021-03-14T03:05+08:00".to_string(),
             ),
             @r###"
----
-Function:
-  name:
-    - value: DATETIME
-      quote_style: ~
-  args:
-    - Unnamed:
-        Expr:
-          Value:
-            SingleQuotedString: "2021-03-14T03:05+08:00"
-  over: ~
-  distinct: false
-  special: false
-"###
+        ---
+        Function:
+          name:
+            - value: DATETIME
+              quote_style: ~
+          args:
+            - Unnamed:
+                Expr:
+                  Value:
+                    SingleQuotedString: "2021-03-14T03:05+08:00"
+          over: ~
+          distinct: false
+          special: false
+          order_by: []
+        "###
         );
 
         Ok(())

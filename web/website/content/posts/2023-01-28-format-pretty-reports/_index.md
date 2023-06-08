@@ -24,12 +24,12 @@ multiple times:
 
 ```prql
 # dollars displays a numeric value as whole dollars with commas
-func dollars d -> s"""printf("$%,d",{d})"""
+let dollars = d -> s"""printf("$%,d",{d})"""
 
-select [
+select {
     (dollars App_Total2020),
     (dollars App_Total2021),
-]
+}
 ```
 
 I also want to compute the percent change between values. It's easy to create a
@@ -37,7 +37,7 @@ I also want to compute the percent change between values. It's easy to create a
 
 ```prql
 # percent_diff computes the amount (percent) the new differs from old
-func percent_diff old new -> 100.0*( new - old ) / old
+let percent_diff = old new -> 100.0*( new - old ) / old
 ```
 
 One final function: the `percent_diff` function returns a floating point number
@@ -47,7 +47,7 @@ results, with a trailing `%`. So I wrote a `format_percent` function that uses a
 
 ```prql
 # format_percent prints a floating point number with "%"
-func format_percent v -> s'printf("%1.1f%", {v})'
+let format_percent = v -> s'printf("%1.1f%", {v})'
 ```
 
 ## Column Headings
@@ -92,22 +92,22 @@ produces.
 
 ```prql
 # dollars displays a numeric value as dollars with commas
-func dollars d -> s"""printf("$%,d",{d})"""
+let dollars = d -> s"""printf("$%,d",{d})"""
 
 # percent_diff computes the amount (percent) the new differs from old
-func percent_diff old new -> 100.0*( new - old ) / old
+let percent_diff = old new -> 100.0*( new - old ) / old
 
 # format_percent prints a floating point number with "%"
-func format_percent v -> s'printf("%1.1f%", {v})'
+let format_percent = v -> s'printf("%1.1f%", {v})'
 
 # Step 1: First calculate important columns
 from PropertyData
-select [
+select {
     Map, Lot,
     App_Total2020,
     App_Total2021,
     pct_change = (percent_diff App_Total2020 App_Total2021),
-]
+}
 
 # Step 2: Sort the resulting table by pct_change
 sort [-pct_change]

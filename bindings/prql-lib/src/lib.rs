@@ -37,7 +37,7 @@ pub unsafe extern "C" fn compile(
                 .and_then(prql_compiler::pl_to_rq)
                 .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
-        .map_err(|e| e.composed("", &prql_query, false));
+        .map_err(|e| e.composed(&prql_query.into(), false));
 
     result_into_c_str(result)
 }
@@ -141,7 +141,7 @@ pub struct Options {
 /// Result of compilation.
 #[repr(C)]
 pub struct CompileResult {
-    pub output: *const i8,
+    pub output: *const libc::c_char,
     pub messages: *const Message,
     pub messages_len: size_t,
 }
@@ -164,16 +164,16 @@ pub struct Message {
     /// Message kind. Currently only Error is implemented.
     pub kind: MessageKind,
     /// Machine-readable identifier of the error
-    pub code: *const *const i8,
+    pub code: *const *const libc::c_char,
     /// Plain text of the error
-    pub reason: *const i8,
+    pub reason: *const libc::c_char,
     /// A list of suggestions of how to fix the error
-    pub hint: *const *const i8,
+    pub hint: *const *const libc::c_char,
     /// Character offset of error origin within a source file
     pub span: *const Span,
 
     /// Annotated code, containing cause and hints.
-    pub display: *const *const i8,
+    pub display: *const *const libc::c_char,
     /// Line and column number of error origin within a source file
     pub location: *const SourceLocation,
 }
@@ -215,20 +215,20 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
         let e = &*res.messages.add(i);
 
         if !e.code.is_null() {
-            drop(CString::from_raw(*e.code as *mut i8));
-            drop(Box::from_raw(e.code as *mut *const i8));
+            drop(CString::from_raw(*e.code as *mut libc::c_char));
+            drop(Box::from_raw(e.code as *mut *const libc::c_char));
         }
-        drop(CString::from_raw(e.reason as *mut i8));
+        drop(CString::from_raw(e.reason as *mut libc::c_char));
         if !e.hint.is_null() {
-            drop(CString::from_raw(*e.hint as *mut i8));
-            drop(Box::from_raw(e.hint as *mut *const i8));
+            drop(CString::from_raw(*e.hint as *mut libc::c_char));
+            drop(Box::from_raw(e.hint as *mut *const libc::c_char));
         }
         if !e.span.is_null() {
             drop(Box::from_raw(e.span as *mut Span));
         }
         if !e.display.is_null() {
-            drop(CString::from_raw(*e.display as *mut i8));
-            drop(Box::from_raw(e.display as *mut *const i8));
+            drop(CString::from_raw(*e.display as *mut libc::c_char));
+            drop(Box::from_raw(e.display as *mut *const libc::c_char));
         }
         if !e.location.is_null() {
             drop(Box::from_raw(e.location as *mut SourceLocation));
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn result_destroy(res: CompileResult) {
         res.messages_len,
         res.messages_len,
     ));
-    drop(CString::from_raw(res.output as *mut i8));
+    drop(CString::from_raw(res.output as *mut libc::c_char));
 }
 
 unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileResult {
@@ -255,7 +255,11 @@ unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileRes
                 kind: MessageKind::Error,
                 code: option_to_ptr(e.code.map(convert_string)),
                 reason: convert_string(e.reason),
-                hint: option_to_ptr(e.hint.map(convert_string)),
+                hint: option_to_ptr(if e.hints.is_empty() {
+                    None
+                } else {
+                    Some(convert_string(e.hints.join("\n")))
+                }),
                 span: option_to_ptr(e.span.map(convert_span)),
                 display: option_to_ptr(e.display.map(convert_string)),
                 location: option_to_ptr(e.location.map(convert_source_location)),
@@ -281,7 +285,7 @@ fn option_to_ptr<T>(o: Option<T>) -> *const T {
     }
 }
 
-fn convert_string(x: String) -> *const i8 {
+fn convert_string(x: String) -> *const libc::c_char {
     CString::new(x).unwrap_or_default().into_raw()
 }
 
@@ -323,5 +327,7 @@ fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler:
         format: o.format,
         target,
         signature_comment: o.signature_comment,
+        // TODO: add support for this
+        color: false,
     })
 }

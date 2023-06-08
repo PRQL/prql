@@ -1,0 +1,6 @@
+# Currently required for:
+# - Elixir tests at
+#   https://github.com/PRQL/prql/blob/5eb4063dbd36bdac07529797dd2cec8c55127263/.github/workflows/test-elixir.yaml#L31
+# - Previously for Readme tests, those those now should support either lf or
+#   crlf, at https://github.com/PRQL/prql/blob/6d4662b4e6e0f07dc3cd8eb5c19cc78fc199d0b2/web/book/tests/documentation/readme.rs#L9
+* text=auto eol=lf

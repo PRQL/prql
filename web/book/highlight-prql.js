@@ -204,27 +204,12 @@ formatting = function (hljs) {
 };
 
 hljs.registerLanguage("prql", formatting);
-hljs.registerLanguage("prql_no_test", formatting);
-hljs.registerLanguage("prql_error", formatting);
-hljs.registerLanguage("prql_no_fmt", formatting);
-hljs.registerLanguage("elm", formatting);
 
 // These lines should only exists in the book, not the website.
 
-// This file is inserted after the default highlight.js invocation, which tags
-// unknown-language blocks with CSS classes but doesn't highlight them.
-Array.from(document.querySelectorAll("code.language-prql")).forEach(
-  (a) => console.log(a) || hljs.highlightBlock(a)
-);
-
-Array.from(document.querySelectorAll("code.language-prql_error")).forEach(
-  (a) => console.log(a) || hljs.highlightBlock(a)
-);
-
-Array.from(document.querySelectorAll("code.language-prql_no_test")).forEach(
-  (a) => console.log(a) || hljs.highlightBlock(a)
-);
-
-Array.from(document.querySelectorAll("code.language-elm")).forEach(
-  (a) => console.log(a) || hljs.highlightBlock(a)
+// This file is unfortunately inserted after the default highlight.js
+// invocation, which tags unknown-language blocks with CSS classes but doesn't
+// highlight them.
+Array.from(document.querySelectorAll("code.language-prql")).forEach((a) =>
+  hljs.highlightElement(a)
 );

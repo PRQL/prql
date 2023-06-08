@@ -54,7 +54,7 @@ final class CompilerTest extends TestCase
         $query = "
             let a = (from employees | take 10)
 
-            from a | select [first_name]
+            from a | select {first_name}
         ";
 
         $pl = $prql->prqlToPL($query);

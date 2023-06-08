@@ -1,0 +1,10 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "from tracks\nselect {album_id, genre_id}\ngroup tracks.* (take 1)\nsort tracks.*\n"
+input_file: prql-compiler/tests/integration/queries/distinct.prql
+---
+from tracks
+select {album_id, genre_id}
+group tracks.* (take 1)
+sort tracks.*
+

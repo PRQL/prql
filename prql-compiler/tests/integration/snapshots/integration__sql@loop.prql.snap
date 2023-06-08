@@ -1,0 +1,28 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "# skip_mssql (the keyword RECURSIVE is not allowed and you have to declare the columns for CTE)\nfrom [{n = 1}]\nselect n = n - 2\nloop (\n    filter n<4\n    select n = n+1\n)\nselect n = n * 2\n"
+input_file: prql-compiler/tests/integration/queries/loop.prql
+---
+WITH RECURSIVE table_1 AS (
+  SELECT
+    1 AS n
+),
+table_0 AS (
+  SELECT
+    n - 2 AS _expr_0
+  FROM
+    table_1
+  UNION
+  ALL
+  SELECT
+    _expr_0 + 1
+  FROM
+    table_0
+  WHERE
+    _expr_0 < 4
+)
+SELECT
+  _expr_0 * 2 AS n
+FROM
+  table_0
+

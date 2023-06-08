@@ -30,7 +30,7 @@ impl<T: From<usize>> Default for IdGenerator<T> {
     fn default() -> IdGenerator<T> {
         IdGenerator {
             next_id: 0,
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         }
     }
 }

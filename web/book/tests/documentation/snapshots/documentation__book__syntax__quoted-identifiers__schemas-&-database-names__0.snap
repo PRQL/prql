@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from my_database.chinook.albums\n"
+---
+SELECT
+  *
+FROM
+  my_database.chinook.albums
+

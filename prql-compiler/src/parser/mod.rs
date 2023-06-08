@@ -3,6 +3,8 @@ mod interpolation;
 mod lexer;
 mod stmt;
 
+use std::collections::HashMap;
+
 use anyhow::Result;
 use chumsky::{
     error::{Cheap, SimpleReason},
@@ -15,10 +17,14 @@ use self::lexer::Token;
 
 use super::ast::pl::*;
 
-use crate::error::{Error, Errors, Reason};
+use crate::{
+    error::{Error, Errors, Reason, WithErrorInfo},
+    utils::IdGenerator,
+};
+use crate::{SourceTree, Span};
 
 /// Build PL AST from a PRQL query string.
-pub fn parse(source: &str) -> Result<Vec<Stmt>> {
+pub fn parse_source(source: &str, source_id: usize) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
@@ -26,12 +32,11 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     errors.extend(
         lex_errors
             .into_iter()
-            .map(|e| convert_lexer_error(source, e)),
+            .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
     let ast = if let Some(tokens) = tokens {
-        let len = source.chars().count();
-        let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+        let stream = prepare_stream(tokens, source, source_id);
 
         let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
@@ -49,7 +54,29 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     }
 }
 
-fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
+pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
+    let mut res = SourceTree::default();
+
+    let ids: HashMap<_, _> = file_tree.source_ids.iter().map(|(a, b)| (b, a)).collect();
+    let mut id_gen = IdGenerator::new();
+
+    for (path, source) in &file_tree.sources {
+        let id = ids.get(path).map(|x| **x).unwrap_or_else(|| id_gen.gen());
+        let stmts = parse_source(source, id)?;
+
+        res.sources.insert(path.clone(), stmts);
+        res.source_ids.insert(id, path.clone());
+    }
+    Ok(res)
+}
+
+/// Helper that does not track source_ids
+#[cfg(test)]
+pub fn parse_single(source: &str) -> Result<Vec<Stmt>> {
+    parse_source(source, 0)
+}
+
+fn convert_lexer_error(source: &str, e: Cheap<char>, source_id: usize) -> Error {
     // TODO: is there a neater way of taking a span? We want to take it based on
     // the chars, not the bytes, so can't just index into the str.
     let found = source
@@ -57,27 +84,29 @@ fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
         .skip(e.span().start)
         .take(e.span().end() - e.span().start)
         .collect();
-    let span = common::into_span(e.span());
+    let span = Some(Span {
+        start: e.span().start,
+        end: e.span().end,
+        source_id,
+    });
 
     Error::new(Reason::Unexpected { found }).with_span(span)
 }
 
-fn convert_parser_error(e: Simple<Token>) -> Error {
-    let mut span = common::into_span(e.span());
+fn convert_parser_error(e: common::PError) -> Error {
+    let mut span = e.span();
 
     if e.found().is_none() {
         // found end of file
         // fix for span outside of source
-        if let Some(span) = &mut span {
-            if span.start > 0 && span.end > 0 {
-                span.start -= 1;
-                span.end -= 1;
-            }
+        if span.start > 0 && span.end > 0 {
+            span.start -= 1;
+            span.end -= 1;
         }
     }
 
     if let SimpleReason::Custom(message) = e.reason() {
-        return Error::new_simple(message).with_span(span);
+        return Error::new_simple(message).with_span(Some(span));
     }
 
     fn token_to_string(t: Option<Token>) -> String {
@@ -99,11 +128,15 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
         .map(token_to_string)
         .collect_vec();
 
+    let while_parsing = e
+        .label()
+        .map(|l| format!(" while parsing {l}"))
+        .unwrap_or_default();
+
     if expected.is_empty() || expected.len() > 10 {
-        return Error::new(Reason::Unexpected {
-            found: token_to_string(e.found().cloned()),
-        })
-        .with_span(span);
+        let label = token_to_string(e.found().cloned());
+        return Error::new_simple(format!("unexpected {label}{while_parsing}"))
+            .with_span(Some(span));
     }
 
     let mut expected = expected;
@@ -129,7 +162,24 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
             "Expected {expected}, but didn't find anything before the end."
         ))),
     }
-    .with_span(span)
+    .with_span(Some(span))
+}
+
+fn prepare_stream(
+    tokens: Vec<(Token, std::ops::Range<usize>)>,
+    source: &str,
+    source_id: usize,
+) -> Stream<Token, Span, impl Iterator<Item = (Token, Span)> + Sized> {
+    let tokens = tokens
+        .into_iter()
+        .map(move |(t, s)| (t, Span::new(source_id, s)));
+    let len = source.chars().count();
+    let eoi = Span {
+        start: len,
+        end: len + 1,
+        source_id,
+    };
+    Stream::from_iter(eoi, tokens)
 }
 
 mod common {
@@ -138,8 +188,10 @@ mod common {
     use super::lexer::Token;
     use crate::{ast::pl::*, Span};
 
-    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
-        select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
+    pub type PError = Simple<Token, Span>;
+
+    pub fn ident_part() -> impl Parser<Token, String, Error = PError> {
+        select! { Token::Ident(ident) => ident }.map_err(|e: PError| {
             Simple::expected_input_found(
                 e.span(),
                 [Some(Token::Ident("".to_string()))],
@@ -148,37 +200,62 @@ mod common {
         })
     }
 
-    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = PError> + Clone {
         just(Token::Keyword(kw.to_string())).ignored()
     }
 
-    pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    pub fn new_line() -> impl Parser<Token, (), Error = PError> + Clone {
         just(Token::NewLine).ignored()
     }
 
-    pub fn ctrl(char: char) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    pub fn ctrl(char: char) -> impl Parser<Token, (), Error = PError> + Clone {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
+    pub fn into_stmt(
+        (annotations, (name, kind)): (Vec<Annotation>, (String, StmtKind)),
+        span: Span,
+    ) -> Stmt {
         Stmt {
-            span: into_span(span),
-            ..Stmt::from(kind)
+            id: None,
+            name,
+            kind,
+            span: Some(span),
+            annotations,
         }
     }
 
-    pub fn into_expr(kind: ExprKind, span: std::ops::Range<usize>) -> Expr {
+    pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
         Expr {
-            span: into_span(span),
+            span: Some(span),
             ..Expr::from(kind)
         }
     }
 
-    pub fn into_span(span: std::ops::Range<usize>) -> Option<Span> {
-        Some(Span {
-            start: span.start,
-            end: span.end,
-        })
+    impl chumsky::Span for Span {
+        type Context = usize;
+
+        type Offset = usize;
+
+        fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
+            Span {
+                start: range.start,
+                end: range.end,
+                source_id: context,
+            }
+        }
+
+        fn context(&self) -> Self::Context {
+            self.source_id
+        }
+
+        fn start(&self) -> Self::Offset {
+            self.start
+        }
+
+        fn end(&self) -> Self::Offset {
+            self.end
+        }
     }
 }
 
@@ -192,19 +269,18 @@ mod test {
     fn parse_expr(source: &str) -> Result<Expr, Vec<anyhow::Error>> {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
             errs.into_iter()
-                .map(|e| anyhow!(convert_lexer_error(source, e)))
+                .map(|e| anyhow!(convert_lexer_error(source, e, 0)))
                 .collect_vec()
         })?;
 
-        let len = source.chars().count();
-        let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+        let stream = prepare_stream(tokens, source, 0);
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())
     }
 
     #[test]
     fn test_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse(include_str!(
+        assert_yaml_snapshot!(parse_single(include_str!(
             "../../examples/compile-files/queries/variables.prql"
         ))
         .unwrap());
@@ -212,50 +288,65 @@ mod test {
 
     #[test]
     fn test_take() {
-        parse("take 10").unwrap();
+        parse_single("take 10").unwrap();
 
-        assert_yaml_snapshot!(parse(r#"take 10"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(r#"take 10"#).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - take
-              args:
-                - Literal:
-                    Integer: 10
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - take
+                args:
+                  - Literal:
+                      Integer: 10
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(r#"take ..10"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - take
-              args:
-                - Range:
-                    start: ~
-                    end:
-                      Literal:
-                        Integer: 10
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - take
+                args:
+                  - Range:
+                      start: ~
+                      end:
+                        Literal:
+                          Integer: 10
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(r#"take 1..10"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - take
-              args:
-                - Range:
-                    start:
-                      Literal:
-                        Integer: 1
-                    end:
-                      Literal:
-                        Integer: 10
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - take
+                args:
+                  - Range:
+                      start:
+                        Literal:
+                          Integer: 1
+                      end:
+                        Literal:
+                          Integer: 10
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
@@ -388,14 +479,14 @@ mod test {
             Literal:
               String: USA
         "###);
-        assert_yaml_snapshot!(parse_expr("select [a, b, c]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("select {a, b, c}").unwrap(), @r###"
         ---
         FuncCall:
           name:
             Ident:
               - select
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - a
                 - Ident:
@@ -404,8 +495,8 @@ mod test {
                     - c
         "###);
         assert_yaml_snapshot!(parse_expr(
-            "group [title, country] (
-                aggregate [sum salary]
+            "group {title, country} (
+                aggregate {sum salary}
             )"
         ).unwrap(), @r###"
         ---
@@ -414,7 +505,7 @@ mod test {
             Ident:
               - group
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - title
                 - Ident:
@@ -424,7 +515,7 @@ mod test {
                   Ident:
                     - aggregate
                 args:
-                  - List:
+                  - Tuple:
                       - FuncCall:
                           name:
                             Ident:
@@ -451,9 +542,9 @@ mod test {
                   Literal:
                     String: USA
         "###);
-        assert_yaml_snapshot!(parse_expr("[a, b, c,]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("{a, b, c,}").unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - a
           - Ident:
@@ -462,13 +553,13 @@ mod test {
               - c
         "###);
         assert_yaml_snapshot!(parse_expr(
-            r#"[
+            r#"{
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost
-]"#
+}"#
         ).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Ident:
@@ -489,22 +580,27 @@ mod test {
             alias: gross_cost
         "###);
         // Currently not putting comments in our parse tree, so this is blank.
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             r#"# this is a comment
         select a"#
         ).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - select
-              args:
-                - Ident:
-                    - a
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - select
+                args:
+                  - Ident:
+                      - a
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
         assert_yaml_snapshot!(parse_expr(
-            "join side:left country [id==employee_id]"
+            "join side:left country (id==employee_id)"
         ).unwrap(), @r###"
         ---
         FuncCall:
@@ -514,15 +610,14 @@ mod test {
           args:
             - Ident:
                 - country
-            - List:
-                - Binary:
-                    left:
-                      Ident:
-                        - id
-                    op: Eq
-                    right:
-                      Ident:
-                        - employee_id
+            - Binary:
+                left:
+                  Ident:
+                    - id
+                op: Eq
+                right:
+                  Ident:
+                    - employee_id
           named_args:
             side:
               Ident:
@@ -627,8 +722,10 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Ident:
-                - col
+              expr:
+                Ident:
+                  - col
+              format: ~
           - String: )
         "###);
         assert_yaml_snapshot!(parse_expr(r#"s"SUM({rel.`Col name`})""#).unwrap(), @r###"
@@ -636,9 +733,11 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Ident:
-                - rel
-                - Col name
+              expr:
+                Ident:
+                  - rel
+                  - Col name
+              format: ~
           - String: )
         "###)
     }
@@ -654,22 +753,10 @@ Canada
     }
 
     #[test]
-    #[ignore]
-    fn test_jinja() {
-        parse(
-            r#"
-        from {{ ref('stg_orders') }}
-        aggregate (sum order_id)
-        "#,
-        )
-        .unwrap_err();
-    }
-
-    #[test]
-    fn test_list() {
-        assert_yaml_snapshot!(parse_expr(r#"[1 + 1, 2]"#).unwrap(), @r###"
+    fn test_tuple() {
+        assert_yaml_snapshot!(parse_expr(r#"{1 + 1, 2}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Literal:
@@ -681,9 +768,9 @@ Canada
           - Literal:
               Integer: 2
         "###);
-        assert_yaml_snapshot!(parse_expr(r#"[1 + (f 1), 2]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"{1 + (f 1), 2}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Literal:
@@ -702,23 +789,23 @@ Canada
         "###);
         // Line breaks
         assert_yaml_snapshot!(parse_expr(
-            r#"[1,
+            r#"{1,
 
-                2]"#
+                2}"#
         ).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Literal:
               Integer: 1
           - Literal:
               Integer: 2
         "###);
-        // Function call in a list
-        let ab = parse_expr(r#"[a b]"#).unwrap();
-        let a_comma_b = parse_expr(r#"[a, b]"#).unwrap();
+        // Function call in a tuple
+        let ab = parse_expr(r#"{a b}"#).unwrap();
+        let a_comma_b = parse_expr(r#"{a, b}"#).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
-        List:
+        Tuple:
           - FuncCall:
               name:
                 Ident:
@@ -729,7 +816,7 @@ Canada
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - a
           - Ident:
@@ -737,9 +824,9 @@ Canada
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_yaml_snapshot!(parse_expr(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - amount
           - Unary:
@@ -753,10 +840,10 @@ Canada
                 Ident:
                   - amount
         "###);
-        // Operators in list items
-        assert_yaml_snapshot!(parse_expr(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
+        // Operators in tuple items
+        assert_yaml_snapshot!(parse_expr(r#"{amount, +amount, -amount}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Ident:
               - amount
           - Unary:
@@ -821,124 +908,144 @@ Canada
     #[test]
     fn test_filter() {
         assert_yaml_snapshot!(
-            parse(r#"filter country == "USA""#).unwrap(), @r###"
+            parse_single(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - filter
-              args:
-                - Binary:
-                    left:
-                      Ident:
-                        - country
-                    op: Eq
-                    right:
-                      Literal:
-                        String: USA
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - filter
+                args:
+                  - Binary:
+                      left:
+                        Ident:
+                          - country
+                      op: Eq
+                      right:
+                        Literal:
+                          String: USA
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(
-            parse(r#"filter (upper country) == "USA""#).unwrap(), @r###"
+            parse_single(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - filter
-              args:
-                - Binary:
-                    left:
-                      FuncCall:
-                        name:
-                          Ident:
-                            - upper
-                        args:
-                          - Ident:
-                              - country
-                    op: Eq
-                    right:
-                      Literal:
-                        String: USA
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - filter
+                args:
+                  - Binary:
+                      left:
+                        FuncCall:
+                          name:
+                            Ident:
+                              - upper
+                          args:
+                            - Ident:
+                                - country
+                      op: Eq
+                      right:
+                        Literal:
+                          String: USA
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###
         );
     }
 
     #[test]
     fn test_aggregate() {
-        let aggregate = parse(
-            r"group [title] (
-                aggregate [sum salary, count]
+        let aggregate = parse_single(
+            r"group {title} (
+                aggregate {sum salary, count}
               )",
         )
         .unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - group
-              args:
-                - List:
-                    - Ident:
-                        - title
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - List:
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - sum
-                              args:
-                                - Ident:
-                                    - salary
-                          - Ident:
-                              - count
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - group
+                args:
+                  - Tuple:
+                      - Ident:
+                          - title
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - aggregate
+                      args:
+                        - Tuple:
+                            - FuncCall:
+                                name:
+                                  Ident:
+                                    - sum
+                                args:
+                                  - Ident:
+                                      - salary
+                            - Ident:
+                                - count
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
-        let aggregate = parse(
-            r"group [title] (
-                aggregate [sum salary]
+        let aggregate = parse_single(
+            r"group {title} (
+                aggregate {sum salary}
               )",
         )
         .unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - group
-              args:
-                - List:
-                    - Ident:
-                        - title
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - List:
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - sum
-                              args:
-                                - Ident:
-                                    - salary
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - group
+                args:
+                  - Tuple:
+                      - Ident:
+                          - title
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - aggregate
+                      args:
+                        - Tuple:
+                            - FuncCall:
+                                name:
+                                  Ident:
+                                    - sum
+                                args:
+                                  - Ident:
+                                      - salary
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
     #[test]
     fn test_derive() {
         assert_yaml_snapshot!(
-            parse_expr(r#"derive [x = 5, y = (-x)]"#).unwrap()
+            parse_expr(r#"derive {x = 5, y = (-x)}"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -946,7 +1053,7 @@ Canada
             Ident:
               - derive
           args:
-            - List:
+            - Tuple:
                 - Literal:
                     Integer: 5
                   alias: x
@@ -975,7 +1082,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            parse_expr(r#"select ![x]"#).unwrap()
+            parse_expr(r#"select !{x}"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -986,13 +1093,13 @@ Canada
             - Unary:
                 op: Not
                 expr:
-                  List:
+                  Tuple:
                     - Ident:
                         - x
         "###);
 
         assert_yaml_snapshot!(
-            parse_expr(r#"select [x, y]"#).unwrap()
+            parse_expr(r#"select {x, y}"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1000,7 +1107,7 @@ Canada
             Ident:
               - select
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - x
                 - Ident:
@@ -1024,12 +1131,12 @@ Canada
               String: USA
         "###);
         assert_yaml_snapshot!(parse_expr(
-                r#"[
+                r#"{
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost,
-]"#).unwrap(), @r###"
+}"#).unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Binary:
               left:
                 Ident:
@@ -1075,158 +1182,239 @@ Canada
               right:
                 Ident:
                   - tax_rate
-        "###)
+        "###);
+    }
+
+    #[test]
+    fn test_regex() {
+        assert_yaml_snapshot!(
+            parse_expr(
+                "'oba' ~= 'foobar'"
+            ).unwrap(),
+            @r###"
+        ---
+        Binary:
+          left:
+            Literal:
+              String: oba
+          op: RegexSearch
+          right:
+            Literal:
+              String: foobar
+        "###);
     }
 
     #[test]
     fn test_function() {
-        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: plus_one
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Binary:
-                left:
+        - name: plus_one
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Literal:
+                        Integer: 1
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
+        "###);
+        assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
+        , @r###"
+        ---
+        - name: identity
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
                   Ident:
                     - x
-                op: Add
-                right:
-                  Literal:
-                    Integer: 1
-            return_ty: ~
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
-        assert_yaml_snapshot!(parse("func identity x ->  x\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: identity
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Ident:
-                - x
-            return_ty: ~
+        - name: plus_one
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Literal:
+                        Integer: 1
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
-        assert_yaml_snapshot!(parse("func plus_one x ->  (x + 1)\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: plus_one
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Literal:
-                    Integer: 1
-            return_ty: ~
-        "###);
-        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap()
-        , @r###"
-        ---
-        - FuncDef:
-            name: plus_one
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Literal:
-                    Integer: 1
-            return_ty: ~
+        - name: plus_one
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Literal:
+                        Integer: 1
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse("func foo x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
+        assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
-        - FuncDef:
-            name: foo
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              FuncCall:
-                name:
-                  Ident:
-                    - some_func
-                args:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - foo
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - bar
-                            op: Add
-                            right:
-                              Literal:
-                                Integer: 1
-                  - Binary:
-                      left:
-                        Ident:
-                          - plax
-                      op: Sub
-                      right:
-                        Ident:
-                          - baz
-            return_ty: ~
+        - name: foo
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  FuncCall:
+                    name:
+                      Ident:
+                        - some_func
+                    args:
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - foo
+                          args:
+                            - Binary:
+                                left:
+                                  Ident:
+                                    - bar
+                                op: Add
+                                right:
+                                  Literal:
+                                    Integer: 1
+                      - Binary:
+                          left:
+                            Ident:
+                              - plax
+                          op: Sub
+                          right:
+                            Ident:
+                              - baz
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse("func return_constant ->  42\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: return_constant
-            positional_params: []
-            named_params: []
-            body:
-              Literal:
-                Integer: 42
-            return_ty: ~
+        - name: main
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Literal:
+                    Integer: 42
+                params:
+                  - name: func
+                    default_value: ~
+                  - name: return_constant
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(r#"func count X -> s"SUM({X})"
+        assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
-        - FuncDef:
-            name: count
-            positional_params:
-              - name: X
-                default_value: ~
-            named_params: []
-            body:
-              SString:
-                - String: SUM(
-                - Expr:
-                    Ident:
-                      - X
-                - String: )
-            return_ty: ~
+        - name: count
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  SString:
+                    - String: SUM(
+                    - Expr:
+                        expr:
+                          Ident:
+                            - X
+                        format: ~
+                    - String: )
+                params:
+                  - name: X
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             r#"
-            func lag_day x ->  (
+            let lag_day = x ->  (
                 window x
                 by sec_id
                 sort date
@@ -1236,68 +1424,84 @@ Canada
         )
         .unwrap(), @r###"
         ---
-        - FuncDef:
-            name: lag_day
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - window
-                      args:
-                        - Ident:
-                            - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - by
-                      args:
-                        - Ident:
-                            - sec_id
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Ident:
-                            - date
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - lag
-                      args:
-                        - Literal:
-                            Integer: 1
-            return_ty: ~
+        - name: lag_day
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Pipeline:
+                    exprs:
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - window
+                          args:
+                            - Ident:
+                                - x
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - by
+                          args:
+                            - Ident:
+                                - sec_id
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - sort
+                          args:
+                            - Ident:
+                                - date
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - lag
+                          args:
+                            - Literal:
+                                Integer: 1
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse("func add x to:a ->  x + to\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: add
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params:
-              - name: to
-                default_value:
-                  Ident:
-                    - a
-            body:
-              Binary:
-                left:
-                  Ident:
-                    - x
-                op: Add
-                right:
-                  Ident:
-                    - to
-            return_ty: ~
+        - name: add
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - x
+                    op: Add
+                    right:
+                      Ident:
+                        - to
+                params:
+                  - name: x
+                    default_value: ~
+                named_params:
+                  - name: to
+                    default_value:
+                      Ident:
+                        - a
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
     }
 
@@ -1394,7 +1598,7 @@ Canada
                   left:
                     Literal:
                       Integer: 1
-                  op: Div
+                  op: DivFloat
                   right:
                     Literal:
                       Integer: 2
@@ -1414,7 +1618,7 @@ Canada
               Integer: 1
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r#"a and b or c and d"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a && b || !c && d"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1430,15 +1634,18 @@ Canada
           right:
             Binary:
               left:
-                Ident:
-                  - c
+                Unary:
+                  op: Not
+                  expr:
+                    Ident:
+                      - c
               op: And
               right:
                 Ident:
                   - d
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r#"a and b + c or (d e) and f"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a && b + c || (d e) && f"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1476,12 +1683,12 @@ Canada
 
     #[test]
     fn test_var_def() {
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
         ---
-        - VarDef:
-            name: newest_employees
+        - name: newest_employees
+          VarDef:
             value:
               FuncCall:
                 name:
@@ -1490,24 +1697,27 @@ Canada
                 args:
                   - Ident:
                       - employees
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
             r#"
         let newest_employees = (
           from employees
           group country (
-            aggregate [
+            aggregate {
                 average_country_salary = average salary
-            ]
+            }
           )
           sort tenure
           take 50
         )"#.trim()).unwrap(),
          @r###"
         ---
-        - VarDef:
-            name: newest_employees
+        - name: newest_employees
+          VarDef:
             value:
               Pipeline:
                 exprs:
@@ -1530,7 +1740,7 @@ Canada
                               Ident:
                                 - aggregate
                             args:
-                              - List:
+                              - Tuple:
                                   - FuncCall:
                                       name:
                                         Ident:
@@ -1553,20 +1763,26 @@ Canada
                       args:
                         - Literal:
                             Integer: 50
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: e
+        - name: e
+          VarDef:
             value:
               SString:
                 - String: SELECT * FROM employees
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
 
-        assert_yaml_snapshot!(parse(
+        assert_yaml_snapshot!(parse_single(
           "let x = (
 
             from x_table
@@ -1578,8 +1794,8 @@ Canada
           from x"
         ).unwrap(), @r###"
         ---
-        - VarDef:
-            name: x
+        - name: x
+          VarDef:
             value:
               Pipeline:
                 exprs:
@@ -1598,14 +1814,22 @@ Canada
                         - Ident:
                             - foo
                           alias: only_in_x
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - from
-              args:
-                - Ident:
-                    - x
+            ty_expr: ~
+            kind: Let
+          annotations: []
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - from
+                args:
+                  - Ident:
+                      - x
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
@@ -1625,79 +1849,92 @@ Canada
                   - Literal:
                       Integer: 50
         "###);
-        assert_yaml_snapshot!(parse("func median x -> (x | percentile 50)\n").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
-        - FuncDef:
-            name: median
-            positional_params:
-              - name: x
-                default_value: ~
-            named_params: []
-            body:
-              Pipeline:
-                exprs:
-                  - Ident:
-                      - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - percentile
-                      args:
-                        - Literal:
-                            Integer: 50
-            return_ty: ~
+        - name: median
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Pipeline:
+                    exprs:
+                      - Ident:
+                          - x
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - percentile
+                          args:
+                            - Literal:
+                                Integer: 50
+                params:
+                  - name: x
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations: []
         "###);
     }
 
     #[test]
     fn test_sql_parameters() {
-        assert_yaml_snapshot!(parse(r#"
+        assert_yaml_snapshot!(parse_single(r#"
         from mytable
-        filter [
+        filter {
           first_name == $1,
           last_name == $2.name
-        ]
+        }
         "#).unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - mytable
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - List:
-                          - Binary:
-                              left:
-                                Ident:
-                                  - first_name
-                              op: Eq
-                              right:
-                                Param: "1"
-                          - Binary:
-                              left:
-                                Ident:
-                                  - last_name
-                              op: Eq
-                              right:
-                                Param: 2.name
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - mytable
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - filter
+                      args:
+                        - Tuple:
+                            - Binary:
+                                left:
+                                  Ident:
+                                    - first_name
+                                op: Eq
+                                right:
+                                  Param: "1"
+                            - Binary:
+                                left:
+                                  Ident:
+                                    - last_name
+                                op: Eq
+                                right:
+                                  Param: 2.name
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
     #[test]
     fn test_tab_characters() {
         // #284
-        parse(
+        parse_single(
             "from c_invoice
-join doc:c_doctype [==c_invoice_id]
+join doc:c_doctype (==c_invoice_id)
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1710,181 +1947,195 @@ select [
     fn test_backticks() {
         let prql = "
 from `a/*.parquet`
-aggregate [max c]
-join `schema.table` [==id]
+aggregate {max c}
+join `schema.table` (==id)
 join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
 
-        assert_yaml_snapshot!(parse(prql).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(prql).unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - a/*.parquet
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - List:
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - max
-                              args:
-                                - Ident:
-                                    - c
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - schema.table
-                      - List:
-                          - Unary:
-                              op: EqSelf
-                              expr:
-                                Ident:
-                                  - id
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - my-proj.dataset.table
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - my-proj
-                          - dataset
-                          - table
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - a/*.parquet
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - aggregate
+                      args:
+                        - Tuple:
+                            - FuncCall:
+                                name:
+                                  Ident:
+                                    - max
+                                args:
+                                  - Ident:
+                                      - c
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - join
+                      args:
+                        - Ident:
+                            - schema.table
+                        - Unary:
+                            op: EqSelf
+                            expr:
+                              Ident:
+                                - id
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - join
+                      args:
+                        - Ident:
+                            - my-proj.dataset.table
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - join
+                      args:
+                        - Ident:
+                            - my-proj
+                            - dataset
+                            - table
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
     #[test]
     fn test_sort() {
-        assert_yaml_snapshot!(parse("
+        assert_yaml_snapshot!(parse_single("
         from invoices
         sort issued_at
         sort (-issued_at)
-        sort [issued_at]
-        sort [-issued_at]
-        sort [issued_at, -amount, +num_of_articles]
+        sort {issued_at}
+        sort {-issued_at}
+        sort {issued_at, -amount, +num_of_articles}
         ").unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - invoices
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Ident:
-                          - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Unary:
-                          op: Neg
-                          expr:
-                            Ident:
-                              - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - List:
-                          - Ident:
-                              - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - List:
-                          - Unary:
-                              op: Neg
-                              expr:
-                                Ident:
-                                  - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - List:
-                          - Ident:
-                              - issued_at
-                          - Unary:
-                              op: Neg
-                              expr:
-                                Ident:
-                                  - amount
-                          - Unary:
-                              op: Add
-                              expr:
-                                Ident:
-                                  - num_of_articles
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - invoices
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Ident:
+                            - issued_at
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Unary:
+                            op: Neg
+                            expr:
+                              Ident:
+                                - issued_at
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Tuple:
+                            - Ident:
+                                - issued_at
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Tuple:
+                            - Unary:
+                                op: Neg
+                                expr:
+                                  Ident:
+                                    - issued_at
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Tuple:
+                            - Ident:
+                                - issued_at
+                            - Unary:
+                                op: Neg
+                                expr:
+                                  Ident:
+                                    - amount
+                            - Unary:
+                                op: Add
+                                expr:
+                                  Ident:
+                                    - num_of_articles
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
     #[test]
     fn test_dates() {
-        assert_yaml_snapshot!(parse("
+        assert_yaml_snapshot!(parse_single("
         from employees
-        derive [age_plus_two_years = (age + 2years)]
+        derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - derive
-                    args:
-                      - List:
-                          - Binary:
-                              left:
-                                Ident:
-                                  - age
-                              op: Add
-                              right:
-                                Literal:
-                                  ValueAndUnit:
-                                    n: 2
-                                    unit: years
-                            alias: age_plus_two_years
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - employees
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - derive
+                      args:
+                        - Tuple:
+                            - Binary:
+                                left:
+                                  Ident:
+                                    - age
+                                op: Add
+                                right:
+                                  Literal:
+                                    ValueAndUnit:
+                                      n: 2
+                                      unit: years
+                              alias: age_plus_two_years
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
@@ -1913,133 +2164,152 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_multiline_string() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - derive
-              args:
-                - Ident:
-                    - r
-                  alias: x
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - derive
+                args:
+                  - Ident:
+                      - r
+                    alias: x
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "### )
     }
 
     #[test]
     fn test_coalesce() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         from employees
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - derive
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - amount
-                          op: Coalesce
-                          right:
-                            Literal:
-                              Integer: 0
-                        alias: amount
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - employees
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - derive
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - amount
+                            op: Coalesce
+                            right:
+                              Literal:
+                                Integer: 0
+                          alias: amount
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "### )
     }
 
     #[test]
     fn test_literal() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         derive x = true
         "###).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - derive
-              args:
-                - Literal:
-                    Boolean: true
-                  alias: x
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - derive
+                args:
+                  - Literal:
+                      Boolean: true
+                    alias: x
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###)
     }
 
     #[test]
     fn test_allowed_idents() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         from employees
-        join _salary [==employee_id] # table with leading underscore
+        join _salary (==employee_id) # table with leading underscore
         filter first_name == $1
-        select [_employees._underscored_column]
+        select {_employees._underscored_column}
         "###).unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - _salary
-                      - List:
-                          - Unary:
-                              op: EqSelf
-                              expr:
-                                Ident:
-                                  - employee_id
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - first_name
-                          op: Eq
-                          right:
-                            Param: "1"
-                - FuncCall:
-                    name:
-                      Ident:
-                        - select
-                    args:
-                      - List:
-                          - Ident:
-                              - _employees
-                              - _underscored_column
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - employees
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - join
+                      args:
+                        - Ident:
+                            - _salary
+                        - Unary:
+                            op: EqSelf
+                            expr:
+                              Ident:
+                                - employee_id
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - filter
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - first_name
+                            op: Eq
+                            right:
+                              Param: "1"
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - select
+                      args:
+                        - Tuple:
+                            - Ident:
+                                - _employees
+                                - _underscored_column
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###)
     }
 
     #[test]
     fn test_gt_lt_gte_lte() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
         from people
         filter age >= 100
         filter num_grandchildren <= 10
@@ -2047,115 +2317,124 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - people
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - age
-                          op: Gte
-                          right:
-                            Literal:
-                              Integer: 100
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - num_grandchildren
-                          op: Lte
-                          right:
-                            Literal:
-                              Integer: 10
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - salary
-                          op: Gt
-                          right:
-                            Literal:
-                              Integer: 0
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - num_eyes
-                          op: Lt
-                          right:
-                            Literal:
-                              Integer: 2
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - people
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - filter
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - age
+                            op: Gte
+                            right:
+                              Literal:
+                                Integer: 100
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - filter
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - num_grandchildren
+                            op: Lte
+                            right:
+                              Literal:
+                                Integer: 10
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - filter
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - salary
+                            op: Gt
+                            right:
+                              Literal:
+                                Integer: 0
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - filter
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - num_eyes
+                            op: Lt
+                            right:
+                              Literal:
+                                Integer: 2
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###)
     }
 
     #[test]
     fn test_assign() {
-        assert_yaml_snapshot!(parse(r###"
+        assert_yaml_snapshot!(parse_single(r###"
 from employees
-join s=salaries [==id]
+join s=salaries (==id)
         "###).unwrap(), @r###"
         ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - salaries
-                        alias: s
-                      - List:
-                          - Unary:
-                              op: EqSelf
-                              expr:
-                                Ident:
-                                  - id
+        - name: main
+          VarDef:
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - employees
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - join
+                      args:
+                        - Ident:
+                            - salaries
+                          alias: s
+                        - Unary:
+                            op: EqSelf
+                            expr:
+                              Ident:
+                                - id
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
     #[test]
     fn test_ident_with_keywords() {
-        assert_yaml_snapshot!(parse_expr(r"select [andrew, orion, lettuce, falsehood, null0]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r"select {andrew, orion, lettuce, falsehood, null0}").unwrap(), @r###"
         ---
         FuncCall:
           name:
             Ident:
               - select
           args:
-            - List:
+            - Tuple:
                 - Ident:
                     - andrew
                 - Ident:
@@ -2168,9 +2447,9 @@ join s=salaries [==id]
                     - null0
         "###);
 
-        assert_yaml_snapshot!(parse_expr(r"[false]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r"{false}").unwrap(), @r###"
         ---
-        List:
+        Tuple:
           - Literal:
               Boolean: false
         "###);
@@ -2178,10 +2457,10 @@ join s=salaries [==id]
 
     #[test]
     fn test_case() {
-        assert_yaml_snapshot!(parse_expr(r#"case [
+        assert_yaml_snapshot!(parse_expr(r#"case {
             nickname != null => nickname,
             true => null
-        ]"#).unwrap(), @r###"
+        }"#).unwrap(), @r###"
         ---
         Case:
           - condition:
@@ -2219,16 +2498,21 @@ join s=salaries [==id]
     #[test]
     fn test_unicode() {
         let source = "from tète";
-        assert_yaml_snapshot!(parse(source).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_single(source).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - from
-              args:
-                - Ident:
-                    - tète
+        - name: main
+          VarDef:
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - from
+                args:
+                  - Ident:
+                      - tète
+            ty_expr: ~
+            kind: Main
+          annotations: []
         "###);
     }
 
@@ -2236,45 +2520,48 @@ join s=salaries [==id]
     fn test_error_unicode_string() {
         // Test various unicode strings successfully parse errors. We were
         // getting loops in the lexer before.
-        parse("s’ ").unwrap_err();
-        parse("s’").unwrap_err();
-        parse(" s’").unwrap_err();
-        parse(" ’ s").unwrap_err();
-        parse("’s").unwrap_err();
-        parse("👍 s’").unwrap_err();
+        parse_single("s’ ").unwrap_err();
+        parse_single("s’").unwrap_err();
+        parse_single(" s’").unwrap_err();
+        parse_single(" ’ s").unwrap_err();
+        parse_single("’s").unwrap_err();
+        parse_single("👍 s’").unwrap_err();
 
         let source = "Mississippi has four S’s and four I’s.";
-        assert_debug_snapshot!(parse(source).unwrap_err(), @r###"
+        assert_debug_snapshot!(parse_single(source).unwrap_err(), @r###"
         Errors(
             [
                 Error {
+                    kind: Error,
                     span: Some(
-                        span-chars-22-23,
+                        0:22-23,
                     ),
                     reason: Unexpected {
                         found: "’",
                     },
-                    help: None,
+                    hints: [],
                     code: None,
                 },
                 Error {
+                    kind: Error,
                     span: Some(
-                        span-chars-35-36,
+                        0:35-36,
                     ),
                     reason: Unexpected {
                         found: "’",
                     },
-                    help: None,
+                    hints: [],
                     code: None,
                 },
                 Error {
+                    kind: Error,
                     span: Some(
-                        span-chars-37-38,
+                        0:37-38,
                     ),
                     reason: Simple(
                         "Expected * or an identifier, but didn't find anything before the end.",
                     ),
-                    help: None,
+                    hints: [],
                     code: None,
                 },
             ],
@@ -2284,21 +2571,144 @@ join s=salaries [==id]
 
     #[test]
     fn test_error_unexpected() {
-        assert_debug_snapshot!(parse("Answer: T-H-A-T!").unwrap_err(), @r###"
+        assert_debug_snapshot!(parse_single("Answer: T-H-A-T!").unwrap_err(), @r###"
         Errors(
             [
                 Error {
+                    kind: Error,
                     span: Some(
-                        span-chars-6-7,
+                        0:6-7,
                     ),
-                    reason: Unexpected {
-                        found: ":",
-                    },
-                    help: None,
+                    reason: Simple(
+                        "unexpected : while parsing source file",
+                    ),
+                    hints: [],
                     code: None,
                 },
             ],
         )
+        "###);
+    }
+
+    #[test]
+    fn test_var_defs() {
+        assert_yaml_snapshot!(parse_single(r#"
+        let a = (
+            x
+        )
+        "#).unwrap(), @r###"
+        ---
+        - name: a
+          VarDef:
+            value:
+              Ident:
+                - x
+            ty_expr: ~
+            kind: Let
+          annotations: []
+        "###);
+
+        assert_yaml_snapshot!(parse_single(r#"
+        x
+        into a
+        "#).unwrap(), @r###"
+        ---
+        - name: a
+          VarDef:
+            value:
+              Ident:
+                - x
+            ty_expr: ~
+            kind: Into
+          annotations: []
+        "###);
+
+        assert_yaml_snapshot!(parse_single(r#"
+        x
+        "#).unwrap(), @r###"
+        ---
+        - name: main
+          VarDef:
+            value:
+              Ident:
+                - x
+            ty_expr: ~
+            kind: Main
+          annotations: []
+        "###);
+    }
+
+    #[test]
+    fn test_array() {
+        assert_yaml_snapshot!(parse_single(r#"
+        let a = [1, 2,]
+        let a = [false, "hello"]
+        "#).unwrap(), @r###"
+        ---
+        - name: a
+          VarDef:
+            value:
+              Array:
+                - Literal:
+                    Integer: 1
+                - Literal:
+                    Integer: 2
+            ty_expr: ~
+            kind: Let
+          annotations: []
+        - name: a
+          VarDef:
+            value:
+              Array:
+                - Literal:
+                    Boolean: false
+                - Literal:
+                    String: hello
+            ty_expr: ~
+            kind: Let
+          annotations: []
+        "###);
+    }
+
+    #[test]
+    fn test_annotation() {
+        assert_yaml_snapshot!(parse_single(r#"
+      @{binding_strength=1}
+      let add = a b -> a + b
+      "#).unwrap(), @r###"
+        ---
+        - name: add
+          VarDef:
+            value:
+              Func:
+                name_hint: ~
+                return_ty: ~
+                body:
+                  Binary:
+                    left:
+                      Ident:
+                        - a
+                    op: Add
+                    right:
+                      Ident:
+                        - b
+                params:
+                  - name: a
+                    default_value: ~
+                  - name: b
+                    default_value: ~
+                named_params: []
+                args: []
+                env: {}
+            ty_expr: ~
+            kind: Let
+          annotations:
+            - expr:
+                Tuple:
+                  - Literal:
+                      Integer: 1
+                    alias: binding_strength
+              span: "0:7-29"
         "###);
     }
 }

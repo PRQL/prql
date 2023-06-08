@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.bigquery\nfrom tracks\nselect !{milliseconds,bytes}\n"
+---
+SELECT
+  *
+EXCEPT
+  (milliseconds, bytes)
+FROM
+  tracks
+

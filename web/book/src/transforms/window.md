@@ -3,8 +3,8 @@
 Applies a pipeline to segments of rows, producing one output value for every
 input value.
 
-```prql_no_test
-window rows:{range} range:{range} expanding:false rolling:0 {pipeline}
+```prql no-eval
+window rows:(range) range:(range) expanding:false rolling:0 (pipeline)
 ```
 
 For each row, the segment over which the pipeline is applied is determined by
@@ -47,7 +47,7 @@ from employees
 group employee_id (
   sort month
   window rolling:12 (
-    derive [trail_12_m_comp = sum paycheck]
+    derive {trail_12_m_comp = sum paycheck}
   )
 )
 ```
@@ -56,12 +56,12 @@ group employee_id (
 from orders
 sort day
 window rows:-3..3 (
-  derive [centered_weekly_average = average value]
+  derive {centered_weekly_average = average value}
 )
-group [order_month] (
+group {order_month} (
   sort day
   window expanding:true (
-    derive [monthly_running_total = sum value]
+    derive {monthly_running_total = sum value}
   )
 )
 ```
@@ -75,7 +75,7 @@ trigger aggregation.
 ```prql
 from employees
 sort age
-derive rnk = rank
+derive {rnk = rank age}
 ```
 
 You can also only apply `group`:
@@ -84,13 +84,13 @@ You can also only apply `group`:
 from employees
 group department (
   sort age
-  derive rnk = rank
+  derive {rnk = rank age}
 )
 ```
 
 ## Window functions as first class citizens
 
-There is no limitaions where windowed expressions can be used:
+There are no limitations on where windowed expressions can be used:
 
 ```prql
 from employees

@@ -20,7 +20,7 @@ derive gross_salary = (salary + payroll_tax)
 
 ...and so on:
 
-```prql_no_test
+```prql no-eval
 from employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary
@@ -37,11 +37,11 @@ from e = employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary
 take 10
-join d = department [==dept_no]
-select [e.name, gross_salary, d.name]
+join d = department (==dept_no)
+select {e.name, gross_salary, d.name}
 ```
 
 ## See also
 
 - [Transforms](../transforms/README.md) - PRQL Transforms
-- [Syntax](../syntax.md) - Notation for PRQL queries
+- [Syntax](../syntax/README.md) - Notation for PRQL queries

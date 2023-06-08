@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Write};
 
 use anyhow::{anyhow, Result};
 use enum_as_inner::EnumAsInner;
@@ -7,7 +6,7 @@ use semver::VersionReq;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Error, Reason, Span};
+use crate::error::{Error, Reason, Span, WithErrorInfo};
 
 use super::*;
 
@@ -31,9 +30,17 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub target_ids: Vec<usize>,
 
-    /// Type of expression this node represents. [None] means type has not yet been determined.
+    /// Type of expression this node represents.
+    /// [None] means that type should be inferred.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
+
+    /// Information about where data of this expression will come from.
+    ///
+    /// Currently, this is used to infer relational pipeline frames.
+    /// Must always exists if ty is a relation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<Lineage>,
 
     #[serde(skip)]
     pub needs_window: bool,
@@ -41,8 +48,9 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 
-    /// When true on [ExprKind::List], this list will be flattened when placed
+    /// When true on [ExprKind::Tuple], this list will be flattened when placed
     /// in some other list.
+    // TODO: maybe we should have a special ExprKind instead of this flag?
     #[serde(skip)]
     pub flatten: bool,
 }
@@ -56,7 +64,9 @@ pub enum ExprKind {
     },
     Literal(Literal),
     Pipeline(Pipeline),
-    List(Vec<Expr>),
+
+    Tuple(Vec<Expr>),
+    Array(Vec<Expr>),
     Range(Range),
     Binary {
         left: Box<Expr>,
@@ -68,19 +78,24 @@ pub enum ExprKind {
         expr: Box<Expr>,
     },
     FuncCall(FuncCall),
-    Closure(Box<Closure>),
+    Func(Box<Func>),
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Case(Vec<SwitchCase>),
-    BuiltInFunction {
+    RqOperator {
         name: String,
         args: Vec<Expr>,
     },
-    Set(SetExpr),
 
-    /// a placeholder for values provided after query is compiled
+    Type(Ty),
+
+    /// placeholder for values provided after query is compiled
     Param(String),
+
+    /// When used instead of function body, the function will be translated to a RQ operator.
+    /// Contains ident of the RQ operator.
+    Internal(String),
 }
 
 impl ExprKind {
@@ -107,8 +122,10 @@ impl ExprKind {
 pub enum BinOp {
     #[strum(to_string = "*")]
     Mul,
+    #[strum(to_string = "//")]
+    DivInt,
     #[strum(to_string = "/")]
-    Div,
+    DivFloat,
     #[strum(to_string = "%")]
     Mod,
     #[strum(to_string = "+")]
@@ -127,9 +144,11 @@ pub enum BinOp {
     Gte,
     #[strum(to_string = "<=")]
     Lte,
-    #[strum(to_string = "and")]
+    #[strum(to_string = "~=")]
+    RegexSearch,
+    #[strum(to_string = "&&")]
     And,
-    #[strum(to_string = "or")]
+    #[strum(to_string = "||")]
     Or,
     #[strum(to_string = "??")]
     Coalesce,
@@ -147,9 +166,6 @@ pub enum UnOp {
     EqSelf,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ListItem(pub Expr);
-
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
@@ -160,43 +176,63 @@ pub struct FuncCall {
 }
 
 impl FuncCall {
-    pub fn without_args(name: Expr) -> Self {
+    pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {
         FuncCall {
             name: Box::new(name),
-            args: vec![],
+            args,
             named_args: HashMap::new(),
         }
     }
 }
+
+/// An expression that may have already been converted to a type.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
+pub enum TyOrExpr {
+    Ty(Ty),
+    Expr(Expr),
+}
+
 /// Function called with possibly missing positional arguments.
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Closure {
-    pub name: Option<Ident>,
+pub struct Func {
+    /// Name of the function. Used for user-facing messages only.
+    pub name_hint: Option<Ident>,
+
+    /// Type requirement for the function body expression.
+    pub return_ty: Option<TyOrExpr>,
+
+    /// Expression containing parameter (and environment) references.
     pub body: Box<Expr>,
-    pub body_ty: Option<Ty>,
 
+    /// Positional function parameters.
+    pub params: Vec<FuncParam>,
+
+    /// Named function parameters.
+    pub named_params: Vec<FuncParam>,
+
+    /// Arguments that have already been provided.
     pub args: Vec<Expr>,
-    pub params: Vec<ClosureParam>,
-    pub named_params: Vec<ClosureParam>,
 
+    /// Additional variables that the body of the function may need to be
+    /// evaluated.
     pub env: HashMap<String, Expr>,
 }
 
-impl Closure {
+impl Func {
     pub fn as_debug_name(&self) -> &str {
-        let ident = self.name.as_ref();
+        let ident = self.name_hint.as_ref();
 
         ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
     }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ClosureParam {
+pub struct FuncParam {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Ty>,
+    pub ty: Option<TyOrExpr>,
 
     pub default_value: Option<Expr>,
 }
@@ -216,7 +252,10 @@ pub struct Pipeline {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum InterpolateItem<T = Expr> {
     String(String),
-    Expr(Box<T>),
+    Expr {
+        expr: Box<T>,
+        format: Option<String>,
+    },
 }
 
 /// Inclusive-inclusive range.
@@ -337,6 +376,19 @@ pub enum TransformKind {
     Loop(Box<Expr>),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ColumnSort<T = Expr> {
+    pub direction: SortDirection,
+    pub column: T,
+}
+
+#[derive(Debug, Clone, Serialize, Default, Deserialize, PartialEq, Eq)]
+pub enum SortDirection {
+    #[default]
+    Asc,
+    Desc,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
@@ -419,6 +471,7 @@ impl From<ExprKind> for Expr {
             target_id: None,
             target_ids: Vec::new(),
             ty: None,
+            lineage: None,
             needs_window: false,
             alias: None,
             flatten: false,
@@ -470,160 +523,4 @@ impl From<TransformKind> for anyhow::Error {
     fn from(kind: TransformKind) -> Self {
         anyhow!("Failed to convert `{kind:?}`")
     }
-}
-
-impl Display for Expr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(alias) = &self.alias {
-            display_ident_part(f, alias)?;
-            f.write_str(" = ")?;
-        }
-
-        match &self.kind {
-            ExprKind::Ident(s) => {
-                display_ident(f, s)?;
-            }
-            ExprKind::All { within, except } => {
-                write!(f, "{within}.![")?;
-                for e in except {
-                    write!(f, "{e},")?;
-                }
-                f.write_str("]")?;
-            }
-            ExprKind::Pipeline(pipeline) => {
-                f.write_char('(')?;
-                match pipeline.exprs.len() {
-                    0 => {}
-                    1 => {
-                        write!(f, "{}", pipeline.exprs[0])?;
-                        for node in &pipeline.exprs[1..] {
-                            write!(f, " | {}", node)?;
-                        }
-                    }
-                    _ => {
-                        writeln!(f, "\n  {}", pipeline.exprs[0])?;
-                        for node in &pipeline.exprs[1..] {
-                            writeln!(f, "  {}", node)?;
-                        }
-                    }
-                }
-                f.write_char(')')?;
-            }
-            ExprKind::List(nodes) => {
-                if nodes.is_empty() {
-                    f.write_str("[]")?;
-                } else if nodes.len() == 1 {
-                    write!(f, "[{}]", nodes[0])?;
-                } else {
-                    f.write_str("[\n")?;
-                    for li in nodes {
-                        writeln!(f, "  {},", li)?;
-                    }
-                    f.write_str("]")?;
-                }
-            }
-            ExprKind::Range(r) => {
-                if let Some(start) = &r.start {
-                    write!(f, "{}", start)?;
-                }
-                f.write_str("..")?;
-                if let Some(end) = &r.end {
-                    write!(f, "{}", end)?;
-                }
-            }
-            ExprKind::Binary { op, left, right } => {
-                match left.kind {
-                    ExprKind::FuncCall(_) => write!(f, "( {} )", left)?,
-                    _ => write!(f, "{}", left)?,
-                };
-                write!(f, " {op} ")?;
-                match right.kind {
-                    ExprKind::FuncCall(_) => write!(f, "( {} )", right)?,
-                    _ => write!(f, "{}", right)?,
-                };
-            }
-            ExprKind::Unary { op, expr } => match op {
-                UnOp::Neg => write!(f, "-{}", expr)?,
-                UnOp::Add => write!(f, "+{}", expr)?,
-                UnOp::Not => write!(f, "not {}", expr)?,
-                UnOp::EqSelf => write!(f, "=={}", expr)?,
-            },
-            ExprKind::FuncCall(func_call) => {
-                write!(f, "{:}", func_call.name)?;
-
-                for (name, arg) in &func_call.named_args {
-                    write!(f, " {name}:{}", arg)?;
-                }
-                for arg in &func_call.args {
-                    match arg.kind {
-                        ExprKind::FuncCall(_) => {
-                            writeln!(f, " (")?;
-                            writeln!(f, "  {}", arg)?;
-                            f.write_char(')')?;
-                        }
-
-                        _ => {
-                            write!(f, " {}", arg)?;
-                        }
-                    }
-                }
-            }
-            ExprKind::Closure(c) => {
-                write!(
-                    f,
-                    "<closure over `{}` with {}/{} args>",
-                    &c.body,
-                    c.args.len(),
-                    c.params.len()
-                )?;
-            }
-            ExprKind::SString(parts) => {
-                display_interpolation(f, "s", parts)?;
-            }
-            ExprKind::FString(parts) => {
-                display_interpolation(f, "f", parts)?;
-            }
-            ExprKind::TransformCall(transform) => {
-                writeln!(f, "{} <unimplemented>", (*transform.kind).as_ref())?;
-            }
-            ExprKind::Literal(literal) => {
-                write!(f, "{}", literal)?;
-            }
-            ExprKind::Case(cases) => {
-                f.write_str("case [\n")?;
-                for case in cases {
-                    writeln!(f, "  {} => {}", case.condition, case.value)?;
-                }
-                f.write_str("]")?;
-            }
-            ExprKind::BuiltInFunction { .. } => {
-                f.write_str("<built-in>")?;
-            }
-            ExprKind::Set(_) => {
-                writeln!(f, "<set-expr>")?;
-            }
-            ExprKind::Param(id) => {
-                writeln!(f, "${id}")?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-fn display_interpolation(
-    f: &mut std::fmt::Formatter,
-    prefix: &str,
-    parts: &[InterpolateItem],
-) -> Result<(), std::fmt::Error> {
-    f.write_str(prefix)?;
-    f.write_char('"')?;
-    for part in parts {
-        match &part {
-            InterpolateItem::String(s) => write!(f, "{s}")?,
-            InterpolateItem::Expr(e) => write!(f, "{{{e}}}")?,
-        }
-    }
-    f.write_char('"')?;
-    Ok(())
 }

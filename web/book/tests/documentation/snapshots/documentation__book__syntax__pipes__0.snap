@@ -1,0 +1,12 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nfilter department == \"Product\"\nselect {first_name, last_name}\n"
+---
+SELECT
+  first_name,
+  last_name
+FROM
+  employees
+WHERE
+  department = 'Product'
+
