@@ -287,8 +287,8 @@ impl ErrorMessage {
         cache: &mut FileTreeCache,
         color: bool,
     ) -> Option<String> {
-        // TOOD: Ideally we would remove passing `color` down completely, and
-        // rely on the gloabl env & anstream's filtering.
+        // TODO: Ideally we would remove passing `color` down completely, and
+        // rely on the global env & anstream's filtering.
         let color = match anstream::ColorChoice::global() {
             anstream::ColorChoice::Always => true,
             anstream::ColorChoice::Never => false,
