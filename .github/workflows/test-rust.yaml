@@ -54,21 +54,25 @@ jobs:
         with:
           command: test
           args: ${{ inputs.target_option }} --all-features --no-run --locked
-        # v2.18.0 breaks; we can remove when the latest version on the runners is v2.18.1
-      - name: Update docker compose
-        run:
-          sudo apt-get update && sudo apt-get install -y docker-compose-plugin
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: Run docker compose
-        run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-      - name: Wait for database
-        uses: ifaxity/wait-on-action@v1
-        with:
-          resource: "tcp:5432 tcp:3306 tcp:1433"
-          timeout: 60000
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+      # `docker compose` doesn't work, so excluding the test until the latest
+      # version is released to GH runners.
+      #
+      #   # v2.18.0 breaks; we can remove when the latest version on the runners is v2.18.1
+      # - name: Update docker compose
+      #   run:
+      #     sudo apt-get update && sudo apt-get install -y docker-compose-plugin
+
+      #   if: ${{ inputs.os == 'ubuntu-latest' }}
+      # - name: Run docker compose
+      #   run: docker compose up -d
+      #   working-directory: ./prql-compiler/tests/integration
+      #   if: ${{ inputs.os == 'ubuntu-latest' }}
+      # - name: Wait for database
+      #   uses: ifaxity/wait-on-action@v1
+      #   with:
+      #     resource: "tcp:5432 tcp:3306 tcp:1433"
+      #     timeout: 60000
+      #   if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -79,5 +83,9 @@ jobs:
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
             test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
-            inputs.os == 'ubuntu-latest' && '--unreferenced=auto
-            --features=test-external-dbs' || '' }}
+            inputs.os == 'ubuntu-latest' && '--unreferenced=auto' || '' }}
+
+          # Without docker compose exclusions:
+          # test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
+          # inputs.os == 'ubuntu-latest' && '--unreferenced=auto
+          # --features=test-external-dbs' || '' }}
