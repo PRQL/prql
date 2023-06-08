@@ -16,7 +16,7 @@ then, we'll only add functions here that are broadly supported by most DBs.
 Here's the source of the current
 [PRQL `std`](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/std.prql):
 
-```prql_no_test
+```prql no-eval
 {{#include ../../../../../prql-compiler/src/semantic/std.prql}}
 ```
 
@@ -24,9 +24,9 @@ And a couple of examples:
 
 ```prql
 from employees
-derive [
+derive {
   gross_salary = (salary + payroll_tax | as int),
   gross_salary_rounded = (gross_salary | round 0),
   time = s"NOW()",  # an s-string, given no `now` function exists in PRQL
-]
+}
 ```

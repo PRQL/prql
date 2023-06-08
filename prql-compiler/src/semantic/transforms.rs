@@ -7,62 +7,57 @@ use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
-use super::module::{Module, NS_FRAME, NS_PARAM};
+use super::module::Module;
 use super::resolver::Resolver;
-use super::{Context, Frame};
+use super::{Context, Lineage};
+use super::{NS_FRAME, NS_PARAM};
 
 /// try to convert function call with enough args into transform
-pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
-    let name = closure.name.as_ref().filter(|n| !n.name.contains('.'));
-    let name = if let Some(name) = name {
-        name.to_string()
-    } else {
-        return Ok(Err(closure));
-    };
+pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
+    let internal_name = closure.body.kind.as_internal().unwrap();
 
-    let (kind, input) = match name.as_str() {
-        "std.from" => {
+    let (kind, input) = match internal_name.as_str() {
+        "from" => {
             let [source] = unpack::<1>(closure);
 
-            return Ok(Ok(source));
+            return Ok(source);
         }
-        "std.select" => {
+        "select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_and_flatten(assigns)?;
+            let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
-        "std.filter" => {
+        "filter" => {
             let [filter, tbl] = unpack::<2>(closure);
 
             let filter = Box::new(filter);
             (TransformKind::Filter { filter }, tbl)
         }
-        "std.derive" => {
+        "derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_and_flatten(assigns)?;
+            let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
-        "std.aggregate" => {
+        "aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_and_flatten(assigns)?;
+            let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
-        "std.sort" => {
+        "sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = coerce_and_flatten(by)?
+            let by = coerce_into_tuple_and_flatten(by)?
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
-                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
-                            (*expr, SortDirection::Desc)
+                        ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
+                            (args.remove(0), SortDirection::Desc)
                         }
                         _ => (node, SortDirection::default()),
                     };
@@ -73,7 +68,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             (TransformKind::Sort { by }, tbl)
         }
-        "std.take" => {
+        "take" => {
             let [expr, tbl] = unpack::<2>(closure);
 
             let range = match expr.kind {
@@ -94,7 +89,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             (TransformKind::Take { range }, tbl)
         }
-        "std.join" => {
+        "join" => {
             let [side, with, filter, tbl] = unpack::<4>(closure);
 
             let side = {
@@ -115,22 +110,22 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(coerce_and_flatten(filter)?));
-
+            let filter = Box::new(filter);
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
         }
-        "std.group" => {
+        "group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = coerce_and_flatten(by)?;
+            let by = coerce_into_tuple_and_flatten(by)?;
 
-            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
 
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
         }
-        "std.window" => {
+        "window" => {
             let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
 
             let expanding = {
@@ -178,7 +173,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
 
             let transform_kind = TransformKind::Window {
                 kind,
@@ -187,20 +183,21 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
-        "std.append" => {
+        "append" => {
             let [bottom, top] = unpack::<2>(closure);
 
             (TransformKind::Append(Box::new(bottom)), top)
         }
-        "std.loop" => {
+        "loop" => {
             let [pipeline, tbl] = unpack::<2>(closure);
 
-            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
 
             (TransformKind::Loop(Box::new(pipeline)), tbl)
         }
 
-        "std.in" => {
+        "in" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [pattern, value] = unpack::<2>(closure);
@@ -225,12 +222,12 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                     let res = new_binop(start, BinOp::And, end);
                     let res = res
                         .unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
-                    return Ok(Ok(res));
+                    return Ok(res);
                 }
-                ExprKind::List(_) => {
+                ExprKind::Tuple(_) => {
                     // TODO: should translate into `value IN (...)`
                     //   but RQ currently does not support sub queries or
-                    //   even expressions that evaluate to a list.
+                    //   even expressions that evaluate to a tuple.
                 }
                 _ => {}
             }
@@ -243,11 +240,11 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             .into());
         }
 
-        "std.all" => {
+        "all" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
-            let list = list.kind.into_list().unwrap();
+            let list = list.kind.into_tuple().unwrap();
 
             let mut res = None;
             for item in list {
@@ -255,59 +252,58 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             }
             let res = res.unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
 
-            return Ok(Ok(res));
+            return Ok(res);
         }
 
-        "std.map" => {
+        "map" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [func, list] = unpack::<2>(closure);
-            let list_items = list.kind.into_list().unwrap();
+            let list_items = list.kind.into_tuple().unwrap();
 
             let list_items = list_items
                 .into_iter()
                 .map(|item| {
-                    Expr::from(ExprKind::FuncCall(FuncCall {
-                        name: Box::new(func.clone()),
-                        args: vec![item],
-                        named_args: HashMap::new(),
-                    }))
+                    Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                        func.clone(),
+                        vec![item],
+                    )))
                 })
                 .collect_vec();
 
-            return Ok(Ok(Expr {
-                kind: ExprKind::List(list_items),
+            return Ok(Expr {
+                kind: ExprKind::Tuple(list_items),
                 ..list
-            }));
+            });
         }
 
-        "std.zip" => {
+        "zip" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [a, b] = unpack::<2>(closure);
-            let a = a.kind.into_list().unwrap();
-            let b = b.kind.into_list().unwrap();
+            let a = a.kind.into_tuple().unwrap();
+            let b = b.kind.into_tuple().unwrap();
 
             let mut res = Vec::new();
             for (a, b) in std::iter::zip(a, b) {
-                res.push(Expr::from(ExprKind::List(vec![a, b])));
+                res.push(Expr::from(ExprKind::Tuple(vec![a, b])));
             }
 
-            return Ok(Ok(Expr::from(ExprKind::List(res))));
+            return Ok(Expr::from(ExprKind::Tuple(res)));
         }
 
-        "std._eq" => {
+        "_eq" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
-            let list = list.kind.into_list().unwrap();
+            let list = list.kind.into_tuple().unwrap();
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
             let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
-            return Ok(Ok(res));
+            return Ok(res);
         }
 
-        "std.from_text" => {
+        "from_text" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [format, text_expr] = unpack::<2>(closure);
@@ -346,36 +342,45 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let input = FrameInput {
-                id: text_expr.id.unwrap(),
-                name: text_expr.alias.unwrap_or_else(|| "text".to_string()),
-                table: None,
-            };
+            let expr_id = text_expr.id.unwrap();
+            let input_name = text_expr.alias.unwrap_or_else(|| "text".to_string());
 
-            let columns = res
+            let columns: Vec<_> = res
                 .columns
                 .iter()
-                .map(|name| FrameColumn::Single {
-                    name: Some(Ident::from_name(name)),
-                    expr_id: input.id,
-                })
+                .cloned()
+                .map(|x| TupleField::Single(Some(x), None))
                 .collect();
 
-            let frame = Frame {
-                columns,
-                inputs: vec![input],
-                ..Default::default()
-            };
-            let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
+            let frame =
+                resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
+
+            let res = Expr::from(ExprKind::Array(
+                res.rows
+                    .into_iter()
+                    .map(|row| {
+                        Expr::from(ExprKind::Tuple(
+                            row.into_iter()
+                                .map(|lit| Expr::from(ExprKind::Literal(lit)))
+                                .collect(),
+                        ))
+                    })
+                    .collect(),
+            ));
             let res = Expr {
-                ty: Some(Ty::Table(frame)),
+                lineage: Some(frame),
                 id: text_expr.id,
                 ..res
             };
-            return Ok(Ok(res));
+            return Ok(res);
         }
 
-        _ => return Ok(Err(closure)),
+        _ => {
+            return Err(Error::new_simple("unknown operator {internal_name}")
+                .push_hint("this is a bug in prql-compiler")
+                .with_span(closure.body.span)
+                .into())
+        }
     };
 
     let transform_call = TransformCall {
@@ -385,20 +390,20 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         frame: WindowFrame::default(),
         sort: Vec::new(),
     };
-    Ok(Ok(Expr::from(ExprKind::TransformCall(transform_call))))
+    Ok(Expr::from(ExprKind::TransformCall(transform_call)))
 }
 
-/// Wraps non-list Exprs into a singleton List.
+/// Wraps non-tuple Exprs into a singleton Tuple.
 // This function should eventually be applied to all function arguments that
-// expect a list.
-pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
+// expect a tuple.
+pub fn coerce_into_tuple(expr: Expr) -> Result<Vec<Expr>> {
     Ok(match expr.kind {
-        ExprKind::List(items) => {
+        ExprKind::Tuple(items) => {
             if let Some(alias) = expr.alias {
                 bail!(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`")
                 })
-                .with_help(format!("move assign into the list: `[{alias} = ...]`"))
+                .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
                 .with_span(expr.span))
             }
             items
@@ -408,15 +413,15 @@ pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
 }
 
 /// Converts `a` into `[a]` and `[b, [c, d]]` into `[b, c, d]`.
-pub fn coerce_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
-    let items = coerce_into_vec(expr)?;
+pub fn coerce_into_tuple_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
+    let items = coerce_into_tuple(expr)?;
     let mut res = Vec::with_capacity(items.len());
     for item in items {
-        res.extend(coerce_into_vec(item)?);
+        res.extend(coerce_into_tuple(item)?);
     }
     let mut res2 = Vec::with_capacity(res.len());
     for item in res {
-        res2.extend(coerce_into_vec(item)?);
+        res2.extend(coerce_into_tuple(item)?);
     }
     Ok(res2)
 }
@@ -426,7 +431,7 @@ pub fn coerce_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
 fn fold_by_simulating_eval(
     resolver: &mut Resolver,
     pipeline: Expr,
-    val_type: Ty,
+    val_lineage: Lineage,
 ) -> Result<Expr, anyhow::Error> {
     log::debug!("fold by simulating evaluation");
 
@@ -441,13 +446,12 @@ fn fold_by_simulating_eval(
     // chunk and instruct resolver to apply the transform on that.
 
     let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.ty = Some(val_type);
+    dummy.lineage = Some(val_lineage);
 
-    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
-        name: Box::new(pipeline),
-        args: vec![dummy],
-        named_args: Default::default(),
-    }));
+    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+        pipeline,
+        vec![dummy],
+    )));
 
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
     resolver.context.root_mod.stack_push(NS_PARAM, env);
@@ -463,13 +467,13 @@ fn fold_by_simulating_eval(
     // let mut tbl_node = extract_ref_to_first(&mut pipeline);
     // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
 
-    let pipeline = Expr::from(ExprKind::Closure(Box::new(Closure {
-        name: None,
+    let pipeline = Expr::from(ExprKind::Func(Box::new(Func {
+        name_hint: None,
         body: Box::new(pipeline),
-        body_ty: None,
+        return_ty: None,
 
         args: vec![],
-        params: vec![ClosureParam {
+        params: vec![FuncParam {
             name: param_id.to_string(),
             ty: None,
             default_value: None,
@@ -482,14 +486,12 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, context: &Context) -> Result<Frame> {
+    pub fn infer_type(&self, context: &Context) -> Result<Lineage> {
         use TransformKind::*;
 
-        fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
-            expr.ty
-                .as_ref()
-                .and_then(|t| t.as_table())
-                .cloned()
+        fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
+            expr.lineage
+                .clone()
                 .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
         }
 
@@ -509,9 +511,9 @@ impl TransformCall {
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+                let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                let mut frame = body.ty.clone().unwrap().into_table().unwrap();
+                let mut frame = body.lineage.clone().unwrap();
 
                 log::debug!("inferring type of group with pipeline: {body}");
 
@@ -534,9 +536,9 @@ impl TransformCall {
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+                let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                body.ty.clone().unwrap().into_table().unwrap()
+                body.lineage.clone().unwrap()
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
@@ -561,18 +563,18 @@ impl TransformCall {
     }
 }
 
-fn join(mut lhs: Frame, rhs: Frame) -> Frame {
+fn join(mut lhs: Lineage, rhs: Lineage) -> Lineage {
     lhs.columns.extend(rhs.columns);
     lhs.inputs.extend(rhs.inputs);
     lhs
 }
 
-fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
     if top.columns.len() != bottom.columns.len() {
         return Err(Error::new_simple(
             "cannot append two relations with non-matching number of columns.",
         ))
-        .with_help(format!(
+        .push_hint(format!(
             "top has {} columns, but bottom has {}",
             top.columns.len(),
             bottom.columns.len()
@@ -583,29 +585,38 @@ fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (FrameColumn::All { input_name, except }, FrameColumn::All { .. }) => {
-                FrameColumn::All { input_name, except }
+            (LineageColumn::All { input_name, except }, LineageColumn::All { .. }) => {
+                LineageColumn::All { input_name, except }
             }
             (
-                FrameColumn::Single {
+                LineageColumn::Single {
                     name: name_t,
-                    expr_id,
+                    target_id,
+                    target_name,
                 },
-                FrameColumn::Single { name: name_b, .. },
+                LineageColumn::Single { name: name_b, .. },
             ) => match (name_t, name_b) {
                 (None, None) => {
                     let name = None;
-                    FrameColumn::Single { name, expr_id }
+                    LineageColumn::Single {
+                        name,
+                        target_id,
+                        target_name,
+                    }
                 }
                 (None, Some(name)) | (Some(name), _) => {
                     let name = Some(name);
-                    FrameColumn::Single { name, expr_id }
+                    LineageColumn::Single {
+                        name,
+                        target_id,
+                        target_name,
+                    }
                 }
             },
             (t, b) => return Err(Error::new_simple(format!(
                 "cannot match columns `{t:?}` and `{b:?}`"
             ))
-            .with_help(
+            .push_hint(
                 "make sure that top and bottom relations of append has the same column layout",
             )),
         });
@@ -615,13 +626,14 @@ fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     Ok(top)
 }
 
-impl Frame {
+impl Lineage {
     pub fn clear(&mut self) {
         self.prev_columns.clear();
         self.prev_columns.append(&mut self.columns);
     }
 
     pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
+        // spacial case: all except
         if let ExprKind::All { except, .. } = &expr.kind {
             let except_exprs: HashSet<&usize> =
                 except.iter().flat_map(|e| e.target_id.iter()).collect();
@@ -629,19 +641,24 @@ impl Frame {
                 except.iter().flat_map(|e| e.target_ids.iter()).collect();
 
             for target_id in &expr.target_ids {
-                match self.inputs.iter().find(|i| i.id == *target_id) {
+                let target_input = self.inputs.iter().find(|i| i.id == *target_id);
+                match target_input {
                     Some(input) => {
+                        // include all of the input's columns
                         if except_inputs.contains(target_id) {
                             continue;
                         }
                         self.columns.extend(input.get_all_columns(except, context));
                     }
                     None => {
+                        // include the column with if target_id
                         if except_exprs.contains(target_id) {
                             continue;
                         }
                         let prev_col = self.prev_columns.iter().find(|c| match c {
-                            FrameColumn::Single { expr_id, .. } => expr_id == target_id,
+                            LineageColumn::Single {
+                                target_id: expr_id, ..
+                            } => expr_id == target_id,
                             _ => false,
                         });
                         self.columns.extend(prev_col.cloned());
@@ -651,6 +668,7 @@ impl Frame {
             return;
         }
 
+        // base case: append the column into the frame
         let id = expr.id.unwrap();
 
         let alias = expr.alias.as_ref();
@@ -661,7 +679,7 @@ impl Frame {
         // remove names from columns with the same name
         if name.is_some() {
             for c in &mut self.columns {
-                if let FrameColumn::Single { name: n, .. } = c {
+                if let LineageColumn::Single { name: n, .. } = c {
                     if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
                         *n = None;
                     }
@@ -669,7 +687,11 @@ impl Frame {
             }
         }
 
-        self.columns.push(FrameColumn::Single { name, expr_id: id });
+        self.columns.push(LineageColumn::Single {
+            name,
+            target_id: id,
+            target_name: None,
+        });
     }
 
     pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
@@ -678,7 +700,7 @@ impl Frame {
         }
     }
 
-    pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
+    pub fn find_input(&self, input_name: &str) -> Option<&LineageInput> {
         self.inputs.iter().find(|i| i.name == input_name)
     }
 
@@ -690,8 +712,8 @@ impl Frame {
 
         for col in &mut self.columns {
             match col {
-                FrameColumn::All { input_name, .. } => *input_name = alias.clone(),
-                FrameColumn::Single {
+                LineageColumn::All { input_name, .. } => *input_name = alias.clone(),
+                LineageColumn::Single {
                     name: Some(name), ..
                 } => name.path = vec![alias.clone()],
                 _ => {}
@@ -700,14 +722,16 @@ impl Frame {
     }
 }
 
-impl FrameInput {
-    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
-        let rel_def = context.root_mod.get(self.table.as_ref().unwrap()).unwrap();
+impl LineageInput {
+    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<LineageColumn> {
+        let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
-        let has_wildcard = rel_def
-            .columns
-            .iter()
-            .any(|c| matches!(c, RelationColumn::Wildcard));
+
+        // TODO: can this panic?
+        let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
+
+        // special case: wildcard
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
         if has_wildcard {
             // Relation has a wildcard (i.e. we don't know all the columns)
             // which means we cannot list all columns.
@@ -727,35 +751,36 @@ impl FrameInput {
                 .map(|i| i.name.clone())
                 .collect();
 
-            vec![FrameColumn::All {
+            return vec![LineageColumn::All {
                 input_name: self.name.clone(),
                 except,
-            }]
-        } else {
-            rel_def
-                .columns
-                .iter()
-                .map(|col| {
-                    let name = col.as_single().unwrap().clone().map(Ident::from_name);
-                    FrameColumn::Single {
-                        name,
-                        expr_id: self.id,
-                    }
-                })
-                .collect_vec()
+            }];
         }
+
+        // base case: convert rel_def into frame columns
+        columns
+            .iter()
+            .map(|col| {
+                let name = col.as_single().unwrap().0.clone().map(Ident::from_name);
+                LineageColumn::Single {
+                    name,
+                    target_id: self.id,
+                    target_name: None,
+                }
+            })
+            .collect_vec()
     }
 }
 
 // Expects closure's args to be resolved.
 // Note that named args are before positional args, in order of declaration.
-fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
+fn unpack<const P: usize>(closure: Func) -> [Expr; P] {
     closure.args.try_into().expect("bad transform cast")
 }
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
 /// Sets partition, window and sort of [TransformCall].
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Flattener {
     /// Sort affects downstream transforms in a pipeline.
     /// Because transform pipelines are represented by nested [TransformCall]s,
@@ -779,7 +804,7 @@ pub struct Flattener {
     /// Window and group contain Closures in their inner pipelines.
     /// These closures have form similar to this function:
     /// ```prql
-    /// func closure tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
+    /// let closure = tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
     /// ```
     /// To flatten a window or group, we need to replace group/window transform
     /// with their closure's body and replace `tbl_chunk` with pipeline
@@ -828,7 +853,7 @@ impl AstFold for Flattener {
 
                         let input = self.fold_expr(*t.input)?;
 
-                        let pipeline = pipeline.kind.into_closure().unwrap();
+                        let pipeline = pipeline.kind.into_func().unwrap();
 
                         let table_param = &pipeline.params[0];
                         let param_id = table_param.name.parse::<usize>().unwrap();
@@ -846,6 +871,7 @@ impl AstFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
+                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -855,7 +881,7 @@ impl AstFold for Flattener {
                         pipeline,
                     } => {
                         let tbl = self.fold_expr(*t.input)?;
-                        let pipeline = pipeline.kind.into_closure().unwrap();
+                        let pipeline = pipeline.kind.into_func().unwrap();
 
                         let table_param = &pipeline.params[0];
                         let param_id = table_param.name.parse::<usize>().unwrap();
@@ -870,6 +896,7 @@ impl AstFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
+                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -914,7 +941,6 @@ mod from_text {
             columns: parse_header(rdr.headers()?),
             rows: rdr
                 .records()
-                .into_iter()
                 .map(|row_result| row_result.map(parse_row))
                 .try_collect()?,
         })
@@ -1001,24 +1027,19 @@ mod from_text {
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::parser::parse;
-    use crate::semantic::{resolve, resolve_only};
+    use crate::semantic::test::parse_resolve_and_lower;
 
     #[test]
     fn test_aggregate_positional_arg() {
         // distinct query #292
-        let query = parse(
-            "
+
+        assert_yaml_snapshot!(parse_resolve_and_lower("
         from c_invoice
         select invoice_no
         group invoice_no (
             take 1
         )
-        ",
-        )
-        .unwrap();
-        let result = resolve(query).unwrap();
-        assert_yaml_snapshot!(result, @r###"
+        ").unwrap(), @r###"
         ---
         def:
           version: ~
@@ -1028,7 +1049,8 @@ mod tests {
             name: ~
             relation:
               kind:
-                ExternRef: c_invoice
+                ExternRef:
+                  - c_invoice
               columns:
                 - Single: invoice_no
                 - Wildcard
@@ -1063,29 +1085,25 @@ mod tests {
         "###);
 
         // oops, two arguments #339
-        let query = parse(
+        let result = parse_resolve_and_lower(
             "
         from c_invoice
         aggregate average amount
         ",
-        )
-        .unwrap();
-        let result = resolve(query);
+        );
         assert!(result.is_err());
 
         // oops, two arguments
-        let query = parse(
+        let result = parse_resolve_and_lower(
             "
         from c_invoice
         group issued_at (aggregate average amount)
         ",
-        )
-        .unwrap();
-        let result = resolve(query);
+        );
         assert!(result.is_err());
 
         // correct function call
-        let query = parse(
+        let ctx = crate::semantic::test::parse_and_resolve(
             "
         from c_invoice
         group issued_at (
@@ -1094,90 +1112,22 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve_only(query, None).unwrap();
-        assert_yaml_snapshot!(result, @r###"
-        ---
-        - Main:
-            id: 28
-            TransformCall:
-              input:
-                id: 6
-                Ident:
-                  - default_db
-                  - c_invoice
-                ty:
-                  Table:
-                    columns:
-                      - All:
-                          input_name: c_invoice
-                          except: []
-                    inputs:
-                      - id: 6
-                        name: c_invoice
-                        table:
-                          - default_db
-                          - c_invoice
-              kind:
-                Aggregate:
-                  assigns:
-                    - id: 22
-                      BuiltInFunction:
-                        name: std.average
-                        args:
-                          - id: 27
-                            Ident:
-                              - _frame
-                              - c_invoice
-                              - amount
-                            target_id: 6
-                            ty: Infer
-                      ty:
-                        SetExpr:
-                          Primitive: Column
-              partition:
-                - id: 12
-                  Ident:
-                    - _frame
-                    - c_invoice
-                    - issued_at
-                  target_id: 6
-                  ty: Infer
-            ty:
-              Table:
-                columns:
-                  - Single:
-                      name:
-                        - c_invoice
-                        - issued_at
-                      expr_id: 12
-                  - Single:
-                      name: ~
-                      expr_id: 22
-                inputs:
-                  - id: 6
-                    name: c_invoice
-                    table:
-                      - default_db
-                      - c_invoice
-        "###);
+        let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
+        let expr = res.clone().into_relation_var().unwrap();
+        let expr = super::super::resolver::test::erase_ids(*expr);
+        assert_yaml_snapshot!(expr);
     }
 
     #[test]
     fn test_transform_sort() {
-        let query = parse(
-            "
+        assert_yaml_snapshot!(parse_resolve_and_lower("
         from invoices
-        sort [issued_at, -amount, +num_of_articles]
+        sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)
-        sort [issued_at]
-        sort [-issued_at]
-        ",
-        )
-        .unwrap();
-
-        let result = resolve(query).unwrap();
-        assert_yaml_snapshot!(result, @r###"
+        sort {issued_at}
+        sort {-issued_at}
+        ").unwrap(), @r###"
         ---
         def:
           version: ~
@@ -1187,7 +1137,8 @@ mod tests {
             name: ~
             relation:
               kind:
-                ExternRef: invoices
+                ExternRef:
+                  - invoices
               columns:
                 - Single: issued_at
                 - Single: amount

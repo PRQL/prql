@@ -41,7 +41,7 @@
 //!     ```
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
 //!     let sql = prql_compiler::compile(
-//!         "from albums | select [title, artist_id]",
+//!         "from albums | select {title, artist_id}",
 //!          &prql_compiler::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
@@ -54,7 +54,7 @@
 //!     Use `prql-compiler-macros` crate (unreleased), which can be used like
 //!     this:
 //!     ```ignore
-//!     let sql: &str = prql_to_sql!("from albums | select [title, artist_id]");
+//!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
 //! - ... compile .prql files to .sql files at build time.
@@ -78,23 +78,29 @@
 #![allow(clippy::result_large_err)]
 
 pub mod ast;
+mod codegen;
 mod error;
 mod parser;
 pub mod semantic;
 pub mod sql;
 #[cfg(test)]
-mod test;
+mod tests;
 mod utils;
 
-pub use error::{downcast, Error, ErrorMessage, ErrorMessages, Reason, SourceLocation, Span};
+pub use error::{
+    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation, Span,
+};
 
 use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use strum::VariantNames;
+use utils::IdGenerator;
 
-pub static PRQL_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
+pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
+    Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prql-compiler version number")
+});
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -108,11 +114,12 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// ```
 /// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from employees | select [name,age]";
+/// let prql = "from employees | select {name,age}";
 /// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
-///     signature_comment: false
+///     signature_comment: false,
+///     color: false,
 /// };
 /// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
@@ -121,11 +128,14 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
-    parser::parse(prql)
-        .and_then(semantic::resolve)
+    let mut sources = SourceTree::from(prql);
+    semantic::load_std_lib(&mut sources);
+
+    parser::parse(&sources)
+        .and_then(|ast| semantic::resolve_and_lower(ast, &[]))
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed(&prql.into(), options.color))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -144,8 +154,8 @@ impl Target {
     pub fn names() -> Vec<String> {
         let mut names = vec!["sql.any".to_string()];
 
-        let dialects = sql::Dialect::names();
-        names.extend(dialects.into_iter().map(|d| format!("sql.{d}")));
+        let dialects = sql::Dialect::VARIANTS;
+        names.extend(dialects.iter().map(|d| format!("sql.{d}")));
 
         names
     }
@@ -188,6 +198,9 @@ pub struct Options {
     ///
     /// Defaults to true.
     pub signature_comment: bool,
+
+    /// Whether to use ANSI colors in error messages.
+    pub color: bool,
 }
 
 impl Default for Options {
@@ -196,6 +209,7 @@ impl Default for Options {
             format: true,
             target: Target::Sql(None),
             signature_comment: true,
+            color: false,
         }
     }
 }
@@ -203,6 +217,11 @@ impl Default for Options {
 impl Options {
     pub fn no_format(mut self) -> Self {
         self.format = false;
+        self
+    }
+
+    pub fn with_signature_comment(mut self, signature_comment: bool) -> Self {
+        self.signature_comment = signature_comment;
         self
     }
 
@@ -216,8 +235,9 @@ impl Options {
         self
     }
 
-    pub fn some(self) -> Option<Self> {
-        Some(self)
+    pub fn with_color(mut self, color: bool) -> Self {
+        self.color = color;
+        self
     }
 }
 
@@ -227,24 +247,43 @@ pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+    let sources = SourceTree::from(prql);
+
+    parser::parse(&sources)
+        .map(|x| x.sources.into_values().next().unwrap())
+        .map_err(error::downcast)
+        .map_err(|e| e.composed(&prql.into(), false))
+}
+
+/// Parse PRQL into a PL AST
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
-        .map_err(|e| e.composed("", prql, false))
+        .map_err(|e| e.composed(prql, false))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve(pl).map_err(|e| e.into())
+    let source_tree = SourceTree::single(PathBuf::new(), pl);
+    semantic::resolve_and_lower(source_tree, &[]).map_err(error::downcast)
+}
+
+/// Perform semantic analysis and convert PL to RQ.
+pub fn pl_to_rq_tree(
+    pl: SourceTree<Vec<ast::pl::Stmt>>,
+    main_path: &[String],
+) -> Result<ast::rq::Query, ErrorMessages> {
+    semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(|e| e.into())
+    sql::compile(rq, options).map_err(error::downcast)
 }
 
 /// Generate PRQL code from PL AST
 pub fn pl_to_prql(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
-    Ok(format!("{}", ast::pl::Statements(pl)))
+    Ok(codegen::write(&pl))
 }
 
 /// JSON serialization and deserialization functions
@@ -272,8 +311,56 @@ pub mod json {
     }
 }
 
+/// All paths are relative to the project root.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct SourceTree<T: Sized + Serialize = String> {
+    /// Mapping from file ids into their contents.
+    pub sources: HashMap<PathBuf, T>,
+
+    /// Index of source ids to paths. Used to keep [error::Span] lean.
+    source_ids: HashMap<usize, PathBuf>,
+}
+
+impl<T: Sized + Serialize> SourceTree<T> {
+    pub fn single(path: PathBuf, content: T) -> Self {
+        SourceTree {
+            sources: [(path.clone(), content)].into(),
+            source_ids: [(1, path)].into(),
+        }
+    }
+
+    pub fn new<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (PathBuf, T)>,
+    {
+        let mut id_gen = IdGenerator::new();
+        let mut res = SourceTree {
+            sources: HashMap::new(),
+            source_ids: HashMap::new(),
+        };
+
+        for (path, content) in iter {
+            res.sources.insert(path.clone(), content);
+            res.source_ids.insert(id_gen.gen(), path);
+        }
+        res
+    }
+
+    pub fn insert(&mut self, path: PathBuf, content: T) {
+        let last_id = self.source_ids.keys().max().cloned().unwrap_or(0);
+        self.sources.insert(path.clone(), content);
+        self.source_ids.insert(last_id + 1, path);
+    }
+}
+
+impl<S: ToString> From<S> for SourceTree {
+    fn from(source: S) -> Self {
+        SourceTree::single(std::path::Path::new("").to_path_buf(), source.to_string())
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod tests_lib {
     use crate::Target;
     use insta::assert_debug_snapshot;
     use std::str::FromStr;
@@ -284,7 +371,7 @@ mod tests {
         Ok(
             Sql(
                 Some(
-                    PostgreSql,
+                    Postgres,
                 ),
             ),
         )
@@ -293,12 +380,13 @@ mod tests {
         assert_debug_snapshot!(Target::from_str("sql.poostgres"), @r###"
         Err(
             Error {
+                kind: Error,
                 span: None,
                 reason: NotFound {
                     name: "\"sql.poostgres\"",
                     namespace: "target",
                 },
-                help: None,
+                hints: [],
                 code: None,
             },
         )
@@ -307,15 +395,25 @@ mod tests {
         assert_debug_snapshot!(Target::from_str("postgres"), @r###"
         Err(
             Error {
+                kind: Error,
                 span: None,
                 reason: NotFound {
                     name: "\"postgres\"",
                     namespace: "target",
                 },
-                help: None,
+                hints: [],
                 code: None,
             },
         )
         "###);
+    }
+
+    /// Confirm that all target names can be parsed.
+    #[test]
+    fn test_target_names() {
+        let _: Vec<_> = Target::names()
+            .into_iter()
+            .map(|name| Target::from_str(&name))
+            .collect();
     }
 }

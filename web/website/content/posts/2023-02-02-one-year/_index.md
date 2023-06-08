@@ -30,7 +30,7 @@ Language design & development in the last year have been focused on these areas:
   pipelines are [evaluated](#define-functional-semantics).
 
 - small quality-of-life language features (e.g. syntax for
-  [f-strings, dates, coalesce operator](https://prql-lang.org/book/syntax.html),
+  [f-strings, dates, coalesce operator](https://prql-lang.org/book/syntax/index.html),
   [case](https://github.com/PRQL/prql/issues/504)),
 
 PRQL is now in a state where it can greatly improve the developer experience for
@@ -99,7 +99,7 @@ invite you to read more in
 [the language documentation](https://prql-lang.org/book/internals/functional-lang.html).
 
 ```prql
-func take_oldest n rel -> (
+let take_oldest = n rel -> (
     rel
     sort [-invoice_date]
     take n

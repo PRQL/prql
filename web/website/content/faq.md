@@ -6,23 +6,28 @@ Here are some of the most common questions we hear. Have something else you'd
 like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask
 away!
 
-{{< faq "Cool story Hansel, but what can I actually do with PRQL now?" >}}
+{{< faq "Cool story Hansel, but what can I actually do with PRQL _now_?" >}}
 
-We're still early, and the opportunities for using PRQL are focused on two
-integrations:
+PRQL is ready to use by the intrepid, either with our supported integrations, or
+within your own tools, using one of our supported language bindings. The easiest
+way is with our integrations:
 
-- **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
-  [dbt](https://www.getdbt.com/) models. It very simple to use — install
-  `dbt-prql` with pip, and then any text between a `{% prql %}` &
-  `{% endprql %}` tag is compiled from PRQL.
+- **Prototype your PRQL queries** in the
+  [Playground](https://prql-lang.org/playground/) or the
+  [VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
+  and copy/paste the resulting SQL into your database. It's not the perfect
+  workflow, but it's easy to get started.
 - **[Jupyter](https://pyprql.readthedocs.io/en/latest/magic_readme.html)**
   allows writing PRQL in a Jupyter notebook or IPython repl, with a `%%prql`
   magic. As well as connecting to existing DBs, our integration with DuckDB
   enables querying pandas dataframes, CSVs & Parquet files, and writing the
   output to a dataframe.
+- **[DuckDB extension](https://github.com/ywelsch/duckdb-prql)** — is a DuckDB
+  extension which allows querying a DuckDB instance with PRQL.
 
-Beyond these two integrations, it's very easy to add PRQL to your own apps with
-our [bindings](/#bindings) for Rust, Python & JS.
+It's also possible to query PRQL from your code with our [bindings](/#bindings)
+for R, Rust, Python & JS. For an example of using PRQL with DuckDB, check out
+[Querying with PRQL](https://eitsupi.github.io/querying-with-prql/).
 
 {{</ faq >}}
 
@@ -119,7 +124,9 @@ most dialects' implementation are identical to a generic implementation.
 
 {{</ faq >}}
 
-{{< faq "What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?" >}}
+{{< faq "What's this `aggregate` function?" >}}
+
+**...and why not just use `SELECT` & `GROUP BY`?**
 
 SQL uses `SELECT` for all of these:
 
@@ -182,14 +189,12 @@ While you should be skeptical of new claims from new entrants
 [commented](https://news.ycombinator.com/item?id=30067406) in a discussion on
 PRQL:
 
-<!-- TODO: the `>` doesn't seem to format on the website  -->
-
-> "FWIW the separate `group_by()` is one of my greatest design regrets with
-> dplyr — I wish I had made `by` a parameter of `summarise()`, `mutate()`,
-> `filter()` etc."
+> FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
+> — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
+> etc.
 
 For more detail, check out the docs in the
-[PRQL Book](https://prql-lang.org/book).
+[PRQL Book](https://prql-lang.org/book/transforms/aggregate.html).
 
 {{</ faq >}}
 
@@ -198,5 +203,11 @@ For more detail, check out the docs in the
 It's `PRQL`, since it's a backronym! We name the repo and some libraries `prql`
 because of a strong convention around lowercase, but everywhere else we use
 `PRQL`.
+
+{{</ faq >}}
+
+{{< faq "Where can I find the logos?" >}}
+
+See our [press materials](https://github.com/PRQL/prql-brand).
 
 {{</ faq >}}

@@ -13,13 +13,14 @@
 //! constructs. The upside is much less complex translator.
 
 use core::fmt::Debug;
+
 use serde::{Deserialize, Serialize};
 use std::any::{Any, TypeId};
-use strum::{EnumMessage, IntoEnumIterator};
+use strum::VariantNames;
 
 /// SQL dialect.
 ///
-/// This is only changes the output for a relatively small subset of features.
+/// This only changes the output for a relatively small subset of features.
 ///
 /// If something does not work in a specific dialect, please raise in a
 /// GitHub issue.
@@ -31,34 +32,27 @@ use strum::{EnumMessage, IntoEnumIterator};
     Clone,
     Copy,
     Serialize,
+    Default,
     Deserialize,
     strum::Display,
     strum::EnumIter,
     strum::EnumMessage,
     strum::EnumString,
+    strum::EnumVariantNames,
 )]
+#[strum(serialize_all = "lowercase")]
 pub enum Dialect {
-    #[strum(serialize = "ansi")]
     Ansi,
-    #[strum(serialize = "bigquery")]
     BigQuery,
-    #[strum(serialize = "clickhouse")]
     ClickHouse,
-    #[strum(serialize = "duckdb")]
     DuckDb,
-    #[strum(serialize = "generic")]
+    #[default]
     Generic,
-    #[strum(serialize = "hive")]
     Hive,
-    #[strum(serialize = "mssql")]
     MsSql,
-    #[strum(serialize = "mysql")]
     MySql,
-    #[strum(serialize = "postgres")]
-    PostgreSql,
-    #[strum(serialize = "sqlite")]
+    Postgres,
     SQLite,
-    #[strum(serialize = "snowflake")]
     Snowflake,
 }
 
@@ -76,22 +70,35 @@ impl Dialect {
             Dialect::ClickHouse => Box::new(ClickHouseDialect),
             Dialect::Snowflake => Box::new(SnowflakeDialect),
             Dialect::DuckDb => Box::new(DuckDbDialect),
-            Dialect::PostgreSql => Box::new(PostgresDialect),
+            Dialect::Postgres => Box::new(PostgresDialect),
             Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
         }
     }
 
-    pub fn names() -> Vec<&'static str> {
-        Dialect::iter()
-            .flat_map(|d| d.get_serializations().to_vec())
-            .collect::<Vec<&'static str>>()
+    pub fn support_level(&self) -> SupportLevel {
+        match self {
+            Dialect::DuckDb
+            | Dialect::SQLite
+            | Dialect::Postgres
+            | Dialect::MySql
+            | Dialect::MsSql => SupportLevel::Supported,
+            Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
+                SupportLevel::Unsupported
+            }
+            Dialect::Hive | Dialect::ClickHouse => SupportLevel::Nascent,
+        }
+    }
+
+    #[deprecated(note = "Use `Dialect::Variants` instead")]
+    pub fn names() -> &'static [&'static str] {
+        Dialect::VARIANTS
     }
 }
 
-impl Default for Dialect {
-    fn default() -> Self {
-        Dialect::Generic
-    }
+pub enum SupportLevel {
+    Supported,
+    Unsupported,
+    Nascent,
 }
 
 #[derive(Debug)]
@@ -125,10 +132,6 @@ pub(super) trait DialectHandler: Any + Debug {
 
     fn ident_quote(&self) -> char {
         '"'
-    }
-
-    fn big_query_quoting(&self) -> bool {
-        false
     }
 
     fn column_exclude(&self) -> Option<ColumnExclude> {
@@ -167,6 +170,10 @@ pub(super) trait DialectHandler: Any + Debug {
     fn stars_in_group(&self) -> bool {
         true
     }
+
+    fn supports_distinct_on(&self) -> bool {
+        false
+    }
 }
 
 impl dyn DialectHandler {
@@ -180,6 +187,11 @@ impl DialectHandler for GenericDialect {}
 
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
+        true
+    }
+
+    fn supports_distinct_on(&self) -> bool {
+        // https://www.postgresql.org/docs/current/sql-select.html
         true
     }
 }
@@ -206,6 +218,15 @@ impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
         true
     }
+
+    // https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16
+    fn except_all(&self) -> bool {
+        false
+    }
+
+    fn set_ops_distinct(&self) -> bool {
+        false
+    }
 }
 
 impl DialectHandler for MySqlDialect {
@@ -228,9 +249,6 @@ impl DialectHandler for ClickHouseDialect {
 impl DialectHandler for BigQueryDialect {
     fn ident_quote(&self) -> char {
         '`'
-    }
-    fn big_query_quoting(&self) -> bool {
-        true
     }
     fn column_exclude(&self) -> Option<ColumnExclude> {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except
@@ -265,6 +283,11 @@ impl DialectHandler for DuckDbDialect {
         // https://duckdb.org/docs/sql/query_syntax/setops.html
         false
     }
+
+    fn supports_distinct_on(&self) -> bool {
+        // https://duckdb.org/docs/sql/query_syntax/select.html#distinct-on-clause
+        true
+    }
 }
 
 #[cfg(test)]
@@ -277,7 +300,7 @@ mod tests {
     fn test_dialect_from_str() {
         assert_debug_snapshot!(Dialect::from_str("postgres"), @r###"
         Ok(
-            PostgreSql,
+            Postgres,
         )
         "###);
 

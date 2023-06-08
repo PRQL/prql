@@ -4,29 +4,27 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident};
-use crate::ast::rq::RelationColumn;
+use crate::ast::pl::{Expr, Ident, TupleField, Ty};
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{Frame, FrameColumn};
+use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
+use super::{NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_SELF};
 
-pub const NS_STD: &str = "std";
-pub const NS_FRAME: &str = "_frame";
-pub const NS_FRAME_RIGHT: &str = "_right";
-pub const NS_PARAM: &str = "_param";
-pub const NS_DEFAULT_DB: &str = "default_db";
-// refers to the containing module (direct parent)
-pub const NS_SELF: &str = "_self";
-// implies we can infer new names in the containing module
-pub const NS_INFER: &str = "_infer";
-
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
     /// Names declared in this module. This is the important thing.
     pub(super) names: HashMap<String, Decl>,
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
+    ///
+    /// Assuming we want to lookup `average`, which is in `std`. The root module
+    /// does not contain the `average`. So instead:
+    /// - look for `average` in root module and find nothing,
+    /// - follow redirects in root module,
+    /// - because of redirect `std`, so we look for `average` in `std`,
+    /// - there is `average` is `std`,
+    /// - result of the lookup is FQ ident `std.average`.
     pub redirects: Vec<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
@@ -41,22 +39,14 @@ impl Module {
         }
     }
 
-    pub fn new() -> Module {
+    pub fn new_root() -> Module {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
         Module {
             names: HashMap::from([
                 (
                     "default_db".to_string(),
-                    Decl::from(DeclKind::Module(Module {
-                        names: HashMap::from([(
-                            NS_INFER.to_string(),
-                            Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                                columns: vec![RelationColumn::Wildcard],
-                                expr: TableExpr::LocalTable,
-                            })))),
-                        )]),
-                        shadowed: None,
-                        redirects: vec![],
-                    })),
+                    Decl::from(DeclKind::Module(Self::new_database())),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
             ]),
@@ -70,9 +60,35 @@ impl Module {
         }
     }
 
+    pub fn new_database() -> Module {
+        let names = HashMap::from([
+            (
+                NS_INFER.to_string(),
+                Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
+                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
+                    expr: TableExpr::LocalTable,
+                })))),
+            ),
+            (
+                NS_INFER_MODULE.to_string(),
+                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(Module {
+                    names: HashMap::new(),
+                    redirects: vec![],
+                    shadowed: None,
+                })))),
+            ),
+        ]);
+        Module {
+            names,
+            shadowed: None,
+            redirects: vec![],
+        }
+    }
+
     pub fn insert(&mut self, ident: Ident, entry: Decl) -> Result<Option<Decl>> {
         let mut ns = self;
 
+        // Navigate down the module path
         for part in ident.path {
             let entry = ns.names.entry(part.clone()).or_default();
 
@@ -184,7 +200,7 @@ impl Module {
             HashSet::new()
         }
 
-        log::trace!("lookup {ident}");
+        log::trace!("lookup: {ident}");
 
         let mut res = HashSet::new();
 
@@ -197,15 +213,15 @@ impl Module {
         res
     }
 
-    pub(super) fn insert_frame(&mut self, frame: &Frame, namespace: &str) {
+    pub(super) fn insert_frame(&mut self, frame: &Lineage, namespace: &str) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
         for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
             let input_name = match column {
-                FrameColumn::All { input_name, .. } => Some(input_name),
-                FrameColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
+                LineageColumn::All { input_name, .. } => Some(input_name),
+                LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
             // get or create input namespace
@@ -218,18 +234,18 @@ impl Module {
 
                         let input = frame.find_input(input_name).unwrap();
                         let mut sub_ns = Module::default();
-                        if let Some(fq_table) = input.table.clone() {
-                            let self_decl = Decl {
-                                declared_at: Some(input.id),
-                                kind: DeclKind::InstanceOf(fq_table),
-                                order: 0,
-                            };
-                            sub_ns.names.insert(NS_SELF.to_string(), self_decl);
-                        }
+
+                        let self_decl = Decl {
+                            declared_at: Some(input.id),
+                            kind: DeclKind::InstanceOf(input.table.clone()),
+                            ..Default::default()
+                        };
+                        sub_ns.names.insert(NS_SELF.to_string(), self_decl);
+
                         let sub_ns = Decl {
                             declared_at: Some(input.id),
                             kind: DeclKind::Module(sub_ns),
-                            order: 0,
+                            ..Default::default()
                         };
 
                         namespace.names.entry(input_name.clone()).or_insert(sub_ns)
@@ -242,7 +258,7 @@ impl Module {
 
             // insert column decl
             match column {
-                FrameColumn::All { input_name, .. } => {
+                LineageColumn::All { input_name, .. } => {
                     let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
 
                     let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
@@ -251,17 +267,20 @@ impl Module {
                         kind,
                         declared_at,
                         order: col_index + 1,
+                        ..Default::default()
                     };
                     ns.names.insert(NS_INFER.to_string(), decl);
                 }
-                FrameColumn::Single {
+                LineageColumn::Single {
                     name: Some(name),
-                    expr_id,
+                    target_id,
+                    ..
                 } => {
                     let decl = Decl {
-                        kind: DeclKind::Column(*expr_id),
+                        kind: DeclKind::Column(*target_id),
                         declared_at: None,
                         order: col_index + 1,
+                        ..Default::default()
                     };
                     ns.names.insert(name.name.clone(), decl);
                 }
@@ -350,6 +369,25 @@ impl Module {
         }
         r
     }
+
+    /// Recursively finds all declarations that end in suffix.
+    pub fn find_by_suffix(&self, suffix: &str) -> Vec<Ident> {
+        let mut res = Vec::new();
+
+        for (name, decl) in &self.names {
+            if let DeclKind::Module(module) = &decl.kind {
+                let nested = module.find_by_suffix(suffix);
+                res.extend(nested.into_iter().map(|x| x.prepend(vec![name.clone()])));
+                continue;
+            }
+
+            if name == suffix {
+                res.push(Ident::from_name(name));
+            }
+        }
+
+        res
+    }
 }
 
 impl std::fmt::Debug for Module {
@@ -361,7 +399,7 @@ impl std::fmt::Debug for Module {
             ds.field("aliases", &aliases);
         }
 
-        if self.names.len() < 10 {
+        if self.names.len() < 15 {
             ds.field("names", &self.names);
         } else {
             ds.field("names", &format!("... {} entries ...", self.names.len()));
@@ -370,5 +408,47 @@ impl std::fmt::Debug for Module {
             ds.field("shadowed", f);
         }
         ds.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::pl::{Expr, ExprKind, Literal};
+
+    // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
+    #[test]
+    fn test_module() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
+
+        assert!(module.insert(ident.clone(), decl.clone()).is_ok());
+        assert_eq!(module.get(&ident).unwrap(), &decl);
+        assert_eq!(module.get_mut(&ident).unwrap(), &decl);
+
+        // Lookup
+        let lookup_result = module.lookup(&ident);
+        assert_eq!(lookup_result.len(), 1);
+        assert!(lookup_result.contains(&ident));
+    }
+
+    #[test]
+    fn test_module_shadow_unshadow() {
+        let mut module = Module::default();
+
+        let ident = Ident::from_name("test_name");
+        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
+
+        module.insert(ident.clone(), decl.clone()).unwrap();
+
+        module.shadow("test_name");
+        assert!(module.get(&ident) != Some(&decl));
+
+        module.unshadow("test_name");
+        assert_eq!(module.get(&ident).unwrap(), &decl);
     }
 }

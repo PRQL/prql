@@ -7,8 +7,8 @@ When applied:
 - without `group`, it produces one row from the whole table,
 - within a `group` pipeline, it produces one row from each group.
 
-```prql_no_test
-aggregate [{expression or assign operations}]
+```prql no-eval
+aggregate {expression or assign operations}
 ```
 
 ```admonish note
@@ -21,19 +21,19 @@ process of filling out [std lib](../stdlib.html).
 
 ```prql
 from employees
-aggregate [
+aggregate {
   average salary,
-  ct = count
-]
+  ct = count salary
+}
 ```
 
 ```prql
 from employees
-group [title, country] (
-  aggregate [
+group {title, country} (
+  aggregate {
     average salary,
-    ct = count
-  ]
+    ct = count salary,
+  }
 )
 ```
 
@@ -45,7 +45,7 @@ PRQL will interpret such attempts functions as window functions:
 
 ```prql
 from employees
-derive [avg_sal = average salary]
+derive {avg_sal = average salary}
 ```
 
 This ensures that `derive` does not manipulate the number of rows, but only ever

@@ -1,69 +1,58 @@
-use std::fmt::{Debug, Display, Formatter, Result, Write};
+use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::{Frame, Literal};
+use super::Literal;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum SetExpr {
-    /// Set of a built-in primitive type
-    Primitive(TyLit),
+pub enum TyKind {
+    /// Type of a built-in primitive type
+    Primitive(PrimitiveSet),
 
-    /// Set that contains only a literal value
+    /// Type that contains only a one value
     Singleton(Literal),
 
     /// Union of sets (sum)
-    Union(Vec<(Option<String>, SetExpr)>),
+    Union(Vec<(Option<String>, Ty)>),
 
-    /// Set of tuples (product)
-    Tuple(Vec<TupleElement>),
+    /// Type of tuples (product)
+    Tuple(Vec<TupleField>),
 
-    /// Set of arrays
-    Array(Box<SetExpr>),
+    /// Type of arrays
+    Array(Box<Ty>),
 
-    /// Set of sets.
-    /// Used for exprs that can be converted to SetExpr and then used as a Ty.
+    /// Type of sets
+    /// Used for expressions that can be converted to TypeExpr.
     Set,
-}
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum TupleElement {
-    Single(Option<String>, SetExpr),
-    Wildcard,
+    /// Type of functions with defined params and return types.
+    Function(TyFunc),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum Ty {
-    /// Value is an element of this [SetExpr]
-    SetExpr(SetExpr),
+pub enum TupleField {
+    /// Named tuple element.
+    Single(Option<String>, Option<Ty>),
 
-    /// Value is a function described by [TyFunc]
-    // TODO: convert into [Ty::Domain].
-    Function(TyFunc),
-
-    /// Special type for relations.
-    // TODO: convert into [Ty::Domain].
-    Table(Frame),
-
-    /// Means that we have no information about the type of the variable and
-    /// that it should be inferred from other usages.
-    Infer,
+    /// Placeholder for possibly many elements.
+    /// Means "and other unmentioned columns". Does not mean "all columns".
+    Wildcard(Option<Ty>),
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Ty {
+    pub kind: TyKind,
+
+    /// Name inferred from the type declaration.
+    pub name: Option<String>,
+}
+
+/// Built-in sets.
 #[derive(
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
 )]
-pub enum TyLit {
-    // TODO: convert to a named expression
-    #[strum(to_string = "list")]
-    List,
-    // TODO: convert to a named expression
-    #[strum(to_string = "column")]
-    Column,
-    // TODO: convert to a named expression
-    #[strum(to_string = "scalar")]
-    Scalar,
+pub enum PrimitiveSet {
     #[strum(to_string = "int")]
     Int,
     #[strum(to_string = "float")]
@@ -80,98 +69,158 @@ pub enum TyLit {
     Timestamp,
 }
 
-// Type of a function curry
+// Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
-    pub args: Vec<Ty>,
-    pub return_ty: Box<Ty>,
+    pub args: Vec<Option<Ty>>,
+    pub return_ty: Box<Option<Ty>>,
 }
 
 impl Ty {
-    pub fn is_superset_of(&self, subset: &Ty) -> bool {
+    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+        Ty {
+            kind: TyKind::Array(Box::new(Ty {
+                kind: TyKind::Tuple(tuple_fields),
+                name: None,
+            })),
+            name: None,
+        }
+    }
+
+    pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
+        self.kind.as_array()?.kind.as_tuple()
+    }
+
+    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TupleField>> {
+        self.kind.as_array_mut()?.kind.as_tuple_mut()
+    }
+
+    pub fn into_relation(self) -> Option<Vec<TupleField>> {
+        self.kind.into_array().ok()?.kind.into_tuple().ok()
+    }
+
+    pub fn is_super_type_of(&self, subset: &Ty) -> bool {
+        if self.is_relation() && subset.is_relation() {
+            return true;
+        }
+
+        self.kind.is_super_type_of(&subset.kind)
+    }
+
+    pub fn is_sub_type_of_array(&self) -> bool {
+        match &self.kind {
+            TyKind::Array(_) => true,
+            TyKind::Union(elements) => elements.iter().any(|(_, e)| e.is_sub_type_of_array()),
+            _ => false,
+        }
+    }
+
+    pub fn is_relation(&self) -> bool {
+        match &self.kind {
+            TyKind::Array(elem) => {
+                matches!(elem.kind, TyKind::Tuple(_))
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_function(&self) -> bool {
+        matches!(self.kind, TyKind::Function(_))
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        matches!(self.kind, TyKind::Tuple(_))
+    }
+}
+
+impl TyKind {
+    fn is_super_type_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
-            // Not handled here. See type_resolver.
-            (Ty::Infer, _) | (_, Ty::Infer) => false,
+            (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
 
-            (Ty::SetExpr(left), Ty::SetExpr(right)) => left.is_superset_of(right),
+            (one, TyKind::Union(many)) => many
+                .iter()
+                .all(|(_, each)| one.is_super_type_of(&each.kind)),
 
-            (Ty::Table(_), Ty::Table(_)) => true,
+            (TyKind::Union(many), one) => {
+                many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
+            }
+
+            (TyKind::Function(sup), TyKind::Function(sub)) => {
+                if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
+                    return false;
+                }
+                if sup.args.len() != sub.args.len() {
+                    return false;
+                }
+                for (sup_arg, sub_arg) in zip(&sup.args, &sub.args) {
+                    if is_not_super_type_of(sup_arg, sub_arg) {
+                        return false;
+                    }
+                }
+
+                true
+            }
 
             (l, r) => l == r,
         }
     }
-}
 
-impl SetExpr {
-    fn is_superset_of(&self, subset: &SetExpr) -> bool {
-        match (self, subset) {
-            // TODO: convert these to array
-            (SetExpr::Primitive(TyLit::Column), SetExpr::Primitive(TyLit::Column)) => true,
-            (SetExpr::Primitive(TyLit::Column), SetExpr::Primitive(_)) => true,
-            (SetExpr::Primitive(_), SetExpr::Primitive(TyLit::Column)) => false,
+    /// Analogous to [crate::ast::pl::Lineage::rename()]
+    pub fn rename_relation(&mut self, alias: String) {
+        if let TyKind::Array(items_ty) = self {
+            items_ty.kind.rename_tuples(alias);
+        }
+    }
 
-            (SetExpr::Primitive(l0), SetExpr::Primitive(r0)) => l0 == r0,
-            (SetExpr::Union(many), one) => many.iter().any(|(_, any)| any.is_superset_of(one)),
-            (one, SetExpr::Union(many)) => many.iter().all(|(_, each)| one.is_superset_of(each)),
+    fn rename_tuples(&mut self, alias: String) {
+        self.flatten_tuples();
 
-            (l, r) => l == r,
+        if let TyKind::Tuple(fields) = self {
+            let inner_fields = std::mem::take(fields);
+
+            fields.push(TupleField::Single(
+                Some(alias),
+                Some(Ty {
+                    kind: TyKind::Tuple(inner_fields),
+                    name: None,
+                }),
+            ));
+        }
+    }
+
+    fn flatten_tuples(&mut self) {
+        if let TyKind::Tuple(fields) = self {
+            let mut new_fields = Vec::new();
+
+            for field in fields.drain(..) {
+                let TupleField::Single(name, Some(ty)) = field else {
+                    new_fields.push(field);
+                    continue;
+                };
+
+                // recurse
+                // let ty = ty.flatten_tuples();
+
+                let TyKind::Tuple(inner_fields) = ty.kind else {
+                    new_fields.push(TupleField::Single(name, Some(ty)));
+                    continue;
+                };
+                new_fields.extend(inner_fields);
+            }
+
+            fields.extend(new_fields);
         }
     }
 }
 
-impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match &self {
-            Ty::SetExpr(lit) => write!(f, "{:}", lit),
-            Ty::Table(frame) => write!(f, "table<{frame}>"),
-            Ty::Infer => write!(f, "infer"),
-            Ty::Function(func) => {
-                write!(f, "func")?;
-
-                for t in &func.args {
-                    write!(f, " {t}")?;
-                }
-                write!(f, " -> {}", func.return_ty)?;
-                Ok(())
+fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
+    if let Some(sub_ret) = sub {
+        if let Some(sup_ret) = sup {
+            if !sup_ret.is_super_type_of(sub_ret) {
+                return true;
             }
         }
     }
-}
-
-impl Display for SetExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match &self {
-            SetExpr::Primitive(lit) => write!(f, "{:}", lit),
-            SetExpr::Union(ts) => {
-                for (i, (_, e)) in ts.iter().enumerate() {
-                    write!(f, "{e}")?;
-                    if i < ts.len() - 1 {
-                        f.write_char('|')?;
-                    }
-                }
-                Ok(())
-            }
-            SetExpr::Singleton(lit) => write!(f, "{:}", lit),
-            SetExpr::Tuple(elements) => {
-                write!(f, "[")?;
-                for e in elements {
-                    match e {
-                        TupleElement::Wildcard => {
-                            write!(f, "*")?;
-                        }
-                        TupleElement::Single(name, expr) => {
-                            if let Some(name) = name {
-                                write!(f, "{name} = ")?
-                            }
-                            write!(f, "{expr}")?
-                        }
-                    }
-                    write!(f, ",")?
-                }
-                Ok(())
-            }
-            SetExpr::Set => write!(f, "set"),
-            SetExpr::Array(_) => todo!(),
-        }
-    }
+    false
 }

@@ -2,36 +2,40 @@ use chumsky::{error::Cheap, prelude::*};
 use itertools::Itertools;
 
 use crate::ast::pl::*;
+use crate::Span;
 
-use super::{common::into_expr, lexer::*};
+use super::common::{into_expr, PError};
+use super::lexer::*;
 
 /// Parses interpolated strings
-pub fn parse(
-    string: String,
-    span_offset: usize,
-) -> Result<Vec<InterpolateItem>, Vec<Simple<Token>>> {
-    let res = parser(span_offset).parse(string);
+pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
+    let res = parser(span_base).parse(string);
 
     match res {
         Ok(items) => Ok(items),
         Err(errors) => Err(errors
             .into_iter()
-            .map(|err| {
-                Simple::expected_input_found(offset_span(err.span(), span_offset), None, None)
-            })
+            .map(|err| Simple::expected_input_found(offset_span(span_base, err.span()), None, None))
             .collect_vec()),
     }
 }
 
-fn parser(span_offset: usize) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
+fn parser(span_base: Span) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
+        .then(
+            just(':')
+                .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                .or_not(),
+        )
         .delimited_by(just('{'), just('}'))
-        .map(Ident::from_path)
-        .map(ExprKind::Ident)
-        .map_with_span(move |e, s| into_expr(e, offset_span(s, span_offset)))
-        .map(Box::new)
-        .map(InterpolateItem::Expr);
+        .map_with_span(move |(ident, format), s| {
+            let ident = ExprKind::Ident(Ident::from_path(ident));
+            let expr = into_expr(ident, offset_span(span_base, s));
+            let expr = Box::new(expr);
+
+            InterpolateItem::Expr { expr, format }
+        });
 
     let escape = (just("{{").to('{'))
         .chain(just("}}").not().repeated())
@@ -48,8 +52,10 @@ fn parser(span_offset: usize) -> impl Parser<char, Vec<InterpolateItem>, Error =
     escape.or(expr).or(string).repeated().then_ignore(end())
 }
 
-fn offset_span(mut span: std::ops::Range<usize>, span_offset: usize) -> std::ops::Range<usize> {
-    span.start += span_offset;
-    span.end += span_offset;
-    span
+fn offset_span(base: Span, range: std::ops::Range<usize>) -> Span {
+    Span {
+        start: base.start + range.start,
+        end: base.start + range.end,
+        source_id: base.source_id,
+    }
 }

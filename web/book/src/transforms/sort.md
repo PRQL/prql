@@ -1,18 +1,18 @@
 # Sort
 
-Orders rows based on the values of one or more columns.
+Orders rows based on the values of one or more expressions (generally columns).
 
-```prql_no_test
-sort [{direction}{column}]
+```prql no-eval
+sort {(+|-) column}
 ```
 
 ## Parameters
 
-- One column or a list of columns to sort by
-- Each column can be prefixed with:
+- One expression or a list of expression to sort by
+- Each expression can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
-- When using prefixes, even a single column needs to be in a list or
+- When using prefixes, even a single expression needs to be in a list or
   parentheses. (Otherwise, `sort -foo` is parsed as a subtraction between `sort`
   and `foo`.)
 
@@ -25,45 +25,92 @@ sort age
 
 ```prql
 from employees
-sort [-age]
+sort {-age}
 ```
 
 ```prql
 from employees
-sort [age, -tenure, +salary]
+sort {age, -tenure, +salary}
 ```
 
 We can also use expressions:
 
 ```prql
 from employees
-sort [s"substr({first_name}, 2, 5)"]
+sort {s"substr({first_name}, 2, 5)"}
 ```
 
-## Notes
+## Ordering guarantees
 
-### Ordering guarantees
-
-Most DBs will persist ordering through most transforms; for example, you can
-expect this result to be ordered by `tenure`.
+Ordering is persistent through a pipeline in PRQL. For example:
 
 ```prql
 from employees
 sort tenure
-derive name = f"{first_name} {last_name}"
+join locations (==employee_id)
 ```
 
-But:
+Here, PRQL pushes the `sort` down the pipeline, compiling the `ORDER BY` to the
+_end_ of the query. Consequently, most relation transforms retain the row order.
 
-- This is an implementation detail of the DB. If there are instances where this
-  doesn't hold, please open an issue, and we'll consider how to manage it.
-- Some transforms which change the existence of rows, such as `join` or `group`,
-  won't persist ordering; for example:
+The explicit semantics are:
+
+- `sort` introduces a new order,
+- `group` resets the order,
+- `join` retains the order of the left relation,
+- database tables don't have a known order.
+
+Comparatively, in SQL, relations possess no order, being orderable solely within
+the context of the query result, `LIMIT` statement, or window function. The lack
+of inherent order can result in an unexpected reshuffling of a previously
+ordered relation from a `JOIN` or windowing operation.
+
+```admonish info
+To be precise — in PRQL, a relation is an _array of tuples_ and not a set or a bag.
+The persistent nature of this order remains intact through sub-queries and intermediate
+table definitions.
+```
+
+For instance, an SQL query such as:
+
+```sql
+WITH albums_sorted AS (
+  SELECT *
+  FROM albums
+  ORDER BY title
+)
+SELECT *
+FROM albums_sorted
+JOIN artists USING (artist_id)
+```
+
+...doesn't guarantee any row order (indeed — even without the `JOIN`, the SQL
+standard doesn't guarantee an order, although most implementations will respect
+it).
+
+## Nulls
+
+PRQL defaults to `NULLS LAST` when compiling to SQL. Because databases have
+different defaults, the compiler emits this for all targets for which it's not a
+default{{footnote: except for MSSQL, which doesn't support this}}.
+
+The main benefit of this approach is that `take 42` will select non-null values
+for both ascending and descending sorts, which is generally what is wanted.
+
+There isn't currently a way to change this for a query, but if that would be
+helpful, please raise an issue.
+
+Note how DuckDB doesn't require a `NULLS LAST`, unlike the generic targets
+above:
 
 ```prql
-from employees
-sort tenure
-join locations [==employee_id]
+prql target:sql.duckdb
+
+from artists
+sort artist_id
+take 42
 ```
 
-See [Issue #1363](https://github.com/PRQL/prql/issues/1363) for more details.
+```admonish info
+Check out [DuckDB #7174](https://github.com/duckdb/duckdb/pull/7174) for a survey of various databases' implementations.
+```

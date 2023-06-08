@@ -5,107 +5,177 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
-use crate::ast::rq::RelationColumn;
-use crate::error::{Error, Reason, Span};
-use crate::semantic::context::TableDecl;
-use crate::semantic::static_analysis;
-use crate::semantic::transforms::coerce_and_flatten;
+use crate::error::{Error, Reason, Span, WithErrorInfo};
+use crate::semantic::transforms::coerce_into_tuple_and_flatten;
+use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind};
-use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
+use super::module::Module;
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
-use super::type_resolver::{self, infer_type, type_of_closure, validate_type};
-
-/// Runs semantic analysis on the query, using current state.
-///
-/// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(stmts: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
-    let mut resolver = Resolver::new(context);
-    let stmts = resolver.fold_stmts(stmts)?;
-
-    Ok((stmts, resolver.context))
-}
+use super::type_resolver::{self, infer_type};
+use super::{NS_FRAME, NS_FRAME_RIGHT, NS_STD};
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
     pub context: Context,
+
+    pub current_module_path: Vec<String>,
 
     default_namespace: Option<String>,
 
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
 
-    pub(super) id: IdGenerator<usize>,
+    disable_type_checking: bool,
+
+    pub id: IdGenerator<usize>,
+
+    pub options: ResolverOptions,
+}
+
+#[derive(Default, Clone)]
+pub struct ResolverOptions {
+    pub allow_module_decls: bool,
 }
 
 impl Resolver {
-    fn new(context: Context) -> Self {
+    pub fn new(context: Context, options: ResolverOptions) -> Self {
         Resolver {
             context,
+            options,
+            current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
+            disable_type_checking: false,
             id: IdGenerator::new(),
         }
     }
-}
 
-impl AstFold for Resolver {
-    fn fold_stmts(&mut self, stmts: Vec<Stmt>) -> Result<Vec<Stmt>> {
-        let mut res = Vec::new();
-
+    // entry point
+    pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
                 self.context.span_map.insert(stmt.id.unwrap(), span);
             }
 
-            let kind = match stmt.kind {
-                StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
-                StmtKind::FuncDef(func_def) => {
-                    self.context.declare_func(func_def, stmt.id);
+            let ident = Ident {
+                path: self.current_module_path.clone(),
+                name: stmt.name.clone(),
+            };
+
+            let mut def = match stmt.kind {
+                StmtKind::QueryDef(d) => {
+                    let decl = DeclKind::QueryDef(d);
+                    self.context
+                        .declare(ident, decl, stmt.id, Vec::new())
+                        .with_span(stmt.span)?;
                     continue;
                 }
-                StmtKind::VarDef(var_def) => {
-                    let var_def = self.fold_var_def(var_def)?;
-                    self.context.declare_var(var_def, stmt.id, stmt.span)?;
-                    continue;
-                }
+                StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
-                    let var_def = VarDef {
-                        name: ty_def.name,
-                        value: Box::new(ty_def.value.unwrap_or_else(|| {
-                            let mut e = Expr::null();
-                            e.ty = Some(Ty::SetExpr(SetExpr::Set));
-                            e
-                        })),
+                    let mut value = if let Some(value) = ty_def.value {
+                        value
+                    } else {
+                        Expr::null()
                     };
 
-                    let var_def = self.fold_var_def(var_def)?;
-                    self.context.declare_var(var_def, stmt.id, stmt.span)?;
-                    continue;
+                    // This is a hacky way to provide values to std.int and friends.
+                    if self.current_module_path == vec![NS_STD] {
+                        if let Some(kind) = get_stdlib_decl(&ident.name) {
+                            value.kind = kind;
+                        }
+                    }
+
+                    let mut ty = self.fold_type_expr(Some(value))?.unwrap();
+                    ty.name = Some(ident.name.clone());
+
+                    VarDef {
+                        value: Box::new(Expr::from(ExprKind::Type(ty))),
+                        ty_expr: None,
+                        kind: VarDefKind::Let,
+                    }
                 }
-                StmtKind::Main(expr) => {
-                    let expr = Flattener::fold(self.fold_expr(*expr)?);
-                    StmtKind::Main(Box::new(expr))
+                StmtKind::ModuleDef(module_def) => {
+                    if !self.options.allow_module_decls {
+                        return Err(Error::new_simple(
+                            "explicit module declarations are not allowed",
+                        )
+                        .with_span(stmt.span)
+                        .into());
+                    }
+
+                    self.current_module_path.push(ident.name);
+
+                    let decl = Decl {
+                        declared_at: stmt.id,
+                        kind: DeclKind::Module(Module {
+                            names: HashMap::new(),
+                            redirects: Vec::new(),
+                            shadowed: None,
+                        }),
+                        ..Default::default()
+                    };
+                    let ident = Ident::from_path(self.current_module_path.clone());
+                    self.context.root_mod.insert(ident, decl)?;
+
+                    self.fold_statements(module_def.stmts)?;
+                    self.current_module_path.pop();
+                    continue;
                 }
             };
 
-            res.push(Stmt { kind, ..stmt })
+            if let VarDefKind::Main = def.kind {
+                def.ty_expr = Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
+                    "std", "relation",
+                ]))));
+            }
+
+            if let ExprKind::Func(closure) = &mut def.value.kind {
+                if closure.name_hint.is_none() {
+                    closure.name_hint = Some(ident.clone());
+                }
+            }
+
+            let expected_ty = self.fold_type_expr(def.ty_expr)?;
+            if expected_ty.is_some() {
+                let who = || Some(stmt.name.clone());
+                self.validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
+            }
+
+            let decl = self.context.prepare_expr_decl(def.value);
+
+            self.context
+                .declare(ident, decl, stmt.id, stmt.annotations)
+                .with_span(stmt.span)?;
         }
-        Ok(res)
+        Ok(())
+    }
+}
+
+impl AstFold for Resolver {
+    fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
+        unreachable!()
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
+        let value = if matches!(var_def.value.kind, ExprKind::Func(_)) {
+            var_def.value
+        } else {
+            Box::new(Flattener::fold(self.fold_expr(*var_def.value)?))
+        };
+
         Ok(VarDef {
-            name: var_def.name,
-            value: Box::new(Flattener::fold(self.fold_expr(*var_def.value)?)),
+            value,
+            ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
+            kind: var_def.kind,
         })
     }
 
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
-        if node.id.is_some() && !matches!(node.kind, ExprKind::Closure(_)) {
+        if node.id.is_some() && !matches!(node.kind, ExprKind::Func(_)) {
             return Ok(node);
         }
 
@@ -119,7 +189,7 @@ impl AstFold for Resolver {
 
         log::trace!("folding expr {node:?}");
 
-        let mut r = match node.kind {
+        let r = match node.kind {
             ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident, node.span)?;
@@ -128,17 +198,6 @@ impl AstFold for Resolver {
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
-                    // convert ident to function without args
-                    DeclKind::FuncDef(func_def) => {
-                        let closure = self.closure_of_func_def(func_def.clone(), fq_ident)?;
-
-                        if self.in_func_call_name {
-                            Expr::from(ExprKind::Closure(Box::new(closure)))
-                        } else {
-                            self.fold_function(closure, vec![], HashMap::new(), node.span)?
-                        }
-                    }
-
                     DeclKind::Infer(_) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: entry.declared_at,
@@ -150,54 +209,41 @@ impl AstFold for Resolver {
                         ..node
                     },
 
-                    DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                        let rel_name = ident.name.clone();
+                    DeclKind::TableDecl(_) => {
+                        let input_name = ident.name.clone();
 
-                        let instance_frame = Frame {
-                            inputs: vec![FrameInput {
-                                id,
-                                name: rel_name.clone(),
-                                table: Some(fq_ident.clone()),
-                            }],
-                            columns: columns
-                                .iter()
-                                .map(|col| match col {
-                                    RelationColumn::Wildcard => FrameColumn::All {
-                                        input_name: rel_name.clone(),
-                                        except: columns
-                                            .iter()
-                                            .flat_map(|c| c.as_single().cloned().flatten())
-                                            .collect(),
-                                    },
-                                    RelationColumn::Single(col_name) => FrameColumn::Single {
-                                        name: col_name.clone().map(|col_name| {
-                                            Ident::from_path(vec![rel_name.clone(), col_name])
-                                        }),
-                                        expr_id: id,
-                                    },
-                                })
-                                .collect(),
-                            ..Default::default()
-                        };
-
-                        log::debug!("instanced table {fq_ident} as {instance_frame:?}");
+                        let lineage = self.lineage_of_table_decl(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
-                            ty: Some(Ty::Table(instance_frame)),
+                            ty: Some(ty_of_lineage(&lineage)),
+                            lineage: Some(lineage),
                             alias: None,
                             ..node
                         }
                     }
 
-                    DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
+                    DeclKind::Expr(expr) => match &expr.kind {
+                        ExprKind::Func(closure) => {
+                            let closure = self.fold_function_types(*closure.clone())?;
+
+                            let expr = Expr::from(ExprKind::Func(Box::new(closure)));
+
+                            if self.in_func_call_name {
+                                expr
+                            } else {
+                                self.fold_expr(expr)?
+                            }
+                        }
+                        _ => self.fold_expr(expr.as_ref().clone())?,
+                    },
 
                     DeclKind::InstanceOf(_) => {
                         return Err(Error::new_simple(
                             "table instance cannot be referenced directly",
                         )
                         .with_span(span)
-                        .with_help("did you forget to specify the column name?")
+                        .push_hint("did you forget to specify the column name?")
                         .into());
                     }
 
@@ -213,17 +259,18 @@ impl AstFold for Resolver {
                 args,
                 named_args,
             }) => {
-                // fold name (or closure)
+                // fold function name
                 self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
                 let name = self.fold_expr(*name)?;
                 self.in_func_call_name = old;
 
-                let closure = name.try_cast(|n| n.into_closure(), None, "a function")?;
+                let func = *name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
-                self.fold_function(*closure, args, named_args, node.span)?
+                let func = self.apply_args_to_closure(func, args, named_args)?;
+                self.fold_function(func, node.span)?
             }
 
             ExprKind::Pipeline(pipeline) => {
@@ -231,9 +278,7 @@ impl AstFold for Resolver {
                 self.resolve_pipeline(pipeline)?
             }
 
-            ExprKind::Closure(closure) => {
-                self.fold_function(*closure, vec![], HashMap::new(), node.span)?
-            }
+            ExprKind::Func(closure) => self.fold_function(*closure, node.span)?,
 
             ExprKind::Unary {
                 op: UnOp::EqSelf,
@@ -251,7 +296,48 @@ impl AstFold for Resolver {
             ExprKind::Unary {
                 op: UnOp::Not,
                 expr,
-            } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
+            } if matches!(expr.kind, ExprKind::Tuple(_)) => self.resolve_column_exclusion(*expr)?,
+
+            ExprKind::Unary { expr, op } => {
+                let func_name = match op {
+                    UnOp::Neg => ["std", "neg"],
+                    UnOp::Not => ["std", "not"],
+                    UnOp::Add | UnOp::EqSelf => unreachable!(),
+                };
+                let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                    Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+                    vec![*expr],
+                )));
+                func_call.span = span;
+                self.fold_expr(func_call)?
+            }
+
+            ExprKind::Binary { left, op, right } => {
+                let func_name = match op {
+                    BinOp::Mul => ["std", "mul"],
+                    BinOp::DivInt => ["std", "div_i"],
+                    BinOp::DivFloat => ["std", "div_f"],
+                    BinOp::Mod => ["std", "mod"],
+                    BinOp::Add => ["std", "add"],
+                    BinOp::Sub => ["std", "sub"],
+                    BinOp::Eq => ["std", "eq"],
+                    BinOp::Ne => ["std", "ne"],
+                    BinOp::Gt => ["std", "gt"],
+                    BinOp::Lt => ["std", "lt"],
+                    BinOp::Gte => ["std", "gte"],
+                    BinOp::Lte => ["std", "lte"],
+                    BinOp::RegexSearch => ["std", "regex_search"],
+                    BinOp::And => ["std", "and"],
+                    BinOp::Or => ["std", "or"],
+                    BinOp::Coalesce => ["std", "coalesce"],
+                };
+                let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                    Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+                    vec![*left, *right],
+                )));
+                func_call.span = span;
+                self.fold_expr(func_call)?
+            }
 
             ExprKind::All { within, except } => {
                 let decl = self.context.root_mod.get(&within);
@@ -278,20 +364,41 @@ impl AstFold for Resolver {
                 }
             }
 
-            ExprKind::List(exprs) => {
+            ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
 
                 // flatten
                 let exprs = exprs
                     .into_iter()
                     .flat_map(|e| match e.kind {
-                        ExprKind::List(items) if e.flatten => items,
+                        ExprKind::Tuple(items) if e.flatten => items,
                         _ => vec![e],
                     })
                     .collect_vec();
 
                 Expr {
-                    kind: ExprKind::List(exprs),
+                    kind: ExprKind::Tuple(exprs),
+                    ..node
+                }
+            }
+
+            ExprKind::Array(exprs) => {
+                let mut exprs = self.fold_exprs(exprs)?;
+
+                // validate that all elements have the same type
+                let mut expected_ty: Option<&Ty> = None;
+                for expr in &mut exprs {
+                    if expr.ty.is_some() {
+                        if expected_ty.is_some() {
+                            let who = || Some("array".to_string());
+                            self.validate_type(expr, expected_ty, &who)?;
+                        }
+                        expected_ty = expr.ty.as_ref();
+                    }
+                }
+
+                Expr {
+                    kind: ExprKind::Array(exprs),
                     ..node
                 }
             }
@@ -301,19 +408,37 @@ impl AstFold for Resolver {
                 ..node
             },
         };
+        let mut r = static_analysis::static_analysis(r);
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(infer_type(&r, &self.context)?);
+            r.ty = infer_type(&r)?;
         }
-        if let Some(Ty::Table(frame)) = &mut r.ty {
-            if let Some(alias) = r.alias.take() {
-                frame.rename(alias);
+        if r.lineage.is_none() {
+            if let ExprKind::TransformCall(call) = &r.kind {
+                r.lineage = Some(call.infer_type(&self.context)?);
+            } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
+                // lineage from ty
+
+                let columns = Some(relation_columns.clone());
+
+                let name = r.alias.clone();
+                let frame = self.declare_table_for_literal(id, columns, name);
+
+                r.lineage = Some(frame);
             }
         }
-        let r = static_analysis::static_analysis(r);
+        if let Some(lineage) = &mut r.lineage {
+            if let Some(alias) = r.alias.take() {
+                lineage.rename(alias.clone());
+
+                if let Some(ty) = &mut r.ty {
+                    ty.kind.rename_relation(alias);
+                }
+            }
+        }
         Ok(r)
     }
 }
@@ -329,7 +454,7 @@ impl Resolver {
         // Maybe this should not even be supported, or maybe we should have
         // some kind of indication that first element of a pipeline is not a
         // plain value.
-        let closure_param = if let ExprKind::Closure(closure) = &mut value.kind {
+        let closure_param = if let ExprKind::Func(closure) = &mut value.kind {
             // only apply this workaround if closure expects a single arg
             if (closure.params.len() - closure.args.len()) == 1 {
                 let param = "_pip_val";
@@ -347,23 +472,19 @@ impl Resolver {
         for expr in exprs {
             let span = expr.span;
 
-            value = Expr::from(ExprKind::FuncCall(FuncCall {
-                name: Box::new(expr),
-                args: vec![value],
-                named_args: HashMap::new(),
-            }));
+            value = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![value])));
             value.span = span;
         }
 
         // second part of the workaround
         if let Some(closure_param) = closure_param {
-            value = Expr::from(ExprKind::Closure(Box::new(Closure {
-                name: None,
+            value = Expr::from(ExprKind::Func(Box::new(Func {
+                name_hint: None,
                 body: Box::new(value),
-                body_ty: None,
+                return_ty: None,
 
                 args: vec![],
-                params: vec![ClosureParam {
+                params: vec![FuncParam {
                     name: closure_param.to_string(),
                     default_value: None,
                     ty: None,
@@ -383,30 +504,33 @@ impl Resolver {
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
-        let res = if ident.path.is_empty() && self.default_namespace.is_some() {
-            let defaulted = Ident {
-                path: vec![self.default_namespace.clone().unwrap()],
-                name: ident.name.clone(),
-            };
-            self.context.resolve_ident(&defaulted)
+        let res = if let Some(default_namespace) = &self.default_namespace {
+            self.context.resolve_ident(ident, Some(default_namespace))
         } else {
-            self.context.resolve_ident(ident)
+            let mut ident = ident.clone().prepend(self.current_module_path.clone());
+
+            let mut res = self.context.resolve_ident(&ident, None);
+            for _ in &self.current_module_path {
+                if res.is_ok() {
+                    break;
+                }
+                ident = ident.pop_front().1.unwrap();
+                res = self.context.resolve_ident(&ident, None);
+            }
+            res
         };
 
         res.map_err(|e| {
-            log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
+            log::debug!(
+                "cannot resolve `{ident}`: `{e}`, context={:#?}",
+                self.context
+            );
             anyhow!(Error::new_simple(e).with_span(span))
         })
     }
 
-    fn fold_function(
-        &mut self,
-        closure: Closure,
-        args: Vec<Expr>,
-        named_args: HashMap<String, Expr>,
-        span: Option<Span>,
-    ) -> Result<Expr, anyhow::Error> {
-        let closure = self.apply_args_to_closure(closure, args, named_args)?;
+    fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr, anyhow::Error> {
+        let closure = self.fold_function_types(closure)?;
         let args_len = closure.args.len();
 
         log::debug!(
@@ -428,88 +552,118 @@ impl Resolver {
         let enough_args = closure.args.len() == closure.params.len();
 
         let mut r = if enough_args {
+            // make sure named args are pushed into params
+            let closure = if !closure.named_params.is_empty() {
+                self.apply_args_to_closure(closure, [].into(), [].into())?
+            } else {
+                closure
+            };
+
             // push the env
             let closure_env = Module::from_exprs(closure.env);
             self.context.root_mod.stack_push(NS_PARAM, closure_env);
-            let closure = Closure {
+            let closure = Func {
                 env: HashMap::new(),
                 ..closure
             };
 
             if log::log_enabled!(log::Level::Debug) {
                 let name = closure
-                    .name
+                    .name_hint
                     .clone()
                     .unwrap_or_else(|| Ident::from_name("<unnamed>"));
                 log::debug!("resolving args of function {}", name);
             }
             let closure = self.resolve_function_args(closure)?;
 
-            // evaluate
-            let needs_window = (closure.body_ty)
-                .as_ref()
-                .map(|ty| ty.is_superset_of(&Ty::SetExpr(SetExpr::Primitive(TyLit::Column))))
+            let needs_window = (closure.params.last())
+                .and_then(|p| p.ty.as_ref())
+                .map(|t| t.as_ty().unwrap().is_sub_type_of_array())
                 .unwrap_or_default();
 
-            let mut res = match self.cast_built_in_function(closure)? {
-                // this function call is a built-in function
-                Ok(transform) => transform,
+            // evaluate
+            let res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
+                // special case: functions that have internal body
 
-                // this function call is not a built-in, proceed with materialization
-                Err(closure) => {
-                    log::debug!("stack_push for {}", closure.as_debug_name());
+                if operator_name.starts_with("std.") {
+                    let name = closure.name_hint.unwrap().to_string();
+                    let args = closure.args;
 
-                    let (func_env, body) = env_of_closure(closure);
+                    let mut res = Expr::from(ExprKind::RqOperator { name, args });
+                    res.ty = closure.return_ty.map(|t| t.into_ty().unwrap());
+                    res.needs_window = needs_window;
+                    res
+                } else {
+                    let expr = transforms::cast_transform(self, closure)?;
+                    self.fold_expr(expr)?
+                }
+            } else {
+                // base case: materialize
+                log::debug!("stack_push for {}", closure.as_debug_name());
 
-                    self.context.root_mod.stack_push(NS_PARAM, func_env);
+                let (func_env, body) = env_of_closure(closure);
 
-                    // fold again, to resolve inner variables & functions
-                    let body = self.fold_expr(body)?;
+                self.context.root_mod.stack_push(NS_PARAM, func_env);
 
-                    // remove param decls
-                    log::debug!("stack_pop: {:?}", body.id);
-                    let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
+                // fold again, to resolve inner variables & functions
+                let body = self.fold_expr(body)?;
 
-                    if let ExprKind::Closure(mut inner_closure) = body.kind {
-                        // body couldn't been resolved - construct a closure to be evaluated later
+                // remove param decls
+                log::debug!("stack_pop: {:?}", body.id);
+                let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
-                        inner_closure.env = func_env.into_exprs();
+                if let ExprKind::Func(mut inner_closure) = body.kind {
+                    // body couldn't been resolved - construct a closure to be evaluated later
 
-                        let (got, missing) =
-                            inner_closure.params.split_at(inner_closure.args.len());
-                        let missing = missing.to_vec();
-                        inner_closure.params = got.to_vec();
+                    inner_closure.env = func_env.into_exprs();
 
-                        Expr::from(ExprKind::Closure(Box::new(Closure {
-                            name: None,
-                            args: vec![],
-                            params: missing,
-                            named_params: vec![],
-                            body: Box::new(Expr::from(ExprKind::Closure(inner_closure))),
-                            body_ty: None,
-                            env: HashMap::new(),
-                        })))
-                    } else {
-                        // resolved, return result
-                        body
-                    }
+                    let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
+                    let missing = missing.to_vec();
+                    inner_closure.params = got.to_vec();
+
+                    Expr::from(ExprKind::Func(Box::new(Func {
+                        name_hint: None,
+                        args: vec![],
+                        params: missing,
+                        named_params: vec![],
+                        body: Box::new(Expr::from(ExprKind::Func(inner_closure))),
+                        return_ty: None,
+                        env: HashMap::new(),
+                    })))
+                } else {
+                    // resolved, return result
+                    body
                 }
             };
 
             // pop the env
             self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
-            res.needs_window = needs_window;
             res
         } else {
             // not enough arguments: don't fold
             log::debug!("returning as closure");
 
-            let mut ty = type_of_closure(&closure);
-            ty.args = ty.args[args_len..].to_vec();
+            let ty = TyFunc {
+                args: closure
+                    .params
+                    .iter()
+                    .skip(args_len)
+                    .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
+                    .collect(),
+                return_ty: Box::new(
+                    closure
+                        .return_ty
+                        .as_ref()
+                        .map(|x| x.as_ty().cloned().unwrap()),
+                ),
+            };
 
-            let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
-            node.ty = Some(Ty::Function(ty));
+            let mut node = Expr::from(ExprKind::Func(Box::new(closure)));
+            node.ty = Some(Ty {
+                kind: TyKind::Function(ty),
+                name: None,
+            });
 
             node
         };
@@ -517,36 +671,27 @@ impl Resolver {
         Ok(r)
     }
 
-    fn cast_built_in_function(&mut self, closure: Closure) -> Result<Result<Expr, Closure>> {
-        let is_std = closure.name.as_ref().map(|n| n.path.as_slice() == ["std"]);
-
-        if !is_std.unwrap_or_default() {
-            return Ok(Err(closure));
-        }
-
-        Ok(match transforms::cast_transform(self, closure)? {
-            // it a transform
-            Ok(e) => Ok(self.fold_expr(e)?),
-
-            // it a std function that should be lowered into a BuiltIn
-            Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
-                let name = closure.name.unwrap().to_string();
-                let args = closure.args;
-
-                Ok(Expr::from(ExprKind::BuiltInFunction { name, args }))
-            }
-
-            // it a normal function that should be resolved
-            Err(closure) => Err(closure),
-        })
+    fn fold_function_types(&mut self, mut closure: Func) -> Result<Func> {
+        closure.params = closure
+            .params
+            .into_iter()
+            .map(|p| -> Result<_> {
+                Ok(FuncParam {
+                    ty: self.fold_ty_or_expr(p.ty)?,
+                    ..p
+                })
+            })
+            .try_collect()?;
+        closure.return_ty = self.fold_ty_or_expr(closure.return_ty)?;
+        Ok(closure)
     }
 
     fn apply_args_to_closure(
         &mut self,
-        mut closure: Closure,
+        mut closure: Func,
         args: Vec<Expr>,
         mut named_args: HashMap<String, Expr>,
-    ) -> Result<Closure> {
+    ) -> Result<Func> {
         // named arguments are consumed only by the first function
 
         // named
@@ -563,7 +708,7 @@ impl Resolver {
             // TODO: report all remaining named_args as separate errors
             anyhow::bail!(
                 "unknown named argument `{name}` to closure {:?}",
-                closure.name
+                closure.name_hint
             )
         }
 
@@ -572,34 +717,35 @@ impl Resolver {
         Ok(closure)
     }
 
-    fn resolve_function_args(&mut self, to_resolve: Closure) -> Result<Closure> {
-        let mut closure = Closure {
+    fn resolve_function_args(&mut self, to_resolve: Func) -> Result<Func> {
+        let mut closure = Func {
             args: vec![Expr::null(); to_resolve.args.len()],
             ..to_resolve
         };
 
-        let func_name = &closure.name;
+        let func_name = &closure.name_hint;
 
-        let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
+        let (relations, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
             .enumerate()
             .partition(|(_, (param, _))| {
-                let is_table = param
+                let is_relation = param
                     .ty
                     .as_ref()
-                    .map(|t| matches!(t, Ty::Table(_)))
+                    .and_then(|t| t.as_ty())
+                    .map(|t| t.is_relation())
                     .unwrap_or_default();
 
-                is_table
+                is_relation
             });
 
-        let has_tables = !tables.is_empty();
+        let has_relations = !relations.is_empty();
 
-        // resolve tables
-        if has_tables {
+        // resolve relational args
+        if has_relations {
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
-            for pos in tables.into_iter().with_position() {
+            for pos in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
                 let (index, (param, arg)) = pos.into_inner();
 
@@ -607,8 +753,8 @@ impl Resolver {
                 let arg = self.fold_and_type_check(arg, param, func_name)?;
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
-                // add table's frame into scope
-                let frame = arg.ty.as_ref().unwrap().as_table().unwrap();
+                // add relation frame into scope
+                let frame = arg.lineage.as_ref().unwrap();
                 if is_last {
                     self.context.root_mod.insert_frame(frame, NS_FRAME);
                 } else {
@@ -621,26 +767,26 @@ impl Resolver {
 
         // resolve other positional
         for (index, (param, mut arg)) in other {
-            if let ExprKind::List(items) = arg.kind {
-                // if this is a list, resolve elements separately,
+            if let ExprKind::Tuple(fields) = arg.kind {
+                // if this is a tuple, resolve elements separately,
                 // so they can be added to scope, before resolving subsequent elements.
 
-                let mut res = Vec::with_capacity(items.len());
-                for item in items {
-                    let item = self.fold_and_type_check(item, param, func_name)?;
+                let mut fields_new = Vec::with_capacity(fields.len());
+                for field in fields {
+                    let field = self.fold_within_namespace(field, &param.name)?;
 
                     // add aliased columns into scope
-                    if let Some(alias) = item.alias.clone() {
-                        let id = item.id.unwrap();
+                    if let Some(alias) = field.alias.clone() {
+                        let id = field.id.unwrap();
                         self.context.root_mod.insert_frame_col(NS_FRAME, alias, id);
                     }
-                    res.push(item);
+                    fields_new.push(field);
                 }
 
-                // note that this list node has to be resolved itself
+                // note that this tuple node has to be resolved itself
                 // (it's elements are already resolved and so their resolving
                 // should be skipped)
-                arg.kind = ExprKind::List(res);
+                arg.kind = ExprKind::Tuple(fields_new);
             }
 
             let arg = self.fold_and_type_check(arg, param, func_name)?;
@@ -648,7 +794,7 @@ impl Resolver {
             closure.args[index] = arg;
         }
 
-        if has_tables {
+        if has_relations {
             self.context.root_mod.unshadow(NS_FRAME);
             self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }
@@ -659,21 +805,22 @@ impl Resolver {
     fn fold_and_type_check(
         &mut self,
         arg: Expr,
-        param: &ClosureParam,
+        param: &FuncParam,
         func_name: &Option<Ident>,
     ) -> Result<Expr> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // don't validate types of unresolved exprs
-        if arg.ty.is_some() {
+        if arg.id.is_some() && !self.disable_type_checking {
             // validate type
-            let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
-            let assumed_ty = validate_type(&arg, param_ty, || {
+
+            let who = || {
                 func_name
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
-            })?;
-            arg.ty = Some(assumed_ty);
+            };
+            let ty = param.ty.as_ref().map(|t| t.as_ty().unwrap());
+            self.validate_type(&mut arg, ty, &who)?;
         }
 
         Ok(arg)
@@ -713,10 +860,9 @@ impl Resolver {
             name: ident.name,
         }));
         right.span = span;
-        let kind = ExprKind::Binary {
-            left: Box::new(left),
-            op: BinOp::Eq,
-            right: Box::new(right),
+        let kind = ExprKind::RqOperator {
+            name: "std.eq".to_string(),
+            args: vec![left, right],
         };
         let kind = fold_expr_kind(self, kind)?;
         Ok(kind)
@@ -724,8 +870,8 @@ impl Resolver {
 
     fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr, anyhow::Error> {
         let expr = self.fold_expr(expr)?;
-        let list = coerce_and_flatten(expr)?;
-        let except: Vec<Expr> = list
+        let tuple = coerce_into_tuple_and_flatten(expr)?;
+        let except: Vec<Expr> = tuple
             .into_iter()
             .map(|e| match e.kind {
                 ExprKind::Ident(_) | ExprKind::All { .. } => Ok(e),
@@ -743,62 +889,61 @@ impl Resolver {
         }))
     }
 
-    fn closure_of_func_def(&mut self, func_def: FuncDef, fq_ident: Ident) -> Result<Closure> {
-        let body_ty = self.fold_type_expr(func_def.return_ty)?;
-
-        Ok(Closure {
-            name: Some(fq_ident),
-            body: func_def.body,
-            body_ty,
-
-            params: self.fold_func_params(&func_def.positional_params)?,
-            named_params: self.fold_func_params(&func_def.named_params)?,
-
-            args: vec![],
-
-            env: HashMap::default(),
-        })
-    }
-
-    fn fold_func_params(&mut self, func_params: &[FuncParam]) -> Result<Vec<ClosureParam>> {
-        let mut params = Vec::with_capacity(func_params.len());
-        for p in func_params.iter().cloned() {
-            params.push(ClosureParam {
-                name: p.name,
-                ty: self.fold_type_expr(p.ty_expr)?,
-                default_value: p.default_value,
-            })
-        }
-        Ok(params)
-    }
-
-    fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
+    pub fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
+                let name = expr.kind.as_ident().map(|i| i.name.clone());
+
+                let old = self.disable_type_checking;
+                self.disable_type_checking = true;
                 let expr = self.fold_expr(expr)?;
+                self.disable_type_checking = old;
 
-                let set_expr = type_resolver::coerce_to_set(expr, &self.context)?;
-
-                // TODO: workaround
-                if let SetExpr::Array(_) = set_expr {
-                    return Ok(Some(Ty::Table(Frame::default())));
-                }
-
-                Some(Ty::SetExpr(set_expr))
+                let mut set_expr = type_resolver::coerce_to_type(self, expr)?;
+                set_expr.name = set_expr.name.or(name);
+                Some(set_expr)
             }
             None => None,
         })
     }
+
+    fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
+        Ok(match ty_or_expr {
+            Some(TyOrExpr::Expr(ty_expr)) => {
+                Some(TyOrExpr::Ty(self.fold_type_expr(Some(ty_expr))?.unwrap()))
+            }
+            _ => ty_or_expr,
+        })
+    }
 }
 
-fn env_of_closure(closure: Closure) -> (Module, Expr) {
+fn ty_of_lineage(lineage: &Lineage) -> Ty {
+    Ty::relation(
+        lineage
+            .columns
+            .iter()
+            .map(|col| match col {
+                LineageColumn::All { .. } => TupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TupleField::Single(
+                    name.as_ref().map(|i| i.name.clone()),
+                    Some(Ty {
+                        kind: TyKind::Singleton(Literal::Null),
+                        name: None,
+                    }),
+                ),
+            })
+            .collect(),
+    )
+}
+
+fn env_of_closure(closure: Func) -> (Module, Expr) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {
         let v = Decl {
             declared_at: arg.id,
             kind: DeclKind::Expr(Box::new(arg)),
-            order: 0,
+            ..Default::default()
         };
         let param_name = param.name.split('.').last().unwrap();
         func_env.names.insert(param_name.to_string(), v);
@@ -807,39 +952,73 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
     (func_env, *closure.body)
 }
 
+fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
+    let set = match name {
+        "int" => PrimitiveSet::Int,
+        "float" => PrimitiveSet::Float,
+        "bool" => PrimitiveSet::Bool,
+        "text" => PrimitiveSet::Text,
+        "date" => PrimitiveSet::Date,
+        "time" => PrimitiveSet::Time,
+        "timestamp" => PrimitiveSet::Timestamp,
+        _ => return None,
+    };
+    Some(ExprKind::Type(Ty {
+        kind: TyKind::Primitive(set),
+        name: None,
+    }))
+}
+
 #[cfg(test)]
-mod test {
+pub(super) mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
-    use itertools::Itertools;
 
-    use crate::ast::pl::{Expr, Ty};
-    use crate::semantic::resolve_only;
+    use crate::ast::pl::{fold::AstFold, Expr, Lineage};
 
-    fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let (stmts, _) = resolve_only(crate::parser::parse(query)?, None)?;
-
-        Ok(*stmts.into_iter().exactly_one()?.kind.into_main()?)
+    pub fn erase_ids(expr: Expr) -> Expr {
+        IdEraser {}.fold_expr(expr).unwrap()
     }
 
-    fn resolve_type(query: &str) -> Result<Ty> {
-        Ok(parse_and_resolve(query)?.ty.unwrap_or(Ty::Infer))
+    struct IdEraser {}
+
+    impl AstFold for IdEraser {
+        fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+            expr.kind = self.fold_expr_kind(expr.kind)?;
+            expr.id = None;
+            expr.target_id = None;
+            expr.target_ids.clear();
+            Ok(expr)
+        }
+    }
+
+    fn parse_and_resolve(query: &str) -> Result<Expr> {
+        let ctx = crate::semantic::test::parse_and_resolve(query)?;
+        let (main, _) = ctx.find_main_rel(&[]).unwrap();
+        Ok(*main.clone().into_relation_var().unwrap())
+    }
+
+    fn resolve_lineage(query: &str) -> Result<Lineage> {
+        Ok(parse_and_resolve(query)?.lineage.unwrap())
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call()?;
-        Ok(derive.kind.into_derive()?)
+        let exprs = derive.kind.into_derive()?;
+        let exprs = IdEraser {}.fold_exprs(exprs).unwrap();
+        Ok(exprs)
     }
+
     #[test]
     fn test_variables_1() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             from employees
-            derive [
+            derive {
                 gross_salary = salary + payroll_tax,
                 gross_cost =   gross_salary + benefits_cost
-            ]
+            }
             "#
         )
         .unwrap());
@@ -854,12 +1033,12 @@ mod test {
     fn test_functions_1() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func subtract a b -> a - b
+            let subtract = a b -> a - b
 
             from employees
-            derive [
+            derive {
                 net_salary = subtract gross_salary tax
-            ]
+            }
             "#
         )
         .unwrap());
@@ -869,8 +1048,8 @@ mod test {
     fn test_functions_nested() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func lag_day x -> s"lag_day_todo({x})"
-            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
+            let lag_day = x -> s"lag_day_todo({x})"
+            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
             from a
             derive (ret b c)
@@ -891,11 +1070,11 @@ mod test {
 
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func plus_one x -> x + 1
-            func plus x y -> x + y
+            let plus_one = x -> x + 1
+            let plus = x y -> x + y
 
             from a
-            derive [b = (sum foo | plus_one | plus 2)]
+            derive {b = (sum foo | plus_one | plus 2)}
             "#
         )
         .unwrap());
@@ -904,13 +1083,13 @@ mod test {
     fn test_named_args() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            func add x to:1 -> x + to
+            let add_one = x to:1 -> x + to
 
             from foo_table
-            derive [
-                added = add bar to:3,
-                added_default = add bar
-            ]
+            derive {
+                added = add_one bar to:3,
+                added_default = add_one bar
+            }
             "#
         )
         .unwrap());
@@ -918,31 +1097,31 @@ mod test {
 
     #[test]
     fn test_frames_and_names() {
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from orders
-            select [customer_no, gross, tax, gross - tax]
+            select {customer_no, gross, tax, gross - tax}
             take 20
             "#
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from table_1
-            join customers [==customer_no]
+            join customers (==customer_no)
             "#
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_type(
+        assert_yaml_snapshot!(resolve_lineage(
             r#"
             from e = employees
-            join salaries [==emp_no]
-            group [e.emp_no, e.gender] (
-                aggregate [
+            join salaries (==emp_no)
+            group {e.emp_no, e.gender} (
+                aggregate {
                     emp_salary = average salaries.salary
-                ]
+                }
             )
             "#
         )

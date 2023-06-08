@@ -88,7 +88,7 @@ Datetimes are supported by some databases (e.g. MySql, BigQuery) in addition to
 timestamps. When we have type annotations, these will be represented by a
 timestamp annotated as a datetime:
 
-```prql_no_test
+```prql no-eval
 derive pi_day = @2017-03-14T15:09:26.535898<datetime>
 ```
 

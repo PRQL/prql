@@ -13,9 +13,10 @@ struct Node {
     done: bool,
 }
 
-pub fn toposort<Key: Eq + std::hash::Hash + Clone>(
-    dependencies: &[(Key, Vec<Key>)],
-) -> Option<Vec<&Key>> {
+pub fn toposort<'a, Key: Eq + std::hash::Hash + Clone>(
+    dependencies: &'a [(Key, Vec<Key>)],
+    start: Option<&'_ Key>,
+) -> Option<Vec<&'a Key>> {
     // create mapping from Key to usize
     let index: HashMap<&Key, usize> = dependencies
         .iter()
@@ -26,7 +27,7 @@ pub fn toposort<Key: Eq + std::hash::Hash + Clone>(
     // map DAG from Key to usize
     let dag: Dag = dependencies
         .iter()
-        .map(|(_, deps)| deps.iter().map(|d| index[d]).collect())
+        .map(|(_, deps)| deps.iter().flat_map(|d| index.get(d).cloned()).collect())
         .collect();
 
     // init toposort
@@ -39,10 +40,15 @@ pub fn toposort<Key: Eq + std::hash::Hash + Clone>(
         order: Vec::with_capacity(index.len()),
     };
 
-    // start visits
-    while toposort.order.len() < dependencies.len() {
-        for start_at in 0..index.len() {
-            toposort.visit(&dag, start_at).ok()?;
+    if let Some(start) = start.map(|s| index.get(s).unwrap()) {
+        // use only the provided visit start
+        toposort.visit(&dag, *start).ok()?;
+    } else {
+        // start visits from all nodes
+        while toposort.order.len() < dependencies.len() {
+            for start_at in 0..index.len() {
+                toposort.visit(&dag, start_at).ok()?;
+            }
         }
     }
 
@@ -88,7 +94,7 @@ mod tests {
             ("c", vec![]),
             ("d", vec![]),
         ];
-        let order = toposort(&dependencies).unwrap();
+        let order = toposort(&dependencies, None).unwrap();
 
         let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["c", "b", "a", "d"]);
@@ -102,7 +108,7 @@ mod tests {
             ("c", vec!["b"]),
             ("d", vec!["c"]),
         ];
-        let order = toposort(&dependencies).unwrap();
+        let order = toposort(&dependencies, None).unwrap();
 
         let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["a", "b", "c", "d"]);
@@ -116,7 +122,7 @@ mod tests {
             ("c", vec![]),
             ("d", vec!["a"]),
         ];
-        let order = toposort(&dependencies);
+        let order = toposort(&dependencies, None);
 
         assert!(order.is_none());
     }
@@ -130,9 +136,25 @@ mod tests {
             ("d", vec!["b"]),
         ];
 
-        let order = toposort(&dependencies).unwrap();
+        let order = toposort(&dependencies, None).unwrap();
 
         let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["b", "a", "c", "d"]);
+    }
+
+    #[test]
+    fn with_root() {
+        let dependencies = vec![
+            ("a", vec!["b"]),
+            ("b", vec![]),
+            ("c", vec!["b"]),
+            ("d", vec!["b"]),
+        ];
+        let root = "c";
+
+        let order = toposort(&dependencies, Some(&root)).unwrap();
+
+        let order = order.into_iter().copied().collect_vec();
+        assert_eq!(order, vec!["b", "c"]);
     }
 }

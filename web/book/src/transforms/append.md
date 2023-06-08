@@ -39,12 +39,12 @@ intersect employees_2
 To imitate set operations i.e. (`UNION`, `EXCEPT` and `INTERSECT`), you can use
 the following functions:
 
-```prql_no_test
-func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
-func union `default_db.bottom` top -> (top | append bottom | distinct)
-func except `default_db.bottom` top -> (top | distinct | remove bottom)
-func intersect_distinct `default_db.bottom` top -> (top | intersect bottom | distinct)
+```prql no-eval
+let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
+let union = `default_db.bottom` top -> (top | append bottom | distinct)
+let except = `default_db.bottom` top -> (top | distinct | remove bottom)
+let intersect_distinct = `default_db.bottom` top -> (top | intersect bottom | distinct)
 ```
 
-Don't mind the `default_db.` and `_param.`, these are compiler implementation
+Don't mind the `default_db.` and `noop`, these are compiler implementation
 detail for now.

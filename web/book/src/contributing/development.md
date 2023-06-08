@@ -35,22 +35,25 @@ That's sufficient for making an initial contribution to the compiler.
 
 ## Setting up a full dev environment
 
-> **Note**: We really care about this process being easy, both because the
-> project benefits from more contributors like you, and to reciprocate your
-> future contribution. If something isn't easy, please let us know in a GitHub
-> Issue. We'll enthusiastically help you, and use your feedback to improve the
-> scripts & instructions.
+```admonish info
+We really care about this process being easy, both because the
+project benefits from more contributors like you, and to reciprocate your
+future contribution. If something isn't easy, please let us know in a GitHub
+Issue. We'll enthusiastically help you, and use your feedback to improve the
+scripts & instructions.
+```
 
 For more advanced development; for example compiling for wasm or previewing the
 website, we have two options:
 
 ### Option 1: Use the project's `task`
 
-> **Note**: This is tested on MacOS, should work on Linux, but won't work on
-> Windows.
+```admonish note
+This is tested on MacOS, should work on Linux, but won't work on Windows.
+Because of using the `brew` command inside of `Taskfile.yml`.
+```
 
-- Install Task; either `brew install go-task/tap/go-task` or as described on
-  [Task](https://taskfile.dev/#/installation).
+- [Install Task](https://taskfile.dev/installation/).
 - Then run the `setup-dev` task. This runs commands from our
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
   installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
@@ -94,41 +97,27 @@ website, we have two options:
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml) will be a
   good source to copy & paste instructions from.
 
-<!--
+### Option 3: Use a [Dev Container](https://containers.dev/)
 
-Until we set up a Codespaces, I don't think this is that helpful — it can't run any code,
-including navigating Rust code with rust-analyzer. We'd def take a contribution for a
-codespaces template, though.
+This project has a
+[devcontainer.json file](https://github.com/PRQL/prql/blob/main/.devcontainer/devcontainer.json)
+and a
+[pre-built dev container base Docker image](https://github.com/PRQL/prql/pkgs/container/prql-devcontainer-base).
 
-### github.dev
+Currently, the tools for Rust are already installed in the pre-built image, and,
+Node.js, Python and others are configured to be installed when build the
+container.
 
-- Alternatively, for quick contributions (e.g. docs), hit `.` in GitHub to
-  launch a [github.dev instance](https://github.dev/PRQL/prql). This has the
-  disadvantage that code can't run. -->
+While there are a variety of tools that support Dev Containers, the focus here
+is on developing with VS Code in a container by
+[GitHub Codespaces](https://docs.github.com/en/codespaces/overview) or
+[VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 
-### Building & testing the full project
+To use a Dev Container on a local computer with VS Code, install the
+[VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+and its system requirements. Then refer to the links above to get started.
 
-We have a couple of tasks which incorporate all building & testing. While they
-don't need to be run as part of a standard dev loop — generally we'll want to
-run a more specific test — they can be useful as a backstop to ensure everything
-works, and as a reference for how each part of the repo is built & tested. They
-should be consistent with the GitHub Actions workflows; please report any
-inconsistencies.
-
-To build everything:
-
-```sh
-task build-all
-```
-
-To run all tests; (which includes building everything):
-
-```sh
-task test-all
-```
-
-These require installing Task, either `brew install go-task/tap/go-task` or as
-described on [Task](https://taskfile.dev/#/installation).
+---
 
 ## Contribution workflow
 
@@ -226,12 +215,12 @@ Test](https://matklad.github.io//2021/05/31/how-to-test.html).}}.
 
 <!-- markdownlint-disable MD053 -->
 
-> **Note**
->
-> If you're making your first contribution, you don't need to engage with all
-> this — it's fine to just make a change and push the results; the tests that
-> run in GitHub will point you towards any errors, which can be then be run
-> locally if needed. We're always around to help out.
+```admonish info
+If you're making your first contribution, you don't need to engage with all
+this — it's fine to just make a change and push the results; the tests that
+run in GitHub will point you towards any errors, which can be then be run
+locally if needed. We're always around to help out.
+```
 
 Our tests, from the bottom of the pyramid to the top:
 
@@ -281,14 +270,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr --ignore='target/**' -- cargo insta test --accept -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prql-compiler --lib
     ```
 
     Breaking this down:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
       value was created, for Rust tests which return `Result`s.
-    - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the
+    - `watchexec -e rs,toml,md -cr --ignore='target/**' --` will run the
       subsequent command on any change to files with extensions which we are
       generally editing.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot
@@ -302,14 +291,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       get into a loop of writing snapshot files, triggering a change, writing a
       snapshot file, etc. -->
 
-- **[Examples](https://github.com/PRQL/prql/blob/main/web/book/tests/snapshot.rs)**
-  — we compile all examples in the PRQL Book, to test that they produce the SQL
-  we expect, and that changes to our code don't cause any unexpected
-  regressions.
+- **[Documentation](https://github.com/PRQL/prql/tree/main/web/book/tests/documentation)**
+  — we compile all examples from our documentation in the Website, README, and
+  PRQL Book, to test that they produce the SQL we expect, and that changes to
+  our code don't cause any unexpected regressions.
 
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/web/book/src/integrations/README.md)**
-  — these run tests against real databases, to ensure we're producing correct
-  SQL.
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/prql-compiler/tests/integration)**
+  — we run tests with example queries against real databases to ensure we're
+  producing correct SQL.
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run the tests described up to this point on every commit to a pull
@@ -348,7 +337,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   — we run tests that take a long time or are unrelated to code changes, such as
   security checks, or expensive timing benchmarks, every night.
 
-  We can run these tests before a merge by adding a label `pr-cron` to the PR.
+  We can run these tests before a merge by adding a label `pr-nightly` to the
+  PR.
 
 The goal of our tests is to allow us to make changes quickly. If you find
 they're making it more difficult for you to make changes, or there are missing
@@ -369,6 +359,17 @@ while allowing us to fix mistakes with a tighter loop than every release.
 Fixes to the playground, book, or website should have a `pr-backport-web` label
 added to their PR — a bot will then open another PR onto the `web` branch once
 the initial branch merges.
+
+The website components will run locally with:
+
+```sh
+# Run the main website
+task run-website
+# Run the PRQL online book
+task run-book
+# Run the PRQL playground
+task run-playground
+```
 
 ---
 
@@ -399,13 +400,10 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Update Issue <https://github.com/PRQL/prql/issues/1> so that people will be
-   notified of the change.
-
-6. Add in the sections for a new Changelog:
+5. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.6.X — [unreleased]
+   ## 0.8.X — [unreleased]
 
    **Features**:
 
@@ -421,5 +419,8 @@ Currently we release in a semi-automated way:
 
    **New Contributors**:
    ```
+
+6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
+   that need to be pushed out.
 
 We may make this more automated in future; e.g. automatic changelog creation.

@@ -15,13 +15,13 @@ let parts = (
 
 from pl=prospect_lists_prospects
 filter prospect_list_id == 'cc675eee-8bd1-237f-be5e-622ba511d65e'
-join a=accounts [a.id == pl.related_id]
-join er=email_addr_bean_rel [er.bean_id == a.id and er.primary_address == '1']
-join ea=email_addresses [ea.id == er.email_address_id]
+join a=accounts (a.id == pl.related_id)
+join er=email_addr_bean_rel (er.bean_id == a.id && er.primary_address == '1')
+join ea=email_addresses (ea.id == er.email_address_id)
 select ea.email_address
 derive prefix = s"regexp_replace(SUBSTRING_INDEX({email_address}, '@', 1), '[.0-9-_:]+', '.')"
 derive stub = s"SUBSTRING_INDEX(SUBSTRING_INDEX({prefix}, '.', part), '.', -1)"
-select [email_address, stub]
+select {email_address, stub}
 ```
 
 European football clubs with ratings for each year. We want to normalize each
@@ -33,6 +33,6 @@ filter rating != null
 # TODO: this is real ugly. `average rating` should not require parenthesis
 # TODO: why cannot we put comments in group's pipeline?
 group year (
-    derive [rating_norm = rating - (average rating) / (stddev rating)]
+    derive {rating_norm = rating - (average rating) / (stddev rating)}
 )
 ```

@@ -9,17 +9,17 @@ Same as above but with `salary` in a list:
 
 ```prql
 from employees
-select [salary]
+select {salary}
 ```
 
 ## Multiple items
 
 ```prql
 from employees
-derive [
+derive {
   gross_salary = salary + payroll_tax,
   gross_cost = gross_salary + benefits_cost
-]
+}
 ```
 
 Same as above but split into two lines:

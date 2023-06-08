@@ -15,7 +15,7 @@ jobs:
     # We can't read PRQL repo security events on forks, which causes this to
     # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
     # could move this to `pull-request-target`.
-    if: "!github.event.pull_request.head.repo.fork"
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     permissions:
       actions: read
       contents: read
@@ -29,14 +29,25 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Maybe add to test-all?
+  cargo-bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: bench
+          args: --timings --all-targets
+
   check-links:
-    # We run on modified files only in PR, so do another check of all files here.
+    # We run only on modified files and only on our resources in PRs; here we
+    # run on all links and all files.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: .github/.markdown-link-check.json
+          config-file: .config/.markdown-link-check-all.json
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -53,14 +64,20 @@ jobs:
   update-rust-toolchain:
     runs-on: ubuntu-latest
     # Don't run on forks; will attempt to create a PR into the fork...
-    if: "!github.event.pull_request.head.repo.fork"
+    # if: ${{ !github.event.pull_request.head.repo.fork }}
+
+    # Disable until 1.72.0 is released, see https://github.com/rust-lang/rust/pull/112154
+    if: false
+
+    # Note that this doesn't change the minimum supported version, only the
+    # default to run on. The minimum is defined by Cargo.toml's metadata.msrv.
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
-          minor-version-delta: 3
+          minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
 
@@ -69,41 +86,43 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: baptiste0928/cargo-install@next
+      - run: rustup override set nightly-2023-04-22
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
-      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
-      - run: rustup override set nightly-2022-10-22
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: udeps
           args: --all-targets
 
-  test-docker:
-    # We only test the build in `test-all`; this also runs tests.
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
+  # We now use the devcontainer. TODO: is it possible to have a similar test for
+  # that? Or that would require VSCode to install the dependencies?
 
-      - uses: docker/setup-buildx-action@v2
+  # test-docker:
+  #   # We only test the build in `test-all`; this also runs tests.
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📂 Checkout code
+  #       uses: actions/checkout@v3
 
-      - name: Build
-        uses: docker/build-push-action@v4
-        with:
-          tags: prql:latest
-          # Use the GHA cache
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  #     - uses: docker/setup-buildx-action@v2
 
-      # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
-      - name: Test
-        uses: addnab/docker-run-action@v3
-        with:
-          image: prql:latest
-          options: -v ${{ github.workspace }}/:/src
-          run: task test-rust
+  #     - name: Build
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         tags: prql:latest
+  #         # Use the GHA cache
+  #         load: true
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+
+  #     # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
+  #     - name: Test
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: prql:latest
+  #         options: -v ${{ github.workspace }}/:/src
+  #         run: task test-rust
 
   code-ql:
     # Currently almost the default code-ql config

@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.postgres\n\nfrom tracks\nfilter (name ~= \"\\\\(I Can't Help\\\\) Falling\")\n"
+---
+SELECT
+  *
+FROM
+  tracks
+WHERE
+  name ~ '\(I Can''t Help\) Falling'
+

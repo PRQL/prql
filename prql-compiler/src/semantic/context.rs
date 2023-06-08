@@ -2,13 +2,10 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
-use super::type_resolver::validate_type;
+use super::*;
 use crate::ast::pl::*;
-use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Span};
 
 /// Context of the pipeline.
@@ -18,11 +15,10 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
-
-    pub(crate) inferred_columns: HashMap<usize, Vec<RelationColumn>>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+/// A struct containing information about a single declaration.
+#[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
     pub declared_at: Option<usize>,
 
@@ -31,9 +27,12 @@ pub struct Decl {
     /// Some declarations (like relation columns) have an order to them.
     /// 0 means that the order is irrelevant.
     pub order: usize,
+
+    pub annotations: Vec<Annotation>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+/// The Declaration itself.
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum DeclKind {
     /// A nested namespace
     Module(Module),
@@ -53,26 +52,31 @@ pub enum DeclKind {
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(Box<DeclKind>),
 
-    FuncDef(FuncDef),
-
     Expr(Box<Expr>),
+
+    QueryDef(QueryDef),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
-    /// Columns layout
-    pub columns: Vec<RelationColumn>,
+    /// This will always be `TyKind::Array(TyKind::Tuple)`.
+    /// It is being preparing to be merged with [DeclKind::Expr].
+    /// It used to keep track of columns.
+    pub ty: Option<Ty>,
 
     pub expr: TableExpr,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum TableExpr {
     /// In SQL, this is a CTE
     RelationVar(Box<Expr>),
 
-    /// Actual table in a database, that we can refer to by name in SQL
+    /// Actual table in a database. In SQL it can be referred to by name.
     LocalTable,
+
+    /// No expression (this decl just tracks a relation literal).
+    None,
 
     /// A placeholder for a relation that will be provided later.
     Param(String),
@@ -85,88 +89,53 @@ pub enum TableColumn {
 }
 
 impl Context {
-    pub fn declare_func(&mut self, func_def: FuncDef, id: Option<usize>) {
-        let name = func_def.name.clone();
-
-        let path = vec![NS_STD.to_string()];
-        let ident = Ident { name, path };
-
-        let decl = Decl {
-            kind: DeclKind::FuncDef(func_def),
-            declared_at: id,
-            order: 0,
-        };
-        self.root_mod.insert(ident, decl).unwrap();
-    }
-
-    pub fn declare_var(
+    pub fn declare(
         &mut self,
-        var_def: VarDef,
+        ident: Ident,
+        decl: DeclKind,
         id: Option<usize>,
-        span: Option<Span>,
+        annotations: Vec<Annotation>,
     ) -> Result<()> {
-        let name = var_def.name;
-        let mut path = Vec::new();
-
-        let decl = match &var_def.value.ty {
-            Some(Ty::Table(_) | Ty::Infer) => {
-                let mut value = var_def.value;
-
-                let ty = value.ty.clone().unwrap();
-                let frame = ty.into_table().unwrap_or_else(|_| {
-                    let assumed =
-                        validate_type(value.as_ref(), &Ty::Table(Frame::default()), || None)
-                            .unwrap();
-                    value.ty = Some(assumed.clone());
-                    assumed.into_table().unwrap()
-                });
-
-                path = vec![NS_DEFAULT_DB.to_string()];
-
-                let columns = (frame.columns.iter())
-                    .map(|col| match col {
-                        FrameColumn::All { .. } => RelationColumn::Wildcard,
-                        FrameColumn::Single { name, .. } => {
-                            RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
-                        }
-                    })
-                    .collect();
-
-                let expr = TableExpr::RelationVar(value);
-                DeclKind::TableDecl(TableDecl { columns, expr })
-            }
-            Some(_) => {
-                let mut value = var_def.value;
-
-                // TODO: check that declaring module is std
-                if let Some(kind) = get_stdlib_decl(name.as_str()) {
-                    value.kind = kind;
-                }
-
-                DeclKind::Expr(value)
-            }
-            None => {
-                return Err(
-                    Error::new_simple("Cannot infer type. Type annotations needed.")
-                        .with_span(span)
-                        .into(),
-                );
-            }
-        };
+        let existing = self.root_mod.get(&ident);
+        if existing.is_some() {
+            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
+        }
 
         let decl = Decl {
-            declared_at: id,
             kind: decl,
+            declared_at: id,
             order: 0,
+            annotations,
         };
-
-        let ident = Ident { name, path };
         self.root_mod.insert(ident, decl).unwrap();
-
         Ok(())
     }
 
-    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
+    pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> DeclKind {
+        match &value.lineage {
+            Some(frame) => {
+                let columns = (frame.columns.iter())
+                    .map(|col| match col {
+                        LineageColumn::All { .. } => TupleField::Wildcard(None),
+                        LineageColumn::Single { name, .. } => {
+                            TupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
+                        }
+                    })
+                    .collect();
+                let ty = Some(Ty::relation(columns));
+
+                let expr = TableExpr::RelationVar(value);
+                DeclKind::TableDecl(TableDecl { ty, expr })
+            }
+            _ => DeclKind::Expr(value),
+        }
+    }
+
+    pub fn resolve_ident(
+        &mut self,
+        ident: &Ident,
+        default_namespace: Option<&String>,
+    ) -> Result<Ident, String> {
         // special case: wildcard
         if ident.name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -192,72 +161,108 @@ impl Context {
 
             // ambiguous
             _ => {
-                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                return Err(format!("Ambiguous name. Could be from any of {decls}"));
+                return Err({
+                    let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                    format!("Ambiguous name. Could be from any of {decls}")
+                })
             }
         }
 
-        // fallback case: this variable can be from a namespace that we don't know all columns of
-        let decls = if ident.name != "*" {
-            self.root_mod.lookup(&Ident {
-                path: ident.path.clone(),
-                name: NS_INFER.to_string(),
-            })
+        let ident = if let Some(default_namespace) = default_namespace {
+            let ident = ident.clone().prepend(vec![default_namespace.clone()]);
+
+            let decls = self.root_mod.lookup(&ident);
+            match decls.len() {
+                // no match: try match *
+                0 => ident,
+
+                // single match, great!
+                1 => return Ok(decls.into_iter().next().unwrap()),
+
+                // ambiguous
+                _ => {
+                    return Err({
+                        let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                        format!("Ambiguous name. Could be from any of {decls}")
+                    })
+                }
+            }
         } else {
-            HashSet::new()
+            ident.clone()
         };
-        match decls.len() {
-            0 => Err(format!("Unknown name {ident}")),
 
-            // single match, great!
-            1 => {
-                let infer_ident = decls.into_iter().next().unwrap();
+        // fallback case: try to match with NS_INFER and infer the declaration from the original ident.
+        match self.resolve_ident_fallback(ident, NS_INFER) {
+            // The declaration and all needed parent modules were created
+            // -> just return the fq ident
+            Some(inferred_ident) => Ok(inferred_ident),
 
-                let infer = self.root_mod.get(&infer_ident).unwrap();
-                let infer_default = infer.kind.as_infer().cloned().unwrap();
-                let input_id = infer.declared_at;
+            // Was not able to infer.
+            None => Err("Unknown name".to_string()),
+        }
+    }
 
-                let module_ident = infer_ident.pop().unwrap();
-                let module = self.root_mod.get_mut(&module_ident).unwrap();
-                let module = module.kind.as_module_mut().unwrap();
+    /// Try lookup of the ident with name replaced. If unsuccessful, recursively retry parent ident.
+    fn resolve_ident_fallback(
+        &mut self,
+        ident: Ident,
+        name_replacement: &'static str,
+    ) -> Option<Ident> {
+        let infer_ident = ident.clone().with_name(name_replacement);
 
-                // insert default
-                module
-                    .names
-                    .insert(ident.name.clone(), Decl::from(*infer_default));
+        // lookup of infer_ident
+        let mut decls = self.root_mod.lookup(&infer_ident);
 
-                // infer table columns
-                if let Some(decl) = module.names.get(NS_SELF).cloned() {
-                    if let DeclKind::InstanceOf(table_ident) = decl.kind {
-                        log::debug!("inferring {ident} to be from table {table_ident}");
-                        self.infer_table_column(&table_ident, &ident.name)?;
-                    }
-                }
+        if decls.is_empty() {
+            if let Some(parent) = infer_ident.clone().pop() {
+                // try to infer parent
+                let _ = self.resolve_ident_fallback(parent, NS_INFER_MODULE)?;
 
-                // for inline expressions with wildcards (s-strings), we cannot store inferred columns
-                // in global namespace, but still need the information for lowering.
-                // as a workaround, we store it in context directly.
-                if let Some(input_id) = input_id {
-                    let inferred = self.inferred_columns.entry(input_id).or_default();
-
-                    let exists = inferred.iter().any(|c| match c {
-                        RelationColumn::Single(Some(name)) => name == &ident.name,
-                        _ => false,
-                    });
-                    if !exists {
-                        inferred.push(RelationColumn::Single(Some(ident.name.clone())));
-                    }
-                }
-
-                Ok(module_ident + Ident::from_name(ident.name.clone()))
-            }
-
-            // ambiguous
-            _ => {
-                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                Err(format!("Ambiguous name. Could be from any of {decls}"))
+                // module was successfully inferred, retry the lookup
+                decls = self.root_mod.lookup(&infer_ident)
             }
         }
+
+        if decls.len() == 1 {
+            // single match, great!
+            let infer_ident = decls.into_iter().next().unwrap();
+            self.infer_decl(infer_ident, &ident).ok()
+        } else {
+            // no matches or ambiguous
+            None
+        }
+    }
+
+    /// Create a declaration of [original] from template provided by declaration of [infer_ident].
+    fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
+        let infer = self.root_mod.get(&infer_ident).unwrap();
+        let mut infer_default = *infer.kind.as_infer().cloned().unwrap();
+
+        if let DeclKind::Module(new_module) = &mut infer_default {
+            // Modules are inferred only for database inference.
+            // Because we want to infer database modules that nested arbitrarily deep,
+            // we cannot store the template in DeclKind::Infer, but we override it here.
+            *new_module = Module::new_database();
+        }
+
+        let module_ident = infer_ident.pop().unwrap();
+        let module = self.root_mod.get_mut(&module_ident).unwrap();
+        let module = module.kind.as_module_mut().unwrap();
+
+        // insert default
+        module
+            .names
+            .insert(original.name.clone(), Decl::from(infer_default));
+
+        // infer table columns
+        if let Some(decl) = module.names.get(NS_SELF).cloned() {
+            if let DeclKind::InstanceOf(table_ident) = decl.kind {
+                log::debug!("inferring {original} to be from table {table_ident}");
+                self.infer_table_column(&table_ident, &original.name)?;
+            }
+        }
+
+        Ok(module_ident + Ident::from_name(original.name.clone()))
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
@@ -318,7 +323,7 @@ impl Context {
         // We wrap the expr into DeclKind::Expr and save it into context.
         let cols_expr = Expr {
             flatten: true,
-            ..Expr::from(ExprKind::List(fq_cols))
+            ..Expr::from(ExprKind::Tuple(fq_cols))
         };
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
@@ -332,26 +337,28 @@ impl Context {
         let table = self.root_mod.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
-        let has_wildcard =
-            (table_decl.columns.iter()).any(|c| matches!(c, RelationColumn::Wildcard));
+        let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
+            return Err(format!("Variable {table_ident:?} is not a relation."));
+        };
+
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
-        let exists = table_decl.columns.iter().any(|c| match c {
-            RelationColumn::Single(Some(n)) => n == col_name,
+        let exists = columns.iter().any(|c| match c {
+            TupleField::Single(Some(n), _) => n == col_name,
             _ => false,
         });
         if exists {
             return Ok(());
         }
 
-        let col = RelationColumn::Single(Some(col_name.to_string()));
-        table_decl.columns.push(col);
+        columns.push(TupleField::Single(Some(col_name.to_string()), None));
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
+            if let Some(frame) = &expr.lineage {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_all())
                     .collect_vec();
@@ -362,9 +369,8 @@ impl Context {
                         let (input_name, _) = wildcard_inputs.into_iter().next().unwrap();
 
                         let input = frame.find_input(input_name).unwrap();
-                        if let Some(table_ident) = input.table.clone() {
-                            self.infer_table_column(&table_ident, col_name)?;
-                        }
+                        let table_ident = input.table.clone();
+                        self.infer_table_column(&table_ident, col_name)?;
                     }
                     _ => {
                         return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
@@ -375,29 +381,154 @@ impl Context {
 
         Ok(())
     }
+
+    /// Finds that main pipeline given a path to either main itself or its parent module.
+    /// Returns main expr and fq ident of the decl.
+    pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), Option<String>> {
+        let (decl, ident) = self.find_main(path)?;
+
+        let decl = (decl.kind.as_table_decl())
+            .ok_or(Some(format!("{ident} is not a relational variable")))?;
+
+        Ok((&decl.expr, ident))
+    }
+
+    pub fn find_main(&self, path: &[String]) -> Result<(&Decl, Ident), Option<String>> {
+        let mut tried_idents = Vec::new();
+
+        // is path referencing the relational var directly?
+        if !path.is_empty() {
+            let ident = Ident::from_path(path.to_vec());
+            let decl = self.root_mod.get(&ident);
+
+            if let Some(decl) = decl {
+                return Ok((decl, ident));
+            } else {
+                tried_idents.push(ident.to_string());
+            }
+        }
+
+        // is path referencing the parent module?
+        {
+            let mut path = path.to_vec();
+            path.push(NS_MAIN.to_string());
+
+            let ident = Ident::from_path(path);
+            let decl = self.root_mod.get(&ident);
+
+            if let Some(decl) = decl {
+                return Ok((decl, ident));
+            } else {
+                tried_idents.push(ident.to_string());
+            }
+        }
+
+        Err(Some(format!(
+            "Expected a declaration at {}",
+            tried_idents.join(" or ")
+        )))
+    }
+
+    pub fn find_query_def(&self, main: &Ident) -> Option<&QueryDef> {
+        let ident = Ident {
+            path: main.path.clone(),
+            name: NS_QUERY_DEF.to_string(),
+        };
+
+        let decl = self.root_mod.get(&ident)?;
+        decl.kind.as_query_def()
+    }
+
+    /// Finds all main pipelines.
+    pub fn find_mains(&self) -> Vec<Ident> {
+        self.root_mod.find_by_suffix(NS_MAIN)
+    }
 }
 
-fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
-    let ty_lit = match name {
-        "int" => TyLit::Int,
-        "float" => TyLit::Float,
-        "bool" => TyLit::Bool,
-        "text" => TyLit::Text,
-        "date" => TyLit::Date,
-        "time" => TyLit::Time,
-        "timestamp" => TyLit::Timestamp,
-        "table" => {
-            // TODO: this is just a dummy that gets intercepted when resolving types
-            return Some(ExprKind::Set(SetExpr::Array(Box::new(SetExpr::Singleton(
-                Literal::Null,
-            )))));
+impl Resolver {
+    /// Converts a identifier that points to a table declaration to a frame of that table.
+    pub fn lineage_of_table_decl(
+        &mut self,
+        table_fq: &Ident,
+        input_name: String,
+        input_id: usize,
+    ) -> Lineage {
+        let id = input_id;
+        let table_decl = self.context.root_mod.get(table_fq).unwrap();
+        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
+
+        // TODO: can this panic?
+        let columns = ty.as_ref().unwrap().as_relation().unwrap();
+
+        let mut instance_frame = Lineage {
+            inputs: vec![LineageInput {
+                id,
+                name: input_name.clone(),
+                table: table_fq.clone(),
+            }],
+            columns: Vec::new(),
+            ..Default::default()
+        };
+
+        for col in columns {
+            let col = match col {
+                TupleField::Wildcard(_) => LineageColumn::All {
+                    input_name: input_name.clone(),
+                    except: columns
+                        .iter()
+                        .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
+                        .collect(),
+                },
+                TupleField::Single(col_name, _) => LineageColumn::Single {
+                    name: col_name
+                        .clone()
+                        .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
+                    target_id: id,
+                    target_name: col_name.clone(),
+                },
+            };
+            instance_frame.columns.push(col);
         }
-        "column" => TyLit::Column,
-        "list" => TyLit::List,
-        "scalar" => TyLit::Scalar,
-        _ => return None,
-    };
-    Some(ExprKind::Set(SetExpr::Primitive(ty_lit)))
+
+        log::debug!("instanced table {table_fq} as {instance_frame:?}");
+        instance_frame
+    }
+
+    /// Declares a new table for a relation literal.
+    /// This is needed for column inference to work properly.
+    pub fn declare_table_for_literal(
+        &mut self,
+        input_id: usize,
+        columns: Option<Vec<TupleField>>,
+        name_hint: Option<String>,
+    ) -> Lineage {
+        let id = input_id;
+        let global_name = format!("_literal_{}", id);
+
+        // declare a new table in the `default_db` module
+        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
+        let default_db = self.context.root_mod.get_mut(&default_db_ident).unwrap();
+        let default_db = default_db.kind.as_module_mut().unwrap();
+
+        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
+        let mut infer_default = *infer_default.kind.into_infer().unwrap();
+
+        let table_decl = infer_default.as_table_decl_mut().unwrap();
+        table_decl.expr = TableExpr::None;
+
+        if let Some(columns) = columns {
+            table_decl.ty = Some(Ty::relation(columns));
+        }
+
+        default_db
+            .names
+            .insert(global_name.clone(), Decl::from(infer_default));
+
+        // produce a frame of that table
+        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
+        let table_fq = default_db_ident + Ident::from_name(global_name);
+        self.lineage_of_table_decl(&table_fq, input_name, id)
+    }
 }
 
 impl Default for DeclKind {
@@ -418,6 +549,7 @@ impl From<DeclKind> for Decl {
             kind,
             declared_at: None,
             order: 0,
+            annotations: Vec::new(),
         }
     }
 }
@@ -433,35 +565,26 @@ impl std::fmt::Display for DeclKind {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDecl(TableDecl { columns, expr }) => {
-                write!(f, "TableDef: {} {expr:?}", RelationColumns(columns))
+            Self::TableDecl(TableDecl { ty, expr }) => {
+                write!(
+                    f,
+                    "TableDecl: {} {expr:?}",
+                    ty.as_ref().map(|t| t.to_string()).unwrap_or_default()
+                )
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
-            Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
+            Self::QueryDef(_) => write!(f, "QueryDef"),
         }
     }
 }
 
-pub struct RelationColumns<'a>(pub &'a [RelationColumn]);
-
-impl<'a> std::fmt::Display for RelationColumns<'a> {
+impl std::fmt::Debug for TableDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("[")?;
-        for (index, col) in self.0.iter().enumerate() {
-            let is_last = index == self.0.len() - 1;
-
-            let col = match col {
-                RelationColumn::Wildcard => "*",
-                RelationColumn::Single(name) => name.as_deref().unwrap_or("<unnamed>"),
-            };
-            f.write_str(col)?;
-            if !is_last {
-                f.write_str(", ")?;
-            }
-        }
-        write!(f, "]")
+        let json = serde_json::to_string(self).unwrap();
+        let json = serde_json::from_str::<serde_json::Value>(&json).unwrap();
+        f.write_str(&serde_yaml::to_string(&json).unwrap())
     }
 }

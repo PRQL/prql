@@ -55,6 +55,9 @@ pub trait RqFold {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(cid)
     }
+    fn fold_cids(&mut self, cids: Vec<CId>) -> Result<Vec<CId>> {
+        cids.into_iter().map(|i| self.fold_cid(i)).try_collect()
+    }
     fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
         fold_compute(self, compute)
     }
@@ -81,7 +84,7 @@ fn fold_window<F: ?Sized + RqFold>(fold: &mut F, w: Window) -> Result<Window> {
                 end: w.frame.range.end.map(|x| fold.fold_expr(x)).transpose()?,
             },
         },
-        partition: fold_cids(fold, w.partition)?,
+        partition: fold.fold_cids(w.partition)?,
         sort: fold_column_sorts(fold, w.sort)?,
     })
 }
@@ -115,6 +118,10 @@ pub fn fold_relation_kind<F: ?Sized + RqFold>(
         }
         RelationKind::Literal(lit) => RelationKind::Literal(lit),
         RelationKind::SString(items) => RelationKind::SString(fold_interpolate_items(fold, items)?),
+        RelationKind::BuiltInFunction { name, args } => RelationKind::BuiltInFunction {
+            name,
+            args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
+        },
     })
 }
 
@@ -144,10 +151,6 @@ pub fn fold_query<F: ?Sized + RqFold>(fold: &mut F, query: Query) -> Result<Quer
     })
 }
 
-fn fold_cids<F: ?Sized + RqFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
-    cids.into_iter().map(|i| fold.fold_cid(i)).try_collect()
-}
-
 pub fn fold_transforms<F: ?Sized + RqFold>(
     fold: &mut F,
     transforms: Vec<Transform>,
@@ -169,15 +172,14 @@ pub fn fold_transform<T: ?Sized + RqFold>(
 
         Compute(compute) => Compute(fold.fold_compute(compute)?),
         Aggregate { partition, compute } => Aggregate {
-            partition: fold_cids(fold, partition)?,
-            compute: fold_cids(fold, compute)?,
+            partition: fold.fold_cids(partition)?,
+            compute: fold.fold_cids(compute)?,
         },
-
-        Select(ids) => Select(fold_cids(fold, ids)?),
+        Select(ids) => Select(fold.fold_cids(ids)?),
         Filter(i) => Filter(fold.fold_expr(i)?),
         Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),
         Take(take) => Take(super::Take {
-            partition: fold_cids(fold, take.partition)?,
+            partition: fold.fold_cids(take.partition)?,
             sort: fold_column_sorts(fold, take.sort)?,
             range: take.range,
         }),
@@ -192,7 +194,7 @@ pub fn fold_transform<T: ?Sized + RqFold>(
     Ok(transform)
 }
 
-fn fold_column_sorts<T: ?Sized + RqFold>(
+pub fn fold_column_sorts<T: ?Sized + RqFold>(
     fold: &mut T,
     sorts: Vec<ColumnSort<CId>>,
 ) -> Result<Vec<ColumnSort<CId>>> {
@@ -211,25 +213,14 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
     Ok(match kind {
         ExprKind::ColumnRef(cid) => ExprKind::ColumnRef(fold.fold_cid(cid)?),
 
-        ExprKind::Binary { left, op, right } => ExprKind::Binary {
-            left: Box::new(fold.fold_expr(*left)?),
-            op,
-            right: Box::new(fold.fold_expr(*right)?),
-        },
-        ExprKind::Unary { op, expr } => ExprKind::Unary {
-            op,
-            expr: Box::new(fold.fold_expr(*expr)?),
-        },
-
         ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
-        ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),
         ExprKind::Case(cases) => ExprKind::Case(
             cases
                 .into_iter()
                 .map(|c| fold_switch_case(fold, c))
                 .try_collect()?,
         ),
-        ExprKind::BuiltInFunction { name, args } => ExprKind::BuiltInFunction {
+        ExprKind::Operator { name, args } => ExprKind::Operator {
             name,
             args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
         },
@@ -266,7 +257,10 @@ pub fn fold_interpolate_item<T: ?Sized + RqFold>(
 ) -> Result<InterpolateItem<Expr>> {
     Ok(match item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
-        InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
+        InterpolateItem::Expr { expr, format } => InterpolateItem::Expr {
+            expr: Box::new(fold.fold_expr(*expr)?),
+            format,
+        },
     })
 }
 

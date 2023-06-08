@@ -5,7 +5,13 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/build-web.yaml"
+      - "**.md"
   workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-web
+  cancel-in-progress: true
 
 jobs:
   build-web:
@@ -25,17 +31,17 @@ jobs:
         uses: peaceiris/actions-hugo@v2.6.0
 
       # Book setup, duplicated from `pull-request.yaml`
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook-footnote
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook-admonish
 
-      - uses: baptiste0928/cargo-install@next
+      - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-pack
 
@@ -48,6 +54,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: 0.8.1
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
@@ -59,6 +66,6 @@ jobs:
       - name: 🕷️ Build website
         run: task build-web
 
-      - uses: actions/upload-pages-artifact@v1.0.7
+      - uses: actions/upload-pages-artifact@v1.0.8
         with:
           path: web/website/public/

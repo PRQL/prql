@@ -43,30 +43,30 @@ fn to_result_tuple(result: Result<String, prql_compiler::ErrorMessages>) -> NifR
 
 /// Get the target from an atom. By default `Generic` SQL dialect will be used
 fn target_from_atom(a: Atom) -> prql_compiler::Target {
-    use prql_compiler::sql::Dialect as D;
+    use prql_compiler::sql::Dialect::*;
 
     prql_compiler::Target::Sql(Some(if a == atoms::ansi() {
-        D::Ansi
+        Ansi
     } else if a == atoms::bigquery() {
-        D::BigQuery
+        BigQuery
     } else if a == atoms::clickhouse() {
-        D::ClickHouse
+        ClickHouse
     } else if a == atoms::generic() {
-        D::Generic
+        Generic
     } else if a == atoms::hive() {
-        D::Hive
+        Hive
     } else if a == atoms::mssql() {
-        D::MsSql
+        MsSql
     } else if a == atoms::mysql() {
-        D::MySql
+        MySql
     } else if a == atoms::postgres() {
-        D::PostgreSql
+        Postgres
     } else if a == atoms::sqlite() {
-        D::SQLite
+        SQLite
     } else if a == atoms::snowflake() {
-        D::Snowflake
+        Snowflake
     } else {
-        D::Generic
+        Generic
     }))
 }
 
@@ -77,6 +77,8 @@ impl From<CompileOptions> for prql_compiler::Options {
             format: o.format,
             target: target_from_atom(o.target),
             signature_comment: o.signature_comment,
+            // TODO: add support for this
+            color: false,
         }
     }
 }

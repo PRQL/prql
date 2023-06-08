@@ -20,17 +20,18 @@ pub enum Token {
     /// single-char control tokens
     Control(char),
 
-    // TODO: rename to ArrowThin
-    Arrow, // ->
-    // TODO: rename to ArrowFat
-    ArrowDouble, // =>
+    ArrowThin,   // ->
+    ArrowFat,    // =>
     Eq,          // ==
     Ne,          // !=
     Gte,         // >=
     Lte,         // <=
-    And,         // and
-    Or,          // or
+    RegexSearch, // ~=
+    And,         // &&
+    Or,          // ||
     Coalesce,    // ??
+    DivInt,      // //
+    Annotate,    // @
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -38,27 +39,32 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
 
     let control_multi = choice((
-        just("->").to(Token::Arrow),
-        just("=>").to(Token::ArrowDouble),
+        just("->").to(Token::ArrowThin),
+        just("=>").to(Token::ArrowFat),
         just("==").to(Token::Eq),
         just("!=").to(Token::Ne),
         just(">=").to(Token::Gte),
         just("<=").to(Token::Lte),
-        just("and").then_ignore(end_expr()).to(Token::And),
-        just("or").then_ignore(end_expr()).to(Token::Or),
+        just("~=").to(Token::RegexSearch),
+        just("&&").then_ignore(end_expr()).to(Token::And),
+        just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
+        just("//").to(Token::DivInt),
+        just("@").then(digits(1).not().rewind()).to(Token::Annotate),
     ));
 
-    let control = one_of("></%=+-*[]().,:|!").map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
 
     let ident = ident_part().map(Token::Ident);
 
     let keyword = choice((
-        just("func"),
         just("let"),
+        just("into"),
         just("case"),
         just("prql"),
         just("type"),
+        just("module"),
+        just("internal"),
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())
@@ -250,19 +256,22 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         )
         .boxed();
 
-    let date = just('@')
+    // Not an annotation
+    let dt_prefix = just('@').then(just('{').not().rewind());
+
+    let date = dt_prefix
         .ignore_then(date_inner.clone())
         .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Date);
 
-    let time = just('@')
+    let time = dt_prefix
         .ignore_then(time_inner.clone())
         .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Time);
 
-    let datetime = just('@')
+    let datetime = dt_prefix
         .ignore_then(date_inner)
         .chain(just('T'))
         .chain::<char, _, _>(time_inner)
@@ -351,7 +360,7 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
 }
 
 fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
-    choice((end(), one_of(",)]\r\n\t ").ignored(), just("..").ignored())).rewind()
+    choice((end(), one_of(",)]}\r\n\t ").ignored(), just("..").ignored())).rewind()
 }
 
 impl Token {
@@ -367,7 +376,7 @@ impl Token {
 // There are reasons for that, but chumsky::Error needs Hash for the Token, so it can deduplicate
 // tokens in error.
 // So this hack could lead to duplicated tokens in error messages. Oh no.
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 impl std::hash::Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
@@ -391,15 +400,18 @@ impl std::fmt::Display for Token {
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
 
-            Self::Arrow => f.write_str("->"),
-            Self::ArrowDouble => f.write_str("=>"),
+            Self::ArrowThin => f.write_str("->"),
+            Self::ArrowFat => f.write_str("=>"),
             Self::Eq => f.write_str("=="),
             Self::Ne => f.write_str("!="),
             Self::Gte => f.write_str(">="),
             Self::Lte => f.write_str("<="),
-            Self::And => f.write_str("and"),
-            Self::Or => f.write_str("or"),
+            Self::RegexSearch => f.write_str("~="),
+            Self::And => f.write_str("&&"),
+            Self::Or => f.write_str("||"),
             Self::Coalesce => f.write_str("??"),
+            Self::DivInt => f.write_str("//"),
+            Self::Annotate => f.write_str("@{"),
 
             Self::Param(id) => write!(f, "${id}"),
 

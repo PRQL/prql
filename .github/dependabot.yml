@@ -2,6 +2,8 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directory: "/"
+    labels:
+      - pr-test-all
     schedule:
       interval: daily
     ignore:
@@ -47,16 +49,14 @@ updates:
     commit-message:
       prefix: "chore: "
 
-  # For actions (rather than workflows), we need to list each directory, ref
-  # https://github.com/dependabot/dependabot-core/issues/5137, from https://github.com/dependabot/dependabot-core/issues/4178#issuecomment-1118492006
-  - directory: ".github/actions/build-prql-js"
+  - directory: ".github/actions/build-prql-python"
     commit-message:
       prefix: "chore: "
     package-ecosystem: "github-actions"
     schedule:
       interval: "daily"
 
-  - directory: ".github/actions/build-prql-python"
+  - directory: ".github/actions/build-prqlc"
     commit-message:
       prefix: "chore: "
     package-ecosystem: "github-actions"

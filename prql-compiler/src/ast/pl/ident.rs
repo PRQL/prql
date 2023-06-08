@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-use itertools::Itertools;
 use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
@@ -19,6 +18,7 @@ impl Ident {
         }
     }
 
+    /// Creates a new ident from a non-empty path.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
         Ident {
@@ -27,6 +27,8 @@ impl Ident {
         }
     }
 
+    /// Remove last part of the ident.
+    /// Result will generally refer to the parent of this ident.
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path;
         path.pop().map(|name| Ident { path, name })
@@ -41,19 +43,34 @@ impl Ident {
         }
     }
 
+    pub fn prepend(self, mut parts: Vec<String>) -> Ident {
+        parts.extend(self.into_iter());
+        Ident::from_path(parts)
+    }
+
     pub fn with_name<S: ToString>(mut self, name: S) -> Self {
         self.name = name.to_string();
         self
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &String> {
+        self.path.iter().chain(std::iter::once(&self.name))
+    }
+
     pub fn starts_with(&self, prefix: &Ident) -> bool {
-        if self.path.len() < prefix.path.len() {
-            false
-        } else {
-            let self_chunks = self.path.iter().chain(Some(&self.name));
-            let prefix_chunks = prefix.path.iter().chain(Some(&prefix.name));
-            !std::iter::zip(self_chunks, prefix_chunks).all_equal()
+        if prefix.path.len() > self.path.len() {
+            return false;
         }
+        prefix
+            .iter()
+            .zip(self.iter())
+            .all(|(prefix_component, self_component)| prefix_component == self_component)
+    }
+
+    pub fn starts_with_part(&self, prefix: &str) -> bool {
+        self.iter()
+            .next()
+            .map_or(false, |self_component| self_component == prefix)
     }
 }
 
@@ -120,10 +137,10 @@ pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), s
 
 pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
     fn forbidden_start(c: char) -> bool {
-        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+        !(c.is_ascii_lowercase() || matches!(c, '_' | '$'))
     }
     fn forbidden_subsequent(c: char) -> bool {
-        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
+        !(c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '_'))
     }
     let needs_escape = s.is_empty()
         || s.starts_with(forbidden_start)
@@ -134,4 +151,21 @@ pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), st
     } else {
         write!(f, "{s}")
     }
+}
+
+#[test]
+fn test_starts_with() {
+    // Over-testing, from co-pilot, can remove some of them.
+    let a = Ident::from_path(vec!["a", "b", "c"]);
+    let b = Ident::from_path(vec!["a", "b"]);
+    let c = Ident::from_path(vec!["a", "b", "c", "d"]);
+    let d = Ident::from_path(vec!["a", "b", "d"]);
+    let e = Ident::from_path(vec!["a", "c"]);
+    let f = Ident::from_path(vec!["b", "c"]);
+    assert!(a.starts_with(&b));
+    assert!(a.starts_with(&a));
+    assert!(!a.starts_with(&c));
+    assert!(!a.starts_with(&d));
+    assert!(!a.starts_with(&e));
+    assert!(!a.starts_with(&f));
 }

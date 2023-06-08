@@ -7,14 +7,14 @@ use sqlparser::ast::{
     WildcardAdditionalOptions,
 };
 
+use crate::ast::pl::Ident;
 use crate::ast::rq::{CId, RelationColumn};
+use crate::error::{Error, Span, WithErrorInfo};
 
-use crate::error::{Error, Span};
-use crate::sql::context::ColumnDecl;
-
-use super::context::AnchorContext;
 use super::dialect::ColumnExclude;
-use super::{gen_expr::*, Context};
+use super::gen_expr::*;
+use super::srq::context::{AnchorContext, ColumnDecl};
+use super::Context;
 
 pub(super) fn try_into_exprs(
     cids: Vec<CId>,
@@ -27,15 +27,15 @@ pub(super) fn try_into_exprs(
     for cid in cids {
         let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-        let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
+        let ColumnDecl::RelationColumn(riid, _, RelationColumn::Wildcard) = decl else {
             // base case
-            res.push(translate_cid(cid, ctx)?);
+            res.push(translate_cid(cid, ctx)?.into_ast());
             continue;
         };
 
         // star
-        let t = &ctx.anchor.table_instances[tiid];
-        let table_name = t.name.clone();
+        let t = &ctx.anchor.relation_instances[riid];
+        let table_name = t.table_ref.name.clone().map(Ident::from_name);
 
         let ident = translate_star(ctx, span)?;
         if let Some(excluded) = excluded.get(&cid) {
@@ -70,7 +70,7 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     // Row number will be computed in a CTE that also contains a star.
     // In the main query, star will also include row number, which was not
     // requested.
-    // This function adds that column to the exclusion list.
+    // This function adds that column to the exclusion tuple.
     fn exclude(star: &mut Option<(CId, HashSet<CId>)>, excluded: &mut Excluded) {
         let Some((cid, in_star)) = star.take() else { return };
         if in_star.is_empty() {
@@ -82,18 +82,25 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
 
     let mut output = Vec::new();
     for cid in cols {
-        if let ColumnDecl::RelationColumn(tiid, _, col) = &ctx.column_decls[&cid] {
+        // don't use cols that have been included by preceding star
+        let in_star = star
+            .as_mut()
+            .map(|s: &mut (CId, HashSet<CId>)| s.1.remove(&cid))
+            .unwrap_or_default();
+        if in_star {
+            continue;
+        }
+
+        if let ColumnDecl::RelationColumn(riid, _, col) = &ctx.column_decls[&cid] {
             if matches!(col, RelationColumn::Wildcard) {
                 exclude(&mut star, &mut excluded);
 
-                let table_ref = &ctx.table_instances[tiid];
-                let in_star: HashSet<_> = (table_ref.columns)
+                let relation_instance = &ctx.relation_instances[riid];
+                let mut in_star: HashSet<_> = (relation_instance.table_ref.columns)
                     .iter()
-                    .filter_map(|c| match c {
-                        (RelationColumn::Wildcard, _) => None,
-                        (_, cid) => Some(*cid),
-                    })
+                    .map(|(_, cid)| *cid)
                     .collect();
+                in_star.remove(&cid);
                 star = Some((cid, in_star));
 
                 // remove preceding cols that will be included with this star
@@ -108,11 +115,7 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
             }
         }
 
-        // don't use cols that have been included by preceding star
-        let in_star = star.as_mut().map(|s| s.1.remove(&cid)).unwrap_or_default();
-        if !in_star {
-            output.push(cid);
-        }
+        output.push(cid);
     }
 
     exclude(&mut star, &mut excluded);
@@ -128,14 +131,14 @@ pub(super) fn translate_select_items(
         .map(|cid| {
             let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-            let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
+            let ColumnDecl::RelationColumn(riid, _, RelationColumn::Wildcard) = decl else {
                 // general case
                 return translate_select_item(cid, ctx)
             };
 
             // wildcard case
-            let t = &ctx.anchor.table_instances[tiid];
-            let table_name = t.name.clone();
+            let t = &ctx.anchor.relation_instances[riid];
+            let table_name = t.table_ref.name.clone().map(Ident::from_name);
 
             let ident = translate_ident(table_name, Some("*".to_string()), ctx);
 
