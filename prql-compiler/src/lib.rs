@@ -54,9 +54,9 @@
 //!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
-//!     Alternatively, to compile `.prql` files to `.sql` files at build time,
-//!     call `prql-compiler` from `build.rs`. See [this example
-//!     project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
+//!     For compiling whole files (`.prql` to `.sql`), call `prql-compiler`
+//!     from `build.rs`.
+//!     See [this example project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
 //!
 //! - Compile, format & debug PRQL from command line.
 //!
