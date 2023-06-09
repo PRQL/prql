@@ -285,18 +285,18 @@ impl ErrorMessage {
         &self,
         source_path: PathBuf,
         cache: &mut FileTreeCache,
-        color: bool,
+        _color: bool,
     ) -> Option<String> {
-        // TODO: Ideally we would remove passing `color` down completely, and
-        // rely on the global env & anstream's filtering.
-        let color = match anstream::ColorChoice::global() {
-            anstream::ColorChoice::Always => true,
-            anstream::ColorChoice::Never => false,
-            anstream::ColorChoice::AlwaysAnsi => true,
-            anstream::ColorChoice::Auto => color,
-        };
+        // // TOOD: Ideally we would remove passing `color` down completely, and
+        // // rely on the gloabl env & anstream's filtering.
+        // let color = match anstream::ColorChoice::global() {
+        //     anstream::ColorChoice::Always => true,
+        //     anstream::ColorChoice::Never => false,
+        //     anstream::ColorChoice::AlwaysAnsi => true,
+        //     anstream::ColorChoice::Auto => color,
+        // };
 
-        let config = Config::default().with_color(color);
+        let config = Config::default().with_color(true);
 
         let span = Range::from(self.span?);
 

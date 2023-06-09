@@ -1,3 +1,4 @@
+use anstream::eprintln;
 use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
@@ -295,7 +296,7 @@ impl Command {
                 prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path))
                     .and_then(|rq| rq_to_sql(rq, &opts))
-                    .map_err(|e| e.composed(sources, opts.color))?
+                    .map_err(|e| e.composed(sources, true))?
                     .as_bytes()
                     .to_vec()
             }
@@ -656,6 +657,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         // Check we get an error on a bad input
         // Disable colors (would be better if this were a proper CLI test and
         // passed in `--color=never`)
+        anstream::ColorChoice::Never.write_global();
+        // I think we can remove this now?
         colorchoice::ColorChoice::Never.write_global();
 
         let result = Command::execute(
