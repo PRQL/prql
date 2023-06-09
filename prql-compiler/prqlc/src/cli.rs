@@ -645,9 +645,9 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         "###);
     }
 
+    /// Check we get an error on a bad input
     #[test]
     fn compile() {
-        // Check we get an error on a bad input
         // Disable colors (would be better if this were a proper CLI test and
         // passed in `--color=never`)
         anstream::ColorChoice::Never.write_global();

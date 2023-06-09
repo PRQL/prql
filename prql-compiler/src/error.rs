@@ -283,7 +283,7 @@ impl ErrorMessages {
 
 impl ErrorMessage {
     fn compose_display(&self, source_path: PathBuf, cache: &mut FileTreeCache) -> Option<String> {
-        // We always pass color as true, and then (currently) strip later.
+        // We always pass color to ariadne as true, and then (currently) strip later.
         let config = Config::default().with_color(true);
 
         let span = Range::from(self.span?);
@@ -311,9 +311,10 @@ impl ErrorMessage {
         report.finish().write(cache, &mut out).ok()?;
 
         // Strip colors, for external libraries which don't yet strip
-        // themselves. This will respond to environment variables such as
-        // `CLI_COLOR`. Eventually we can remove this, always pass colors back,
-        // and the consuming library can strip.
+        // themselves, and for insta snapshot tests. This will respond to
+        // environment variables such as `CLI_COLOR`. Eventually we can remove
+        // this, always pass colors back, and the consuming library can strip
+        // (including insta https://github.com/mitsuhiko/insta/issues/378).
         String::from_utf8(out).ok().map(|x| {
             if !should_use_color() {
                 strip_str(&x).to_string()
