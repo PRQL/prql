@@ -1,14 +1,15 @@
+use anstream::adapter::strip_str;
 pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
 use std::path::PathBuf;
+use std::{collections::HashMap, io::stderr};
 
 use crate::SourceTree;
 
@@ -258,7 +259,7 @@ impl ErrorMessages {
     }
 
     /// Computes message location and builds the pretty display.
-    pub fn composed(mut self, sources: &SourceTree, color: bool) -> Self {
+    pub fn composed(mut self, sources: &SourceTree) -> Self {
         let mut cache = FileTreeCache::new(sources);
 
         for e in &mut self.inner {
@@ -274,28 +275,15 @@ impl ErrorMessages {
             };
             e.location = e.compose_location(source);
 
-            e.display = e.compose_display(source_path.clone(), &mut cache, color);
+            e.display = e.compose_display(source_path.clone(), &mut cache);
         }
         self
     }
 }
 
 impl ErrorMessage {
-    fn compose_display(
-        &self,
-        source_path: PathBuf,
-        cache: &mut FileTreeCache,
-        _color: bool,
-    ) -> Option<String> {
-        // // TODO: Ideally we would remove passing `color` down completely, and
-        // // rely on the global env & anstream's filtering.
-        // let color = match anstream::ColorChoice::global() {
-        //     anstream::ColorChoice::Always => true,
-        //     anstream::ColorChoice::Never => false,
-        //     anstream::ColorChoice::AlwaysAnsi => true,
-        //     anstream::ColorChoice::Auto => color,
-        // };
-
+    fn compose_display(&self, source_path: PathBuf, cache: &mut FileTreeCache) -> Option<String> {
+        // We always pass color as true, and then (currently) strip later.
         let config = Config::default().with_color(true);
 
         let span = Range::from(self.span?);
@@ -321,7 +309,18 @@ impl ErrorMessage {
 
         let mut out = Vec::new();
         report.finish().write(cache, &mut out).ok()?;
-        String::from_utf8(out).ok()
+
+        // Strip colors, for external libraries which don't yet strip
+        // themselves. This will respond to environment variables such as
+        // `CLI_COLOR`. Eventually we can remove this, always pass colors back,
+        // and the consuming library can strip.
+        String::from_utf8(out).ok().map(|x| {
+            if !should_use_color() {
+                strip_str(&x).to_string()
+            } else {
+                x
+            }
+        })
     }
 
     fn compose_location(&self, source: &Source) -> Option<SourceLocation> {
@@ -333,6 +332,15 @@ impl ErrorMessage {
             start: (start.1, start.2),
             end: (end.1, end.2),
         })
+    }
+}
+
+fn should_use_color() -> bool {
+    match anstream::AutoStream::choice(&stderr()) {
+        anstream::ColorChoice::Auto => true,
+        anstream::ColorChoice::Always => true,
+        anstream::ColorChoice::AlwaysAnsi => true,
+        anstream::ColorChoice::Never => false,
     }
 }
 

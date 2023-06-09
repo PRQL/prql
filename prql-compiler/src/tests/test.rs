@@ -1,20 +1,9 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 // use super::*;
 use crate::{sql, ErrorMessages, Options, SourceTree, Target};
-use anstream::adapter::strip_str;
 use insta::{assert_display_snapshot, assert_snapshot};
 
-/// Compile with default configs and then strip color.
-// When ariande supports the global setting, we can remove the `strip_str`
-// part, and revert to passing back an `ErrorMessage`, replace this function
-// with `compile_to_error_message`
-pub fn compile(prql: &str) -> Result<String, String> {
-    anstream::ColorChoice::Never.write_global();
-    let result = crate::compile(prql, &Options::default().no_signature());
-    result.map_err(|x| strip_str(&x.to_string()).to_string())
-}
-
-pub fn compile_to_error_message(prql: &str) -> Result<String, ErrorMessages> {
+pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
     anstream::ColorChoice::Never.write_global();
     crate::compile(prql, &Options::default().no_signature())
 }
@@ -3857,7 +3846,7 @@ fn test_type_as_column_name() {
 
 #[test]
 fn test_error_code() {
-    let err = compile_to_error_message(
+    let err = compile(
         r###"
     let a = (from x)
     "###,

@@ -223,7 +223,7 @@ impl Command {
 
                 let context = semantic::resolve(stmts, Default::default())
                     .map_err(prql_compiler::downcast)
-                    .map_err(|e| e.composed(sources, true))?;
+                    .map_err(|e| e.composed(sources))?;
 
                 let mut out = Vec::new();
                 for (source_id, source) in &sources.sources {
@@ -296,7 +296,7 @@ impl Command {
                 prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path))
                     .and_then(|rq| rq_to_sql(rq, &opts))
-                    .map_err(|e| e.composed(sources, true))?
+                    .map_err(|e| e.composed(sources))?
                     .as_bytes()
                     .to_vec()
             }
@@ -586,7 +586,6 @@ mod clio_extended {
 /// are in `prql-compiler/prqlc/tests/test.rs`.
 #[cfg(test)]
 mod tests {
-    use anstream::adapter::strip_str;
     use insta::{assert_display_snapshot, assert_snapshot};
 
     use super::*;
@@ -670,7 +669,7 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
             "",
         );
 
-        assert_display_snapshot!(strip_str(&result.unwrap_err().to_string()), @r###"
+        assert_display_snapshot!(&result.unwrap_err().to_string(), @r###"
         Error:
            ╭─[:1:1]
            │

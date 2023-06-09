@@ -15,7 +15,7 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
                 .and_then(prql_compiler::pl_to_rq)
                 .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
-        .map_err(|e| e.composed(&prql_query.into(), false))
+        .map_err(|e| e.composed(&prql_query.into()))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
 }
 

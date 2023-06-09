@@ -309,6 +309,9 @@ this is an error
 ```
     "###;
 
+    // Here we do want colors
+    anstream::ColorChoice::Always.write_global();
+
     assert_display_snapshot!(replace_examples(md)?, @r###"
     # PRQL Doc
 
