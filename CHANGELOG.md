@@ -87,6 +87,8 @@ will become the public version at the next release._
   standard environment variable such as `CLI_COLOR=0` is set or when it detects
   `stderr` is not a TTY.
 
+  (@max-sixty, #2773)
+
 **Fixes**:
 
 **Documentation**:
