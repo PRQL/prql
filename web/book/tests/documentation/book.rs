@@ -1,4 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
+use anstream::adapter::strip_str;
 use anyhow::{anyhow, bail, Result};
 use globset::Glob;
 use insta::assert_snapshot;
@@ -56,7 +57,11 @@ fn test_prql_examples_compile() -> Result<()> {
 "
             )),
             (_, result) => {
-                assert_snapshot!(name, result.unwrap_or_else(|e| e.to_string()), &prql);
+                assert_snapshot!(
+                    name,
+                    result.unwrap_or_else(|e| strip_str(&e.to_string()).to_string()),
+                    &prql
+                );
             }
         }
     }

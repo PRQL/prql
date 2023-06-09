@@ -2125,6 +2125,7 @@ name = "mdbook-prql"
 version = "0.8.1"
 dependencies = [
  "ansi-to-html",
+ "anstream",
  "anyhow",
  "clap",
  "globset",

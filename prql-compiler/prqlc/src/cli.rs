@@ -586,6 +586,7 @@ mod clio_extended {
 /// are in `prql-compiler/prqlc/tests/test.rs`.
 #[cfg(test)]
 mod tests {
+    use anstream::adapter::strip_str;
     use insta::{assert_display_snapshot, assert_snapshot};
 
     use super::*;
@@ -668,7 +669,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
             &mut "asdf".into(),
             "",
         );
-        assert_display_snapshot!(result.unwrap_err(), @r###"
+
+        assert_display_snapshot!(strip_str(&result.unwrap_err().to_string()), @r###"
         Error:
            ╭─[:1:1]
            │
