@@ -76,6 +76,17 @@ will become the public version at the next release._
 
   (@aljazerzen, #2605)
 
+- We've changed how we handle colors. We now use the
+  `[anstream](https://github.com/rust-cli/anstyle)` library in `prqlc` &
+  `prql-compiler`.
+
+  `Options::color` is deprecated and has no effect. Code which consumes
+  `prql_compiler::compile` should instead accept the output with colors and use
+  a library such as `anstream` to handle the presentation of colors. To ensure
+  minimal disruption, `prql_compiler` will currently strip color codes when a
+  standard environment variable such as `CLI_COLOR=0` is set or when it detects
+  `stderr` is not a TTY.
+
 **Fixes**:
 
 **Documentation**:
