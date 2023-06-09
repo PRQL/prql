@@ -284,13 +284,6 @@ impl Command {
 
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
-                    // We're currently excluding this, in an attempt to move to
-                    // anstream, and reduce passing down the color option. But
-                    // it's not that well-tested, so we can re-enable it if it
-                    // doesn't work. Assuming no problems, we can remove the
-                    // commented-out line.
-                    //
-                    // .with_color(colorchoice::ColorChoice::::get(concolor::Stream::Stdout).ansi_color())
                     .with_signature_comment(*hide_signature_comment);
 
                 prql_to_pl_tree(sources)
