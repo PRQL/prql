@@ -658,8 +658,6 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         // Disable colors (would be better if this were a proper CLI test and
         // passed in `--color=never`)
         anstream::ColorChoice::Never.write_global();
-        // I think we can remove this now?
-        colorchoice::ColorChoice::Never.write_global();
 
         let result = Command::execute(
             &Command::SQLCompile {
