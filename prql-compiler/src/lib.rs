@@ -239,6 +239,7 @@ impl Options {
         self
     }
 
+    #[deprecated(note = "`color` now has no effect; see `Options` docs for more details")]
     pub fn with_color(mut self, color: bool) -> Self {
         self.color = color;
         self
