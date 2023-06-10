@@ -890,13 +890,19 @@ fn test_window_functions_03() {
     let query = r###"
     from daily_orders
     derive {last_week = lag 7 num_orders}
-    group month ( derive {total_month = sum num_orders})
+    derive {first_count = first num_orders}
+    derive {last_count = last num_orders}
+    group month (
+      derive {total_month = sum num_orders}
+    )
     "###;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
       LAG(num_orders, 7) OVER () AS last_week,
+      FIRST_VALUE(num_orders) OVER () AS first_count,
+      LAST_VALUE(num_orders) OVER () AS last_count,
       SUM(num_orders) OVER (PARTITION BY month) AS total_month
     FROM
       daily_orders
