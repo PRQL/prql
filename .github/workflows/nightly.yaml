@@ -90,10 +90,15 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-udeps
+      # Once with all targets, once without, to find anything that should be in
+      # `dev` but is more general.
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: udeps
           args: --all-targets
+      - uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: udeps
 
   # This is expensive and very rarely finds an issue so, in addition to running
   # on any change to the file, we run it in nightly rather than test-all.
