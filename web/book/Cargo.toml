@@ -18,19 +18,14 @@ test = false
 [dependencies]
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
-globset = "0.4.8"
 itertools = "0.10.3"
 prql-compiler = {path = "../../prql-compiler", default-features = false}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
-regex = "1.8.1"
 semver = "1.0.9"
 serde_json = "1.0.81"
-serde_yaml = "0.9"
-similar = "2.2.0"
 strum = {version = "0.24.0", features = ["std", "derive"]}
 strum_macros = "0.24.0"
-walkdir = "2.3.2"
 
 # Possibly we should just put all dependencies as excluded from wasm? Currently
 # we only put the ones that break the build.
@@ -39,9 +34,13 @@ clap = {version = "4.3.0", default-features = false}
 mdbook = {version = "0.4.21", default-features = false}
 
 [dev-dependencies]
+anstream = {version = "0.3.2"}
 globset = "0.4.8"
 insta = {version = "1.29", features = ["colors", "glob"]}
 log = "0.4.17"
+regex = "1.8.1"
+serde_yaml = "0.9"
+walkdir = "2.3.2"
 
 [package.metadata.release]
 tag-name = "{{version}}"

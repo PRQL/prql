@@ -11,7 +11,7 @@ use wasm_bindgen::prelude::*;
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
     return_or_throw(
         prql_compiler::compile(prql_query, &options.map(|x| x.into()).unwrap_or_default())
-            .map_err(|e| e.composed(&prql_query.into(), false)),
+            .map_err(|e| e.composed(&prql_query.into())),
     )
 }
 

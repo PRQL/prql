@@ -11,6 +11,7 @@ version.workspace = true
 metadata.msrv = "1.65.0"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
+anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.57"}
 ariadne = "0.3.0"
 atty = "0.2.14"
@@ -18,8 +19,8 @@ clap = {version = "4.3.0", features = ["derive", "env", "wrap_help"]}
 clap_complete_command = "0.5.1"
 clio = {version = "0.2.7", features = ['clap-parse']}
 color-eyre = "0.6.1"
-concolor = "0.1.0"
-concolor-clap = {version = "0.1.0", features = ["api"]}
+colorchoice = "1.0.0"
+colorchoice-clap = "1.0.0"
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.10.3"
 notify = "^6.0.0"
