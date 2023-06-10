@@ -123,7 +123,7 @@ impl WriteSource for pl::Expr {
         let mut r = String::new();
         if let Some(alias) = &self.alias {
             r += &write_ident_part(alias);
-            r += " = ";
+            r += "=";
         }
 
         self.kind.write_between(r, "", opt)
@@ -629,9 +629,8 @@ mod test {
         .unwrap();
 
         assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
-
         from tracks
-        has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
+        has_valid_title=s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
         "###);
     }
 }
