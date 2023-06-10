@@ -117,10 +117,12 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          # TODO: Until we have tests for these, we don't have a cache for them.
+          # If we can add tests, then re-enable them. They run on `release.yaml`
+          # regardless.
+          #
+          # - os: ubuntu-latest target: aarch64-unknown-linux-musl
+          # - os: macos-latest target: x86_64-apple-darwin
           - os: macos-latest
             target: aarch64-apple-darwin
           - os: windows-latest
@@ -131,6 +133,7 @@ jobs:
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
+          profile: dev
 
   automerge-dependabot:
     # This would arguably fit more naturally in `pull-request-target`, but it's
