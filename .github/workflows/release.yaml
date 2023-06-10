@@ -47,7 +47,7 @@ jobs:
         id: build-artifact
         with:
           target: ${{ matrix.target }}
-          profile: "--release"
+          profile: release
       - name: Upload release artifact
         uses: softprops/action-gh-release@v1
         with:

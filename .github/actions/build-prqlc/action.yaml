@@ -6,7 +6,7 @@ inputs:
     description: Build target
     required: true
   profile:
-    description: Build profile option, such as `--debug`
+    description: Build profile option; `debug` or `release`.
     required: true
 outputs:
   artifact-name:
@@ -45,7 +45,7 @@ runs:
       with:
         command: build
         args:
-          --package prqlc ${{ inputs.profile }} --locked --target=${{
+          --package prqlc --profile ${{ inputs.profile }} --locked --target=${{
           inputs.target }}
 
     - name: Create artifact for Linux and macOS

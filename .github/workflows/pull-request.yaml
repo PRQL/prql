@@ -133,7 +133,7 @@ jobs:
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
-          profile: "--debug"
+          profile: debug
 
   automerge-dependabot:
     # This would arguably fit more naturally in `pull-request-target`, but it's
