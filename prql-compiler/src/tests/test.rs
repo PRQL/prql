@@ -901,7 +901,8 @@ fn test_window_functions_03() {
     SELECT
       *,
       LAG(num_orders, 7) OVER () AS last_week,
-      MIN(num_orders) OVER () AS first_count,
+      FIRST_VALUE(num_orders) OVER () AS first_count,
+      LAST_VALUE(num_orders) OVER () AS last_count,
       SUM(num_orders) OVER (PARTITION BY month) AS total_month
     FROM
       daily_orders

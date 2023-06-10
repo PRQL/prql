@@ -103,9 +103,9 @@ let count_distinct = column <array> -> internal std.count_distinct
 ## Window functions
 let lag =   offset <int>    column <array> -> internal std.lag
 let lead =  offset <int>    column <array> -> internal std.lead
-let first = offset <int>    column <array> -> internal std.first
-let last =  offset <int>    column <array> -> internal std.last
-let rank = column <array> -> internal std.rank
+let first      = column <array> -> internal std.first
+let last       = column <array> -> internal std.last
+let rank       = column <array> -> internal std.rank
 let rank_dense = column <array> -> internal std.rank_dense
 let row_number = column <array> -> internal std.row_number
 
