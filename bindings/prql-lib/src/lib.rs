@@ -37,7 +37,7 @@ pub unsafe extern "C" fn compile(
                 .and_then(prql_compiler::pl_to_rq)
                 .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
-        .map_err(|e| e.composed(&prql_query.into(), false));
+        .map_err(|e| e.composed(&prql_query.into()));
 
     result_into_c_str(result)
 }

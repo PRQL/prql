@@ -18,6 +18,8 @@ test = false
 [dependencies]
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
+# Required for one test, can remove when we always pass colors back.
+anstream = {version = "0.3.2", features = ["auto"]}
 globset = "0.4.8"
 itertools = "0.10.3"
 prql-compiler = {path = "../../prql-compiler", default-features = false}

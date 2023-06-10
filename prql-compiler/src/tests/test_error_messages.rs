@@ -90,14 +90,6 @@ fn test_errors() {
     ───╯
     "###);
 
-    let err = compile(
-        r###"
-    let a = (from x)
-    "###,
-    )
-    .unwrap_err();
-    assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
-
     assert_display_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
     Error:
        ╭─[:1:7]

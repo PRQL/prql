@@ -1,9 +1,10 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 // use super::*;
-use crate::{sql, Options, SourceTree, Target};
+use crate::{sql, ErrorMessages, Options, SourceTree, Target};
 use insta::{assert_display_snapshot, assert_snapshot};
 
-pub fn compile(prql: &str) -> Result<String, crate::ErrorMessages> {
+pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
+    anstream::ColorChoice::Never.write_global();
     crate::compile(prql, &Options::default().no_signature())
 }
 
@@ -3532,10 +3533,10 @@ fn test_upper() {
 }
 
 #[test]
-fn test_1535() -> anyhow::Result<()> {
+fn test_1535() {
     assert_display_snapshot!(compile(r#"
     from x.y.z
-    "#)?,
+    "#).unwrap(),
         @r###"
     SELECT
       *
@@ -3543,8 +3544,6 @@ fn test_1535() -> anyhow::Result<()> {
       x.y.z
     "###
     );
-
-    Ok(())
 }
 
 #[test]
@@ -3843,4 +3842,15 @@ fn test_type_as_column_name() {
     FROM
       foo AS t
     "###);
+}
+
+#[test]
+fn test_error_code() {
+    let err = compile(
+        r###"
+    let a = (from x)
+    "###,
+    )
+    .unwrap_err();
+    assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
 }
