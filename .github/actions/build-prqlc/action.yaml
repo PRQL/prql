@@ -5,6 +5,9 @@ inputs:
   target:
     description: Build target
     required: true
+  profile:
+    description: Build profile option, such as `--debug`
+    required: true
 outputs:
   artifact-name:
     description: The name of the artifact
@@ -18,7 +21,9 @@ runs:
 
     - uses: Swatinem/rust-cache@v2
       with:
-        save-if: ${{ github.ref == 'refs/heads/main' }}
+        # Share cache with `test-rust`
+        save-if: false
+        shared-key: rust
         prefix-key: 0.8.1
 
     - if: runner.os == 'Linux'
@@ -39,7 +44,9 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
-        args: --package prqlc --release --locked --target=${{ inputs.target }}
+        args:
+          --package prqlc ${{ inputs.profile }} --locked --target=${{
+          inputs.target }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
