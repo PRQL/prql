@@ -13,8 +13,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
-  # This reduces the size of the cargo cache by ~25%.
-  RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
   test-rust:
@@ -47,8 +45,8 @@ jobs:
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           args:
-            --all-targets --all-features --target=${{ inputs.target }} -- -D
-            warnings
+            --all-targets --all-features --target=${{ inputs.target }}
+            --profile=ci -- -D warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -78,6 +76,6 @@ jobs:
           # - External DB integration tests — `--features=test-external-dbs`.
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
-            test --target=${{ inputs.target }} ${{ inputs.target==
+            test --profile=ci --target=${{ inputs.target }} ${{ inputs.target==
             'x86_64-unknown-linux-musl' && inputs.os == 'ubuntu-latest' &&
             '--unreferenced=auto --features=test-external-dbs' || '' }}

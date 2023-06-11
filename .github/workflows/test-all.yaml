@@ -36,8 +36,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
-  # This reduces the size of the cargo cache by ~25%.
-  RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
   build-web:

@@ -40,3 +40,8 @@ opt-level = 3
 [workspace.metadata.release]
 allow-branch = ["*"]
 consolidate-commits = true
+
+# Turn off debuginfo in CI, which saves ~25% of cache space.
+[profile.ci]
+debug = false
+inherits = "dev"
