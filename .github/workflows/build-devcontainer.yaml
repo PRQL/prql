@@ -58,7 +58,7 @@ jobs:
             'refs/tags/') }}
           # As above re `prql`
           cache-from: |
-            DOCKER_METADATA_OUTPUT_TAGS
+            ${{ env.DOCKER_METADATA_OUTPUT_TAGS }}
             type=gha
           cache-to: |
             type=inline
