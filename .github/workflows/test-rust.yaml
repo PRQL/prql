@@ -6,7 +6,7 @@ on:
     inputs:
       os:
         type: string
-      target_option:
+      target:
         type: string
         default: ""
 
@@ -25,7 +25,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-bindgen-cli
-        if: inputs.target_option == '--target=wasm32-unknown-unknown'
+        if: inputs.target== 'wasm32-unknown-unknown'
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
@@ -33,7 +33,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 0.8.1
-          shared-key: rust-${{ inputs.target_option }}
+          shared-key: rust-${{ inputs.target}}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
@@ -42,7 +42,7 @@ jobs:
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           args:
-            --all-targets --all-features ${{ inputs.target_option }} -- -D
+            --all-targets --all-features --target=${{ inputs.target }} -- -D
             warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
@@ -73,6 +73,6 @@ jobs:
           # - External DB integration tests — `--features=test-external-dbs`.
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
-            test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
-            inputs.os == 'ubuntu-latest' && '--unreferenced=auto
-            --features=test-external-dbs' || '' }}
+            test ${{ inputs.target}} ${{ inputs.target==
+            'x86_64-unknown-linux-musl' && inputs.os == 'ubuntu-latest' &&
+            '--unreferenced=auto --features=test-external-dbs' || '' }}
