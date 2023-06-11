@@ -66,6 +66,7 @@
 //!     ```
 //!
 
+#![forbid(unsafe_code)]
 // Our error type is 128 bytes, because it contains 5 strings & an Enum, which
 // is exactly the default warning level. Given we're not that performance
 // sensitive, it's fine to ignore this at the moment (and not worth having a
