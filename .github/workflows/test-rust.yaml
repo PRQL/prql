@@ -10,6 +10,12 @@ on:
         type: string
         default: ""
 
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  # This reduces the size of the cargo cache by ~25%.
+  RUSTFLAGS: "-C debuginfo=0"
+
 jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
