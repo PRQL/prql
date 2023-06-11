@@ -56,7 +56,6 @@ jobs:
           push:
             ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
             'refs/tags/') }}
-          # As above re `prql`
           cache-from: |
             ${{ env.DOCKER_METADATA_OUTPUT_TAGS }}
             type=gha
