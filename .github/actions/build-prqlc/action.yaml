@@ -23,7 +23,7 @@ runs:
       with:
         # Share cache with `test-rust`
         save-if: false
-        shared-key: rust-${{ inputs.target_option }}
+        shared-key: rust-${{ inputs.target }}
         prefix-key: 0.8.1
 
     - if: runner.os == 'Linux'
