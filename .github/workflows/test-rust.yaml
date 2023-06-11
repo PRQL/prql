@@ -56,15 +56,13 @@ jobs:
         with:
           command: test
           args: ${{ inputs.target_option }} --all-features --no-run --locked
+      - name: Update docker compose
+        run:
+          sudo apt-get update && sudo apt-get install -y docker-compose-plugin
+
+        if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Run docker compose
-        # docker compose v2.18.0 breaks; we can remove when the latest version on the runners is v2.18.1
-        run: |
-          export DOCKER_CONFIG="${PWD}/.docker"
-          mkdir -p "${DOCKER_CONFIG}/cli-plugins"
-          curl -SL https://github.com/docker/compose/releases/download/v2.18.1/docker-compose-linux-x86_64 -o "${DOCKER_CONFIG}/cli-plugins/docker-compose"
-          chmod +x "${DOCKER_CONFIG}/cli-plugins/docker-compose"
-          docker compose version
-          docker compose up -d
+        run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
         if: ${{ inputs.os == 'ubuntu-latest' }}
       - name: Wait for database
@@ -83,5 +81,9 @@ jobs:
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
             test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
-            inputs.os == 'ubuntu-latest' && '--unreferenced=auto
-            --features=test-external-dbs' || '' }}
+            inputs.os == 'ubuntu-latest' && '--unreferenced=auto' || '' }}
+
+          # Without docker compose exclusions:
+          # test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
+          # inputs.os == 'ubuntu-latest' && '--unreferenced=auto
+          # --features=test-external-dbs' || '' }}
