@@ -268,7 +268,7 @@ fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<S
     let strength_self = binding_strength(&expr.kind);
     let strength_parent = binding_strength(parent);
 
-    if strength_parent <= strength_self {
+    if strength_parent >= strength_self {
         expr.write_between("(", ")", opt)
     } else {
         expr.write(opt)
@@ -277,32 +277,31 @@ fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<S
 
 fn binding_strength(expr: &pl::ExprKind) -> i32 {
     match expr {
-        pl::ExprKind::Ident(_) => 1,
-        pl::ExprKind::All { .. } => 1,
+        pl::ExprKind::Ident(_) => 10,
+        pl::ExprKind::All { .. } => 10,
 
-        pl::ExprKind::Range(_) => 3,
+        pl::ExprKind::Range(_) => 6,
         pl::ExprKind::Binary { op, .. } => match op {
-            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 4,
-            pl::BinOp::Add | pl::BinOp::Sub => 5,
+            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 5,
+            pl::BinOp::Add | pl::BinOp::Sub => 4,
             pl::BinOp::Eq
             | pl::BinOp::Ne
             | pl::BinOp::Gt
             | pl::BinOp::Lt
             | pl::BinOp::Gte
             | pl::BinOp::Lte
-            | pl::BinOp::RegexSearch => 6,
-            pl::BinOp::And => 8,
-            pl::BinOp::Or => 9,
-            pl::BinOp::Coalesce => 7,
+            | pl::BinOp::RegexSearch => 3,
+            pl::BinOp::And => 2,
+            pl::BinOp::Or => 1,
+            pl::BinOp::Coalesce => 2,
         },
-        pl::ExprKind::Unary { .. } => 2,
-        pl::ExprKind::FuncCall(_) => 10,
-        pl::ExprKind::Func(_) => 10,
+        pl::ExprKind::Unary { .. } => 9,
+        pl::ExprKind::FuncCall(_) => 0,
+        pl::ExprKind::Func(_) => 0,
 
-        _ => 0,
+        _ => 11,
     }
 }
-
 impl WriteSource for pl::Ident {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
