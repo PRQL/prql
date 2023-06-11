@@ -22,10 +22,15 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - if: inputs.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-bindgen-cli
-        if: inputs.target== 'wasm32-unknown-unknown'
+        if: inputs.target == 'wasm32-unknown-unknown'
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
