@@ -6,7 +6,7 @@ inputs:
     description: Build target
     required: true
   profile:
-    description: Build profile option; `dev` or `release`.
+    description: Build profile option; `ci` (similar to `dev`) or `release`.
     required: true
 outputs:
   artifact-name:
