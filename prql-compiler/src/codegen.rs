@@ -120,11 +120,12 @@ impl WriteOpt {
 
 impl WriteSource for pl::Expr {
     fn write(&self, opt: WriteOpt) -> Option<String> {
-        let mut r = String::new();
-        if let Some(alias) = &self.alias {
-            r += &write_ident_part(alias);
-            r += " = ";
-        }
+        // let mut r = String::new();
+        let r = String::new();
+        // if let Some(alias) = &self.alias {
+        //     r += &write_ident_part(alias);
+        //     r += " = ";
+        // }
 
         self.kind.write_between(r, "", opt)
     }
@@ -191,12 +192,24 @@ impl WriteSource for pl::ExprKind {
                 r += &write_expr(right, self, opt)?;
                 Some(r)
             }
-            Unary { op, expr } => Some(match op {
-                pl::UnOp::Neg => format!("(-{})", expr.write(opt)?),
-                pl::UnOp::Add => format!("(+{})", expr.write(opt)?),
-                pl::UnOp::Not => format!("!{}", expr.write(opt)?),
-                pl::UnOp::EqSelf => format!("(=={})", expr.write(opt)?),
-            }),
+            // Unary { op, expr } => Some(match op {
+            //     pl::UnOp::Neg => format!("-{}", expr.write(opt)?),
+            //     pl::UnOp::Add => format!("(+{})", expr.write(opt)?),
+            //     pl::UnOp::Not => format!("!{}", expr.write(opt)?),
+            //     pl::UnOp::EqSelf => format!("(=={})", expr.write(opt)?),
+            // }),
+            Unary { op, expr } => {
+                let mut r = String::new();
+
+                // r += &write_expr(left, self, opt)?;
+
+                // r += " ";
+                r += &op.to_string();
+                // r += " ";
+
+                r += &write_expr(expr, self, opt)?;
+                Some(r)
+            }
             FuncCall(func_call) => {
                 let mut r = String::new();
                 r += &write_expr(&func_call.name, self, opt)?;
@@ -263,10 +276,54 @@ impl WriteSource for pl::ExprKind {
     }
 }
 
+const EQ_STRENGTH: i32 = 0;
+
+fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
+    let mut r = String::new();
+    // If `-1` has an alias `foo`, we're going to write `foo = -1`, so we want
+    // to take the strength of `=`, not of `-1`
+    let strength_self = EQ_STRENGTH;
+    let strength_parent = binding_strength(parent);
+    dbg!(&expr, strength_self, &parent, strength_parent);
+
+    if strength_parent >= strength_self {
+        r += "(";
+        r += &write_ident_part(&expr.alias.clone().unwrap());
+        r += " = ";
+        r += &write_alias_rhs_expr(expr, opt)?;
+        r += ")";
+        Some(r)
+        // expr.write_between("(", ")", opt)
+    } else {
+        r += &write_ident_part(&expr.alias.clone().unwrap());
+        r += " = ";
+        r += &write_alias_rhs_expr(expr, opt)?;
+        // expr.write(opt)
+        Some(r)
+    }
+}
+
+fn write_alias_rhs_expr(expr: &pl::Expr, opt: WriteOpt) -> Option<String> {
+    let strength_self = binding_strength(&expr.kind);
+    let strength_parent = EQ_STRENGTH;
+    dbg!(&expr, strength_self, strength_parent);
+
+    if strength_parent >= strength_self {
+        expr.write_between("(", ")", opt)
+    } else {
+        expr.write(opt)
+    }
+}
 /// Writes an optionally parenthesized expression
 fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
+    if expr.alias.is_some() {
+        return write_alias_expr(expr, parent, opt);
+    }
+    // If `-1` has an alias `foo`, we're going to write `foo = -1`, so we want
+    // to take the strength of `=`, not of `-1`
     let strength_self = binding_strength(&expr.kind);
     let strength_parent = binding_strength(parent);
+    dbg!(&expr.kind, strength_self, &parent, strength_parent);
 
     if strength_parent >= strength_self {
         expr.write_between("(", ")", opt)
@@ -277,6 +334,8 @@ fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<S
 
 fn binding_strength(expr: &pl::ExprKind) -> i32 {
     match expr {
+        // For example, if it's an Ident, it's basically infinite — a simple
+        // ident never needs parentheses around it.
         pl::ExprKind::Ident(_) => 10,
         pl::ExprKind::All { .. } => 10,
 
@@ -295,8 +354,8 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
             pl::BinOp::Or => 1,
             pl::BinOp::Coalesce => 2,
         },
-        pl::ExprKind::Unary { .. } => 9,
-        pl::ExprKind::FuncCall(_) => 0,
+        pl::ExprKind::Unary { .. } => 6,
+        pl::ExprKind::FuncCall(_) => 7,
         pl::ExprKind::Func(_) => 0,
 
         _ => 11,
@@ -547,8 +606,25 @@ impl WriteSource for pl::TupleField {
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
+    use similar_asserts::assert_eq;
 
     use super::*;
+
+    fn assert_fmt_matches(input: &str) {
+        let stmt = generate_single_stmt(input);
+        assert_eq!(input.trim(), stmt.trim());
+    }
+
+    // TODO: Is there a library function that can do this? (Guessing there is...)
+    fn generate_single_stmt(query: &str) -> String {
+        use itertools::Itertools;
+        let stmt = crate::prql_to_pl(query)
+            .unwrap()
+            .into_iter()
+            .exactly_one()
+            .unwrap();
+        stmt.write(WriteOpt::default()).unwrap()
+    }
 
     #[test]
     fn test_pipeline() {
@@ -593,44 +669,24 @@ mod test {
 
     #[test]
     fn test_escaped_string() {
-        use itertools::Itertools;
-
-        let escaped_string = crate::prql_to_pl(
-            r#"
-        from tracks
-        filter (name ~= "\\(I Can't Help\\) Falling")
-        "#,
-        )
-        .unwrap()
-        .into_iter()
-        .exactly_one()
-        .unwrap();
-
-        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
-        from tracks
-        filter name ~= "\\(I Can't Help\\) Falling"
-        "###);
+        assert_fmt_matches(r#"filter name ~= "\\(I Can't Help\\) Falling""#);
     }
 
     #[test]
     fn test_double_braces() {
-        use itertools::Itertools;
+        assert_fmt_matches(r#"has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')""#);
+    }
 
-        let escaped_string = crate::prql_to_pl(
-            r#"
-        from tracks
-        has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
-        "#,
-        )
-        .unwrap()
-        .into_iter()
-        .exactly_one()
-        .unwrap();
+    #[test]
+    fn test_unary() {
+        assert_fmt_matches(r#"sort {-duration}"#);
 
-        assert_snapshot!(escaped_string.write(WriteOpt::default()).unwrap(), @r###"
+        assert_fmt_matches(r#"select a = -b"#);
+        assert_fmt_matches(r#"join `project-bar.dataset.table` (==col_bax)"#)
+    }
 
-        from tracks
-        has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
-        "###);
+    #[test]
+    fn test_simple() {
+        assert_fmt_matches(r#"aggregate average_country_salary = (average salary)"#);
     }
 }
