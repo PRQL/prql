@@ -380,6 +380,7 @@ impl DBConnection {
                 let re = Regex::new(r"(?s)\)$").unwrap();
                 re.replace(&sql, r") ENGINE = Memory")
                     .replace("TIMESTAMP", "DATETIME")
+                    .replace("REAL", "DOUBLE")
             }
             Dialect::MsSql => sql
                 .replace("TIMESTAMP", "DATETIME")
