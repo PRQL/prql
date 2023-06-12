@@ -1,21 +1,28 @@
+use std::iter::zip;
+
 use anyhow::Result;
 
-use crate::{
-    ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, Literal},
-    error::WithErrorInfo,
-    Error, Span,
-};
+use crate::ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal};
+use crate::error::{Error, Span, WithErrorInfo};
 
 use super::resolver::{binary_to_func_call, unary_to_func_call};
 
 pub fn eval(expr: Expr) -> Result<Expr> {
-    Evaluator {}.fold_expr(expr)
+    Evaluator::new().fold_expr(expr)
 }
 
 /// Converts an expression to a value
 ///
 /// Serves as a working draft of PRQL semantics definition.
-struct Evaluator {}
+struct Evaluator {
+    relation: Option<Expr>,
+}
+
+impl Evaluator {
+    fn new() -> Self {
+        Evaluator { relation: None }
+    }
+}
 
 impl AstFold for Evaluator {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
@@ -45,33 +52,37 @@ impl AstFold for Evaluator {
 
             // ident are not values
             ExprKind::Ident(ident) => {
-                // this is very crude, but for simple cases, it's enough
-                if ident.path.get(0).map(|x| x == "std").unwrap_or_default() {
-                    ExprKind::Func(Box::new(Func {
-                        name_hint: Some(ident),
+                // here we'd have to implement the whole name resolution, but for now,
+                // let's do something simple
 
-                        // these don't matter
-                        return_ty: Default::default(),
-                        body: Box::new(Expr::null()),
-                        params: Default::default(),
-                        named_params: Default::default(),
-                        args: Default::default(),
-                        env: Default::default(),
-                    }))
-                } else {
-                    todo!()
+                // this is very crude, but for simple cases, it's enough
+                let mut ident = ident;
+                let mut base = self.relation.clone();
+                loop {
+                    let (first, remaining) = ident.pop_front();
+                    let res = lookup(base.as_ref(), &first).with_span(expr.span)?;
+
+                    if let Some(remaining) = remaining {
+                        ident = remaining;
+                        base = Some(res);
+                    } else {
+                        return Ok(res);
+                    }
                 }
             }
 
             // the beef happens here
             ExprKind::FuncCall(func_call) => {
                 let func = self.fold_expr(*func_call.name)?;
-                let func = *func.try_cast(|x| x.into_func(), Some("func call"), "function")?;
-                let func_name = func.name_hint.unwrap().to_string();
+                let mut func = func.try_cast(|x| x.into_func(), Some("func call"), "function")?;
 
-                let args = self.fold_exprs(func_call.args)?;
+                func.args.extend(func_call.args);
 
-                eval_function(&func_name, args, expr.span)?
+                if func.args.len() < func.params.len() {
+                    ExprKind::Func(func)
+                } else {
+                    self.eval_function(*func, expr.span)?
+                }
             }
             ExprKind::Pipeline(mut pipeline) => {
                 let mut res = self.fold_expr(pipeline.exprs.remove(0))?;
@@ -101,56 +112,209 @@ impl AstFold for Evaluator {
     }
 }
 
-fn eval_function(name: &str, args: Vec<Expr>, span: Option<Span>) -> Result<ExprKind> {
-    use Literal::*;
-
-    Ok(match name {
-        "std.add" => {
-            let [l, r]: [_; 2] = args.try_into().unwrap();
-
-            let l = l.kind.into_literal().unwrap();
-            let r = r.kind.into_literal().unwrap();
-
-            let res = match (l, r) {
-                (Integer(l), Integer(r)) => (l + r) as f64,
-                (Float(l), Integer(r)) => l + (r as f64),
-                (Integer(l), Float(r)) => (l as f64) + r,
-                (Float(l), Float(r)) => l + r,
-
-                _ => return Err(Error::new_simple("bad arg types").with_span(span).into()),
-            };
-
-            ExprKind::Literal(Float(res))
-        }
-
-        "std.floor" => {
-            let [x]: [_; 1] = args.try_into().unwrap();
-
-            let res = match x.kind {
-                ExprKind::Literal(Integer(i)) => i,
-                ExprKind::Literal(Float(f)) => f.floor() as i64,
-                _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
-            };
-
-            ExprKind::Literal(Integer(res))
-        }
-
-        "std.neg" => {
-            let [x]: [_; 1] = args.try_into().unwrap();
-
-            match x.kind {
-                ExprKind::Literal(Integer(i)) => ExprKind::Literal(Integer(-i)),
-                ExprKind::Literal(Float(f)) => ExprKind::Literal(Float(-f)),
-                _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
+    if let Some(base) = base {
+        if let ExprKind::Tuple(items) = &base.kind {
+            if let Some(item) = items.iter().find(|i| i.alias.as_deref() == Some(name)) {
+                return Ok(item.clone());
             }
         }
+    }
+    if name == "std" {
+        return Ok(std_module());
+    }
 
-        _ => {
-            return Err(Error::new_simple(format!("unknown function {name}"))
-                .with_span(span)
-                .into())
-        }
-    })
+    Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)).into())
+}
+
+impl Evaluator {
+    fn eval_function(&mut self, func: Func, span: Option<Span>) -> Result<ExprKind> {
+        let func_name = func.name_hint.unwrap().to_string();
+
+
+        // eval args
+        let has_relation = (func.params.last())
+            .filter(|x| x.name == "relation")
+            .is_some();
+
+        let args = if has_relation {
+            // save relation from outer calls
+            let prev_relation = self.relation.take();
+
+            let mut args = func.args;
+
+            // eval relation
+            let relation = args.pop().unwrap();
+            let relation = self.fold_expr(relation)?;
+            let relation = relation.try_cast(|x| x.into_array(), None, "an array")?;
+
+            // prepare output
+            let mut args_arrays = Vec::new();
+            for _ in 0..(args.len() + 1) {
+                args_arrays.push(Vec::new());
+            }
+
+            // for every item in relation array, evaluate args
+            for relation_row in relation {
+                self.relation = Some(relation_row);
+
+                for (index, arg) in args.clone().into_iter().enumerate() {
+                    args_arrays[index].push(self.fold_expr(arg)?);
+                }
+
+                args_arrays[args.len()].push(self.relation.take().unwrap());
+            }
+
+            // restore relation for outer calls
+            self.relation = prev_relation;
+
+            args_arrays
+                .into_iter()
+                .map(|array_items| Expr::from(ExprKind::Array(array_items)))
+                .collect()
+        } else {
+            self.fold_exprs(func.args)?
+        };
+
+        // eval body
+        use Literal::*;
+        Ok(match func_name.as_str() {
+            "std.add" => {
+                let [l, r]: [_; 2] = args.try_into().unwrap();
+
+                let l = l.kind.into_literal().unwrap();
+                let r = r.kind.into_literal().unwrap();
+
+                let res = match (l, r) {
+                    (Integer(l), Integer(r)) => (l + r) as f64,
+                    (Float(l), Integer(r)) => l + (r as f64),
+                    (Integer(l), Float(r)) => (l as f64) + r,
+                    (Float(l), Float(r)) => l + r,
+
+                    _ => return Err(Error::new_simple("bad arg types").with_span(span).into()),
+                };
+
+                ExprKind::Literal(Float(res))
+            }
+
+            "std.floor" => {
+                let [x]: [_; 1] = args.try_into().unwrap();
+
+                let res = match x.kind {
+                    ExprKind::Literal(Integer(i)) => i,
+                    ExprKind::Literal(Float(f)) => f.floor() as i64,
+                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+                };
+
+                ExprKind::Literal(Integer(res))
+            }
+
+            "std.neg" => {
+                let [x]: [_; 1] = args.try_into().unwrap();
+
+                match x.kind {
+                    ExprKind::Literal(Integer(i)) => ExprKind::Literal(Integer(-i)),
+                    ExprKind::Literal(Float(f)) => ExprKind::Literal(Float(-f)),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+                }
+            }
+
+            "std.select" => {
+                let [new, _relation]: [_; 2] = args.try_into().unwrap();
+                new.kind
+            }
+
+            "std.derive" => {
+                let [new, relation]: [_; 2] = args.try_into().unwrap();
+                zip_relations(relation, new)
+            }
+
+            "std.filter" => {
+                let [condition, relation]: [_; 2] = args.try_into().unwrap();
+
+                let condition = condition.kind.into_array().unwrap();
+                let relation = relation.kind.into_array().unwrap();
+
+                let mut res = Vec::new();
+                for (cond, tuple) in zip(condition, relation) {
+                    let f = cond.kind.into_literal().unwrap().into_boolean().unwrap();
+
+                    if f {
+                        res.push(tuple);
+                    }
+                }
+
+                ExprKind::Array(res)
+            }
+
+            _ => {
+                return Err(Error::new_simple(format!("unknown function {func_name}"))
+                    .with_span(span)
+                    .into())
+            }
+        })
+    }
+}
+
+fn std_module() -> Expr {
+    Expr::from(ExprKind::Tuple(
+        [
+            new_func("floor", &["x"]),
+            new_func("add", &["x", "y"]),
+            new_func("neg", &["x"]),
+            // for select, insert a "marker" to the relation column
+            // for now tha marker is just the name "relation"
+            new_func("select", &["column", "relation"]),
+            new_func("derive", &["column", "relation"]),
+            new_func("filter", &["condition", "relation"]),
+        ]
+        .to_vec(),
+    ))
+}
+
+fn new_func(name: &str, params: &[&str]) -> Expr {
+    let params = params
+        .iter()
+        .map(|name| FuncParam {
+            name: name.to_string(),
+            default_value: None,
+            ty: None,
+        })
+        .collect();
+
+    let kind = ExprKind::Func(Box::new(Func {
+        name_hint: Some(Ident {
+            path: vec!["std".to_string()],
+            name: name.to_string(),
+        }),
+
+        // these don't matter
+        return_ty: Default::default(),
+        body: Box::new(Expr::null()),
+        params,
+        named_params: Default::default(),
+        args: Default::default(),
+        env: Default::default(),
+    }));
+    Expr {
+        alias: Some(name.to_string()),
+        ..Expr::from(kind)
+    }
+}
+
+fn zip_relations(l: Expr, r: Expr) -> ExprKind {
+    let l = l.kind.into_array().unwrap();
+    let r = r.kind.into_array().unwrap();
+
+    let mut res = Vec::new();
+    for (l, r) in zip(l, r) {
+        let l_fields = l.kind.into_tuple().unwrap();
+        let r_fields = r.kind.into_tuple().unwrap();
+
+        res.push(Expr::from(ExprKind::Tuple([l_fields, r_fields].concat())));
+    }
+
+    ExprKind::Array(res)
 }
 
 #[cfg(test)]
@@ -194,6 +358,22 @@ mod test {
             (4.5 | std.floor | std.neg)
         ").unwrap(),
             @"-4"
+        );
+    }
+
+    #[test]
+    fn transforms() {
+        assert_display_snapshot!(eval(r"
+            [
+                { b = 4, c = false },
+                { b = 5, c = true },
+                { b = 12, c = true },
+            ]
+            std.select {c, b + 2}
+            std.derive {d = 42}
+            std.filter c
+        ").unwrap(),
+            @"[{c = true, 7, d = 42}, {c = true, 14, d = 42}]"
         );
     }
 }
