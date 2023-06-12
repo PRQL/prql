@@ -78,6 +78,13 @@ impl IntegrationTest for Dialect {
                 ),
             }),
             #[cfg(feature = "test-external-dbs")]
+            Dialect::ClickHouse => Some(DbConnection {
+                dialect: Dialect::ClickHouse,
+                protocol: Box::new(
+                    mysql::Pool::new("mysql://default:@localhost:9004/dummy").unwrap(),
+                ),
+            }),
+            #[cfg(feature = "test-external-dbs")]
             Dialect::MsSql => {
                 use tiberius::{AuthMethod, Client, Config};
                 use tokio::net::TcpStream;
@@ -174,6 +181,15 @@ impl SetUpData for DbConnection {
                 fs::remove_file(&new_path).unwrap();
                 query_result.unwrap();
             }
+            Dialect::ClickHouse => {
+                self.protocol.run_query(
+                    &format!(
+                        "INSERT INTO {csv_name} SELECT * FROM file('/var/lib/clickhouse/user_files/chinook/{csv_name}.csv')"
+                    ),
+                    runtime,
+                )
+                .unwrap();
+            }
             Dialect::MsSql => {
                 self.protocol.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
             }
@@ -186,6 +202,12 @@ impl SetUpData for DbConnection {
             Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
             Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
+            Dialect::ClickHouse => {
+                let re = Regex::new(r"(?s)\)$").unwrap();
+                re.replace(&sql, r") ENGINE = Memory")
+                    .replace("TIMESTAMP", "DATETIME64")
+                    .replace("REAL", "DOUBLE")
+            }
             Dialect::MsSql => sql
                 .replace("TIMESTAMP", "DATETIME")
                 .replace("REAL", "FLOAT(53)")
