@@ -297,7 +297,7 @@ fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Op
 
     if strength_parent >= strength_self {
         r += "(";
-        r += &write_ident_part(&expr.alias.clone().unwrap());
+        r += &write_ident_part(&expr.alias.as_ref().unwrap());
         r += " = ";
         r += &write_alias_rhs_expr(expr, opt)?;
         r += ")";
