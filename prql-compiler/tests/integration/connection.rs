@@ -374,7 +374,13 @@ impl DBConnection {
         match self.dialect {
             Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
-            Dialect::MySql | Dialect::ClickHouse => sql.replace("TIMESTAMP", "DATETIME"),
+            Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
+            Dialect::ClickHouse => {
+                let mut s = String::new();
+                s.push_str(&sql.replace("TIMESTAMP", "DATETIME"));
+                s.push_str(" ENGINE = MergeTree()");
+                s
+            }
             Dialect::MsSql => sql
                 .replace("TIMESTAMP", "DATETIME")
                 .replace("REAL", "FLOAT(53)")
