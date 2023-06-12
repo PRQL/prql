@@ -333,7 +333,7 @@ where
     .then(type_expr().or_not())
     .then(choice((internal, func_call(expr))))
     .map(|((params, return_ty), body)| {
-        let (pos, nam) = params
+        let (pos, name) = params
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
                 name,
@@ -344,7 +344,7 @@ where
 
         Box::new(Func {
             params: pos,
-            named_params: nam,
+            named_params: name,
 
             body: Box::new(body),
             return_ty: return_ty.map(TyOrExpr::Expr),
