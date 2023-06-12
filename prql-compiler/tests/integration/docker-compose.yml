@@ -52,4 +52,6 @@ services:
       # 9004 is MySQL emulation port
       # https://clickhouse.com/docs/en/guides/sre/network-ports
       - "9004:9004"
+    environment:
+      CLICKHOUSE_DB: dummy
     volumes: *vol

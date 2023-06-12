@@ -70,6 +70,10 @@ impl DBConnection {
                 })?;
                 Protocol::SqlServer(conn)
             }
+            Dialect::ClickHouse => {
+                let conn = mysql::Pool::new("mysql://default:@localhost:9004/dummy")?;
+                Protocol::MySql(conn)
+            }
             _ => unimplemented!("integration is not implemented for {:?}", dialect),
         };
         Ok(DBConnection { dialect, protocol })
@@ -354,6 +358,15 @@ impl DBConnection {
             Dialect::MsSql => {
                 self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
             }
+            Dialect::ClickHouse => {
+                self.run_query(
+                    &format!(
+                        "INSERT INTO {csv_name} FROM INFILE '/tmp/chinook/{csv_name}.csv' FORMAT CSV"
+                    ),
+                    runtime,
+                )
+                .unwrap();
+            }
             _ => unreachable!(),
         }
     }
@@ -361,7 +374,7 @@ impl DBConnection {
         match self.dialect {
             Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
-            Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
+            Dialect::MySql | Dialect::ClickHouse => sql.replace("TIMESTAMP", "DATETIME"),
             Dialect::MsSql => sql
                 .replace("TIMESTAMP", "DATETIME")
                 .replace("REAL", "FLOAT(53)")

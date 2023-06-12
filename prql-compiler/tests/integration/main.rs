@@ -46,7 +46,7 @@ impl IntegrationTest for Dialect {
             Dialect::DuckDb | Dialect::SQLite => Some(DBConnection::new(*self).unwrap()),
 
             #[cfg(feature = "test-external-dbs")]
-            Dialect::Postgres | Dialect::MySql | Dialect::MsSql => {
+            Dialect::Postgres | Dialect::MySql | Dialect::MsSql | Dialect::ClickHouse => {
                 Some(DBConnection::new(*self).unwrap())
             }
             _ => None,
