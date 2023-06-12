@@ -8,6 +8,7 @@ use anyhow::Context;
 use insta::{assert_snapshot, glob};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use similar_asserts::assert_eq;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
@@ -126,12 +127,10 @@ fn test_rdbms() {
             None => return,
         };
         for (k, v) in results.iter().skip(1) {
-            pretty_assertions::assert_eq!(
-                *first_result.1,
-                *v,
+            assert_eq!(
+                *first_result.1, *v,
                 "{} == {}: {test_name}",
-                first_result.0,
-                k
+                first_result.0, k
             );
         }
 

@@ -13,7 +13,9 @@ on:
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
-  # This reduces the size of the cargo cache by ~25%.
+  # This used to reduce the size of the cargo cache by ~25%. It's not as
+  # effective as it once was, as explained in
+  # https://github.com/PRQL/prql/pull/2797
   RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
