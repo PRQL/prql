@@ -46,7 +46,7 @@ impl DBConnection {
                 Protocol::Sqlite(conn)
             }
             Dialect::MySql => {
-                let mut conn = mysql::Pool::new("mysql://root:root@localhost:3306/dummy")?;
+                let conn = mysql::Pool::new("mysql://root:root@localhost:3306/dummy")?;
                 Protocol::MySql(conn)
             }
             Dialect::Postgres => {

@@ -32,7 +32,7 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
 
 trait IntegrationTest {
     fn should_run_query(&self, prql: &str) -> bool;
-    fn get_connection(&self) -> Option<Box<dyn DBProtocol>>;
+    fn get_connection(&self) -> Option<DBConnection>;
 }
 
 impl IntegrationTest for Dialect {
@@ -40,49 +40,14 @@ impl IntegrationTest for Dialect {
         !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
     }
 
-    fn get_connection(&self) -> Option<Box<dyn DBProtocol>> {
+    fn get_connection(&self) -> Option<DBConnection> {
         match self {
-            Dialect::DuckDb => Some(Box::new(duckdb::Connection::open_in_memory().unwrap())),
-            Dialect::SQLite => Some(Box::new(rusqlite::Connection::open_in_memory().unwrap())),
+            Dialect::DuckDb | Dialect::SQLite => Some(DBConnection::new(*self).unwrap()),
 
             #[cfg(feature = "test-external-dbs")]
-            Dialect::Postgres => {
-                use postgres::NoTls;
-                Some(Box::new(
-                    postgres::Client::connect(
-                        "host=localhost user=root password=root dbname=dummy",
-                        NoTls,
-                    )
-                    .unwrap(),
-                ))
+            Dialect::Postgres | Dialect::MySql | Dialect::MsSql => {
+                Some(DBConnection::new(*self).unwrap())
             }
-
-            #[cfg(feature = "test-external-dbs")]
-            Dialect::MySql => Some(Box::new(
-                mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
-            )),
-            #[cfg(feature = "test-external-dbs")]
-            Dialect::MsSql => Some({
-                use tiberius::{AuthMethod, Client, Config};
-                use tokio::net::TcpStream;
-                use tokio_util::compat::TokioAsyncWriteCompatExt;
-
-                let mut config = Config::new();
-                config.host("127.0.0.1");
-                config.port(1433);
-                config.trust_cert();
-                config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
-
-                Box::new(
-                    RUNTIME
-                        .block_on(async {
-                            let tcp = TcpStream::connect(config.get_addr()).await?;
-                            tcp.set_nodelay(true).unwrap();
-                            Client::connect(config, tcp.compat_write()).await
-                        })
-                        .unwrap(),
-                )
-            }),
             _ => None,
         }
     }
@@ -118,13 +83,13 @@ fn test_fmt_examples() {
 fn test_rdbms() {
     let runtime = &*RUNTIME;
 
-    let mut connections: Vec<Box<dyn DBProtocol>> = Dialect::iter()
+    let mut connections: Vec<DBConnection> = Dialect::iter()
         .filter(|dialect| matches!(dialect.support_level(), SupportLevel::Supported))
         .filter_map(|dialect| dialect.get_connection())
         .collect();
 
     connections.iter_mut().for_each(|con| {
-        setup_connection(&mut **con, runtime);
+        setup_connection(con, runtime);
     });
 
     // for each of the queries
@@ -143,11 +108,11 @@ fn test_rdbms() {
 
         let mut results = BTreeMap::new();
         for con in &mut connections {
-            let vendor = con.get_dialect().to_string().to_lowercase();
-            if !con.get_dialect().should_run_query(&prql) {
+            let vendor = con.dialect.to_string().to_lowercase();
+            if !con.dialect.should_run_query(&prql) {
                 continue;
             }
-            let res = run_query(&mut **con, prql.as_str(), runtime);
+            let res = run_query(con, prql.as_str(), runtime);
             let res = res.context(format!("Executing for {vendor}")).unwrap();
             results.insert(vendor, res);
         }
@@ -178,7 +143,7 @@ fn test_rdbms() {
     });
 }
 
-fn setup_connection(con: &mut dyn DBProtocol, runtime: &Runtime) {
+fn setup_connection(con: &mut connection::DBConnection, runtime: &Runtime) {
     let setup = include_str!("data/chinook/schema.sql");
     setup
         .split(';')
@@ -206,12 +171,8 @@ fn setup_connection(con: &mut dyn DBProtocol, runtime: &Runtime) {
     }
 }
 
-fn run_query(
-    con: &mut dyn DBProtocol,
-    prql: &str,
-    runtime: &Runtime,
-) -> anyhow::Result<Vec<Row>> {
-    let options = Options::default().with_target(Sql(Some(con.get_dialect())));
+fn run_query(con: &mut DBConnection, prql: &str, runtime: &Runtime) -> anyhow::Result<Vec<Row>> {
+    let options = Options::default().with_target(Sql(Some(con.dialect)));
     let sql = prql_compiler::compile(prql, &options)?;
 
     let mut actual_rows = con.run_query(sql.as_str(), runtime)?;
