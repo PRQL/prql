@@ -6,6 +6,7 @@ on:
       - "bindings/prql-elixir/**"
       - ".github/workflows/test-elixir.yaml"
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-elixir
