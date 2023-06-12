@@ -1,4 +1,7 @@
-use crate::{ast::pl, utils::VALID_IDENT};
+use crate::{
+    ast::pl::{self, BinaryExpr, UnaryExpr},
+    utils::VALID_IDENT,
+};
 
 pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     let mut r = String::new();
@@ -179,7 +182,7 @@ impl WriteSource for pl::ExprKind {
                 }
                 Some(r)
             }
-            Binary { op, left, right } => {
+            Binary(pl::BinaryExpr { op, left, right }) => {
                 let mut r = String::new();
 
                 r += &write_expr(left, self, opt)?;
@@ -191,7 +194,7 @@ impl WriteSource for pl::ExprKind {
                 r += &write_expr(right, self, opt)?;
                 Some(r)
             }
-            Unary { op, expr } => Some(match op {
+            Unary(pl::UnaryExpr { op, expr }) => Some(match op {
                 pl::UnOp::Neg => format!("(-{})", expr.write(opt)?),
                 pl::UnOp::Add => format!("(+{})", expr.write(opt)?),
                 pl::UnOp::Not => format!("!{}", expr.write(opt)?),
@@ -281,7 +284,7 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
         pl::ExprKind::All { .. } => 10,
 
         pl::ExprKind::Range(_) => 6,
-        pl::ExprKind::Binary { op, .. } => match op {
+        pl::ExprKind::Binary(BinaryExpr { op, .. }) => match op {
             pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 5,
             pl::BinOp::Add | pl::BinOp::Sub => 4,
             pl::BinOp::Eq
@@ -295,7 +298,7 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
             pl::BinOp::Or => 1,
             pl::BinOp::Coalesce => 2,
         },
-        pl::ExprKind::Unary { .. } => 9,
+        pl::ExprKind::Unary(UnaryExpr { .. }) => 9,
         pl::ExprKind::FuncCall(_) => 0,
         pl::ExprKind::Func(_) => 0,
 

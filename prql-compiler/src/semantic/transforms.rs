@@ -5,6 +5,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
+use crate::ast::pl::expr::BinaryExpr;
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
@@ -205,18 +206,18 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             match pattern.kind {
                 ExprKind::Range(Range { start, end }) => {
                     let start = start.map(|start| {
-                        Expr::from(ExprKind::Binary {
+                        Expr::from(ExprKind::Binary(BinaryExpr {
                             left: Box::new(value.clone()),
                             op: BinOp::Gte,
                             right: start,
-                        })
+                        }))
                     });
                     let end = end.map(|end| {
-                        Expr::from(ExprKind::Binary {
+                        Expr::from(ExprKind::Binary(BinaryExpr {
                             left: Box::new(value),
                             op: BinOp::Lte,
                             right: end,
-                        })
+                        }))
                     });
 
                     let res = new_binop(start, BinOp::And, end);
