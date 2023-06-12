@@ -1,6 +1,7 @@
 use std::iter::zip;
 
 use anyhow::Result;
+use itertools::Itertools;
 
 use crate::ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal};
 use crate::error::{Error, Span, WithErrorInfo};
@@ -132,92 +133,29 @@ impl Evaluator {
         let func_name = func.name_hint.unwrap().to_string();
 
         // eval args
-        let has_for_each = (func.params.last())
-            .filter(|x| x.name == "for_each")
-            .is_some();
-        let has_for_all = (func.params.last())
-            .filter(|x| x.name == "for_all")
-            .is_some();
+        let closure = (func.params.iter()).find_position(|x| x.name == "closure");
 
-        let args = if has_for_each {
-            // save relation from outer calls
-            let prev_relation = self.relation.take();
+        let args = if let Some((closure_position, _)) = closure {
+            let mut args = Vec::new();
 
-            let mut args = func.args;
+            for (pos, arg) in func.args.into_iter().enumerate() {
+                if pos == closure_position {
+                    let closure = Expr::from(ExprKind::Func(Box::new(Func {
+                        name_hint: None,
 
-            // eval relation
-            let relation = args.pop().unwrap();
-            let relation = self.fold_expr(relation)?;
-            let relation = relation.try_cast(|x| x.into_array(), None, "an array")?;
+                        params: Default::default(),
+                        body: Box::new(arg),
+                        return_ty: Default::default(),
+                        named_params: Default::default(),
+                        args: Default::default(),
+                        env: Default::default(),
+                    })));
 
-            // prepare output
-            let mut args_arrays = Vec::new();
-            for _ in 0..(args.len() + 1) {
-                args_arrays.push(Vec::new());
-            }
-
-            // for every item in relation array, evaluate args
-            for relation_row in relation {
-                self.relation = Some(relation_row);
-
-                for (index, arg) in args.clone().into_iter().enumerate() {
-                    args_arrays[index].push(self.fold_expr(arg)?);
-                }
-
-                args_arrays[args.len()].push(self.relation.take().unwrap());
-            }
-
-            // restore relation for outer calls
-            self.relation = prev_relation;
-
-            args_arrays
-                .into_iter()
-                .map(|array_items| Expr::from(ExprKind::Array(array_items)))
-                .collect()
-        } else if has_for_all {
-            // save relation from outer calls
-            let prev_relation = self.relation.take();
-
-            let mut args = func.args;
-
-            // eval relation
-            let relation = args.pop().unwrap();
-            let relation = self.fold_expr(relation)?;
-            let relation_rows = relation
-                .clone()
-                .try_cast(|x| x.into_array(), None, "an array")?;
-
-            // prepare output
-            let mut args_tuple = Vec::new();
-            for _ in 0..(args.len() + 1) {
-                args_tuple.push(Vec::new());
-            }
-            for relation_row in relation_rows {
-                let fields = relation_row.try_cast(|x| x.into_tuple(), None, "a tuple")?;
-
-                for (index, field) in fields.into_iter().enumerate() {
-                    args_tuple[index].push(field);
+                    args.push(closure);
+                } else {
+                    args.push(self.fold_expr(arg)?);
                 }
             }
-            let mut args_tuple_fields: Vec<_> = args_tuple
-                .into_iter()
-                .map(|array_items| Expr::from(ExprKind::Array(array_items)))
-                .collect();
-            for field in &mut args_tuple_fields {
-                field.alias = (field.kind.as_array().unwrap())
-                    .first()
-                    .and_then(|x| x.alias.clone());
-            }
-            let args_tuple = Expr::from(ExprKind::Tuple(args_tuple_fields));
-
-            // eval other args
-            self.relation = Some(args_tuple);
-            let mut args = self.fold_exprs(args)?;
-            args.push(relation);
-
-            // restore relation for outer calls
-            self.relation = prev_relation;
-
             args
         } else {
             self.fold_exprs(func.args)?
@@ -267,17 +205,23 @@ impl Evaluator {
             }
 
             "std.select" => {
-                let [tuple, _relation]: [_; 2] = args.try_into().unwrap();
-                tuple.kind
+                let [tuple_closure, relation]: [_; 2] = args.try_into().unwrap();
+
+                self.eval_for_each_row(relation, tuple_closure)?.kind
             }
 
             "std.derive" => {
-                let [tuple, relation]: [_; 2] = args.try_into().unwrap();
-                zip_relations(relation, tuple)
+                let [tuple_closure, relation]: [_; 2] = args.try_into().unwrap();
+
+                let new = self.eval_for_each_row(relation.clone(), tuple_closure)?;
+
+                zip_relations(relation, new)
             }
 
             "std.filter" => {
-                let [condition, relation]: [_; 2] = args.try_into().unwrap();
+                let [condition_closure, relation]: [_; 2] = args.try_into().unwrap();
+
+                let condition = self.eval_for_each_row(relation.clone(), condition_closure)?;
 
                 let condition = condition.kind.into_array().unwrap();
                 let relation = relation.kind.into_array().unwrap();
@@ -295,7 +239,9 @@ impl Evaluator {
             }
 
             "std.aggregate" => {
-                let [tuple, _relation]: [_; 2] = args.try_into().unwrap();
+                let [tuple_closure, relation]: [_; 2] = args.try_into().unwrap();
+
+                let tuple = self.eval_for_all_rows(relation, tuple_closure)?;
 
                 ExprKind::Array(vec![tuple])
             }
@@ -323,6 +269,72 @@ impl Evaluator {
             }
         })
     }
+
+    fn eval_for_each_row(&mut self, relation: Expr, closure: Expr) -> Result<Expr> {
+        // save relation from outer calls
+        let prev_relation = self.relation.take();
+
+        let relation_rows = relation.try_cast(|x| x.into_array(), None, "an array")?;
+        let closure = closure
+            .try_cast(|x| x.into_func(), None, "a function")?
+            .body;
+
+        // for every item in relation array, evaluate args
+        let mut output_array = Vec::new();
+        for relation_row in relation_rows {
+            self.relation = Some(relation_row);
+
+            output_array.push(self.fold_expr(*closure.clone())?);
+        }
+
+        // restore relation for outer calls
+        self.relation = prev_relation;
+
+        Ok(Expr::from(ExprKind::Array(output_array)))
+    }
+
+    fn eval_for_all_rows(&mut self, relation: Expr, closure: Expr) -> Result<Expr> {
+        // save relation from outer calls
+        let prev_relation = self.relation.take();
+
+        let relation = columnar(relation)?;
+        let closure = closure
+            .try_cast(|x| x.into_func(), None, "a function")?
+            .body;
+
+        // eval other args
+        self.relation = Some(relation);
+        let res = self.fold_expr(*closure)?;
+
+        // restore relation for outer calls
+        self.relation = prev_relation;
+
+        Ok(res)
+    }
+}
+
+/// Converts `[{a = 1, b = false}, {a = 2, b = true}]`
+/// into `{a = [1, 2], b = [false, true]}
+fn columnar(expr: Expr) -> Result<Expr> {
+    let relation_rows = expr.try_cast(|x| x.into_array(), None, "an array")?;
+
+    let mut arg_tuple = Vec::new();
+    for field in relation_rows.first().unwrap().kind.as_tuple().unwrap() {
+        arg_tuple.push(Expr {
+            alias: field.alias.clone(),
+            ..Expr::from(ExprKind::Array(Vec::new()))
+        });
+    }
+
+    // prepare output
+    for relation_row in relation_rows {
+        let fields = relation_row.try_cast(|x| x.into_tuple(), None, "a tuple")?;
+
+        for (index, field) in fields.into_iter().enumerate() {
+            arg_tuple[index].kind.as_array_mut().unwrap().push(field);
+        }
+    }
+    Ok(Expr::from(ExprKind::Tuple(arg_tuple)))
 }
 
 fn std_module() -> Expr {
@@ -331,10 +343,10 @@ fn std_module() -> Expr {
             new_func("floor", &["x"]),
             new_func("add", &["x", "y"]),
             new_func("neg", &["x"]),
-            new_func("select", &["tuple", "for_each"]),
-            new_func("derive", &["tuple", "for_each"]),
-            new_func("filter", &["condition", "for_each"]),
-            new_func("aggregate", &["tuple", "for_all"]),
+            new_func("select", &["closure", "relation"]),
+            new_func("derive", &["closure", "relation"]),
+            new_func("filter", &["closure", "relation"]),
+            new_func("aggregate", &["closure", "relation"]),
             new_func("sum", &["x"]),
         ]
         .to_vec(),
