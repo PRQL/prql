@@ -19,7 +19,7 @@ use tokio_util::compat::Compat;
 
 pub type Row = Vec<String>;
 
-pub trait DBConnection {
+pub trait DbConnection {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
@@ -31,7 +31,7 @@ pub trait DBConnection {
     }
 }
 
-impl DBConnection for duckdb::Connection {
+impl DbConnection for duckdb::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
@@ -89,7 +89,7 @@ impl DBConnection for duckdb::Connection {
     }
 }
 
-impl DBConnection for rusqlite::Connection {
+impl DbConnection for rusqlite::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
@@ -148,7 +148,7 @@ impl DBConnection for rusqlite::Connection {
     }
 }
 
-impl DBConnection for postgres::Client {
+impl DbConnection for postgres::Client {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let rows = self.query(sql, &[])?;
         let mut vec = vec![];
@@ -210,7 +210,7 @@ impl DBConnection for postgres::Client {
     }
 }
 
-impl DBConnection for mysql::Pool {
+impl DbConnection for mysql::Pool {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut conn = self.get_conn()?;
         let rows: Vec<mysql::Row> = conn.query(sql)?;
@@ -257,7 +257,7 @@ impl DBConnection for mysql::Pool {
     }
 }
 
-impl DBConnection for tiberius::Client<Compat<TcpStream>> {
+impl DbConnection for tiberius::Client<Compat<TcpStream>> {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>> {
         runtime.block_on(async {
             let mut stream = self.query(sql, &[]).await?;
