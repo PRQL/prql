@@ -8,7 +8,7 @@ repos:
       - id: check-yaml
       - id: mixed-line-ending
   - repo: https://github.com/crate-ci/typos
-    rev: v1.14.12
+    rev: v1.15.0
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
@@ -21,7 +21,7 @@ repos:
           - prettier
           - prettier-plugin-go-template
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.270
+    rev: v0.0.272
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
