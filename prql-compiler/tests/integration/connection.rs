@@ -17,16 +17,12 @@ use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
 
-use prql_compiler::sql::Dialect;
-
 pub type Row = Vec<String>;
 
 pub trait DBConnection {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
-
-    fn get_dialect(&self) -> Dialect;
 
     // We sometimes want to modify the SQL `INSERT` query (we don't modify the
     // SQL `SELECT` query)
@@ -86,10 +82,6 @@ impl DBConnection for duckdb::Connection {
             runtime,
         )
         .unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::DuckDb
     }
 
     fn modify_sql(&self, sql: String) -> String {
@@ -154,10 +146,6 @@ impl DBConnection for rusqlite::Connection {
             self.run_query(q.as_str(), runtime).unwrap();
         }
     }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::SQLite
-    }
 }
 
 impl DBConnection for postgres::Client {
@@ -217,10 +205,6 @@ impl DBConnection for postgres::Client {
         .unwrap();
     }
 
-    fn get_dialect(&self) -> Dialect {
-        Dialect::Postgres
-    }
-
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("REAL", "DOUBLE PRECISION")
     }
@@ -266,10 +250,6 @@ impl DBConnection for mysql::Pool {
         let query_result = self.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
         fs::remove_file(&new_path).unwrap();
         query_result.unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::MySql
     }
 
     fn modify_sql(&self, sql: String) -> String {
@@ -331,10 +311,6 @@ impl DBConnection for tiberius::Client<Compat<TcpStream>> {
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
         self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::MsSql
     }
 
     fn modify_sql(&self, sql: String) -> String {
