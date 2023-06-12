@@ -302,20 +302,21 @@ tasks:
 
   check-npm-cache:
     # Look to see if npm dependencies need to be updated
-    # This avoids long start times when no dependencies have changed
-    # Create node_modules/.npmtimestamp after running 'npm install'
-    # Rerun npm install if package.json is newer than the timestamp
+    # Use task's sources/generates to see if checksums of 
+    # node_modules directory have changed since package.json was updated
 
-    # Must set `install-links=false` in the playground's `npm install` to
-    # install prql-js as the regular dependency, instead of creating a
+    # Use `npm install --install-links=false` to install prql-js
+    # as the regular dependency, instead of creating a
     # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Check to see if package.json has changed since we ran npm install
     dir: web/playground
-    status: # if both are true, don't rebuild
-      - test -f node_modules/.npmtimestamp # if .timestamp exists
-      - test package.json -ot node_modules/.npmtimestamp # and package.json is older
-    cmds:
-      - npm install --install-links=false && touch node_modules/.npmtimestamp
+    cmds: 
+      - npm install --install-links=false 
+    sources:
+      - package.json
+    generates:
+      - node_modules/*
+
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
