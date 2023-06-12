@@ -247,7 +247,7 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - task: check-npm-cache
+      - task: install-playground-npm-dependencies
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
@@ -297,10 +297,10 @@ tasks:
     desc: Build & serve the playground.
     dir: web/playground
     cmds:
-      - task: check-npm-cache
+      - task: install-playground-npm-dependencies
       - npm start
 
-  check-npm-cache:
+  install-playground-npm-dependencies:
     # Look to see if npm dependencies need to be updated
     # Use task's sources/generates to see if checksums of
     # node_modules directory have changed since package.json was updated
