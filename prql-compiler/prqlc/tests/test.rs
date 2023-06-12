@@ -192,6 +192,7 @@ fn prqlc_command() -> Command {
     cmd.env_remove("CLICOLOR_FORCE");
     // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
     cmd.env_remove("RUST_BACKTRACE");
+    cmd.env_remove("RUST_LOG");
     cmd.args(["--color=never"]);
     cmd
 }
