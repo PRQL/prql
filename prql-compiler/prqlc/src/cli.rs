@@ -5,13 +5,12 @@ use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::Output;
 use itertools::Itertools;
-use std::backtrace;
-use std::fs::File;
 use std::io::Write;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
+use std::{env, fs::File};
 
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
@@ -29,14 +28,18 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
-        // TODO: this is clunky — we're using `backtrace.status()` to check if
-        // backtraces are enabled, but then printing the backtrace from the
-        // error. Is there a way to check whether backtrades are enabled without
-        // capturing another one; e.g. from the error itself?
-        //
-        // Without this, we get a `<disabled>` message most of the time, which
-        // is kinda confusing.
-        if let backtrace::BacktraceStatus::Captured = backtrace::Backtrace::capture().status() {
+        // Copied from
+        // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
+        fn backtrace_enabled() -> bool {
+            match env::var("RUST_LIB_BACKTRACE") {
+                Ok(s) => s != "0",
+                Err(_) => match env::var("RUST_BACKTRACE") {
+                    Ok(s) => s != "0",
+                    Err(_) => false,
+                },
+            }
+        }
+        if backtrace_enabled() {
             eprintln!("{:#}", error.backtrace());
         }
 
