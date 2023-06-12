@@ -247,10 +247,7 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      # Must set `install-links=false` in the playground's `npm install` to
-      # install prql-js as the regular dependency, instead of creating a
-      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
-      - cd playground && npm install --install-links=false
+      - task: check-npm-cache
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
@@ -300,12 +297,26 @@ tasks:
     desc: Build & serve the playground.
     dir: web/playground
     cmds:
-      # Must set `install-links=false` in the playground's `npm install` to
-      # install prql-js as the regular dependency, instead of creating a
-      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
-      - npm install --install-links=false
+      - task: check-npm-cache
       - npm start
-#
+
+  check-npm-cache:
+    # Look to see if npm dependencies need to be updated
+    # This avoids long start times when no dependencies have changed
+    # Create node_modules/.npmtimestamp after running 'npm install'
+    # Rerun npm install if package.json is newer than the timestamp
+
+    # Must set `install-links=false` in the playground's `npm install` to
+    # install prql-js as the regular dependency, instead of creating a
+    # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
+    desc: Check to see if package.json has changed since we ran npm install
+    dir: web/playground
+    status:                                              # if both are true, don't rebuild
+      - test -f node_modules/.npmtimestamp               # if .timestamp exists
+      - test package.json -ot node_modules/.npmtimestamp # and package.json is older
+    cmds: 
+      - npm install --install-links=false && touch node_modules/.npmtimestamp
+
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
