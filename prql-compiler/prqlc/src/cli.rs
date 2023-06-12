@@ -5,6 +5,7 @@ use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::Output;
 use itertools::Itertools;
+use prql_compiler::ast::pl::StmtKind;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
@@ -58,6 +59,12 @@ enum Command {
         #[arg(value_parser, default_value = "-", value_hint(ValueHint::AnyPath))]
         input: clio_extended::Input,
     },
+
+    /// Parse & evaluate & generate PRQL code back
+    // TODO: this is not meant to be used apart from language design helper
+    // it is not polished (will panic a lot), so should we prefix with `debug:`?
+    #[command(name = "eval")]
+    Eval(IoArgs),
 
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
@@ -264,6 +271,29 @@ impl Command {
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
+            Command::Eval(_) => {
+                let stmts = prql_to_pl_tree(&sources)?;
+
+                let mut res = String::new();
+
+                for (path, stmts) in stmts.sources {
+                    res += &format!("# {}\n\n", path.to_str().unwrap());
+
+                    for stmt in stmts {
+                        if let StmtKind::VarDef(def) = stmt.kind {
+                            res += &format!("## {}\n", stmt.name);
+
+                            let val = semantic::eval(*def.value)
+                                .map_err(downcast)
+                                .map_err(|e| e.composed(sources))?;
+                            res += &val.to_string();
+                            res += "\n\n";
+                        }
+                    }
+                }
+
+                res.into_bytes()
+            }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);
 
@@ -337,6 +367,7 @@ impl Command {
             | SQLPreprocess(io_args)
             | SQLAnchor { io_args, .. }
             | Debug(io_args)
+            | Eval(io_args)
             | Annotate(io_args) => io_args,
             _ => unreachable!(),
         };
@@ -366,8 +397,10 @@ impl Command {
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLAnchor { io_args, .. }
-            | SQLPreprocess(io_args) => io_args.output.to_owned(),
-            Debug(io) | Annotate(io) => io.output.to_owned(),
+            | SQLPreprocess(io_args)
+            | Debug(io_args)
+            | Annotate(io_args)
+            | Eval(io_args) => io_args.output.to_owned(),
             _ => unreachable!(),
         };
         output.write_all(data)
