@@ -131,13 +131,15 @@ impl Evaluator {
     fn eval_function(&mut self, func: Func, span: Option<Span>) -> Result<ExprKind> {
         let func_name = func.name_hint.unwrap().to_string();
 
-
         // eval args
-        let has_relation = (func.params.last())
-            .filter(|x| x.name == "relation")
+        let has_for_each = (func.params.last())
+            .filter(|x| x.name == "for_each")
+            .is_some();
+        let has_for_all = (func.params.last())
+            .filter(|x| x.name == "for_all")
             .is_some();
 
-        let args = if has_relation {
+        let args = if has_for_each {
             // save relation from outer calls
             let prev_relation = self.relation.take();
 
@@ -172,6 +174,51 @@ impl Evaluator {
                 .into_iter()
                 .map(|array_items| Expr::from(ExprKind::Array(array_items)))
                 .collect()
+        } else if has_for_all {
+            // save relation from outer calls
+            let prev_relation = self.relation.take();
+
+            let mut args = func.args;
+
+            // eval relation
+            let relation = args.pop().unwrap();
+            let relation = self.fold_expr(relation)?;
+            let relation_rows = relation
+                .clone()
+                .try_cast(|x| x.into_array(), None, "an array")?;
+
+            // prepare output
+            let mut args_tuple = Vec::new();
+            for _ in 0..(args.len() + 1) {
+                args_tuple.push(Vec::new());
+            }
+            for relation_row in relation_rows {
+                let fields = relation_row.try_cast(|x| x.into_tuple(), None, "a tuple")?;
+
+                for (index, field) in fields.into_iter().enumerate() {
+                    args_tuple[index].push(field);
+                }
+            }
+            let mut args_tuple_fields: Vec<_> = args_tuple
+                .into_iter()
+                .map(|array_items| Expr::from(ExprKind::Array(array_items)))
+                .collect();
+            for field in &mut args_tuple_fields {
+                field.alias = (field.kind.as_array().unwrap())
+                    .first()
+                    .and_then(|x| x.alias.clone());
+            }
+            let args_tuple = Expr::from(ExprKind::Tuple(args_tuple_fields));
+
+            // eval other args
+            self.relation = Some(args_tuple);
+            let mut args = self.fold_exprs(args)?;
+            args.push(relation);
+
+            // restore relation for outer calls
+            self.relation = prev_relation;
+
+            args
         } else {
             self.fold_exprs(func.args)?
         };
@@ -220,13 +267,13 @@ impl Evaluator {
             }
 
             "std.select" => {
-                let [new, _relation]: [_; 2] = args.try_into().unwrap();
-                new.kind
+                let [tuple, _relation]: [_; 2] = args.try_into().unwrap();
+                tuple.kind
             }
 
             "std.derive" => {
-                let [new, relation]: [_; 2] = args.try_into().unwrap();
-                zip_relations(relation, new)
+                let [tuple, relation]: [_; 2] = args.try_into().unwrap();
+                zip_relations(relation, tuple)
             }
 
             "std.filter" => {
@@ -247,6 +294,28 @@ impl Evaluator {
                 ExprKind::Array(res)
             }
 
+            "std.aggregate" => {
+                let [tuple, _relation]: [_; 2] = args.try_into().unwrap();
+
+                ExprKind::Array(vec![tuple])
+            }
+
+            "std.sum" => {
+                let [array]: [_; 1] = args.try_into().unwrap();
+
+                let mut sum = 0.0;
+                for item in array.kind.into_array().unwrap() {
+                    let lit = item.kind.into_literal().unwrap();
+                    match lit {
+                        Integer(x) => sum += x as f64,
+                        Float(x) => sum += x,
+                        _ => panic!("bad type"),
+                    }
+                }
+
+                ExprKind::Literal(Float(sum))
+            }
+
             _ => {
                 return Err(Error::new_simple(format!("unknown function {func_name}"))
                     .with_span(span)
@@ -262,11 +331,11 @@ fn std_module() -> Expr {
             new_func("floor", &["x"]),
             new_func("add", &["x", "y"]),
             new_func("neg", &["x"]),
-            // for select, insert a "marker" to the relation column
-            // for now tha marker is just the name "relation"
-            new_func("select", &["column", "relation"]),
-            new_func("derive", &["column", "relation"]),
-            new_func("filter", &["condition", "relation"]),
+            new_func("select", &["tuple", "for_each"]),
+            new_func("derive", &["tuple", "for_each"]),
+            new_func("filter", &["condition", "for_each"]),
+            new_func("aggregate", &["tuple", "for_all"]),
+            new_func("sum", &["x"]),
         ]
         .to_vec(),
     ))
