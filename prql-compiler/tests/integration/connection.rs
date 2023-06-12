@@ -381,7 +381,7 @@ impl DBConnection {
             Dialect::ClickHouse => {
                 let re = Regex::new(r"(?s)\)$").unwrap();
                 re.replace(&sql, r") ENGINE = Memory")
-                    .replace("TIMESTAMP", "DATETIME")
+                    .replace("TIMESTAMP", "DATETIME64")
                     .replace("REAL", "DOUBLE")
             }
             Dialect::MsSql => sql
