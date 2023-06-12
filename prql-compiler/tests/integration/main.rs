@@ -119,12 +119,15 @@ fn test_fmt_examples() {
 fn test_rdbms() {
     let runtime = &*RUNTIME;
 
-    let mut connections: Vec<Box<dyn DBConnection>> = Dialect::iter()
-        .filter(|dialect| matches!(dialect.support_level(), SupportLevel::Supported))
-        .filter_map(|dialect| dialect.get_connection())
+    let mut connections: Vec<(Dialect, Box<dyn DBConnection>)> = Dialect::iter()
+        .filter(|dialect| {
+            matches!(dialect.support_level(), SupportLevel::Supported)
+                && dialect.get_connection().is_some()
+        })
+        .map(|dialect: Dialect| (dialect, dialect.get_connection().unwrap()))
         .collect();
 
-    connections.iter_mut().for_each(|con| {
+    connections.iter_mut().for_each(|(_, con)| {
         setup_connection(&mut **con, runtime);
     });
 
@@ -143,14 +146,24 @@ fn test_rdbms() {
         }
 
         let mut results = BTreeMap::new();
-        for con in &mut connections {
-            let vendor = con.get_dialect().to_string().to_lowercase();
-            if !con.get_dialect().should_run_query(&prql) {
+        for (dialect, con) in &mut connections {
+            if !dialect.should_run_query(&prql) {
                 continue;
             }
-            let res = run_query(&mut **con, prql.as_str(), runtime);
-            let res = res.context(format!("Executing for {vendor}")).unwrap();
-            results.insert(vendor, res);
+
+            let options = Options::default().with_target(Sql(Some(*dialect)));
+            let sql = prql_compiler::compile(&prql, &options).unwrap();
+
+            let mut rows = con
+                .run_query(sql.as_str(), runtime)
+                .context(format!("Executing for {dialect}"))
+                .unwrap();
+
+            // TODO: I think these could possiblbly be delegated to the DBConnection impls
+            replace_booleans(&mut rows);
+            remove_trailing_zeros(&mut rows);
+
+            results.insert(dialect.to_string(), rows);
         }
 
         if results.is_empty() {
@@ -203,20 +216,6 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
     for table in tables {
         con.import_csv(table, runtime);
     }
-}
-
-fn run_query(
-    con: &mut dyn DBConnection,
-    prql: &str,
-    runtime: &Runtime,
-) -> anyhow::Result<Vec<Row>> {
-    let options = Options::default().with_target(Sql(Some(con.get_dialect())));
-    let sql = prql_compiler::compile(prql, &options)?;
-
-    let mut actual_rows = con.run_query(sql.as_str(), runtime)?;
-    replace_booleans(&mut actual_rows);
-    remove_trailing_zeros(&mut actual_rows);
-    Ok(actual_rows)
 }
 
 // some sql dialects use 1 and 0 instead of true and false
