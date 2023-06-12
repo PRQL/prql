@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/nightly.yaml"
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   cargo-audit:

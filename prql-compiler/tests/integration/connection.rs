@@ -17,16 +17,12 @@ use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
 
-use prql_compiler::sql::Dialect;
-
 pub type Row = Vec<String>;
 
-pub trait DBConnection {
+pub trait DbConnection {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
-
-    fn get_dialect(&self) -> Dialect;
 
     // We sometimes want to modify the SQL `INSERT` query (we don't modify the
     // SQL `SELECT` query)
@@ -35,7 +31,7 @@ pub trait DBConnection {
     }
 }
 
-impl DBConnection for duckdb::Connection {
+impl DbConnection for duckdb::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
@@ -88,16 +84,12 @@ impl DBConnection for duckdb::Connection {
         .unwrap();
     }
 
-    fn get_dialect(&self) -> Dialect {
-        Dialect::DuckDb
-    }
-
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("REAL", "DOUBLE")
     }
 }
 
-impl DBConnection for rusqlite::Connection {
+impl DbConnection for rusqlite::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
@@ -154,13 +146,9 @@ impl DBConnection for rusqlite::Connection {
             self.run_query(q.as_str(), runtime).unwrap();
         }
     }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::SQLite
-    }
 }
 
-impl DBConnection for postgres::Client {
+impl DbConnection for postgres::Client {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let rows = self.query(sql, &[])?;
         let mut vec = vec![];
@@ -217,16 +205,12 @@ impl DBConnection for postgres::Client {
         .unwrap();
     }
 
-    fn get_dialect(&self) -> Dialect {
-        Dialect::Postgres
-    }
-
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("REAL", "DOUBLE PRECISION")
     }
 }
 
-impl DBConnection for mysql::Pool {
+impl DbConnection for mysql::Pool {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut conn = self.get_conn()?;
         let rows: Vec<mysql::Row> = conn.query(sql)?;
@@ -268,16 +252,12 @@ impl DBConnection for mysql::Pool {
         query_result.unwrap();
     }
 
-    fn get_dialect(&self) -> Dialect {
-        Dialect::MySql
-    }
-
     fn modify_sql(&self, sql: String) -> String {
         sql.replace("TIMESTAMP", "DATETIME")
     }
 }
 
-impl DBConnection for tiberius::Client<Compat<TcpStream>> {
+impl DbConnection for tiberius::Client<Compat<TcpStream>> {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>> {
         runtime.block_on(async {
             let mut stream = self.query(sql, &[]).await?;
@@ -331,10 +311,6 @@ impl DBConnection for tiberius::Client<Compat<TcpStream>> {
 
     fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
         self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::MsSql
     }
 
     fn modify_sql(&self, sql: String) -> String {

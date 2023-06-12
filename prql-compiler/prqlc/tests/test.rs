@@ -186,10 +186,13 @@ fn project_path() -> PathBuf {
 
 fn prqlc_command() -> Command {
     let mut cmd = Command::new(get_cargo_bin("prqlc"));
-    // We set this in CI to force color output, but we don't want `prqlc` to
+    // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
     // output color for our snapshot tests. And it seems to override the
     // `--color=never` flag.
     cmd.env_remove("CLICOLOR_FORCE");
+    // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
+    cmd.env_remove("RUST_BACKTRACE");
+    cmd.env_remove("RUST_LOG");
     cmd.args(["--color=never"]);
     cmd
 }

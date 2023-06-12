@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
+use expr::{BinaryExpr, UnaryExpr};
 
 use crate::ast::pl::*;
 use crate::Span;
@@ -132,7 +133,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
             .clone()
             .or(operator_unary()
                 .then(term.map(Box::new))
-                .map(|(op, expr)| ExprKind::Unary { op, expr })
+                .map(|(op, expr)| ExprKind::Unary(UnaryExpr { op, expr }))
                 .map_with_span(into_expr))
             .boxed();
 
@@ -248,11 +249,11 @@ where
                 end: right.1.end,
                 source_id: left.1.source_id,
             };
-            let kind = ExprKind::Binary {
+            let kind = ExprKind::Binary(BinaryExpr {
                 left: Box::new(left.0),
                 op,
                 right: Box::new(right.0),
-            };
+            });
             (into_expr(kind, span), span)
         })
         .map(|(e, _)| e)
@@ -332,7 +333,7 @@ where
     .then(type_expr().or_not())
     .then(choice((internal, func_call(expr))))
     .map(|((params, return_ty), body)| {
-        let (pos, nam) = params
+        let (pos, name) = params
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
                 name,
@@ -343,7 +344,7 @@ where
 
         Box::new(Func {
             params: pos,
-            named_params: nam,
+            named_params: name,
 
             body: Box::new(body),
             return_ty: return_ty.map(TyOrExpr::Expr),

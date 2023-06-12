@@ -1,13 +1,14 @@
 #![cfg(not(target_family = "wasm"))]
 
 use std::collections::BTreeMap;
-use std::fmt::Write;
 use std::{env, fs};
 
 use anyhow::Context;
 use insta::{assert_snapshot, glob};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use similar_asserts::assert_eq;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
@@ -32,7 +33,7 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
 
 trait IntegrationTest {
     fn should_run_query(&self, prql: &str) -> bool;
-    fn get_connection(&self) -> Option<Box<dyn DBConnection>>;
+    fn get_connection(&self) -> Option<Box<dyn DbConnection>>;
 }
 
 impl IntegrationTest for Dialect {
@@ -40,7 +41,7 @@ impl IntegrationTest for Dialect {
         !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
     }
 
-    fn get_connection(&self) -> Option<Box<dyn DBConnection>> {
+    fn get_connection(&self) -> Option<Box<dyn DbConnection>> {
         match self {
             Dialect::DuckDb => Some(Box::new(duckdb::Connection::open_in_memory().unwrap())),
             Dialect::SQLite => Some(Box::new(rusqlite::Connection::open_in_memory().unwrap())),
@@ -118,12 +119,15 @@ fn test_fmt_examples() {
 fn test_rdbms() {
     let runtime = &*RUNTIME;
 
-    let mut connections: Vec<Box<dyn DBConnection>> = Dialect::iter()
-        .filter(|dialect| matches!(dialect.support_level(), SupportLevel::Supported))
-        .filter_map(|dialect| dialect.get_connection())
+    let mut connections: Vec<(Dialect, Box<dyn DbConnection>)> = Dialect::iter()
+        .filter(|dialect| {
+            matches!(dialect.support_level(), SupportLevel::Supported)
+                && dialect.get_connection().is_some()
+        })
+        .map(|dialect: Dialect| (dialect, dialect.get_connection().unwrap()))
         .collect();
 
-    connections.iter_mut().for_each(|con| {
+    connections.iter_mut().for_each(|(_, con)| {
         setup_connection(&mut **con, runtime);
     });
 
@@ -134,51 +138,53 @@ fn test_rdbms() {
             .and_then(|s| s.to_str())
             .unwrap_or_default();
 
-        // read
         let prql = fs::read_to_string(path).unwrap();
 
-        if prql.contains("skip_test") {
-            return;
-        }
-
         let mut results = BTreeMap::new();
-        for con in &mut connections {
-            let vendor = con.get_dialect().to_string().to_lowercase();
-            if !con.get_dialect().should_run_query(&prql) {
+        for (dialect, con) in &mut connections {
+            if !dialect.should_run_query(&prql) {
                 continue;
             }
-            let res = run_query(&mut **con, prql.as_str(), runtime);
-            let res = res.context(format!("Executing for {vendor}")).unwrap();
-            results.insert(vendor, res);
+
+            let options = Options::default().with_target(Sql(Some(*dialect)));
+            let sql = prql_compiler::compile(&prql, &options).unwrap();
+
+            let mut rows = con
+                .run_query(sql.as_str(), runtime)
+                .context(format!("Executing for {dialect}"))
+                .unwrap();
+
+            // TODO: I think these could possiblbly be delegated to the DBConnection impls
+            replace_booleans(&mut rows);
+            remove_trailing_zeros(&mut rows);
+
+            let result = rows
+                .iter()
+                // Make a CSV so it's easier to compare
+                .map(|r| r.iter().join(","))
+                .join("\n");
+
+            results.insert(dialect.to_string(), result);
         }
 
-        if results.is_empty() {
-            return;
-        }
+        let (first_dialect, first_result) =
+            results.pop_first().expect("No results for {test_name}");
 
-        let first_result = match results.iter().next() {
-            Some(v) => v,
-            None => return,
-        };
-        for (k, v) in results.iter().skip(1) {
-            pretty_assertions::assert_eq!(
-                *first_result.1,
-                *v,
+        // Check the first result against the snapshot
+        assert_snapshot!("results", first_result, &prql);
+
+        // Then check every other result against the first result
+        results.iter().for_each(|(dialect, result)| {
+            assert_eq!(
+                *first_result, *result,
                 "{} == {}: {test_name}",
-                first_result.0,
-                k
+                first_dialect, dialect
             );
-        }
-
-        let mut result_string = String::new();
-        for row in first_result.1 {
-            writeln!(&mut result_string, "{}", row.join(",")).unwrap_or_default();
-        }
-        assert_snapshot!("results", result_string, &prql);
-    });
+        })
+    })
 }
 
-fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
+fn setup_connection(con: &mut dyn DbConnection, runtime: &Runtime) {
     let setup = include_str!("data/chinook/schema.sql");
     setup
         .split(';')
@@ -204,20 +210,6 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
     for table in tables {
         con.import_csv(table, runtime);
     }
-}
-
-fn run_query(
-    con: &mut dyn DBConnection,
-    prql: &str,
-    runtime: &Runtime,
-) -> anyhow::Result<Vec<Row>> {
-    let options = Options::default().with_target(Sql(Some(con.get_dialect())));
-    let sql = prql_compiler::compile(prql, &options)?;
-
-    let mut actual_rows = con.run_query(sql.as_str(), runtime)?;
-    replace_booleans(&mut actual_rows);
-    remove_trailing_zeros(&mut actual_rows);
-    Ok(actual_rows)
 }
 
 // some sql dialects use 1 and 0 instead of true and false

@@ -60,13 +60,13 @@ jobs:
         run: |
           docker compose up -d
         working-directory: ./prql-compiler/tests/integration
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: ${{ inputs.target== 'x86_64-unknown-linux-gnu' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
         with:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: ${{ inputs.target== 'x86_64-unknown-linux-gnu' }}
         # We previously split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html, but the
         # binary is different for `cargo insta test`, so it ends up compiling
