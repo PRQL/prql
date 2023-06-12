@@ -311,12 +311,11 @@ tasks:
     # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Check to see if package.json has changed since we ran npm install
     dir: web/playground
-    status:                                              # if both are true, don't rebuild
-      - test -f node_modules/.npmtimestamp               # if .timestamp exists
+    status: # if both are true, don't rebuild
+      - test -f node_modules/.npmtimestamp # if .timestamp exists
       - test package.json -ot node_modules/.npmtimestamp # and package.json is older
-    cmds: 
+    cmds:
       - npm install --install-links=false && touch node_modules/.npmtimestamp
-
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
