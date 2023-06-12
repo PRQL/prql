@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::{
-    ast::pl::{fold::AstFold, Expr, ExprKind, Func, Literal},
+    ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, Literal},
     error::WithErrorInfo,
     Error, Span,
 };
@@ -73,7 +73,17 @@ impl AstFold for Evaluator {
 
                 eval_function(&func_name, args, expr.span)?
             }
-            ExprKind::Pipeline(_) => todo!(),
+            ExprKind::Pipeline(mut pipeline) => {
+                let mut res = self.fold_expr(pipeline.exprs.remove(0))?;
+                for expr in pipeline.exprs {
+                    let func_call =
+                        Expr::from(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![res])));
+
+                    res = self.fold_expr(func_call)?;
+                }
+
+                return Ok(res);
+            }
 
             ExprKind::All { .. }
             | ExprKind::TransformCall(_)
@@ -125,6 +135,16 @@ fn eval_function(name: &str, args: Vec<Expr>, span: Option<Span>) -> Result<Expr
             ExprKind::Literal(Integer(res))
         }
 
+        "std.neg" => {
+            let [x]: [_; 1] = args.try_into().unwrap();
+
+            match x.kind {
+                ExprKind::Literal(Integer(i)) => ExprKind::Literal(Integer(-i)),
+                ExprKind::Literal(Float(f)) => ExprKind::Literal(Float(-f)),
+                _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+            }
+        }
+
         _ => {
             return Err(Error::new_simple(format!("unknown function {name}"))
                 .with_span(span)
@@ -165,6 +185,15 @@ mod test {
               {{a_a = 4, a_b = false}, b = 2.1 + 3.6, c = [false, true, false]}
         ").unwrap(),
             @"{{a_a = 4, a_b = false}, b = 5.7, c = [false, true, false]}"
+        );
+    }
+
+    #[test]
+    fn pipelines() {
+        assert_display_snapshot!(eval(r"
+            (4.5 | std.floor | std.neg)
+        ").unwrap(),
+            @"-4"
         );
     }
 }
