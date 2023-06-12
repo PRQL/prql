@@ -34,12 +34,9 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
 trait IntegrationTest {
     fn should_run_query(&self, prql: &str) -> bool;
     fn get_connection(&self) -> Option<DbConnection>;
-}
-
-trait SetUpData {
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
     // We sometimes want to modify the SQL `INSERT` query (we don't modify the
     // SQL `SELECT` query)
+    fn import_csv(&mut self, protocol: &mut dyn DbProtocol, csv_name: &str, runtime: &Runtime);
     fn modify_sql(&self, sql: String) -> String;
 }
 
@@ -105,15 +102,23 @@ impl IntegrationTest for Dialect {
             _ => None,
         }
     }
-}
-
-impl SetUpData for DbConnection {
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        match self.dialect {
+    fn import_csv(&mut self, protocol: &mut dyn DbProtocol, csv_name: &str, runtime: &Runtime) {
+        fn get_path_for_table(csv_name: &str) -> std::path::PathBuf {
+            let mut path = env::current_dir().unwrap();
+            path.extend([
+                "tests",
+                "integration",
+                "data",
+                "chinook",
+                format!("{csv_name}.csv").as_str(),
+            ]);
+            path
+        }
+        match self {
             Dialect::DuckDb => {
                 let path = get_path_for_table(csv_name);
                 let path = path.display().to_string().replace('"', "");
-                self.protocol
+                protocol
                     .run_query(
                         &format!("COPY {csv_name} FROM '{path}' (AUTO_DETECT TRUE);"),
                         runtime,
@@ -145,11 +150,11 @@ impl SetUpData for DbConnection {
                             })
                             .join(",")
                     );
-                    self.protocol.run_query(q.as_str(), runtime).unwrap();
+                    protocol.run_query(q.as_str(), runtime).unwrap();
                 }
             }
             Dialect::Postgres => {
-                self.protocol.run_query(
+                protocol.run_query(
                     &format!(
                         "COPY {csv_name} FROM '/tmp/chinook/{csv_name}.csv' DELIMITER ',' CSV HEADER;"
                     ),
@@ -170,19 +175,18 @@ impl SetUpData for DbConnection {
                 let mut file_content = fs::read_to_string(old_path).unwrap();
                 file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
                 fs::write(&new_path, file_content).unwrap();
-                let query_result = self.protocol.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
+                let query_result = protocol.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
                 fs::remove_file(&new_path).unwrap();
                 query_result.unwrap();
             }
             Dialect::MsSql => {
-                self.protocol.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
+                protocol.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
             }
             _ => unreachable!(),
         }
     }
-
     fn modify_sql(&self, sql: String) -> String {
-        match self.dialect {
+        match self {
             Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
             Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
@@ -193,18 +197,6 @@ impl SetUpData for DbConnection {
             _ => sql,
         }
     }
-}
-
-fn get_path_for_table(csv_name: &str) -> std::path::PathBuf {
-    let mut path = env::current_dir().unwrap();
-    path.extend([
-        "tests",
-        "integration",
-        "data",
-        "chinook",
-        format!("{csv_name}.csv").as_str(),
-    ]);
-    path
 }
 
 #[test]
@@ -311,7 +303,7 @@ fn setup_connection(con: &mut DbConnection, runtime: &Runtime) {
         .filter(|s| !s.is_empty())
         .for_each(|s| {
             con.protocol
-                .run_query(con.modify_sql(s.to_string()).as_str(), runtime)
+                .run_query(con.dialect.modify_sql(s.to_string()).as_str(), runtime)
                 .unwrap();
         });
     let tables = [
@@ -328,7 +320,7 @@ fn setup_connection(con: &mut DbConnection, runtime: &Runtime) {
         "invoice_items",
     ];
     for table in tables {
-        con.import_csv(table, runtime);
+        con.dialect.import_csv(&mut *con.protocol, table, runtime);
     }
 }
 
