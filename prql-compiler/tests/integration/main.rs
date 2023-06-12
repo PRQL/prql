@@ -1,11 +1,11 @@
 #![cfg(not(target_family = "wasm"))]
 
 use std::collections::BTreeMap;
-use std::fmt::Write;
 use std::{env, fs};
 
 use anyhow::Context;
 use insta::{assert_snapshot, glob};
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use similar_asserts::assert_eq;
@@ -138,12 +138,7 @@ fn test_rdbms() {
             .and_then(|s| s.to_str())
             .unwrap_or_default();
 
-        // read
         let prql = fs::read_to_string(path).unwrap();
-
-        if prql.contains("skip_test") {
-            return;
-        }
 
         let mut results = BTreeMap::new();
         for (dialect, con) in &mut connections {
@@ -163,31 +158,30 @@ fn test_rdbms() {
             replace_booleans(&mut rows);
             remove_trailing_zeros(&mut rows);
 
-            results.insert(dialect.to_string(), rows);
+            let result = rows
+                .iter()
+                // Make a CSV so it's easier to compare
+                .map(|r| r.iter().join(","))
+                .join("\n");
+
+            results.insert(dialect.to_string(), result);
         }
 
-        if results.is_empty() {
-            return;
-        }
+        let (first_dialect, first_result) =
+            results.pop_first().expect("No results for {test_name}");
 
-        let first_result = match results.iter().next() {
-            Some(v) => v,
-            None => return,
-        };
-        for (k, v) in results.iter().skip(1) {
+        // Check the first result against the snapshot
+        assert_snapshot!("results", first_result, &prql);
+
+        // Then check every other result against the first result
+        results.iter().for_each(|(dialect, result)| {
             assert_eq!(
-                *first_result.1, *v,
+                *first_result, *result,
                 "{} == {}: {test_name}",
-                first_result.0, k
+                first_dialect, dialect
             );
-        }
-
-        let mut result_string = String::new();
-        for row in first_result.1 {
-            writeln!(&mut result_string, "{}", row.join(",")).unwrap_or_default();
-        }
-        assert_snapshot!("results", result_string, &prql);
-    });
+        })
+    })
 }
 
 fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
