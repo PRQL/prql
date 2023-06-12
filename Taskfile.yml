@@ -302,7 +302,7 @@ tasks:
 
   check-npm-cache:
     # Look to see if npm dependencies need to be updated
-    # Use task's sources/generates to see if checksums of 
+    # Use task's sources/generates to see if checksums of
     # node_modules directory have changed since package.json was updated
 
     # Use `npm install --install-links=false` to install prql-js
@@ -310,13 +310,12 @@ tasks:
     # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Check to see if package.json has changed since we ran npm install
     dir: web/playground
-    cmds: 
-      - npm install --install-links=false 
+    cmds:
+      - npm install --install-links=false
     sources:
       - package.json
     generates:
       - node_modules/*
-
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
