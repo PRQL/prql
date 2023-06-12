@@ -378,7 +378,7 @@ impl DBConnection {
             Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
             Dialect::ClickHouse => {
                 let re = Regex::new(r"(?s)\)$").unwrap();
-                re.replace(&sql, r") ENGINE = MergeTree()")
+                re.replace(&sql, r") ENGINE = Memory")
                     .replace("TIMESTAMP", "DATETIME")
             }
             Dialect::MsSql => sql
