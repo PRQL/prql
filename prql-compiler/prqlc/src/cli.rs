@@ -272,7 +272,7 @@ impl Command {
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
             Command::Eval(_) => {
-                let stmts = prql_to_pl_tree(&sources)?;
+                let stmts = prql_to_pl_tree(sources)?;
 
                 let mut res = String::new();
 
