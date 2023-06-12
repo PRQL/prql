@@ -1,3 +1,4 @@
+# skip_clickhouse (https://github.com/PRQL/prql/pull/2815#issuecomment-1587496785)
 let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
 
 from_text format:json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'
