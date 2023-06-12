@@ -46,3 +46,10 @@ services:
       LC_ALL: en_US.UTF-8
       MSSQL_COLLATION: Latin1_General_100_CS_AI_SC_UTF8
     volumes: *vol
+  clickhouse:
+    image: "clickhouse/clickhouse-server"
+    ports:
+      # 9004 is MySQL emulation port
+      # https://clickhouse.com/docs/en/guides/sre/network-ports
+      - "9004:9004"
+    volumes: *vol
