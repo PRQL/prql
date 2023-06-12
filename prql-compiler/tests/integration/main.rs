@@ -32,7 +32,7 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
 
 trait IntegrationTest {
     fn should_run_query(&self, prql: &str) -> bool;
-    fn get_connection(&self) -> Option<Box<dyn DBConnection>>;
+    fn get_connection(&self) -> Option<Box<dyn DBProtocol>>;
 }
 
 impl IntegrationTest for Dialect {
@@ -40,7 +40,7 @@ impl IntegrationTest for Dialect {
         !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
     }
 
-    fn get_connection(&self) -> Option<Box<dyn DBConnection>> {
+    fn get_connection(&self) -> Option<Box<dyn DBProtocol>> {
         match self {
             Dialect::DuckDb => Some(Box::new(duckdb::Connection::open_in_memory().unwrap())),
             Dialect::SQLite => Some(Box::new(rusqlite::Connection::open_in_memory().unwrap())),
@@ -118,7 +118,7 @@ fn test_fmt_examples() {
 fn test_rdbms() {
     let runtime = &*RUNTIME;
 
-    let mut connections: Vec<Box<dyn DBConnection>> = Dialect::iter()
+    let mut connections: Vec<Box<dyn DBProtocol>> = Dialect::iter()
         .filter(|dialect| matches!(dialect.support_level(), SupportLevel::Supported))
         .filter_map(|dialect| dialect.get_connection())
         .collect();
@@ -178,7 +178,7 @@ fn test_rdbms() {
     });
 }
 
-fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
+fn setup_connection(con: &mut dyn DBProtocol, runtime: &Runtime) {
     let setup = include_str!("data/chinook/schema.sql");
     setup
         .split(';')
@@ -207,7 +207,7 @@ fn setup_connection(con: &mut dyn DBConnection, runtime: &Runtime) {
 }
 
 fn run_query(
-    con: &mut dyn DBConnection,
+    con: &mut dyn DBProtocol,
     prql: &str,
     runtime: &Runtime,
 ) -> anyhow::Result<Vec<Row>> {
