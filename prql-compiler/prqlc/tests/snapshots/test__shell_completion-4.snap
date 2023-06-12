@@ -62,6 +62,16 @@ _arguments "${_arguments_options[@]}" \
 '::input:_files' \
 && ret=0
 ;;
+(eval)
+_arguments "${_arguments_options[@]}" \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'-h[Print help]' \
+'--help[Print help]' \
+'::input:_files' \
+'::output:_files' \
+'::main_path -- Identifier of the main pipeline:' \
+&& ret=0
+;;
 (annotate)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
@@ -172,6 +182,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(eval)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (annotate)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -226,6 +240,7 @@ _prqlc_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
 'fmt:Parse & generate PRQL code back' \
+'eval:Parse & evaluate & generate PRQL code back' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'debug:Parse & resolve, but don'\''t lower into RQ' \
 'resolve:Parse, resolve & lower into RQ' \
@@ -269,6 +284,16 @@ _prqlc__help__debug_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug commands' commands "$@"
 }
+(( $+functions[_prqlc__eval_commands] )) ||
+_prqlc__eval_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc eval commands' commands "$@"
+}
+(( $+functions[_prqlc__help__eval_commands] )) ||
+_prqlc__help__eval_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help eval commands' commands "$@"
+}
 (( $+functions[_prqlc__fmt_commands] )) ||
 _prqlc__fmt_commands() {
     local commands; commands=()
@@ -284,6 +309,7 @@ _prqlc__help_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
 'fmt:Parse & generate PRQL code back' \
+'eval:Parse & evaluate & generate PRQL code back' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'debug:Parse & resolve, but don'\''t lower into RQ' \
 'resolve:Parse, resolve & lower into RQ' \

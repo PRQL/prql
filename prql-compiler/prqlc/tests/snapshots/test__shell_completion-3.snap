@@ -3,8 +3,11 @@ source: prql-compiler/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
+    - "--color=never"
     - shell-completion
     - powershell
+  env:
+    CLICOLOR_FORCE: ""
 ---
 success: true
 exit_code: 0
@@ -39,6 +42,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--version', 'version', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
+            [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate & generate PRQL code back')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
@@ -59,6 +63,12 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;fmt' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;eval' {
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
@@ -128,6 +138,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         'prqlc;help' {
             [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
+            [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate & generate PRQL code back')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
@@ -144,6 +155,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;fmt' {
+            break
+        }
+        'prqlc;help;eval' {
             break
         }
         'prqlc;help;annotate' {

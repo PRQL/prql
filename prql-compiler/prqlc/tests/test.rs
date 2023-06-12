@@ -20,6 +20,7 @@ fn test_help() {
     Commands:
       parse             Parse into PL AST
       fmt               Parse & generate PRQL code back
+      eval              Parse & evaluate & generate PRQL code back
       annotate          Parse, resolve & combine source with comments annotating relation type
       debug             Parse & resolve, but don't lower into RQ
       resolve           Parse, resolve & lower into RQ

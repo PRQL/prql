@@ -35,6 +35,9 @@ _prqlc() {
             prqlc,debug)
                 cmd="prqlc__debug"
                 ;;
+            prqlc,eval)
+                cmd="prqlc__eval"
+                ;;
             prqlc,fmt)
                 cmd="prqlc__fmt"
                 ;;
@@ -71,6 +74,9 @@ _prqlc() {
             prqlc__help,debug)
                 cmd="prqlc__help__debug"
                 ;;
+            prqlc__help,eval)
+                cmd="prqlc__help__eval"
+                ;;
             prqlc__help,fmt)
                 cmd="prqlc__help__fmt"
                 ;;
@@ -105,7 +111,7 @@ _prqlc() {
 
     case "${cmd}" in
         prqlc)
-            opts="-h -V --color --help --version parse fmt annotate debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="-h -V --color --help --version parse fmt eval annotate debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -184,6 +190,24 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__eval)
+            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__fmt)
             opts="-h --color --help [INPUT]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -203,7 +227,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help)
-            opts="parse fmt annotate debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="parse fmt eval annotate debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -245,6 +269,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__eval)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
