@@ -360,9 +360,11 @@ impl DBConnection {
                 self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
             }
             Dialect::ClickHouse => {
+                // ClickHouse can load csv only from user_files_path (default `/var/lib/clickhouse/user_files/`)
+                // https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#server_configuration_parameters-user_scripts_path
                 self.run_query(
                     &format!(
-                        "INSERT INTO {csv_name} FROM INFILE '/tmp/chinook/{csv_name}.csv' FORMAT CSV"
+                        "INSERT INTO {csv_name} SELECT * FROM file('/var/lib/clickhouse/user_files/chinook/{csv_name}.csv')"
                     ),
                     runtime,
                 )

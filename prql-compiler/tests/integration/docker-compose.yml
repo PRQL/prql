@@ -54,4 +54,6 @@ services:
       - "9004:9004"
     environment:
       CLICKHOUSE_DB: dummy
-    volumes: *vol
+      CLICKHOUSE_DO_NOT_CHOWN: "1"
+    volumes:
+      - ./data/chinook:/var/lib/clickhouse/user_files/chinook/:ro
