@@ -63,11 +63,10 @@ jobs:
         with:
           command: test
           args:
-            --no-run --locked ${{ inputs.target== 'x86_64-unknown-linux-gnu' &&
-            '--features=test-external-dbs' || '' }}
+            "--no-run --locked ${{ inputs.target == 'x86_64-unknown-linux-gnu'
+            && '--features=test-external-dbs' || '' }}"
       - name: Run docker compose
-        run: |
-          docker compose up -d
+        run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
         if: ${{ inputs.target== 'x86_64-unknown-linux-gnu' }}
       - name: Wait for database
@@ -75,6 +74,7 @@ jobs:
         with:
           resource: "tcp:5432 tcp:3306 tcp:1433"
           timeout: 60000
+        if: ${{ inputs.target== 'x86_64-unknown-linux-gnu' }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
