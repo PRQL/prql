@@ -40,6 +40,37 @@ trait IntegrationTest {
     fn modify_sql(&self, sql: String) -> String;
 }
 
+impl DbConnection {
+    fn setup_connection(&mut self, runtime: &Runtime) {
+        let setup = include_str!("data/chinook/schema.sql");
+        setup
+            .split(';')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .for_each(|s| {
+                self.protocol
+                    .run_query(self.dialect.modify_sql(s.to_string()).as_str(), runtime)
+                    .unwrap();
+            });
+        let tables = [
+            "invoices",
+            "customers",
+            "employees",
+            "tracks",
+            "albums",
+            "genres",
+            "playlist_track",
+            "playlists",
+            "media_types",
+            "artists",
+            "invoice_items",
+        ];
+        for table in tables {
+            self.dialect.import_csv(&mut *self.protocol, table, runtime);
+        }
+    }
+}
+
 impl IntegrationTest for Dialect {
     fn should_run_query(&self, prql: &str) -> bool {
         !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
@@ -238,7 +269,7 @@ fn test_rdbms() {
         .collect();
 
     connections.iter_mut().for_each(|con| {
-        setup_connection(con, runtime);
+        con.setup_connection(runtime);
     });
 
     // for each of the queries
@@ -293,35 +324,6 @@ fn test_rdbms() {
             );
         })
     })
-}
-
-fn setup_connection(con: &mut DbConnection, runtime: &Runtime) {
-    let setup = include_str!("data/chinook/schema.sql");
-    setup
-        .split(';')
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .for_each(|s| {
-            con.protocol
-                .run_query(con.dialect.modify_sql(s.to_string()).as_str(), runtime)
-                .unwrap();
-        });
-    let tables = [
-        "invoices",
-        "customers",
-        "employees",
-        "tracks",
-        "albums",
-        "genres",
-        "playlist_track",
-        "playlists",
-        "media_types",
-        "artists",
-        "invoice_items",
-    ];
-    for table in tables {
-        con.dialect.import_csv(&mut *con.protocol, table, runtime);
-    }
 }
 
 // some sql dialects use 1 and 0 instead of true and false
