@@ -15,7 +15,7 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
 
-**P**ipelined **R**elational **Q**uery **L**language, pronounced "Prequel".
+**P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
 PRQL is a modern language for transforming data — a simple, powerful, pipelined
 SQL replacement. Like SQL, it's readable, explicit and declarative. Unlike SQL,
