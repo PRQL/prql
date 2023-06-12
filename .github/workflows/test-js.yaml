@@ -6,6 +6,7 @@ on:
       - "bindings/prql-js/**"
       - ".github/workflows/test-js.yaml"
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
