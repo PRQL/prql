@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::env::current_dir;
 use std::fs;
 use std::path::PathBuf;
@@ -376,10 +377,9 @@ impl DBConnection {
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
             Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
             Dialect::ClickHouse => {
-                let mut s = String::new();
-                s.push_str(&sql.replace("TIMESTAMP", "DATETIME"));
-                s.push_str(" ENGINE = MergeTree()");
-                s
+                let re = Regex::new(r"(?s)\)$").unwrap();
+                re.replace(&sql, r") ENGINE = MergeTree()")
+                    .replace("TIMESTAMP", "DATETIME")
             }
             Dialect::MsSql => sql
                 .replace("TIMESTAMP", "DATETIME")
