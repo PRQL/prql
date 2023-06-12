@@ -16,12 +16,12 @@ pub fn eval(expr: Expr) -> Result<Expr> {
 ///
 /// Serves as a working draft of PRQL semantics definition.
 struct Evaluator {
-    relation: Option<Expr>,
+    context: Option<Expr>,
 }
 
 impl Evaluator {
     fn new() -> Self {
-        Evaluator { relation: None }
+        Evaluator { context: None }
     }
 }
 
@@ -58,7 +58,7 @@ impl AstFold for Evaluator {
 
                 // this is very crude, but for simple cases, it's enough
                 let mut ident = ident;
-                let mut base = self.relation.clone();
+                let mut base = self.context.clone();
                 loop {
                     let (first, remaining) = ident.pop_front();
                     let res = lookup(base.as_ref(), &first).with_span(expr.span)?;
@@ -140,19 +140,10 @@ impl Evaluator {
 
             for (pos, arg) in func.args.into_iter().enumerate() {
                 if pos == closure_position {
-                    let closure = Expr::from(ExprKind::Func(Box::new(Func {
-                        name_hint: None,
-
-                        params: Default::default(),
-                        body: Box::new(arg),
-                        return_ty: Default::default(),
-                        named_params: Default::default(),
-                        args: Default::default(),
-                        env: Default::default(),
-                    })));
-
-                    args.push(closure);
+                    // no evaluation
+                    args.push(arg);
                 } else {
+                    // eval
                     args.push(self.fold_expr(arg)?);
                 }
             }
@@ -241,9 +232,39 @@ impl Evaluator {
             "std.aggregate" => {
                 let [tuple_closure, relation]: [_; 2] = args.try_into().unwrap();
 
-                let tuple = self.eval_for_all_rows(relation, tuple_closure)?;
+                let relation = rows_to_cols(relation)?;
+                let tuple = self.eval_within_context(tuple_closure, relation)?;
 
                 ExprKind::Array(vec![tuple])
+            }
+
+            "std.window" => {
+                let [tuple_closure, relation]: [_; 2] = args.try_into().unwrap();
+                let relation_size = relation.kind.as_array().unwrap().len();
+                let relation = rows_to_cols(relation)?;
+
+                let mut res = Vec::new();
+
+                const FRAME_ROWS: std::ops::Range<i64> = -1..1;
+
+                for row_index in 0..relation_size {
+                    let rel = windowed(relation.clone(), row_index, FRAME_ROWS, relation_size);
+
+                    let row_value = self.eval_within_context(tuple_closure.clone(), rel)?;
+
+                    res.push(row_value);
+                }
+
+                ExprKind::Array(res)
+            }
+
+            "std.columnar" => {
+                let [relation_closure, relation]: [_; 2] = args.try_into().unwrap();
+                let relation = rows_to_cols(relation)?;
+
+                let res = self.eval_within_context(relation_closure, relation)?;
+
+                cols_to_rows(res)?.kind
             }
 
             "std.sum" => {
@@ -262,6 +283,19 @@ impl Evaluator {
                 ExprKind::Literal(Float(sum))
             }
 
+            "std.lag" => {
+                let [array]: [_; 1] = args.try_into().unwrap();
+
+                let mut array = array.try_cast(|x| x.into_array(), Some("lag"), "an array")?;
+
+                if !array.is_empty() {
+                    array.pop();
+                    array.insert(0, Expr::null());
+                }
+
+                ExprKind::Array(array)
+            }
+
             _ => {
                 return Err(Error::new_simple(format!("unknown function {func_name}"))
                     .with_span(span)
@@ -272,52 +306,62 @@ impl Evaluator {
 
     fn eval_for_each_row(&mut self, relation: Expr, closure: Expr) -> Result<Expr> {
         // save relation from outer calls
-        let prev_relation = self.relation.take();
+        let prev_relation = self.context.take();
 
         let relation_rows = relation.try_cast(|x| x.into_array(), None, "an array")?;
-        let closure = closure
-            .try_cast(|x| x.into_func(), None, "a function")?
-            .body;
 
         // for every item in relation array, evaluate args
         let mut output_array = Vec::new();
         for relation_row in relation_rows {
-            self.relation = Some(relation_row);
-
-            output_array.push(self.fold_expr(*closure.clone())?);
+            let row_value = self.eval_within_context(closure.clone(), relation_row)?;
+            output_array.push(row_value);
         }
 
         // restore relation for outer calls
-        self.relation = prev_relation;
+        self.context = prev_relation;
 
         Ok(Expr::from(ExprKind::Array(output_array)))
     }
 
-    fn eval_for_all_rows(&mut self, relation: Expr, closure: Expr) -> Result<Expr> {
+    fn eval_within_context(&mut self, expr: Expr, context: Expr) -> Result<Expr> {
         // save relation from outer calls
-        let prev_relation = self.relation.take();
+        let prev_relation = self.context.take();
 
-        let relation = columnar(relation)?;
-        let closure = closure
-            .try_cast(|x| x.into_func(), None, "a function")?
-            .body;
-
-        // eval other args
-        self.relation = Some(relation);
-        let res = self.fold_expr(*closure)?;
+        self.context = Some(context);
+        let res = self.fold_expr(expr)?;
 
         // restore relation for outer calls
-        self.relation = prev_relation;
+        self.context = prev_relation;
 
         Ok(res)
     }
 }
 
+fn windowed(
+    mut relation: Expr,
+    row_index: usize,
+    frame: std::ops::Range<i64>,
+    relation_size: usize,
+) -> Expr {
+    let row = row_index as i64;
+    let end = (row + frame.end).clamp(0, relation_size as i64) as usize;
+    let start = (row + frame.start).clamp(0, end as i64) as usize;
+
+    for field in relation.kind.as_tuple_mut().unwrap() {
+        let column = field.kind.as_array_mut().unwrap();
+
+        column.drain(end..);
+        column.drain(0..start);
+    }
+    relation
+}
+
 /// Converts `[{a = 1, b = false}, {a = 2, b = true}]`
-/// into `{a = [1, 2], b = [false, true]}
-fn columnar(expr: Expr) -> Result<Expr> {
+/// into `{a = [1, 2], b = [false, true]}`
+fn rows_to_cols(expr: Expr) -> Result<Expr> {
     let relation_rows = expr.try_cast(|x| x.into_array(), None, "an array")?;
 
+    // prepare output
     let mut arg_tuple = Vec::new();
     for field in relation_rows.first().unwrap().kind.as_tuple().unwrap() {
         arg_tuple.push(Expr {
@@ -326,7 +370,7 @@ fn columnar(expr: Expr) -> Result<Expr> {
         });
     }
 
-    // prepare output
+    // place entries
     for relation_row in relation_rows {
         let fields = relation_row.try_cast(|x| x.into_tuple(), None, "a tuple")?;
 
@@ -335,6 +379,29 @@ fn columnar(expr: Expr) -> Result<Expr> {
         }
     }
     Ok(Expr::from(ExprKind::Tuple(arg_tuple)))
+}
+
+/// Converts `{a = [1, 2], b = [false, true]}`
+/// into `[{a = 1, b = false}, {a = 2, b = true}]`
+fn cols_to_rows(expr: Expr) -> Result<Expr> {
+    let fields = expr.try_cast(|x| x.into_tuple(), None, "an tuple")?;
+
+    let len = fields.first().unwrap().kind.as_array().unwrap().len();
+
+    let mut rows = Vec::new();
+    for index in 0..len {
+        let mut row = Vec::new();
+        for field in &fields {
+            row.push(Expr {
+                alias: field.alias.clone(),
+                ..field.kind.as_array().unwrap()[index].clone()
+            })
+        }
+
+        rows.push(Expr::from(ExprKind::Tuple(row)));
+    }
+
+    Ok(Expr::from(ExprKind::Array(rows)))
 }
 
 fn std_module() -> Expr {
@@ -347,7 +414,10 @@ fn std_module() -> Expr {
             new_func("derive", &["closure", "relation"]),
             new_func("filter", &["closure", "relation"]),
             new_func("aggregate", &["closure", "relation"]),
+            new_func("window", &["closure", "relation"]),
+            new_func("columnar", &["closure", "relation"]),
             new_func("sum", &["x"]),
+            new_func("lag", &["x"]),
         ]
         .to_vec(),
     ))
@@ -455,6 +525,34 @@ mod test {
             std.filter c
         ").unwrap(),
             @"[{c = true, 7, d = 42}, {c = true, 14, d = 42}]"
+        );
+    }
+
+    #[test]
+    fn window() {
+        assert_display_snapshot!(eval(r"
+            [
+                { b = 4, c = false },
+                { b = 5, c = true },
+                { b = 12, c = true },
+            ]
+            std.window {d = std.sum b}
+        ").unwrap(),
+            @"[{d = 4}, {d = 9}, {d = 17}]"
+        );
+    }
+
+    #[test]
+    fn columnar() {
+        assert_display_snapshot!(eval(r"
+            [
+                { b = 4, c = false },
+                { b = 5, c = true },
+                { b = 12, c = true },
+            ]
+            std.columnar {g = std.lag b}
+        ").unwrap(),
+            @"[{g = null}, {g = 4}, {g = 5}]"
         );
     }
 }
