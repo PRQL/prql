@@ -27,6 +27,7 @@ on:
       - ".github/workflows/test-all.yaml"
   # Called by pull-request when specifically requested
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   # See notes in `pull-request.yaml`

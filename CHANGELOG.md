@@ -89,6 +89,9 @@ will become the public version at the next release._
 
   (@max-sixty, #2773)
 
+- `prqlc` can now show backtraces when the standard backtrace env var
+  (`RUST_BACKTRACE`) is active. (@max-sixty, #2751)
+
 **Fixes**:
 
 **Documentation**:

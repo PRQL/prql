@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   # This seems to require a custom suffix; I _think_ because this calls
