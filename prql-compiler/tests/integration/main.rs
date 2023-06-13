@@ -242,6 +242,7 @@ impl IntegrationTest for Dialect {
                 re.replace(&sql, r") ENGINE = Memory")
                     .replace("TIMESTAMP", "DATETIME64")
                     .replace("REAL", "DOUBLE")
+                    .replace("VARCHAR(255)", "Nullable(String)")
             }
             Dialect::MsSql => sql
                 .replace("TIMESTAMP", "DATETIME")
