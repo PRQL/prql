@@ -245,6 +245,11 @@ impl DialectHandler for ClickHouseDialect {
     fn ident_quote(&self) -> char {
         '`'
     }
+
+    fn supports_distinct_on(&self) -> bool {
+        // https://clickhouse.com/docs/en/sql-reference/statements/select/distinct
+        true
+    }
 }
 
 impl DialectHandler for BigQueryDialect {
