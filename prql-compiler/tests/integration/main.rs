@@ -326,12 +326,9 @@ fn test_rdbms() {
             }
             let dialect = con.dialect;
             let options = Options::default().with_target(Sql(Some(dialect)));
-            let sql = prql_compiler::compile(&prql, &options).unwrap();
-
-            let mut rows = con
-                .protocol
-                .run_query(sql.as_str(), runtime)
-                .context(format!("Executing for {dialect}"))
+            let mut rows = prql_compiler::compile(&prql, &options)
+                .and_then(|sql| Ok(con.protocol.run_query(sql.as_str(), runtime)?))
+                .context(format!("Executing {test_name} for {dialect}"))
                 .unwrap();
 
             // TODO: I think these could possiblbly be delegated to the DBConnection impls
