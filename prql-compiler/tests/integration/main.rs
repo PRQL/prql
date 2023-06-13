@@ -72,13 +72,15 @@ impl DbConnection {
 }
 
 impl IntegrationTest for Dialect {
+    // If it's supported, test unless it has `duckdb:skip`. If it's not
+    // supported, test only if it has `duckdb:test`.
     fn should_run_query(&self, prql: &str) -> bool {
         match self.support_level() {
             SupportLevel::Supported => {
-                !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
+                !prql.contains(format!("{}:skip", self.to_string().to_lowercase()).as_str())
             }
             SupportLevel::Unsupported => {
-                prql.contains(format!("test_{}", self.to_string().to_lowercase()).as_str())
+                prql.contains(format!("{}:test", self.to_string().to_lowercase()).as_str())
             }
             SupportLevel::Nascent => false,
         }

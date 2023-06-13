@@ -1,4 +1,4 @@
-# test_mssql
+mssql:test
 let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
 
 from_text format:json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'

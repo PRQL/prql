@@ -1,4 +1,4 @@
-# test_mssql
+mssql:test
 from e=employees
 filter first_name != "Mitchell"
 sort {first_name, last_name}

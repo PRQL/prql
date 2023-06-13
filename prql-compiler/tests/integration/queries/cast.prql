@@ -1,4 +1,4 @@
-# test_mssql
+mssql:test
 from tracks
 sort {-bytes}
 select {

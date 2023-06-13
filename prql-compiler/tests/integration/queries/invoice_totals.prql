@@ -1,4 +1,4 @@
-# skip_clickhouse (clickhouse doesn't have lag function)
+# clickhouse:skip (clickhouse doesn't have lag function)
 from i=invoices
 join ii=invoice_items (==invoice_id)
 derive {
