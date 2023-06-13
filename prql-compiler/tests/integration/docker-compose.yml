@@ -46,3 +46,18 @@ services:
       LC_ALL: en_US.UTF-8
       MSSQL_COLLATION: Latin1_General_100_CS_AI_SC_UTF8
     volumes: *vol
+  clickhouse:
+    image: "clickhouse/clickhouse-server:latest-alpine"
+    ports:
+      # 9004 is MySQL emulation port
+      # https://clickhouse.com/docs/en/guides/sre/network-ports
+      - "9004:9004"
+    environment:
+      CLICKHOUSE_DB: dummy
+      # Skip `chown` to user_files_path
+      # https://github.com/ClickHouse/ClickHouse/blob/01c7d2fe719f9b9ed59fce58d5e9dec44167e42f/docker/server/entrypoint.sh#L7-L9
+      CLICKHOUSE_DO_NOT_CHOWN: "1"
+    volumes:
+      # ClickHouse can load csv only from user_files_path (default `/var/lib/clickhouse/user_files/`)
+      # https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#server_configuration_parameters-user_scripts_path
+      - ./data/chinook:/var/lib/clickhouse/user_files/chinook/:ro
