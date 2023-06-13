@@ -86,6 +86,7 @@ impl Dialect {
             Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
             }
+            // TODO: remove?
             Dialect::Hive => SupportLevel::Nascent,
         }
     }

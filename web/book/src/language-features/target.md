@@ -40,14 +40,13 @@ on every commit, and we'll endeavor to fix bugs.
 
 ### Unsupported
 
-Unsupported dialects have implementations but aren't tested on every commit, and
-may have gaps for some features.
+Unsupported dialects have implementations in the compiler, but are tested
+minimally or not at all, and may have gaps for some features.
 
-We're open to contributions to improve our coverage. We're also open to adding
-dialects.
+We're open to contributions to improve our coverage of these, and to adding
+additional dialects.
 
 - `sql.mssql`
-  {{footnote: we do test `mssql` on every commit, but skip some queries.}}
 - `sql.ansi`
 - `sql.bigquery`
 - `sql.hive`
