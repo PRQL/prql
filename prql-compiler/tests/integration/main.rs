@@ -72,8 +72,18 @@ impl DbConnection {
 }
 
 impl IntegrationTest for Dialect {
+    // If it's supported, test unless it has `duckdb:skip`. If it's not
+    // supported, test only if it has `duckdb:test`.
     fn should_run_query(&self, prql: &str) -> bool {
-        !prql.contains(format!("skip_{}", self.to_string().to_lowercase()).as_str())
+        match self.support_level() {
+            SupportLevel::Supported => {
+                !prql.contains(format!("{}:skip", self.to_string().to_lowercase()).as_str())
+            }
+            SupportLevel::Unsupported => {
+                prql.contains(format!("{}:test", self.to_string().to_lowercase()).as_str())
+            }
+            SupportLevel::Nascent => false,
+        }
     }
 
     fn get_connection(&self) -> Option<DbConnection> {
@@ -285,9 +295,14 @@ fn test_rdbms() {
 
     let mut connections: Vec<DbConnection> = Dialect::iter()
         .filter(|dialect| {
-            matches!(dialect.support_level(), SupportLevel::Supported)
-                && dialect.get_connection().is_some()
+            matches!(
+                dialect.support_level(),
+                SupportLevel::Supported | SupportLevel::Unsupported
+            )
         })
+        // The filtering is not a great design, since it doesn't proactively
+        // check that we can get connections; but it's a compromise given we
+        // implement the external_dbs feature using this.
         .filter_map(|dialect| dialect.get_connection())
         .collect();
 

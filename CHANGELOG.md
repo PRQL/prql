@@ -58,8 +58,7 @@ will become the public version at the next release._
   func add a b -> a + b
   ```
 
-- Modules allow importing declarations from other files: See
-  https://github.com/PRQL/prql/blob/main/web/book/src/internals/modules.md
+- Modules allow importing declarations from other files: See TODO: insert link
 
 - "Relation Literals", which create inline relations / tables from data in the
   query:
