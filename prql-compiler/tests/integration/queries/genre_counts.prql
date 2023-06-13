@@ -1,4 +1,3 @@
-# skip_clickhouse (https://github.com/PRQL/prql/pull/2815#issuecomment-1587496785)
 let genre_count = (
     from genres
     aggregate {a = count name}
@@ -7,3 +6,4 @@ let genre_count = (
 from genre_count
 filter a > 0
 select a = -a
+sort {-a}
