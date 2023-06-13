@@ -31,4 +31,4 @@ select {
     num_tracks_last_week
 }
 take 20
-sort num_orders
+sort city
