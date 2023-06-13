@@ -81,11 +81,12 @@ impl Dialect {
             | Dialect::SQLite
             | Dialect::Postgres
             | Dialect::MySql
-            | Dialect::MsSql => SupportLevel::Supported,
+            | Dialect::MsSql
+            | Dialect::ClickHouse => SupportLevel::Supported,
             Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
             }
-            Dialect::Hive | Dialect::ClickHouse => SupportLevel::Nascent,
+            Dialect::Hive => SupportLevel::Nascent,
         }
     }
 
@@ -243,6 +244,11 @@ impl DialectHandler for MySqlDialect {
 impl DialectHandler for ClickHouseDialect {
     fn ident_quote(&self) -> char {
         '`'
+    }
+
+    fn supports_distinct_on(&self) -> bool {
+        // https://clickhouse.com/docs/en/sql-reference/statements/select/distinct
+        true
     }
 }
 

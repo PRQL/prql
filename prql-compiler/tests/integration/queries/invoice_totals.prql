@@ -1,3 +1,4 @@
+# skip_clickhouse (clickhouse doesn't have lag function)
 # skip_mssql (error: The function 'LAG' may not have a window frame.)
 from i=invoices
 join ii=invoice_items (==invoice_id)
@@ -30,3 +31,4 @@ select {
     num_tracks_last_week
 }
 take 20
+sort city

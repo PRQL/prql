@@ -8,8 +8,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range,
-    RelationLiteral, SwitchCase, TupleField, WindowFrame,
+    self, BinaryExpr, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef,
+    Range, RelationLiteral, SwitchCase, TupleField, UnaryExpr, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -834,8 +834,8 @@ impl Lowerer {
                 .into());
             }
 
-            pl::ExprKind::Unary { .. }
-            | pl::ExprKind::Binary { .. }
+            pl::ExprKind::Unary(UnaryExpr { .. })
+            | pl::ExprKind::Binary(BinaryExpr { .. })
             | pl::ExprKind::Internal(_) => {
                 panic!("Unresolved lowering: {ast}")
             }

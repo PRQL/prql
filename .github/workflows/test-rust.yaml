@@ -56,28 +56,33 @@ jobs:
         with:
           command: fmt
           args: --all --check
+        # We split up the test compilation as recommended in
+        # https://matklad.github.io/2021/09/04/fast-rust-builds.html
+      - name: 🏭 Compile
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: test
+          args:
+            "--no-run --locked --target=${{ inputs.target }} ${{ inputs.target
+            == 'x86_64-unknown-linux-gnu' && '--features=test-external-dbs' ||
+            '' }}"
       - name: Run docker compose
-        run: |
-          docker compose up -d
+        run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1
         with:
-          resource: "tcp:5432 tcp:3306 tcp:1433"
+          resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-        # We previously split up the test compilation as recommended in
-        # https://matklad.github.io/2021/09/04/fast-rust-builds.html, but the
-        # binary is different for `cargo insta test`, so it ends up compiling
-        # twice.
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
           # Autoformatting doesn't make this clear to read, but this tertiary
           # expression states to only check these on ubuntu linux:
-          # - External DB integration tests — `--features=test-external-dbs`.
+          # - External DB integration tests — `--features=test-external-dbs`.
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
             test --target=${{ inputs.target }} ${{ inputs.target==
