@@ -218,7 +218,7 @@ impl IntegrationTest for Dialect {
                 query_result.unwrap();
             }
             Dialect::ClickHouse => {
-                self.protocol.run_query(
+                protocol.run_query(
                     &format!(
                         "INSERT INTO {csv_name} SELECT * FROM file('/var/lib/clickhouse/user_files/chinook/{csv_name}.csv')"
                     ),
