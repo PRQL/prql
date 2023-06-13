@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "let genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\nsort {-a}\n"
+expression: "let genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
 input_file: prql-compiler/tests/integration/queries/genre_counts.prql
 ---
 WITH genre_count AS (
@@ -15,6 +15,4 @@ FROM
   genre_count
 WHERE
   a > 0
-ORDER BY
-  a DESC
 
