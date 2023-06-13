@@ -81,16 +81,16 @@ impl Dialect {
             | Dialect::SQLite
             | Dialect::Postgres
             | Dialect::MySql
-            | Dialect::MsSql
+            | Dialect::Generic
             | Dialect::ClickHouse => SupportLevel::Supported,
-            Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
+            Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
             }
             Dialect::Hive => SupportLevel::Nascent,
         }
     }
 
-    #[deprecated(note = "Use `Dialect::Variants` instead")]
+    #[deprecated(note = "Use `Dialect::VARIANTS` instead")]
     pub fn names() -> &'static [&'static str] {
         Dialect::VARIANTS
     }
