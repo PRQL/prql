@@ -67,7 +67,7 @@
 
 - [Integrations](./integrations/README.md)
 
-  - [`prqlc`](./integrations/prqlc.md)
+  - [`prqlc CLI`](./integrations/prqlc-cli.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
