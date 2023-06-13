@@ -14,8 +14,8 @@ to 112kB, but that would require a preprocessing step before running
 
 ## Query
 
-For databases like ClickHouse, where the order of results is ambiguous,
-please use `sort` for test queries to to guarantee the order of rows across DBs.
+For databases like ClickHouse, where the order of results is ambiguous, please
+use `sort` for test queries to to guarantee the order of rows across DBs.
 
 For example, instead of the following query:
 
