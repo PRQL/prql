@@ -8,4 +8,4 @@ PRQL is building integrations with lots of external tools, including:
 - [VS Code](./vscode.md)
 - [Rill](./rill.md)
 
-We also have a CLI, [`prqlc`](./prqlc.md)
+We also have a CLI, [`prqlc`](./prqlc-cli.md)
