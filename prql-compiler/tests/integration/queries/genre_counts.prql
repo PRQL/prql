@@ -1,3 +1,4 @@
+# skip_clickhouse (A bug of ClickHouse, https://github.com/ClickHouse/ClickHouse/issues/50921)
 let genre_count = (
     from genres
     aggregate {a = count name}
