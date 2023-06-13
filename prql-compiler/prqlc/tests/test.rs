@@ -20,8 +20,7 @@ fn test_help() {
     Commands:
       parse             Parse into PL AST
       fmt               Parse & generate PRQL code back
-      annotate          Parse, resolve & combine source with comments annotating relation type
-      debug             Parse & resolve, but don't lower into RQ
+      debug             Commands for meant for debugging, prone to change
       resolve           Parse, resolve & lower into RQ
       sql:preprocess    Parse, resolve, lower into RQ & preprocess SRQ
       sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor SRQ
