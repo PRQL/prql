@@ -81,11 +81,12 @@ impl Dialect {
             | Dialect::SQLite
             | Dialect::Postgres
             | Dialect::MySql
-            | Dialect::MsSql => SupportLevel::Supported,
+            | Dialect::MsSql
+            | Dialect::ClickHouse => SupportLevel::Supported,
             Dialect::Generic | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
             }
-            Dialect::Hive | Dialect::ClickHouse => SupportLevel::Nascent,
+            Dialect::Hive => SupportLevel::Nascent,
         }
     }
 
