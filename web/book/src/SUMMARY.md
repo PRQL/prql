@@ -86,7 +86,6 @@
   - [`prql-compiler`](./compiler/prql-compiler.md)
   - [Internals](./compiler/internals/README.md)
     - [Compiler architecture](./compiler/internals/compiler-architecture.md)
-    - [Helpers](./compiler/internals/helpers.md)
     - [Name resolving](./compiler/internals/name-resolving.md)
     - [Functions](./compiler/internals/functional-lang.md)
     - [Syntax highlighting](./compiler/internals/syntax-highlighting.md)
