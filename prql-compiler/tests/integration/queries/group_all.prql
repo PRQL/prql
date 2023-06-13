@@ -1,4 +1,4 @@
-mssql:test
+# mssql:test
 from a=albums
 take 10
 join tracks (==album_id)

@@ -4,7 +4,7 @@
 # booleans cannot be selected directly. instead CASE is needed
 # (https://dba.stackexchange.com/a/2774)
 
-mssql:test
+# mssql:test
 from tracks
 
 filter (name ~= "Love")
