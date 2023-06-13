@@ -300,6 +300,12 @@ tasks:
       - task: install-playground-npm-dependencies
       - npm start
 
+  run-pg:
+    desc: Serve the playground without building it
+    dir: web/playground
+    cmds:
+      - npm start
+
   install-playground-npm-dependencies:
     # Look to see if npm dependencies need to be updated
     # Use task's sources/generates to see if checksums of
