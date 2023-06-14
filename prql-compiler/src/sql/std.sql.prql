@@ -114,6 +114,11 @@ module clickhouse {
   # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions#divide
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r})"
+
+  @{binding_strength=11}
+  let div_i = l r -> s"({l} DIV {r})"
+
+  let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 }
 
 module duckdb {
