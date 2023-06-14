@@ -49,7 +49,6 @@ additional dialects.
 - `sql.mssql`
 - `sql.ansi`
 - `sql.bigquery`
-- `sql.hive`
 - `sql.snowflake`
 
 ## Version

@@ -18,7 +18,6 @@ mod atoms {
       bigquery,
       clickhouse,
       generic,
-      hive,
       mssql,
       mysql,
       postgres,
@@ -53,8 +52,6 @@ fn target_from_atom(a: Atom) -> prql_compiler::Target {
         ClickHouse
     } else if a == atoms::generic() {
         Generic
-    } else if a == atoms::hive() {
-        Hive
     } else if a == atoms::mssql() {
         MsSql
     } else if a == atoms::mysql() {

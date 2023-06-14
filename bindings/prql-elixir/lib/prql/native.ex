@@ -25,7 +25,6 @@ defmodule PRQL.Native.CompileOptions do
           | :ansi
           | :bigquery
           | :clickhouse
-          | :hive
           | :sqlite
           | :snowflake
 
