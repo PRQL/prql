@@ -72,3 +72,26 @@ fn test_bad_error_messages() {
     ───╯
     "###);
 }
+
+#[test]
+fn array_instead_of_tuple() {
+    // Particularly given this used to be our syntax, this could be clearer
+    // (though we do say so in the message, which is friendly!)
+    assert_display_snapshot!(compile(r###"
+    from e=employees
+    select [e.first_name, e.last_name]
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:2:5]
+       │
+     2 │ ╭─▶     select tracks
+     3 │ ├─▶     from artists
+       │ │
+       │ ╰────────────────────── main expected type `relation`, but found type `infer -> infer`
+       │
+       │     Help: Have you forgotten an argument to function main?
+       │
+       │     Note: Type `relation` expands to `[tuple_of_scalars]`
+    ───╯
+    "###);
+}
