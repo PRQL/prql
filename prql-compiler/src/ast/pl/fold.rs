@@ -82,15 +82,15 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
             within,
             except: fold.fold_exprs(except)?,
         },
-        Binary { op, left, right } => Binary {
+        Binary(BinaryExpr { op, left, right }) => Binary(BinaryExpr {
             op,
             left: Box::new(fold.fold_expr(*left)?),
             right: Box::new(fold.fold_expr(*right)?),
-        },
-        Unary { op, expr } => Unary {
+        }),
+        Unary(UnaryExpr { op, expr }) => Unary(UnaryExpr {
             op,
             expr: Box::new(fold.fold_expr(*expr)?),
-        },
+        }),
         Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
         Range(range) => Range(fold_range(fold, range)?),

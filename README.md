@@ -26,12 +26,12 @@ since it compiles to SQL.
 PRQL can be as simple as:
 
 ```elm
-from employees
-filter country == "USA"                       # Each line transforms the previous result
+from tracks
+filter artist == "Bob Marley"                 # Each line transforms the previous result
 aggregate {                                   # `aggregate` reduces each column to a value
-  max salary,
-  min salary,
-  count s"*",                                      # Trailing commas are allowed
+  plays    = sum plays,
+  longest  = max length,
+  shortest = min length,                      # Trailing commas are allowed
 }
 ```
 

@@ -120,7 +120,7 @@ fn test_prql_examples_display_then_compile() -> Result<()> {
                 "
 ---- {name} ---- UNEXPECTED SUCCESS after formatting
   Succeeded at compiling the formatted result, but example was marked as `no-fmt`.
-  Remove `no-fmt` as a language label to assert successfully compiling the formatted resullt.
+  Remove `no-fmt` as a language label to assert successfully compiling the formatted result.
   -- Original PRQL --
 {prql}
   -- Result --

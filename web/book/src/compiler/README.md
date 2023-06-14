@@ -1,7 +1,8 @@
 # Compiler
 
-The reference compiler implementation of PRQL is written in Rust. And there is a
-CLI for it.
-
-- [Reference implementation](./rust/README.md)
-  - [CLI](./rust/cli.md)
+- [`prql-compiler`](./prql-compiler.md)
+- [Internals](./internals/README.md)
+  - [Compiler architecture](./internals/compiler-architecture.md)
+  - [Name resolving](./internals/name-resolving.md)
+  - [Functions](./internals/functional-lang.md)
+  - [Syntax highlighting](./internals/syntax-highlighting.md)

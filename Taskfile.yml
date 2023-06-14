@@ -247,10 +247,7 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      # Must set `install-links=false` in the playground's `npm install` to
-      # install prql-js as the regular dependency, instead of creating a
-      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
-      - cd playground && npm install --install-links=false
+      - task: install-playground-npm-dependencies
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
@@ -300,12 +297,31 @@ tasks:
     desc: Build & serve the playground.
     dir: web/playground
     cmds:
-      # Must set `install-links=false` in the playground's `npm install` to
-      # install prql-js as the regular dependency, instead of creating a
-      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
-      - npm install --install-links=false
+      - task: install-playground-npm-dependencies
       - npm start
-#
+
+  run-pg:
+    desc: Serve the playground without building it
+    dir: web/playground
+    cmds:
+      - npm start
+
+  install-playground-npm-dependencies:
+    # Look to see if npm dependencies need to be updated
+    # Use task's sources/generates to see if checksums of
+    # node_modules directory have changed since package.json was updated
+
+    # Use `npm install --install-links=false` to install prql-js
+    # as the regular dependency, instead of creating a
+    # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
+    desc: Check to see if package.json has changed since we ran npm install
+    dir: web/playground
+    cmds:
+      - npm install --install-links=false
+    sources:
+      - package.json
+    generates:
+      - node_modules/*
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly

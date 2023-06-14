@@ -1,4 +1,4 @@
-{{#include ../../../../grammars/README.md}}
+{{#include ../../../../../grammars/README.md}}
 
 ---
 

@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.HOMEBREW_PRQL_TOKEN}}
+          github-token: ${{ secrets.HOMEBREW_PRQL_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'prql',
@@ -47,6 +47,7 @@ jobs:
         id: build-artifact
         with:
           target: ${{ matrix.target }}
+          profile: release
       - name: Upload release artifact
         uses: softprops/action-gh-release@v1
         with:

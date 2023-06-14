@@ -7,16 +7,6 @@ on:
       - .github/workflows/build-devcontainer.yaml
       - Taskfile.yml
   push:
-    # We could push this on the stable branch (currently named `web`) if we
-    # needed a clearer release schedule.
-    # We don't run on every merge to main because:
-    # - I'm not sure whether starting a new devcontainer pulls a new image every
-    #   time, which would be annoying when there are no changes (maybe it's the
-    #   same but relies on the cache working perfertly)
-    # - The arm64 build is very very slow, takes 2-3 hours, so we don't want to
-    #   run it excessively.
-    #
-    # If the cache works reliably, we can remove this path restriction and run on every merge.
     branches:
       - main
     paths:
@@ -67,7 +57,7 @@ jobs:
             ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
             'refs/tags/') }}
           cache-from: |
-            ghcr.io/${{ github.repository_owner }}/prql-devcontainer-base
+            ${{ steps.meta.outputs.tags }}
             type=gha
           cache-to: |
             type=inline
