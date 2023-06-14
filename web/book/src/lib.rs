@@ -159,12 +159,7 @@ fn replace_examples(text: &str) -> Result<String> {
         };
 
         let prql = text.to_string();
-        let result = compile(
-            &prql,
-            &prql_compiler::Options::default()
-                .no_signature()
-                .with_color(true),
-        );
+        let result = compile(&prql, &prql_compiler::Options::default().no_signature());
 
         if lang_tags.contains(&LangTag::NoTest) {
             cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));
@@ -308,6 +303,9 @@ import sys
 this is an error
 ```
     "###;
+
+    // Here we do want colors
+    anstream::ColorChoice::Always.write_global();
 
     assert_display_snapshot!(replace_examples(md)?, @r###"
     # PRQL Doc

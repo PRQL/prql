@@ -55,13 +55,6 @@
   - [F-strings](./language-features/f-strings.md)
   - [Target & Version](./language-features/target.md)
 
-- [Compiler](./compiler/README.md)
-
-  - [Reference implementation](./compiler/rust/README.md)
-    - [CLI](./compiler/rust/cli.md)
-  - [Compiler features](./compiler/compiler-features/README.md)
-    - [Target & Version](./compiler/compiler-features/target.md)
-
 - [Bindings](./bindings/README.md)
 
   - [.NET](./bindings/dotnet.md)
@@ -74,7 +67,7 @@
 
 - [Integrations](./integrations/README.md)
 
-  - [CLI](./integrations/cli.md)
+  - [`prqlc CLI`](./integrations/prqlc-cli.md)
   - [Jupyter](./integrations/jupyter.md)
   - [DuckDB](./integrations/duckdb.md)
   - [Prefect](./integrations/prefect.md)
@@ -88,16 +81,17 @@
   - [CTE (intermediate tables)](./examples/cte.md)
   - [Employees](./examples/employees.md)
 
+- [Compiler](./compiler/README.md)
+
+  - [`prql-compiler`](./compiler/prql-compiler.md)
+  - [Internals](./compiler/internals/README.md)
+    - [Compiler architecture](./compiler/internals/compiler-architecture.md)
+    - [Name resolving](./compiler/internals/name-resolving.md)
+    - [Functions](./compiler/internals/functional-lang.md)
+    - [Syntax highlighting](./compiler/internals/syntax-highlighting.md)
+
 - [Contributing to PRQL](./contributing/README.md)
 
   - [Development](./contributing/development.md)
-
-- [Internals](./internals/README.md)
-
-  - [Compiler architecture](./internals/compiler-architecture.md)
-  - [Helpers](./internals/helpers.md)
-  - [Name resolving](./internals/name-resolving.md)
-  - [Functions](./internals/functional-lang.md)
-  - [Syntax highlighting](./internals/syntax-highlighting.md)
 
 - [Changelog](./changelog.md)

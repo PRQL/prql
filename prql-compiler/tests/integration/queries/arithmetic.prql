@@ -1,10 +1,13 @@
+# mssql:test
 from [
-    { x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },
-    { x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },
-    { x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },
-    { x_int = -13, x_float = -13.0, k_int = -5, k_float = -5.0 },
+    { id = 1, x_int =  13, x_float =  13.0, k_int =  5, k_float =  5.0 },
+    { id = 2, x_int = -13, x_float = -13.0, k_int =  5, k_float =  5.0 },
+    { id = 3, x_int =  13, x_float =  13.0, k_int = -5, k_float = -5.0 },
+    { id = 4, x_int = -13, x_float = -13.0, k_int = -5, k_float = -5.0 },
 ]
 select {
+    id,
+
     x_int / k_int,
     x_int / k_float,
     x_float / k_int,
@@ -25,3 +28,4 @@ select {
     (q_fi * k_int + r_fi | round 0),
     (q_ff * k_float + r_ff | round 0),
 }
+sort id

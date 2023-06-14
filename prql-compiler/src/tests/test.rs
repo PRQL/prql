@@ -1,9 +1,10 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 // use super::*;
-use crate::{sql, Options, SourceTree, Target};
+use crate::{sql, ErrorMessages, Options, SourceTree, Target};
 use insta::{assert_display_snapshot, assert_snapshot};
 
-pub fn compile(prql: &str) -> Result<String, crate::ErrorMessages> {
+pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
+    anstream::ColorChoice::Never.write_global();
     crate::compile(prql, &Options::default().no_signature())
 }
 
@@ -889,13 +890,19 @@ fn test_window_functions_03() {
     let query = r###"
     from daily_orders
     derive {last_week = lag 7 num_orders}
-    group month ( derive {total_month = sum num_orders})
+    derive {first_count = first num_orders}
+    derive {last_count = last num_orders}
+    group month (
+      derive {total_month = sum num_orders}
+    )
     "###;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
       LAG(num_orders, 7) OVER () AS last_week,
+      FIRST_VALUE(num_orders) OVER () AS first_count,
+      LAST_VALUE(num_orders) OVER () AS last_count,
       SUM(num_orders) OVER (PARTITION BY month) AS total_month
     FROM
       daily_orders
@@ -3532,10 +3539,10 @@ fn test_upper() {
 }
 
 #[test]
-fn test_1535() -> anyhow::Result<()> {
+fn test_1535() {
     assert_display_snapshot!(compile(r#"
     from x.y.z
-    "#)?,
+    "#).unwrap(),
         @r###"
     SELECT
       *
@@ -3543,8 +3550,6 @@ fn test_1535() -> anyhow::Result<()> {
       x.y.z
     "###
     );
-
-    Ok(())
 }
 
 #[test]
@@ -3843,4 +3848,15 @@ fn test_type_as_column_name() {
     FROM
       foo AS t
     "###);
+}
+
+#[test]
+fn test_error_code() {
+    let err = compile(
+        r###"
+    let a = (from x)
+    "###,
+    )
+    .unwrap_err();
+    assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
 }

@@ -5,6 +5,9 @@ inputs:
   target:
     description: Build target
     required: true
+  profile:
+    description: Build profile option; `dev` or `release`.
+    required: true
 outputs:
   artifact-name:
     description: The name of the artifact
@@ -18,7 +21,9 @@ runs:
 
     - uses: Swatinem/rust-cache@v2
       with:
-        save-if: ${{ github.ref == 'refs/heads/main' }}
+        # Share cache with `test-rust`
+        save-if: false
+        shared-key: rust-${{ inputs.target }}
         prefix-key: 0.8.1
 
     - if: runner.os == 'Linux'
@@ -39,7 +44,9 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
-        args: --package prqlc --release --locked --target=${{ inputs.target }}
+        args:
+          --package prqlc --profile ${{ inputs.profile }} --locked --target=${{
+          inputs.target }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
@@ -47,7 +54,7 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/release
+        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE -C ../../../prql-compiler/prqlc/ README.md
 
     - name: Create artifact for Windows
@@ -56,7 +63,7 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/release
+        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE ../../../prql-compiler/prqlc/README.md
 
     - name: Upload prqlc

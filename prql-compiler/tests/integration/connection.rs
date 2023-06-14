@@ -1,15 +1,12 @@
-use std::env::current_dir;
-use std::fs;
-use std::path::PathBuf;
 use std::time::SystemTime;
 
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
-use itertools::Itertools;
 use mysql::prelude::Queryable;
 use mysql::Value;
 use pg_bigdecimal::PgNumeric;
 use postgres::types::Type;
+use prql_compiler::sql::Dialect;
 use tiberius::numeric::BigDecimal;
 use tiberius::time::time::PrimitiveDateTime;
 use tiberius::*;
@@ -17,25 +14,18 @@ use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio_util::compat::Compat;
 
-use prql_compiler::sql::Dialect;
-
 pub type Row = Vec<String>;
 
-pub trait DBConnection {
-    fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
-
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime);
-
-    fn get_dialect(&self) -> Dialect;
-
-    // We sometimes want to modify the SQL `INSERT` query (we don't modify the
-    // SQL `SELECT` query)
-    fn modify_sql(&self, sql: String) -> String {
-        sql
-    }
+pub struct DbConnection {
+    pub protocol: Box<dyn DbProtocol>,
+    pub dialect: Dialect,
 }
 
-impl DBConnection for duckdb::Connection {
+pub trait DbProtocol {
+    fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>>;
+}
+
+impl DbProtocol for duckdb::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
@@ -77,27 +67,9 @@ impl DBConnection for duckdb::Connection {
         }
         Ok(vec)
     }
-
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        let path = get_path_for_table(csv_name);
-        let path = path.display().to_string().replace('"', "");
-        self.run_query(
-            &format!("COPY {csv_name} FROM '{path}' (AUTO_DETECT TRUE);"),
-            runtime,
-        )
-        .unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::DuckDb
-    }
-
-    fn modify_sql(&self, sql: String) -> String {
-        sql.replace("REAL", "DOUBLE")
-    }
 }
 
-impl DBConnection for rusqlite::Connection {
+impl DbProtocol for rusqlite::Connection {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut statement = self.prepare(sql)?;
         let mut rows = statement.query([])?;
@@ -125,42 +97,9 @@ impl DBConnection for rusqlite::Connection {
         }
         Ok(vec)
     }
-
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        let path = get_path_for_table(csv_name);
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(true)
-            .from_path(path)
-            .unwrap();
-        let headers = reader
-            .headers()
-            .unwrap()
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
-        for result in reader.records() {
-            let r = result.unwrap();
-            let q = format!(
-                "INSERT INTO {csv_name} ({}) VALUES ({})",
-                headers.iter().join(","),
-                r.iter()
-                    .map(|s| if s.is_empty() {
-                        "null".to_string()
-                    } else {
-                        format!("\"{}\"", s.replace('"', "\"\""))
-                    })
-                    .join(",")
-            );
-            self.run_query(q.as_str(), runtime).unwrap();
-        }
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::SQLite
-    }
 }
 
-impl DBConnection for postgres::Client {
+impl DbProtocol for postgres::Client {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let rows = self.query(sql, &[])?;
         let mut vec = vec![];
@@ -206,27 +145,9 @@ impl DBConnection for postgres::Client {
         }
         Ok(vec)
     }
-
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        self.run_query(
-            &format!(
-                "COPY {csv_name} FROM '/tmp/chinook/{csv_name}.csv' DELIMITER ',' CSV HEADER;"
-            ),
-            runtime,
-        )
-        .unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::Postgres
-    }
-
-    fn modify_sql(&self, sql: String) -> String {
-        sql.replace("REAL", "DOUBLE PRECISION")
-    }
 }
 
-impl DBConnection for mysql::Pool {
+impl DbProtocol for mysql::Pool {
     fn run_query(&mut self, sql: &str, _runtime: &Runtime) -> Result<Vec<Row>> {
         let mut conn = self.get_conn()?;
         let rows: Vec<mysql::Row> = conn.query(sql)?;
@@ -249,35 +170,9 @@ impl DBConnection for mysql::Pool {
         }
         Ok(vec)
     }
-
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        // hacky hack for MySQL
-        // MySQL needs a special character in csv that means NULL (https://stackoverflow.com/a/2675493)
-        // 1. read the csv
-        // 2. create a copy with the special character
-        // 3. import the data and remove the copy
-        let old_path = get_path_for_table(csv_name);
-        let mut new_path = old_path.clone();
-        new_path.pop();
-        new_path.push(format!("{csv_name}.my.csv").as_str());
-        let mut file_content = fs::read_to_string(old_path).unwrap();
-        file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
-        fs::write(&new_path, file_content).unwrap();
-        let query_result = self.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
-        fs::remove_file(&new_path).unwrap();
-        query_result.unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::MySql
-    }
-
-    fn modify_sql(&self, sql: String) -> String {
-        sql.replace("TIMESTAMP", "DATETIME")
-    }
 }
 
-impl DBConnection for tiberius::Client<Compat<TcpStream>> {
+impl DbProtocol for tiberius::Client<Compat<TcpStream>> {
     fn run_query(&mut self, sql: &str, runtime: &Runtime) -> Result<Vec<Row>> {
         runtime.block_on(async {
             let mut stream = self.query(sql, &[]).await?;
@@ -328,30 +223,4 @@ impl DBConnection for tiberius::Client<Compat<TcpStream>> {
             Ok(vec)
         })
     }
-
-    fn import_csv(&mut self, csv_name: &str, runtime: &Runtime) {
-        self.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
-    }
-
-    fn get_dialect(&self) -> Dialect {
-        Dialect::MsSql
-    }
-
-    fn modify_sql(&self, sql: String) -> String {
-        sql.replace("TIMESTAMP", "DATETIME")
-            .replace("REAL", "FLOAT(53)")
-            .replace(" AS TEXT", " AS VARCHAR")
-    }
-}
-
-fn get_path_for_table(csv_name: &str) -> PathBuf {
-    let mut path = current_dir().unwrap();
-    path.extend([
-        "tests",
-        "integration",
-        "data",
-        "chinook",
-        format!("{csv_name}.csv").as_str(),
-    ]);
-    path
 }

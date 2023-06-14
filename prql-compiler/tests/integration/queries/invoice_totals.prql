@@ -1,4 +1,4 @@
-# skip_mssql (error: The function 'LAG' may not have a window frame.)
+# clickhouse:skip (clickhouse doesn't have lag function)
 from i=invoices
 join ii=invoice_items (==invoice_id)
 derive {
@@ -30,3 +30,4 @@ select {
     num_tracks_last_week
 }
 take 20
+sort city

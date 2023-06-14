@@ -11,12 +11,12 @@ version.workspace = true
 metadata.msrv = "1.65.0"
 
 [dependencies]
+anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.3.0"
 csv = "1.2.0"
 enum-as-inner = "0.6.0"
 itertools = "0.10.3"
-lazy_static = "1.4.0"
 log = "0.4.17"
 once_cell = "1.18.0"
 regex = "1.8.1"
@@ -48,12 +48,12 @@ insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.5.1"
 csv = "1.2"
-duckdb = {version = "0.7.0", features = ["bundled", "chrono"]}
+duckdb = {version = "0.8.0", features = ["bundled", "chrono"]}
 mysql = "24"
 pg_bigdecimal = "0.1"
 postgres = "0.19"
-pretty_assertions = "1.3.0"
 rusqlite = {version = "0.29.0", features = ["bundled", "csvtab"]}
+similar-asserts = "1.4.2"
 tiberius = {version = "0.12", features = ["sql-browser-tokio", "bigdecimal", "time"]}
 tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7", features = ["compat"]}
