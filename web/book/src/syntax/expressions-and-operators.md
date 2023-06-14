@@ -26,7 +26,7 @@ operations and for function calls (see the discussion below.)
 | identifier dot | `.`                         |     1      |               |
 |          unary | `-` `+` `!` `==`            |     2      |               |
 |          range | `..`                        |     3      |               |
-|            mul | `*` `/` `%`                 |     4      | left-to-right |
+|            mul | `*` `/` `//` `%`            |     4      | left-to-right |
 |            add | `+` `-`                     |     5      | left-to-right |
 |        compare | `==` `!=` `<=` `>=` `<` `>` |     6      | left-to-right |
 |       coalesce | `??`                        |     7      | left-to-right |
@@ -51,11 +51,11 @@ PRQL uses parentheses `()` for several purposes:
   symbol or a new line. “Nested” means within a transform; i.e. not just the
   main pipeline, for example: `(column-name | in 0..20)`
 
-- Parentheses wrap a function call that is part of a larger expression on the
-  right-hand side of an assignment, for example: `round 0 (sum distance)`
+- Parentheses wrap a function call that is part of a larger expression, for
+  example: `round 0 (sum distance)`
 
-- Parentheses are not required for expressions that do not contain function
-  calls, for example: `foo + bar`.
+Parentheses are _not_ required for expressions that do not contain function
+calls, for example: `foo + bar`.
 
 Here's a set of examples of these rules:
 
@@ -79,17 +79,19 @@ derive {
   is_negative = (distance | in (-100..0)),
   # ...this is equivalent
   is_negative = (distance | in (-100)..0),
-  # Doesn't require parentheses, because it's in a list (confusing, see footnote)!
+  # _Technically_, this doesn't require parentheses, because it's
+  # the RHS of an assignment in a tuple
+  # (this is especially confusing)
   average_distance = average distance,
 }
 # Requires parentheses because of the minus sign
 sort (-distance)
-# A list is fine too
+# A tuple is fine too
 sort {-distance}
 ```
 
 For example, the snippet below produces an error because the `sum` function call
-is not in a list.
+is not in a tuple.
 
 ```prql error no-fmt
 from employees

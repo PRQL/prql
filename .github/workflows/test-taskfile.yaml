@@ -7,6 +7,10 @@ on:
       - Taskfile.yml
       - .github/workflows/test-taskfile.yaml
   workflow_call:
+  workflow_dispatch:
+
+env:
+  RUSTFLAGS: "-C debuginfo=0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-taskfile

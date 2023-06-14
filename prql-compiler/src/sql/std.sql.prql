@@ -27,8 +27,8 @@ let count_distinct = column -> s"COUNT(DISTINCT {column:0})"
 # Window functions
 let lag = offset column -> s"LAG({column:0}, {offset:0})"
 let lead = offset column -> s"LEAD({column:0}, {offset:0})"
-let first = offset column -> s"FIRST_VALUE({column:0}, {offset:0})"
-let last = offset column -> s"LAST_VALUE({column:0}, {offset:0})"
+let first = column -> s"FIRST_VALUE({column:0})"
+let last = column -> s"LAST_VALUE({column:0})"
 let rank = -> s"RANK()"
 let rank_dense = -> s"DENSE_RANK()"
 let row_number = -> s"ROW_NUMBER()"
@@ -114,18 +114,19 @@ module clickhouse {
   # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions#divide
   @{binding_strength=11}
   let div_f = l r -> s"({l} / {r})"
+
+  @{binding_strength=11}
+  let div_i = l r -> s"({l} DIV {r})"
+
+  let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 }
 
 module duckdb {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / {r})"
+  let div_f = l r -> s"({l} / {r})"
 
-  # TODO: Uncomment for DuckDB >= 0.8.0
-  # @{binding_strength=11}
-  # let div_f = l r -> s"({l} / {r})"
-
-  # @{binding_strength=11}
-  # let div_i = l r -> s"TRUNC({l:11} / {r:11})"
+  @{binding_strength=11}
+  let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 }

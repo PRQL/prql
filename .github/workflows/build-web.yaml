@@ -8,6 +8,9 @@ on:
       - "**.md"
   workflow_call:
 
+env:
+  RUSTFLAGS: "-C debuginfo=0"
+
 concurrency:
   # See notes in `pull-request.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-web
@@ -30,7 +33,6 @@ jobs:
       - name: Setup hugo
         uses: peaceiris/actions-hugo@v2.6.0
 
-      # Book setup, duplicated from `pull-request.yaml`
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook

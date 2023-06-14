@@ -58,8 +58,7 @@ will become the public version at the next release._
   func add a b -> a + b
   ```
 
-- Modules allow importing declarations from other files: See
-  https://github.com/PRQL/prql/blob/main/web/book/src/internals/modules.md
+- Modules allow importing declarations from other files: See TODO: insert link
 
 - "Relation Literals", which create inline relations / tables from data in the
   query:
@@ -75,6 +74,22 @@ will become the public version at the next release._
   This example demonstrates both the new tuple syntax (`{}`) and arrays `[]`.
 
   (@aljazerzen, #2605)
+
+- We've changed how we handle colors. We now use the
+  `[anstream](https://github.com/rust-cli/anstyle)` library in `prqlc` &
+  `prql-compiler`.
+
+  `Options::color` is deprecated and has no effect. Code which consumes
+  `prql_compiler::compile` should instead accept the output with colors and use
+  a library such as `anstream` to handle the presentation of colors. To ensure
+  minimal disruption, `prql_compiler` will currently strip color codes when a
+  standard environment variable such as `CLI_COLOR=0` is set or when it detects
+  `stderr` is not a TTY.
+
+  (@max-sixty, #2773)
+
+- `prqlc` can now show backtraces when the standard backtrace env var
+  (`RUST_BACKTRACE`) is active. (@max-sixty, #2751)
 
 **Fixes**:
 

@@ -6,6 +6,7 @@ on:
       - "bindings/prql-python/**"
       - ".github/workflows/test-python.yaml"
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   # See notes in `pull-request.yaml`

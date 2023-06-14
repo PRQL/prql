@@ -1,7 +1,68 @@
 # PRQL compiler CLI — `prqlc`
 
-`prqlc` is a CLI for PRQL compiler; A single, dependency-free binary that
-compiles PRQL into SQL.
+`prqlc` serves as a CLI for the PRQL compiler. It is a single, dependency-free
+binary that compiles PRQL into SQL.
+
+## Usage
+
+### `prqlc compile`
+
+This command works as a filter that compiles a PRQL string into an SQL string.
+
+```sh
+$ echo "from employees | filter has_dog | select salary" | prqlc compile
+
+SELECT
+  salary
+FROM
+  employees
+WHERE
+  has_dog
+```
+
+A PRQL query can be executed with CLI tools compatible with SQL,, such as
+[DuckDB CLI](https://duckdb.org/docs/api/cli.html).
+
+```sh
+$ curl -sL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
+$ echo "from `albums.csv` | take 3" | prqlc compile | duckdb
+┌──────────┬───────────────────────────────────────┬───────────┐
+│ album_id │                 title                 │ artist_id │
+│  int64   │                varchar                │   int64   │
+├──────────┼───────────────────────────────────────┼───────────┤
+│        1 │ For Those About To Rock We Salute You │         1 │
+│        2 │ Balls to the Wall                     │         2 │
+│        3 │ Restless and Wild                     │         2 │
+└──────────┴───────────────────────────────────────┴───────────┘
+```
+
+Executing this command without any argument will start interactive mode,
+allowing a PRQL query to be written interactively. In this mode, after writing
+PRQL and press `Ctrl-d` (Linux, macOS) or `Ctrl-z` (Windows) to display the
+compiled SQL.
+
+```sh
+prqlc compile
+```
+
+Just like when using it as a filter, SQL string output can be passed to the
+DuckDB CLI and similar tools.
+
+```sh
+$ prqlc compile | duckdb
+Enter PRQL, then press ctrl-d to compile:
+
+from `albums.csv`
+take 3
+┌──────────┬───────────────────────────────────────┬───────────┐
+│ album_id │                 title                 │ artist_id │
+│  int64   │                varchar                │   int64   │
+├──────────┼───────────────────────────────────────┼───────────┤
+│        1 │ For Those About To Rock We Salute You │         1 │
+│        2 │ Balls to the Wall                     │         2 │
+│        3 │ Restless and Wild                     │         2 │
+└──────────┴───────────────────────────────────────┴───────────┘
+```
 
 ## Installation
 
@@ -77,63 +138,13 @@ autoload -U compinit
 compinit -i
 ```
 
-## Usage
+## Helpers
 
-### prqlc compile
+Cheat sheets for `prqlc` are available on various websites and with various
+tools.
 
-This command is working as a filter to compile PRQL string into SQL string.
+- [`tldr`](https://tldr.sh/)
+  ([on the web](https://tldr.inbrowser.app/pages/common/prqlc))
+- [`eg`](https://github.com/srsudar/eg)
 
-```sh
-$ echo "from employees | filter has_dog | select salary" | prqlc compile
-
-SELECT
-  salary
-FROM
-  employees
-WHERE
-  has_dog
-```
-
-PRQL query can be executed with CLI tools working with SQL, such as
-[DuckDB CLI](https://duckdb.org/docs/api/cli.html).
-
-```sh
-$ curl -sL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
-$ echo "from `albums.csv` | take 3" | prqlc compile | duckdb
-┌──────────┬───────────────────────────────────────┬───────────┐
-│ album_id │                 title                 │ artist_id │
-│  int64   │                varchar                │   int64   │
-├──────────┼───────────────────────────────────────┼───────────┤
-│        1 │ For Those About To Rock We Salute You │         1 │
-│        2 │ Balls to the Wall                     │         2 │
-│        3 │ Restless and Wild                     │         2 │
-└──────────┴───────────────────────────────────────┴───────────┘
-```
-
-Executing this command without any argument will start interactive mode,
-allowing you to write PRQL query interactively. In this mode, after you write
-PRQL and press `Ctrl-D` (Linux, macOS) or `Ctrl-Z` (Windows) to display the
-compiled SQL.
-
-```sh
-prqlc compile
-```
-
-As with using it as a filter, you can pass the SQL string output to the DuckDB
-CLI, etc.
-
-```sh
-$ prqlc compile | duckdb
-Enter PRQL, then press ctrl-d to compile:
-
-from `albums.csv`
-take 3
-┌──────────┬───────────────────────────────────────┬───────────┐
-│ album_id │                 title                 │ artist_id │
-│  int64   │                varchar                │   int64   │
-├──────────┼───────────────────────────────────────┼───────────┤
-│        1 │ For Those About To Rock We Salute You │         1 │
-│        2 │ Balls to the Wall                     │         2 │
-│        3 │ Restless and Wild                     │         2 │
-└──────────┴───────────────────────────────────────┴───────────┘
-```
+<!-- Issues: #2034 cheat/cheatsheets, #2041 devhints.io -->

@@ -1,5 +1,5 @@
-//! Compiler for PRQL language.
-//! Targets SQL and exposes PL and RQ abstract syntax trees.
+//! Compiler for PRQL language. Targets SQL and exposes PL and RQ abstract
+//! syntax trees.
 //!
 //! You probably want to start with [compile] wrapper function.
 //!
@@ -34,9 +34,7 @@
 //!
 //! ## Common use-cases
 //!
-//! I want to ...
-//! - ... compile PRQL queries at run time, because I cannot commit them into
-//!     the source tree.
+//! - Compile PRQL queries to SQL at run time.
 //!
 //!     ```
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
@@ -49,27 +47,26 @@
 //!     # }
 //!     ```
 //!
-//! - ... compile PRQL queries to SQL at build time.
+//! - Compile PRQL queries to SQL at build time.
 //!
-//!     Use `prql-compiler-macros` crate (unreleased), which can be used like
-//!     this:
+//!     For inline strings, use the `prql-compiler-macros` crate; for example:
 //!     ```ignore
 //!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
-//! - ... compile .prql files to .sql files at build time.
+//!     For compiling whole files (`.prql` to `.sql`), call `prql-compiler`
+//!     from `build.rs`.
+//!     See [this example project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
 //!
-//!     Call this crate from `build.rs`. See
-//!     [this example project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
-//!
-//! - ... compile, format & debug PRQL from command line.
+//! - Compile, format & debug PRQL from command line.
 //!
 //!     ```sh
-//!     $ cargo install prqlc
+//!     $ cargo install --locked prqlc
 //!     $ prqlc compile query.prql
 //!     ```
 //!
 
+#![forbid(unsafe_code)]
 // Our error type is 128 bytes, because it contains 5 strings & an Enum, which
 // is exactly the default warning level. Given we're not that performance
 // sensitive, it's fine to ignore this at the moment (and not worth having a
@@ -135,7 +132,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(|ast| semantic::resolve_and_lower(ast, &[]))
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
-        .map_err(|e| e.composed(&prql.into(), options.color))
+        .map_err(|e| e.composed(&prql.into()))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -199,7 +196,15 @@ pub struct Options {
     /// Defaults to true.
     pub signature_comment: bool,
 
-    /// Whether to use ANSI colors in error messages.
+    /// Whether to use ANSI colors in error messages. This is deprecated and has
+    /// no effect.
+    ///
+    /// Instead, in order of preference:
+    /// - Use a library such as `anstream` to encapsulate the presentation
+    ///   logic.
+    /// - Set an environment variable such as `CLI_COLOR=0` to disable any
+    ///   colors coming back from this library.
+    /// - Strip colors from the output (possibly also with a library such as `anstream`)
     pub color: bool,
 }
 
@@ -235,6 +240,7 @@ impl Options {
         self
     }
 
+    #[deprecated(note = "`color` now has no effect; see `Options` docs for more details")]
     pub fn with_color(mut self, color: bool) -> Self {
         self.color = color;
         self
@@ -252,14 +258,14 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
     parser::parse(&sources)
         .map(|x| x.sources.into_values().next().unwrap())
         .map_err(error::downcast)
-        .map_err(|e| e.composed(&prql.into(), false))
+        .map_err(|e| e.composed(&prql.into()))
 }
 
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
-        .map_err(|e| e.composed(prql, false))
+        .map_err(|e| e.composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.

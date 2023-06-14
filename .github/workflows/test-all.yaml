@@ -1,7 +1,8 @@
 name: test-all
 
-# The full suite of tests. These can take up to 20 minutes, so are only run on
-# merges or where we're more concerned about a break outside the core libraries.
+# The quasi-full suite of tests. These can take up to 20 minutes, so are only
+# run on merges or where we're more concerned about a break outside the core
+# libraries.
 #
 # To run these on a PR, label with `pr-test-all`.
 #
@@ -9,9 +10,10 @@ name: test-all
 
 # Possibly we could instead group tests by:
 # - `test-fast` — on pull requests
-# - `test-most` — on merges; with all platforms, bindings, etc
+# - `test-most` — on merges; with all platforms, bindings, etc (currently this file)
 # - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
-#   everything — benchmarks, compilation timing, audits, etc.
+#   everything — benchmarks, compilation timing, audits, etc. (currently this
+#   file + `test-nightly.yaml`)
 #
 # Also see pull-request.yaml#check-ok-to-merge for other thoughts
 
@@ -25,11 +27,17 @@ on:
       - ".github/workflows/test-all.yaml"
   # Called by pull-request when specifically requested
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   # See notes in `pull-request.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-all
   cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
   build-web:
@@ -38,21 +46,30 @@ jobs:
   test-rust:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        target_option: [""]
-        # Only run wasm on ubuntu, given it's the same rust target. (There is a
-        # possibility of having a failure on just one platform, but it's quite
-        # unlikely. If we do observe this, we can expand, or introduce a
-        # `test-actually-all.yaml` which accounts for these corner cases without
-        # using runners & cache space)
         include:
           - os: ubuntu-latest
-            target_option: --target=wasm32-unknown-unknown
+            target: x86_64-unknown-linux-gnu
+          # TODO: potentially enable these
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-musl
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          # Only run wasm on ubuntu, given it's the same rust target. (There is a
+          # possibility of having a failure on just one platform, but it's quite
+          # unlikely. If we do observe this, we can expand, or introduce a
+          # `test-actually-all.yaml` which accounts for these corner cases without
+          # using runners & cache space)
+          - os: ubuntu-latest
+            target: wasm32-unknown-unknown
 
     uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
-      target_option: ${{ matrix.target_option }}
+      target: ${{ matrix.target }}
 
   test-php:
     uses: ./.github/workflows/test-php.yaml
@@ -74,9 +91,6 @@ jobs:
 
   test-lib:
     uses: ./.github/workflows/test-lib.yaml
-
-  test-taskfile:
-    uses: ./.github/workflows/test-taskfile.yaml
 
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21

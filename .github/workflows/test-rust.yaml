@@ -6,13 +6,17 @@ on:
     inputs:
       os:
         type: string
-      target_option:
+      target:
         type: string
         default: ""
 
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
+  # This used to reduce the size of the cargo cache by ~25%. It's not as
+  # effective as it once was, as explained in
+  # https://github.com/PRQL/prql/pull/2797
+  RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
   test-rust:
@@ -20,10 +24,15 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - if: ${{ contains(inputs.target, 'musl') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+      - run: rustup target add ${{ inputs.target }}
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-bindgen-cli
-        if: inputs.target_option == '--target=wasm32-unknown-unknown'
+        if: inputs.target == 'wasm32-unknown-unknown'
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
@@ -31,7 +40,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 0.8.1
-          key: ${{ inputs.target_option }}
+          shared-key: rust-${{ inputs.target}}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
@@ -40,7 +49,7 @@ jobs:
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           args:
-            --all-targets --all-features ${{ inputs.target_option }} -- -D
+            --all-targets --all-features --target=${{ inputs.target }} -- -D
             warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
@@ -53,39 +62,29 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
-          args: ${{ inputs.target_option }} --all-features --no-run --locked
-      # `docker compose` doesn't work, so excluding the test until the latest
-      # version is released to GH runners.
-      #
-      #   # v2.18.0 breaks; we can remove when the latest version on the runners is v2.18.1
-      # - name: Update docker compose
-      #   run:
-      #     sudo apt-get update && sudo apt-get install -y docker-compose-plugin
-
-      #   if: ${{ inputs.os == 'ubuntu-latest' }}
-      # - name: Run docker compose
-      #   run: docker compose up -d
-      #   working-directory: ./prql-compiler/tests/integration
-      #   if: ${{ inputs.os == 'ubuntu-latest' }}
-      # - name: Wait for database
-      #   uses: ifaxity/wait-on-action@v1
-      #   with:
-      #     resource: "tcp:5432 tcp:3306 tcp:1433"
-      #     timeout: 60000
-      #   if: ${{ inputs.os == 'ubuntu-latest' }}
+          args:
+            "--no-run --locked --target=${{ inputs.target }} ${{ inputs.target
+            == 'x86_64-unknown-linux-gnu' && '--features=test-external-dbs' ||
+            '' }}"
+      - name: Run docker compose
+        run: docker compose up -d
+        working-directory: ./prql-compiler/tests/integration
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+      - name: Wait for database
+        uses: ifaxity/wait-on-action@v1
+        with:
+          resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
+          timeout: 60000
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
           # Autoformatting doesn't make this clear to read, but this tertiary
           # expression states to only check these on ubuntu linux:
-          # - External DB integration tests — `--features=test-external-dbs`.
+          # - External DB integration tests — `--features=test-external-dbs`.
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
-            test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
-            inputs.os == 'ubuntu-latest' && '--unreferenced=auto' || '' }}
-
-          # Without docker compose exclusions:
-          # test ${{ inputs.target_option }} ${{ inputs.target_option == '' &&
-          # inputs.os == 'ubuntu-latest' && '--unreferenced=auto
-          # --features=test-external-dbs' || '' }}
+            test --target=${{ inputs.target }} ${{ inputs.target==
+            'x86_64-unknown-linux-gnu' && '--unreferenced=auto
+            --features=test-external-dbs' || '' }}

@@ -1,14 +1,17 @@
+use anstream::eprintln;
 use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::Output;
 use itertools::Itertools;
+use prql_compiler::ast::pl::StmtKind;
 use std::io::Write;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
-use std::{fs::File, ops::Range};
+use std::{env, fs::File};
 
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
@@ -22,10 +25,25 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
     let mut cli = Cli::parse();
-    cli.color.apply();
+    cli.color.write_global();
 
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
+        // Copied from
+        // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
+        fn backtrace_enabled() -> bool {
+            match env::var("RUST_LIB_BACKTRACE") {
+                Ok(s) => s != "0",
+                Err(_) => match env::var("RUST_BACKTRACE") {
+                    Ok(s) => s != "0",
+                    Err(_) => false,
+                },
+            }
+        }
+        if backtrace_enabled() {
+            eprintln!("{:#}", error.backtrace());
+        }
+
         exit(1)
     }
 
@@ -33,12 +51,11 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[command(color = concolor_clap::color_choice())]
 struct Cli {
     #[command(subcommand)]
     command: Command,
     #[command(flatten)]
-    color: concolor_clap::Color,
+    color: colorchoice_clap::Color,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -59,11 +76,8 @@ enum Command {
         input: clio_extended::Input,
     },
 
-    /// Parse, resolve & combine source with comments annotating relation type
-    Annotate(IoArgs),
-
-    /// Parse & resolve, but don't lower into RQ
-    Debug(IoArgs),
+    #[command(subcommand)]
+    Debug(DebugCommand),
 
     /// Parse, resolve & lower into RQ
     Resolve {
@@ -115,6 +129,22 @@ enum Command {
         #[arg(value_enum)]
         shell: clap_complete_command::Shell,
     },
+}
+
+/// Commands for meant for debugging, prone to change
+#[derive(Subcommand, Debug, Clone)]
+pub enum DebugCommand {
+    /// Parse & resolve, but don't lower into RQ
+    Semantics(IoArgs),
+
+    /// Parse & evaluate expression down to a value
+    ///
+    /// Cannot contain references to tables or any other outside sources.
+    /// Meant as a playground for testing out language design decisions.
+    Eval(IoArgs),
+
+    /// Parse, resolve & combine source with comments annotating relation type
+    Annotate(IoArgs),
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -170,7 +200,7 @@ impl Command {
                     }
                 };
 
-                output.write_all(pl_to_prql(ast)?.as_bytes())?;
+                output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 Ok(())
             }
             Command::ShellCompletion { shell } => {
@@ -217,13 +247,13 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
-            Command::Debug(_) => {
+            Command::Debug(DebugCommand::Semantics(_)) => {
                 semantic::load_std_lib(sources);
                 let stmts = prql_to_pl_tree(sources)?;
 
                 let context = semantic::resolve(stmts, Default::default())
                     .map_err(prql_compiler::downcast)
-                    .map_err(|e| e.composed(sources, true))?;
+                    .map_err(|e| e.composed(sources))?;
 
                 let mut out = Vec::new();
                 for (source_id, source) in &sources.sources {
@@ -234,7 +264,7 @@ impl Command {
                 out.extend(format!("\n{context:#?}\n").into_bytes());
                 out
             }
-            Command::Annotate(_) => {
+            Command::Debug(DebugCommand::Annotate(_)) => {
                 let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
                     |_| bail!(
                         "Currently `annotate` only works with a single source, but found multiple sources: {:?}",
@@ -264,6 +294,29 @@ impl Command {
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
+            Command::Debug(DebugCommand::Eval(_)) => {
+                let stmts = prql_to_pl_tree(sources)?;
+
+                let mut res = String::new();
+
+                for (path, stmts) in stmts.sources {
+                    res += &format!("# {}\n\n", path.to_str().unwrap());
+
+                    for stmt in stmts {
+                        if let StmtKind::VarDef(def) = stmt.kind {
+                            res += &format!("## {}\n", stmt.name);
+
+                            let val = semantic::eval(*def.value)
+                                .map_err(downcast)
+                                .map_err(|e| e.composed(sources))?;
+                            res += &val.to_string();
+                            res += "\n\n";
+                        }
+                    }
+                }
+
+                res.into_bytes()
+            }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);
 
@@ -284,13 +337,12 @@ impl Command {
 
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
-                    .with_color(concolor::get(concolor::Stream::Stdout).ansi_color())
                     .with_signature_comment(*hide_signature_comment);
 
                 prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path))
                     .and_then(|rq| rq_to_sql(rq, &opts))
-                    .map_err(|e| e.composed(sources, opts.color))?
+                    .map_err(|e| e.composed(sources))?
                     .as_bytes()
                     .to_vec()
             }
@@ -337,8 +389,9 @@ impl Command {
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
             | SQLAnchor { io_args, .. }
-            | Debug(io_args)
-            | Annotate(io_args) => io_args,
+            | Debug(DebugCommand::Semantics(io_args))
+            | Debug(DebugCommand::Annotate(io_args))
+            | Debug(DebugCommand::Eval(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -367,8 +420,10 @@ impl Command {
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLAnchor { io_args, .. }
-            | SQLPreprocess(io_args) => io_args.output.to_owned(),
-            Debug(io) | Annotate(io) => io.output.to_owned(),
+            | SQLPreprocess(io_args)
+            | Debug(DebugCommand::Semantics(io_args))
+            | Debug(DebugCommand::Annotate(io_args))
+            | Debug(DebugCommand::Eval(io_args)) => io_args.output.to_owned(),
             _ => unreachable!(),
         };
         output.write_all(data)
@@ -587,7 +642,7 @@ mod tests {
     #[test]
     fn layouts() {
         let output = Command::execute(
-            &Command::Annotate(IoArgs::default()),
+            &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
             &mut r#"
 from initial_table
 select {f = first_name, l = last_name, gender}
@@ -646,15 +701,12 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         "###);
     }
 
+    /// Check we get an error on a bad input
     #[test]
     fn compile() {
-        // Check we get an error on a bad input
         // Disable colors (would be better if this were a proper CLI test and
         // passed in `--color=never`)
-        concolor_clap::Color {
-            color: concolor_clap::ColorChoice::Never,
-        }
-        .apply();
+        anstream::ColorChoice::Never.write_global();
 
         let result = Command::execute(
             &Command::SQLCompile {
@@ -665,7 +717,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
             &mut "asdf".into(),
             "",
         );
-        assert_display_snapshot!(result.unwrap_err(), @r###"
+
+        assert_display_snapshot!(&result.unwrap_err().to_string(), @r###"
         Error:
            ╭─[:1:1]
            │
