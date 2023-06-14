@@ -82,16 +82,13 @@ fn array_instead_of_tuple() {
     select [e.first_name, e.last_name]
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:2:5]
+       ╭─[:3:12]
        │
-     2 │ ╭─▶     select tracks
-     3 │ ├─▶     from artists
-       │ │
-       │ ╰────────────────────── main expected type `relation`, but found type `infer -> infer`
+     3 │     select [e.first_name, e.last_name]
+       │            ─────────────┬─────────────
+       │                         ╰─────────────── unexpected `[_frame.e.first_name, _frame.e.last_name]`
        │
-       │     Help: Have you forgotten an argument to function main?
-       │
-       │     Note: Type `relation` expands to `[tuple_of_scalars]`
+       │ Help: this is probably a 'bad type' error (we are working on that)
     ───╯
     "###);
 }
