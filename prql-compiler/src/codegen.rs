@@ -290,6 +290,8 @@ fn write_alias_expr(
         rhs = &write_alias_rhs_expr(&expr.kind, opt)?
     );
     if strength_parent >= strength_self {
+        // TODO: we should use `write_between`, but the function types don't
+        // work atm.
         Some(format!("({s})"))
     } else {
         Some(s)
@@ -329,8 +331,8 @@ fn binding_strength(expr: &pl::ExprKind, is_parent: bool) -> i32 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
-        pl::ExprKind::Ident(_) => 10,
-        pl::ExprKind::All { .. } => 10,
+        pl::ExprKind::Ident(_) => 100,
+        pl::ExprKind::All { .. } => 100,
 
         pl::ExprKind::Range(_) => 6,
         pl::ExprKind::Binary(BinaryExpr { op, .. }) => match op {
@@ -615,7 +617,7 @@ mod test {
         assert_eq!(input.trim(), stmt.trim());
     }
 
-    // TODO: Is there a library function that can do this? (Guessing there is...)
+    // TODO: should we have a library function that can do this?
     fn generate_single_stmt(query: &str) -> String {
         use itertools::Itertools;
         let stmt = crate::prql_to_pl(query)
