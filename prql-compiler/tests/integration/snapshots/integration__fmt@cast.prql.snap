@@ -4,7 +4,7 @@ expression: "from tracks\nsort {-bytes}\nselect {\n    name,\n    bin = ((album_
 input_file: prql-compiler/tests/integration/queries/cast.prql
 ---
 from tracks
-sort {(-bytes)}
+sort {-bytes}
 select {name, bin = (album_id | as `REAL`) * 99}
 take 20
 
