@@ -23,14 +23,17 @@ will become the public version at the next release._
 
 - Some significant (breaking) changes regarding SQL dialect.
 
-  - Operators and functions can be defined on per-dialect basis. (@aljazerzen, #2681)
+  - Operators and functions can be defined on per-dialect basis. (@aljazerzen,
+    #2681)
   - _Breaking_: The `sql.duckdb` target supports DuckDB 0.8 (@eitsupi, #2810).
   - _Breaking_: The `sql.hive` target is removed (@eitsupi, #2837).
 
-- Three new operators. These compile to different function or operator depending on the target.
+- Three new operators. These compile to different function or operator depending
+  on the target.
 
-  - _Breaking_: Floating division operator `/` and truncated integer division operator `//`.
-    In previous versions, `/` was simply compiled into SQL `/`, but `/` now always does floating division. (@aljazerzen, #2684).
+  - _Breaking_: Floating division operator `/` and truncated integer division
+    operator `//`. In previous versions, `/` was simply compiled into SQL `/`,
+    but `/` now always does floating division. (@aljazerzen, #2684).
     <!-- TODO: link to division operator docs -->
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
@@ -52,8 +55,8 @@ will become the public version at the next release._
     ```
 
     ...though the exact form differs by dialect; see the
-    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
-    details.
+    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for
+    more details.
 
 - We've changed our function declaration syntax to match other declarations.
   Functions were one of the first language constructs in PRQL, and since then
