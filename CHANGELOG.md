@@ -21,27 +21,39 @@ will become the public version at the next release._
   As part of this, we've also formalized tuples as containing both individual
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
 
-- Add a `~=` regex search operator (@max-sixty, #2458). An example:
+- Some significant (breaking) changes regarding SQL dialect.
 
-  ```prql no-eval
-  from tracks
-  filter {name ~= "Love"}
-  ```
+  - Operators and functions can be defined on per-dialect basis. (@aljazerzen, #2681)
+  - _Breaking_: The `sql.duckdb` target supports DuckDB 0.8 (@eitsupi, #2810).
+  - _Breaking_: The `sql.hive` target is removed (@eitsupi, #2837).
 
-  ...compiles to;
+- Three new operators. These compile to different function or operator depending on the target.
 
-  ```sql
-  SELECT
-    *
-  FROM
-    tracks
-  WHERE
-    REGEXP(name, 'Love')
-  ```
+  - _Breaking_: Floating division operator `/` and truncated integer division operator `//`.
+    In previous versions, `/` was simply compiled into SQL `/`, but `/` now always does floating division. (@aljazerzen, #2684).
+    <!-- TODO: link to division operator docs -->
 
-  ...though the exact form differs by dialect; see the
-  [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
-  details.
+  - Regex search operator `~=` (@max-sixty, #2458). An example:
+
+    ```prql no-eval
+    from tracks
+    filter {name ~= "Love"}
+    ```
+
+    ...compiles to;
+
+    ```sql
+    SELECT
+      *
+    FROM
+      tracks
+    WHERE
+      REGEXP(name, 'Love')
+    ```
+
+    ...though the exact form differs by dialect; see the
+    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
+    details.
 
 - We've changed our function declaration syntax to match other declarations.
   Functions were one of the first language constructs in PRQL, and since then
@@ -112,6 +124,8 @@ will become the public version at the next release._
 
 - Remove BigQuery's special handling of quoted identifiers, now that our module
   system handles its semantics (@max-sixty, #2609).
+
+- ClickHouse is tested in CI (@eitsupi, #2815).
 
 **New Contributors**:
 
