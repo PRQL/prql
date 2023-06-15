@@ -178,7 +178,6 @@ impl WriteSource for pl::ExprKind {
                 }
                 r += "..";
                 if let Some(end) = &range.end {
-                    dbg!(&end);
                     r += &write_expr(end, self, opt)?;
                 }
                 Some(r)
