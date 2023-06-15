@@ -124,6 +124,7 @@ impl WriteOpt {
 impl WriteSource for pl::Expr {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         if self.alias.is_some() {
+            dbg!(&self);
             write_alias_expr(self, None, opt)
         } else {
             self.kind.write(opt)
@@ -172,11 +173,12 @@ impl WriteSource for pl::ExprKind {
             Range(range) => {
                 let mut r = String::new();
                 if let Some(start) = &range.start {
-                    r += &start.write(opt)?;
+                    r += &write_expr(start, self, opt)?;
                 }
                 r += "..";
                 if let Some(end) = &range.end {
-                    r += &end.write(opt)?;
+                    dbg!(&end);
+                    r += &write_expr(end, self, opt)?;
                 }
                 Some(r)
             }
@@ -323,11 +325,13 @@ fn write_alias_rhs_expr(expr: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
 
 /// Writes an optionally parenthesized expression
 fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
+    dbg!(&expr, &parent);
     if expr.alias.is_some() {
         return write_alias_expr(expr, Some(parent), opt);
     }
     let strength_self = binding_strength(&expr.kind, false);
     let strength_parent = binding_strength(parent, true);
+    dbg!(&strength_self, &strength_parent);
 
     if strength_parent >= strength_self {
         expr.write_between("(", ")", opt)
@@ -336,7 +340,20 @@ fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<S
     }
 }
 
+// fn binding_strength(expr: &pl::ExprKind, is_parent: bool, is_alias: bool) -> i32 {
 fn binding_strength(expr: &pl::ExprKind, is_parent: bool) -> i32 {
+    // if is_alias {
+    //     if is_parent {
+    //         // When a parent, `=` has a fairly low binding strength:
+    //         // - Weaker than a binop, since `x = y + 1`
+    //         // - Stronger than a child funccall, since `x = (y z)`
+    //         return 0;
+    //     } else {
+    //         // When it's a child, the `=` has a high binding strength — we almost never
+    //         // need to wrap `(a = b)` in parens.
+    //         return 12;
+    //     }
+    // }
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
@@ -723,7 +740,7 @@ group {title, country} (aggregate {
         assert_fmt_matches(
             r#"
 from foo
-is_negative = (distance | in (-100)..0)
+is_negative = (-100)..0
 "#,
         );
     }
