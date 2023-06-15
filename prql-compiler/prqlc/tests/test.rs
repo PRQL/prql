@@ -52,7 +52,6 @@ fn test_get_targets() {
     sql.clickhouse
     sql.duckdb
     sql.generic
-    sql.hive
     sql.mssql
     sql.mysql
     sql.postgres
