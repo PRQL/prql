@@ -289,15 +289,17 @@ const EQ_STRENGTH: i32 = 0;
 
 fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
     let mut r = String::new();
-    // If `-1` has an alias `foo`, we're going to write `foo = -1`, so we want
-    // to take the strength of `=`, not of `-1`
-    let strength_self = EQ_STRENGTH;
+
+    assert!(expr.alias.is_some());
+    // When it's a child, the `=` has a high binding strength — we almost never
+    // need to wrap `(a = b)` in parens.
+    let strength_self = 12;
     let strength_parent = binding_strength(parent);
     dbg!(&expr, strength_self, &parent, strength_parent);
 
     if strength_parent >= strength_self {
         r += "(";
-        r += &write_ident_part(&expr.alias.as_ref().unwrap());
+        r += &write_ident_part(expr.alias.as_ref().unwrap());
         r += " = ";
         r += &write_alias_rhs_expr(expr, opt)?;
         r += ")";
@@ -314,7 +316,10 @@ fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Op
 
 fn write_alias_rhs_expr(expr: &pl::Expr, opt: WriteOpt) -> Option<String> {
     let strength_self = binding_strength(&expr.kind);
-    let strength_parent = EQ_STRENGTH;
+    // When a parent, `=` has a fairly low binding strength:
+    // - `x = y + 1` doesn't require parentheses, so it's weaker than a binop
+    // - but `x = (y z)` does, so it's stronger than a funccall
+    let strength_parent = -2;
     dbg!(&expr, strength_self, strength_parent);
 
     if strength_parent >= strength_self {
@@ -363,8 +368,9 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
             pl::BinOp::Or => 1,
             pl::BinOp::Coalesce => 2,
         },
-        pl::ExprKind::Unary(..) => 6,
-        pl::ExprKind::FuncCall(_) => 7,
+        // Needs to be below funccall, since `join x (==y)`
+        pl::ExprKind::Unary(..) => -1,
+        pl::ExprKind::FuncCall(_) => 0,
         pl::ExprKind::Func(_) => 0,
 
         _ => 11,
