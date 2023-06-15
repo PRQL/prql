@@ -123,14 +123,11 @@ impl WriteOpt {
 
 impl WriteSource for pl::Expr {
     fn write(&self, opt: WriteOpt) -> Option<String> {
-        // let mut r = String::new();
-        let r = String::new();
-        // if let Some(alias) = &self.alias {
-        //     r += write_alias_expr(expr, parent, opt)
-        //     // r += " = ";
-        // }
-
-        self.kind.write_between(r, "", opt)
+        if self.alias.is_some() {
+            write_alias_expr(self, None, opt)
+        } else {
+            self.kind.write(opt)
+        }
     }
 }
 
@@ -285,37 +282,36 @@ impl WriteSource for pl::ExprKind {
     }
 }
 
-fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
-    let mut r = String::new();
-
+fn write_alias_expr(
+    expr: &pl::Expr,
+    parent: Option<&pl::ExprKind>,
+    opt: WriteOpt,
+) -> Option<String> {
     assert!(expr.alias.is_some());
     // When it's a child, the `=` has a high binding strength — we almost never
     // need to wrap `(a = b)` in parens.
     let strength_self = 12;
     // If `-1` has an alias `foo`, we're going to write `foo = -1`, so we want
     // to take the strength of `=`, not of `-1`
-    let strength_parent = binding_strength(parent, true);
+    let strength_parent = parent.map(|p| binding_strength(p, true)).unwrap_or(-10);
 
+    let s = format!(
+        "{lhs} = {rhs}",
+        lhs = &write_ident_part(expr.alias.as_ref().unwrap()),
+        rhs = &write_alias_rhs_expr(&expr.kind, opt)?
+    );
     if strength_parent >= strength_self {
-        r += "(";
-        r += &write_ident_part(expr.alias.as_ref().unwrap());
-        r += " = ";
-        r += &write_alias_rhs_expr(expr, opt)?;
-        r += ")";
-        Some(r)
+        Some(format!("({s})"))
     } else {
-        r += &write_ident_part(expr.alias.as_ref().unwrap());
-        r += " = ";
-        r += &write_alias_rhs_expr(expr, opt)?;
-        Some(r)
+        Some(s)
     }
 }
 
-fn write_alias_rhs_expr(expr: &pl::Expr, opt: WriteOpt) -> Option<String> {
-    let strength_self = binding_strength(&expr.kind, false);
+fn write_alias_rhs_expr(expr: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
+    let strength_self = binding_strength(expr, false);
     // When a parent, `=` has a fairly low binding strength:
     // - Weaker than a binop, since `x = y + 1`
-    // - Stronger than a child funccall, since `x = (y z)` does
+    // - Stronger than a child funccall, since `x = (y z)`
     let strength_parent = 0;
 
     if strength_parent >= strength_self {
@@ -328,7 +324,7 @@ fn write_alias_rhs_expr(expr: &pl::Expr, opt: WriteOpt) -> Option<String> {
 /// Writes an optionally parenthesized expression
 fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
     if expr.alias.is_some() {
-        return write_alias_expr(expr, parent, opt);
+        return write_alias_expr(expr, Some(parent), opt);
     }
     let strength_self = binding_strength(&expr.kind, false);
     let strength_parent = binding_strength(parent, true);
@@ -341,7 +337,6 @@ fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<S
 }
 
 fn binding_strength(expr: &pl::ExprKind, is_parent: bool) -> i32 {
-    if expr.alias.is_some() {}
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
@@ -363,7 +358,9 @@ fn binding_strength(expr: &pl::ExprKind, is_parent: bool) -> i32 {
             pl::BinOp::Or => 1,
             pl::BinOp::Coalesce => 2,
         },
-        // Needs to be weaker than funccall as a parent, since `join x (==y)`
+        // Weaker than a parent funccall, since `join x (==y)`
+        // Weaker than a range, since `(-100)..1` (alternatively a range could
+        // inherit and we could do `(-100..1)`)
         pl::ExprKind::Unary(..) => 1,
         // Weaker than a child assign, since `select x = 1`
         // Weaker than a binary operator, since `filter x == 1`
@@ -704,5 +701,30 @@ mod test {
     #[test]
     fn test_simple() {
         assert_fmt_matches(r#"aggregate average_country_salary = (average salary)"#);
+    }
+
+    #[test]
+    fn test_assign() {
+        assert_fmt_matches(
+            r#"
+group {title, country} (aggregate {
+  average salary,
+  average gross_salary,
+  sum salary,
+  sum gross_salary,
+  average gross_cost,
+  sum_gross_cost = (sum gross_cost),
+  ct = (count s"*"),
+})"#,
+        );
+    }
+    #[test]
+    fn test_range() {
+        assert_fmt_matches(
+            r#"
+from foo
+is_negative = (distance | in (-100)..0)
+"#,
+        );
     }
 }
