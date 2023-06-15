@@ -126,8 +126,8 @@ impl WriteSource for pl::Expr {
         // let mut r = String::new();
         let r = String::new();
         // if let Some(alias) = &self.alias {
-        //     r += &write_ident_part(alias);
-        //     r += " = ";
+        //     r += write_alias_expr(expr, parent, opt)
+        //     // r += " = ";
         // }
 
         self.kind.write_between(r, "", opt)
@@ -285,8 +285,6 @@ impl WriteSource for pl::ExprKind {
     }
 }
 
-const EQ_STRENGTH: i32 = 0;
-
 fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
     let mut r = String::new();
 
@@ -294,8 +292,9 @@ fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Op
     // When it's a child, the `=` has a high binding strength — we almost never
     // need to wrap `(a = b)` in parens.
     let strength_self = 12;
-    let strength_parent = binding_strength(parent);
-    dbg!(&expr, strength_self, &parent, strength_parent);
+    // If `-1` has an alias `foo`, we're going to write `foo = -1`, so we want
+    // to take the strength of `=`, not of `-1`
+    let strength_parent = binding_strength(parent, true);
 
     if strength_parent >= strength_self {
         r += "(";
@@ -304,23 +303,20 @@ fn write_alias_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Op
         r += &write_alias_rhs_expr(expr, opt)?;
         r += ")";
         Some(r)
-        // expr.write_between("(", ")", opt)
     } else {
-        r += &write_ident_part(&expr.alias.clone().unwrap());
+        r += &write_ident_part(expr.alias.as_ref().unwrap());
         r += " = ";
         r += &write_alias_rhs_expr(expr, opt)?;
-        // expr.write(opt)
         Some(r)
     }
 }
 
 fn write_alias_rhs_expr(expr: &pl::Expr, opt: WriteOpt) -> Option<String> {
-    let strength_self = binding_strength(&expr.kind);
+    let strength_self = binding_strength(&expr.kind, false);
     // When a parent, `=` has a fairly low binding strength:
-    // - `x = y + 1` doesn't require parentheses, so it's weaker than a binop
-    // - but `x = (y z)` does, so it's stronger than a funccall
-    let strength_parent = -2;
-    dbg!(&expr, strength_self, strength_parent);
+    // - Weaker than a binop, since `x = y + 1`
+    // - Stronger than a child funccall, since `x = (y z)` does
+    let strength_parent = 0;
 
     if strength_parent >= strength_self {
         expr.write_between("(", ")", opt)
@@ -328,16 +324,14 @@ fn write_alias_rhs_expr(expr: &pl::Expr, opt: WriteOpt) -> Option<String> {
         expr.write(opt)
     }
 }
+
 /// Writes an optionally parenthesized expression
 fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
     if expr.alias.is_some() {
         return write_alias_expr(expr, parent, opt);
     }
-    // If `-1` has an alias `foo`, we're going to write `foo = -1`, so we want
-    // to take the strength of `=`, not of `-1`
-    let strength_self = binding_strength(&expr.kind);
-    let strength_parent = binding_strength(parent);
-    dbg!(&expr.kind, strength_self, &parent, strength_parent);
+    let strength_self = binding_strength(&expr.kind, false);
+    let strength_parent = binding_strength(parent, true);
 
     if strength_parent >= strength_self {
         expr.write_between("(", ")", opt)
@@ -346,7 +340,8 @@ fn write_expr(expr: &pl::Expr, parent: &pl::ExprKind, opt: WriteOpt) -> Option<S
     }
 }
 
-fn binding_strength(expr: &pl::ExprKind) -> i32 {
+fn binding_strength(expr: &pl::ExprKind, is_parent: bool) -> i32 {
+    if expr.alias.is_some() {}
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
@@ -368,9 +363,12 @@ fn binding_strength(expr: &pl::ExprKind) -> i32 {
             pl::BinOp::Or => 1,
             pl::BinOp::Coalesce => 2,
         },
-        // Needs to be below funccall, since `join x (==y)`
-        pl::ExprKind::Unary(..) => -1,
-        pl::ExprKind::FuncCall(_) => 0,
+        // Needs to be weaker than funccall as a parent, since `join x (==y)`
+        pl::ExprKind::Unary(..) => 1,
+        // Weaker than a child assign, since `select x = 1`
+        // Weaker than a binary operator, since `filter x == 1`
+        pl::ExprKind::FuncCall(_) if is_parent => 2,
+        pl::ExprKind::FuncCall(_) if !is_parent => -1,
         pl::ExprKind::Func(_) => 0,
 
         _ => 11,
@@ -627,6 +625,7 @@ mod test {
 
     fn assert_fmt_matches(input: &str) {
         let stmt = generate_single_stmt(input);
+
         assert_eq!(input.trim(), stmt.trim());
     }
 
@@ -689,7 +688,9 @@ mod test {
 
     #[test]
     fn test_double_braces() {
-        assert_fmt_matches(r#"has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')""#);
+        assert_fmt_matches(
+            r#"let has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')""#,
+        );
     }
 
     #[test]
