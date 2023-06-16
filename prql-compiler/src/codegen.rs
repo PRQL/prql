@@ -311,7 +311,7 @@ fn write_alias_rhs_expr(expr: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
 
 impl pl::Expr {
     /// Writes an optionally parenthesized expression based on the relative binding
-    /// strength of the experession and its parent.
+    /// strength of the expression and its parent.
     fn write_expr(&self, parent: Option<&pl::ExprKind>, opt: WriteOpt) -> Option<String> {
         if self.alias.is_some() {
             return write_alias_expr(self, parent, opt);
