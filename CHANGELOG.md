@@ -13,12 +13,12 @@ will become the public version at the next release._
   We now have Arrays, which use the `[]` syntax.
 
   We made this syntax change to incorporate arrays. Almost every major language
-  uses `[]` for arrays. We are adopting that convention, and will use `{}`
-  for tuples. (Though we recognize that `{}` for tuples is also rare (Hi,
-  Erlang!), but didn't want to further load parentheses with meaning.)
-  
-  To convert previous PRQL queries to this new syntax simply change `[ ... ]`
-  to `{ ... }`. 
+  uses `[]` for arrays. We are adopting that convention, and will use `{}` for
+  tuples. (Though we recognize that `{}` for tuples is also rare (Hi, Erlang!),
+  but didn't want to further load parentheses with meaning.)
+
+  To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
+  `{ ... }`.
 
   As part of this, we've also formalized tuples as containing both individual
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
