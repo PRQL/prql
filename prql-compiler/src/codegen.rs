@@ -261,60 +261,12 @@ impl WriteSource for pl::ExprKind {
     }
 }
 
-// We split out how aliases are written, since they follow slightly different
-// rules. I don't love the high-level flow of these functions + the `write`
-// method of pl::Expr; I would guess there's a simpler way to organize them.
-
-fn write_alias_expr(
-    expr: &pl::Expr,
-    parent: Option<&pl::ExprKind>,
-    opt: WriteOpt,
-) -> Option<String> {
-    assert!(expr.alias.is_some());
-    // When it's a child, the `=` has a high binding strength — we almost never
-    // need to wrap `(a = b)` in parens.
-    let strength_self = 12;
-    let strength_parent = match parent {
-        Some(p) => binding_strength(p, true),
-        // If there's no parent, then we're at the top level, so we don't need
-        // parentheses, we can act like the parent has a low binding strength.
-        None => i32::MIN,
-    };
-
-    let s = format!(
-        "{lhs} = {rhs}",
-        lhs = &write_ident_part(expr.alias.as_ref().unwrap()),
-        rhs = &write_alias_rhs_expr(&expr.kind, opt)?
-    );
-    if strength_parent >= strength_self {
-        // TODO: we should use `write_between`, but the function types don't
-        // work atm.
-        Some(format!("({s})"))
-    } else {
-        Some(s)
-    }
-}
-
-fn write_alias_rhs_expr(expr: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
-    let strength_self = binding_strength(expr, false);
-    // When a parent, `=` has a fairly low binding strength:
-    // - Weaker than a binop, since `x = y + 1`
-    // - Stronger than a child funccall, since `x = (y z)`
-    let strength_parent = 0;
-
-    if strength_parent >= strength_self {
-        expr.write_between("(", ")", opt)
-    } else {
-        expr.write(opt)
-    }
-}
-
 impl pl::Expr {
     /// Writes an optionally parenthesized expression based on the relative binding
     /// strength of the expression and its parent.
     fn write_expr(&self, parent: Option<&pl::ExprKind>, opt: WriteOpt) -> Option<String> {
         if self.alias.is_some() {
-            return write_alias_expr(self, parent, opt);
+            return self.write_alias_expr(parent, opt);
         }
         let strength_self = binding_strength(&self.kind, false);
         let strength_parent = match parent {
@@ -328,6 +280,49 @@ impl pl::Expr {
             self.kind.write_between("(", ")", opt)
         } else {
             self.kind.write(opt)
+        }
+    }
+
+    // We split out how aliases are written, since they follow slightly different
+    // rules. Possibly there's a simpler way to organize them; contributions
+    // welcome.
+    fn write_alias_expr(&self, parent: Option<&pl::ExprKind>, opt: WriteOpt) -> Option<String> {
+        assert!(self.alias.is_some());
+        // When it's a child, the `=` has a high binding strength — we almost never
+        // need to wrap `(a = b)` in parens.
+        let strength_self = 12;
+        let strength_parent = match parent {
+            Some(p) => binding_strength(p, true),
+            // If there's no parent, then we're at the top level, so we don't need
+            // parentheses, we can act like the parent has a low binding strength.
+            None => i32::MIN,
+        };
+
+        let s = format!(
+            "{lhs} = {rhs}",
+            lhs = &write_ident_part(self.alias.as_ref().unwrap()),
+            rhs = pl::Expr::write_alias_rhs_expr(&self.kind, opt)?
+        );
+        if strength_parent >= strength_self {
+            // TODO: we should use `write_between`, but the function types don't
+            // work atm.
+            Some(format!("({s})"))
+        } else {
+            Some(s)
+        }
+    }
+
+    fn write_alias_rhs_expr(expr: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
+        let strength_self = binding_strength(expr, false);
+        // When a parent, `=` has a fairly low binding strength:
+        // - Weaker than a binop, since `x = y + 1`
+        // - Stronger than a child funccall, since `x = (y z)`
+        let strength_parent = 0;
+
+        if strength_parent >= strength_self {
+            expr.write_between("(", ")", opt)
+        } else {
+            expr.write(opt)
         }
     }
 }
