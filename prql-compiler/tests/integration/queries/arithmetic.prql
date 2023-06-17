@@ -27,5 +27,10 @@ select {
     (q_if * k_float + r_if | round 0),
     (q_fi * k_int + r_fi | round 0),
     (q_ff * k_float + r_ff | round 0),
+
+    (q_ii * k_int + r_ii | round 1),
+    (q_if * k_float + r_if | round 1),
+    (q_fi * k_int + r_fi | round 1),
+    (q_ff * k_float + r_ff | round 1),
 }
 sort id
