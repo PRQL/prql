@@ -3,25 +3,25 @@ const examples = {
     "sql",
     `from invoices
 filter invoice_date >= @1970-01-16
-derive [                        # This adds columns
+derive {                        # This adds columns
   transaction_fees = 0.8,
   income = total - transaction_fees  # Columns can use other columns
-]
+}
 filter income > 1     # Transforms can be repeated.
 group customer_id (   # Use a nested pipeline on each group
-  aggregate [         # Aggregate each group to a single row
+  aggregate {         # Aggregate each group to a single row
     average total,
     sum_income = sum income,
-    ct = count,
-  ]
+    ct = count sum_income,
+  }
 )
-sort [-sum_income]    # Decreasing order
+sort {-sum_income}    # Decreasing order
 take 10               # Limit to top 10 spenders
 join c=customers (==customer_id)
 derive name = f"{c.last_name}, {c.first_name}"
-select [              # Select only these columns
+select {              # Select only these columns
   c.customer_id, name, sum_income
-]
+}
 derive db_version = s"version()" # S-string, escape hatch to SQL
 `,
   ],
@@ -50,7 +50,7 @@ filter s.track_id == null
 join g=high_energy (==genre_id)
 
 # format output
-select [t.track_id, track = t.name, genre = g.name]
+select {t.track_id, track = t.name, genre = g.name}
 take 10
 `,
   ],
@@ -58,11 +58,11 @@ take 10
   "artists-0.prql": [
     "sql",
     `from tracks
-select [album_id, name, unit_price]
-sort [-unit_price, name]
+select {album_id, name, unit_price}
+sort {-unit_price, name}
 group album_id (
     aggregate {
-    track_count = count,
+    track_count = count name,
     album_price = sum unit_price
     }
 )
@@ -74,8 +74,8 @@ group artist_id (
     }
 )
 join artists (==artist_id)
-select [artists.name, artist_price, track_count]
-sort [-artist_price]
+select {artists.name, artist_price, track_count}
+sort {-artist_price}
 derive avg_track_price = artist_price / track_count
 `,
   ],
