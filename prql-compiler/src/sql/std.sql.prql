@@ -160,7 +160,7 @@ module postgres {
   let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
   @{binding_strength=100}
-  let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+  let round = n_digits column -> s"ROUND(({column:0}), {n_digits:0})"
 
   @{binding_strength=9}
   let regex_search = text pattern -> s"{text} ~ {pattern}"
