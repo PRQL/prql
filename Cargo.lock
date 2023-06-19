@@ -2145,7 +2145,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "strum 0.25.0",
- "strum_macros 0.24.3",
+ "strum_macros 0.25.0",
  "walkdir",
 ]
 
@@ -2851,7 +2851,7 @@ dependencies = [
  "sqlformat",
  "sqlparser",
  "strum 0.25.0",
- "strum_macros 0.24.3",
+ "strum_macros 0.25.0",
  "tiberius",
  "tokio",
  "tokio-util",
