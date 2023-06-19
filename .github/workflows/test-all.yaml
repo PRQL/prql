@@ -93,12 +93,10 @@ jobs:
     uses: ./.github/workflows/test-lib.yaml
 
   measure-code-cov:
-    # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
-    if: false
     runs-on: ubuntu-latest
-    # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
-    # see whether `skip_clean` is reliable and then add this job to every
-    # commit.
+    # Currently this runs `cargo clean` which makes the run take a long time.
+    # TODO: see whether `skip_clean` is reliable and then add this job to the
+    # pull-request workflow.
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -106,8 +104,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Run cargo-tarpaulin
-        uses: actions-rs/tarpaulin@v0.1
+      # actions-rs is unmaintained, using fork with fix for update to node 16
+      # https://github.com/actions-rs/tarpaulin/pull/22
+      - uses: FreeMasen/tarpaulin-action@9f7e03f06fea8f374c85a95c2ecff6a4d5805845
         with:
           # TODO: move this exclusion to a config file.
           args: "--workspace --exclude prql-python -- --test-threads 1"
