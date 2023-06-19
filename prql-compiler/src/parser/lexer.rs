@@ -141,7 +141,7 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
-    let exp = just('e').or(just('E')).ignore_then(
+    let exp = just('e').or(just('E')).chain(
         just('+')
             .or(just('-'))
             .or_not()
