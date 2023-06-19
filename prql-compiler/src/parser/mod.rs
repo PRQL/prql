@@ -894,13 +894,20 @@ Canada
         "###);
 
         // Underscores at the beginning are parsed as ident
-        parse_expr("_2").unwrap().kind.into_ident().unwrap();
-        parse_expr("_").unwrap().kind.into_ident().unwrap();
+        assert!(parse_expr("_2").unwrap().kind.into_ident().is_ok());
+        assert!(parse_expr("_").unwrap().kind.into_ident().is_ok());
 
-        // We don't allow empty fractions.
-        parse_expr(r#"add 1. 2"#).unwrap_err();
+        // We don't allow trailing periods
+        assert!(parse_expr(r#"add 1. 2"#).is_err());
 
-        parse_expr("_2.3").unwrap_err();
+        assert!(parse_expr("_2.3").is_err());
+
+        assert_yaml_snapshot!(parse_expr(r#"2e3"#).unwrap(), @r###"
+        ---
+        Literal:
+          Float: 2000
+        "###);
+
         // expr_of_string("2_").unwrap_err(); // TODO
         // expr_of_string("2.3_").unwrap_err(); // TODO
     }
