@@ -24,6 +24,16 @@ from employees | filter department == "Product" | select {first_name, last_name}
 
 A line-break doesn't create a pipeline in a couple of cases:
 
-- within a list (e.g. the `derive` examples below),
+- within a tuple
+- within an array
 - when the following line is a new statement, which starts with a keyword of
   `func`, `let` or `from`.
+
+```prql
+from [        # Line break OK in an array
+  {a=2, b=3}
+]
+derive {      # Line break OK in a tuple
+  c = 2 * a,
+}
+```
