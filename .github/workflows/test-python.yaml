@@ -50,7 +50,7 @@ jobs:
           python-version: "3.7"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          python-version: "3.11"
       - name: Install nox
         run: pipx install nox
         shell: bash
