@@ -93,7 +93,7 @@ will become the public version at the next release._
 <!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
 
 - We've changed how we handle colors. We now use the
-  `[anstream](https://github.com/rust-cli/anstyle)` library in `prqlc` &
+  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
   `prql-compiler`.
 
   `Options::color` is deprecated and has no effect. Code which consumes
