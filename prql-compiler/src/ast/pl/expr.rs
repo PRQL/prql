@@ -160,7 +160,18 @@ pub struct UnaryExpr {
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize, strum::EnumString)]
+#[derive(
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,

@@ -24,8 +24,8 @@ pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 semver = "1.0.9"
 serde_json = "1.0.81"
-strum = {version = "0.24.0", features = ["std", "derive"]}
-strum_macros = "0.24.0"
+strum = {version = "0.25.0", features = ["std", "derive"]}
+strum_macros = "0.25.0"
 
 # Possibly we should just put all dependencies as excluded from wasm? Currently
 # we only put the ones that break the build.

@@ -48,7 +48,6 @@ pub enum Dialect {
     DuckDb,
     #[default]
     Generic,
-    Hive,
     MsSql,
     MySql,
     Postgres,
@@ -71,7 +70,7 @@ impl Dialect {
             Dialect::Snowflake => Box::new(SnowflakeDialect),
             Dialect::DuckDb => Box::new(DuckDbDialect),
             Dialect::Postgres => Box::new(PostgresDialect),
-            Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
+            Dialect::Ansi | Dialect::Generic => Box::new(GenericDialect),
         }
     }
 
@@ -86,8 +85,6 @@ impl Dialect {
             Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
                 SupportLevel::Unsupported
             }
-            // TODO: remove?
-            Dialect::Hive => SupportLevel::Nascent,
         }
     }
 
