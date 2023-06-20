@@ -36,7 +36,7 @@ formatting = function (hljs) {
     "window",
   ];
   const BUILTIN_FUNCTIONS = ["case", "in", "as"];
-  const KEYWORDS = ["func", "let", "prql"];
+  const KEYWORDS = ["let", "prql"];
   return {
     name: "PRQL",
     case_insensitive: true,
