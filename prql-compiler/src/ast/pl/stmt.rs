@@ -24,7 +24,7 @@ pub struct Stmt {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum StmtKind {
-    QueryDef(QueryDef),
+    QueryDef(Box<QueryDef>),
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
@@ -40,7 +40,7 @@ pub struct QueryDef {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
     pub value: Box<Expr>,
-    pub ty_expr: Option<Expr>,
+    pub ty_expr: Option<Box<Expr>>,
     pub kind: VarDefKind,
 }
 
@@ -53,7 +53,7 @@ pub enum VarDefKind {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TypeDef {
-    pub value: Option<Expr>,
+    pub value: Option<Box<Expr>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -63,8 +63,7 @@ pub struct ModuleDef {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Annotation {
-    pub expr: Expr,
-    pub span: Option<Span>,
+    pub expr: Box<Expr>,
 }
 
 impl Annotation {
