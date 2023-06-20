@@ -98,7 +98,9 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error 
     let annotation = just(Token::Annotate)
         .ignore_then(expr())
         .then_ignore(new_line())
-        .map(|expr| Annotation { expr: Box::new(expr) });
+        .map(|expr| Annotation {
+            expr: Box::new(expr),
+        });
 
     let let_ = keyword("let")
         .ignore_then(ident_part())

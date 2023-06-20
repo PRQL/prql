@@ -61,7 +61,10 @@ pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     let mut id_gen = IdGenerator::<usize>::new();
 
     for (path, source) in &file_tree.sources {
-        let id = ids.get(path).map(|x| **x).unwrap_or_else(|| id_gen.gen() as u16);
+        let id = ids
+            .get(path)
+            .map(|x| **x)
+            .unwrap_or_else(|| id_gen.gen() as u16);
         let stmts = parse_source(source, id)?;
 
         res.sources.insert(path.clone(), stmts);
@@ -2708,7 +2711,6 @@ join s=salaries (==id)
                   - Literal:
                       Integer: 1
                     alias: binding_strength
-              span: "0:7-29"
         "###);
     }
 }
