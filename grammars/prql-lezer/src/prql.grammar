@@ -17,7 +17,7 @@ Pipeline { expr_call (pipe+ expr_call)* }
 
 pipe { "|" | ~ambig_newline newline }
 
-Tuple { "[" newline? tuple_item (("," newline? ) tuple_item)* ","? newline? "]" }
+Tuple { "{" newline? tuple_item (("," newline? ) tuple_item)* ","? newline? "}" }
 
 tuple_item { Assign_call | expr_call | Case_branch }
 
