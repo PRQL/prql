@@ -45,7 +45,7 @@ runs:
       with:
         command: build
         args:
-          --package prqlc --profile ${{ inputs.profile }} --locked --target=${{
+          --package=prqlc --profile=${{ inputs.profile }} --locked --target=${{
           inputs.target }}
 
     - name: Create artifact for Linux and macOS

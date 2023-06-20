@@ -9,3 +9,13 @@ CodeMirror grammars are required by some downstream tools, including
 
 We don't yet have the JS machinery around it, and it's not published to any
 package managers. We can add that shortly. Possibly it'll go into its own repo.
+
+## Developing
+
+Given there aren't yet tests, we've been developing this by:
+
+- Opening <https://lezer-playground.vercel.app/>
+- Pasting an example query
+- Pasting the current grammar
+- Fixing any issues in the grammar
+- Copying the grammar back into the repo

@@ -12,36 +12,53 @@ will become the public version at the next release._
 
   We now have Arrays, which use the `[]` syntax.
 
-  We've made this change to incorporate arrays without having syntax that's the
-  opposite of almost every major language — specifically using `{}` for an array
-  type and `[]` for a tuple type. (Though we recognize that `{}` for tuples is
-  also rare (Hi, Erlang!), but didn't want to further load parentheses with
-  meaning)
+  We made this syntax change to incorporate arrays. Almost every major language
+  uses `[]` for arrays. We are adopting that convention, and will use `{}` for
+  tuples. (Though we recognize that `{}` for tuples is also rare (Hi, Erlang!),
+  but didn't want to further load parentheses with meaning.)
+
+  To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
+  `{ ... }`.
 
   As part of this, we've also formalized tuples as containing both individual
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
 
-- Add a `~=` regex search operator (@max-sixty, #2458). An example:
+- Some significant changes regarding SQL dialects:
 
-  ```prql no-eval
-  from tracks
-  filter {name ~= "Love"}
-  ```
+  - Operators and functions can be defined on per-dialect basis. (@aljazerzen,
+    #2681)
+  - _Breaking_: The `sql.duckdb` target supports DuckDB 0.8 (@eitsupi, #2810).
+  - _Breaking_: The `sql.hive` target is removed (@eitsupi, #2837).
 
-  ...compiles to;
+- Three new operators. These compile to different function or operator depending
+  on the target.
 
-  ```sql
-  SELECT
-    *
-  FROM
-    tracks
-  WHERE
-    REGEXP(name, 'Love')
-  ```
+  - _Breaking_: Floating division operator `/` and truncated integer division
+    operator `//`. In previous versions, `/` was simply compiled into SQL `/`,
+    but `/` now always does floating division. (@aljazerzen, #2684).
+    <!-- TODO: link to division operator docs -->
 
-  ...though the exact form differs by dialect; see the
-  [Regex docs](https://prql-lang.org/book/language-features/regex.html) for more
-  details.
+  - Regex search operator `~=` (@max-sixty, #2458). An example:
+
+    ```prql no-eval
+    from tracks
+    filter {name ~= "Love"}
+    ```
+
+    ...compiles to;
+
+    ```sql
+    SELECT
+      *
+    FROM
+      tracks
+    WHERE
+      REGEXP(name, 'Love')
+    ```
+
+    ...though the exact form differs by dialect; see the
+    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for
+    more details.
 
 - We've changed our function declaration syntax to match other declarations.
   Functions were one of the first language constructs in PRQL, and since then
@@ -63,10 +80,8 @@ will become the public version at the next release._
 - "Relation Literals", which create inline relations / tables from data in the
   query:
 
-  ' # TODO: add `from`?
-
   ```prql no-eval
-  [{a=5, b=false}, {a=6, b=true}]
+  from [{a=5, b=false}, {a=6, b=true}]
   filter b == true
   select a
   ```
@@ -74,6 +89,8 @@ will become the public version at the next release._
   This example demonstrates both the new tuple syntax (`{}`) and arrays `[]`.
 
   (@aljazerzen, #2605)
+
+<!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
 
 - We've changed how we handle colors. We now use the
   `[anstream](https://github.com/rust-cli/anstyle)` library in `prqlc` &
@@ -92,6 +109,9 @@ will become the public version at the next release._
   (`RUST_BACKTRACE`) is active. (@max-sixty, #2751)
 
 **Fixes**:
+
+- Numbers expressed with scientific notation — `1e9` — are now handled correctly
+  by the compiler (@max-sixty).
 
 **Documentation**:
 
@@ -112,6 +132,8 @@ will become the public version at the next release._
 
 - Remove BigQuery's special handling of quoted identifiers, now that our module
   system handles its semantics (@max-sixty, #2609).
+
+- ClickHouse is tested in CI (@eitsupi, #2815).
 
 **New Contributors**:
 

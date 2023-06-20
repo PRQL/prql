@@ -131,11 +131,6 @@ module duckdb {
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 }
 
-module hive {
-  @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / {r})"
-}
-
 module mssql {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r})"
