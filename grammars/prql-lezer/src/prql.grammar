@@ -65,7 +65,7 @@ Op_bin { Op_bin_only | Op_unary }
   Number { number_part "."? number_part? }
   space { " "+ }
   Comment { "#" ![\n]* }
-  Op_bin_only { "*" | "/" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
+  Op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
   Op_unary { "-" | "+" | "==" }
   end { @eof }
   newline { "\n" }
