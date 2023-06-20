@@ -297,13 +297,14 @@ tasks:
     desc: Build & serve the playground.
     dir: web/playground
     cmds:
-      - task: install-playground-npm-dependencies
+      - npm install --install-links=false
       - npm start
 
-  run-pg:
-    desc: Serve the playground without building it
+  run-playground-cached:
+    desc: Build & serve the playground, without rebuilding rust code.
     dir: web/playground
     cmds:
+      - task: install-playground-npm-dependencies
       - npm start
 
   install-playground-npm-dependencies:
