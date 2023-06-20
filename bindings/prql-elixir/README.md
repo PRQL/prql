@@ -43,7 +43,7 @@ run PRQL without needing a Rust toolchain.
 
 We currently don't enable compilation for Mac. This is possible to enable, but
 causes some issues with cargo's compilation cache. Briefly: it requires
-`RUST_FLAGS` to be set, and because of
+`RUSTFLAGS` to be set, and because of
 <https://github.com/rust-lang/cargo/issues/8716> &
 <https://github.com/rust-lang/cargo/issues/8899>, any compilation of a different
 target will bust the cache.
@@ -52,7 +52,7 @@ The possible future workarounds include:
 
 - Passing `--target=aarch64-apple-darwin` to every cargo call, which is
   inconvenient and can be difficult in some situations; e.g. Rust Analyzer. This
-  disables passing `RUST_FLAGS` (I'm actually unclear why `prql-elixir` builds
+  disables passing `RUSTFLAGS` (I'm actually unclear why `prql-elixir` builds
   successfully in that case...)
 - Directing other cargo calls to different paths, such as `/target-ra` for Rust
   Analyzer and `/target-book` for the book building. But one `cargo build` from
