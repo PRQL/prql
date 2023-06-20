@@ -23,10 +23,6 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64
-          - os: ubuntu-latest
-            target: aarch64
-          - os: ubuntu-latest
-            target: source
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -54,13 +50,7 @@ jobs:
           python-version: "3.7"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
+          python-version: "3.x"
       - name: Install nox
         run: pipx install nox
         shell: bash
