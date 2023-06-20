@@ -111,7 +111,7 @@ will become the public version at the next release._
 **Fixes**:
 
 - Numbers expressed with scientific notation — `1e9` — are now handled correctly
-  by the compiler (@max-sixty).
+  by the compiler (@max-sixty, #2865).
 
 **Documentation**:
 
@@ -123,7 +123,7 @@ will become the public version at the next release._
 
 - Annotations in PRQL. These have limited support but are currently used to
   specify binding strengths. They're modeled after Rust's annotations, but with
-  `@` syntax, more similar to traditional decorators.
+  `@` syntax, more similar to traditional decorators. (#2729)
 
   ```prql no-eval
   @{binding_strength=11}
