@@ -1,3 +1,5 @@
+// Seems to break tarpaulin
+#![cfg(not(tarpaulin))]
 // See Readme for more information on Mac compiling
 #![cfg(not(target_os = "macos"))]
 // These bindings aren't relevant on wasm
