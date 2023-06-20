@@ -1,1 +1,5 @@
-comment: off
+comment: false
+
+ignore:
+  # Contains code for integration tests which don't run in coverage
+  - "prql/prql-compiler/tests/integration/**"
