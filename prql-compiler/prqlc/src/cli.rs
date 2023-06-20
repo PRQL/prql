@@ -150,9 +150,9 @@ pub enum DebugCommand {
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
 
-    /// Print debug info about the AST data structure
+    /// Print info about the AST data structure
     #[cfg(debug_assertions)]
-    AST,
+    Ast,
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
