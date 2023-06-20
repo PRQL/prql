@@ -1,4 +1,6 @@
 // TODO:
+// - Support function definitions
+// - Support relation literals
 // - `case` transform
 // - `Array`
 // - Do we want to highlight built-in transforms like `from` differently to
@@ -8,7 +10,7 @@
 @top Query { Statements }
 @skip { space | Comment }
 
-Statements { newline* Query_def? ( Func_def | Table_def)* Pipeline_stmt? end }
+Statements { newline* Query_def? (Table_def)* Pipeline_stmt? end }
 
 Query_def { @specialize<ident_part, "prql"> Named_arg* newline+ }
 
@@ -97,7 +99,7 @@ Op_bin { Op_bin_only | Op_unary }
 
 Table_def { @specialize<ident_part, "let"> ident_part "=" Nested_pipeline ( newline+ | end ) }
 
-Func_def { @specialize<ident_part, "let"> Func_def_name "=" Func_def_param* "->" expr_call ( newline+ | end ) }
+// Func_def { @specialize<ident_part, "let"> Func_def_name "=" Func_def_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
 Type_term { ident_part Type_def? }
 Func_def_name { ident_part Type_def? }
