@@ -106,7 +106,11 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: cargo tarpaulin --skip-clean --all-targets --out=Xml
+      # Temporary to iterate faster
+      # - run: cargo tarpaulin --skip-clean --all-targets --out=Xml
+      - run:
+          cargo tarpaulin --skip-clean --all-targets --out=Xml -p prql-compiler
+          --lib
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
       - name: Upload code coverage results
