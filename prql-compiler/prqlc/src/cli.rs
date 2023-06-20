@@ -208,7 +208,7 @@ impl Command {
                 shell.generate(&mut Cli::command(), &mut std::io::stdout());
                 Ok(())
             }
-            Command::Debug(DebugCommand::AST) => {
+            Command::Debug(DebugCommand::Ast) => {
                 prql_compiler::ast::pl::print_mem_sizes();
                 Ok(())
             }
