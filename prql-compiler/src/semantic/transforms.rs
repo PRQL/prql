@@ -62,6 +62,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                         }
                         _ => (node, SortDirection::default()),
                     };
+                    let column = Box::new(column);
 
                     ColumnSort { direction, column }
                 })

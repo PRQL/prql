@@ -24,7 +24,7 @@ use crate::{
 use crate::{SourceTree, Span};
 
 /// Build PL AST from a PRQL query string.
-pub fn parse_source(source: &str, source_id: usize) -> Result<Vec<Stmt>> {
+pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
@@ -58,10 +58,10 @@ pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     let mut res = SourceTree::default();
 
     let ids: HashMap<_, _> = file_tree.source_ids.iter().map(|(a, b)| (b, a)).collect();
-    let mut id_gen = IdGenerator::new();
+    let mut id_gen = IdGenerator::<usize>::new();
 
     for (path, source) in &file_tree.sources {
-        let id = ids.get(path).map(|x| **x).unwrap_or_else(|| id_gen.gen());
+        let id = ids.get(path).map(|x| **x).unwrap_or_else(|| id_gen.gen() as u16);
         let stmts = parse_source(source, id)?;
 
         res.sources.insert(path.clone(), stmts);
@@ -76,7 +76,7 @@ pub fn parse_single(source: &str) -> Result<Vec<Stmt>> {
     parse_source(source, 0)
 }
 
-fn convert_lexer_error(source: &str, e: Cheap<char>, source_id: usize) -> Error {
+fn convert_lexer_error(source: &str, e: Cheap<char>, source_id: u16) -> Error {
     // TODO: is there a neater way of taking a span? We want to take it based on
     // the chars, not the bytes, so can't just index into the str.
     let found = source
@@ -168,7 +168,7 @@ fn convert_parser_error(e: common::PError) -> Error {
 fn prepare_stream(
     tokens: Vec<(Token, std::ops::Range<usize>)>,
     source: &str,
-    source_id: usize,
+    source_id: u16,
 ) -> Stream<Token, Span, impl Iterator<Item = (Token, Span)> + Sized> {
     let tokens = tokens
         .into_iter()
@@ -233,7 +233,7 @@ mod common {
     }
 
     impl chumsky::Span for Span {
-        type Context = usize;
+        type Context = u16;
 
         type Offset = usize;
 

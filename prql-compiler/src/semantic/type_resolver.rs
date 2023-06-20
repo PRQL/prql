@@ -112,7 +112,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
                     .into_iter()
                     .map(|p| p.ty.map(|t| t.into_ty().unwrap()))
                     .collect_vec(),
-                return_ty: Box::new(resolver.fold_type_expr(Some(*func.body))?),
+                return_ty: Box::new(resolver.fold_type_expr(Some(func.body))?),
             }),
         },
 

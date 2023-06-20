@@ -24,3 +24,46 @@ pub use self::literal::*;
 pub use self::stmt::*;
 pub use self::types::*;
 pub use self::utils::*;
+
+pub fn print_mem_sizes() {
+    use std::mem::size_of;
+
+    println!("{:16}= {}", "Annotation", size_of::<Annotation>());
+    println!("{:16}= {}", "BinaryExpr", size_of::<BinaryExpr>());
+    println!("{:16}= {}", "BinOp", size_of::<BinOp>());
+    println!("{:16}= {}", "ColumnSort", size_of::<ColumnSort>());
+    println!("{:16}= {}", "Expr", size_of::<Expr>());
+    println!("{:16}= {}", "ExprKind", size_of::<ExprKind>());
+    println!("{:16}= {}", "Func", size_of::<Func>());
+    println!("{:16}= {}", "FuncCall", size_of::<FuncCall>());
+    println!("{:16}= {}", "FuncParam", size_of::<FuncParam>());
+    println!("{:16}= {}", "InterpolateItem", size_of::<InterpolateItem>());
+    println!("{:16}= {}", "JoinSide", size_of::<JoinSide>());
+    println!("{:16}= {}", "Lineage", size_of::<Lineage>());
+    println!("{:16}= {}", "LineageColumn", size_of::<LineageColumn>());
+    println!("{:16}= {}", "LineageInput", size_of::<LineageInput>());
+    println!("{:16}= {}", "ModuleDef", size_of::<ModuleDef>());
+    println!("{:16}= {}", "Pipeline", size_of::<Pipeline>());
+    println!("{:16}= {}", "PrimitiveSet", size_of::<PrimitiveSet>());
+    println!("{:16}= {}", "QueryDef", size_of::<QueryDef>());
+    println!("{:16}= {}", "Range", size_of::<Range>());
+    println!("{:16}= {}", "SortDirection", size_of::<SortDirection>());
+    println!("{:16}= {}", "Stmt", size_of::<Stmt>());
+    println!("{:16}= {}", "StmtKind", size_of::<StmtKind>());
+    println!("{:16}= {}", "SwitchCase", size_of::<SwitchCase>());
+    println!("{:16}= {}", "TableExternRef", size_of::<TableExternRef>());
+    println!("{:16}= {}", "TransformCall", size_of::<TransformCall>());
+    println!("{:16}= {}", "TransformKind", size_of::<TransformKind>());
+    println!("{:16}= {}", "TupleField", size_of::<TupleField>());
+    println!("{:16}= {}", "Ty", size_of::<Ty>());
+    println!("{:16}= {}", "TyFunc", size_of::<TyFunc>());
+    println!("{:16}= {}", "TyKind", size_of::<TyKind>());
+    println!("{:16}= {}", "TyOrExpr", size_of::<TyOrExpr>());
+    println!("{:16}= {}", "TypeDef", size_of::<TypeDef>());
+    println!("{:16}= {}", "UnaryExpr", size_of::<UnaryExpr>());
+    println!("{:16}= {}", "UnOp", size_of::<UnOp>());
+    println!("{:16}= {}", "VarDef", size_of::<VarDef>());
+    println!("{:16}= {}", "VarDefKind", size_of::<VarDefKind>());
+    println!("{:16}= {}", "WindowFrame", size_of::<WindowFrame>());
+    println!("{:16}= {}", "WindowKind", size_of::<WindowKind>());
+}

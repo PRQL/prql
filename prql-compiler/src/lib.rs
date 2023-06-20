@@ -324,7 +324,7 @@ pub struct SourceTree<T: Sized + Serialize = String> {
     pub sources: HashMap<PathBuf, T>,
 
     /// Index of source ids to paths. Used to keep [error::Span] lean.
-    source_ids: HashMap<usize, PathBuf>,
+    source_ids: HashMap<u16, PathBuf>,
 }
 
 impl<T: Sized + Serialize> SourceTree<T> {
@@ -339,7 +339,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
     where
         I: IntoIterator<Item = (PathBuf, T)>,
     {
-        let mut id_gen = IdGenerator::new();
+        let mut id_gen = IdGenerator::<usize>::new();
         let mut res = SourceTree {
             sources: HashMap::new(),
             source_ids: HashMap::new(),
@@ -347,7 +347,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
 
         for (path, content) in iter {
             res.sources.insert(path.clone(), content);
-            res.source_ids.insert(id_gen.gen(), path);
+            res.source_ids.insert(id_gen.gen() as u16, path);
         }
         res
     }
