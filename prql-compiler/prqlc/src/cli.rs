@@ -151,7 +151,6 @@ pub enum DebugCommand {
     Annotate(IoArgs),
 
     /// Print info about the AST data structure
-    #[cfg(debug_assertions)]
     Ast,
 }
 
