@@ -1,16 +1,12 @@
 // TODO:
-// - Support function definitions
-// - Support relation literals
-// - `case` transform
-// - `Array`
-// - Do we want to highlight built-in transforms like `from` differently to
+// - Do we want to highlight built-in transforms such as `from` differently to
 //   normal functions?
 // - A few small TODOs included below
 
 @top Query { Statements }
 @skip { space | Comment }
 
-Statements { newline* Query_def? (Table_def)* Pipeline_stmt? end }
+Statements { newline* Query_def? (Def)* Pipeline_stmt? end }
 
 Query_def { @specialize<ident_part, "prql"> Named_arg* newline+ }
 
@@ -32,7 +28,7 @@ expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | Tuple | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range }
+term { !term Ident | Number | Tuple | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range | Array | Case }
 
 // Not quite sure why `!term` is required here
 Expr { !term term (( Op_bin) term)* }
@@ -41,6 +37,9 @@ Named_arg { ident_part ":" Expr }
 Assign { ident_part "=" Expr }
 Assign_call { ident_part "=" expr_call }
 Case_branch { Expr "=>" Expr }
+Array { "[" newline? Expr (("," newline? ) Expr)* ","? newline? "]" }
+// Possibly we could only accept case branches inside the Tuple?
+Case {  @specialize<ident_part, "case"> Tuple }
 
 Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
 
@@ -97,10 +96,9 @@ Op_bin { Op_bin_only | Op_unary }
   @precedence { S_string, F_string, Op_bin_only, ident_part }
 }
 
-Table_def { @specialize<ident_part, "let"> ident_part "=" Nested_pipeline ( newline+ | end ) }
+Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }
 
-// Func_def { @specialize<ident_part, "let"> Func_def_name "=" Func_def_param* "->" expr_call ( newline+ | end ) }
+Lambda { Lambda_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
 Type_term { ident_part Type_def? }
-Func_def_name { ident_part Type_def? }
-Func_def_param { ident_part Type_def? (":" Expr)? }
+Lambda_param { ident_part Type_def? (":" Expr)? }
