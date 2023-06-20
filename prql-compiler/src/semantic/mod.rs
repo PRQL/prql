@@ -1,6 +1,7 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 mod context;
+mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
@@ -17,6 +18,7 @@ pub use self::context::Context;
 pub use self::module::Module;
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
+pub use eval::eval;
 pub use lowering::lower_to_ir;
 
 use crate::ast::pl::{Lineage, LineageColumn, Stmt};

@@ -7,9 +7,9 @@ on:
       - Taskfile.yml
       - .github/workflows/test-taskfile.yaml
   workflow_call:
+  workflow_dispatch:
 
 env:
-  # This reduces the size of the cargo cache by ~25%.
   RUSTFLAGS: "-C debuginfo=0"
 
 concurrency:

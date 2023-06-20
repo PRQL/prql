@@ -4,6 +4,7 @@ use std::iter::zip;
 use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
+use crate::ast::pl::expr::{BinaryExpr, UnaryExpr};
 use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::transforms::coerce_into_tuple_and_flatten;
@@ -280,64 +281,29 @@ impl AstFold for Resolver {
 
             ExprKind::Func(closure) => self.fold_function(*closure, node.span)?,
 
-            ExprKind::Unary {
+            ExprKind::Unary(UnaryExpr {
                 op: UnOp::EqSelf,
                 expr,
-            } => {
+            }) => {
                 let kind = self.resolve_eq_self(*expr, span)?;
                 Expr { kind, ..node }
             }
 
-            ExprKind::Unary {
+            ExprKind::Unary(UnaryExpr {
                 op: UnOp::Add,
                 expr,
-            } => self.fold_expr(*expr)?,
+            }) => self.fold_expr(*expr)?,
 
-            ExprKind::Unary {
+            ExprKind::Unary(UnaryExpr {
                 op: UnOp::Not,
                 expr,
-            } if matches!(expr.kind, ExprKind::Tuple(_)) => self.resolve_column_exclusion(*expr)?,
-
-            ExprKind::Unary { expr, op } => {
-                let func_name = match op {
-                    UnOp::Neg => ["std", "neg"],
-                    UnOp::Not => ["std", "not"],
-                    UnOp::Add | UnOp::EqSelf => unreachable!(),
-                };
-                let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
-                    Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
-                    vec![*expr],
-                )));
-                func_call.span = span;
-                self.fold_expr(func_call)?
+            }) if matches!(expr.kind, ExprKind::Tuple(_)) => {
+                self.resolve_column_exclusion(*expr)?
             }
 
-            ExprKind::Binary { left, op, right } => {
-                let func_name = match op {
-                    BinOp::Mul => ["std", "mul"],
-                    BinOp::DivInt => ["std", "div_i"],
-                    BinOp::DivFloat => ["std", "div_f"],
-                    BinOp::Mod => ["std", "mod"],
-                    BinOp::Add => ["std", "add"],
-                    BinOp::Sub => ["std", "sub"],
-                    BinOp::Eq => ["std", "eq"],
-                    BinOp::Ne => ["std", "ne"],
-                    BinOp::Gt => ["std", "gt"],
-                    BinOp::Lt => ["std", "lt"],
-                    BinOp::Gte => ["std", "gte"],
-                    BinOp::Lte => ["std", "lte"],
-                    BinOp::RegexSearch => ["std", "regex_search"],
-                    BinOp::And => ["std", "and"],
-                    BinOp::Or => ["std", "or"],
-                    BinOp::Coalesce => ["std", "coalesce"],
-                };
-                let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
-                    Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
-                    vec![*left, *right],
-                )));
-                func_call.span = span;
-                self.fold_expr(func_call)?
-            }
+            ExprKind::Unary(unary) => self.fold_expr(unary_to_func_call(unary, span))?,
+
+            ExprKind::Binary(binary) => self.fold_expr(binary_to_func_call(binary, span))?,
 
             ExprKind::All { within, except } => {
                 let decl = self.context.root_mod.get(&within);
@@ -441,6 +407,47 @@ impl AstFold for Resolver {
         }
         Ok(r)
     }
+}
+
+pub fn unary_to_func_call(UnaryExpr { op, expr }: UnaryExpr, span: Option<Span>) -> Expr {
+    let func_name = match op {
+        UnOp::Neg => ["std", "neg"],
+        UnOp::Not => ["std", "not"],
+        UnOp::Add | UnOp::EqSelf => unreachable!(),
+    };
+    let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+        Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+        vec![*expr],
+    )));
+    func_call.span = span;
+    func_call
+}
+
+pub fn binary_to_func_call(BinaryExpr { op, left, right }: BinaryExpr, span: Option<Span>) -> Expr {
+    let func_name = match op {
+        BinOp::Mul => ["std", "mul"],
+        BinOp::DivInt => ["std", "div_i"],
+        BinOp::DivFloat => ["std", "div_f"],
+        BinOp::Mod => ["std", "mod"],
+        BinOp::Add => ["std", "add"],
+        BinOp::Sub => ["std", "sub"],
+        BinOp::Eq => ["std", "eq"],
+        BinOp::Ne => ["std", "ne"],
+        BinOp::Gt => ["std", "gt"],
+        BinOp::Lt => ["std", "lt"],
+        BinOp::Gte => ["std", "gte"],
+        BinOp::Lte => ["std", "lte"],
+        BinOp::RegexSearch => ["std", "regex_search"],
+        BinOp::And => ["std", "and"],
+        BinOp::Or => ["std", "or"],
+        BinOp::Coalesce => ["std", "coalesce"],
+    };
+    let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+        Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+        vec![*left, *right],
+    )));
+    func_call.span = span;
+    func_call
 }
 
 impl Resolver {

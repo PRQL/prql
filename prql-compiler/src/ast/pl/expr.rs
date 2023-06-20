@@ -68,15 +68,8 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     Array(Vec<Expr>),
     Range(Range),
-    Binary {
-        left: Box<Expr>,
-        op: BinOp,
-        right: Box<Expr>,
-    },
-    Unary {
-        op: UnOp,
-        expr: Box<Expr>,
-    },
+    Binary(BinaryExpr),
+    Unary(UnaryExpr),
     FuncCall(FuncCall),
     Func(Box<Func>),
     TransformCall(TransformCall),
@@ -105,6 +98,13 @@ impl ExprKind {
             _ => Err(self),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct BinaryExpr {
+    pub left: Box<Expr>,
+    pub op: BinOp,
+    pub right: Box<Expr>,
 }
 
 #[derive(
@@ -154,7 +154,24 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct UnaryExpr {
+    pub op: UnOp,
+    pub expr: Box<Expr>,
+}
+
+#[derive(
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
@@ -452,11 +469,11 @@ impl Expr {
             return Expr::from(ExprKind::Literal(Literal::Boolean(true)));
         };
         while let Some(e) = exprs.pop() {
-            aggregate = Expr::from(ExprKind::Binary {
+            aggregate = Expr::from(ExprKind::Binary(BinaryExpr {
                 left: Box::new(e),
                 op: BinOp::And,
                 right: Box::new(aggregate),
-            })
+            }))
         }
         aggregate
     }

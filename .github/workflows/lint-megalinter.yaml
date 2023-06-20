@@ -7,6 +7,7 @@ name: lint-megalinter
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 env: # Comment env block if you do not want to apply fixes
   # Apply linter fixes configuration

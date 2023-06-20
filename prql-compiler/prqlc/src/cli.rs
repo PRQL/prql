@@ -3,13 +3,19 @@ use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
+use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
+use prql_compiler::ast::pl::StmtKind;
+use std::collections::HashMap;
+use std::env;
+use std::io::Read;
 use std::io::Write;
+use std::ops::Range;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
-use std::{fs::File, ops::Range};
 
 use prql_compiler::semantic::{self, reporting::*};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
@@ -27,6 +33,21 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 
     if let Err(error) = cli.command.run() {
         eprintln!("{error}");
+        // Copied from
+        // https://doc.rust-lang.org/src/std/backtrace.rs.html#1-504, since it's private
+        fn backtrace_enabled() -> bool {
+            match env::var("RUST_LIB_BACKTRACE") {
+                Ok(s) => s != "0",
+                Err(_) => match env::var("RUST_BACKTRACE") {
+                    Ok(s) => s != "0",
+                    Err(_) => false,
+                },
+            }
+        }
+        if backtrace_enabled() {
+            eprintln!("{:#}", error.backtrace());
+        }
+
         exit(1)
     }
 
@@ -56,14 +77,11 @@ enum Command {
     #[command(name = "fmt")]
     Format {
         #[arg(value_parser, default_value = "-", value_hint(ValueHint::AnyPath))]
-        input: clio_extended::Input,
+        input: clio::ClioPath,
     },
 
-    /// Parse, resolve & combine source with comments annotating relation type
-    Annotate(IoArgs),
-
-    /// Parse & resolve, but don't lower into RQ
-    Debug(IoArgs),
+    #[command(subcommand)]
+    Debug(DebugCommand),
 
     /// Parse, resolve & lower into RQ
     Resolve {
@@ -117,10 +135,26 @@ enum Command {
     },
 }
 
+/// Commands for meant for debugging, prone to change
+#[derive(Subcommand, Debug, Clone)]
+pub enum DebugCommand {
+    /// Parse & resolve, but don't lower into RQ
+    Semantics(IoArgs),
+
+    /// Parse & evaluate expression down to a value
+    ///
+    /// Cannot contain references to tables or any other outside sources.
+    /// Meant as a playground for testing out language design decisions.
+    Eval(IoArgs),
+
+    /// Parse, resolve & combine source with comments annotating relation type
+    Annotate(IoArgs),
+}
+
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
     #[arg(value_parser, default_value = "-", value_hint(ValueHint::AnyPath))]
-    input: clio_extended::Input,
+    input: clio::ClioPath,
 
     #[arg(value_parser, default_value = "-", value_hint(ValueHint::FilePath))]
     output: Output,
@@ -145,31 +179,24 @@ impl Command {
             // Format is handled differently to the other IO commands, since it
             // always writes to the same output.
             Command::Format { input } => {
-                let text = input.read_to_tree()?;
-                let (_, source) = text.sources.clone().into_iter().exactly_one().or_else(
-                    |_| bail!(
-                        "Currently `fmt` only works with a single source, but found multiple sources: {:?}",
-                        text.sources.keys()
-                            .map(|x| x.display().to_string())
-                            .sorted()
-                            .map(|x| format!("`{}`", x))
-                            .join(", ")
-                    )
-                )?;
-                let ast = prql_to_pl(&source)?;
-                let mut output: Output = match input {
-                    clio_extended::Input::Stdin(_) => Output::Stdout(std::io::stdout()),
-                    clio_extended::Input::Pipe(_, _) => Output::Stdout(std::io::stdout()),
-                    // Pass a path and a file pointing to that path
-                    clio_extended::Input::File(path, _) => Output::File(
-                        path.as_os_str().into(),
-                        File::options().write(true).open(input.path())?,
-                    ),
-                    clio_extended::Input::Directory(_) => {
-                        bail!("Cannot format a directory yet, please use `prqlc fmt <file>`")
-                    }
-                };
+                let sources = read_files(input)?;
 
+                if sources.sources.len() != 1 {
+                    let paths = sources
+                        .sources
+                        .keys()
+                        .map(|x| format!("`{}`", x.display()))
+                        .sorted()
+                        .join(", ");
+                    bail!(
+                        "Currently `fmt` only works with a single source, but found multiple sources: {paths:?}"
+                    )
+                }
+                let (_, source) = sources.sources.into_iter().next().unwrap();
+
+                let ast = prql_to_pl(&source)?;
+
+                let mut output: Output = Output::new(input.path())?;
                 output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 Ok(())
             }
@@ -217,7 +244,7 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
-            Command::Debug(_) => {
+            Command::Debug(DebugCommand::Semantics(_)) => {
                 semantic::load_std_lib(sources);
                 let stmts = prql_to_pl_tree(sources)?;
 
@@ -234,7 +261,7 @@ impl Command {
                 out.extend(format!("\n{context:#?}\n").into_bytes());
                 out
             }
-            Command::Annotate(_) => {
+            Command::Debug(DebugCommand::Annotate(_)) => {
                 let (_, source) = sources.sources.clone().into_iter().exactly_one().or_else(
                     |_| bail!(
                         "Currently `annotate` only works with a single source, but found multiple sources: {:?}",
@@ -263,6 +290,29 @@ impl Command {
 
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
+            }
+            Command::Debug(DebugCommand::Eval(_)) => {
+                let stmts = prql_to_pl_tree(sources)?;
+
+                let mut res = String::new();
+
+                for (path, stmts) in stmts.sources {
+                    res += &format!("# {}\n\n", path.to_str().unwrap());
+
+                    for stmt in stmts {
+                        if let StmtKind::VarDef(def) = stmt.kind {
+                            res += &format!("## {}\n", stmt.name);
+
+                            let val = semantic::eval(*def.value)
+                                .map_err(downcast)
+                                .map_err(|e| e.composed(sources))?;
+                            res += &val.to_string();
+                            res += "\n\n";
+                        }
+                    }
+                }
+
+                res.into_bytes()
             }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);
@@ -336,8 +386,9 @@ impl Command {
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
             | SQLAnchor { io_args, .. }
-            | Debug(io_args)
-            | Annotate(io_args) => io_args,
+            | Debug(DebugCommand::Semantics(io_args))
+            | Debug(DebugCommand::Annotate(io_args))
+            | Debug(DebugCommand::Eval(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -345,18 +396,18 @@ impl Command {
         // Don't wait without a prompt when running `prqlc compile` —
         // it's confusing whether it's waiting for input or not. This
         // offers the prompt.
-        if input.is_stdin() && atty::is(atty::Stream::Stdin) {
+        if input.path() == Path::new("-") && atty::is(atty::Stream::Stdin) {
             #[cfg(unix)]
             eprintln!("Enter PRQL, then press ctrl-d to compile:\n");
             #[cfg(windows)]
             eprintln!("Enter PRQL, then press ctrl-z to compile:\n");
         }
 
-        let file_tree = input.read_to_tree()?;
+        let sources = read_files(input)?;
 
         let main_path = io_args.main_path.clone().unwrap_or_default();
 
-        Ok((file_tree, main_path))
+        Ok((sources, main_path))
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
@@ -366,12 +417,29 @@ impl Command {
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLAnchor { io_args, .. }
-            | SQLPreprocess(io_args) => io_args.output.to_owned(),
-            Debug(io) | Annotate(io) => io.output.to_owned(),
+            | SQLPreprocess(io_args)
+            | Debug(DebugCommand::Semantics(io_args))
+            | Debug(DebugCommand::Annotate(io_args))
+            | Debug(DebugCommand::Eval(io_args)) => io_args.output.to_owned(),
             _ => unreachable!(),
         };
         output.write_all(data)
     }
+}
+
+fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
+    let root = input.path();
+
+    let mut sources = HashMap::new();
+    for file in input.clone().files(has_extension("prql"))? {
+        let path = file.path().strip_prefix(root)?.to_owned();
+
+        let mut file_contents = String::new();
+        file.open()?.read_to_string(&mut file_contents)?;
+
+        sources.insert(path, file_contents);
+    }
+    Ok(SourceTree::new(sources))
 }
 
 fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String {
@@ -404,177 +472,6 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
     result.into_iter().join("\n") + "\n"
 }
 
-/// [clio::Input], extended to also allow consuming directories
-mod clio_extended {
-    use std::collections::HashMap;
-    use std::ffi::OsStr;
-    use std::fs::{self, File};
-    use std::io::{self, Read, Stdin};
-    use std::marker::PhantomData;
-    use std::path::PathBuf;
-
-    use clap::builder::TypedValueParser;
-    use prql_compiler::SourceTree;
-    use walkdir::WalkDir;
-
-    #[derive(Debug)]
-    pub enum Input {
-        /// a [`Stdin`] when the path was `-`
-        Stdin(Stdin),
-        /// a [`File`] representing the named pipe e.g. if called with `<(cat /dev/null)`
-        Pipe(PathBuf, File),
-        /// a normal [`File`] opened from the path
-        File(PathBuf, File),
-        /// a Directory
-        Directory(PathBuf),
-    }
-
-    impl Input {
-        /// Constructs a new input either by opening the file or for '-' returning stdin
-        pub fn new<S: AsRef<OsStr>>(path: S) -> clio::Result<Self> {
-            let path = path.as_ref();
-            if path == "-" {
-                Ok(Self::std())
-            } else {
-                let pathbuf = PathBuf::from(path);
-                if pathbuf.is_dir() {
-                    return Ok(Input::Directory(pathbuf));
-                }
-                let file = File::open(&pathbuf)?;
-                if is_fifo(&file)? {
-                    Ok(Input::Pipe(pathbuf, file))
-                } else {
-                    Ok(Input::File(pathbuf, file))
-                }
-            }
-        }
-
-        /// Constructs a new input for stdin
-        pub fn std() -> Self {
-            Input::Stdin(io::stdin())
-        }
-
-        pub fn is_stdin(&self) -> bool {
-            matches!(self, Input::Stdin(_))
-        }
-
-        /// Returns the path/url used to create the input
-        pub fn path(&self) -> &OsStr {
-            match self {
-                Input::Stdin(_) => "-".as_ref(),
-                Input::Pipe(pathbuf, _) | Input::File(pathbuf, _) | Input::Directory(pathbuf) => {
-                    pathbuf.as_os_str()
-                }
-            }
-        }
-
-        pub fn read_to_tree(&mut self) -> anyhow::Result<SourceTree<String>> {
-            let mut only_file = String::new();
-
-            match self {
-                Input::Stdin(stdin) => stdin.read_to_string(&mut only_file)?,
-                Input::Pipe(_, pipe) => pipe.read_to_string(&mut only_file)?,
-                Input::File(_, file) => file.read_to_string(&mut only_file)?,
-                Input::Directory(root_path) => {
-                    // special case: actually walk the dirs
-                    let mut sources = HashMap::new();
-                    for entry in WalkDir::new(&root_path) {
-                        let entry = entry.unwrap();
-                        let path = entry.path();
-
-                        if path.is_file() && path.extension() == Some(OsStr::new("prql")) {
-                            let file_contents = fs::read_to_string(path)?;
-                            let path = path.strip_prefix(&root_path)?.to_path_buf();
-
-                            sources.insert(path, file_contents);
-                        }
-                    }
-
-                    return Ok(SourceTree::new(sources));
-                }
-            };
-
-            let path = PathBuf::from("Root.prql");
-            Ok(SourceTree::single(path, only_file))
-        }
-    }
-
-    impl Default for Input {
-        fn default() -> Self {
-            Input::std()
-        }
-    }
-
-    /// Opens a new handle on the file from the path that was used to create it
-    /// Probably a very bad idea to have two handles to the same file
-    ///
-    /// This will panic if the file has been deleted
-    ///
-    /// Only included when using the `clap-parse` feature as it is needed for `value_parser`
-    impl Clone for Input {
-        fn clone(&self) -> Self {
-            Input::new(self.path()).unwrap()
-        }
-    }
-
-    impl clap::builder::ValueParserFactory for Input {
-        type Parser = OsStrParser<Input>;
-        fn value_parser() -> Self::Parser {
-            OsStrParser::new()
-        }
-    }
-
-    /// A clap parser that converts [`&OsStr`](std::ffi::OsStr) to an [Input].
-    #[derive(Copy, Clone, Debug)]
-    pub struct OsStrParser<T> {
-        phantom: PhantomData<T>,
-    }
-
-    impl<T> OsStrParser<T> {
-        pub(crate) fn new() -> Self {
-            OsStrParser {
-                phantom: PhantomData,
-            }
-        }
-    }
-
-    impl TypedValueParser for OsStrParser<Input> {
-        type Value = Input;
-
-        fn parse_ref(
-            &self,
-            cmd: &clap::Command,
-            arg: Option<&clap::Arg>,
-            value: &std::ffi::OsStr,
-        ) -> core::result::Result<Self::Value, clap::Error> {
-            Input::new(value).map_err(|orig| {
-                cmd.clone().error(
-                    clap::error::ErrorKind::InvalidValue,
-                    if let Some(arg) = arg {
-                        format!(
-                            "Invalid value for {}: Could not open {:?}: {}",
-                            arg, value, orig
-                        )
-                    } else {
-                        format!("Could not open {:?}: {}", value, orig)
-                    },
-                )
-            })
-        }
-    }
-
-    #[cfg(not(unix))]
-    fn is_fifo(_: &File) -> clio::Result<bool> {
-        Ok(false)
-    }
-
-    #[cfg(unix)]
-    fn is_fifo(file: &File) -> clio::Result<bool> {
-        use std::os::unix::fs::FileTypeExt;
-        Ok(file.metadata()?.file_type().is_fifo())
-    }
-}
-
 /// Unit tests for `prqlc`. Integration tests (where we call the actual binary)
 /// are in `prql-compiler/prqlc/tests/test.rs`.
 #[cfg(test)]
@@ -586,7 +483,7 @@ mod tests {
     #[test]
     fn layouts() {
         let output = Command::execute(
-            &Command::Annotate(IoArgs::default()),
+            &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
             &mut r#"
 from initial_table
 select {f = first_name, l = last_name, gender}
@@ -617,7 +514,7 @@ sort full
         // now doesn't run through `execute`; instead through `run`.
         let output = Command::execute(
             &Command::Format {
-                input: clio_extended::Input::default(),
+                input: clio::ClioPath::default(),
             },
             &mut r#"
 from table.subdivision

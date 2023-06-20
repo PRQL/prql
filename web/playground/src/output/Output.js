@@ -69,6 +69,10 @@ class Output extends React.Component {
         if (typ.startsWith("Timestamp")) {
           // TODO: handle timezone (which Date does not support)
 
+          // HACK: due to bug in arrow or duckdb, we are getting MICROSECOND here,
+          // but the values are actually milliseconds. I'm not sure what is going on,
+          // so let's just assume the values will always be in milliseconds.
+          /*
           if (typ.endsWith("<SECOND>")) {
             return (x) => new Date(x * 1000).toISOString();
           }
@@ -81,6 +85,8 @@ class Output extends React.Component {
           if (typ.endsWith("<NANOSECOND>")) {
             return (x) => new Date(x / 1000000).toISOString();
           }
+          */
+          return (x) => new Date(x).toISOString();
         }
         return (x) => x;
       });

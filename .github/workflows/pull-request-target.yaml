@@ -23,6 +23,7 @@ jobs:
           # - "internal" for code quality / ergonomics improvements
           # - "devops" for developer ergonomics
           # - "web" for playground / website (but not docs)
+          # - "tweak" for tiny changes
           types: |
             feat
             fix
@@ -35,9 +36,11 @@ jobs:
             ci
             chore
             revert
+
             internal
             devops
             web
+            tweak
 
   backport:
     # Backport to `web` branch on `pr-backport-web`

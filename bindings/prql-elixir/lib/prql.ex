@@ -16,7 +16,6 @@ defmodule PRQL do
           | :ansi
           | :bigquery
           | :clickhouse
-          | :hive
           | :sqlite
           | :snowflake
   @type format_opt :: {:format, boolean()}
@@ -37,7 +36,7 @@ defmodule PRQL do
 
     * `:target` - Dialect used for generate SQL. Accepted values are
     `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
-    `:clickhouse`, `:hive`, `:sqlite`, `:snowflake`
+    `:clickhouse`, `:sqlite`, `:snowflake`
 
     * `:format` - Formats the output, defaults to `true`
 

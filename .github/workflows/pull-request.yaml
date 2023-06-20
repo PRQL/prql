@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   # This seems to require a custom suffix; I _think_ because this calls
@@ -30,11 +31,11 @@ jobs:
       matrix:
         # We use a matrix here to mirror `test-all`, so they share a cache.
         os: [ubuntu-latest]
-        target_option: ["", "--target=wasm32-unknown-unknown"]
+        target: ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
     uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
-      target_option: ${{ matrix.target_option }}
+      target: ${{ matrix.target }}
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
@@ -117,12 +118,16 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-musl
+          # TODO: Until we have tests for these, we don't have a cache for them.
+          # If we can add tests, then re-enable them. They run on `release.yaml`
+          # regardless.
+          #
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-musl
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
     steps:
@@ -131,6 +136,14 @@ jobs:
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
+          profile: dev
+    # These are the same env variables as in `test-rust.yaml`. Custom actions
+    # don't allow setting env variables for the whole job, so we do it here. (We
+    # could change the `build-prqlc` action to a workflow...).
+    env:
+      CARGO_TERM_COLOR: always
+      CLICOLOR_FORCE: 1
+      RUSTFLAGS: "-C debuginfo=0"
 
   automerge-dependabot:
     # This would arguably fit more naturally in `pull-request-target`, but it's

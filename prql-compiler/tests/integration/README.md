@@ -12,6 +12,24 @@ tables are stored as CSV files. Their current size is 432kB, it could be gzip-ed
 to 112kB, but that would require a preprocessing step before running
 `cargo test`.
 
+## Query
+
+For databases like ClickHouse, where the order of results is ambiguous, please
+use `sort` for test queries to to guarantee the order of rows across DBs.
+
+For example, instead of the following query:
+
+```elm
+from albums
+```
+
+Use a query inclueding `sort`:
+
+```elm
+from albums
+sort album_id
+```
+
 ## RDMBS
 
 ### SQLite
@@ -24,11 +42,13 @@ cargo build.
 Can be run as part of `cargo test`. Uses bundled DuckDb, compiled as part of
 cargo build.
 
-### Postgres, MySQL, SQL Server
+### External DBs
 
 These will not run as a part of `cargo test`. Use
 `cargo test --features=test-external-dbs` instead. Make sure to start docker
 compose before (see below).
+
+Currently Postgres, MySQL, SQL Server and ClickHouse are tested.
 
 ## Docker compose
 
@@ -38,15 +58,15 @@ Steps to run the tests:
 
 1. Run docker compose (may take a while on the first time):
 
-   ```
-   $ cd prql-compiler/tests/integration
-   $ docker compose up
+   ```sh
+   cd prql-compiler/tests/integration
+   docker compose up
    ```
 
 2. Run the tests:
 
-   ```
-   $ cargo test --features=test-external-dbs
+   ```sh
+   cargo test --features=test-external-dbs
    ```
 
 ## Test organization
