@@ -17,9 +17,9 @@ Pipeline { expr_call (pipe+ expr_call)* }
 
 pipe { "|" | ~ambig_newline newline }
 
-List { "[" newline? list_item (("," newline? ) list_item)* ","? newline? "]" }
+Tuple { "[" newline? tuple_item (("," newline? ) tuple_item)* ","? newline? "]" }
 
-list_item { Assign_call | expr_call | Case_branch }
+tuple_item { Assign_call | expr_call | Case_branch }
 
 expr_call { Expr | Func_call }
 // Ideally we would force a space after `Ident` to prevent an invalid s-string
@@ -29,7 +29,7 @@ expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | List | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range }
+term { !term Ident | Number | Tuple | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range }
 
 // Not quite sure why `!term` is required here
 Expr { !term term (( Op_bin) term)* }
