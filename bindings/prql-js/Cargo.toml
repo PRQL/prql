@@ -39,6 +39,9 @@ console_error_panic_hook = {version = "0.1.7", optional = true}
 [dev-dependencies]
 wasm-bindgen-test = "0.3.30"
 
+[build-dependencies]
+substrate-wasm-builder = "10.0.0"
+
 [package.metadata.cargo-udeps.ignore]
 development = ["wasm-bindgen-test"]
 

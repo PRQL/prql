@@ -7,6 +7,8 @@ use std::str::FromStr;
 use prql_compiler::Target;
 use wasm_bindgen::prelude::*;
 
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
+
 #[wasm_bindgen]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
     return_or_throw(
