@@ -14,7 +14,7 @@ const TRANSFORMS = [
   "window",
 ];
 const BUILTIN_FUNCTIONS = ["case"]; // "in", "as"
-const KEYWORDS = ["func", "let", "prql"];
+const KEYWORDS = ["let", "prql"];
 const LITERALS = ["null", "true", "false"];
 
 const def = {
