@@ -64,8 +64,8 @@ jobs:
           command: test
           args:
             "--no-run --locked --target=${{ inputs.target }} ${{ inputs.target
-            == 'x86_64-unknown-linux-gnu' && '--features=test-external-dbs' ||
-            '' }}"
+            == 'x86_64-unknown-linux-gnu' && '--features=test-dbs-external' ||
+            '--features=test-dbs' }}"
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
@@ -82,9 +82,9 @@ jobs:
           command: insta
           # Autoformatting doesn't make this clear to read, but this tertiary
           # expression states to only check these on ubuntu linux:
-          # - External DB integration tests — `--features=test-external-dbs`.
+          # - External DB integration tests — `--features=test-dbs-external`.
           # - Unreferenced snapshots - `--unreferenced=auto`.
           args:
             test --target=${{ inputs.target }} ${{ inputs.target==
             'x86_64-unknown-linux-gnu' && '--unreferenced=auto
-            --features=test-external-dbs' || '' }}
+            --features=test-dbs-external' || '--features=test-dbs' }}

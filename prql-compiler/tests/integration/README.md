@@ -45,7 +45,7 @@ cargo build.
 ### External DBs
 
 These will not run as a part of `cargo test`. Use
-`cargo test --features=test-external-dbs` instead. Make sure to start docker
+`cargo test --features=test-dbs-external` instead. Make sure to start docker
 compose before (see below).
 
 Currently Postgres, MySQL, SQL Server and ClickHouse are tested.
@@ -66,7 +66,7 @@ Steps to run the tests:
 2. Run the tests:
 
    ```sh
-   cargo test --features=test-external-dbs
+   cargo test --features=test-dbs-external
    ```
 
 ## Test organization
