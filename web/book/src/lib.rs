@@ -74,11 +74,11 @@ fn replace_examples(text: &str) -> Result<String> {
         // If it's there no tag, or it's not PRQL, or it has `no-eval`, just
         // push it and continue.
         let Some(lang_tags) = code_block_lang_tags(&event) else {
-            cmark_acc.push(event.to_owned());
+            cmark_acc.push(event.clone());
             continue;
         };
         if !lang_tags.contains(&LangTag::Prql) {
-            cmark_acc.push(event.to_owned());
+            cmark_acc.push(event.clone());
             continue;
         }
 
@@ -89,7 +89,7 @@ fn replace_examples(text: &str) -> Result<String> {
             .try_collect()?;
 
         if lang_tags.contains(&LangTag::NoEval) {
-            cmark_acc.push(event.to_owned());
+            cmark_acc.push(event.clone());
             continue;
         }
 

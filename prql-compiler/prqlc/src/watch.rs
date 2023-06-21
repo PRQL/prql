@@ -66,9 +66,11 @@ fn watch_and_compile(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
         match res {
             Ok(event) => match event.kind {
                 notify::EventKind::Any
-                | notify::EventKind::Create(notify::event::CreateKind::File)
-                | notify::EventKind::Create(notify::event::CreateKind::Any)
-                | notify::EventKind::Create(notify::event::CreateKind::Other)
+                | notify::EventKind::Create(
+                    notify::event::CreateKind::File
+                    | notify::event::CreateKind::Any
+                    | notify::event::CreateKind::Other,
+                )
                 | notify::EventKind::Modify(_) => {
                     for path in event.paths {
                         // to make display nicer, try to convert to relative paths
@@ -87,7 +89,7 @@ fn watch_and_compile(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
                 | notify::EventKind::Remove(_)
                 | notify::EventKind::Other => {}
             },
-            Err(e) => println!("watch error: {:?}", e),
+            Err(e) => println!("watch error: {e:?}"),
         }
     }
 

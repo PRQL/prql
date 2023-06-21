@@ -4,7 +4,7 @@ use globset::Glob;
 use insta::assert_snapshot;
 use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
-use prql_compiler::*;
+use prql_compiler::{pl_to_prql, pl_to_rq, prql_to_pl, ErrorMessages};
 use pulldown_cmark::Tag;
 use std::fs;
 use std::path::Path;
@@ -18,7 +18,7 @@ use super::compile;
 /// - We raise an error if they shouldn't pass or shouldn't fail.
 /// - Insta raises an error if there's a snapshot diff.
 ///
-/// This mirrors the process in [replace_examples], which inserts a comparison
+/// This mirrors the process in [`replace_examples`], which inserts a comparison
 /// table of SQL into the book, and so serves as a snapshot test of those
 /// examples.
 //

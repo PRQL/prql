@@ -13,7 +13,7 @@
 //!
 //! Unfortunately, this requires parsing Jinja.
 //!
-//! use crate::compiler::tokens::{Span, Token};
+//! use `crate::compiler::tokens::{Span`, Token};
 
 use std::collections::HashMap;
 
@@ -159,11 +159,11 @@ mod test {
                     Span {
                         start_line: 2,
                         start_col: 9,
-                        end_line: 12123123,
-                        end_col: 2930293,
+                        end_line: 12_123_123,
+                        end_col: 2_930_293,
                     },
                     Span {
-                        start_line: 7893648,
+                        start_line: 7_893_648,
                         start_col: 79678,
                         end_line: 3,
                         end_col: 31,
