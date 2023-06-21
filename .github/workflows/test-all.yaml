@@ -24,8 +24,8 @@ on:
   pull_request:
     paths:
       - "**/Cargo.*"
-      - ".github/workflows/test-all.yaml"
-  # Called by pull-request when specifically requested
+      - ".github/workflows/**"
+  # Called by `pull-request.yaml` when specifically requested
   workflow_call:
   workflow_dispatch:
 
