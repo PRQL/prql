@@ -18,7 +18,6 @@ test = false
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
-clap = {version = "4.3.0", default-features = false}
 itertools = "0.10.3"
 mdbook = {version = "0.4.21", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
@@ -30,7 +29,7 @@ serde_json = "1.0.81"
 strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.0"
 
-[dev-dependencies]
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
 globset = "0.4.8"
 insta = {version = "1.29", features = ["colors", "glob"]}
