@@ -1,4 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
+#![cfg(feature = "test-dbs")]
 
 use std::{env, fs};
 
@@ -95,7 +96,7 @@ impl IntegrationTest for Dialect {
                 protocol: Box::new(rusqlite::Connection::open_in_memory().unwrap()),
             }),
 
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::Postgres => Some(DbConnection {
                 dialect: Dialect::Postgres,
                 protocol: Box::new(
@@ -106,21 +107,21 @@ impl IntegrationTest for Dialect {
                     .unwrap(),
                 ),
             }),
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::MySql => Some(DbConnection {
                 dialect: Dialect::MySql,
                 protocol: Box::new(
                     mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
                 ),
             }),
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::ClickHouse => Some(DbConnection {
                 dialect: Dialect::ClickHouse,
                 protocol: Box::new(
                     mysql::Pool::new("mysql://default:@localhost:9004/dummy").unwrap(),
                 ),
             }),
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::MsSql => {
                 use tiberius::{AuthMethod, Client, Config};
                 use tokio::net::TcpStream;
