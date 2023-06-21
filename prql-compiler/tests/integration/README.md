@@ -4,7 +4,7 @@ Test PRQL queries against various SQL RDBMS.
 
 ## Data
 
-Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with
+Columns are renamed to `snake_case`, so Postgres and DuckDb don't struggle with
 them.
 
 For optimal accessibility, portability between databases and file size, all
@@ -12,7 +12,7 @@ tables are stored as CSV files. Their current size is 432kB, it could be gzip-ed
 to 112kB, but that would require a preprocessing step before running
 `cargo test`.
 
-## Query
+## Queries
 
 For databases like ClickHouse, where the order of results is ambiguous, please
 use `sort` for test queries to to guarantee the order of rows across DBs.
@@ -23,7 +23,7 @@ For example, instead of the following query:
 from albums
 ```
 
-Use a query inclueding `sort`:
+Use a query including `sort`:
 
 ```elm
 from albums
