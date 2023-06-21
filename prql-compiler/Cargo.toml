@@ -11,7 +11,7 @@ version.workspace = true
 metadata.msrv = "1.65.0"
 
 [features]
-default = ["test-dbs"]
+default = []
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
 test-dbs = ["csv", "duckdb", "rusqlite", "tokio"]
