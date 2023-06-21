@@ -1,0 +1,25 @@
+# TODO: move this into a separate test; but putting here because of the
+# `insta_cmd` issues, and because we're in a rush to ensure Windows builds
+# aren't randomly breaking.
+
+let long_query = (
+    from employees
+    filter gross_cost > 0
+    group {title} (
+        aggregate {
+            ct = count s"*",
+        }
+    )
+    sort ct
+    filter ct > 200
+    take 20
+    sort ct
+    filter ct > 200
+    take 20
+    sort ct
+    filter ct > 200
+    take 20
+    sort ct
+    filter ct > 200
+    take 20
+)
