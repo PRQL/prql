@@ -210,7 +210,7 @@ tasks:
     #   - "**/*.snap"
     cmds:
       # Only delete unreferenced snapshots on the default target — lots are
-      # excluded under wasm. Note that this will also over-delete on Windows.
+      # excluded under wasm.
       - cargo insta test --accept --features=test-dbs --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
 
@@ -230,10 +230,6 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so runs
-      # doesn't cause an infinite loop of other runs (though possibly mitigated
-      # by `--accept` and task not interrupting existing runs, so all files go
-      # to `.snap`s which match the generated output?).
       - "prql-compiler/**/*.rs"
       - "prql-compiler/**/*.snap"
     cmds:

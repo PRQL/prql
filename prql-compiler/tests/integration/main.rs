@@ -1,5 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
-#![cfg(feature = "test-dbs")]
+#![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
 use std::{env, fs};
 
