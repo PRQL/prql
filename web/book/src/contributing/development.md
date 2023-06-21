@@ -298,7 +298,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 
 - **[Integration tests](https://github.com/PRQL/prql/blob/main/prql-compiler/tests/integration)**
   — we run tests with example queries against real databases to ensure we're
-  producing correct SQL.
+  producing correct SQL. These can be run locally with
+  `cargo test --features=test-dbs`.
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run the tests described up to this point on every commit to a pull

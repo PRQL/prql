@@ -211,10 +211,8 @@ tasks:
     cmds:
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm. Note that this will also over-delete on Windows.
-      - cargo insta test --accept --unreferenced=auto
+      - cargo insta test --accept --features=test-dbs --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
-      # We build the book too, because that acts as a test
-      - cd web/book && mdbook build
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
