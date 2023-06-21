@@ -102,8 +102,9 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
         let case = keyword("case")
             .ignore_then(
                 func_call(expr.clone())
+                    .map(Box::new)
                     .then_ignore(just(Token::ArrowFat))
-                    .then(func_call(expr.clone()))
+                    .then(func_call(expr.clone()).map(Box::new))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
                     .separated_by(ctrl(','))
@@ -326,7 +327,7 @@ where
         // params
         ident_part()
             .then(type_expr().or_not())
-            .then(ctrl(':').ignore_then(expr.clone()).or_not())
+            .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
             .repeated()
     )
     .then_ignore(just(Token::ArrowThin))
@@ -337,7 +338,7 @@ where
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
                 name,
-                ty: ty.map(TyOrExpr::Expr),
+                ty: ty.map(Box::new).map(TyOrExpr::Expr),
                 default_value,
             })
             .partition(|p| p.default_value.is_none());
@@ -347,7 +348,7 @@ where
             named_params: name,
 
             body: Box::new(body),
-            return_ty: return_ty.map(TyOrExpr::Expr),
+            return_ty: return_ty.map(Box::new).map(TyOrExpr::Expr),
 
             name_hint: None,
             args: Vec::new(),

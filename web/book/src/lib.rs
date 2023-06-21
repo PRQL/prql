@@ -1,78 +1,17 @@
-// All copied from `mdbook_preprocessor_boilerplate` apart from the function
-// which does the replacement.
-// This file is licensed under GPL-3.0 then. We don't link against it from PRQL.
-
 #![cfg(not(target_family = "wasm"))]
 
 use anyhow::{bail, Result};
-use clap::{Arg, ArgMatches, Command};
 use itertools::Itertools;
+use mdbook::preprocess::Preprocessor;
 use mdbook::preprocess::PreprocessorContext;
-use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
 use prql_compiler::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
-use semver::{Version, VersionReq};
+
 use std::str::FromStr;
-use std::{io, process};
+
 use strum::EnumString;
-
-/// Checks renderer support and runs the preprocessor.
-pub fn run(preprocessor: impl Preprocessor, name: &'static str, description: &'static str) {
-    let matches = Command::new(name)
-        .about(description)
-        .subcommand(
-            Command::new("supports")
-                .arg(Arg::new("renderer").required(true))
-                .about("Check whether a renderer is supported by this preprocessor"),
-        )
-        .get_matches();
-
-    if let Some(sub_args) = matches.subcommand_matches("supports") {
-        handle_supports(preprocessor, sub_args);
-    } else if let Err(e) = handle_preprocessing(preprocessor) {
-        eprintln!("{}", e);
-        process::exit(1);
-    }
-}
-
-fn handle_preprocessing(pre: impl Preprocessor) -> Result<()> {
-    let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
-
-    let book_version = Version::parse(&ctx.mdbook_version)?;
-    let version_req = VersionReq::parse(mdbook::MDBOOK_VERSION)?;
-
-    if !version_req.matches(&book_version) {
-        eprintln!(
-            "Warning: The {} plugin was built against version {} of mdbook, \
-             but we're being called from version {}",
-            pre.name(),
-            mdbook::MDBOOK_VERSION,
-            ctx.mdbook_version
-        );
-    }
-
-    let processed_book = pre.run(&ctx, book)?;
-    let out = serde_json::to_string(&processed_book)?;
-    println!("{}", out);
-
-    Ok(())
-}
-
-fn handle_supports(pre: impl Preprocessor, sub_args: &ArgMatches) -> ! {
-    let renderer = sub_args
-        .get_one::<String>("renderer")
-        .expect("Required argument");
-    let supported = pre.supports_renderer(renderer);
-
-    // Signal whether the renderer is supported by exiting with 1 or 0.
-    if supported {
-        process::exit(0);
-    } else {
-        process::exit(1);
-    }
-}
 
 pub struct ComparisonPreprocessor;
 
@@ -82,7 +21,7 @@ impl Preprocessor for ComparisonPreprocessor {
     }
 
     fn run(&self, _ctx: &PreprocessorContext, mut book: Book) -> Result<Book> {
-        eprintln!("Running comparison preprocessor");
+        eprintln!("Running PRQL comparison preprocessor");
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(chapter) = item {
                 let new = replace_examples(&chapter.content).unwrap();

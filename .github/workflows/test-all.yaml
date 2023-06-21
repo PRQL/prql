@@ -93,24 +93,20 @@ jobs:
     uses: ./.github/workflows/test-lib.yaml
 
   measure-code-cov:
-    # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
-    if: false
     runs-on: ubuntu-latest
-    # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
-    # see whether `skip_clean` is reliable and then add this job to every
-    # commit.
+    # TODO: see whether we can add this job to the pull-request workflow,
+    # possibly waiting for https://github.com/PRQL/prql/issues/2870
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-tarpaulin
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Run cargo-tarpaulin
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          # TODO: move this exclusion to a config file.
-          args: "--workspace --exclude prql-python -- --test-threads 1"
+      - run: cargo tarpaulin --skip-clean --all-targets --out=Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
       - name: Upload code coverage results

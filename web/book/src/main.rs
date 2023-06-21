@@ -6,11 +6,10 @@
 // `clap`'s don't support wasm.
 #[cfg(not(target_family = "wasm"))]
 fn main() {
-    use mdbook_prql::{run, ComparisonPreprocessor};
-    eprintln!("Running comparison preprocessor");
+    use mdbook_preprocessor_boilerplate::run;
+    use mdbook_prql::ComparisonPreprocessor;
     run(
         ComparisonPreprocessor,
-        "comparison-preprocessor",
         "Create comparison examples between PRQL & SQL",
     );
 }

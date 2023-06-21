@@ -87,7 +87,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
                 ));
             }
 
-            Ok(StmtKind::QueryDef(QueryDef { version, other }))
+            Ok(StmtKind::QueryDef(Box::new(QueryDef { version, other })))
         })
         .map(|kind| (Vec::new(), (NS_QUERY_DEF.to_string(), kind)))
         .map_with_span(into_stmt)
@@ -98,14 +98,13 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error 
     let annotation = just(Token::Annotate)
         .ignore_then(expr())
         .then_ignore(new_line())
-        .map_with_span(|expr, span| {
-            let span = Some(span);
-            Annotation { expr, span }
+        .map(|expr| Annotation {
+            expr: Box::new(expr),
         });
 
     let let_ = keyword("let")
         .ignore_then(ident_part())
-        .then(type_expr().or_not())
+        .then(type_expr().map(Box::new).or_not())
         .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
         .map(|((name, ty_expr), value)| {
@@ -143,7 +142,7 @@ fn type_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error
         .ignore_then(ident_part())
         .then(
             ctrl('=')
-                .ignore_then(expr_call())
+                .ignore_then(expr_call().map(Box::new))
                 .or_not()
                 .map(|value| TypeDef { value })
                 .map(StmtKind::TypeDef),

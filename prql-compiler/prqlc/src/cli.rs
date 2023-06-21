@@ -149,6 +149,9 @@ pub enum DebugCommand {
 
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
+
+    /// Print info about the AST data structure
+    Ast,
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -202,6 +205,10 @@ impl Command {
             }
             Command::ShellCompletion { shell } => {
                 shell.generate(&mut Cli::command(), &mut std::io::stdout());
+                Ok(())
+            }
+            Command::Debug(DebugCommand::Ast) => {
+                prql_compiler::ast::pl::print_mem_sizes();
                 Ok(())
             }
             _ => self.run_io_command(),

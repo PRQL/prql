@@ -18,7 +18,7 @@ pub struct Span {
     pub start: usize,
     pub end: usize,
 
-    pub source_id: usize,
+    pub source_id: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -499,7 +499,7 @@ impl<'de> Deserialize<'de> for Span {
 
                 if let Some((file_id, char_span)) = v.split_once(':') {
                     let file_id = file_id
-                        .parse::<usize>()
+                        .parse::<u16>()
                         .map_err(|e| de::Error::custom(e.to_string()))?;
 
                     if let Some((start, end)) = char_span.split_once('-') {
