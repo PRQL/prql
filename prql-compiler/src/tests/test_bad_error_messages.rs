@@ -71,6 +71,20 @@ fn test_bad_error_messages() {
        │     Note: Type `relation` expands to `[tuple_of_scalars]`
     ───╯
     "###);
+
+    // It's better if we can tell them to put in {} braces
+    assert_display_snapshot!(compile(r###"
+    from artists
+    sort -name
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:11]
+       │
+     3 │     sort -name
+       │           ──┬─
+       │             ╰─── Unknown name
+    ───╯
+    "###);
 }
 
 #[test]
