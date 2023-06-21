@@ -65,7 +65,7 @@ jobs:
           args:
             "--no-run --locked --target=${{ inputs.target }} ${{ inputs.target
             == 'x86_64-unknown-linux-gnu' && '--features=test-dbs-external' ||
-            '' }}"
+            '--features=test-dbs' }}"
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./prql-compiler/tests/integration
@@ -87,4 +87,4 @@ jobs:
           args:
             test --target=${{ inputs.target }} ${{ inputs.target==
             'x86_64-unknown-linux-gnu' && '--unreferenced=auto
-            --features=test-dbs-external' || '' }}
+            --features=test-dbs-external' || '--features=test-dbs' }}
