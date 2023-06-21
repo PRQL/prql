@@ -49,7 +49,7 @@ similar-asserts = "1.4.2"
 chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.5.1"
 csv = "1.2"
-duckdb = {version = "0.8.1", features = ["bundled", "chrono"]}
+duckdb = {version = "0.8.0", features = ["bundled", "chrono"]}
 mysql = "24"
 pg_bigdecimal = "0.1"
 postgres = "0.19"
