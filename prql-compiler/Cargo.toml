@@ -66,7 +66,7 @@ insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
 similar-asserts = "1.4.2"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-criterion = {version = "0.5.1", optional = true}
+criterion = {version = "0.5.1"}
 
 [[bench]]
 harness = false
