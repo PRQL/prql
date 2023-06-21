@@ -203,7 +203,7 @@ pub struct SourceLocation {
 /// # Safety
 ///
 /// This function expects to be called exactly once after the call of any the functions
-/// that return CompileResult. No fields should be freed manually.
+/// that return `CompileResult`. No fields should be freed manually.
 #[no_mangle]
 pub unsafe extern "C" fn result_destroy(res: CompileResult) {
     // This is required because we are allocating memory for

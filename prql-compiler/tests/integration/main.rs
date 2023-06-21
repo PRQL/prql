@@ -10,7 +10,7 @@ use regex::Regex;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
-use connection::*;
+use connection::{DbConnection, DbProtocol, Row};
 use prql_compiler::{sql::Dialect, sql::SupportLevel, Target::Sql};
 use prql_compiler::{Options, Target};
 
@@ -43,7 +43,7 @@ impl DbConnection {
         let setup = include_str!("data/chinook/schema.sql");
         setup
             .split(';')
-            .map(|s| s.trim())
+            .map(str::trim)
             .filter(|s| !s.is_empty())
             .for_each(|s| {
                 self.protocol
@@ -304,9 +304,9 @@ fn test_rdbms() {
         .filter_map(|dialect| dialect.get_connection())
         .collect();
 
-    connections.iter_mut().for_each(|con| {
+    for con in &mut connections {
         con.setup_connection(runtime);
-    });
+    }
 
     // for each of the queries
     glob!("queries/**/*.prql", |path| {

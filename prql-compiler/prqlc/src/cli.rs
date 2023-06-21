@@ -17,14 +17,17 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
-use prql_compiler::semantic::{self, reporting::*};
+use prql_compiler::semantic::{
+    self,
+    reporting::{collect_frames, label_references},
+};
 use prql_compiler::{ast::pl::Lineage, pl_to_prql};
 use prql_compiler::{downcast, Options, Target};
 use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree, Span};
 
 use crate::watch;
 
-/// Entrypoint called by [crate::main]
+/// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
@@ -275,7 +278,7 @@ impl Command {
                         sources.sources.keys()
                             .map(|x| x.display().to_string())
                             .sorted()
-                            .map(|x| format!("`{}`", x))
+                            .map(|x| format!("`{x}`"))
                             .join(", ")
                     )
                 )?;
@@ -386,16 +389,18 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::*;
+        use Command::{Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
         let io_args = match self {
             Parse { io_args, .. }
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
             | SQLAnchor { io_args, .. }
-            | Debug(DebugCommand::Semantics(io_args))
-            | Debug(DebugCommand::Annotate(io_args))
-            | Debug(DebugCommand::Eval(io_args)) => io_args,
+            | Debug(
+                DebugCommand::Semantics(io_args)
+                | DebugCommand::Annotate(io_args)
+                | DebugCommand::Eval(io_args),
+            ) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -418,16 +423,18 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::*;
+        use Command::{Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
         let mut output = match self {
             Parse { io_args, .. }
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLAnchor { io_args, .. }
             | SQLPreprocess(io_args)
-            | Debug(DebugCommand::Semantics(io_args))
-            | Debug(DebugCommand::Annotate(io_args))
-            | Debug(DebugCommand::Eval(io_args)) => io_args.output.to_owned(),
+            | Debug(
+                DebugCommand::Semantics(io_args)
+                | DebugCommand::Annotate(io_args)
+                | DebugCommand::Eval(io_args),
+            ) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)
