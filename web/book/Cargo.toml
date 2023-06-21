@@ -19,6 +19,7 @@ test = false
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
 itertools = "0.10.3"
+mdbook-preprocessor-boilerplate = "0.1.2"
 prql-compiler = {path = "../../prql-compiler", default-features = false}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
