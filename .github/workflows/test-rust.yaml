@@ -64,7 +64,7 @@ jobs:
             --all-targets --all-features --target=${{ inputs.target }}
             --features=${{ inputs.target == 'x86_64-unknown-linux-gnu' &&
             'test-dbs-external' || (inputs.target == 'x86_64-pc-windows-msvc')
-            && '' || '--test-dbs' }} -- -D warnings
+            && '' || 'test-dbs' }} -- -D warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -79,7 +79,7 @@ jobs:
           args: >
             --no-run --locked --target=${{ inputs.target }} --features=${{
             inputs.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external'
-            || (inputs.target == 'x86_64-pc-windows-msvc') && '' || '--test-dbs'
+            || (inputs.target == 'x86_64-pc-windows-msvc') && '' || 'test-dbs'
             }}
       - name: Run docker compose
         run: docker compose up -d
@@ -99,6 +99,6 @@ jobs:
           args: >
             test --target=${{ inputs.target }} --features=${{ inputs.target ==
             'x86_64-unknown-linux-gnu' && 'test-dbs-external' || (inputs.target
-            == 'x86_64-pc-windows-msvc') && '' || '--test-dbs' }} ${{
+            == 'x86_64-pc-windows-msvc') && '' || 'test-dbs' }} ${{
             inputs.target == 'x86_64-unknown-linux-gnu' && '--unreferenced=auto'
             || '' }}
