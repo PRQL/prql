@@ -244,7 +244,10 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - task: install-playground-npm-dependencies
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
+      - cd playground && npm install --install-links=false
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
