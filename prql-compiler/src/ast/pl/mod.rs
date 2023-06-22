@@ -17,6 +17,9 @@ pub mod stmt;
 pub mod types;
 pub mod utils;
 
+use crate::{ast::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
+use crate::{ast::rq::TableRef, *};
+
 pub use self::expr::*;
 pub use self::ident::*;
 pub use self::lineage::*;
@@ -32,7 +35,10 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "BinaryExpr", size_of::<BinaryExpr>());
     println!("{:16}= {}", "BinOp", size_of::<BinOp>());
     println!("{:16}= {}", "ColumnSort", size_of::<ColumnSort>());
-    println!("{:16}= {}", "Expr", size_of::<Expr>());
+    println!("{:16}= {}", "pl::Expr", size_of::<crate::ast::pl::Expr>());
+    println!("{:16}= {}", "rq::Expr", size_of::<crate::ast::rq::Expr>());
+    println!("{:16}= {}", "ErrorMessage", size_of::<ErrorMessage>());
+    println!("{:16}= {}", "ErrorMessages", size_of::<ErrorMessages>());
     println!("{:16}= {}", "ExprKind", size_of::<ExprKind>());
     println!("{:16}= {}", "Func", size_of::<Func>());
     println!("{:16}= {}", "FuncCall", size_of::<FuncCall>());
@@ -45,13 +51,18 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "ModuleDef", size_of::<ModuleDef>());
     println!("{:16}= {}", "Pipeline", size_of::<Pipeline>());
     println!("{:16}= {}", "PrimitiveSet", size_of::<PrimitiveSet>());
+    println!("{:16}= {}", "Query", size_of::<Query>());
     println!("{:16}= {}", "QueryDef", size_of::<QueryDef>());
     println!("{:16}= {}", "Range", size_of::<Range>());
     println!("{:16}= {}", "SortDirection", size_of::<SortDirection>());
+    println!("{:16}= {}", "SourceTree", size_of::<SourceTree>());
+    println!("{:16}= {}", "Span", size_of::<Span>());
+    println!("{:16}= {}", "SqlTransform", size_of::<SqlTransform>());
     println!("{:16}= {}", "Stmt", size_of::<Stmt>());
     println!("{:16}= {}", "StmtKind", size_of::<StmtKind>());
     println!("{:16}= {}", "SwitchCase", size_of::<SwitchCase>());
     println!("{:16}= {}", "TableExternRef", size_of::<TableExternRef>());
+    println!("{:16}= {}", "TableRef", size_of::<TableRef>());
     println!("{:16}= {}", "TransformCall", size_of::<TransformCall>());
     println!("{:16}= {}", "TransformKind", size_of::<TransformKind>());
     println!("{:16}= {}", "TupleField", size_of::<TupleField>());
