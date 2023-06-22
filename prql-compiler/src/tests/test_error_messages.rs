@@ -136,6 +136,24 @@ fn test_hint_missing_args() {
 }
 
 #[test]
+fn test_missing_exclude() {
+    // Not a great error message, would be better to have a span & a better
+    // name. Not quite bad enough to put in `bad_error_messages` yet though...
+    assert_display_snapshot!(compile(r###"
+    from tracks
+    select ![milliseconds,bytes]
+    "###).unwrap_err(), @r###"
+    Error: Excluding columns (milliseconds, bytes) is not supported by the current dialect, GenericDialect
+    "###);
+
+    assert_display_snapshot!(compile(r###"
+    from tracks
+    group title (take 1)
+    "###).unwrap_err(), @r###"
+    Error: Excluding columns (_expr_0) is not supported by the current dialect, GenericDialect"###)
+}
+
+#[test]
 fn test_regex_dialect() {
     assert_display_snapshot!(compile(r###"
     prql target:sql.mssql

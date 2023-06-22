@@ -144,8 +144,8 @@ pub(super) fn translate_select_items(
 
             // excluded columns
             let opts = (excluded.remove(&cid))
-                .and_then(|excluded| translate_exclude(ctx, excluded))
-                .unwrap_or_default();
+                .and_then(|x| translate_exclude(ctx, x).transpose())
+                .unwrap_or_else(|| Ok(WildcardAdditionalOptions::default()))?;
 
             Ok(if ident.len() > 1 {
                 let mut object_name = ident;
@@ -161,19 +161,15 @@ pub(super) fn translate_select_items(
 fn translate_exclude(
     ctx: &mut Context,
     excluded: HashSet<CId>,
-) -> Option<WildcardAdditionalOptions> {
+) -> Result<Option<WildcardAdditionalOptions>> {
     let excluded = as_col_names(&excluded, &ctx.anchor);
 
     let Some(supported) = ctx.dialect.column_exclude() else {
-        // TODO: eventually this should throw an error
-        //   I don't want to do this now, because we have no way around it.
-        //   We could also ask the user to add table definitions.
-        if log::log_enabled!(log::Level::Warn) {
-            let excluded = excluded.join(", ");
-
-            log::warn!("Columns {excluded} will be included with *, but were not requested.")
-        }
-        return None;
+        let excluded = excluded.join(", ");
+        // TODO: can we specify `span` here?
+        // TODO: can we get a nicer name for the dialect?
+        let dialect = &ctx.dialect;
+        return Err(Error::new_simple(format!("Excluding columns ({excluded}) is not supported by the current dialect, {dialect:?}")).push_hint("Consider specifying the full set of columns prior with a `select`").into());
     };
 
     let mut excluded = excluded
@@ -181,7 +177,7 @@ fn translate_exclude(
         .map(|name| translate_ident_part(name.to_string(), ctx))
         .collect_vec();
 
-    Some(match supported {
+    Ok(Some(match supported {
         ColumnExclude::Exclude => WildcardAdditionalOptions {
             opt_exclude: Some(ExcludeSelectItem::Multiple(excluded)),
             ..Default::default()
@@ -193,7 +189,7 @@ fn translate_exclude(
             }),
             ..Default::default()
         },
-    })
+    }))
 }
 
 fn as_col_names<'a>(cids: &'a HashSet<CId>, ctx: &'a AnchorContext) -> Vec<&'a str> {
