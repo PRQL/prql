@@ -1,5 +1,3 @@
-// https://github.com/rustwasm/wasm-bindgen/pull/2984
-#![allow(clippy::drop_non_drop)]
 mod utils;
 
 use std::str::FromStr;
