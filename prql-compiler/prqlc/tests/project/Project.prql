@@ -6,3 +6,4 @@ let favorite_artists = [
 
 favorite_artists
 join artists.input side:left (==artist_id)
+join long_query.long_query side:left (input.title == long_query.title)
