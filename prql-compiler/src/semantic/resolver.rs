@@ -752,9 +752,8 @@ impl Resolver {
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
-            for pos in relations.into_iter().with_position() {
-                let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
-                let (index, (param, arg)) = pos.into_inner();
+            for (pos, (index, (param, arg))) in relations.into_iter().with_position() {
+                let is_last = matches!(pos, Position::Last | Position::Only);
 
                 // just fold the argument alone
                 let arg = self.fold_and_type_check(arg, param, func_name)?;
