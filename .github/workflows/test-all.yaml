@@ -106,6 +106,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          prefix-key: 0.8.1
       - run:
           cargo tarpaulin --skip-clean --all-targets --features=test-dbs
           --out=Xml
