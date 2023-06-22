@@ -59,9 +59,9 @@ impl Display for Lineage {
 
 fn display_lineage(lineage: &Lineage, f: &mut Formatter, display_ids: bool) -> std::fmt::Result {
     write!(f, "[")?;
-    for col in lineage.columns.iter().with_position() {
-        let is_last = matches!(col, Position::Last(_) | Position::Only(_));
-        display_lineage_column(col.into_inner(), f, display_ids)?;
+    for (pos, col) in lineage.columns.iter().with_position() {
+        let is_last = matches!(pos, Position::Last | Position::Only);
+        display_lineage_column(col, f, display_ids)?;
         if !is_last {
             write!(f, ", ")?;
         }
