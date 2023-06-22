@@ -952,7 +952,7 @@ dependencies = [
  "clap 4.3.0",
  "criterion-plot",
  "is-terminal",
- "itertools",
+ "itertools 0.10.5",
  "num-traits",
  "once_cell",
  "oorandom",
@@ -973,7 +973,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
- "itertools",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -1857,6 +1857,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2170,7 +2179,7 @@ dependencies = [
  "anyhow",
  "globset",
  "insta",
- "itertools",
+ "itertools 0.11.0",
  "log",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
@@ -2872,7 +2881,7 @@ dependencies = [
  "duckdb",
  "enum-as-inner",
  "insta",
- "itertools",
+ "itertools 0.11.0",
  "log",
  "mysql",
  "once_cell",
@@ -2956,7 +2965,7 @@ dependencies = [
  "env_logger",
  "insta",
  "insta-cmd",
- "itertools",
+ "itertools 0.11.0",
  "minijinja",
  "notify",
  "prql-compiler",
@@ -3604,7 +3613,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c12bc9199d1db8234678b7051747c07f517cdcf019262d1847b94ec8b1aee3e"
 dependencies = [
- "itertools",
+ "itertools 0.10.5",
  "nom",
  "unicode_categories",
 ]
