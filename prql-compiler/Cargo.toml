@@ -61,7 +61,7 @@ chumsky = "0.9.2"
 
 [dev-dependencies]
 cfg-if = "1.0"
-insta = {version = "1.29", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.30", features = ["colors", "glob", "yaml"]}
 similar-asserts = "1.4.2"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
