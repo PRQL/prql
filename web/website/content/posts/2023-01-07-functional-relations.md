@@ -138,13 +138,13 @@ equivalent.
 
 [^1]:
     Let's say that conventional languages are the first 15 from this list:
-    https://survey.stackoverflow.co/2022/#most-popular-technologies-language-prof
+    <https://survey.stackoverflow.co/2022/#most-popular-technologies-language-prof>
 
 ## Syntax, surly shinier
 
 First of all, let's change the function call to this:
 
-```
+```prql
 (my_function arg1 arg2 arg3)
 ```
 
@@ -153,7 +153,7 @@ there are no commas between arguments. But there are benefits to this syntax.
 
 Firstly, when the call has no arguments, the parenthesis can be omitted:
 
-```
+```prql
 (my_function) == my_function
 ```
 
@@ -164,7 +164,7 @@ are expressed with the same syntax.
 Let's extend this behavior and allow bare function calls in a few places where
 they won't become ambiguous:
 
-```
+```prql
 # a list:
 [my_function arg1 arg2 arg3, my_function arg4 arg5 arg6]
 # a declaration:
@@ -173,7 +173,7 @@ let res = my_function arg1 arg2 arg3
 
 Secondly, I'd argue that currying looks natural.
 
-```
+```prql
 let curry = my_function arg1 arg2
 let res = curry arg3
 
@@ -184,7 +184,7 @@ let res = (my_function arg1 arg2) arg3
 Now let's go one step further and introduce a "pipe" operator. It applies its
 left operand as an argument to the right operand:
 
-```
+```prql
 arg3 | my_function arg1 arg2
 ```
 
@@ -192,7 +192,7 @@ This is especially useful for chaining function calls. If we declare `div`,
 `floor` and `mul` as common arithmetic functions, the function call syntax
 starts to make sense:
 
-```
+```prql
 12 | div 5 | floor | mul 5
 ```
 
@@ -225,7 +225,7 @@ focused on the innovative function call syntax.
 
 A basic operation on a relation would be:
 
-```
+```prql
 (take 3 albums)
 # or with a pipeline:
 (albums | take 3)
@@ -240,7 +240,7 @@ I'll talk about it some other time. For now, let's just say that for referencing
 tables (i.e. static relations) use the function `from`. It has the bonus that it
 makes queries look a lot more like SQL:
 
-```
+```prql
 (from albums | take 3)
 ```
 
@@ -248,10 +248,10 @@ To make querying easier, we have some neat name resolution rules that allow
 function arguments to refer to each other. In practice, it allows referring to
 columns of a relation in function calls:
 
-```
+```prql
 (select [title, artist_id] default_db.albums)
 # and with a pipeline:
-(from albums | select [title, artist_id])
+(from albums | select {title, artist_id})
 ```
 
 All these queries can be simplified to an expression of relations and scalars.
@@ -262,7 +262,7 @@ and executed on basically any relational database.
 This is the gist of how to express SQL queries with a functional language. At
 this stage a curious reader might ask "can PRQL express any SQL query?" to which
 I'd say: almost. Another might be wondering "but is it less cumbersome and more
-consistent?" and I'd reply "very much, yes", but it depends on who you ask. And
+consistent?" and I'd reply "very much, yes", but it depends on whom you ask. And
 someone might say "why functional?" to which I say "exactly the question I was
 waiting for!".
 
@@ -282,13 +282,13 @@ At this point, I have to introduce `aggregate`. It takes a relation and produces
 a single row using some aggregation function:
 
 ```prql
-(from albums | aggregate [n_albums = count])
+(from albums | aggregate {n_albums = count})
 ```
 
 What happens if we don't specify the leading relation?
 
 ```prql
-(aggregate [n_albums = count])
+(aggregate {n_albums = count})
 ```
 
 Because `aggregate` is missing an argument, currying kicks in, and the whole
@@ -300,7 +300,7 @@ applies `aggregate` to each of the groups. This is exactly how PRQL expressed
 it:
 
 ```prql
-from albums | group artist_id (aggregate [n_albums = count])
+from albums | group artist_id (aggregate {n_albums = count})
 ```
 
 This is a lot for one line, so let's unveil new syntactic conveniences: a new
@@ -310,7 +310,7 @@ I'll also add a new transform at the back, don't worry about it.
 ```prql
 from albums
 group artist_id (
-    aggregate [n_albums = count]
+    aggregate {n_albums = count}
 )
 filter n_albums > 3
 ```
@@ -418,7 +418,7 @@ it's probably better than what you are forced to use now.
 
 ## Appendix
 
-#### PRQL support
+### PRQL support
 
 PRQL is a work in progress. It does not yet support all the features presented
 here, namely:
@@ -433,12 +433,12 @@ around.
 Also, PRQL may not ever get all of these features, because the ideas in this
 article are only my own and not necessarily of the whole PRQL core team.
 
-#### In math, function call syntax is ambiguous
+### In math, function call syntax is ambiguous
 
 If you think about it, the function call syntax from math is kind of ambiguous.
 For example, what does this mean:
 
-```
+```math
 a(b + 1)
 ```
 

@@ -69,7 +69,7 @@ impl Resolver {
 
             let mut def = match stmt.kind {
                 StmtKind::QueryDef(d) => {
-                    let decl = DeclKind::QueryDef(d);
+                    let decl = DeclKind::QueryDef(*d);
                     self.context
                         .declare(ident, decl, stmt.id, Vec::new())
                         .with_span(stmt.span)?;
@@ -80,7 +80,7 @@ impl Resolver {
                     let mut value = if let Some(value) = ty_def.value {
                         value
                     } else {
-                        Expr::null()
+                        Box::new(Expr::null())
                     };
 
                     // This is a hacky way to provide values to std.int and friends.
@@ -129,9 +129,9 @@ impl Resolver {
             };
 
             if let VarDefKind::Main = def.kind {
-                def.ty_expr = Some(Expr::from(ExprKind::Ident(Ident::from_path(vec![
-                    "std", "relation",
-                ]))));
+                def.ty_expr = Some(Box::new(Expr::from(ExprKind::Ident(Ident::from_path(
+                    vec!["std", "relation"],
+                )))));
             }
 
             if let ExprKind::Func(closure) = &mut def.value.kind {
@@ -170,7 +170,7 @@ impl AstFold for Resolver {
 
         Ok(VarDef {
             value,
-            ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
+            ty_expr: fold_optional_box(self, var_def.ty_expr)?,
             kind: var_def.kind,
         })
     }
@@ -706,7 +706,7 @@ impl Resolver {
             let param_name = param.name.split('.').last().unwrap_or(&param.name);
             let default = param.default_value.take().unwrap();
 
-            let arg = named_args.remove(param_name).unwrap_or(default);
+            let arg = named_args.remove(param_name).unwrap_or(*default);
 
             closure.args.push(arg);
             closure.params.insert(closure.args.len() - 1, param);
@@ -752,9 +752,8 @@ impl Resolver {
             self.context.root_mod.shadow(NS_FRAME);
             self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
-            for pos in relations.into_iter().with_position() {
-                let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
-                let (index, (param, arg)) = pos.into_inner();
+            for (pos, (index, (param, arg))) in relations.into_iter().with_position() {
+                let is_last = matches!(pos, Position::Last | Position::Only);
 
                 // just fold the argument alone
                 let arg = self.fold_and_type_check(arg, param, func_name)?;
@@ -896,14 +895,14 @@ impl Resolver {
         }))
     }
 
-    pub fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
+    pub fn fold_type_expr(&mut self, expr: Option<Box<Expr>>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
                 let name = expr.kind.as_ident().map(|i| i.name.clone());
 
                 let old = self.disable_type_checking;
                 self.disable_type_checking = true;
-                let expr = self.fold_expr(expr)?;
+                let expr = self.fold_expr(*expr)?;
                 self.disable_type_checking = old;
 
                 let mut set_expr = type_resolver::coerce_to_type(self, expr)?;

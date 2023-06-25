@@ -15,9 +15,7 @@ members = [
   # The book / docs
   "web/book", #
   # An example
-  # This is temporarily removed because it was causing a stack overflow in
-  # Windows; ref https://github.com/PRQL/prql/pull/2713
-  # "prql-compiler/examples/compile-files", #
+  "prql-compiler/examples/compile-files", #
 ]
 resolver = "2"
 

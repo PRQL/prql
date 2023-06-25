@@ -3860,3 +3860,32 @@ fn test_error_code() {
     .unwrap_err();
     assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
 }
+
+#[test]
+fn large_query() {
+    // This was causing a stack overflow on Windows, ref https://github.com/PRQL/prql/issues/2857
+    compile(
+        r###"
+from employees
+filter gross_cost > 0
+group {title} (
+  aggregate {
+    ct = count s"*",
+  }
+)
+sort ct
+filter ct > 200
+take 20
+sort ct
+filter ct > 200
+take 20
+sort ct
+filter ct > 200
+take 20
+sort ct
+filter ct > 200
+take 20
+    "###,
+    )
+    .unwrap();
+}

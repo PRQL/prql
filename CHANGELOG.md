@@ -23,7 +23,7 @@ will become the public version at the next release._
   As part of this, we've also formalized tuples as containing both individual
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
 
-- Some significant (breaking) changes regarding SQL dialect.
+- Some significant changes regarding SQL dialects:
 
   - Operators and functions can be defined on per-dialect basis. (@aljazerzen,
     #2681)
@@ -80,10 +80,8 @@ will become the public version at the next release._
 - "Relation Literals", which create inline relations / tables from data in the
   query:
 
-  ' # TODO: add `from`?
-
   ```prql no-eval
-  [{a=5, b=false}, {a=6, b=true}]
+  from [{a=5, b=false}, {a=6, b=true}]
   filter b == true
   select a
   ```
@@ -92,8 +90,10 @@ will become the public version at the next release._
 
   (@aljazerzen, #2605)
 
+<!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
+
 - We've changed how we handle colors. We now use the
-  `[anstream](https://github.com/rust-cli/anstyle)` library in `prqlc` &
+  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
   `prql-compiler`.
 
   `Options::color` is deprecated and has no effect. Code which consumes
@@ -110,6 +110,9 @@ will become the public version at the next release._
 
 **Fixes**:
 
+- Numbers expressed with scientific notation — `1e9` — are now handled correctly
+  by the compiler (@max-sixty, #2865).
+
 **Documentation**:
 
 **Web**:
@@ -120,7 +123,7 @@ will become the public version at the next release._
 
 - Annotations in PRQL. These have limited support but are currently used to
   specify binding strengths. They're modeled after Rust's annotations, but with
-  `@` syntax, more similar to traditional decorators.
+  `@` syntax, more similar to traditional decorators. (#2729)
 
   ```prql no-eval
   @{binding_strength=11}

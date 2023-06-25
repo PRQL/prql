@@ -168,7 +168,7 @@ fn test_format() {
 
 #[test]
 fn test_shell_completion() {
-    for shell in ["bash", "fish", "powershell", "zsh"].into_iter() {
+    for shell in ["bash", "fish", "powershell", "zsh"] {
         assert_cmd_snapshot!(prqlc_command().arg("shell-completion").arg(shell));
     }
 }

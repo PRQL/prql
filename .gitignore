@@ -31,3 +31,5 @@ _*.sql
 *.snap.new
 
 *.my.csv
+
+cobertura.xml

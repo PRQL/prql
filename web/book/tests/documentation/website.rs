@@ -23,7 +23,7 @@ fn website_examples() -> Vec<Value> {
         .unwrap()
         .as_sequence()
         .unwrap()
-        .to_vec()
+        .clone()
 }
 
 fn website_hero_example() -> String {
