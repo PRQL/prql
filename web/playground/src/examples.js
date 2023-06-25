@@ -19,9 +19,9 @@ group customer_id (                  # "group" performs the pipeline in (...) on
 join c=customers (==customer_id)     # join on "customer_id" from both tables
 derive name = f"{c.last_name}, {c.first_name}" # F-strings like Python
 derive db_version = s"version()"     # S-string offers escape hatch to SQL
-select {                             # "select" takes only the named columns
+select {                             # "select" passes along only the named columns
   c.customer_id, name, sum_income, ct, db_version,
-}                                    # trailing comma ignored
+}                                    # trailing commas always ignored
 sort {-sum_income}                   # "sort" sorts the result; "-" is decreasing order
 take 1..10                           # Limit to a range - could also be "take 10"
 #
