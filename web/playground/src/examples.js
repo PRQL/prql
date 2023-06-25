@@ -13,7 +13,7 @@ filter invoice_date >= @2010-01-16   # Clear date syntax
 group customer_id (                  # "group" performs the pipeline in (...) on each group
   aggregate {                        # "aggregate" reduces each group to a single row
     sum_income = sum income,         # ... using SQL SUM(), COUNT(), etc. functions
-    ct = count customer_id,          # 
+    ct = count customer_id,          #
   }
 )
 join c=customers (==customer_id)     # join on "customer_id" from both tables
