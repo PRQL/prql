@@ -3,7 +3,7 @@ const examples = {
     "sql",
     `from invoices                        # PRQL query begins with a table
 derive {                             # "derive" adds columns
-  transaction_fees = 0.8,            # "=" sets a column name
+  transaction_fee = 0.8,             # "=" sets a column name
   income = total - transaction_fees  # Calculations can use other column names
 }                                    # "#" starts a comment - even at start of line
 filter income > 1                    # "filter" replaces both of SQL's WHERE & HAVING
