@@ -9,7 +9,7 @@ derive {                             # "derive" adds columns
 filter income > 1                    # "filter" replaces both of SQL's WHERE & HAVING
 filter invoice_date >= @1970-01-16   # Clear date syntax
 group customer_id (                  # "group" performs the pipeline in (...) on each group
-  aggregate {                        # "aggregate" reduces each group to a single value  
+  aggregate {                        # "aggregate" reduces each group to a single value
     average total,                   # get the average of the total for each customer_id
     sum_income = sum income,         # ... and the total of income
     ct = count customer_id,          # ... and the count of items
@@ -24,8 +24,8 @@ select {                             # Select certain columns
 sort {-sum_income}                   # "sort" sorts the result; "-" is decreasing order
 take 1..10                           # Limit to a range - could also be "take 10"
 #
-# "output.sql" tab at right shows the SQL generated from this PRQL query 
-# "output.arrow" tab shows the result of the query    
+# "output.sql" tab at right shows the SQL generated from this PRQL query
+# "output.arrow" tab shows the result of the query
 `,
   ],
 
