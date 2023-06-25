@@ -17,7 +17,7 @@ group customer_id (                  # "group" performs the pipeline in (...) on
 )
 join c=customers (==customer_id)     # join on "customer_id" from both tables
 derive name = f"{c.last_name}, {c.first_name}" # F-strings like Python
-derive db_version = s"version()"     # S-string give escape hatch to SQL
+derive db_version = s"version()"     # S-string offers escape hatch to SQL
 select {                             # Select certain columns
   c.customer_id, name, sum_income, ct, db_version,
 }                                    # trailing comma ignored
