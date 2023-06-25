@@ -4,7 +4,7 @@ const examples = {
     `from invoices                        # PRQL query begins with a table
 derive {                             # "derive" adds columns
   transaction_fee = 0.8,             # "=" sets a column name
-  income = total - transaction_fees  # Calculations can use other column names
+  income = total - transaction_fee   # Calculations can use other column names
 }                                    # "#" starts a comment - even at start of line
 filter income > 1                    # "filter" replaces both of SQL's WHERE & HAVING
 filter invoice_date >= @1970-01-16   # Clear date syntax
