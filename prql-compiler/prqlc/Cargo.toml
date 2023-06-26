@@ -37,4 +37,4 @@ minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 insta = {version = "1.30", features = ["colors", "glob", "yaml"]}
-insta-cmd = "0.2.0"
+insta-cmd = "0.3.0"
