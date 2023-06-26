@@ -119,6 +119,8 @@ will become the public version at the next release._
 
 **Integrations**:
 
+- prql-python now provides type hints (@philpep, #2912)
+
 **Internal changes**:
 
 - Annotations in PRQL. These have limited support but are currently used to
@@ -136,6 +138,8 @@ will become the public version at the next release._
 - ClickHouse is tested in CI (@eitsupi, #2815).
 
 **New Contributors**:
+
+- @philpep, with #2912
 
 ## 0.8.1 — 2023-04-29
 
