@@ -88,7 +88,10 @@ tasks:
 
   install-cargo-tools-binstall:
     cmds:
-      - cmd: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+      - cmd:
+          curl -L --proto '=https' --tlsv1.2 -sSf
+          https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
+          | bash
         platforms: [linux, darwin]
       - cargo binstall -y --locked {{.cargo_crates}}
 
