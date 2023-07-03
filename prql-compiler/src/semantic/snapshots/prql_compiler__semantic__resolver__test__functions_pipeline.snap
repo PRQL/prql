@@ -6,7 +6,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
     name: std.sum
     args:
       - Ident:
-          - _frame
+          - this
           - a
           - foo
         ty:

@@ -15,10 +15,12 @@ doctest = false
 name = "mdbook-prql"
 test = false
 
-[dependencies]
+[target.'cfg(not(target_family="wasm"))'.dependencies]
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
-itertools = "0.10.3"
+itertools = "0.11.0"
+mdbook = {version = "0.4.21", default-features = false}
+mdbook-preprocessor-boilerplate = "0.1.2"
 prql-compiler = {path = "../../prql-compiler", default-features = false}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
@@ -27,16 +29,10 @@ serde_json = "1.0.81"
 strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.0"
 
-# Possibly we should just put all dependencies as excluded from wasm? Currently
-# we only put the ones that break the build.
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-clap = {version = "4.3.0", default-features = false}
-mdbook = {version = "0.4.21", default-features = false}
-
-[dev-dependencies]
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
 globset = "0.4.8"
-insta = {version = "1.29", features = ["colors", "glob"]}
+insta = {version = "1.30", features = ["colors", "glob"]}
 log = "0.4.17"
 regex = "1.8.1"
 serde_yaml = "0.9"

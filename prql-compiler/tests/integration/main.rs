@@ -1,4 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
+#![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
 use std::{env, fs};
 
@@ -10,7 +11,7 @@ use regex::Regex;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
-use connection::*;
+use connection::{DbConnection, DbProtocol, Row};
 use prql_compiler::{sql::Dialect, sql::SupportLevel, Target::Sql};
 use prql_compiler::{Options, Target};
 
@@ -43,7 +44,7 @@ impl DbConnection {
         let setup = include_str!("data/chinook/schema.sql");
         setup
             .split(';')
-            .map(|s| s.trim())
+            .map(str::trim)
             .filter(|s| !s.is_empty())
             .for_each(|s| {
                 self.protocol
@@ -95,7 +96,7 @@ impl IntegrationTest for Dialect {
                 protocol: Box::new(rusqlite::Connection::open_in_memory().unwrap()),
             }),
 
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::Postgres => Some(DbConnection {
                 dialect: Dialect::Postgres,
                 protocol: Box::new(
@@ -106,21 +107,21 @@ impl IntegrationTest for Dialect {
                     .unwrap(),
                 ),
             }),
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::MySql => Some(DbConnection {
                 dialect: Dialect::MySql,
                 protocol: Box::new(
                     mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
                 ),
             }),
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::ClickHouse => Some(DbConnection {
                 dialect: Dialect::ClickHouse,
                 protocol: Box::new(
                     mysql::Pool::new("mysql://default:@localhost:9004/dummy").unwrap(),
                 ),
             }),
-            #[cfg(feature = "test-external-dbs")]
+            #[cfg(feature = "test-dbs-external")]
             Dialect::MsSql => {
                 use tiberius::{AuthMethod, Client, Config};
                 use tokio::net::TcpStream;
@@ -304,9 +305,9 @@ fn test_rdbms() {
         .filter_map(|dialect| dialect.get_connection())
         .collect();
 
-    connections.iter_mut().for_each(|con| {
+    for con in &mut connections {
         con.setup_connection(runtime);
-    });
+    }
 
     // for each of the queries
     glob!("queries/**/*.prql", |path| {

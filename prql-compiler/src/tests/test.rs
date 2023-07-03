@@ -814,7 +814,7 @@ fn test_window_functions_00() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      COUNT(first_name) OVER (PARTITION BY last_name)
+      COUNT(*) OVER (PARTITION BY last_name)
     FROM
       employees
     "###);
@@ -852,7 +852,7 @@ fn test_window_functions_02() {
         TO_CHAR(co.order_date, '%Y-%m') AS order_month,
         TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
         COUNT(DISTINCT co.order_id) AS num_orders,
-        COUNT(ol.book_id) AS num_books,
+        COUNT(*) AS num_books,
         SUM(ol.price) AS total_price
       FROM
         cust_order AS co
@@ -1840,7 +1840,7 @@ fn test_prql_to_sql_1() {
     "#).unwrap(),
         @r###"
     SELECT
-      COUNT(salary),
+      COUNT(*),
       SUM(salary)
     FROM
       employees
@@ -1916,7 +1916,7 @@ take 20
       SUM(_expr_1),
       AVG(_expr_0),
       SUM(_expr_0) AS sum_gross_cost,
-      COUNT(salary) AS ct
+      COUNT(*) AS ct
     FROM
       table_0
     WHERE
@@ -1925,7 +1925,7 @@ take 20
       title,
       country
     HAVING
-      COUNT(salary) > 200
+      COUNT(*) > 200
     ORDER BY
       sum_gross_cost
     LIMIT
@@ -2792,7 +2792,7 @@ fn test_group_all() {
     prql target:sql.sqlite
 
     from a=albums
-    group a.* (aggregate {count s"*"})
+    group a.* (aggregate {count this})
         "###).unwrap_err(), @r###"
     Error: Target dialect does not support * in this position.
     "###);
@@ -2800,7 +2800,7 @@ fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
     from e=albums
-    group !{genre_id} (aggregate {count s"*"})
+    group !{genre_id} (aggregate {count this})
         "###).unwrap_err(), @r###"
     Error: Excluding columns not supported as this position
     "###);
@@ -2882,7 +2882,7 @@ fn test_case() {
     select category = case {
         length > avg_length => 'long'
     }
-    group category (aggregate {count s"*"})
+    group category (aggregate {count this})
         "###).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -2986,12 +2986,12 @@ fn test_basic_agg() {
     from employees
     aggregate {
       count salary,
-      count s"*",
+      count this,
     }
     "#).unwrap(),
         @r###"
     SELECT
-      COUNT(salary),
+      COUNT(*),
       COUNT(*)
     FROM
       employees
@@ -3018,7 +3018,7 @@ fn test_exclude_columns() {
     assert_display_snapshot!(compile(r#"
     from tracks
     select {track_id, title, composer, bytes}
-    group !{title, composer} (aggregate {count s"*"})
+    group !{title, composer} (aggregate {count this})
     "#).unwrap(),
         @r###"
     SELECT
@@ -3384,7 +3384,7 @@ fn test_loop_2() {
     from (read_csv 'employees.csv')
     filter last_name=="Mitchell"
     loop (
-      join manager=employees (manager.employee_id==_frame.reports_to)
+      join manager=employees (manager.employee_id==this.reports_to)
       select manager.*
     )
     "#).unwrap(),
@@ -3859,4 +3859,33 @@ fn test_error_code() {
     )
     .unwrap_err();
     assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
+}
+
+#[test]
+fn large_query() {
+    // This was causing a stack overflow on Windows, ref https://github.com/PRQL/prql/issues/2857
+    compile(
+        r###"
+from employees
+filter gross_cost > 0
+group {title} (
+  aggregate {
+    ct = count this,
+  }
+)
+sort ct
+filter ct > 200
+take 20
+sort ct
+filter ct > 200
+take 20
+sort ct
+filter ct > 200
+take 20
+sort ct
+filter ct > 200
+take 20
+    "###,
+    )
+    .unwrap();
 }

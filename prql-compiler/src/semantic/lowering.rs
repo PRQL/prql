@@ -562,7 +562,7 @@ impl Lowerer {
     fn lower_sorts(&mut self, by: Vec<pl::ColumnSort>) -> Result<Vec<pl::ColumnSort<CId>>> {
         by.into_iter()
             .map(|pl::ColumnSort { column, direction }| {
-                let column = self.declare_as_column(column, false)?;
+                let column = self.declare_as_column(*column, false)?;
                 Ok(pl::ColumnSort { direction, column })
             })
             .try_collect()
@@ -804,8 +804,8 @@ impl Lowerer {
                     .into_iter()
                     .map(|case| -> Result<_> {
                         Ok(SwitchCase {
-                            condition: self.lower_expr(case.condition)?,
-                            value: self.lower_expr(case.value)?,
+                            condition: self.lower_expr(*case.condition)?,
+                            value: self.lower_expr(*case.value)?,
                         })
                     })
                     .try_collect()?,

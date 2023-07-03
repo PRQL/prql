@@ -128,8 +128,8 @@ expression: "parse_single(include_str!(\"../../examples/compile-files/queries/va
                                 Ident:
                                   - count
                               args:
-                                - SString:
-                                    - String: "*"
+                                - Ident:
+                                    - salary
                             alias: ct
           - FuncCall:
               name:

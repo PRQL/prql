@@ -4,7 +4,7 @@ Test PRQL queries against various SQL RDBMS.
 
 ## Data
 
-Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with
+Columns are renamed to `snake_case`, so Postgres and DuckDb don't struggle with
 them.
 
 For optimal accessibility, portability between databases and file size, all
@@ -12,7 +12,7 @@ tables are stored as CSV files. Their current size is 432kB, it could be gzip-ed
 to 112kB, but that would require a preprocessing step before running
 `cargo test`.
 
-## Query
+## Queries
 
 For databases like ClickHouse, where the order of results is ambiguous, please
 use `sort` for test queries to to guarantee the order of rows across DBs.
@@ -23,7 +23,7 @@ For example, instead of the following query:
 from albums
 ```
 
-Use a query inclueding `sort`:
+Use a query including `sort`:
 
 ```elm
 from albums
@@ -45,7 +45,7 @@ cargo build.
 ### External DBs
 
 These will not run as a part of `cargo test`. Use
-`cargo test --features=test-external-dbs` instead. Make sure to start docker
+`cargo test --features=test-dbs-external` instead. Make sure to start docker
 compose before (see below).
 
 Currently Postgres, MySQL, SQL Server and ClickHouse are tested.
@@ -66,7 +66,7 @@ Steps to run the tests:
 2. Run the tests:
 
    ```sh
-   cargo test --features=test-external-dbs
+   cargo test --features=test-dbs-external
    ```
 
 ## Test organization

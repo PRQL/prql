@@ -6,7 +6,7 @@ SELECT
   title,
   country,
   AVG(salary),
-  COUNT(salary) AS ct
+  COUNT(*) AS ct
 FROM
   employees
 GROUP BY

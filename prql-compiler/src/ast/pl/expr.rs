@@ -206,7 +206,7 @@ impl FuncCall {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum TyOrExpr {
     Ty(Ty),
-    Expr(Expr),
+    Expr(Box<Expr>),
 }
 
 /// Function called with possibly missing positional arguments.
@@ -251,7 +251,7 @@ pub struct FuncParam {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<TyOrExpr>,
 
-    pub default_value: Option<Expr>,
+    pub default_value: Option<Box<Expr>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -330,7 +330,7 @@ impl Range {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct SwitchCase<T = Expr> {
+pub struct SwitchCase<T = Box<Expr>> {
     pub condition: T,
     pub value: T,
 }
@@ -370,7 +370,7 @@ pub enum TransformKind {
         assigns: Vec<Expr>,
     },
     Sort {
-        by: Vec<ColumnSort<Expr>>,
+        by: Vec<ColumnSort>,
     },
     Take {
         range: Range,
@@ -394,7 +394,7 @@ pub enum TransformKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ColumnSort<T = Expr> {
+pub struct ColumnSort<T = Box<Expr>> {
     pub direction: SortDirection,
     pub column: T,
 }

@@ -14,7 +14,7 @@ cfg_if::cfg_if! {
         fn main() {    panic!("Not used in wasm (but it seems cargo insists we have a `main` function).")}
     } else {
         use criterion::{criterion_group, criterion_main, Criterion};
-        use prql_compiler::*;
+        use prql_compiler::{ErrorMessages, Options, compile};
 
         const CONTENT: &str = include_str!("../examples/compile-files/queries/variables.prql");
         fn compile_query() -> Result<String, ErrorMessages> {

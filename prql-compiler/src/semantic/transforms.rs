@@ -14,7 +14,7 @@ use super::context::{Decl, DeclKind};
 use super::module::Module;
 use super::resolver::Resolver;
 use super::{Context, Lineage};
-use super::{NS_FRAME, NS_PARAM};
+use super::{NS_PARAM, NS_THIS};
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
@@ -62,6 +62,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                         }
                         _ => (node, SortDirection::default()),
                     };
+                    let column = Box::new(column);
 
                     ColumnSort { direction, column }
                 })
@@ -740,7 +741,7 @@ impl LineageInput {
             // We could do this for all columns, but it is less transparent,
             // so let's use it just as a last resort.
 
-            let input_ident_fq = Ident::from_path(vec![NS_FRAME, self.name.as_str()]);
+            let input_ident_fq = Ident::from_path(vec![NS_THIS, self.name.as_str()]);
 
             let except = except
                 .iter()

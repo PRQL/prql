@@ -23,7 +23,7 @@ hero_section:
       aggregate {
         average total,
         sum_income = sum income,
-        ct = count s"*",
+        ct = count total,
       }
     )
     sort {-sum_income}

@@ -718,8 +718,8 @@ group {title, country} (aggregate {
   sum salary,
   sum gross_salary,
   average gross_cost,
-  sum_gross_cost = sum gross_cost,
-  ct = count s"*",
+  sum_gross_cost = (sum gross_cost),
+  ct = (count salary),
 })"#,
         );
     }

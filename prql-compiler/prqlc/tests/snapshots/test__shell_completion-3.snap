@@ -7,6 +7,8 @@ info:
     - shell-completion
     - powershell
   env:
+    RUST_LOG: ""
+    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
 ---
 success: true
@@ -73,6 +75,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('semantics', 'semantics', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -94,10 +97,17 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
+        'prqlc;debug;ast' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
         'prqlc;debug;help' {
             [CompletionResult]::new('semantics', 'semantics', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -108,6 +118,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;debug;help;annotate' {
+            break
+        }
+        'prqlc;debug;help;ast' {
             break
         }
         'prqlc;debug;help;help' {
@@ -186,6 +199,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('semantics', 'semantics', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
             [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
             [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
             break
         }
         'prqlc;help;debug;semantics' {
@@ -195,6 +209,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;debug;annotate' {
+            break
+        }
+        'prqlc;help;debug;ast' {
             break
         }
         'prqlc;help;resolve' {

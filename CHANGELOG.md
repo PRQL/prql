@@ -93,7 +93,7 @@ will become the public version at the next release._
 <!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
 
 - We've changed how we handle colors. We now use the
-  `[anstream](https://github.com/rust-cli/anstyle)` library in `prqlc` &
+  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
   `prql-compiler`.
 
   `Options::color` is deprecated and has no effect. Code which consumes
@@ -111,7 +111,7 @@ will become the public version at the next release._
 **Fixes**:
 
 - Numbers expressed with scientific notation — `1e9` — are now handled correctly
-  by the compiler (@max-sixty).
+  by the compiler (@max-sixty, #2865).
 
 **Documentation**:
 
@@ -119,11 +119,13 @@ will become the public version at the next release._
 
 **Integrations**:
 
+- prql-python now provides type hints (@philpep, #2912)
+
 **Internal changes**:
 
 - Annotations in PRQL. These have limited support but are currently used to
   specify binding strengths. They're modeled after Rust's annotations, but with
-  `@` syntax, more similar to traditional decorators.
+  `@` syntax, more similar to traditional decorators. (#2729)
 
   ```prql no-eval
   @{binding_strength=11}
@@ -136,6 +138,8 @@ will become the public version at the next release._
 - ClickHouse is tested in CI (@eitsupi, #2815).
 
 **New Contributors**:
+
+- @philpep, with #2912
 
 ## 0.8.1 — 2023-04-29
 

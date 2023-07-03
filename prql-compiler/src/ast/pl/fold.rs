@@ -37,15 +37,11 @@ pub trait AstFold {
         exprs.into_iter().map(|node| self.fold_expr(node)).collect()
     }
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
-        Ok(VarDef {
-            value: Box::new(self.fold_expr(*var_def.value)?),
-            ty_expr: var_def.ty_expr.map(|x| self.fold_expr(x)).transpose()?,
-            kind: var_def.kind,
-        })
+        fold_var_def(self, var_def)
     }
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
         Ok(TypeDef {
-            value: ty_def.value.map(|x| self.fold_expr(x)).transpose()?,
+            value: fold_optional_box(self, ty_def.value)?,
         })
     }
     fn fold_module_def(&mut self, module_def: ModuleDef) -> Result<ModuleDef> {
@@ -140,6 +136,14 @@ fn fold_module_def<F: ?Sized + AstFold>(fold: &mut F, module_def: ModuleDef) -> 
     })
 }
 
+pub fn fold_var_def<F: ?Sized + AstFold>(fold: &mut F, var_def: VarDef) -> Result<VarDef> {
+    Ok(VarDef {
+        value: Box::new(fold.fold_expr(*var_def.value)?),
+        ty_expr: fold_optional_box(fold, var_def.ty_expr)?,
+        kind: var_def.kind,
+    })
+}
+
 pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: WindowFrame) -> Result<WindowFrame> {
     Ok(WindowFrame {
         kind: window.kind,
@@ -195,8 +199,8 @@ fn fold_cases<F: ?Sized + AstFold>(
 
 pub fn fold_switch_case<F: ?Sized + AstFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
     Ok(SwitchCase {
-        condition: fold.fold_expr(case.condition)?,
-        value: fold.fold_expr(case.value)?,
+        condition: Box::new(fold.fold_expr(*case.condition)?),
+        value: Box::new(fold.fold_expr(*case.value)?),
     })
 }
 
@@ -215,7 +219,7 @@ pub fn fold_column_sort<T: ?Sized + AstFold>(
 ) -> Result<ColumnSort> {
     Ok(ColumnSort {
         direction: sort_column.direction,
-        column: fold.fold_expr(sort_column.column)?,
+        column: Box::new(fold.fold_expr(*sort_column.column)?),
     })
 }
 
@@ -263,10 +267,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             assigns: fold.fold_exprs(assigns)?,
         },
         Sort { by } => Sort {
-            by: by
-                .into_iter()
-                .map(|s| fold_column_sort(fold, s))
-                .try_collect()?,
+            by: fold_column_sorts(fold, by)?,
         },
         Take { range } => Take {
             range: fold_range(fold, range)?,
@@ -314,7 +315,7 @@ pub fn fold_func_param<T: ?Sized + AstFold>(
         .into_iter()
         .map(|param| {
             Ok(FuncParam {
-                default_value: param.default_value.map(|n| fold.fold_expr(n)).transpose()?,
+                default_value: fold_optional_box(fold, param.default_value)?,
                 ..param
             })
         })
