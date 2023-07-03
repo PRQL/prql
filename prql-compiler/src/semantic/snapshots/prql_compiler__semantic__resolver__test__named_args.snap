@@ -6,7 +6,7 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
     name: std.add
     args:
       - Ident:
-          - _frame
+          - this
           - foo_table
           - bar
         ty:
@@ -60,7 +60,7 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
     name: std.add
     args:
       - Ident:
-          - _frame
+          - this
           - foo_table
           - bar
         ty:

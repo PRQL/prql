@@ -3384,7 +3384,7 @@ fn test_loop_2() {
     from (read_csv 'employees.csv')
     filter last_name=="Mitchell"
     loop (
-      join manager=employees (manager.employee_id==_frame.reports_to)
+      join manager=employees (manager.employee_id==this.reports_to)
       select manager.*
     )
     "#).unwrap(),

@@ -12,7 +12,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 name: std.div_f
                 args:
                   - Ident:
-                      - _frame
+                      - this
                       - a
                       - b
                   - SString:
@@ -20,7 +20,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                       - Expr:
                           expr:
                             Ident:
-                              - _frame
+                              - this
                               - a
                               - b
                           format: ~
@@ -64,7 +64,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                   name: date
           name: ~
       - Ident:
-          - _frame
+          - this
           - a
           - c
         ty:

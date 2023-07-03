@@ -18,7 +18,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                 name: std.sum
                 args:
                   - Ident:
-                      - _frame
+                      - this
                       - a
                       - foo
                     ty:

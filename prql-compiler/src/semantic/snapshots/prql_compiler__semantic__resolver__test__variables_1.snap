@@ -6,7 +6,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     name: std.add
     args:
       - Ident:
-          - _frame
+          - this
           - employees
           - salary
         ty:
@@ -30,7 +30,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
                   name: date
           name: ~
       - Ident:
-          - _frame
+          - this
           - employees
           - payroll_tax
         ty:
@@ -78,7 +78,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     name: std.add
     args:
       - Ident:
-          - _frame
+          - this
           - gross_salary
         ty:
           kind:
@@ -101,7 +101,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
                   name: date
           name: ~
       - Ident:
-          - _frame
+          - this
           - employees
           - benefits_cost
         ty:

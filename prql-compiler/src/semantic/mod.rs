@@ -142,8 +142,8 @@ fn path_starts_with_uppercase(p: &&PathBuf) -> bool {
 }
 
 pub const NS_STD: &str = "std";
-pub const NS_FRAME: &str = "_frame";
-pub const NS_FRAME_RIGHT: &str = "_right";
+pub const NS_THIS: &str = "this";
+pub const NS_THAT: &str = "that";
 pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "default_db";
 pub const NS_QUERY_DEF: &str = "prql";

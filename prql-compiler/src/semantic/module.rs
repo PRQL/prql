@@ -8,7 +8,7 @@ use crate::ast::pl::{Expr, Ident, TupleField, Ty};
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
-use super::{NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_INFER_MODULE, NS_SELF};
+use super::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -52,8 +52,8 @@ impl Module {
             ]),
             shadowed: None,
             redirects: vec![
-                Ident::from_name(NS_FRAME),
-                Ident::from_name(NS_FRAME_RIGHT),
+                Ident::from_name(NS_THIS),
+                Ident::from_name(NS_THAT),
                 Ident::from_name(NS_PARAM),
                 Ident::from_name(NS_STD),
             ],

@@ -277,15 +277,13 @@ impl Context {
                 (mod_ident, mod_decl)
             } else {
                 // Ident could be just part of NS_FRAME
-                let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
+                let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
 
                 if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
                     (mod_ident, mod_decl)
                 } else {
                     // ... or part of NS_FRAME_RIGHT
-                    let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
-                        .pop()
-                        .unwrap();
+                    let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
 
                     let mod_decl = self.root_mod.get_mut(&mod_ident);
 

@@ -16,7 +16,7 @@ use super::module::Module;
 use super::reporting::debug_call_tree;
 use super::transforms::{self, Flattener};
 use super::type_resolver::{self, infer_type};
-use super::{NS_FRAME, NS_FRAME_RIGHT, NS_STD};
+use super::{NS_STD, NS_THAT, NS_THIS};
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
@@ -749,8 +749,8 @@ impl Resolver {
 
         // resolve relational args
         if has_relations {
-            self.context.root_mod.shadow(NS_FRAME);
-            self.context.root_mod.shadow(NS_FRAME_RIGHT);
+            self.context.root_mod.shadow(NS_THIS);
+            self.context.root_mod.shadow(NS_THAT);
 
             for (pos, (index, (param, arg))) in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last | Position::Only);
@@ -762,9 +762,9 @@ impl Resolver {
                 // add relation frame into scope
                 let frame = arg.lineage.as_ref().unwrap();
                 if is_last {
-                    self.context.root_mod.insert_frame(frame, NS_FRAME);
+                    self.context.root_mod.insert_frame(frame, NS_THIS);
                 } else {
-                    self.context.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
+                    self.context.root_mod.insert_frame(frame, NS_THAT);
                 }
 
                 closure.args[index] = arg;
@@ -784,7 +784,7 @@ impl Resolver {
                     // add aliased columns into scope
                     if let Some(alias) = field.alias.clone() {
                         let id = field.id.unwrap();
-                        self.context.root_mod.insert_frame_col(NS_FRAME, alias, id);
+                        self.context.root_mod.insert_frame_col(NS_THIS, alias, id);
                     }
                     fields_new.push(field);
                 }
@@ -801,8 +801,8 @@ impl Resolver {
         }
 
         if has_relations {
-            self.context.root_mod.unshadow(NS_FRAME);
-            self.context.root_mod.unshadow(NS_FRAME_RIGHT);
+            self.context.root_mod.unshadow(NS_THIS);
+            self.context.root_mod.unshadow(NS_THAT);
         }
 
         Ok(closure)
@@ -857,12 +857,12 @@ impl Resolver {
             bail!("you cannot use namespace prefix with self-equality operator.");
         }
         let mut left = Expr::from(ExprKind::Ident(Ident {
-            path: vec![NS_FRAME.to_string()],
+            path: vec![NS_THIS.to_string()],
             name: ident.name.clone(),
         }));
         left.span = span;
         let mut right = Expr::from(ExprKind::Ident(Ident {
-            path: vec![NS_FRAME_RIGHT.to_string()],
+            path: vec![NS_THAT.to_string()],
             name: ident.name,
         }));
         right.span = span;
@@ -890,7 +890,7 @@ impl Resolver {
             .try_collect()?;
 
         self.fold_expr(Expr::from(ExprKind::All {
-            within: Ident::from_name(NS_FRAME),
+            within: Ident::from_name(NS_THIS),
             except,
         }))
     }
