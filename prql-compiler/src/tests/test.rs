@@ -874,7 +874,7 @@ fn test_window_functions_02() {
       ) AS running_total_num_books,
       LAG(num_books, 7) OVER (
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+          order_day
       ) AS num_books_last_week
     FROM
       table_0
@@ -944,7 +944,7 @@ fn test_window_functions_05() {
       RANK() OVER (
         PARTITION BY month
         ORDER BY
-          num_orders ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          num_orders
       ),
       LAG(num_orders, 7) OVER () AS num_orders_last_week
     FROM
@@ -1042,8 +1042,26 @@ fn test_window_functions_10() {
     ORDER BY
       day
     "###);
+}
 
-    // TODO: add test for preceding
+#[test]
+fn test_window_functions_11() {
+    assert_display_snapshot!((compile(r###"
+    from employees
+    sort age
+    derive {num = row_number this}
+    "###).unwrap()), @r###"
+    SELECT
+      *,
+      ROW_NUMBER() OVER (
+        ORDER BY
+          age
+      ) AS num
+    FROM
+      employees
+    ORDER BY
+      age
+    "###);
 }
 
 #[test]

@@ -1,6 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
+use std::collections::BTreeMap;
 use std::{env, fs};
 
 use anyhow::Context;
@@ -8,6 +9,7 @@ use insta::{assert_snapshot, glob};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use similar_asserts::assert_eq;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
@@ -318,35 +320,45 @@ fn test_rdbms() {
 
         let prql = fs::read_to_string(path).unwrap();
 
-        // for each of the dialects
-        insta::allow_duplicates! {
-            for con in &mut connections {
-                if !con.dialect.should_run_query(&prql) {
-                    continue;
-                }
-                let dialect = con.dialect;
-                let options = Options::default().with_target(Sql(Some(dialect)));
-                let mut rows = prql_compiler::compile(&prql, &options)
-                    .and_then(|sql| Ok(con.protocol.run_query(sql.as_str(), runtime)?))
-                    .context(format!("Executing {test_name} for {dialect}"))
-                    .unwrap();
-
-                // TODO: I think these could possibly be moved to the DbConnection impls
-                replace_booleans(&mut rows);
-                remove_trailing_zeros(&mut rows);
-
-                let result = rows
-                    .iter()
-                    // Make a CSV so it's easier to compare
-                    .map(|r| r.iter().join(","))
-                    .join("\n");
-
-                // Add message so we know which dialect fails. The debug_expr of
-                // the snapshot is `Running on $first_dialect` but hopefully
-                // that's not too confusing.
-                assert_snapshot!("results", &result, &format!("\n# Running on dialect `{}`\n\n{}", &con.dialect, &prql));
+        let mut results = BTreeMap::new();
+        for con in &mut connections {
+            if !con.dialect.should_run_query(&prql) {
+                continue;
             }
+            let dialect = con.dialect;
+            let options = Options::default().with_target(Sql(Some(dialect)));
+            let mut rows = prql_compiler::compile(&prql, &options)
+                .and_then(|sql| Ok(con.protocol.run_query(sql.as_str(), runtime)?))
+                .context(format!("Executing {test_name} for {dialect}"))
+                .unwrap();
+
+            // TODO: I think these could possibility be delegated to the DBConnection impls
+            replace_booleans(&mut rows);
+            remove_trailing_zeros(&mut rows);
+
+            let result = rows
+                .iter()
+                // Make a CSV so it's easier to compare
+                .map(|r| r.iter().join(","))
+                .join("\n");
+
+            results.insert(dialect.to_string(), result);
         }
+
+        let (first_dialect, first_result) =
+            results.pop_first().expect("No results for {test_name}");
+
+        // Check the first result against the snapshot
+        assert_snapshot!("results", first_result, &prql);
+
+        // Then check every other result against the first result
+        results.iter().for_each(|(dialect, result)| {
+            assert_eq!(
+                *first_result, *result,
+                "{} == {}: {test_name}",
+                first_dialect, dialect
+            );
+        })
     })
 }
 
