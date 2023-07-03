@@ -351,13 +351,13 @@ fn binding_strength(expr: &pl::ExprKind) -> u8 {
 
 /// True if this expression could be mistakenly bound with an expression on the left.
 fn can_bind_left(expr: &pl::ExprKind) -> bool {
-    match expr {
+    matches!(
+        expr,
         pl::ExprKind::Unary(pl::UnaryExpr {
             op: pl::UnOp::EqSelf | pl::UnOp::Add | pl::UnOp::Neg,
             ..
-        }) => true,
-        _ => false,
-    }
+        })
+    )
 }
 
 impl WriteSource for pl::Ident {
