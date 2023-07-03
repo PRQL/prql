@@ -7,6 +7,7 @@ PRQL uses a few terms as keywords:
 - `case`
 - `prql`
 - `type`
+- `func`
 - `module`
 - `internal`
 

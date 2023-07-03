@@ -315,30 +315,42 @@ where
 
 fn lambda_func<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
 where
-    E: Parser<Token, Expr, Error = PError> + Clone,
+    E: Parser<Token, Expr, Error = PError> + Clone + 'static,
 {
+    let param = ident_part()
+        .then(type_expr().map(Box::new).or_not())
+        .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
+        .boxed();
+
     let internal = keyword("internal")
         .ignore_then(ident())
         .map(|x| x.to_string())
         .map(ExprKind::Internal)
         .map_with_span(into_expr);
 
-    (
-        // params
-        ident_part()
-            .then(type_expr().or_not())
-            .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
-            .repeated()
-    )
+    choice((
+        // func
+        keyword("func").ignore_then(
+            param
+                .clone()
+                .separated_by(new_line().repeated())
+                .allow_leading()
+                .allow_trailing(),
+        ),
+        // plain
+        param.repeated(),
+    ))
     .then_ignore(just(Token::ArrowThin))
-    .then(type_expr().or_not())
+    // return type
+    .then(type_expr().map(Box::new).or_not())
+    // body
     .then(choice((internal, func_call(expr))))
     .map(|((params, return_ty), body)| {
         let (pos, name) = params
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
                 name,
-                ty: ty.map(Box::new).map(TyOrExpr::Expr),
+                ty: ty.map(TyOrExpr::Expr),
                 default_value,
             })
             .partition(|p| p.default_value.is_none());
@@ -348,7 +360,7 @@ where
             named_params: name,
 
             body: Box::new(body),
-            return_ty: return_ty.map(Box::new).map(TyOrExpr::Expr),
+            return_ty: return_ty.map(TyOrExpr::Expr),
 
             name_hint: None,
             args: Vec::new(),
@@ -366,7 +378,6 @@ pub fn ident() -> impl Parser<Token, Ident, Error = PError> {
     ident_part()
         .chain(ctrl('.').ignore_then(ident_part().or(star)).repeated())
         .map(Ident::from_path::<String>)
-        .labelled("identifier")
 }
 
 fn operator_unary() -> impl Parser<Token, UnOp, Error = PError> {
