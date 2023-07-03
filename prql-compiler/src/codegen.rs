@@ -266,7 +266,6 @@ impl pl::Expr {
     /// strength of the expression and its parent.
     fn write_expr(&self, parent: Option<&pl::ExprKind>, opt: WriteOpt) -> Option<String> {
         if self.alias.is_some() {
-            dbg!(&self, &parent);
             return self.write_alias_expr(parent, opt);
         }
         let strength_self = binding_strength(&self.kind, false);
@@ -291,23 +290,18 @@ impl pl::Expr {
         assert!(self.alias.is_some());
         // When it's a child, the `=` has a high binding strength — we almost never
         // need to wrap `(a = b)` in parens.
-        let strength_self = 21;
+        let strength_self = 12;
         let strength_parent = match parent {
             Some(p) => binding_strength(p, true),
             // If there's no parent, then we're at the top level, so we don't need
             // parentheses, we can act like the parent has a low binding strength.
             None => i32::MIN,
         };
-        dbg!(&parent);
 
         let s = format!(
             "{lhs} = {rhs}",
             lhs = &write_ident_part(self.alias.as_ref().unwrap()),
-            rhs = pl::Expr::write_alias_rhs_expr(
-                &self.kind,
-                dbg!(matches!(parent, Some(pl::ExprKind::Tuple(_)))),
-                opt
-            )?
+            rhs = pl::Expr::write_alias_rhs_expr(&self.kind, opt)?
         );
         if strength_parent >= strength_self {
             // TODO: we should use `write_between`, but the function types don't
@@ -318,20 +312,12 @@ impl pl::Expr {
         }
     }
 
-    fn write_alias_rhs_expr(
-        expr: &pl::ExprKind,
-        // This doesn't work, since tuples are writted by `SeparatedExpr`, which
-        // doesn't pass the parent along.
-        is_in_tuple: bool,
-        opt: WriteOpt,
-    ) -> Option<String> {
-        dbg!(&expr, is_in_tuple);
+    fn write_alias_rhs_expr(expr: &pl::ExprKind, opt: WriteOpt) -> Option<String> {
         let strength_self = binding_strength(expr, false);
         // When a parent, `=` has a fairly low binding strength:
         // - Weaker than a binop, since `x = y + 1`
-        // - Weaker than a child funccall when in a tuple, since `{x = y z}`
-        // - Stronger than a child funccall when not in a tuple, since `x = (y z)`
-        let strength_parent = if is_in_tuple { 5 } else { 7 };
+        // - Stronger than a child funccall, since `x = (y z)`
+        let strength_parent = 0;
 
         if strength_parent >= strength_self {
             expr.write_between("(", ")", opt)
@@ -345,35 +331,35 @@ fn binding_strength(expr: &pl::ExprKind, is_parent: bool) -> i32 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
-        pl::ExprKind::Ident(_) => i32::MAX,
-        pl::ExprKind::All { .. } => i32::MAX,
+        pl::ExprKind::Ident(_) => 100,
+        pl::ExprKind::All { .. } => 100,
 
-        pl::ExprKind::Range(_) => 13,
+        pl::ExprKind::Range(_) => 6,
         pl::ExprKind::Binary(BinaryExpr { op, .. }) => match op {
-            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 12,
-            pl::BinOp::Add | pl::BinOp::Sub => 11,
+            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 5,
+            pl::BinOp::Add | pl::BinOp::Sub => 4,
             pl::BinOp::Eq
             | pl::BinOp::Ne
             | pl::BinOp::Gt
             | pl::BinOp::Lt
             | pl::BinOp::Gte
             | pl::BinOp::Lte
-            | pl::BinOp::RegexSearch => 10,
-            pl::BinOp::And => 9,
-            pl::BinOp::Or => 8,
-            pl::BinOp::Coalesce => 9,
+            | pl::BinOp::RegexSearch => 3,
+            pl::BinOp::And => 2,
+            pl::BinOp::Or => 1,
+            pl::BinOp::Coalesce => 2,
         },
         // Weaker than a parent funccall, since `join x (==y)`
         // Weaker than a range, since `(-100)..1` (alternatively a range could
         // inherit and we could do `(-100..1)`)
-        pl::ExprKind::Unary(..) => 8,
-        // Weaker than a child assign, since `select x = 8`
-        // Weaker than a binary operator, since `filter x == 8`
-        pl::ExprKind::FuncCall(_) if is_parent => 9,
-        pl::ExprKind::FuncCall(_) if !is_parent => 6,
-        pl::ExprKind::Func(_) => 7,
+        pl::ExprKind::Unary(..) => 1,
+        // Weaker than a child assign, since `select x = 1`
+        // Weaker than a binary operator, since `filter x == 1`
+        pl::ExprKind::FuncCall(_) if is_parent => 2,
+        pl::ExprKind::FuncCall(_) if !is_parent => -1,
+        pl::ExprKind::Func(_) => 0,
 
-        _ => i32::MAX,
+        _ => 11,
     }
 }
 impl WriteSource for pl::Ident {
@@ -730,24 +716,6 @@ group {title, country} (aggregate {
 from foo
 is_negative = (-100)..0
 "#,
-        );
-    }
-
-    #[test]
-    fn test_aliases_in_tuple() {
-        assert_fmt_matches(
-            r#"
-from e
-derive {x = sum foo}"#,
-        );
-    }
-
-    #[test]
-    fn test_aliases_not_in_tuple() {
-        assert_fmt_matches(
-            r#"
-from e
-derive x = (sum foo)"#,
         );
     }
 }
