@@ -242,7 +242,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             .into());
         }
 
-        "all" => {
+        "tuple_every" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [list] = unpack::<1>(closure);
@@ -257,7 +257,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             return Ok(res);
         }
 
-        "map" => {
+        "tuple_map" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [func, list] = unpack::<2>(closure);
@@ -279,7 +279,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             });
         }
 
-        "zip" => {
+        "tuple_zip" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
             let [a, b] = unpack::<2>(closure);

@@ -477,9 +477,9 @@ pub(super) fn translate_query_operator(
     args: Vec<Expr>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let (from_s_string, _, _) = translate_operator(name, args, ctx)?;
+    let from_s_string = translate_operator(name, args, ctx)?;
 
-    let s_string = format!(" * FROM {from_s_string}");
+    let s_string = format!(" * FROM {}", from_s_string.text);
 
     Ok(default_query(sql_ast::SetExpr::Select(Box::new(
         sql_ast::Select {
