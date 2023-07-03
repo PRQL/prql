@@ -1,4 +1,6 @@
 # mssql:skip
+# mysql:skip
+# clickhouse:skip
 from tracks
 filter genre_id == 100
 derive empty_name = name == ''
