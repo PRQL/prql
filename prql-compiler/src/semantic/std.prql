@@ -89,15 +89,25 @@ let loop = pipeline top<relation> -> <relation> internal loop
 
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
+
 let min = column <array> -> <int || float> internal std.min
+
 let max = column <array> -> <int || float> internal std.max
+
 let sum = column <array> -> <int || float> internal std.sum
+
 let avg = column <array> -> <int || float> internal std.avg
+
 let stddev = column <array> -> <int || float> internal std.stddev
+
 let average = column <array> -> <float> std.avg column
-let count = non_null<array> -> <int> internal std.count
-# TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
-# abbreviation of that?)
+
+# Counts number of items in the column.
+# Note that the count will include null values.
+let count = column<array> -> <int> internal std.count
+
+# Deprecated in favour of filterning input to the [std.count] function (not yet implemented).
+@{deprecated}
 let count_distinct = column <array> -> internal std.count_distinct
 
 ## Window functions

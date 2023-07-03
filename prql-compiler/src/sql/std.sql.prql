@@ -21,7 +21,7 @@ let sum = column -> s"SUM({column:0})"
 let avg = column -> s"AVG({column:0})"
 let stddev = column -> s"STDDEV({column:0})"
 let average = column -> s"AVG({column:0})"
-let count = non_null -> s"COUNT({non_null:0})"
+let count = column -> s"COUNT(*)"
 let count_distinct = column -> s"COUNT(DISTINCT {column:0})"
 
 # Window functions
