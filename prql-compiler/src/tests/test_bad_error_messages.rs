@@ -100,7 +100,7 @@ fn array_instead_of_tuple() {
        │
      3 │     select [e.first_name, e.last_name]
        │            ─────────────┬─────────────
-       │                         ╰─────────────── unexpected `[_frame.e.first_name, _frame.e.last_name]`
+       │                         ╰─────────────── unexpected `[this.e.first_name, this.e.last_name]`
        │
        │ Help: this is probably a 'bad type' error (we are working on that)
     ───╯

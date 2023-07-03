@@ -33,7 +33,7 @@ TransformCall:
             name: std.avg
             args:
               - Ident:
-                  - _frame
+                  - this
                   - c_invoice
                   - amount
                 ty:
@@ -57,7 +57,7 @@ TransformCall:
             name: ~
   partition:
     - Ident:
-        - _frame
+        - this
         - c_invoice
         - issued_at
       ty:
