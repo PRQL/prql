@@ -853,7 +853,7 @@ fn test_window_functions_02() {
         TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
         COUNT(DISTINCT co.order_id) AS num_orders,
         COUNT(*) AS num_books,
-        SUM(ol.price) AS total_price
+        COALESCE(SUM(ol.price), 0) AS total_price
       FROM
         cust_order AS co
         JOIN order_line AS ol ON co.order_id = ol.order_id
@@ -1859,7 +1859,7 @@ fn test_prql_to_sql_1() {
         @r###"
     SELECT
       COUNT(*),
-      SUM(salary)
+      COALESCE(SUM(salary), 0)
     FROM
       employees
     "###
@@ -1929,11 +1929,11 @@ take 20
       title,
       country,
       AVG(salary),
-      SUM(salary),
+      COALESCE(SUM(salary), 0),
       AVG(_expr_1),
-      SUM(_expr_1),
+      COALESCE(SUM(_expr_1), 0),
       AVG(_expr_0),
-      SUM(_expr_0) AS sum_gross_cost,
+      COALESCE(SUM(_expr_0), 0) AS sum_gross_cost,
       COUNT(*) AS ct
     FROM
       table_0
@@ -2428,7 +2428,7 @@ fn test_double_aggregate() {
         @r###"
     SELECT
       type,
-      SUM(amount) AS total_amt,
+      COALESCE(SUM(amount), 0) AS total_amt,
       MAX(amount)
     FROM
       numbers

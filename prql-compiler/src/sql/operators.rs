@@ -6,7 +6,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 
-use super::gen_expr::{translate_operand, ExprOrSource};
+use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
 
 use crate::ast::{pl, rq};
@@ -35,22 +35,17 @@ fn load_std_sql() -> semantic::Module {
 pub(super) fn translate_operator_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     let (name, args) = expr.kind.into_operator().unwrap();
 
-    let (text, binding_strength, window_frame) =
-        translate_operator(name, args, ctx).with_span(expr.span)?;
+    let source = translate_operator(name, args, ctx).with_span(expr.span)?;
 
-    Ok(ExprOrSource::Source {
-        text,
-        binding_strength,
-        window_frame,
-    })
+    Ok(ExprOrSource::Source(source))
 }
 
 pub(super) fn translate_operator(
     name: String,
     args: Vec<rq::Expr>,
     ctx: &mut Context,
-) -> Result<(String, i32, bool)> {
-    let (func_def, binding_strength, window_frame) =
+) -> Result<SourceExpr> {
+    let (func_def, binding_strength, window_frame, coalesce) =
         find_operator_impl(&name, ctx.dialect_enum).unwrap();
     let parent_binding_strength = binding_strength.unwrap_or(100);
 
@@ -104,13 +99,26 @@ pub(super) fn translate_operator(
         }
     }
 
-    Ok((text, parent_binding_strength, window_frame))
+    let mut binding_strength = parent_binding_strength;
+
+    if !ctx.query.window_function {
+        if let Some(default) = coalesce {
+            text = format!("COALESCE({text}, {default})");
+            binding_strength = 100;
+        }
+    }
+
+    Ok(SourceExpr {
+        text,
+        binding_strength,
+        window_frame,
+    })
 }
 
 fn find_operator_impl(
     operator_name: &str,
     dialect: Dialect,
-) -> Option<(&pl::Func, Option<i32>, bool)> {
+) -> Option<(&pl::Func, Option<i32>, bool, Option<String>)> {
     let operator_name = operator_name.strip_prefix("std.").unwrap();
 
     let operator_name = pl::Ident::from_name(operator_name);
@@ -142,33 +150,27 @@ fn find_operator_impl(
         .and_then(|x| x.tuple_items().ok())
         .unwrap_or_default();
 
-    let binding_strength = annotation
-        .pluck(|(name, val)| {
-            if &name == "binding_strength" {
-                Ok(val)
-            } else {
-                Err((name, val))
-            }
-        })
-        .into_iter()
-        .next()
-        .and_then(|val| val.into_literal().ok())
+    let binding_strength = pluck_annotation(&mut annotation, "binding_strength")
         .and_then(|literal| literal.into_integer().ok())
         .map(|int| int as i32);
 
-    let window_frame = annotation
-        .pluck(|(name, val)| {
-            if &name == "window_frame" {
-                Ok(val)
-            } else {
-                Err((name, val))
-            }
-        })
-        .into_iter()
-        .next()
-        .and_then(|val| val.into_literal().ok())
+    let window_frame = pluck_annotation(&mut annotation, "window_frame")
         .and_then(|literal| literal.into_boolean().ok())
         .unwrap_or_default();
 
-    Some((func_def.as_ref(), binding_strength, window_frame))
+    let coalesce =
+        pluck_annotation(&mut annotation, "coalesce").and_then(|val| val.into_string().ok());
+
+    Some((func_def.as_ref(), binding_strength, window_frame, coalesce))
+}
+
+fn pluck_annotation(
+    annotation: &mut Vec<(String, pl::ExprKind)>,
+    name: &str,
+) -> Option<pl::Literal> {
+    annotation
+        .pluck(|(n, val)| if n == name { Ok(val) } else { Err((n, val)) })
+        .into_iter()
+        .next()
+        .and_then(|val| val.into_literal().ok())
 }
