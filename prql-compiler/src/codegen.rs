@@ -705,7 +705,7 @@ group {title, country} (aggregate {
   sum gross_salary,
   average gross_cost,
   sum_gross_cost = (sum gross_cost),
-  ct = (count s"*"),
+  ct = (count salary),
 })"#,
         );
     }
