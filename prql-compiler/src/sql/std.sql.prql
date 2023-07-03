@@ -15,22 +15,43 @@
 
 
 # Aggregation functions
+@{window_frame=true}
 let min = column -> s"MIN({column:0})"
+
+@{window_frame=true}
 let max = column -> s"MAX({column:0})"
+
+@{window_frame=true}
 let sum = column -> s"SUM({column:0})"
+
+@{window_frame=true}
 let avg = column -> s"AVG({column:0})"
+
+@{window_frame=true}
 let stddev = column -> s"STDDEV({column:0})"
+
+@{window_frame=true}
 let average = column -> s"AVG({column:0})"
+
+@{window_frame=true}
 let count = column -> s"COUNT(*)"
+
+@{window_frame=true}
 let count_distinct = column -> s"COUNT(DISTINCT {column:0})"
 
 # Window functions
 let lag = offset column -> s"LAG({column:0}, {offset:0})"
+
 let lead = offset column -> s"LEAD({column:0}, {offset:0})"
+
 let first = column -> s"FIRST_VALUE({column:0})"
+
 let last = column -> s"LAST_VALUE({column:0})"
+
 let rank = -> s"RANK()"
+
 let rank_dense = -> s"DENSE_RANK()"
+
 let row_number = -> s"ROW_NUMBER()"
 
 # Other functions

@@ -332,7 +332,7 @@ fn test_rdbms() {
                 .context(format!("Executing {test_name} for {dialect}"))
                 .unwrap();
 
-            // TODO: I think these could possiblbly be delegated to the DBConnection impls
+            // TODO: I think these could possibility be delegated to the DBConnection impls
             replace_booleans(&mut rows);
             remove_trailing_zeros(&mut rows);
 

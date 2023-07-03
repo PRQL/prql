@@ -38,11 +38,13 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
             ExprOrSource::Source {
                 text,
                 binding_strength: 100,
+                window_frame: false,
             }
         }
         ExprKind::Param(id) => ExprOrSource::Source {
             text: format!("${id}"),
             binding_strength: 100,
+            window_frame: false,
         },
         ExprKind::Literal(l) => translate_literal(l, ctx)?.into(),
         ExprKind::Case(mut cases) => {
@@ -575,16 +577,24 @@ fn translate_windowed(
         WindowFrame { kind, range }
     };
 
+    let supports_frame = matches!(
+        expr,
+        ExprOrSource::Source {
+            window_frame: true,
+            ..
+        }
+    );
+
     let window = WindowSpec {
         partition_by: try_into_exprs(window.partition, ctx, span)?,
         order_by: (window.sort)
             .into_iter()
             .map(|sort| translate_column_sort(&sort, ctx))
             .try_collect()?,
-        window_frame: if window.frame == default_frame {
-            None
-        } else {
+        window_frame: if supports_frame && window.frame != default_frame {
             Some(try_into_window_frame(window.frame)?)
+        } else {
+            None
         },
     };
 
@@ -592,6 +602,7 @@ fn translate_windowed(
     Ok(ExprOrSource::Source {
         text: format!("{expr} OVER ({window})"),
         binding_strength: 100,
+        window_frame: false,
     })
 }
 
@@ -819,7 +830,11 @@ impl SQLExpression for UnaryOperator {
 /// A wrapper around sql_ast::Expr, that may have already been converted to source.
 pub enum ExprOrSource {
     Expr(sql_ast::Expr),
-    Source { text: String, binding_strength: i32 },
+    Source {
+        text: String,
+        binding_strength: i32,
+        window_frame: bool,
+    },
 }
 
 impl ExprOrSource {
@@ -843,11 +858,14 @@ impl ExprOrSource {
     fn wrap_in_parenthesis(self) -> Self {
         match self {
             ExprOrSource::Expr(expr) => ExprOrSource::Expr(sql_ast::Expr::Nested(Box::new(expr))),
-            ExprOrSource::Source { text, .. } => {
+            ExprOrSource::Source {
+                text, window_frame, ..
+            } => {
                 let text = format!("({text})");
                 ExprOrSource::Source {
                     text,
                     binding_strength: 100,
+                    window_frame,
                 }
             }
         }

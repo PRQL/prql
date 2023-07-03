@@ -12,6 +12,7 @@ use super::{Context, Dialect};
 use crate::ast::{pl, rq};
 use crate::error::WithErrorInfo;
 use crate::semantic;
+use crate::utils::Pluck;
 use crate::Error;
 
 static STD: Lazy<semantic::Module> = Lazy::new(load_std_sql);
@@ -34,11 +35,13 @@ fn load_std_sql() -> semantic::Module {
 pub(super) fn translate_operator_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     let (name, args) = expr.kind.into_operator().unwrap();
 
-    let (text, binding_strength) = translate_operator(name, args, ctx).with_span(expr.span)?;
+    let (text, binding_strength, window_frame) =
+        translate_operator(name, args, ctx).with_span(expr.span)?;
 
     Ok(ExprOrSource::Source {
         text,
         binding_strength,
+        window_frame,
     })
 }
 
@@ -46,8 +49,9 @@ pub(super) fn translate_operator(
     name: String,
     args: Vec<rq::Expr>,
     ctx: &mut Context,
-) -> Result<(String, i32)> {
-    let (func_def, binding_strength) = find_operator_impl(&name, ctx.dialect_enum).unwrap();
+) -> Result<(String, i32, bool)> {
+    let (func_def, binding_strength, window_frame) =
+        find_operator_impl(&name, ctx.dialect_enum).unwrap();
     let parent_binding_strength = binding_strength.unwrap_or(100);
 
     let params = func_def
@@ -100,10 +104,13 @@ pub(super) fn translate_operator(
         }
     }
 
-    Ok((text, parent_binding_strength))
+    Ok((text, parent_binding_strength, window_frame))
 }
 
-fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<(&pl::Func, Option<i32>)> {
+fn find_operator_impl(
+    operator_name: &str,
+    dialect: Dialect,
+) -> Option<(&pl::Func, Option<i32>, bool)> {
     let operator_name = operator_name.strip_prefix("std.").unwrap();
 
     let operator_name = pl::Ident::from_name(operator_name);
@@ -126,17 +133,42 @@ fn find_operator_impl(operator_name: &str, dialect: Dialect) -> Option<(&pl::Fun
     let func_def = decl.kind.as_expr().unwrap();
     let func_def = func_def.kind.as_func().unwrap();
 
-    let binding_strength = decl
+    let mut annotation = decl
         .clone()
         .annotations
         .into_iter()
         .exactly_one()
         .ok()
         .and_then(|x| x.tuple_items().ok())
-        .and_then(|items| items.into_iter().find(|bs| bs.0 == "binding_strength"))
-        .and_then(|tuple| tuple.1.into_literal().ok())
+        .unwrap_or_default();
+
+    let binding_strength = annotation
+        .pluck(|(name, val)| {
+            if &name == "binding_strength" {
+                Ok(val)
+            } else {
+                Err((name, val))
+            }
+        })
+        .into_iter()
+        .next()
+        .and_then(|val| val.into_literal().ok())
         .and_then(|literal| literal.into_integer().ok())
         .map(|int| int as i32);
 
-    Some((func_def.as_ref(), binding_strength))
+    let window_frame = annotation
+        .pluck(|(name, val)| {
+            if &name == "window_frame" {
+                Ok(val)
+            } else {
+                Err((name, val))
+            }
+        })
+        .into_iter()
+        .next()
+        .and_then(|val| val.into_literal().ok())
+        .and_then(|literal| literal.into_boolean().ok())
+        .unwrap_or_default();
+
+    Some((func_def.as_ref(), binding_strength, window_frame))
 }
