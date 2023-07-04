@@ -1,26 +1,21 @@
+use std::collections::HashSet;
+
+use once_cell::sync::Lazy;
+
 use crate::{
     ast::pl::{self, BinaryExpr},
     utils::VALID_IDENT,
 };
 
 pub fn write(stmts: &Vec<pl::Stmt>) -> String {
-    let mut r = String::new();
     let mut opt = WriteOpt::default();
 
-    'lp: loop {
-        for stmt in stmts {
-            match stmt.write(opt) {
-                Some(s) => {
-                    r += &s;
-                }
-                None => {
-                    r.clear();
-                    opt.max_width += opt.max_width / 2;
-                    continue 'lp;
-                }
-            }
+    loop {
+        if let Some(s) = stmts.write(opt) {
+            break s;
+        } else {
+            opt.max_width += opt.max_width / 2;
         }
-        return r;
     }
 }
 
@@ -262,11 +257,11 @@ impl WriteSource for pl::ExprKind {
             Func(c) => {
                 let mut r = String::new();
                 for param in &c.params {
-                    r += &param.name;
+                    r += &write_ident_part(&param.name);
                     r += " ";
                 }
                 for param in &c.named_params {
-                    r += &param.name;
+                    r += &write_ident_part(&param.name);
                     r += ":";
                     r += &param.default_value.as_ref().unwrap().to_string();
                     r += " ";
@@ -375,19 +370,51 @@ impl WriteSource for pl::Ident {
     }
 }
 
+pub static KEYWORDS: Lazy<HashSet<&str>> = Lazy::new(|| {
+    HashSet::from_iter([
+        "let", "into", "case", "prql", "type", "module", "internal", "func",
+    ])
+});
+
 pub fn write_ident_part(s: &str) -> String {
-    if VALID_IDENT.is_match(s) {
+    if VALID_IDENT.is_match(s) && !KEYWORDS.contains(s) {
         s.to_string()
     } else {
         format!("`{}`", s)
     }
 }
 
-impl WriteSource for pl::Stmt {
+impl WriteSource for Vec<pl::Stmt> {
     fn write(&self, opt: WriteOpt) -> Option<String> {
+        let opt = opt.reset_line()?;
+
+        let mut r = String::new();
+        for stmt in self {
+            if !r.is_empty() {
+                r += "\n";
+            }
+
+            r += &opt.write_indent();
+            r += &stmt.write(opt)?;
+        }
+        Some(r)
+    }
+}
+
+impl WriteSource for pl::Stmt {
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
+        let mut r = String::new();
+
+        for annotation in &self.annotations {
+            r += "@";
+            r += &annotation.expr.write(opt)?;
+            r += "\n";
+            r += &opt.write_indent();
+            opt = opt.reset_line()?;
+        }
+
         match &self.kind {
             pl::StmtKind::QueryDef(query) => {
-                let mut r = String::new();
                 r += "prql";
                 if let Some(version) = &query.version {
                     r += &format!(r#" version:"{}""#, version);
@@ -396,41 +423,57 @@ impl WriteSource for pl::Stmt {
                     r += &format!(" {key}:{value}");
                 }
                 r += "\n";
-                Some(r)
             }
-            pl::StmtKind::VarDef(var_def) => {
-                let mut r = String::new();
+            pl::StmtKind::VarDef(var_def) => match var_def.kind {
+                pl::VarDefKind::Let => {
+                    r += &format!("let {} = ", self.name);
+                    opt = opt.consume_width(r.len() as u16)?;
 
-                match var_def.kind {
-                    pl::VarDefKind::Let => {
-                        r += &format!("let {} = ", self.name);
-                        r += &var_def.value.write(opt)?;
+                    r += &var_def.value.write(opt)?;
+                    r += "\n";
+                }
+                pl::VarDefKind::Into | pl::VarDefKind::Main => {
+                    match &var_def.value.kind {
+                        pl::ExprKind::Pipeline(pipeline) => {
+                            for expr in &pipeline.exprs {
+                                r += &expr.write(opt)?;
+                                r += "\n";
+                            }
+                        }
+                        _ => {
+                            r += &var_def.value.write(opt)?;
+                        }
+                    }
+
+                    if let pl::VarDefKind::Into = var_def.kind {
+                        r += &format!("into {}", self.name);
                         r += "\n";
                     }
-                    pl::VarDefKind::Into | pl::VarDefKind::Main => {
-                        match &var_def.value.kind {
-                            pl::ExprKind::Pipeline(pipeline) => {
-                                for expr in &pipeline.exprs {
-                                    r += &expr.write(opt)?;
-                                    r += "\n";
-                                }
-                            }
-                            _ => {
-                                r += &var_def.value.write(opt)?;
-                            }
-                        }
-
-                        if let pl::VarDefKind::Into = var_def.kind {
-                            r += &format!("into {}", self.name);
-                            r += "\n";
-                        }
-                    }
                 }
-                Some(r)
+            },
+            pl::StmtKind::TypeDef(type_def) => {
+                r += &format!("let {}", self.name);
+                opt = opt.consume_width(r.len() as u16)?;
+
+                if let Some(value) = &type_def.value {
+                    opt.consume_width(3)?;
+                    r += " = ";
+                    r += &value.write(opt)?;
+                }
+                r += "\n";
             }
-            pl::StmtKind::TypeDef(_) => todo!(),
-            pl::StmtKind::ModuleDef(_) => todo!(),
+            pl::StmtKind::ModuleDef(module_def) => {
+                r += &format!("module {} {{\n", self.name);
+                opt.indent += 1;
+
+                r += &module_def.stmts.write(opt)?;
+
+                opt.indent -= 1;
+                r += &opt.write_indent();
+                r += "}\n";
+            }
         }
+        Some(r)
     }
 }
 
