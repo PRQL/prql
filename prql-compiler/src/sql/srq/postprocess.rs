@@ -103,9 +103,8 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
                             expr.kind = RelationExprKind::SubQuery(rel);
                         }
                     }
-                    if let Some(riid) = &expr.riid {
-                        sorting = CidRedirector::redirect_sorts(sorting, riid, &mut self.ctx.anchor)
-                    }
+                    sorting =
+                        CidRedirector::redirect_sorts(sorting, &expr.riid, &mut self.ctx.anchor);
                     transform = SqlTransform::From(expr);
                 }
 
@@ -191,9 +190,7 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'a
         };
 
         // make sure that table_ref has a name
-        let Some(riid) = rel.riid.as_ref() else {
-            return Ok(rel);
-        };
+        let riid = &rel.riid;
         let instance = self.ctx.anchor.relation_instances.get_mut(riid).unwrap();
 
         if instance.table_ref.name.is_none() {

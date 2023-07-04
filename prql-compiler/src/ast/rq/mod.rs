@@ -70,11 +70,11 @@ pub struct TableDecl {
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
-    // Referenced table
+    /// Referenced table
     pub source: TId,
 
-    // New column definitions are required because there may be multiple instances
-    // of this table in the same query
+    /// New column definitions are required because there may be multiple instances
+    /// of this table in the same query
     pub columns: Vec<(RelationColumn, CId)>,
 
     /// Name hint for relation within this pipeline (table alias)

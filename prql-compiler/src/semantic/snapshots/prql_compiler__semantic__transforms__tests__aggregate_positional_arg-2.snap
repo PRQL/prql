@@ -21,7 +21,7 @@ TransformCall:
             input_name: c_invoice
             except: []
       inputs:
-        - id: 178
+        - id: 180
           name: c_invoice
           table:
             - default_db
@@ -30,7 +30,7 @@ TransformCall:
     Aggregate:
       assigns:
         - RqOperator:
-            name: std.avg
+            name: std.average
             args:
               - Ident:
                   - this
@@ -46,14 +46,14 @@ TransformCall:
           ty:
             kind:
               Union:
-                - - int
-                  - kind:
-                      Primitive: Int
-                    name: int
                 - - float
                   - kind:
                       Primitive: Float
                     name: float
+                - - ~
+                  - kind:
+                      Singleton: "Null"
+                    name: ~
             name: ~
   partition:
     - Ident:
@@ -185,14 +185,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 201
+        target_id: 203
         target_name: ~
     - Single:
         name: ~
-        target_id: 232
+        target_id: 227
         target_name: ~
   inputs:
-    - id: 178
+    - id: 180
       name: c_invoice
       table:
         - default_db

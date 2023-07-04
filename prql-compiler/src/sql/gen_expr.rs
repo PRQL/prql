@@ -35,17 +35,17 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
         ExprKind::SString(s_string_items) => {
             let text = translate_sstring(s_string_items, ctx)?;
 
-            ExprOrSource::Source {
+            ExprOrSource::Source(SourceExpr {
                 text,
                 binding_strength: 100,
                 window_frame: false,
-            }
+            })
         }
-        ExprKind::Param(id) => ExprOrSource::Source {
+        ExprKind::Param(id) => ExprOrSource::Source(SourceExpr {
             text: format!("${id}"),
             binding_strength: 100,
             window_frame: false,
-        },
+        }),
         ExprKind::Literal(l) => translate_literal(l, ctx)?.into(),
         ExprKind::Case(mut cases) => {
             let default = cases
@@ -101,7 +101,8 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                             || b.kind == ExprKind::Literal(Literal::Null)
                         {
                             return Ok(process_null(name, args, ctx)?.into());
-                        } else if let Some(op) = operator_from_name(name) {
+                        } else {
+                            let op = operator_from_name(name).unwrap();
                             return Ok(translate_binary_operator(a, b, op, ctx)?.into());
                         }
                     }
@@ -389,7 +390,9 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource>
                 let window = compute.window.clone();
                 let span = compute.expr.span;
 
+                ctx.query.window_function = window.is_some();
                 let expr = translate_expr(compute.expr.clone(), ctx)?;
+                ctx.query.window_function = false;
 
                 if let Some(window) = window {
                     translate_windowed(expr, window, ctx, span)?
@@ -579,10 +582,10 @@ fn translate_windowed(
 
     let supports_frame = matches!(
         expr,
-        ExprOrSource::Source {
+        ExprOrSource::Source(SourceExpr {
             window_frame: true,
             ..
-        }
+        })
     );
 
     let window = WindowSpec {
@@ -599,11 +602,11 @@ fn translate_windowed(
     };
 
     let expr = expr.into_source();
-    Ok(ExprOrSource::Source {
+    Ok(ExprOrSource::Source(SourceExpr {
         text: format!("{expr} OVER ({window})"),
         binding_strength: 100,
         window_frame: false,
-    })
+    }))
 }
 
 fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
@@ -830,18 +833,20 @@ impl SQLExpression for UnaryOperator {
 /// A wrapper around sql_ast::Expr, that may have already been converted to source.
 pub enum ExprOrSource {
     Expr(sql_ast::Expr),
-    Source {
-        text: String,
-        binding_strength: i32,
-        window_frame: bool,
-    },
+    Source(SourceExpr),
+}
+
+pub struct SourceExpr {
+    pub text: String,
+    pub binding_strength: i32,
+    pub window_frame: bool,
 }
 
 impl ExprOrSource {
     pub fn into_ast(self) -> sql_ast::Expr {
         match self {
             ExprOrSource::Expr(ast) => ast,
-            ExprOrSource::Source { text: source, .. } => {
+            ExprOrSource::Source(SourceExpr { text: source, .. }) => {
                 // The s-string hack
                 sql_ast::Expr::Identifier(sql_ast::Ident::new(source))
             }
@@ -851,22 +856,22 @@ impl ExprOrSource {
     pub fn into_source(self) -> String {
         match self {
             ExprOrSource::Expr(e) => e.to_string(),
-            ExprOrSource::Source { text, .. } => text,
+            ExprOrSource::Source(SourceExpr { text, .. }) => text,
         }
     }
 
     fn wrap_in_parenthesis(self) -> Self {
         match self {
             ExprOrSource::Expr(expr) => ExprOrSource::Expr(sql_ast::Expr::Nested(Box::new(expr))),
-            ExprOrSource::Source {
+            ExprOrSource::Source(SourceExpr {
                 text, window_frame, ..
-            } => {
+            }) => {
                 let text = format!("({text})");
-                ExprOrSource::Source {
+                ExprOrSource::Source(SourceExpr {
                     text,
                     binding_strength: 100,
                     window_frame,
-                }
+                })
             }
         }
     }
@@ -876,9 +881,9 @@ impl SQLExpression for ExprOrSource {
     fn binding_strength(&self) -> i32 {
         match self {
             ExprOrSource::Expr(expr) => expr.binding_strength(),
-            ExprOrSource::Source {
+            ExprOrSource::Source(SourceExpr {
                 binding_strength, ..
-            } => *binding_strength,
+            }) => *binding_strength,
         }
     }
 }

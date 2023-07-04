@@ -593,13 +593,14 @@ impl Resolver {
                 // special case: functions that have internal body
 
                 if operator_name.starts_with("std.") {
-                    let name = closure.name_hint.unwrap().to_string();
-                    let args = closure.args;
-
-                    let mut res = Expr::from(ExprKind::RqOperator { name, args });
-                    res.ty = closure.return_ty.map(|t| t.into_ty().unwrap());
-                    res.needs_window = needs_window;
-                    res
+                    Expr {
+                        ty: closure.return_ty.map(|t| t.into_ty().unwrap()),
+                        needs_window,
+                        ..Expr::from(ExprKind::RqOperator {
+                            name: operator_name.clone(),
+                            args: closure.args,
+                        })
+                    }
                 } else {
                     let expr = transforms::cast_transform(self, closure)?;
                     self.fold_expr(expr)?

@@ -21,17 +21,23 @@ let min = column -> s"MIN({column:0})"
 @{window_frame=true}
 let max = column -> s"MAX({column:0})"
 
-@{window_frame=true}
+@{window_frame=true, coalesce="0"}
 let sum = column -> s"SUM({column:0})"
 
 @{window_frame=true}
-let avg = column -> s"AVG({column:0})"
+let average = column -> s"AVG({column:0})"
 
 @{window_frame=true}
 let stddev = column -> s"STDDEV({column:0})"
 
-@{window_frame=true}
-let average = column -> s"AVG({column:0})"
+@{window_frame=true, coalesce="TRUE"}
+let every = column -> s"BOOL_AND({column:0})"
+
+@{window_frame=true, coalesce="FALSE"}
+let any = column -> s"BOOL_OR({column:0})"
+
+@{window_frame=true, coalesce="''"}
+let concat_array = column -> s"STRING_AGG({column:0}, '')"
 
 @{window_frame=true}
 let count = column -> s"COUNT(*)"
@@ -188,6 +194,15 @@ module postgres {
 }
 
 module sqlite {
+  @{window_frame=true, coalesce="TRUE", binding_strength=6}
+  let every = column -> s"MIN({column:0}) > 0"
+
+  @{window_frame=true, coalesce="FALSE", binding_strength=6}
+  let any = column -> s"MAX({column:0}) > 0"
+
+  @{window_frame=true, coalesce="''"}
+  let concat_array = column -> s"GROUP_CONCAT({column:0}, '')"
+
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r})"
 

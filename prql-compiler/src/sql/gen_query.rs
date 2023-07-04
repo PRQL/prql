@@ -269,9 +269,7 @@ fn translate_set_ops_pipeline(
 }
 
 fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Result<TableFactor> {
-    let alias = relation_expr
-        .riid
-        .as_ref()
+    let alias = Some(&relation_expr.riid)
         .and_then(|riid| ctx.anchor.relation_instances.get(riid))
         .and_then(|ri| ri.table_ref.name.clone());
 
@@ -477,9 +475,9 @@ pub(super) fn translate_query_operator(
     args: Vec<Expr>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let (from_s_string, _, _) = translate_operator(name, args, ctx)?;
+    let from_s_string = translate_operator(name, args, ctx)?;
 
-    let s_string = format!(" * FROM {from_s_string}");
+    let s_string = format!(" * FROM {}", from_s_string.text);
 
     Ok(default_query(sql_ast::SetExpr::Select(Box::new(
         sql_ast::Select {

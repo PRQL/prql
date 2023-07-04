@@ -853,7 +853,7 @@ fn test_window_functions_02() {
         TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
         COUNT(DISTINCT co.order_id) AS num_orders,
         COUNT(*) AS num_books,
-        SUM(ol.price) AS total_price
+        COALESCE(SUM(ol.price), 0) AS total_price
       FROM
         cust_order AS co
         JOIN order_line AS ol ON co.order_id = ol.order_id
@@ -1061,6 +1061,59 @@ fn test_window_functions_11() {
       employees
     ORDER BY
       age
+    "###);
+}
+
+#[test]
+fn test_window_functions_12() {
+    // window params need to be simple expressions
+
+    assert_display_snapshot!((compile(r###"
+    from x
+    derive {b = lag 1 a}
+    window (
+      sort b
+      derive {c = lag 1 a}
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        LAG(a, 1) OVER () AS b
+      FROM
+        x
+    )
+    SELECT
+      *,
+      LAG(a, 1) OVER (
+        ORDER BY
+          b
+      ) AS c
+    FROM
+      table_0
+    ORDER BY
+      b
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from x
+    derive {b = lag 1 a}
+    group b (
+      derive {c = lag 1 a}
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        LAG(a, 1) OVER () AS b
+      FROM
+        x
+    )
+    SELECT
+      *,
+      LAG(a, 1) OVER (PARTITION BY b) AS c
+    FROM
+      table_0
     "###);
 }
 
@@ -1859,7 +1912,7 @@ fn test_prql_to_sql_1() {
         @r###"
     SELECT
       COUNT(*),
-      SUM(salary)
+      COALESCE(SUM(salary), 0)
     FROM
       employees
     "###
@@ -1929,11 +1982,11 @@ take 20
       title,
       country,
       AVG(salary),
-      SUM(salary),
+      COALESCE(SUM(salary), 0),
       AVG(_expr_1),
-      SUM(_expr_1),
+      COALESCE(SUM(_expr_1), 0),
       AVG(_expr_0),
-      SUM(_expr_0) AS sum_gross_cost,
+      COALESCE(SUM(_expr_0), 0) AS sum_gross_cost,
       COUNT(*) AS ct
     FROM
       table_0
@@ -2428,7 +2481,7 @@ fn test_double_aggregate() {
         @r###"
     SELECT
       type,
-      SUM(amount) AS total_amt,
+      COALESCE(SUM(amount), 0) AS total_amt,
       MAX(amount)
     FROM
       numbers
@@ -3906,4 +3959,67 @@ take 20
     "###,
     )
     .unwrap();
+}
+
+#[test]
+fn test_returning_constants_only() {
+    assert_display_snapshot!(compile(
+        r###"
+    from tb1
+    sort {a}
+    select {c = b}
+    select {d = 10}
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        10 AS d,
+        a
+      FROM
+        tb1
+    )
+    SELECT
+      d
+    FROM
+      table_0
+    ORDER BY
+      a
+    "###);
+
+    assert_display_snapshot!(compile(
+        r###"
+    from tb1
+    take 10
+    filter true
+    take 20
+    filter true
+    select d = 10
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_1 AS (
+      SELECT
+        NULL
+      FROM
+        tb1
+      LIMIT
+        10
+    ), table_0 AS (
+      SELECT
+        NULL
+      FROM
+        table_1
+      WHERE
+        true
+      LIMIT
+        20
+    )
+    SELECT
+      10 AS d
+    FROM
+      table_0
+    WHERE
+      true
+    "###);
 }

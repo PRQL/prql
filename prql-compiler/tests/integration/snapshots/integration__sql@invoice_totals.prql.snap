@@ -8,7 +8,7 @@ WITH table_1 AS (
     i.billing_city AS city,
     i.billing_address AS street,
     COUNT(DISTINCT i.invoice_id) AS num_orders,
-    SUM(ii.quantity) AS num_tracks
+    COALESCE(SUM(ii.quantity), 0) AS num_tracks
   FROM
     invoices AS i
     JOIN invoice_items AS ii ON i.invoice_id = ii.invoice_id

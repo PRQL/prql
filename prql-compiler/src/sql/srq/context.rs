@@ -1,12 +1,11 @@
 //! Transform the parsed AST into a "materialized" AST, by executing functions and
 //! replacing variables. The materialized AST is "flat", in the sense that it
 //! contains no query-specific logic.
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::iter::zip;
 
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
-use itertools::Itertools;
 use serde::Serialize;
 
 use crate::ast::pl::Ident;
@@ -71,6 +70,9 @@ pub struct RelationInstance {
     /// When a pipeline is split, [CId]s from first pipeline are assigned a new
     /// [CId] in the second pipeline.
     pub cid_redirects: HashMap<CId, CId>,
+
+    /// All of cids pulled in when using a wildcard
+    pub original_cids: Vec<CId>,
 }
 
 impl RelationStatus {
@@ -84,7 +86,7 @@ impl RelationStatus {
 #[derive(Debug, Clone)]
 pub enum RelationAdapter {
     Rq(Relation),
-    Preprocessed(Vec<SqlTransform<TableRef>>, Vec<RelationColumn>),
+    Preprocessed(Vec<SqlTransform>, Vec<RelationColumn>),
     Srq(SqlRelation),
 }
 
@@ -136,12 +138,12 @@ impl AnchorContext {
 
     /// Generates a new ID and name for a wildcard column and registers it in the
     /// AnchorContext's column_decls HashMap.
-    pub fn register_wildcard(&mut self, riid: RIId) -> CId {
-        let id = self.cid.gen();
-        let kind = ColumnDecl::RelationColumn(riid, id, RelationColumn::Wildcard);
-        self.column_decls.insert(id, kind);
-        id
-    }
+    // pub fn register_wildcard(&mut self, riid: RIId) -> CId {
+    //     let id = self.cid.gen();
+    //     let kind = ColumnDecl::RelationColumn(riid, id, RelationColumn::Wildcard);
+    //     self.column_decls.insert(id, kind);
+    //     id
+    // }
 
     pub fn register_compute(&mut self, compute: Compute) {
         let id = compute.id;
@@ -156,7 +158,7 @@ impl AnchorContext {
         &mut self,
         table_ref: TableRef,
         cid_redirects: HashMap<CId, CId>,
-    ) -> TableRef {
+    ) -> RIId {
         let riid = self.riid.gen();
 
         for (col, cid) in &table_ref.columns {
@@ -164,26 +166,16 @@ impl AnchorContext {
             self.column_decls.insert(*cid, def);
         }
 
+        let original_cids = table_ref.columns.iter().map(|(_, c)| *c).collect();
         let relation_instance = RelationInstance {
             riid,
-            table_ref: table_ref.clone(),
+            table_ref,
             cid_redirects,
+            original_cids,
         };
 
         self.relation_instances.insert(riid, relation_instance);
-        table_ref
-    }
-
-    // TODO: this should not return an Option
-    pub fn find_relation_instance<'a>(
-        &'a self,
-        table_ref: &TableRef,
-    ) -> Option<&'a RelationInstance> {
-        let (_, cid) = table_ref.columns.first()?;
-        let col_decl = self.column_decls.get(cid).unwrap();
-        let (riid, _, _) = col_decl.as_relation_column().unwrap();
-
-        Some(self.relation_instances.get(riid).unwrap())
+        riid
     }
 
     /// Returns the name of a column if it has been given a name already, or generates
@@ -208,10 +200,10 @@ impl AnchorContext {
 
     pub(super) fn load_names(
         &mut self,
-        pipeline: &[SqlTransform<TableRef>],
+        pipeline: &[SqlTransform],
         output_cols: Vec<RelationColumn>,
     ) {
-        let output_cids = Self::determine_select_columns(pipeline);
+        let output_cids = self.determine_select_columns(pipeline);
 
         assert_eq!(output_cids.len(), output_cols.len());
 
@@ -222,24 +214,28 @@ impl AnchorContext {
         }
     }
 
-    pub(super) fn determine_select_columns<T>(pipeline: &[SqlTransform<T>]) -> Vec<CId> {
+    pub(super) fn determine_select_columns(&self, pipeline: &[SqlTransform]) -> Vec<CId> {
         use SqlTransform::Super;
 
         if let Some((last, remaining)) = pipeline.split_last() {
             match last {
-                Super(Transform::From(table)) => {
-                    table.columns.iter().map(|(_, cid)| *cid).collect()
+                SqlTransform::From(table) => {
+                    let rel = self.relation_instances.get(table).unwrap();
+                    rel.table_ref.columns.iter().map(|(_, cid)| *cid).collect()
                 }
-                Super(Transform::Join { with: table, .. }) => [
-                    Self::determine_select_columns(remaining),
-                    table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
-                ]
-                .concat(),
+                SqlTransform::Join { with, .. } => {
+                    let mut cols = self.determine_select_columns(remaining);
+
+                    let with = self.relation_instances.get(with).unwrap();
+                    let with = &with.table_ref.columns;
+                    cols.extend(with.iter().map(|(_, cid)| *cid));
+                    cols
+                }
                 Super(Transform::Select(cols)) => cols.clone(),
                 Super(Transform::Aggregate { partition, compute }) => {
                     [partition.clone(), compute.clone()].concat()
                 }
-                _ => Self::determine_select_columns(remaining),
+                _ => self.determine_select_columns(remaining),
             }
         } else {
             Vec::new()
@@ -247,30 +243,22 @@ impl AnchorContext {
     }
 
     /// Returns a set of all columns of all tables in a pipeline
-    pub(super) fn collect_pipeline_inputs(
-        &self,
-        pipeline: &[SqlTransform<TableRef>],
-    ) -> (Vec<RIId>, HashSet<CId>) {
-        let mut tables = Vec::new();
-        let mut columns = HashSet::new();
-        for t in pipeline {
-            if let SqlTransform::Super(
-                Transform::From(table) | Transform::Join { with: table, .. },
-            ) = t
-            {
-                // a hack to get TIId of a TableRef
-                // (ideally, TIId would be saved in TableRef)
-                if let Some((_, cid)) = table.columns.first() {
-                    tables.push(*self.column_decls[cid].as_relation_column().unwrap().0);
-                } else {
-                    panic!("table without columns?")
-                }
+    // pub(super) fn collect_pipeline_inputs(
+    //     &self,
+    //     pipeline: &[SqlTransform],
+    // ) -> Result<(Vec<RIId>, HashSet<CId>)> {
+    //     let mut tables = Vec::new();
+    //     let mut columns = HashSet::new();
+    //     for t in pipeline {
+    //         if let SqlTransform::From(riid) | SqlTransform::Join { with: riid, .. } = t {
+    //             tables.push(*riid);
 
-                columns.extend(table.columns.iter().map(|(_, cid)| cid));
-            }
-        }
-        (tables, columns)
-    }
+    //             let rel = self.relation_instances.get(riid).unwrap();
+    //             columns.extend(rel.table_ref.columns.iter().map(|(_, cid)| cid));
+    //         }
+    //     }
+    //     Ok((tables, columns))
+    // }
 
     pub(super) fn contains_wildcard(&self, cids: &[CId]) -> bool {
         for cid in cids {
@@ -333,27 +321,8 @@ impl RqFold for QueryLoader {
     }
 
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
-        let riid = self.context.riid.gen();
-
-        // if table_ref.name.is_none() {
-        // table_ref.name = Some(self.context.table_name.gen());
-        // }
-
-        // store
-        self.context.relation_instances.insert(
-            riid,
-            RelationInstance {
-                riid,
-                table_ref: table_ref.clone(),
-                cid_redirects: HashMap::new(),
-            },
-        );
-
-        for (col, cid) in &table_ref.columns {
-            self.context
-                .column_decls
-                .insert(*cid, ColumnDecl::RelationColumn(riid, *cid, col.clone()));
-        }
+        self.context
+            .create_relation_instance(table_ref.clone(), HashMap::new());
 
         Ok(table_ref)
     }
