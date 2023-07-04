@@ -2681,9 +2681,9 @@ join s=salaries (==id)
     #[test]
     fn test_annotation() {
         assert_yaml_snapshot!(parse_single(r#"
-      @{binding_strength=1}
-      let add = a b -> a + b
-      "#).unwrap(), @r###"
+        @{binding_strength=1}
+        let add = a b -> a + b
+        "#).unwrap(), @r###"
         ---
         - name: add
           VarDef:
@@ -2717,5 +2717,30 @@ join s=salaries (==id)
                       Integer: 1
                     alias: binding_strength
         "###);
+        parse_single(
+            r#"
+        @{binding_strength=1} let add = a b -> a + b
+        "#,
+        )
+        .unwrap();
+
+        parse_single(
+            r#"
+        @{binding_strength=1}
+        # comment
+        let add = a b -> a + b
+        "#,
+        )
+        .unwrap();
+
+        parse_single(
+            r#"
+        @{binding_strength=1}
+
+
+        let add = a b -> a + b
+        "#,
+        )
+        .unwrap();
     }
 }
