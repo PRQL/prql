@@ -1065,6 +1065,59 @@ fn test_window_functions_11() {
 }
 
 #[test]
+fn test_window_functions_12() {
+    // window params need to be simple expressions
+
+    assert_display_snapshot!((compile(r###"
+    from x
+    derive {b = lag 1 a}
+    window (
+      sort b
+      derive {c = lag 1 a}
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        LAG(a, 1) OVER () AS b
+      FROM
+        x
+    )
+    SELECT
+      *,
+      LAG(a, 1) OVER (
+        ORDER BY
+          b
+      ) AS c
+    FROM
+      table_0
+    ORDER BY
+      b
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from x
+    derive {b = lag 1 a}
+    group b (
+      derive {c = lag 1 a}
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        LAG(a, 1) OVER () AS b
+      FROM
+        x
+    )
+    SELECT
+      *,
+      LAG(a, 1) OVER (PARTITION BY b) AS c
+    FROM
+      table_0
+    "###);
+}
+
+#[test]
 fn test_name_resolving() {
     let query = r###"
     from numbers

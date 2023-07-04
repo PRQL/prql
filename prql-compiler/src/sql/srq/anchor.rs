@@ -416,7 +416,7 @@ pub(super) fn get_requirements(
     use SqlTransform::Super;
     use Transform::*;
 
-    // special case for aggregate, which contain two difference Complexities
+    // special case for Aggregate, which contain two difference Complexity-ies
     if let Super(Aggregate { partition, compute }) = transform {
         let mut r = Vec::new();
         r.extend(into_requirements(
@@ -430,6 +430,36 @@ pub(super) fn get_requirements(
             false,
         ));
         return r;
+    }
+
+    // special case for Compute, which contain two difference Complexity-ies
+    if let Super(Compute(compute)) = transform {
+        // expr itself
+        let expr_cids = CidCollector::collect(compute.expr.clone());
+
+        let expr_max_complexity = match infer_complexity(compute) {
+            // plain expressions can be included in anything less complex than Aggregation
+            Complexity::Plain => Complexity::Aggregation,
+
+            // anything more complex can only use included in other plain expressions.
+            // in other words: complex expressions (aggregation, window functions) cannot
+            // be defined within other expressions.
+            _ => Complexity::Plain,
+        };
+        let mut requirements = into_requirements(expr_cids, expr_max_complexity, false);
+
+        // window
+        if let Some(window) = &compute.window {
+            // TODO: what kind of exprs can be in window frame?
+            // window.frame
+
+            let mut window_cids = window.partition.clone();
+            window_cids.extend(window.sort.iter().map(|s| s.column));
+
+            requirements.extend(into_requirements(window_cids, Complexity::Plain, false));
+        }
+
+        return requirements;
     }
 
     // general case: extract cids
@@ -455,14 +485,6 @@ pub(super) fn get_requirements(
 
     // general case: determine complexity
     let (max_complexity, selected) = match transform {
-        Super(Compute(decl)) => (
-            if infer_complexity(decl) == Complexity::Plain {
-                Complexity::Aggregation
-            } else {
-                Complexity::Plain
-            },
-            false,
-        ),
         Super(Filter(_)) => (
             if !following.contains("Aggregate") {
                 Complexity::Aggregation
@@ -471,8 +493,10 @@ pub(super) fn get_requirements(
             },
             false,
         ),
-        // we only use aliased columns in ORDER BY, so the columns can have high complexity
+        // we only use SELECTed columns in ORDER BY, so the columns can have high complexity
         Super(Sort(_)) => (Complexity::Aggregation, true),
+
+        // LIMIT and OFFSET can use constant expressions which don't need to be SELECTed
         Super(Take(_)) => (Complexity::Plain, false),
         Super(Transform::Join { .. }) => (Complexity::Plain, false),
         _ => unreachable!(),
