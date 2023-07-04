@@ -96,10 +96,8 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
                 exclude(&mut star, &mut excluded);
 
                 let relation_instance = &ctx.relation_instances[riid];
-                let mut in_star: HashSet<_> = (relation_instance.table_ref.columns)
-                    .iter()
-                    .map(|(_, cid)| *cid)
-                    .collect();
+                let mut in_star: HashSet<_> =
+                    relation_instance.original_cids.iter().cloned().collect();
                 in_star.remove(&cid);
                 star = Some((cid, in_star));
 
@@ -127,7 +125,8 @@ pub(super) fn translate_select_items(
     mut excluded: Excluded,
     ctx: &mut Context,
 ) -> Result<Vec<SelectItem>> {
-    cols.into_iter()
+    let mut res: Vec<_> = cols
+        .into_iter()
         .map(|cid| {
             let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
@@ -155,7 +154,16 @@ pub(super) fn translate_select_items(
                 SelectItem::Wildcard(opts)
             })
         })
-        .try_collect()
+        .try_collect()?;
+
+    if res.is_empty() {
+        // in some cases, no columns will appear in the projection
+        // for SQL to parse correctly, we inject a `NULL`.
+        res.push(SelectItem::UnnamedExpr(sql_ast::Expr::Value(
+            sql_ast::Value::Null,
+        )));
+    }
+    Ok(res)
 }
 
 fn translate_exclude(

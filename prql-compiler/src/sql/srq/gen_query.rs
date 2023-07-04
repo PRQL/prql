@@ -7,7 +7,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ast::pl::Ident;
-use crate::ast::rq::{Query, RelationKind, RqFold, TableRef, Transform};
+use crate::ast::rq::{Query, RelationKind, RqFold, Transform};
 use crate::utils::BreakUp;
 use crate::Target;
 
@@ -16,7 +16,7 @@ use super::ast::{
     fold_sql_transform, Cte, CteKind, RelationExpr, RelationExprKind, SqlQuery, SqlRelation,
     SqlTransform, SrqMapper,
 };
-use super::context::{AnchorContext, RelationAdapter, RelationStatus};
+use super::context::{AnchorContext, RIId, RelationAdapter, RelationStatus};
 
 use super::super::{Context, Dialect};
 use super::{postprocess, preprocess};
@@ -95,10 +95,7 @@ fn compile_relation(relation: RelationAdapter, ctx: &mut Context) -> Result<SqlR
     })
 }
 
-fn compile_pipeline(
-    mut pipeline: Vec<SqlTransform<TableRef>>,
-    ctx: &mut Context,
-) -> Result<SqlRelation> {
+fn compile_pipeline(mut pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<SqlRelation> {
     use SqlTransform::Super;
 
     // special case: loop
@@ -129,9 +126,9 @@ struct TransformCompiler<'a> {
 
 impl<'a> RqFold for TransformCompiler<'a> {}
 
-impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<'a> {
-    fn fold_rel(&mut self, rel: TableRef) -> Result<RelationExpr> {
-        compile_table_ref(rel, self.ctx)
+impl<'a> SrqMapper<RIId, RelationExpr, Transform, ()> for TransformCompiler<'a> {
+    fn fold_rel(&mut self, rel: RIId) -> Result<RelationExpr> {
+        compile_relation_instance(rel, self.ctx)
     }
 
     fn fold_super(&mut self, _: Transform) -> Result<()> {
@@ -140,34 +137,36 @@ impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<
 
     fn fold_sql_transforms(
         &mut self,
-        transforms: Vec<SqlTransform<TableRef, Transform>>,
+        transforms: Vec<SqlTransform<RIId, Transform>>,
     ) -> Result<Vec<SqlTransform<RelationExpr, ()>>> {
         transforms
             .into_iter()
             .map(|transform| {
-                Ok(Some(if let SqlTransform::Super(sup) = transform {
-                    match sup {
-                        Transform::From(v) => SqlTransform::From(self.fold_rel(v)?),
+                Ok(Some(match transform {
+                    SqlTransform::From(v) => SqlTransform::From(self.fold_rel(v)?),
+                    SqlTransform::Join { side, with, filter } => SqlTransform::Join {
+                        side,
+                        with: self.fold_rel(with)?,
+                        filter,
+                    },
 
-                        Transform::Select(v) => SqlTransform::Select(v),
-                        Transform::Filter(v) => SqlTransform::Filter(v),
-                        Transform::Aggregate { partition, compute } => {
-                            SqlTransform::Aggregate { partition, compute }
-                        }
-                        Transform::Sort(v) => SqlTransform::Sort(v),
-                        Transform::Take(v) => SqlTransform::Take(v),
-                        Transform::Join { side, with, filter } => SqlTransform::Join {
-                            side,
-                            with: self.fold_rel(with)?,
-                            filter,
-                        },
-                        Transform::Compute(_) | Transform::Append(_) | Transform::Loop(_) => {
-                            // these are not used from here on
-                            return Ok(None);
+                    SqlTransform::Super(sup) => {
+                        match sup {
+                            Transform::Select(v) => SqlTransform::Select(v),
+                            Transform::Filter(v) => SqlTransform::Filter(v),
+                            Transform::Aggregate { partition, compute } => {
+                                SqlTransform::Aggregate { partition, compute }
+                            }
+                            Transform::Sort(v) => SqlTransform::Sort(v),
+                            Transform::Take(v) => SqlTransform::Take(v),
+                            Transform::Compute(_) | Transform::Append(_) | Transform::Loop(_) => {
+                                // these are not used from here on
+                                return Ok(None);
+                            }
+                            Transform::From(_) | Transform::Join { .. } => unreachable!(),
                         }
                     }
-                } else {
-                    fold_sql_transform(self, transform)?
+                    _ => fold_sql_transform(self, transform)?,
                 }))
             })
             .flat_map(|x| x.transpose())
@@ -175,10 +174,9 @@ impl<'a> SrqMapper<TableRef, RelationExpr, Transform, ()> for TransformCompiler<
     }
 }
 
-pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<RelationExpr> {
-    let relation_instance = ctx.anchor.find_relation_instance(&table_ref);
-    let riid = relation_instance.map(|r| r.riid);
-
+pub(super) fn compile_relation_instance(riid: RIId, ctx: &mut Context) -> Result<RelationExpr> {
+    let table_ref = &ctx.anchor.relation_instances.get(&riid).unwrap().table_ref;
+    let source = table_ref.source;
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
 
     // ensure that the table is declared
@@ -198,21 +196,18 @@ pub(super) fn compile_table_ref(table_ref: TableRef, ctx: &mut Context) -> Resul
 
         let relation = compile_relation(sql_relation, ctx)?;
         ctx.ctes.push(Cte {
-            tid: table_ref.source,
+            tid: source,
             kind: CteKind::Normal(relation),
         });
     }
 
     Ok(RelationExpr {
-        kind: RelationExprKind::Ref(table_ref.source),
+        kind: RelationExprKind::Ref(source),
         riid,
     })
 }
 
-fn compile_loop(
-    pipeline: Vec<SqlTransform<TableRef>>,
-    ctx: &mut Context,
-) -> Result<Vec<SqlTransform<TableRef>>> {
+fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
     // split the pipeline
     let (mut initial, mut following) =
         pipeline.break_up(|t| matches!(t, SqlTransform::Super(Transform::Loop(_))));
@@ -221,17 +216,19 @@ fn compile_loop(
     let step = preprocess::preprocess(step, ctx)?;
 
     // determine columns of the initial table
-    let recursive_columns = AnchorContext::determine_select_columns(&initial);
+    let recursive_columns = ctx.anchor.determine_select_columns(&initial);
 
     // do the same thing we do when splitting a pipeline
     // (defining new columns, redirecting cids)
     let recursive_columns = SqlTransform::Super(Transform::Select(recursive_columns));
     initial.push(recursive_columns.clone());
     let step = anchor_split(&mut ctx.anchor, initial, step);
-    let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
+    let from = step.first().unwrap().as_from().unwrap();
+    let from = ctx.anchor.relation_instances.get(from).unwrap();
+    let from = &from.table_ref.source;
 
     let recursive_name = ctx.anchor.table_name.gen();
-    let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
+    let initial = ctx.anchor.table_decls.get_mut(from).unwrap();
     initial.name = Some(Ident::from_name(recursive_name.clone()));
 
     // compile initial
@@ -253,7 +250,9 @@ fn compile_loop(
     let mut following = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
 
     let from = following.first_mut().unwrap();
-    let from = from.as_super().unwrap().as_from().unwrap();
+    let from = from.as_from().unwrap();
+    let from = ctx.anchor.relation_instances.get(from).unwrap();
+    let from = &from.table_ref;
 
     // this will be table decl that references the whole loop expression
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
@@ -270,7 +269,7 @@ fn compile_loop(
     Ok(following)
 }
 
-fn ensure_names(transforms: &[SqlTransform<TableRef>], ctx: &mut AnchorContext) {
+fn ensure_names(transforms: &[SqlTransform], ctx: &mut AnchorContext) {
     let empty = HashSet::new();
     for t in transforms {
         if let SqlTransform::Super(Transform::Sort(_)) = t {

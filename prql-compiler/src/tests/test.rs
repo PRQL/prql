@@ -3986,4 +3986,40 @@ fn test_returning_constants_only() {
     ORDER BY
       a
     "###);
+
+    assert_display_snapshot!(compile(
+        r###"
+    from tb1
+    take 10
+    filter true
+    take 20
+    filter true
+    select d = 10
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_1 AS (
+      SELECT
+        NULL
+      FROM
+        tb1
+      LIMIT
+        10
+    ), table_0 AS (
+      SELECT
+        NULL
+      FROM
+        table_1
+      WHERE
+        true
+      LIMIT
+        20
+    )
+    SELECT
+      10 AS d
+    FROM
+      table_0
+    WHERE
+      true
+    "###);
 }
