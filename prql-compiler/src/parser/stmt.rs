@@ -97,7 +97,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
 fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
     let annotation = just(Token::Annotate)
         .ignore_then(expr())
-        .then_ignore(new_line())
+        .then_ignore(new_line().repeated())
         .map(|expr| Annotation {
             expr: Box::new(expr),
         });
