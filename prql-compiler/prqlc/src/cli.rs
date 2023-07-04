@@ -12,7 +12,6 @@ use std::env;
 use std::io::Read;
 use std::io::Write;
 use std::ops::Range;
-use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
@@ -408,7 +407,7 @@ impl Command {
         // Don't wait without a prompt when running `prqlc compile` —
         // it's confusing whether it's waiting for input or not. This
         // offers the prompt.
-        if input.path() == Path::new("-") && atty::is(atty::Stream::Stdin) {
+        if input.is_tty() {
             #[cfg(unix)]
             eprintln!("Enter PRQL, then press ctrl-d to compile:\n");
             #[cfg(windows)]
