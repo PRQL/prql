@@ -33,10 +33,11 @@ will become the public version at the next release._
 - Three new operators. These compile to different function or operator depending
   on the target.
 
-  - _Breaking:_ Create new `//` operator that compiles to SQL to perform truncated integer division (@aljazerzen, #2684).
+  - _Breaking:_ Create new `//` operator that compiles to SQL to perform
+    truncated integer division (@aljazerzen, #2684).
 
-  - _Breaking:_ The operator `/` now always performs floating division (@aljazerzen, #2684).
-    _TODO: add link to division operator docs_
+  - _Breaking:_ The operator `/` now always performs floating division
+    (@aljazerzen, #2684). _TODO: add link to division operator docs_
 
   - _New:_ Regex search operator `~=` (@max-sixty, #2458). An example:
 
@@ -65,8 +66,8 @@ will become the public version at the next release._
 
 - We've changed our function declaration syntax to match other declarations.
   Functions were one of the first language constructs in PRQL, and since then
-  we've added normal declarations there's no compelling reason to have
-  functions be different.
+  we've added normal declarations there's no compelling reason to have functions
+  be different.
 
   ```prql no-eval
   let add = a b -> a + b
@@ -80,19 +81,21 @@ will become the public version at the next release._
 
 - Modules allow importing declarations from other files: _TODO: insert link_
 
-- "Relation Literals" create a relation (a "table") as an _Array_ of _Tuples_. This example demonstrates the new syntax for arrays `[]` and tuples `{}`. (@aljazerzen, #2605)
-  
+- "Relation Literals" create a relation (a "table") as an _Array_ of _Tuples_.
+  This example demonstrates the new syntax for arrays `[]` and tuples `{}`.
+  (@aljazerzen, #2605)
+
   ```prql no-eval
   from [{a=5, b=false}, {a=6, b=true}]
   filter b == true
   select a
   ```
-  
 
 <!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
 
-- `count` can now take an argument of `this` (e.g., `count this`) instead of the awkward `count s"*"`
-  
+- `count` can now take an argument of `this` (e.g., `count this`) instead of the
+  awkward `count s"*"`
+
 - We've changed how we handle colors. We now use the
   [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
   `prql-compiler`.
