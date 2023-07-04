@@ -34,8 +34,7 @@ pub enum SqlRelation {
 pub struct RelationExpr {
     pub kind: RelationExprKind,
 
-    // TODO: this should not be an Option
-    pub riid: Option<RIId>,
+    pub riid: RIId,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -61,11 +60,11 @@ pub enum CteKind {
 
 /// Similar to [rq::Transform], but closer to a SQL clause.
 ///
-/// Uses two generic args that allows the compiler to work in multiple stages.
-/// First convert RQ to [SqlTransform<TableRef, rq::Transform>] and at the end
-/// compile that to [SqlTransform<RelationExpr, ()>].
+/// Uses two generic args that allows the compiler to work in multiple stages:
+/// - the first converts RQ to [SqlTransform<RIId, rq::Transform>],
+/// - the second compiles that to [SqlTransform<RelationExpr, ()>].
 #[derive(Debug, Clone, EnumAsInner, strum::AsRefStr, Serialize)]
-pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
+pub enum SqlTransform<Rel = RIId, Super = rq::Transform> {
     /// Contains [rq::Transform] during compilation. After finishing, this is emptied.
     ///
     /// For example, initial an RQ Append transform is wrapped as such:
@@ -74,7 +73,10 @@ pub enum SqlTransform<Rel = RelationExpr, Super = rq::Transform> {
     /// rq::Transform::Append(x) -> srq::SqlTransform::Super(rq::Transform::Append(x))
     /// ```
     ///
-    /// During preprocessing, `Super(Append)` is converted into `srq::SqlTransform::Union { .. }`.
+    /// During preprocessing it is compiled to:
+    /// ```ignore
+    /// srq::SqlTransform::Super(rq::Transform::Append(_)) -> srq::SqlTransform::Union { .. }
+    /// ```
     ///
     /// At the end of SRQ compilation, all `Super()` are either discarded or converted to their
     /// SRQ equivalents.

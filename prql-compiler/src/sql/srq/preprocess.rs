@@ -12,11 +12,12 @@ use crate::ast::rq::{
     self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
 };
 use crate::error::{Error, WithErrorInfo};
+use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
-use super::context::AnchorContext;
+use super::context::RIId;
 
 /// Converts RQ AST into SqlRQ AST and applies a few preprocessing operations.
 ///
@@ -25,13 +26,13 @@ use super::context::AnchorContext;
 pub(in crate::sql) fn preprocess(
     pipeline: Vec<Transform>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform<TableRef>>, anyhow::Error> {
+) -> Result<Vec<SqlTransform>, anyhow::Error> {
     Ok(pipeline)
         .and_then(normalize)
-        .map(prune_inputs)
-        .map(wrap)
+        .and_then(|p| wrap(p, ctx))
+        .and_then(|p| prune_inputs(p, ctx))
         .and_then(|p| distinct(p, ctx))
-        .and_then(union)
+        .and_then(|p| union(p, ctx))
         .and_then(|p| except(p, ctx))
         .and_then(|p| intersect(p, ctx))
         .map(reorder)
@@ -56,38 +57,77 @@ pub(in crate::sql) fn preprocess(
 // }
 
 /// Removes unused relation inputs
-pub(in crate::sql) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
+pub(in crate::sql) fn prune_inputs(
+    mut pipeline: Vec<SqlTransform>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform>> {
+    use SqlTransform::Super;
+
     let mut used_cids = HashSet::new();
 
     let mut res = Vec::new();
     while let Some(mut transform) = pipeline.pop() {
         // collect cids (special case for Join & From)
-        match &transform {
-            Transform::Join { filter, .. } => {
+        match transform {
+            SqlTransform::Join { ref filter, .. } => {
                 used_cids.extend(CidCollector::collect(filter.clone()));
             }
-            Transform::From(_) => {}
-            _ => {
-                let (t, cids) = CidCollector::collect_t(transform);
+            SqlTransform::From(_) => {}
+            Super(t) => {
+                let (t, cids) = CidCollector::collect_t(t);
                 used_cids.extend(cids);
-                transform = t;
+                transform = Super(t);
             }
+            _ => unreachable!(),
         }
 
         // prune unused inputs
-        if let Transform::From(with) | Transform::Join { with, .. } = &mut transform {
-            with.columns.retain(|(_, cid)| used_cids.contains(cid));
+        if let SqlTransform::From(with) | SqlTransform::Join { with, .. } = &mut transform {
+            let relation = ctx.anchor.relation_instances.get_mut(with).unwrap();
+            (relation.table_ref.columns).retain(|(_, cid)| used_cids.contains(cid));
         }
 
         res.push(transform);
     }
 
     res.reverse();
-    res
+    Ok(res)
 }
 
-pub(in crate::sql) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform<TableRef>> {
-    pipe.into_iter().map(SqlTransform::Super).collect()
+fn lookup_riid(table_ref: &TableRef, ctx: &mut Context) -> Result<RIId> {
+    // table ref should have already been loaded into context
+    // now we can look it up and replace with its RIId
+
+    let Some((_, cid)) = table_ref.columns.first() else {
+        return Err(Error::new_simple("invalid RQ: table ref without columns").into());
+    };
+
+    let ColumnDecl::RelationColumn(riid, _, _) = ctx.anchor.column_decls[cid] else {
+        unreachable!();
+    };
+
+    Ok(riid)
+}
+
+pub(in crate::sql) fn wrap(pipe: Vec<Transform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
+    // We map From and Join into SqlTransforms, because we need to change their RIIds.
+    // Others we just wrap into SqlTransform::Super.
+
+    pipe.into_iter()
+        .map(|x| {
+            Ok(match x {
+                Transform::From(table_ref) => {
+                    let riid = lookup_riid(&table_ref, ctx)?;
+                    SqlTransform::From(riid)
+                }
+                Transform::Join { with, side, filter } => {
+                    let with = lookup_riid(&with, ctx)?;
+                    SqlTransform::Join { with, side, filter }
+                }
+                x => SqlTransform::Super(x),
+            })
+        })
+        .try_collect()
 }
 
 fn vecs_contain_same_elements<T: Eq + std::hash::Hash>(a: &[T], b: &[T]) -> bool {
@@ -98,9 +138,9 @@ fn vecs_contain_same_elements<T: Eq + std::hash::Hash>(a: &[T], b: &[T]) -> bool
 
 /// Creates [SqlTransform::Distinct] from [Transform::Take]
 pub(in crate::sql) fn distinct(
-    pipeline: Vec<SqlTransform<TableRef>>,
+    pipeline: Vec<SqlTransform>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform<TableRef>>> {
+) -> Result<Vec<SqlTransform>> {
     use SqlTransform::Super;
     use Transform::*;
 
@@ -126,7 +166,7 @@ pub(in crate::sql) fn distinct(
 
                 // Check whether the columns within the partition are the same
                 // as the columns in the table; otherwise we can't use DISTINCT.
-                let columns_in_frame = AnchorContext::determine_select_columns(&pipeline.clone());
+                let columns_in_frame = ctx.anchor.determine_select_columns(&pipeline.clone());
                 let matching_columns = vecs_contain_same_elements(&columns_in_frame, &partition);
 
                 if take_only_first && sort.is_empty() && matching_columns {
@@ -174,7 +214,7 @@ fn create_filter_by_row_number(
     sort: Vec<ColumnSort<CId>>,
     partition: Vec<CId>,
     ctx: &mut Context,
-) -> Vec<SqlTransform<TableRef>> {
+) -> Vec<SqlTransform> {
     // declare new column
     let expr = Expr {
         kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
@@ -249,8 +289,9 @@ fn int_expr(i: i64) -> Expr {
 
 /// Creates [SqlTransform::Union] from [Transform::Append]
 pub(in crate::sql) fn union(
-    pipeline: Vec<SqlTransform<TableRef>>,
-) -> Result<Vec<SqlTransform<TableRef>>> {
+    pipeline: Vec<SqlTransform>,
+    ctx: &mut Context,
+) -> Result<Vec<SqlTransform>> {
     use SqlTransform::*;
     use Transform::*;
 
@@ -261,6 +302,7 @@ pub(in crate::sql) fn union(
             res.push(t);
             continue;
         };
+        let bottom = lookup_riid(&bottom, ctx)?;
 
         let distinct = if let Some(Distinct) = &pipeline.peek() {
             pipeline.next();
@@ -276,12 +318,12 @@ pub(in crate::sql) fn union(
 
 /// Creates [SqlTransform::Except] from [Transform::Join] and [Transform::Filter]
 pub(in crate::sql) fn except(
-    pipeline: Vec<SqlTransform<TableRef>>,
+    pipeline: Vec<SqlTransform>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform<TableRef>>> {
+) -> Result<Vec<SqlTransform>> {
     use SqlTransform::*;
 
-    let output = AnchorContext::determine_select_columns(&pipeline);
+    let output = ctx.anchor.determine_select_columns(&pipeline);
     let output: HashSet<CId, RandomState> = HashSet::from_iter(output);
 
     let mut res = Vec::with_capacity(pipeline.len());
@@ -291,11 +333,13 @@ pub(in crate::sql) fn except(
         if res.len() < 2 {
             continue;
         }
-        let Super(Transform::Join { side: JoinSide::Left, filter: join_cond, with }) = &res[res.len() - 2] else { continue };
+        let SqlTransform::Join { side: JoinSide::Left, filter: join_cond, with } = &res[res.len() - 2] else { continue };
         let Super(Transform::Filter(filter)) = &res[res.len() - 1] else { continue };
 
-        let top = AnchorContext::determine_select_columns(&res[0..res.len() - 2]);
-        let bottom = with.columns.iter().map(|(_, c)| *c).collect_vec();
+        let with = ctx.anchor.relation_instances.get(with).unwrap();
+
+        let top = ctx.anchor.determine_select_columns(&res[0..res.len() - 2]);
+        let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();
 
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
@@ -341,7 +385,7 @@ pub(in crate::sql) fn except(
 
         res.pop(); // filter
         let join = res.pop(); // join
-        let (_, with, _) = join.unwrap().into_super().unwrap().into_join().unwrap();
+        let (_, with, _) = join.unwrap().into_join().unwrap();
         if distinct {
             if let Some(Distinct) = &res.last() {
                 res.pop();
@@ -359,12 +403,12 @@ pub(in crate::sql) fn except(
 
 /// Creates [SqlTransform::Intersect] from [Transform::Join]
 pub(in crate::sql) fn intersect(
-    pipeline: Vec<SqlTransform<TableRef>>,
+    pipeline: Vec<SqlTransform>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform<TableRef>>> {
+) -> Result<Vec<SqlTransform>> {
     use SqlTransform::*;
 
-    let output = AnchorContext::determine_select_columns(&pipeline);
+    let output = ctx.anchor.determine_select_columns(&pipeline);
     let output: HashSet<CId, RandomState> = HashSet::from_iter(output);
 
     let mut res = Vec::with_capacity(pipeline.len());
@@ -375,10 +419,11 @@ pub(in crate::sql) fn intersect(
         if res.is_empty() {
             continue;
         }
-        let Super(Transform::Join { side: JoinSide::Inner, filter: join_cond, with }) = &res[res.len() - 1] else { continue };
+        let Join { side: JoinSide::Inner, filter: join_cond, with } = &res[res.len() - 1] else { continue };
+        let with = ctx.anchor.relation_instances.get_mut(with).unwrap();
 
-        let top = AnchorContext::determine_select_columns(&res[0..res.len() - 1]);
-        let bottom = with.columns.iter().map(|(_, c)| *c).collect_vec();
+        let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();
+        let top = ctx.anchor.determine_select_columns(&res[0..res.len() - 1]);
 
         // join_cond must be a join over all columns
         // (this could be loosened to check only the relation key)
@@ -421,7 +466,8 @@ pub(in crate::sql) fn intersect(
 
         // remove "used up transforms"
         let join = res.pop(); // join
-        let (_, with, _) = join.unwrap().into_super().unwrap().into_join().unwrap();
+        let (_, with, _) = join.unwrap().into_join().unwrap();
+
         if distinct {
             if let Some(Distinct) = &res.last() {
                 res.pop();
@@ -494,9 +540,7 @@ fn col_refs(exprs: Vec<&Expr>) -> Vec<CId> {
 /// - the transform order in SQL requires Computes to be before Filter. This
 ///   can be circumvented by materializing the column earlier in the pipeline,
 ///   which is done in this function.
-pub(in crate::sql) fn reorder(
-    mut pipeline: Vec<SqlTransform<TableRef>>,
-) -> Vec<SqlTransform<TableRef>> {
+pub(in crate::sql) fn reorder(mut pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
     use SqlTransform::Super;
     use Transform::*;
 
@@ -504,8 +548,8 @@ pub(in crate::sql) fn reorder(
     pipeline.sort_by(|a, b| match (a, b) {
         // don't reorder with From or Join or itself
         (
-            Super(Transform::From(_)) | Super(Transform::Join { .. }) | Super(Compute(_)),
-            Super(Transform::From(_)) | Super(Transform::Join { .. }) | Super(Compute(_)),
+            SqlTransform::From(_) | SqlTransform::Join { .. } | Super(Compute(_)),
+            SqlTransform::From(_) | SqlTransform::Join { .. } | Super(Compute(_)),
         ) => Ordering::Equal,
 
         // reorder always

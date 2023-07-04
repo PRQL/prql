@@ -59,7 +59,7 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
     use super::*;
-    use crate::ast::rq::{Query, TableRef, Transform};
+    use crate::ast::rq::{Query, Transform};
 
     pub use super::srq::ast::SqlTransform;
 
@@ -73,7 +73,7 @@ pub mod internal {
     }
 
     /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform<TableRef>>> {
+    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform>> {
         let (pipeline, mut ctx) = init(query)?;
 
         srq::preprocess::preprocess(pipeline, &mut ctx)
