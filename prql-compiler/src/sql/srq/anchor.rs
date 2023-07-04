@@ -334,7 +334,9 @@ fn is_split_required(transform: &SqlTransform<TableRef>, following: &mut HashSet
         }
         Super(Filter(_)) => contains_any(following, ["From", "Join"]),
         Super(Compute(_)) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
-        Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
+
+        // Sort will be pushed down the CTEs, so there is no point in splitting for it.
+        // Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
         Super(Take(_)) => contains_any(
             following,
             ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
