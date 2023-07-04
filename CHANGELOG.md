@@ -893,7 +893,7 @@ fix rather than a breaking change in semantic versioning.
 **Internal changes**:
 
 - Specify 1.60.0 as minimum Rust version (@max-sixty, #1011)
-- Remove old `wee-alloc` code (@max-sixty, #1013)
+- Remove old `we-alloc` code (@max-sixty, #1013)
 - Upgrade clap to version 4 (@aj-bagwell, #1004)
 - Improve book-building script in Taskfile (@max-sixty, #989)
 - Publish website using an artifact rather than a long-lived branch (@max-sixty,
