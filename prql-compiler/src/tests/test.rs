@@ -3960,3 +3960,30 @@ take 20
     )
     .unwrap();
 }
+
+#[test]
+fn test_returning_constants_only() {
+    assert_display_snapshot!(compile(
+        r###"
+    from tb1
+    sort {a}
+    select {c = b}
+    select {d = 10}
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        10 AS d,
+        a
+      FROM
+        tb1
+    )
+    SELECT
+      d
+    FROM
+      table_0
+    ORDER BY
+      a
+    "###);
+}
