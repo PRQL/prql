@@ -80,7 +80,7 @@ will become the public version at the next release._
 
 - Modules allow importing declarations from other files: _TODO: insert link_
 
-- "Relation Literals", which create a relation (a "table") as an _Array_ of _Tuples_. This example demonstrates the new syntax for arrays `[]` and tuples `{}`. (@aljazerzen, #2605)
+- "Relation Literals" create a relation (a "table") as an _Array_ of _Tuples_. This example demonstrates the new syntax for arrays `[]` and tuples `{}`. (@aljazerzen, #2605)
   
   ```prql no-eval
   from [{a=5, b=false}, {a=6, b=true}]
