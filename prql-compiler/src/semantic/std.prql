@@ -54,7 +54,7 @@ type array = [null]
 type scalar = int || float || bool || text || date || time || timestamp || null
 type tuple_of_scalars = {scalar..}
 
-## Relation (an array of tupes)
+## Relation (an array of tuples)
 type relation = [tuple_of_scalars]
 
 ## Transform
