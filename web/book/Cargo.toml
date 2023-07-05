@@ -34,7 +34,7 @@ anstream = {version = "0.3.2"}
 globset = "0.4.8"
 insta = {version = "1.30", features = ["colors", "glob"]}
 log = "0.4.17"
-regex = "1.8.1"
+regex = "1.9.0"
 serde_yaml = "0.9"
 walkdir = "2.3.2"
 
