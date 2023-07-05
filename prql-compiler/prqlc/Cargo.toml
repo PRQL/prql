@@ -24,7 +24,7 @@ env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.11.0"
 notify = "^6.0.0"
 prql-compiler = {path = '..', version = "0.8.1"}
-regex = {version = "1.8.1", features = ["std", "unicode"]}
+regex = {version = "1.9.0", features = ["std", "unicode"]}
 serde = "^1"
 serde_json = "1.0.81"
 serde_yaml = "0.9.1"
