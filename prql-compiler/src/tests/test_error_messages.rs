@@ -230,7 +230,6 @@ fn test_ambiguous_join() {
     "###);
 }
 
-
 #[test]
 fn test_ambiguous_inference() {
     assert_display_snapshot!(compile(r#"

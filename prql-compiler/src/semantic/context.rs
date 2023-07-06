@@ -151,7 +151,9 @@ impl Context {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
-            return self.resolve_ident_wildcard(ident).map_err(|x| Error::new_simple(x));
+            return self
+                .resolve_ident_wildcard(ident)
+                .map_err(Error::new_simple);
         }
 
         // base case: direct lookup
