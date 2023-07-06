@@ -375,7 +375,7 @@ pub(in crate::sql) fn except(
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
                 return Err(Error::new_simple(format!("The dialect {:?} does not support EXCEPT ALL", ctx.dialect))
-                    .push_hint("Providing more column information will allow the query to be translated to an anti-join.")
+                    .push_hint("providing more column information will allow the query to be translated to an anti-join.")
                     .into());
             } else {
                 // Don't create Except, fallback to anti-join.
@@ -456,7 +456,7 @@ pub(in crate::sql) fn intersect(
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
                 return Err(Error::new_simple(format!("The dialect {:?} does not support INTERSECT ALL", ctx.dialect))
-                    .push_hint("Providing more column information will allow the query to be translated to an anti-join.")
+                    .push_hint("providing more column information will allow the query to be translated to an anti-join.")
                     .into());
             } else {
                 // Don't create Intercept, fallback to inner join.

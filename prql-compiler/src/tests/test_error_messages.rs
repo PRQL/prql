@@ -111,7 +111,7 @@ fn test_union_all_sqlite() {
     remove film2
     "###).unwrap_err(), @r###"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
-    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
+    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###)
 }
 
@@ -190,6 +190,48 @@ fn test_basic_type_checking() {
 }
 
 #[test]
+fn test_ambiguous() {
+    assert_display_snapshot!(compile(r#"
+    from a
+    derive date = x
+    select date
+    "#)
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:4:12]
+       │
+     4 │     select date
+       │            ──┬─
+       │              ╰─── Ambiguous name
+       │
+       │ Help: could be any of: std.date, this.date
+    ───╯
+    "###);
+}
+
+#[test]
+fn test_ambiguous_join() {
+    assert_display_snapshot!(compile(r#"
+    from a
+    select x
+    join (from b | select {x}) true
+    select x
+    "#)
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:5:12]
+       │
+     5 │     select x
+       │            ┬
+       │            ╰── Ambiguous name
+       │
+       │ Help: could be any of: a.x, b.x
+    ───╯
+    "###);
+}
+
+
+#[test]
 fn test_ambiguous_inference() {
     assert_display_snapshot!(compile(r#"
     from a
@@ -202,7 +244,9 @@ fn test_ambiguous_inference() {
        │
      4 │     select x
        │            ┬
-       │            ╰── Ambiguous name. Could be in any of: this.b, this.a
+       │            ╰── Ambiguous name
+       │
+       │ Help: could be any of: a.x, b.x
     ───╯
     "###);
 }

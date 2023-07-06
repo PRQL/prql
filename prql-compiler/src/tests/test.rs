@@ -344,7 +344,7 @@ fn test_remove() {
     "#).unwrap_err(),
         @r###"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
-    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
+    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 
@@ -560,7 +560,7 @@ fn test_intersect() {
     "#).unwrap_err(),
         @r###"
     Error: The dialect SQLiteDialect does not support INTERSECT ALL
-    ↳ Hint: Providing more column information will allow the query to be translated to an anti-join.
+    ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###
     );
 }
