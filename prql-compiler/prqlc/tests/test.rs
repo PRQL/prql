@@ -108,17 +108,17 @@ fn compile_help() {
 
   Options:
         --hide-signature-comment
-            With this option set, the output SQL does not have a signature comment at the bottom
+            Exclude the signature comment containing the PRQL version
 
     -t, --target <TARGET>
             Target to compile to
-
+            
             [env: PRQLC_TARGET=]
             [default: sql.any]
 
         --color <WHEN>
             Controls when to use color
-
+            
             [default: auto]
             [possible values: auto, always, never]
 

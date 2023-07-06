@@ -7,8 +7,8 @@ info:
     - shell-completion
     - zsh
   env:
-    CLICOLOR_FORCE: ""
     RUST_LOG: ""
+    CLICOLOR_FORCE: ""
     RUST_BACKTRACE: ""
 ---
 success: true
@@ -193,7 +193,7 @@ _arguments "${_arguments_options[@]}" \
 '-t+[Target to compile to]:TARGET: ' \
 '--target=[Target to compile to]:TARGET: ' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
-'--hide-signature-comment[With this option set, the output SQL does not have a signature comment at the bottom]' \
+'--hide-signature-comment[Exclude the signature comment containing the PRQL version]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \
