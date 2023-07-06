@@ -208,7 +208,9 @@ impl Module {
 
         for redirect in &self.redirects {
             log::trace!("... following redirect {redirect}");
-            res.extend(lookup_in(self, redirect.clone() + ident.clone()));
+            let r = lookup_in(self, redirect.clone() + ident.clone());
+            log::trace!("... result of redirect {redirect}: {r:?}");
+            res.extend(r);
         }
         res
     }
@@ -395,8 +397,8 @@ impl std::fmt::Debug for Module {
         let mut ds = f.debug_struct("Namespace");
 
         if !self.redirects.is_empty() {
-            let aliases = self.redirects.iter().map(|x| x.to_string()).collect_vec();
-            ds.field("aliases", &aliases);
+            let redirects = self.redirects.iter().map(|x| x.to_string()).collect_vec();
+            ds.field("redirects", &redirects);
         }
 
         if self.names.len() < 15 {
@@ -404,8 +406,8 @@ impl std::fmt::Debug for Module {
         } else {
             ds.field("names", &format!("... {} entries ...", self.names.len()));
         }
-        if let Some(f) = &self.shadowed {
-            ds.field("shadowed", f);
+        if let Some(shadowed) = &self.shadowed {
+            ds.field("shadowed", shadowed);
         }
         ds.finish()
     }

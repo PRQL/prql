@@ -20,14 +20,17 @@ pub struct Context {
 /// A struct containing information about a single declaration.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub declared_at: Option<usize>,
 
     pub kind: DeclKind,
 
     /// Some declarations (like relation columns) have an order to them.
     /// 0 means that the order is irrelevant.
+    #[serde(skip_serializing_if = "is_zero")]
     pub order: usize,
 
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub annotations: Vec<Annotation>,
 }
 
@@ -195,10 +198,11 @@ impl Context {
         match self.resolve_ident_fallback(ident, NS_INFER) {
             // The declaration and all needed parent modules were created
             // -> just return the fq ident
-            Some(inferred_ident) => Ok(inferred_ident),
+            Ok(inferred_ident) => Ok(inferred_ident),
 
             // Was not able to infer.
-            None => Err("Unknown name".to_string()),
+            Err(None) => Err("Unknown name".to_string()),
+            Err(Some(msg)) => Err(msg),
         }
     }
 
@@ -207,7 +211,7 @@ impl Context {
         &mut self,
         ident: Ident,
         name_replacement: &'static str,
-    ) -> Option<Ident> {
+    ) -> Result<Ident, Option<String>> {
         let infer_ident = ident.clone().with_name(name_replacement);
 
         // lookup of infer_ident
@@ -223,13 +227,21 @@ impl Context {
             }
         }
 
-        if decls.len() == 1 {
-            // single match, great!
-            let infer_ident = decls.into_iter().next().unwrap();
-            self.infer_decl(infer_ident, &ident).ok()
-        } else {
-            // no matches or ambiguous
-            None
+        match decls.len() {
+            1 => {
+                // single match, great!
+                let infer_ident = decls.into_iter().next().unwrap();
+                self.infer_decl(infer_ident, &ident).map_err(Some)
+            }
+            0 => Err(None),
+            _ => {
+                let decls = decls
+                    .into_iter()
+                    .filter_map(|d| d.pop())
+                    .map(|d| d.to_string())
+                    .join(", ");
+                Err(Some(format!("Ambiguous name. Could be in any of: {decls}")))
+            }
         }
     }
 
@@ -276,13 +288,13 @@ impl Context {
 
                 (mod_ident, mod_decl)
             } else {
-                // Ident could be just part of NS_FRAME
+                // Ident could be just part of NS_THIS
                 let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
 
                 if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
                     (mod_ident, mod_decl)
                 } else {
-                    // ... or part of NS_FRAME_RIGHT
+                    // ... or part of NS_THAT
                     let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
 
                     let mod_decl = self.root_mod.get_mut(&mod_ident);
@@ -585,4 +597,8 @@ impl std::fmt::Debug for TableDecl {
         let json = serde_json::from_str::<serde_json::Value>(&json).unwrap();
         f.write_str(&serde_yaml::to_string(&json).unwrap())
     }
+}
+
+fn is_zero(x: &usize) -> bool {
+    *x == 0
 }
