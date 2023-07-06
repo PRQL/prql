@@ -112,13 +112,13 @@ fn compile_help() {
 
     -t, --target <TARGET>
             Target to compile to
-            
+
             [env: PRQLC_TARGET=]
             [default: sql.any]
 
         --color <WHEN>
             Controls when to use color
-            
+
             [default: auto]
             [possible values: auto, always, never]
 
