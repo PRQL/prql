@@ -7,8 +7,8 @@ info:
     - shell-completion
     - powershell
   env:
-    RUST_LOG: ""
     RUST_BACKTRACE: ""
+    RUST_LOG: ""
     CLICOLOR_FORCE: ""
 ---
 success: true
@@ -147,10 +147,10 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;compile' {
-            [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 't')
-            [CompletionResult]::new('--target', 'target', [CompletionResultType]::ParameterName, 'target')
+            [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 'Target to compile to')
+            [CompletionResult]::new('--target', 'target', [CompletionResultType]::ParameterName, 'Target to compile to')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
-            [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'hide-signature-comment')
+            [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'With this option set, the output SQL does not have a signature comment at the bottom')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break

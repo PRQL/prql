@@ -116,8 +116,12 @@ enum Command {
     SQLCompile {
         #[command(flatten)]
         io_args: IoArgs,
+
+        /// With this option set, the output SQL does not have a signature comment at the bottom
         #[arg(long, action = clap::ArgAction::SetFalse)]
         hide_signature_comment: bool,
+
+        /// Target to compile to
         #[arg(short, long, default_value = "sql.any", env = "PRQLC_TARGET")]
         target: String,
     },

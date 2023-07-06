@@ -7,9 +7,9 @@ info:
     - shell-completion
     - fish
   env:
-    RUST_LOG: ""
-    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
+    RUST_BACKTRACE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -61,9 +61,9 @@ complete -c prqlc -n "__fish_seen_subcommand_from sql:preprocess" -s h -l help -
 complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -l format -r -f -a "{json	,yaml	}"
 complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
 complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -r
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -d 'Target to compile to' -r
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
-complete -c prqlc -n "__fish_seen_subcommand_from compile" -l hide-signature-comment
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l hide-signature-comment -d 'With this option set, the output SQL does not have a signature comment at the bottom'
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c prqlc -n "__fish_seen_subcommand_from watch" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
 complete -c prqlc -n "__fish_seen_subcommand_from watch" -l no-format
