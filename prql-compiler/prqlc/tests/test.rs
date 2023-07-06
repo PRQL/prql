@@ -82,6 +82,54 @@ fn compile() {
 }
 
 #[test]
+fn compile_help() {
+    let mut cmd = prqlc_command();
+    cmd.args(["compile", "--help"]);
+
+    assert_cmd_snapshot!(cmd, @r###"
+  success: true
+  exit_code: 0
+  ----- stdout -----
+  Parse, resolve, lower into RQ & compile to SQL
+
+  Only displays the main pipeline and does not handle loop.
+
+  Usage: prqlc compile [OPTIONS] [INPUT] [OUTPUT] [MAIN_PATH]
+
+  Arguments:
+    [INPUT]
+            [default: -]
+
+    [OUTPUT]
+            [default: -]
+
+    [MAIN_PATH]
+            Identifier of the main pipeline
+
+  Options:
+        --hide-signature-comment
+            Exclude the signature comment containing the PRQL version
+
+    -t, --target <TARGET>
+            Target to compile to
+
+            [env: PRQLC_TARGET=]
+            [default: sql.any]
+
+        --color <WHEN>
+            Controls when to use color
+
+            [default: auto]
+            [possible values: auto, always, never]
+
+    -h, --help
+            Print help (see a summary with '-h')
+
+  ----- stderr -----
+  "###);
+}
+
+#[test]
 fn compile_project() {
     let mut cmd = prqlc_command();
     cmd.args([
