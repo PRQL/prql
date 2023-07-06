@@ -83,10 +83,10 @@ fn compile() {
 
 #[test]
 fn compile_help() {
-  let mut cmd = prqlc_command();
-  cmd.args(["compile", "--help"]);
+    let mut cmd = prqlc_command();
+    cmd.args(["compile", "--help"]);
 
-  assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(cmd, @r###"
   success: true
   exit_code: 0
   ----- stdout -----
