@@ -117,7 +117,7 @@ enum Command {
         #[command(flatten)]
         io_args: IoArgs,
 
-        /// With this option set, the output SQL does not have a signature comment at the bottom
+        /// Exclude the signature comment containing the PRQL version
         #[arg(long, action = clap::ArgAction::SetFalse)]
         hide_signature_comment: bool,
 
