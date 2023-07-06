@@ -332,7 +332,7 @@ fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -
     });
     if passed_len >= 2 {
         err.push_hint(format!(
-            "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
+            "if you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
             call.name, call.args[0], call.args[1]
         ))
     } else {

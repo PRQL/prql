@@ -2,6 +2,7 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::*;
@@ -138,7 +139,7 @@ impl Context {
         &mut self,
         ident: &Ident,
         default_namespace: Option<&String>,
-    ) -> Result<Ident, String> {
+    ) -> Result<Ident, Error> {
         // special case: wildcard
         if ident.name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -150,7 +151,9 @@ impl Context {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
-            return self.resolve_ident_wildcard(ident);
+            return self
+                .resolve_ident_wildcard(ident)
+                .map_err(Error::new_simple);
         }
 
         // base case: direct lookup
@@ -163,12 +166,7 @@ impl Context {
             1 => return Ok(decls.into_iter().next().unwrap()),
 
             // ambiguous
-            _ => {
-                return Err({
-                    let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                    format!("Ambiguous name. Could be from any of {decls}")
-                })
-            }
+            _ => return Err(ambiguous_error(decls, None)),
         }
 
         let ident = if let Some(default_namespace) = default_namespace {
@@ -183,12 +181,7 @@ impl Context {
                 1 => return Ok(decls.into_iter().next().unwrap()),
 
                 // ambiguous
-                _ => {
-                    return Err({
-                        let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                        format!("Ambiguous name. Could be from any of {decls}")
-                    })
-                }
+                _ => return Err(ambiguous_error(decls, None)),
             }
         } else {
             ident.clone()
@@ -201,7 +194,7 @@ impl Context {
             Ok(inferred_ident) => Ok(inferred_ident),
 
             // Was not able to infer.
-            Err(None) => Err("Unknown name".to_string()),
+            Err(None) => Err(Error::new_simple("Unknown name".to_string())),
             Err(Some(msg)) => Err(msg),
         }
     }
@@ -211,7 +204,7 @@ impl Context {
         &mut self,
         ident: Ident,
         name_replacement: &'static str,
-    ) -> Result<Ident, Option<String>> {
+    ) -> Result<Ident, Option<Error>> {
         let infer_ident = ident.clone().with_name(name_replacement);
 
         // lookup of infer_ident
@@ -231,17 +224,11 @@ impl Context {
             1 => {
                 // single match, great!
                 let infer_ident = decls.into_iter().next().unwrap();
-                self.infer_decl(infer_ident, &ident).map_err(Some)
+                self.infer_decl(infer_ident, &ident)
+                    .map_err(|x| Some(Error::new_simple(x)))
             }
             0 => Err(None),
-            _ => {
-                let decls = decls
-                    .into_iter()
-                    .filter_map(|d| d.pop())
-                    .map(|d| d.to_string())
-                    .join(", ");
-                Err(Some(format!("Ambiguous name. Could be in any of: {decls}")))
-            }
+            _ => Err(Some(ambiguous_error(decls, Some(&ident.name)))),
         }
     }
 
@@ -453,6 +440,30 @@ impl Context {
     pub fn find_mains(&self) -> Vec<Ident> {
         self.root_mod.find_by_suffix(NS_MAIN)
     }
+}
+
+fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Error {
+    let all_this = idents.iter().all(|d| d.starts_with_part(NS_THIS));
+
+    let mut chunks = Vec::new();
+    for mut ident in idents {
+        if all_this {
+            let (_, rem) = ident.pop_front();
+            if let Some(rem) = rem {
+                ident = rem;
+            } else {
+                continue;
+            }
+        }
+
+        if let Some(name) = replace_name {
+            ident.name = name.clone();
+        }
+        chunks.push(ident.to_string());
+    }
+    chunks.sort();
+    let hint = format!("could be any of: {}", chunks.join(", "));
+    Error::new_simple("Ambiguous name").push_hint(hint)
 }
 
 impl Resolver {

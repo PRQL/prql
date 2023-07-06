@@ -193,7 +193,7 @@ impl AstFold for Resolver {
         let r = match node.kind {
             ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
-                let fq_ident = self.resolve_ident(&ident, node.span)?;
+                let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
                 log::debug!("... resolved to {fq_ident}");
                 let entry = self.context.root_mod.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
@@ -510,8 +510,8 @@ impl Resolver {
         self.fold_expr(value)
     }
 
-    pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
-        let res = if let Some(default_namespace) = &self.default_namespace {
+    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
+        if let Some(default_namespace) = &self.default_namespace {
             self.context.resolve_ident(ident, Some(default_namespace))
         } else {
             let mut ident = ident.clone().prepend(self.current_module_path.clone());
@@ -525,15 +525,12 @@ impl Resolver {
                 res = self.context.resolve_ident(&ident, None);
             }
             res
-        };
+        }
 
-        res.map_err(|e| {
-            log::debug!(
-                "cannot resolve `{ident}`: `{e}`, context={:#?}",
-                self.context
-            );
-            anyhow!(Error::new_simple(e).with_span(span))
-        })
+        // log::debug!(
+        //     "cannot resolve `{ident}`: `{e}`, context={:#?}",
+        //     self.context
+        // );
     }
 
     fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr, anyhow::Error> {
