@@ -188,3 +188,21 @@ fn test_basic_type_checking() {
     ───╯
     "###);
 }
+
+#[test]
+fn test_ambiguous_inference() {
+    assert_display_snapshot!(compile(r#"
+    from a
+    join b (==b_id)
+    select x
+    "#)
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:4:12]
+       │
+     4 │     select x
+       │            ┬
+       │            ╰── Ambiguous name. Could be in any of: this.b, this.a
+    ───╯
+    "###);
+}
