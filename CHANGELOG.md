@@ -104,8 +104,8 @@ will become the public version at the next release._
   `that`.
 
 - _Breaking:_ functions `count`, `rank` and `row_number` now require an argument
-  of the array to operate on. In most cases you can directly replace `count` with `count this`.
-  The `non_null` argument of `count` has been removed.
+  of the array to operate on. In most cases you can directly replace `count`
+  with `count this`. The `non_null` argument of `count` has been removed.
 
 **Fixes**:
 
