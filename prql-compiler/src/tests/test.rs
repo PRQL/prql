@@ -4023,3 +4023,39 @@ fn test_returning_constants_only() {
       true
     "###);
 }
+
+#[test]
+fn test_conflicting_names_at_split() {
+    // issue #2697
+    assert_display_snapshot!(compile(
+        r###"
+    from s = workflow_steps
+    join wp=workflow_phases (s.phase_id == wp.id)
+    filter wp.name == "CREATE_OUTLET"
+    join w=workflow (wp.workflow_id == w.id)
+    select {
+        step_id = s.id,
+        phase_id = wp.id,
+    }
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        wp.id,
+        s.id AS _expr_0,
+        wp.workflow_id
+      FROM
+        workflow_steps AS s
+        JOIN workflow_phases AS wp ON s.phase_id = wp.id
+      WHERE
+        wp.name = 'CREATE_OUTLET'
+    )
+    SELECT
+      table_0._expr_0 AS step_id,
+      table_0.id AS phase_id
+    FROM
+      table_0
+      JOIN workflow AS w ON table_0.workflow_id = w.id
+    "###);
+}
