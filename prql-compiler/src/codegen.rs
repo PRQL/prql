@@ -11,7 +11,7 @@ pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     let mut opt = WriteOpt::default();
 
     loop {
-        if let Some(s) = stmts.write(opt) {
+        if let Some(s) = stmts.write(opt.clone()) {
             break s;
         } else {
             opt.max_width += opt.max_width / 2;
@@ -47,15 +47,21 @@ pub trait WriteSource {
     /// Returns `None` if source does not fit into [WriteOpt::rem_width].
     fn write(&self, opt: WriteOpt) -> Option<String>;
 
-    fn write_between<S: ToString>(&self, prefix: S, suffix: &str, opt: WriteOpt) -> Option<String> {
-        let mut r = prefix.to_string();
-        let mut opt = opt.consume_width((r.len() + suffix.len()) as u16)?;
+    fn write_between<S: ToString>(
+        &self,
+        prefix: S,
+        suffix: &str,
+        mut opt: WriteOpt,
+    ) -> Option<String> {
+        let mut r = String::new();
+        r += opt.consume(&prefix.to_string())?;
         opt.context_strength = 0;
         opt.unbound_expr = false;
 
-        r += &self.write(opt)?;
+        let source = self.write(opt.clone())?;
+        r += opt.consume(&source)?;
 
-        r += suffix;
+        r += opt.consume(suffix)?;
         Some(r)
     }
 
@@ -73,7 +79,7 @@ impl<T: WriteSource> WriteSource for &T {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct WriteOpt {
     /// String to emit as one indentation level
     pub tab: &'static str,
@@ -123,15 +129,25 @@ impl WriteOpt {
         }
     }
 
-    fn consume_width(mut self, width: u16) -> Option<Self> {
+    fn consume_width(&mut self, width: u16) -> Option<()> {
         self.rem_width = self.rem_width.checked_sub(width)?;
-        Some(self)
+        Some(())
     }
 
-    fn reset_line(mut self) -> Option<Self> {
+    fn reset_line(&mut self) -> Option<()> {
         let ident = self.tab.len() as u16 * self.indent;
         self.rem_width = self.max_width.checked_sub(ident)?;
-        Some(self)
+        Some(())
+    }
+
+    fn consume<'a>(&mut self, source: &'a str) -> Option<&'a str> {
+        let width = if let Some(new_line) = source.rfind('\n') {
+            source.len() - new_line
+        } else {
+            source.len()
+        };
+        self.consume_width(width as u16);
+        Some(source)
     }
 
     fn write_indent(&self) -> String {
@@ -162,18 +178,19 @@ impl WriteSource for pl::Expr {
 }
 
 impl WriteSource for pl::ExprKind {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
         use pl::ExprKind::*;
 
         match &self {
             Ident(ident) => ident.write(opt),
             All { within, except } => {
                 let mut r = String::new();
-                r += &within.write(opt)?;
+                r += opt.consume(&within.write(opt.clone())?)?;
+
                 r += ".!{";
                 for e in except {
-                    r += &e.write(opt)?;
-                    r += ",";
+                    r += opt.consume(&e.write(opt.clone())?)?;
+                    r += opt.consume(",")?;
                 }
                 r += "}";
                 Some(r)
@@ -202,9 +219,12 @@ impl WriteSource for pl::ExprKind {
             Range(range) => {
                 let mut r = String::new();
                 if let Some(start) = &range.start {
-                    r += &start.write_within(self, opt)?;
+                    let start = start.write_within(self, opt.clone())?;
+                    r += opt.consume(&start)?;
                 }
-                r += "..";
+
+                r += opt.consume("..")?;
+
                 if let Some(end) = &range.end {
                     r += &end.write_within(self, opt)?;
                 }
@@ -213,11 +233,12 @@ impl WriteSource for pl::ExprKind {
             Binary(pl::BinaryExpr { op, left, right }) => {
                 let mut r = String::new();
 
-                r += &left.write_within(self, opt)?;
+                let left = left.write_within(self, opt.clone())?;
+                r += opt.consume(&left)?;
 
-                r += " ";
-                r += &op.to_string();
-                r += " ";
+                r += opt.consume(" ")?;
+                r += opt.consume(&op.to_string())?;
+                r += opt.consume(" ")?;
 
                 r += &right.write_within(self, opt)?;
                 Some(r)
@@ -225,32 +246,32 @@ impl WriteSource for pl::ExprKind {
             Unary(pl::UnaryExpr { op, expr }) => {
                 let mut r = String::new();
 
-                r += &op.to_string();
+                r += opt.consume(&op.to_string())?;
                 r += &expr.write_within(self, opt)?;
                 Some(r)
             }
             FuncCall(func_call) => {
                 let mut r = String::new();
-                r += &func_call.name.write_within(self, opt)?;
 
-                let mut opt = opt;
+                let name = func_call.name.write_within(self, opt.clone())?;
+                r += opt.consume(&name)?;
                 opt.unbound_expr = true;
 
                 for (name, arg) in &func_call.named_args {
-                    opt.consume_width(1)?;
-                    r += " ";
+                    r += opt.consume(" ")?;
 
-                    opt.consume_width(name.len() as u16)?;
-                    r += name;
+                    r += opt.consume(name)?;
 
-                    opt.consume_width(1)?;
-                    r += ":";
-                    r += &arg.write_within(self, opt)?;
+                    r += opt.consume(":")?;
+
+                    let arg = arg.write_within(self, opt.clone())?;
+                    r += opt.consume(&arg)?;
                 }
                 for arg in &func_call.args {
-                    opt.consume_width(1)?;
-                    r += " ";
-                    r += &arg.write_within(self, opt)?;
+                    r += opt.consume(" ")?;
+
+                    let arg = arg.write_within(self, opt.clone())?;
+                    r += opt.consume(&arg)?;
                 }
                 Some(r)
             }
@@ -356,7 +377,7 @@ fn can_bind_left(expr: &pl::ExprKind) -> bool {
 }
 
 impl WriteSource for pl::Ident {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
         opt.consume_width(width as u16)?;
 
@@ -385,8 +406,8 @@ pub fn write_ident_part(s: &str) -> String {
 }
 
 impl WriteSource for Vec<pl::Stmt> {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        let opt = opt.reset_line()?;
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
+        opt.reset_line()?;
 
         let mut r = String::new();
         for stmt in self {
@@ -395,7 +416,7 @@ impl WriteSource for Vec<pl::Stmt> {
             }
 
             r += &opt.write_indent();
-            r += &stmt.write(opt)?;
+            r += &stmt.write(opt.clone())?;
         }
         Some(r)
     }
@@ -407,10 +428,10 @@ impl WriteSource for pl::Stmt {
 
         for annotation in &self.annotations {
             r += "@";
-            r += &annotation.expr.write(opt)?;
+            r += &annotation.expr.write(opt.clone())?;
             r += "\n";
             r += &opt.write_indent();
-            opt = opt.reset_line()?;
+            opt.reset_line()?;
         }
 
         match &self.kind {
@@ -426,8 +447,7 @@ impl WriteSource for pl::Stmt {
             }
             pl::StmtKind::VarDef(var_def) => match var_def.kind {
                 pl::VarDefKind::Let => {
-                    r += &format!("let {} = ", self.name);
-                    opt = opt.consume_width(r.len() as u16)?;
+                    r += opt.consume(&format!("let {} = ", self.name))?;
 
                     r += &var_def.value.write(opt)?;
                     r += "\n";
@@ -436,7 +456,7 @@ impl WriteSource for pl::Stmt {
                     match &var_def.value.kind {
                         pl::ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
-                                r += &expr.write(opt)?;
+                                r += &expr.write(opt.clone())?;
                                 r += "\n";
                             }
                         }
@@ -452,12 +472,10 @@ impl WriteSource for pl::Stmt {
                 }
             },
             pl::StmtKind::TypeDef(type_def) => {
-                r += &format!("let {}", self.name);
-                opt = opt.consume_width(r.len() as u16)?;
+                r += opt.consume(&format!("let {}", self.name))?;
 
                 if let Some(value) = &type_def.value {
-                    opt.consume_width(3)?;
-                    r += " = ";
+                    r += opt.consume(" = ")?;
                     r += &value.write(opt)?;
                 }
                 r += "\n";
@@ -466,7 +484,7 @@ impl WriteSource for pl::Stmt {
                 r += &format!("module {} {{\n", self.name);
                 opt.indent += 1;
 
-                r += &module_def.stmts.write(opt)?;
+                r += &module_def.stmts.write(opt.clone())?;
 
                 opt.indent -= 1;
                 r += &opt.write_indent();
@@ -484,28 +502,14 @@ struct SeparatedExprs<'a, T: WriteSource> {
 }
 
 impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
         // try inline
-        {
-            // write each of the exprs, one per line
-            let opt_line = opt.reset_line()?;
-            let mut exprs = Vec::new();
-            for field in self.exprs {
-                exprs.push(field.write(opt_line)?);
-            }
-
-            if !exprs.iter().any(|e| e.contains('\n')) {
-                let inline_width = exprs.iter().map(|s| s.len()).sum::<usize>()
-                    + self.inline.len() * (exprs.len().checked_sub(1).unwrap_or_default());
-                if opt.rem_width > inline_width as u16 {
-                    return Some(exprs.join(self.inline));
-                }
-            }
+        if let Some(inline) = self.write_inline(opt.clone()) {
+            return Some(inline);
         }
 
         // one per line
         {
-            let mut opt = opt;
             opt.indent += 1;
 
             let mut r = String::new();
@@ -513,10 +517,10 @@ impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
             for expr in self.exprs {
                 r += "\n";
                 r += &opt.write_indent();
-                opt = opt.reset_line()?;
+                opt.reset_line()?;
                 opt.rem_width.checked_sub(self.line_end.len() as u16)?;
 
-                r += &expr.write(opt)?;
+                r += &expr.write(opt.clone())?;
                 r += self.line_end;
             }
             opt.indent -= 1;
@@ -525,6 +529,27 @@ impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
 
             Some(r)
         }
+    }
+}
+
+impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
+    fn write_inline(&self, mut opt: WriteOpt) -> Option<String> {
+        let mut exprs = Vec::new();
+        for expr in self.exprs {
+            let expr = expr.write(opt.clone())?;
+
+            if expr.contains('\n') {
+                return None;
+            }
+            opt.consume_width(expr.len() as u16)?;
+
+            exprs.push(expr);
+        }
+
+        let separators = self.inline.len() * (exprs.len().checked_sub(1).unwrap_or_default());
+        opt.consume_width(separators as u16)?;
+
+        Some(exprs.join(self.inline))
     }
 }
 
@@ -542,7 +567,7 @@ fn display_interpolation(
             pl::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
             pl::InterpolateItem::Expr { expr, .. } => {
                 r += "{";
-                r += &expr.write(opt)?;
+                r += &expr.write(opt.clone())?;
                 r += "}"
             }
         }
@@ -554,7 +579,7 @@ fn display_interpolation(
 impl WriteSource for pl::SwitchCase {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
-        r += &self.condition.write(opt)?;
+        r += &self.condition.write(opt.clone())?;
         r += " => ";
         r += &self.value.write(opt)?;
         Some(r)
@@ -609,7 +634,7 @@ impl WriteSource for pl::TyKind {
                 let mut r = String::new();
 
                 for t in &func.args {
-                    r += &t.as_ref().write(opt)?;
+                    r += &t.as_ref().write(opt.clone())?;
                     r += " ";
                 }
                 r += "-> ";
@@ -686,14 +711,14 @@ mod test {
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
             exprs: vec![short.clone(), short.clone(), short.clone()],
         }));
-        assert_snapshot!(pipeline.write(opt).unwrap(), @"(short | short | short)");
+        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @"(short | short | short)");
 
         // long pipelines should be indented
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
             exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
-        assert_snapshot!(pipeline.write(opt).unwrap(), @r###"
+        assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r###"
         (
             short
             some_module.submodule.a_really_long_name
@@ -703,7 +728,7 @@ mod test {
         "###);
 
         // sometimes, there is just not enough space
-        opt.rem_width = 10;
+        opt.rem_width = 4;
         opt.indent = 100;
         let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
