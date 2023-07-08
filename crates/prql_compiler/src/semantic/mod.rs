@@ -19,7 +19,7 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::ast::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ast::pl::{self, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ast::rq::Query;
 use crate::error::WithErrorInfo;
 use crate::{Error, Reason, SourceTree};

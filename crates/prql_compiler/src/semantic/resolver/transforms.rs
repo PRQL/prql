@@ -122,8 +122,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
 
             let by = coerce_into_tuple_and_flatten(by)?;
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
@@ -176,8 +175,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
             let transform_kind = TransformKind::Window {
                 kind,
@@ -194,8 +192,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "loop" => {
             let [pipeline, tbl] = unpack::<2>(closure);
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
             (TransformKind::Loop(Box::new(pipeline)), tbl)
         }
@@ -355,8 +352,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .map(|x| TupleField::Single(Some(x), None))
                 .collect();
 
-            let frame =
-                resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
+            let ty = resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
 
             let res = Expr::new(ExprKind::Array(
                 res.rows
@@ -371,7 +367,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     .collect(),
             ));
             let res = Expr {
-                lineage: Some(frame),
+                ty: Some(ty),
                 id: text_expr.id,
                 ..res
             };
@@ -455,7 +451,7 @@ fn range_from_ints(start: Option<i64>, end: Option<i64>) -> Range {
 fn fold_by_simulating_eval(
     resolver: &mut Resolver,
     pipeline: Expr,
-    val_lineage: Lineage,
+    val_ty: Ty,
 ) -> Result<Expr, anyhow::Error> {
     log::debug!("fold by simulating evaluation");
 
@@ -470,7 +466,7 @@ fn fold_by_simulating_eval(
     // chunk and instruct resolver to apply the transform on that.
 
     let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.lineage = Some(val_lineage);
+    dummy.ty = Some(val_ty);
 
     let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
         pipeline,
@@ -510,220 +506,213 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, context: &Context) -> Result<Lineage> {
+    pub fn infer_type(&self, context: &Context) -> Result<Ty> {
         use TransformKind::*;
 
-        fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
-            expr.lineage
+        fn ty_relation_or_default(expr: &Expr) -> Ty {
+            expr.ty
                 .clone()
-                .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
+                .and_then(|t| t.into_relation())
+                .or_else(|| Some(vec![TupleField::Wildcard(None)]))
+                .map(Ty::relation)
+                .unwrap()
         }
 
         Ok(match self.kind.as_ref() {
             Select { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
+                let mut ty = ty_relation_or_default(&self.input);
+                let fields = ty.as_relation_mut().unwrap();
 
-                frame.clear();
-                frame.apply_assigns(assigns, context);
-                frame
+                fields.clear();
+                apply_assigns(fields, assigns, context);
+                ty
             }
             Derive { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
+                let mut ty = ty_relation_or_default(&self.input);
+                let fields = ty.as_relation_mut().unwrap();
 
-                frame.apply_assigns(assigns, context);
-                frame
+                apply_assigns(fields, assigns, context);
+                ty
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                let mut frame = body.lineage.clone().unwrap();
+                let mut ty = ty_relation_or_default(&self.input);
+                let fields = ty.as_relation_mut().unwrap();
 
                 log::debug!("inferring type of group with pipeline: {body}");
 
                 // prepend aggregate with `by` columns
                 if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
                     if let TransformKind::Aggregate { .. } = kind.as_ref() {
-                        let aggregate_columns = frame.columns;
-                        frame.columns = Vec::new();
+                        let aggregate_fields = std::mem::take(fields);
 
                         log::debug!(".. group by {by:?}");
-                        frame.apply_assigns(by, context);
+                        apply_assigns(fields, by, context);
 
-                        frame.columns.extend(aggregate_columns);
+                        fields.extend(aggregate_fields);
                     }
                 }
 
-                log::debug!(".. type={frame}");
+                log::debug!(".. type={ty}");
 
-                frame
+                ty
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                body.lineage.clone().unwrap()
+                ty_relation_or_default(body)
             }
             Aggregate { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
-                frame.clear();
+                let mut ty = ty_relation_or_default(&self.input);
+                let fields = ty.as_relation_mut().unwrap();
+                fields.clear();
 
-                frame.apply_assigns(assigns, context);
-                frame
+                apply_assigns(fields, assigns, context);
+                ty
             }
             Join { with, .. } => {
-                let left = ty_frame_or_default(&self.input)?;
-                let right = ty_frame_or_default(with)?;
-                join(left, right)
+                let left = ty_relation_or_default(&self.input);
+                let right = ty_relation_or_default(with);
+
+                join_relations(left, right)
             }
             Append(bottom) => {
-                let top = ty_frame_or_default(&self.input)?;
-                let bottom = ty_frame_or_default(bottom)?;
-                append(top, bottom)?
+                let top = ty_relation_or_default(&self.input);
+                let bottom = ty_relation_or_default(bottom);
+                append_relations(top, bottom)?
             }
-            Loop(_) => ty_frame_or_default(&self.input)?,
-            Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
+            Loop(_) => ty_relation_or_default(&self.input),
+            Sort { .. } | Filter { .. } | Take { .. } => ty_relation_or_default(&self.input),
         })
     }
 }
 
-fn join(mut lhs: Lineage, rhs: Lineage) -> Lineage {
-    lhs.columns.extend(rhs.columns);
-    lhs.inputs.extend(rhs.inputs);
+#[allow(unused)]
+pub fn apply_assign(fields: &mut Vec<TupleField>, expr: &Expr, context: &Context) {
+    // spacial case: all except
+    if let ExprKind::All { except, .. } = &expr.kind {
+        let except_exprs: HashSet<&usize> =
+            except.iter().flat_map(|e| e.target_id.iter()).collect();
+        let except_inputs: HashSet<&usize> =
+            except.iter().flat_map(|e| e.target_ids.iter()).collect();
+
+        for target_id in &expr.target_ids {
+            // TODO
+            // let target_input = fields.inputs.iter().find(|i| i.id == *target_id);
+            // match target_input {
+            //     Some(input) => {
+            //         // include all of the input's columns
+            //         if except_inputs.contains(target_id) {
+            //             continue;
+            //         }
+            //         fields.columns.extend(input.get_all_columns(except, context));
+            //     }
+            //     None => {
+            //         // include the column with if target_id
+            //         if except_exprs.contains(target_id) {
+            //             continue;
+            //         }
+            //         let prev_col = fields.prev_columns.iter().find(|c| match c {
+            //             LineageColumn::Single {
+            //                 target_id: expr_id, ..
+            //             } => expr_id == target_id,
+            //             _ => false,
+            //         });
+            //         fields.columns.extend(prev_col.cloned());
+            //     }
+            // }
+        }
+        return;
+    }
+
+    // base case: append the column into the frame
+    let alias = expr.alias.as_ref();
+    let name = alias
+        .cloned()
+        .or_else(|| expr.kind.as_ident().map(|i| i.name.clone()));
+
+    // remove names from columns with the same name
+    if name.is_some() {
+        for field in fields.iter_mut() {
+            if let TupleField::Single(n, _) = field {
+                if n.as_ref() == name.as_ref() {
+                    *n = None;
+                }
+            }
+        }
+    }
+
+    let id = expr.id.unwrap();
+
+    let mut ty = (expr.ty.clone())
+        // TODO: figure what to do when an expr does not have a type
+        //    (maybe this will never happen?)
+        .unwrap_or_else(|| Ty::from(TyKind::Singleton(Literal::Null)));
+    ty.lineage = Some(id);
+
+    fields.push(TupleField::Single(name, Some(ty)));
+}
+
+pub fn apply_assigns(fields: &mut Vec<TupleField>, assigns: &[Expr], context: &Context) {
+    for expr in assigns {
+        apply_assign(fields, expr, context);
+    }
+}
+
+fn join_relations(mut lhs: Ty, rhs: Ty) -> Ty {
+    let lhs_fields = lhs.as_relation_mut().unwrap();
+
+    let rhs = rhs.into_relation().unwrap();
+    lhs_fields.extend(rhs);
+
     lhs
 }
 
-fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
-    if top.columns.len() != bottom.columns.len() {
+fn append_relations(mut top: Ty, mut bottom: Ty) -> Result<Ty, Error> {
+    let top_fields = top.as_relation_mut().unwrap();
+    let bottom_fields = bottom.as_relation_mut().unwrap();
+
+    if top_fields.len() != bottom_fields.len() {
         return Err(Error::new_simple(
             "cannot append two relations with non-matching number of columns.",
         ))
         .push_hint(format!(
             "top has {} columns, but bottom has {}",
-            top.columns.len(),
-            bottom.columns.len()
+            top_fields.len(),
+            bottom_fields.len()
         ));
     }
 
     // TODO: I'm not sure what to use as input_name and expr_id...
-    let mut columns = Vec::with_capacity(top.columns.len());
-    for (t, b) in zip(top.columns, bottom.columns) {
-        columns.push(match (t, b) {
-            (LineageColumn::All { input_name, except }, LineageColumn::All { .. }) => {
-                LineageColumn::All { input_name, except }
+    let mut fields = Vec::with_capacity(top_fields.len());
+    for (t, b) in zip(top_fields.drain(..), bottom_fields.drain(..)) {
+        fields.push(match (t, b) {
+            (TupleField::Wildcard(ty), TupleField::Wildcard(_)) => TupleField::Wildcard(ty),
+            (TupleField::Single(name_top, ty_top), TupleField::Single(name_bot, _)) => {
+                let name = match (name_top, name_bot) {
+                    (None, None) => None,
+                    (None, Some(name)) | (Some(name), _) => Some(name),
+                };
+
+                TupleField::Single(name, ty_top)
             }
-            (
-                LineageColumn::Single {
-                    name: name_t,
-                    target_id,
-                    target_name,
-                },
-                LineageColumn::Single { name: name_b, .. },
-            ) => match (name_t, name_b) {
-                (None, None) => {
-                    let name = None;
-                    LineageColumn::Single {
-                        name,
-                        target_id,
-                        target_name,
-                    }
-                }
-                (None, Some(name)) | (Some(name), _) => {
-                    let name = Some(name);
-                    LineageColumn::Single {
-                        name,
-                        target_id,
-                        target_name,
-                    }
-                }
-            },
-            (t, b) => return Err(Error::new_simple(format!(
-                "cannot match columns `{t:?}` and `{b:?}`"
-            ))
-            .push_hint(
-                "make sure that top and bottom relations of append has the same column layout",
-            )),
+            (t, b) => {
+                let msg = format!("cannot match columns `{t:?}` and `{b:?}`");
+                let hint =
+                    "make sure that top and bottom relations of append has the same column layout";
+                return Err(Error::new_simple(msg).push_hint(hint));
+            }
         });
     }
 
-    top.columns = columns;
+    top_fields.extend(fields);
     Ok(top)
 }
 
 impl Lineage {
-    pub fn clear(&mut self) {
-        self.prev_columns.clear();
-        self.prev_columns.append(&mut self.columns);
-    }
-
-    pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
-        // spacial case: all except
-        if let ExprKind::All { except, .. } = &expr.kind {
-            let except_exprs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_id.iter()).collect();
-            let except_inputs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_ids.iter()).collect();
-
-            for target_id in &expr.target_ids {
-                let target_input = self.inputs.iter().find(|i| i.id == *target_id);
-                match target_input {
-                    Some(input) => {
-                        // include all of the input's columns
-                        if except_inputs.contains(target_id) {
-                            continue;
-                        }
-                        self.columns.extend(input.get_all_columns(except, context));
-                    }
-                    None => {
-                        // include the column with if target_id
-                        if except_exprs.contains(target_id) {
-                            continue;
-                        }
-                        let prev_col = self.prev_columns.iter().find(|c| match c {
-                            LineageColumn::Single {
-                                target_id: expr_id, ..
-                            } => expr_id == target_id,
-                            _ => false,
-                        });
-                        self.columns.extend(prev_col.cloned());
-                    }
-                }
-            }
-            return;
-        }
-
-        // base case: append the column into the frame
-        let id = expr.id.unwrap();
-
-        let alias = expr.alias.as_ref();
-        let name = alias
-            .map(Ident::from_name)
-            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
-
-        // remove names from columns with the same name
-        if name.is_some() {
-            for c in &mut self.columns {
-                if let LineageColumn::Single { name: n, .. } = c {
-                    if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
-                        *n = None;
-                    }
-                }
-            }
-        }
-
-        self.columns.push(LineageColumn::Single {
-            name,
-            target_id: id,
-            target_name: None,
-        });
-    }
-
-    pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
-        for expr in assigns {
-            self.apply_assign(expr, context);
-        }
-    }
-
     pub fn find_input(&self, input_name: &str) -> Option<&LineageInput> {
         self.inputs.iter().find(|i| i.name == input_name)
     }
@@ -747,6 +736,7 @@ impl Lineage {
 }
 
 impl LineageInput {
+    #[allow(dead_code)]
     fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<LineageColumn> {
         let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();

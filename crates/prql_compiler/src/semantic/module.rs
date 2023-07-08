@@ -4,12 +4,11 @@ use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident, TupleField, Ty};
+use crate::ast::pl::{Expr, Ident, TupleField, Ty, TyKind};
 use crate::Error;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
-use super::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use super::{NS_INFER, NS_INFER_MODULE, NS_PARAM, NS_SELF, NS_STD, NS_THAT, NS_THIS};
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -215,83 +214,68 @@ impl Module {
         res
     }
 
-    pub(super) fn insert_frame(&mut self, frame: &Lineage, namespace: &str) {
-        let namespace = self.names.entry(namespace.to_string()).or_default();
-        let namespace = namespace.kind.as_module_mut().unwrap();
+    pub(super) fn insert_relation(&mut self, expr: &Expr, namespace: &str) {
+        let ty = expr.ty.as_ref().unwrap();
+        let tuple = ty.kind.as_array().unwrap();
 
-        for (col_index, column) in frame.columns.iter().enumerate() {
-            // determine input name
-            let input_name = match column {
-                LineageColumn::All { input_name, .. } => Some(input_name),
-                LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
-            };
-
-            // get or create input namespace
-            let ns;
-            if let Some(input_name) = input_name {
-                let entry = match namespace.names.get_mut(input_name) {
-                    Some(x) => x,
-                    None => {
-                        namespace.redirects.push(Ident::from_name(input_name));
-
-                        let input = frame.find_input(input_name).unwrap();
-                        let mut sub_ns = Module::default();
-
-                        let self_decl = Decl {
-                            declared_at: Some(input.id),
-                            kind: DeclKind::InstanceOf(input.table.clone()),
-                            ..Default::default()
-                        };
-                        sub_ns.names.insert(NS_SELF.to_string(), self_decl);
-
-                        let sub_ns = Decl {
-                            declared_at: Some(input.id),
-                            kind: DeclKind::Module(sub_ns),
-                            ..Default::default()
-                        };
-
-                        namespace.names.entry(input_name.clone()).or_insert(sub_ns)
-                    }
-                };
-                ns = entry.kind.as_module_mut().unwrap()
-            } else {
-                ns = namespace;
-            }
-
-            // insert column decl
-            match column {
-                LineageColumn::All { input_name, .. } => {
-                    let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
-
-                    let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
-                    let declared_at = Some(input.id);
-                    let decl = Decl {
-                        kind,
-                        declared_at,
-                        order: col_index + 1,
-                        ..Default::default()
-                    };
-                    ns.names.insert(NS_INFER.to_string(), decl);
-                }
-                LineageColumn::Single {
-                    name: Some(name),
-                    target_id,
-                    ..
-                } => {
-                    let decl = Decl {
-                        kind: DeclKind::Column(*target_id),
-                        declared_at: None,
-                        order: col_index + 1,
-                        ..Default::default()
-                    };
-                    ns.names.insert(name.name.clone(), decl);
-                }
-                _ => {}
-            }
-        }
+        self.insert_ty(namespace.to_string(), tuple, 0);
     }
 
-    pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String, id: usize) {
+    /// Creates a name resolution declaration that allows lookups into the given type.
+    fn insert_ty(&mut self, name: String, ty: &Ty, order: usize) {
+        log::debug!("inserting `{name}`: {ty}");
+
+        let decl_kind = match &ty.kind {
+            // for tuples, create a submodule
+            TyKind::Tuple(fields) => {
+                let mut sub_mod = Module::default();
+
+                if let Some(instance_of) = &ty.instance_of {
+                    let self_decl = Decl {
+                        declared_at: None,
+                        kind: DeclKind::InstanceOf(instance_of.clone()),
+                        ..Default::default()
+                    };
+                    sub_mod.names.insert(NS_SELF.to_string(), self_decl);
+                }
+
+                for (index, field) in fields.iter().enumerate() {
+                    match field {
+                        TupleField::Single(None, _) => {
+                            // unnamed tuple fields cannot be references,
+                            // so there is no point of having them in the module
+                            continue;
+                        }
+
+                        TupleField::Single(Some(name), ty) => {
+                            sub_mod.insert_ty(name.clone(), ty.as_ref().unwrap(), index + 1);
+                        }
+
+                        TupleField::Wildcard(_) => {
+                            let decl_kind =
+                                DeclKind::Infer(Box::new(DeclKind::Column(ty.lineage.unwrap())));
+
+                            let mut decl = Decl::from(decl_kind);
+                            decl.order = index + 1;
+                            sub_mod.names.insert(NS_INFER.to_string(), decl);
+                        }
+                    }
+                }
+
+                self.redirects.push(Ident::from_name(&name));
+                DeclKind::Module(sub_mod)
+            }
+
+            // for anything else, create a plain column
+            _ => DeclKind::Column(ty.lineage.unwrap()),
+        };
+
+        let mut decl = Decl::from(decl_kind);
+        decl.order = order;
+        self.names.insert(name, decl);
+    }
+
+    pub(super) fn insert_relation_col(&mut self, namespace: &str, name: String, id: usize) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 

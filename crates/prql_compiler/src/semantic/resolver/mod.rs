@@ -168,61 +168,36 @@ impl Resolver {
     }
 
     /// Converts a identifier that points to a table declaration to a frame of that table.
-    fn lineage_of_table_decl(
+    pub fn create_ty_instance_of_table(
         &mut self,
         table_fq: &Ident,
         input_name: String,
         input_id: usize,
-    ) -> Lineage {
-        let id = input_id;
+    ) -> Ty {
         let table_decl = self.context.root_mod.get(table_fq).unwrap();
         let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
-        // TODO: can this panic?
-        let columns = ty.as_ref().unwrap().as_relation().unwrap();
+        let fields = ty.as_ref().and_then(|t| t.as_relation()).cloned();
+        let fields = fields.unwrap_or_else(|| vec![TupleField::Wildcard(None)]);
 
-        let mut instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
-            columns: Vec::new(),
-            ..Default::default()
-        };
+        // wrap with the tuple name
+        let mut tuple = Ty::from(TyKind::Tuple(fields));
+        tuple.lineage = Some(input_id);
+        tuple.instance_of = Some(table_fq.clone());
+        let fields = vec![TupleField::Single(Some(input_name), Some(tuple))];
 
-        for col in columns {
-            let col = match col {
-                TupleField::Wildcard(_) => LineageColumn::All {
-                    input_name: input_name.clone(),
-                    except: columns
-                        .iter()
-                        .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
-                        .collect(),
-                },
-                TupleField::Single(col_name, _) => LineageColumn::Single {
-                    name: col_name
-                        .clone()
-                        .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                    target_id: id,
-                    target_name: col_name.clone(),
-                },
-            };
-            instance_frame.columns.push(col);
-        }
-
-        log::debug!("instanced table {table_fq} as {instance_frame:?}");
-        instance_frame
+        log::debug!("instanced table {table_fq} as {fields:?}");
+        Ty::relation(fields)
     }
 
     /// Declares a new table for a relation literal.
     /// This is needed for column inference to work properly.
-    fn declare_table_for_literal(
+    pub fn declare_table_for_literal(
         &mut self,
         input_id: usize,
         columns: Option<Vec<TupleField>>,
         name_hint: Option<String>,
-    ) -> Lineage {
+    ) -> Ty {
         let id = input_id;
         let global_name = format!("_literal_{}", id);
 
@@ -248,7 +223,7 @@ impl Resolver {
         // produce a frame of that table
         let input_name = name_hint.unwrap_or_else(|| global_name.clone());
         let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.lineage_of_table_decl(&table_fq, input_name, id)
+        self.create_ty_instance_of_table(&table_fq, input_name, id)
     }
 }
 
@@ -310,13 +285,11 @@ impl AstFold for Resolver {
                     DeclKind::TableDecl(_) => {
                         let input_name = ident.name.clone();
 
-                        let lineage = self.lineage_of_table_decl(&fq_ident, input_name, id);
+                        let ty = self.create_ty_instance_of_table(&fq_ident, input_name, id);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
-                            ty: Some(ty_of_lineage(&lineage)),
-                            lineage: Some(lineage),
-                            alias: None,
+                            ty: Some(ty),
                             ..node
                         }
                     }
@@ -479,27 +452,23 @@ impl AstFold for Resolver {
         if r.ty.is_none() {
             r.ty = infer_type(&r)?;
         }
-        if r.lineage.is_none() {
+        if r.ty.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(&self.context)?);
+                r.ty = Some(call.infer_type(&self.context)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
                 let columns = Some(relation_columns.clone());
 
                 let name = r.alias.clone();
-                let frame = self.declare_table_for_literal(id, columns, name);
+                let ty = self.declare_table_for_literal(id, columns, name);
 
-                r.lineage = Some(frame);
+                r.ty = Some(ty);
             }
         }
-        if let Some(lineage) = &mut r.lineage {
-            if let Some(alias) = r.alias.take() {
-                lineage.rename(alias.clone());
-
-                if let Some(ty) = &mut r.ty {
-                    ty.kind.rename_relation(alias);
-                }
+        if let Some(ty) = &mut r.ty {
+            if let Some(alias) = r.alias.clone() {
+                ty.rename_relation(alias);
             }
         }
         Ok(r)
@@ -611,6 +580,8 @@ impl Resolver {
         if let Some(default_namespace) = &self.default_namespace {
             self.context.resolve_ident(ident, Some(default_namespace))
         } else {
+            // resolve ident relative to current module,
+            // then to parent, then grandparent until root
             let mut ident = ident.clone().prepend(self.current_module_path.clone());
 
             let mut res = self.context.resolve_ident(&ident, None);
@@ -621,13 +592,13 @@ impl Resolver {
                 ident = ident.pop_front().1.unwrap();
                 res = self.context.resolve_ident(&ident, None);
             }
+
+            if res.is_err() {
+                log::debug!("cannot resolve `{ident}` in context={:#?}", self.context);
+            }
+
             res
         }
-
-        // log::debug!(
-        //     "cannot resolve `{ident}`: `{e}`, context={:#?}",
-        //     self.context
-        // );
     }
 
     fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr, anyhow::Error> {
@@ -762,10 +733,7 @@ impl Resolver {
             };
 
             let mut node = Expr::new(ExprKind::Func(Box::new(closure)));
-            node.ty = Some(Ty {
-                kind: TyKind::Function(ty),
-                name: None,
-            });
+            node.ty = Some(Ty::from(TyKind::Function(ty)));
 
             node
         };
@@ -855,11 +823,10 @@ impl Resolver {
                 log::debug!("resolved arg to {}", arg.kind.as_ref());
 
                 // add relation frame into scope
-                let frame = arg.lineage.as_ref().unwrap();
                 if is_last {
-                    self.context.root_mod.insert_frame(frame, NS_THIS);
+                    self.context.root_mod.insert_relation(&arg, NS_THIS);
                 } else {
-                    self.context.root_mod.insert_frame(frame, NS_THAT);
+                    self.context.root_mod.insert_relation(&arg, NS_THAT);
                 }
 
                 closure.args[index] = arg;
@@ -879,7 +846,9 @@ impl Resolver {
                     // add aliased columns into scope
                     if let Some(alias) = field.alias.clone() {
                         let id = field.id.unwrap();
-                        self.context.root_mod.insert_frame_col(NS_THIS, alias, id);
+                        self.context
+                            .root_mod
+                            .insert_relation_col(NS_THIS, alias, id);
                     }
                     fields_new.push(field);
                 }
@@ -1018,25 +987,6 @@ impl Resolver {
     }
 }
 
-fn ty_of_lineage(lineage: &Lineage) -> Ty {
-    Ty::relation(
-        lineage
-            .columns
-            .iter()
-            .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty {
-                        kind: TyKind::Singleton(Literal::Null),
-                        name: None,
-                    }),
-                ),
-            })
-            .collect(),
-    )
-}
-
 fn env_of_closure(closure: Func) -> (Module, Expr) {
     let mut func_env = Module::default();
 
@@ -1064,10 +1014,7 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "timestamp" => PrimitiveSet::Timestamp,
         _ => return None,
     };
-    Some(ExprKind::Type(Ty {
-        kind: TyKind::Primitive(set),
-        name: None,
-    }))
+    Some(ExprKind::Type(Ty::from(TyKind::Primitive(set))))
 }
 
 #[cfg(test)]
@@ -1075,7 +1022,7 @@ pub(super) mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{fold::AstFold, Expr, Lineage};
+    use crate::ast::pl::{fold::AstFold, types::Ty, Expr};
 
     pub fn erase_ids(expr: Expr) -> Expr {
         IdEraser {}.fold_expr(expr).unwrap()
@@ -1099,8 +1046,8 @@ pub(super) mod test {
         Ok(*main.clone().into_relation_var().unwrap())
     }
 
-    fn resolve_lineage(query: &str) -> Result<Lineage> {
-        Ok(parse_and_resolve(query)?.lineage.unwrap())
+    fn resolve_ty(query: &str) -> Result<Ty> {
+        Ok(parse_and_resolve(query)?.ty.unwrap())
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
@@ -1205,7 +1152,7 @@ pub(super) mod test {
 
     #[test]
     fn test_frames_and_names() {
-        assert_yaml_snapshot!(resolve_lineage(
+        assert_yaml_snapshot!(resolve_ty(
             r#"
             from orders
             select {customer_no, gross, tax, gross - tax}
@@ -1214,7 +1161,7 @@ pub(super) mod test {
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_lineage(
+        assert_yaml_snapshot!(resolve_ty(
             r#"
             from table_1
             join customers (==customer_no)
@@ -1222,7 +1169,7 @@ pub(super) mod test {
         )
         .unwrap());
 
-        assert_yaml_snapshot!(resolve_lineage(
+        assert_yaml_snapshot!(resolve_ty(
             r#"
             from e = employees
             join salaries (==emp_no)

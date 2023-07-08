@@ -24,10 +24,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         ExprKind::Type(set_expr) => set_expr,
 
         // singletons
-        ExprKind::Literal(lit) => Ty {
-            name: None,
-            kind: TyKind::Singleton(lit),
-        },
+        ExprKind::Literal(lit) => Ty::from(TyKind::Singleton(lit)),
 
         // tuples
         ExprKind::Tuple(mut elements) => {
@@ -55,10 +52,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
                 set_elements.push(TupleField::Single(name, ty));
             }
 
-            Ty {
-                name: None,
-                kind: TyKind::Tuple(set_elements),
-            }
+            Ty::from(TyKind::Tuple(set_elements))
         }
 
         // arrays
@@ -72,10 +66,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
             let items_type = elements.into_iter().next().unwrap();
             let (_, items_type) = coerce_to_aliased_type(resolver, items_type)?;
 
-            Ty {
-                name: None,
-                kind: TyKind::Array(Box::new(items_type)),
-            }
+            Ty::from(TyKind::Array(Box::new(items_type)))
         }
 
         // unions
@@ -97,24 +88,18 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
                 options.push((right.name.clone(), right));
             }
 
-            Ty {
-                name: None,
-                kind: TyKind::Union(options),
-            }
+            Ty::from(TyKind::Union(options))
         }
 
         // functions
-        ExprKind::Func(func) => Ty {
-            name: None,
-            kind: TyKind::Function(TyFunc {
-                args: func
-                    .params
-                    .into_iter()
-                    .map(|p| p.ty.map(|t| t.into_ty().unwrap()))
-                    .collect_vec(),
-                return_ty: Box::new(resolver.fold_type_expr(Some(func.body))?),
-            }),
-        },
+        ExprKind::Func(func) => Ty::from(TyKind::Function(TyFunc {
+            args: func
+                .params
+                .into_iter()
+                .map(|p| p.ty.map(|t| t.into_ty().unwrap()))
+                .collect_vec(),
+            return_ty: Box::new(resolver.fold_type_expr(Some(func.body))?),
+        })),
 
         _ => {
             return Err(
@@ -184,7 +169,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
 
         _ => return Ok(None),
     };
-    Ok(Some(Ty { kind, name: None }))
+    Ok(Some(Ty::from(kind)))
 }
 
 impl Resolver {
@@ -209,17 +194,18 @@ impl Resolver {
         let Some(found_ty) = found_ty else {
             // found is none: infer from expected
 
-            if found.lineage.is_none() && expected.is_relation() {
+            // TODO: what's up with this?
+            // if found.lineage.is_none() && expected.is_relation() {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns
                 // of this table, which means it needs to be defined somewhere in the module structure.
-                let frame =
-                    self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
+                // let ty =
+                    // self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
-                found.lineage = Some(frame)
-            }
+                // found.ty = Some(ty)
+            // }
 
             // base case: infer expected type
             found.ty = Some(expected.clone());

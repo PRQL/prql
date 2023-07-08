@@ -3,7 +3,7 @@ use std::iter::zip;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::Literal;
+use super::{Ident, Literal};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum TyKind {
@@ -45,7 +45,17 @@ pub struct Ty {
     pub kind: TyKind,
 
     /// Name inferred from the type declaration.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+
+    // Ids of the nodes that are the source for data of this type.
+    // Can point to a table reference or a column expression.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<usize>,
+
+    // Fully-qualified name of table that was instanced to produce this type.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instance_of: Option<Ident>,
 }
 
 /// Built-in sets.
@@ -78,13 +88,8 @@ pub struct TyFunc {
 
 impl Ty {
     pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
-        Ty {
-            kind: TyKind::Array(Box::new(Ty {
-                kind: TyKind::Tuple(tuple_fields),
-                name: None,
-            })),
-            name: None,
-        }
+        let tuple = Ty::from(TyKind::Tuple(tuple_fields));
+        Ty::from(TyKind::Array(Box::new(tuple)))
     }
 
     pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
@@ -165,51 +170,76 @@ impl TyKind {
             (l, r) => l == r,
         }
     }
+}
 
-    /// Analogous to [crate::ast::pl::Lineage::rename()]
+impl Ty {
+    /// Converts [{T1, x = T2, y = {T3, z = T4}}]
+    /// into [{alias = {T1, x = T2, T3, z = T4}}]
     pub fn rename_relation(&mut self, alias: String) {
-        if let TyKind::Array(items_ty) = self {
-            items_ty.kind.rename_tuples(alias);
+        if let TyKind::Array(items_ty) = &mut self.kind {
+            items_ty.rename_tuples(alias);
         }
     }
 
+    /// Converts {T1, x = T2, y = {T3, z = T4}}
+    /// into {alias = {T1, x = T2, T3, z = T4}}
     fn rename_tuples(&mut self, alias: String) {
         self.flatten_tuples();
 
-        if let TyKind::Tuple(fields) = self {
+        if let TyKind::Tuple(fields) = &mut self.kind {
             let inner_fields = std::mem::take(fields);
 
-            fields.push(TupleField::Single(
-                Some(alias),
-                Some(Ty {
-                    kind: TyKind::Tuple(inner_fields),
-                    name: None,
-                }),
-            ));
+            let ty = Ty {
+                lineage: self.lineage,
+                instance_of: self.instance_of.clone(),
+                ..Ty::from(TyKind::Tuple(inner_fields))
+            };
+            fields.push(TupleField::Single(Some(alias), Some(ty)));
         }
     }
 
-    fn flatten_tuples(&mut self) {
-        if let TyKind::Tuple(fields) = self {
+    /// Converts {y = {T3, z = T4}}
+    /// into {T3, z = T4}]
+    pub fn flatten_tuples(&mut self) {
+        if let TyKind::Tuple(fields) = &mut self.kind {
             let mut new_fields = Vec::new();
 
             for field in fields.drain(..) {
-                let TupleField::Single(name, Some(ty)) = field else {
-                    new_fields.push(field);
-                    continue;
-                };
+                if let TupleField::Single(name, Some(ty)) = field {
+                    // recurse
+                    // let ty = ty.flatten_tuples();
 
-                // recurse
-                // let ty = ty.flatten_tuples();
+                    if let TyKind::Tuple(inner_fields) = ty.kind {
+                        new_fields.extend(inner_fields);
 
-                let TyKind::Tuple(inner_fields) = ty.kind else {
+                        if self.lineage.is_none() {
+                            self.lineage = ty.lineage
+                        };
+                        if self.instance_of.is_none() {
+                            self.instance_of = ty.instance_of
+                        };
+                        continue;
+                    }
+
                     new_fields.push(TupleField::Single(name, Some(ty)));
                     continue;
-                };
-                new_fields.extend(inner_fields);
+                }
+
+                new_fields.push(field);
             }
 
             fields.extend(new_fields);
+        }
+    }
+}
+
+impl From<TyKind> for Ty {
+    fn from(kind: TyKind) -> Ty {
+        Ty {
+            kind,
+            name: None,
+            lineage: None,
+            instance_of: None,
         }
     }
 }

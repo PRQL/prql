@@ -5,8 +5,7 @@ use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::context::{DeclKind, TableDecl, TableExpr};
-use super::NS_DEFAULT_DB;
-use super::{Context, Lineage};
+use super::{Context, NS_DEFAULT_DB};
 use crate::ast::pl::{fold::*, *};
 use crate::error::Span;
 
