@@ -65,7 +65,10 @@ impl Module {
             (
                 NS_INFER.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
+                    ty: Some(Ty::relation(vec![TupleField::All {
+                        ty: None,
+                        except: HashSet::new(),
+                    }])),
                     expr: TableExpr::LocalTable,
                 })))),
             ),
@@ -251,7 +254,7 @@ impl Module {
                             sub_mod.insert_ty(name.clone(), ty.as_ref().unwrap(), index + 1);
                         }
 
-                        TupleField::Wildcard(_) => {
+                        TupleField::All { .. } => {
                             let decl_kind =
                                 DeclKind::Infer(Box::new(DeclKind::Column(ty.lineage.unwrap())));
 

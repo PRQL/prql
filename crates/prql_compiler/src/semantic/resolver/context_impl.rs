@@ -256,7 +256,7 @@ impl Context {
             return Err(format!("Variable {table_ident:?} is not a relation."));
         };
 
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::All { .. }));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
@@ -275,14 +275,12 @@ impl Context {
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
             if let Some(ty) = &expr.ty {
                 if let Some(fields) = ty.as_relation() {
-                    let wildcard_inputs = (fields.iter())
-                        .filter_map(|c| c.as_wildcard())
-                        .collect_vec();
+                    let wildcard_inputs = (fields.iter()).filter_map(|c| c.as_all()).collect_vec();
 
                     match wildcard_inputs.len() {
                         0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
                         1 => {
-                            let wildcard_ty = wildcard_inputs.into_iter().next().unwrap();
+                            let (wildcard_ty, _) = wildcard_inputs.into_iter().next().unwrap();
                             let wildcard_ty = wildcard_ty.as_ref().unwrap();
                             let table_fq = wildcard_ty.instance_of.clone().unwrap();
 

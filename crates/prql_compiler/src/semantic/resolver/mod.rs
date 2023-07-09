@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use anyhow::{anyhow, bail, Result};
@@ -178,7 +178,12 @@ impl Resolver {
         let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
         let fields = ty.as_ref().and_then(|t| t.as_relation()).cloned();
-        let fields = fields.unwrap_or_else(|| vec![TupleField::Wildcard(None)]);
+        let fields = fields.unwrap_or_else(|| {
+            vec![TupleField::All {
+                ty: None,
+                except: HashSet::new(),
+            }]
+        });
 
         // wrap with the tuple name
         let mut tuple = Ty::from(TyKind::Tuple(fields));

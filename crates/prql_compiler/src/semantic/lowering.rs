@@ -81,7 +81,7 @@ fn extern_ref_to_relation(
     };
 
     // put wildcards last
-    columns.sort_by_key(|a| matches!(a, TupleField::Wildcard(_)));
+    columns.sort_by_key(|a| matches!(a, TupleField::All { .. }));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
@@ -95,7 +95,7 @@ fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationCol
         .into_iter()
         .map(|field| match field {
             TupleField::Single(name, _) => RelationColumn::Single(name),
-            TupleField::Wildcard(_) => RelationColumn::Wildcard,
+            TupleField::All { .. } => RelationColumn::Wildcard,
         })
         .collect_vec()
 }
@@ -571,7 +571,7 @@ impl Lowerer {
 
                     columns.push((RelationColumn::Single(name.clone()), cid));
                 }
-                TupleField::Wildcard(_) => {
+                TupleField::All { except, .. } => {
                     let input_id = tuple.lineage.unwrap();
 
                     match &self.node_mapping[&input_id] {
@@ -579,10 +579,10 @@ impl Lowerer {
                         LoweredTarget::Input(input_cols) => {
                             let mut input_cols = input_cols
                                 .iter()
-                                // .filter(|(c, _)| match c {
-                                //     RelationColumn::Single(Some(name)) => !except.contains(name),
-                                //     _ => true,
-                                // })
+                                .filter(|(c, _)| match c {
+                                    RelationColumn::Single(Some(name)) => !except.contains(name),
+                                    _ => true,
+                                })
                                 .collect_vec();
                             input_cols.sort_by_key(|e| e.1 .1);
 

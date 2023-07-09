@@ -513,7 +513,12 @@ impl TransformCall {
             expr.ty
                 .clone()
                 .and_then(|t| t.into_relation())
-                .or_else(|| Some(vec![TupleField::Wildcard(None)]))
+                .or_else(|| {
+                    Some(vec![TupleField::All {
+                        ty: None,
+                        except: HashSet::new(),
+                    }])
+                })
                 .map(Ty::relation)
                 .unwrap()
         }
@@ -690,7 +695,9 @@ fn append_relations(mut top: Ty, mut bottom: Ty) -> Result<Ty, Error> {
     let mut fields = Vec::with_capacity(top_fields.len());
     for (t, b) in zip(top_fields.drain(..), bottom_fields.drain(..)) {
         fields.push(match (t, b) {
-            (TupleField::Wildcard(ty), TupleField::Wildcard(_)) => TupleField::Wildcard(ty),
+            (TupleField::All { ty, except }, TupleField::All { .. }) => {
+                TupleField::All { ty, except }
+            }
             (TupleField::Single(name_top, ty_top), TupleField::Single(name_bot, _)) => {
                 let name = match (name_top, name_bot) {
                     (None, None) => None,
@@ -745,7 +752,7 @@ impl LineageInput {
         let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
 
         // special case: wildcard
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
+        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::All { .. }));
         if has_wildcard {
             // Relation has a wildcard (i.e. we don't know all the columns)
             // which means we cannot list all columns.

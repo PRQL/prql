@@ -1,4 +1,4 @@
-use std::iter::zip;
+use std::{collections::HashSet, iter::zip};
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
@@ -36,8 +36,11 @@ pub enum TupleField {
     Single(Option<String>, Option<Ty>),
 
     /// Placeholder for possibly many elements.
-    /// Means "and other unmentioned columns". Does not mean "all columns".
-    Wildcard(Option<Ty>),
+    /// Means "all columns". Does not mean "other unmentioned columns"
+    All {
+        ty: Option<Ty>,
+        except: HashSet<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
