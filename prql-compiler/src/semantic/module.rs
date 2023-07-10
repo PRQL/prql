@@ -96,7 +96,9 @@ impl Module {
             if let DeclKind::Module(inner) = &mut entry.kind {
                 inner.insert(remaining.unwrap(), decl)
             } else {
-                Err(Error::new_simple("path does not resolve to a module or a table"))
+                Err(Error::new_simple(
+                    "path does not resolve to a module or a table",
+                ))
             }
         }
     }
