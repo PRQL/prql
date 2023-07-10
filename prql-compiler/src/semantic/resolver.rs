@@ -120,7 +120,10 @@ impl Resolver {
                         ..Default::default()
                     };
                     let ident = Ident::from_path(self.current_module_path.clone());
-                    self.context.root_mod.insert(ident, decl)?;
+                    self.context
+                        .root_mod
+                        .insert(ident, decl)
+                        .with_span(stmt.span)?;
 
                     self.fold_statements(module_def.stmts)?;
                     self.current_module_path.pop();

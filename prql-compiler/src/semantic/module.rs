@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::{Expr, Ident, TupleField, Ty};
+use crate::Error;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
@@ -85,22 +86,21 @@ impl Module {
         }
     }
 
-    pub fn insert(&mut self, ident: Ident, entry: Decl) -> Result<Option<Decl>> {
-        let mut ns = self;
+    pub fn insert(&mut self, fq_ident: Ident, decl: Decl) -> Result<Option<Decl>, Error> {
+        if fq_ident.path.is_empty() {
+            Ok(self.names.insert(fq_ident.name, decl))
+        } else {
+            let (top_level, remaining) = fq_ident.pop_front();
+            let entry = self.names.entry(top_level).or_default();
 
-        // Navigate down the module path
-        for part in ident.path {
-            let entry = ns.names.entry(part.clone()).or_default();
-
-            match &mut entry.kind {
-                DeclKind::Module(inner) => {
-                    ns = inner;
-                }
-                _ => bail!("path does not resolve to a module or a table"),
+            if let DeclKind::Module(inner) = &mut entry.kind {
+                inner.insert(remaining.unwrap(), decl)
+            } else {
+                Err(Error::new_simple(
+                    "path does not resolve to a module or a table",
+                ))
             }
         }
-
-        Ok(ns.names.insert(ident.name, entry))
     }
 
     pub fn get_mut(&mut self, ident: &Ident) -> Option<&mut Decl> {

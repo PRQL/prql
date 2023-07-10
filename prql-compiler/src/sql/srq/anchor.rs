@@ -219,19 +219,28 @@ pub(super) fn anchor_split(
     // redefine columns of the atomic pipeline
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
+    let mut used_new_names = HashSet::new();
     for old_cid in cols_at_split {
         let new_cid = ctx.cid.gen();
 
         let old_name = ctx.ensure_column_name(*old_cid).cloned();
-        if let Some(name) = old_name.clone() {
-            ctx.column_names.insert(new_cid, name);
+
+        let mut new_name = old_name;
+        if let Some(new) = &mut new_name {
+            if used_new_names.contains(new) {
+                *new = ctx.col_name.gen();
+                ctx.column_names.insert(*old_cid, new.clone());
+            }
+
+            used_new_names.insert(new.clone());
+            ctx.column_names.insert(new_cid, new.clone());
         }
 
         let old_def = ctx.column_decls.get(old_cid).unwrap();
 
         let col = match old_def {
             ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => RelationColumn::Wildcard,
-            _ => RelationColumn::Single(old_name),
+            _ => RelationColumn::Single(new_name),
         };
 
         new_columns.push((col, new_cid));
