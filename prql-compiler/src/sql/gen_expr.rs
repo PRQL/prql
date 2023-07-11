@@ -2,16 +2,11 @@
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
-use sqlparser::keywords::{
-    Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
-};
-use std::collections::HashSet;
 
 use crate::ast::pl::{
     self, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection, WindowFrame,
@@ -23,7 +18,7 @@ use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
 
 use super::gen_projection::try_into_exprs;
-use super::Context;
+use super::{keywords, Context};
 
 pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSource> {
     Ok(match expr.kind {
@@ -681,32 +676,10 @@ pub(super) fn translate_ident(
         .collect()
 }
 
-fn is_keyword(ident: &str) -> bool {
-    /// Keywords which we want to quote when translating to SQL. Currently we're
-    /// being fairly permissive (over-quoting is not a concern), though we don't
-    /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
-    /// and `lower`.
-    static PRQL_KEYWORDS: Lazy<HashSet<&'static Keyword>> = Lazy::new(|| {
-        let mut m = HashSet::new();
-        m.extend(RESERVED_FOR_COLUMN_ALIAS);
-        m.extend(RESERVED_FOR_TABLE_ALIAS);
-        m
-    });
-
-    // Search for the ident in `ALL_KEYWORDS`, and then look it up in
-    // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
-    // `Keyword::from_string` function.
-    let keyword = ALL_KEYWORDS
-        .binary_search(&ident.to_ascii_uppercase().as_str())
-        .map_or(Keyword::NoKeyword, |x| ALL_KEYWORDS_INDEX[x]);
-
-    PRQL_KEYWORDS.contains(&keyword)
-}
-
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
     let is_bare = VALID_IDENT.is_match(&ident);
 
-    if is_bare && !is_keyword(&ident) {
+    if is_bare && !keywords::is_keyword(&ident) {
         sql_ast::Ident::new(ident)
     } else {
         sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
