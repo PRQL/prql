@@ -38,7 +38,7 @@ static SQL_KEYWORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     m
 });
 
-const SQLITE_KEYWORDS: &[&'static str] = &[
+const SQLITE_KEYWORDS: &[&str] = &[
     "ABORT",
     "ACTION",
     "ADD",
