@@ -4,6 +4,7 @@ mod dialect;
 mod gen_expr;
 mod gen_projection;
 mod gen_query;
+mod keywords;
 mod operators;
 mod srq;
 
