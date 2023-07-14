@@ -58,16 +58,16 @@ pub struct TransformCall {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum TransformKind {
     Derive {
-        assigns: Vec<Expr>,
+        tuple: Expr,
     },
     Select {
-        assigns: Vec<Expr>,
+        tuple: Expr,
     },
     Filter {
         filter: Box<Expr>,
     },
     Aggregate {
-        assigns: Vec<Expr>,
+        tuple: Expr,
     },
     Sort {
         by: Vec<ColumnSort>,
@@ -81,7 +81,7 @@ pub enum TransformKind {
         filter: Box<Expr>,
     },
     Group {
-        by: Vec<Expr>,
+        by: Expr,
         pipeline: Box<Expr>,
     },
     Window {

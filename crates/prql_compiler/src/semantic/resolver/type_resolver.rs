@@ -143,7 +143,7 @@ impl Resolver {
             ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
             ExprKind::Range(_) => return Ok(None), // TODO
 
-            ExprKind::TransformCall(call) => return call.infer_type(&self.context).map(Some),
+            ExprKind::TransformCall(call) => return self.infer_type_of_transform(call).map(Some),
 
             ExprKind::Tuple(fields) | ExprKind::TupleFields(fields) => {
                 let mut ty_fields = Vec::with_capacity(fields.len());

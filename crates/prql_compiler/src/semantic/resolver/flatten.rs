@@ -88,7 +88,7 @@ impl AstFold for Flattener {
                         let param_id = table_param.name.parse::<usize>().unwrap();
 
                         self.replace_map.insert(param_id, input);
-                        self.partition = by;
+                        self.partition = by.kind.into_tuple().unwrap();
                         self.sort.clear();
 
                         let pipeline = self.fold_expr(*pipeline.body)?;
@@ -100,7 +100,6 @@ impl AstFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -125,7 +124,6 @@ impl AstFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }

@@ -213,6 +213,7 @@ impl Context {
         // We wrap the expr into DeclKind::Expr and save it into context.
         let cols_expr = Expr {
             ty: Some(Ty {
+                instance_of: Some(instance_of.clone()),
                 ..Ty::from(TyKind::Tuple(fields))
             }),
             ..Expr::new(ExprKind::TupleFields(vec![]))

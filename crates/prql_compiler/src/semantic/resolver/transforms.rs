@@ -30,8 +30,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_tuple_and_flatten(assigns)?;
-            (TransformKind::Select { assigns }, tbl)
+            let tuple = resolver.coerce_into_tuple(assigns)?;
+            (TransformKind::Select { tuple }, tbl)
         }
         "filter" => {
             let [filter, tbl] = unpack::<2>(closure);
@@ -42,19 +42,23 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_tuple_and_flatten(assigns)?;
-            (TransformKind::Derive { assigns }, tbl)
+            let tuple = resolver.coerce_into_tuple(assigns)?;
+            (TransformKind::Derive { tuple }, tbl)
         }
         "aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_tuple_and_flatten(assigns)?;
-            (TransformKind::Aggregate { assigns }, tbl)
+            let tuple = resolver.coerce_into_tuple(assigns)?;
+            (TransformKind::Aggregate { tuple }, tbl)
         }
         "sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = coerce_into_tuple_and_flatten(by)?
+            let by = resolver
+                .coerce_into_tuple(by)?
+                .kind
+                .into_tuple()
+                .unwrap()
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
@@ -120,7 +124,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = coerce_into_tuple_and_flatten(by)?;
+            let by = resolver.coerce_into_tuple(by)?;
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
@@ -307,40 +311,6 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let [expr, exclude] = unpack(closure);
 
             return super::create_tuple_exclude(expr, exclude, None);
-
-            let tuple = expr.ty.unwrap();
-            // let instance_of = tuple.instance_of.clone().unwrap();
-            let fields = tuple.kind.into_tuple().unwrap();
-
-            let except = exclude.ty.unwrap().kind.into_tuple().unwrap();
-            let except = except
-                .iter()
-                .filter_map(|x| x.ty())
-                .filter_map(|x| x.lineage)
-                .collect::<HashSet<_>>();
-
-            let mut remaining_fields = Vec::new();
-            for field in fields {
-                if let Some(lineage) = field.ty().and_then(|x| x.lineage) {
-                    if except.contains(&lineage) {
-                        continue;
-                    }
-                }
-
-                match field {
-                    TupleField::Single(name, ty) => {
-                        remaining_fields.push(TupleField::Single(name, ty));
-                    }
-                    TupleField::All { ty, exclude } => {
-                        todo!()
-                        // collect_all_fields(ty, except, context)
-                    }
-                }
-            }
-
-            return Ok(Expr {
-                ..Expr::new(ExprKind::Tuple(vec![]))
-            });
         }
 
         "from_text" => {
@@ -432,37 +402,28 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
     Ok(Expr::new(ExprKind::TransformCall(transform_call)))
 }
 
-/// Wraps non-tuple Exprs into a singleton Tuple.
-// This function should eventually be applied to all function arguments that
-// expect a tuple.
-pub fn coerce_into_tuple(expr: Expr) -> Result<Vec<Expr>> {
-    Ok(match expr.kind {
-        ExprKind::Tuple(items) => {
+impl Resolver {
+    /// Wraps non-tuple Exprs into a singleton Tuple.
+    // This function should eventually be applied to all function arguments that
+    // expect a tuple.
+    pub fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
+        Ok(if !expr.ty.as_ref().unwrap().is_tuple() {
+            let expr = Expr::new(ExprKind::Tuple(vec![expr]));
+
+            self.fold_expr(expr)?
+        } else {
             if let Some(alias) = expr.alias {
-                bail!(Error::new(Reason::Unexpected {
-                    found: format!("assign to `{alias}`")
+                return Err(Error::new(Reason::Unexpected {
+                    found: format!("assign to `{alias}`"),
                 })
                 .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
-                .with_span(expr.span))
+                .with_span(expr.span)
+                .into());
             }
-            items
-        }
-        _ => vec![expr],
-    })
-}
 
-/// Converts `a` into `[a]` and `[b, [c, d]]` into `[b, c, d]`.
-pub fn coerce_into_tuple_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
-    let items = coerce_into_tuple(expr)?;
-    let mut res = Vec::with_capacity(items.len());
-    for item in items {
-        res.extend(coerce_into_tuple(item)?);
+            expr
+        })
     }
-    let mut res2 = Vec::with_capacity(res.len());
-    for item in res {
-        res2.extend(coerce_into_tuple(item)?);
-    }
-    Ok(res2)
 }
 
 fn range_is_empty(range: &Range) -> bool {
@@ -549,8 +510,8 @@ fn fold_by_simulating_eval(
     Ok(pipeline)
 }
 
-impl TransformCall {
-    pub fn infer_type(&self, context: &Context) -> Result<Ty> {
+impl Resolver {
+    pub fn infer_type_of_transform(&mut self, transform: &TransformCall) -> Result<Ty> {
         use TransformKind::*;
 
         fn ty_relation_or_default(expr: &Expr) -> Ty {
@@ -567,22 +528,23 @@ impl TransformCall {
                 .unwrap()
         }
 
-        Ok(match self.kind.as_ref() {
-            Select { assigns } => {
-                let mut ty = ty_relation_or_default(&self.input);
-                let fields = ty.as_relation_mut().unwrap();
-
-                apply_assigns(fields, assigns);
-                ty
+        Ok(match transform.kind.as_ref() {
+            Select { tuple } => {
+                let tuple = tuple.ty.clone().unwrap();
+                Ty::from(TyKind::Array(Box::new(tuple)))
             }
-            Derive { assigns } => {
-                let mut ty = ty_relation_or_default(&self.input);
-                let fields = ty.as_relation_mut().unwrap();
+            Derive { tuple } => {
+                let prev = ty_relation_or_default(&transform.input);
+                let prev = prev.as_relation().unwrap();
+                let new = tuple.ty.as_ref().unwrap().kind.as_tuple().unwrap();
 
-                let prev_fields = fields.clone();
+                let combined = self.concat_tuples(prev, new)?;
+                Ty::from(TyKind::Array(Box::new(combined)))
+            }
+            Aggregate { tuple } => {
+                let tuple = tuple.ty.clone().unwrap();
 
-                apply_assigns(fields, assigns, &prev_fields, context);
-                ty
+                Ty::from(TyKind::Array(Box::new(tuple)))
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
@@ -596,17 +558,15 @@ impl TransformCall {
                 // prepend aggregate with `by` columns
                 if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
                     if let TransformKind::Aggregate { .. } = kind.as_ref() {
-                        let aggregate_fields = std::mem::take(fields);
-
+                        let by = by.ty.as_ref().unwrap().kind.as_tuple().unwrap();
                         log::debug!(".. group by {by:?}");
-                        apply_assigns(fields, by, &[], context);
 
-                        fields.extend(aggregate_fields);
+                        let combined = self.concat_tuples(by, fields)?;
+                        ty = Ty::from(TyKind::Array(Box::new(combined)))
                     }
                 }
 
                 log::debug!(".. type={ty}");
-
                 ty
             }
             Window { pipeline, .. } => {
@@ -615,39 +575,35 @@ impl TransformCall {
 
                 ty_relation_or_default(body)
             }
-            Aggregate { assigns } => {
-                let mut ty = ty_relation_or_default(&self.input);
-                let fields = ty.as_relation_mut().unwrap();
-
-                let prev_fields = std::mem::take(fields);
-
-                apply_assigns(fields, assigns, &prev_fields, context);
-                ty
-            }
             Join { with, .. } => {
-                let left = ty_relation_or_default(&self.input);
+                let left = ty_relation_or_default(&transform.input);
                 let right = ty_relation_or_default(with);
 
                 join_relations(left, right)
             }
             Append(bottom) => {
-                let top = ty_relation_or_default(&self.input);
+                let top = ty_relation_or_default(&transform.input);
                 let bottom = ty_relation_or_default(bottom);
                 append_relations(top, bottom)?
             }
-            Loop(_) => ty_relation_or_default(&self.input),
-            Sort { .. } | Filter { .. } | Take { .. } => ty_relation_or_default(&self.input),
+            Loop(_) => ty_relation_or_default(&transform.input),
+            Sort { .. } | Filter { .. } | Take { .. } => ty_relation_or_default(&transform.input),
         })
     }
-}
 
-pub fn apply_assigns(
-    fields: &mut Vec<TupleField>,
-    assigns: &[Expr],
-    prev_fields: &[TupleField],
-    context: &Context,
-) {
-    for expr in assigns {}
+    fn concat_tuples(&mut self, a: &[TupleField], b: &[TupleField]) -> Result<Ty> {
+        let new = Expr::new(ExprKind::Tuple(vec![
+            Expr {
+                ty: Some(Ty::from(TyKind::Tuple(a.to_vec()))),
+                ..Expr::new(ExprKind::TupleFields(vec![]))
+            },
+            Expr {
+                ty: Some(Ty::from(TyKind::Tuple(b.to_vec()))),
+                ..Expr::new(ExprKind::TupleFields(vec![]))
+            },
+        ]));
+        self.infer_type(&new).map(|x| x.unwrap())
+    }
 }
 
 fn join_relations(mut lhs: Ty, rhs: Ty) -> Ty {
@@ -730,46 +686,6 @@ impl Lineage {
             }
         }
     }
-}
-
-fn collect_all_fields(ty: &Ty, except: &[Expr], context: &Context) -> Vec<TupleField> {
-    let instance_of = ty.instance_of.as_ref().unwrap();
-    let rel_def = context.root_mod.get(instance_of).unwrap();
-    let rel_def = rel_def.kind.as_table_decl().unwrap();
-
-    // TODO: can this panic?
-    let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
-
-    // special case: wildcard
-    let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::All { .. }));
-    if has_wildcard {
-        // Relation has a wildcard (i.e. we don't know all the columns)
-        // which means we cannot list all columns.
-        // Instead we can just stick TupleField::All into the tuple.
-        // We could do this for all columns, but it is less transparent,
-        // so let's use it just as a last resort.
-
-        todo!();
-
-        // let input_ident_fq = Ident::from_path(vec![NS_THIS]);
-
-        // let except = except
-        //     .iter()
-        //     .filter_map(|e| match &e.kind {
-        //         ExprKind::Ident(i) => Some(i),
-        //         _ => None,
-        //     })
-        //     .filter(|i| i.starts_with(&input_ident_fq))
-        //     .map(|i| i.name.clone())
-        //     .collect();
-
-        // return vec![TupleField::All {
-
-        // }];
-    }
-
-    // base case: convert rel_def into frame columns
-    columns.clone()
 }
 
 // Expects closure's args to be resolved.

@@ -458,11 +458,11 @@ impl Lowerer {
         self.window = Some(window);
 
         match *transform_call.kind {
-            pl::TransformKind::Derive { assigns, .. } => {
-                self.declare_as_columns(assigns, false)?;
+            pl::TransformKind::Derive { tuple } => {
+                self.declare_as_columns(tuple.kind.into_tuple().unwrap(), false)?;
             }
-            pl::TransformKind::Select { assigns, .. } => {
-                let cids = self.declare_as_columns(assigns, false)?;
+            pl::TransformKind::Select { tuple } => {
+                let cids = self.declare_as_columns(tuple.kind.into_tuple().unwrap(), false)?;
                 self.pipeline.push(Transform::Select(cids));
             }
             pl::TransformKind::Filter { filter, .. } => {
@@ -470,10 +470,10 @@ impl Lowerer {
 
                 self.pipeline.push(Transform::Filter(filter));
             }
-            pl::TransformKind::Aggregate { assigns, .. } => {
+            pl::TransformKind::Aggregate { tuple } => {
                 let window = self.window.take();
 
-                let compute = self.declare_as_columns(assigns, true)?;
+                let compute = self.declare_as_columns(tuple.kind.into_tuple().unwrap(), true)?;
 
                 let partition = window.unwrap().partition;
                 self.pipeline

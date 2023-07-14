@@ -263,17 +263,17 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
 ) -> Result<TransformKind> {
     use TransformKind::*;
     Ok(match t {
-        Derive { assigns } => Derive {
-            assigns: fold.fold_exprs(assigns)?,
+        Derive { tuple } => Derive {
+            tuple: fold.fold_expr(tuple)?,
         },
-        Select { assigns } => Select {
-            assigns: fold.fold_exprs(assigns)?,
+        Select { tuple } => Select {
+            tuple: fold.fold_expr(tuple)?,
         },
         Filter { filter } => Filter {
             filter: Box::new(fold.fold_expr(*filter)?),
         },
-        Aggregate { assigns } => Aggregate {
-            assigns: fold.fold_exprs(assigns)?,
+        Aggregate { tuple } => Aggregate {
+            tuple: fold.fold_expr(tuple)?,
         },
         Sort { by } => Sort {
             by: fold_column_sorts(fold, by)?,
@@ -288,7 +288,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
         },
         Append(bottom) => Append(Box::new(fold.fold_expr(*bottom)?)),
         Group { by, pipeline } => Group {
-            by: fold.fold_exprs(by)?,
+            by: fold.fold_expr(by)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
         Window {
