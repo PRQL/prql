@@ -23,7 +23,11 @@ So this compiles using the function:
 from employees
 aggregate {average salary}
 ```
-_Note:_ In an S-string, the SQL manager treats double-quotes (`"`) as denoting a _column-name_. To avoid that, use single-quotes (`'`) around that string, and adjust the beginning and ending delimiters as needed. For example, write: `let dollars = d -> s"printf('$%,d',{d})"`
+
+_Note:_ In an S-string, the SQL manager treats double-quotes (`"`) as denoting a
+_column-name_. To avoid that, use single-quotes (`'`) around that string, and
+adjust the beginning and ending delimiters as needed. For example, write:
+`let dollars = d -> s"printf('$%,d',{d})"`
 
 Here's an example of a more involved use of an s-string:
 
