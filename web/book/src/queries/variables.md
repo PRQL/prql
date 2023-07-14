@@ -1,9 +1,23 @@
-# Variables
+# Variables and `let`
 
-We can define a relation — similar to a CTE in SQL — with two approaches — a
-prefix `let` or a postfix `into.
+`let` assigns a scalar value, a function, or a pipeline to a named variable.
 
-## `let`
+## Scalar value
+
+Define a constant that's used multiple times in a query with `let`:
+```
+let pi = 3.14159
+```
+## Function
+
+Define a function as described in [Functions](./functions.md):
+```
+let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
+```
+## Pipeline or relation
+
+Define a relation — similar to a CTE in SQL — with two approaches — a
+prefix `let` or a postfix `into`.
 
 Here we assign a variable to `foo` with `let` by prefixing with `let foo =`:
 
@@ -34,6 +48,11 @@ let grouping = s"""
 from grouping
 ```
 
+```admonish info
+**Why introduce `into`?** It seems that `let = ...` completely covers the use case without introducing new grammar. 
+Does `into` work with scalars and functions?
+```
+
 ## `into`
 
 We can also assign a variable to `foo` by postfixing with `into foo`:
@@ -49,15 +68,20 @@ from top_50      # Starts a new pipeline
 ```
 
 ```admonish info
+**Is this still relevant?**
 In PRQL variables are far less common than CTEs are in SQL, since a linear series
 of CTEs can be represented with a single pipeline.
 ```
 
+```admonish info
+**NO LONGER TRUE?**
 Currently defining variables is restricted to relations. We'd like to extend
 this to expressions that evaluate to scalars.
+```
 
-<!--
-, like recursive queries:
+```admonish info
+**This was commented out - is this still relevant?**
+... like recursive queries:
 
 TODO: get this example to work by removing the restriction to start with SELECT
 
@@ -71,4 +95,4 @@ table recursive_example = (s"""
 
 from recursive_example
 
--->
+```
