@@ -7,7 +7,7 @@
         </div>
       </div>
       <div class="row row-cols-1 row-cols-md-3 g-4">
-        {{ range .comments }}
+        {{ range site.Data.testimonials }}
           <div class="col">
             {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
               a better way of designing this? (and maybe we design from the stylesheet?)
