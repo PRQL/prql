@@ -97,7 +97,8 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
                     finish(vec![])
                 }
             }
-        });
+        })
+        .labelled("interpolated string");
 
         let case = keyword("case")
             .ignore_then(
