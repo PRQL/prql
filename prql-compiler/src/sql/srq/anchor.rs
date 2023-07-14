@@ -464,17 +464,6 @@ pub(super) fn get_requirements(
             CidCollector::collect(expr.clone())
         }
         Super(Sort(sorts)) => sorts.iter().map(|s| s.column).collect(),
-        Super(Take(rq::Take { range, .. })) => {
-            let mut cids = Vec::new();
-            if let Some(e) = &range.start {
-                cids.extend(CidCollector::collect(e.clone()));
-            }
-            if let Some(e) = &range.end {
-                cids.extend(CidCollector::collect(e.clone()));
-            }
-            cids
-        }
-
         _ => return Vec::new(),
     };
 

@@ -159,7 +159,7 @@ fn translate_select_pipeline(
     ctx.query.pre_projection = false;
 
     let ranges = takes.into_iter().map(|x| x.range).collect();
-    let take = range_of_ranges(ranges)?;
+    let take = range_of_ranges(ranges);
     let offset = take.start.map(|s| s - 1).unwrap_or(0);
     let limit = take.end.map(|e| e - offset);
 

@@ -469,11 +469,9 @@ pub(super) fn translate_sstring(
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
-pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
+pub(super) fn range_of_ranges(ranges: Vec<Range<i64>>) -> Range<i64> {
     let mut current = Range::default();
-    for range in ranges {
-        let mut range = try_range_into_int(range)?;
-
+    for mut range in ranges {
         // b = b + a.start -1 (take care of 1-based index!)
         range.start = range.start.or_map(current.start, |a, b| a + b - 1);
         range.end = range.end.map(|b| current.start.unwrap_or(1) + b - 1);
@@ -485,24 +483,13 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
 
     if let Some((s, e)) = current.start.zip(current.end) {
         if e < s {
-            return Ok(Range {
+            return Range {
                 start: None,
                 end: Some(0),
-            });
+            };
         }
     }
-    Ok(current)
-}
-
-fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
-    fn cast_bound(bound: Expr) -> Result<i64> {
-        Ok(bound.kind.into_literal()?.into_integer()?)
-    }
-
-    Ok(Range {
-        start: range.start.map(cast_bound).transpose()?,
-        end: range.end.map(cast_bound).transpose()?,
-    })
+    current
 }
 
 pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
@@ -875,15 +862,7 @@ mod test {
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {
-        fn from_ints(start: Option<i64>, end: Option<i64>) -> Range<Expr> {
-            let start = start.map(|x| Expr {
-                kind: ExprKind::Literal(Literal::Integer(x)),
-                span: None,
-            });
-            let end = end.map(|x| Expr {
-                kind: ExprKind::Literal(Literal::Integer(x)),
-                span: None,
-            });
+        fn from_ints(start: Option<i64>, end: Option<i64>) -> Range<i64> {
             Range { start, end }
         }
 
@@ -893,64 +872,64 @@ mod test {
         let range4 = from_ints(None, Some(8));
         let range5 = from_ints(Some(5), Some(5));
 
-        assert!(range_of_ranges(vec![range1.clone()])?.end.is_some());
+        assert!(range_of_ranges(vec![range1.clone()]).end.is_some());
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone()]), @r###"
         ---
         start: 1
         end: 10
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()]), @r###"
         ---
         start: 1
         end: 10
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()]), @r###"
         ---
         start: 5
         end: 6
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()]), @r###"
         ---
         start: 5
         end: 6
         "###);
 
         // empty range
-        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range2.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range2.clone()]), @r###"
         ---
         start: ~
         end: 0
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()]), @r###"
         ---
         start: 9
         end: ~
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1, range3])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range1, range3]), @r###"
         ---
         start: 5
         end: 10
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range2, range4.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range2, range4.clone()]), @r###"
         ---
         start: 5
         end: 6
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range4.clone(), range4])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range4.clone(), range4]), @r###"
         ---
         start: ~
         end: 8
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range5])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range5]), @r###"
         ---
         start: 5
         end: 5

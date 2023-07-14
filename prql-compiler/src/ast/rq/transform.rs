@@ -30,7 +30,7 @@ pub enum Transform {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Take {
-    pub range: Range<Expr>,
+    pub range: Range<i64>,
     pub partition: Vec<CId>,
     pub sort: Vec<ColumnSort<CId>>,
 }

@@ -1072,11 +1072,7 @@ mod tests {
               - Take:
                   range:
                     start: ~
-                    end:
-                      kind:
-                        Literal:
-                          Integer: 1
-                      span: ~
+                    end: 1
                   partition:
                     - 0
                   sort: []

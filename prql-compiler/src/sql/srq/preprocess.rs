@@ -156,13 +156,7 @@ pub(in crate::sql) fn distinct(
                 partition,
                 sort,
             })) => {
-                let range_int = range
-                    .clone()
-                    .try_map(as_int)
-                    .map_err(|_| anyhow::anyhow!("Invalid take arguments"))?;
-
-                let take_only_first =
-                    range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));
+                let take_only_first = range.start.unwrap_or(1) == 1 && matches!(range.end, Some(1));
 
                 // Check whether the columns within the partition are the same
                 // as the columns in the table; otherwise we can't use DISTINCT.
@@ -210,7 +204,7 @@ fn into_column_sort(partition: &[CId]) -> Vec<ColumnSort<CId>> {
 }
 
 fn create_filter_by_row_number(
-    range: Range<Expr>,
+    range: Range<i64>,
     sort: Vec<ColumnSort<CId>>,
     partition: Vec<CId>,
     ctx: &mut Context,
@@ -256,10 +250,8 @@ fn create_filter_by_row_number(
     };
 
     // add the two transforms
-    let range_int = range.try_map(as_int).unwrap();
-
     let compute = SqlTransform::Super(Transform::Compute(compute));
-    let filter = SqlTransform::Super(Transform::Filter(match (range_int.start, range_int.end) {
+    let filter = SqlTransform::Super(Transform::Filter(match (range.start, range.end) {
         (Some(s), Some(e)) if s == e => new_binop(col_ref, "std.eq", int_expr(s)),
         (start, end) => {
             let start = start.map(|start| new_binop(col_ref.clone(), "std.gte", int_expr(start)));
@@ -273,11 +265,6 @@ fn create_filter_by_row_number(
     }));
 
     vec![compute, filter]
-}
-
-fn as_int(expr: Expr) -> Result<i64, ()> {
-    let lit = expr.kind.as_literal().ok_or(())?;
-    lit.as_integer().cloned().ok_or(())
 }
 
 fn int_expr(i: i64) -> Expr {

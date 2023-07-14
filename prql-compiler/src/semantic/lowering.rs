@@ -507,10 +507,8 @@ impl Lowerer {
                 let window = self.window.take().unwrap_or_default();
                 let range = self.lower_range(range)?;
 
-                validate_take_range(&range, ast.span)?;
-
                 self.pipeline.push(Transform::Take(rq::Take {
-                    range,
+                    range: parse_take_range(&range, ast.span)?,
                     partition: window.partition,
                     sort: window.sort,
                 }));
@@ -900,7 +898,7 @@ fn str_lit(string: String) -> rq::Expr {
     }
 }
 
-fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()> {
+fn parse_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<Range<i64>> {
     fn bound_as_int(bound: &Option<rq::Expr>) -> Option<Option<&i64>> {
         bound
             .as_ref()
@@ -938,7 +936,10 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
         .with_span(span)
         .into())
     } else {
-        Ok(())
+        Ok(Range {
+            start: start.flatten().copied(),
+            end: end.flatten().copied(),
+        })
     }
 }
 
