@@ -1,0 +1,11 @@
+label: S-strings
+prql: |
+  # There's no `version` in PRQL, but s-strings
+  # let us embed SQL as an escape hatch:
+  from x
+  derive db_version = s"version()"
+sql: |
+  SELECT
+    *,
+    version() AS db_version
+  FROM x

@@ -1,0 +1,15 @@
+label: Null handling
+prql: |
+  from users
+  filter last_login != null
+  filter deleted_at == null
+  derive channel = channel ?? "unknown"
+sql: |
+  SELECT
+    *,
+    COALESCE(channel, 'unknown') AS channel
+  FROM
+    users
+  WHERE
+    last_login IS NOT NULL
+    AND deleted_at IS NULL
