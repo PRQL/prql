@@ -46,10 +46,7 @@ pub enum DeclKind {
 
     InstanceOf(Ident),
 
-    /// A single column. Contains id of target which is either:
-    /// - an input relation that is source of this column or
-    /// - a column expression.
-    Column(usize),
+    Column(Ty),
 
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(Box<DeclKind>),

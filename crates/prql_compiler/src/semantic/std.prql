@@ -182,6 +182,7 @@ let tuple_map = fn list -> internal tuple_map
 let tuple_zip = a b -> internal tuple_zip
 let _eq = a -> internal _eq
 let _is_null = a -> _param.a == null
+let tuple_exclude = func tuple except -> internal tuple_exclude
 
 ## Misc
 let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_text

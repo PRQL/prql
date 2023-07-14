@@ -39,11 +39,11 @@ pub enum TupleField {
     /// Means "all columns". Does not mean "other unmentioned columns"
     All {
         ty: Option<Ty>,
-        except: HashSet<String>,
+        exclude: HashSet<Ident>,
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -108,10 +108,6 @@ impl Ty {
     }
 
     pub fn is_super_type_of(&self, subset: &Ty) -> bool {
-        if self.is_relation() && subset.is_relation() {
-            return true;
-        }
-
         self.kind.is_super_type_of(&subset.kind)
     }
 
@@ -168,6 +164,16 @@ impl TyKind {
                 }
 
                 true
+            }
+
+            (TyKind::Array(sup), TyKind::Array(sub)) => sup.is_super_type_of(sub),
+
+            (TyKind::Tuple(sup_fields), TyKind::Tuple(_)) => {
+                if sup_fields.iter().any(|x| x.is_all()) {
+                    return true;
+                }
+                // TODO: compare fields one by one
+                false
             }
 
             (l, r) => l == r,
@@ -236,6 +242,15 @@ impl Ty {
     }
 }
 
+impl TupleField {
+    pub fn ty(&self) -> Option<&Ty> {
+        match self {
+            TupleField::Single(_, ty) => ty.as_ref(),
+            TupleField::All { ty, .. } => ty.as_ref(),
+        }
+    }
+}
+
 impl From<TyKind> for Ty {
     fn from(kind: TyKind) -> Ty {
         Ty {
@@ -256,4 +271,10 @@ fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
         }
     }
     false
+}
+
+impl std::fmt::Debug for Ty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self, f)
+    }
 }

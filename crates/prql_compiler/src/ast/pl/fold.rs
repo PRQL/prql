@@ -88,8 +88,14 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
             op,
             expr: Box::new(fold.fold_expr(*expr)?),
         }),
-        Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
+        Tuple(fields) => Tuple(fold.fold_exprs(fields)?),
+        TupleFields(fields) => TupleFields(fold.fold_exprs(fields)?),
+        TupleExclude { expr, exclude } => TupleExclude {
+            expr: Box::new(fold.fold_expr(*expr)?),
+            exclude,
+        },
+
         Range(range) => Range(fold_range(fold, range)?),
         Pipeline(p) => Pipeline(fold.fold_pipeline(p)?),
         SString(items) => SString(

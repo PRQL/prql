@@ -2420,22 +2420,20 @@ fn test_literal() {
 #[test]
 fn test_same_column_names() {
     // #820
-    let query = r###"
-let x = (
-from x_table
-select only_in_x = foo
-)
+    assert_display_snapshot!(compile(r###"
+    let x = (
+        from x_table
+        select only_in_x = foo
+    )
 
-let y = (
-from y_table
-select foo
-)
+    let y = (
+        from y_table
+        select foo
+    )
 
-from x
-join y (foo == only_in_x)
-"###;
-
-    assert_display_snapshot!(compile(query).unwrap(),
+    from x
+    join y (foo == only_in_x)
+    "###).unwrap(),
         @r###"
     WITH x AS (
       SELECT

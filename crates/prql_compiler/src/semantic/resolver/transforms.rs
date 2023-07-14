@@ -303,6 +303,46 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             return Ok(res);
         }
 
+        "tuple_exclude" => {
+            let [expr, exclude] = unpack(closure);
+
+            return super::create_tuple_exclude(expr, exclude, None);
+
+            let tuple = expr.ty.unwrap();
+            // let instance_of = tuple.instance_of.clone().unwrap();
+            let fields = tuple.kind.into_tuple().unwrap();
+
+            let except = exclude.ty.unwrap().kind.into_tuple().unwrap();
+            let except = except
+                .iter()
+                .filter_map(|x| x.ty())
+                .filter_map(|x| x.lineage)
+                .collect::<HashSet<_>>();
+
+            let mut remaining_fields = Vec::new();
+            for field in fields {
+                if let Some(lineage) = field.ty().and_then(|x| x.lineage) {
+                    if except.contains(&lineage) {
+                        continue;
+                    }
+                }
+
+                match field {
+                    TupleField::Single(name, ty) => {
+                        remaining_fields.push(TupleField::Single(name, ty));
+                    }
+                    TupleField::All { ty, exclude } => {
+                        todo!()
+                        // collect_all_fields(ty, except, context)
+                    }
+                }
+            }
+
+            return Ok(Expr {
+                ..Expr::new(ExprKind::Tuple(vec![]))
+            });
+        }
+
         "from_text" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
@@ -457,6 +497,10 @@ fn fold_by_simulating_eval(
 
     let param_name = "_tbl";
     let param_id = resolver.id.gen();
+    let param_ty = Ty {
+        lineage: Some(param_id),
+        ..Ty::from(TyKind::Union(vec![]))
+    };
 
     // resolver will not resolve a function call if any arguments are missing
     // but would instead return a closure to be resolved later.
@@ -473,7 +517,7 @@ fn fold_by_simulating_eval(
         vec![dummy],
     )));
 
-    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_ty)));
     resolver.context.root_mod.stack_push(NS_PARAM, env);
 
     let pipeline = resolver.fold_expr(pipeline)?;
@@ -516,7 +560,7 @@ impl TransformCall {
                 .or_else(|| {
                     Some(vec![TupleField::All {
                         ty: None,
-                        except: HashSet::new(),
+                        exclude: HashSet::new(),
                     }])
                 })
                 .map(Ty::relation)
@@ -528,22 +572,23 @@ impl TransformCall {
                 let mut ty = ty_relation_or_default(&self.input);
                 let fields = ty.as_relation_mut().unwrap();
 
-                fields.clear();
-                apply_assigns(fields, assigns, context);
+                apply_assigns(fields, assigns);
                 ty
             }
             Derive { assigns } => {
                 let mut ty = ty_relation_or_default(&self.input);
                 let fields = ty.as_relation_mut().unwrap();
 
-                apply_assigns(fields, assigns, context);
+                let prev_fields = fields.clone();
+
+                apply_assigns(fields, assigns, &prev_fields, context);
                 ty
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                let mut ty = ty_relation_or_default(&self.input);
+                let mut ty = ty_relation_or_default(body);
                 let fields = ty.as_relation_mut().unwrap();
 
                 log::debug!("inferring type of group with pipeline: {body}");
@@ -554,7 +599,7 @@ impl TransformCall {
                         let aggregate_fields = std::mem::take(fields);
 
                         log::debug!(".. group by {by:?}");
-                        apply_assigns(fields, by, context);
+                        apply_assigns(fields, by, &[], context);
 
                         fields.extend(aggregate_fields);
                     }
@@ -573,9 +618,10 @@ impl TransformCall {
             Aggregate { assigns } => {
                 let mut ty = ty_relation_or_default(&self.input);
                 let fields = ty.as_relation_mut().unwrap();
-                fields.clear();
 
-                apply_assigns(fields, assigns, context);
+                let prev_fields = std::mem::take(fields);
+
+                apply_assigns(fields, assigns, &prev_fields, context);
                 ty
             }
             Join { with, .. } => {
@@ -595,76 +641,13 @@ impl TransformCall {
     }
 }
 
-#[allow(unused)]
-pub fn apply_assign(fields: &mut Vec<TupleField>, expr: &Expr, context: &Context) {
-    // spacial case: all except
-    if let ExprKind::All { except, .. } = &expr.kind {
-        let except_exprs: HashSet<&usize> =
-            except.iter().flat_map(|e| e.target_id.iter()).collect();
-        let except_inputs: HashSet<&usize> =
-            except.iter().flat_map(|e| e.target_ids.iter()).collect();
-
-        for target_id in &expr.target_ids {
-            // TODO
-            // let target_input = fields.inputs.iter().find(|i| i.id == *target_id);
-            // match target_input {
-            //     Some(input) => {
-            //         // include all of the input's columns
-            //         if except_inputs.contains(target_id) {
-            //             continue;
-            //         }
-            //         fields.columns.extend(input.get_all_columns(except, context));
-            //     }
-            //     None => {
-            //         // include the column with if target_id
-            //         if except_exprs.contains(target_id) {
-            //             continue;
-            //         }
-            //         let prev_col = fields.prev_columns.iter().find(|c| match c {
-            //             LineageColumn::Single {
-            //                 target_id: expr_id, ..
-            //             } => expr_id == target_id,
-            //             _ => false,
-            //         });
-            //         fields.columns.extend(prev_col.cloned());
-            //     }
-            // }
-        }
-        return;
-    }
-
-    // base case: append the column into the frame
-    let alias = expr.alias.as_ref();
-    let name = alias
-        .cloned()
-        .or_else(|| expr.kind.as_ident().map(|i| i.name.clone()));
-
-    // remove names from columns with the same name
-    if name.is_some() {
-        for field in fields.iter_mut() {
-            if let TupleField::Single(n, _) = field {
-                if n.as_ref() == name.as_ref() {
-                    *n = None;
-                }
-            }
-        }
-    }
-
-    let id = expr.id.unwrap();
-
-    let mut ty = (expr.ty.clone())
-        // TODO: figure what to do when an expr does not have a type
-        //    (maybe this will never happen?)
-        .unwrap_or_else(|| Ty::from(TyKind::Singleton(Literal::Null)));
-    ty.lineage = Some(id);
-
-    fields.push(TupleField::Single(name, Some(ty)));
-}
-
-pub fn apply_assigns(fields: &mut Vec<TupleField>, assigns: &[Expr], context: &Context) {
-    for expr in assigns {
-        apply_assign(fields, expr, context);
-    }
+pub fn apply_assigns(
+    fields: &mut Vec<TupleField>,
+    assigns: &[Expr],
+    prev_fields: &[TupleField],
+    context: &Context,
+) {
+    for expr in assigns {}
 }
 
 fn join_relations(mut lhs: Ty, rhs: Ty) -> Ty {
@@ -695,9 +678,16 @@ fn append_relations(mut top: Ty, mut bottom: Ty) -> Result<Ty, Error> {
     let mut fields = Vec::with_capacity(top_fields.len());
     for (t, b) in zip(top_fields.drain(..), bottom_fields.drain(..)) {
         fields.push(match (t, b) {
-            (TupleField::All { ty, except }, TupleField::All { .. }) => {
-                TupleField::All { ty, except }
-            }
+            (
+                TupleField::All {
+                    ty,
+                    exclude: except,
+                },
+                TupleField::All { .. },
+            ) => TupleField::All {
+                ty,
+                exclude: except,
+            },
             (TupleField::Single(name_top, ty_top), TupleField::Single(name_bot, _)) => {
                 let name = match (name_top, name_bot) {
                     (None, None) => None,
@@ -742,55 +732,44 @@ impl Lineage {
     }
 }
 
-impl LineageInput {
-    #[allow(dead_code)]
-    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<LineageColumn> {
-        let rel_def = context.root_mod.get(&self.table).unwrap();
-        let rel_def = rel_def.kind.as_table_decl().unwrap();
+fn collect_all_fields(ty: &Ty, except: &[Expr], context: &Context) -> Vec<TupleField> {
+    let instance_of = ty.instance_of.as_ref().unwrap();
+    let rel_def = context.root_mod.get(instance_of).unwrap();
+    let rel_def = rel_def.kind.as_table_decl().unwrap();
 
-        // TODO: can this panic?
-        let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
+    // TODO: can this panic?
+    let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
 
-        // special case: wildcard
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::All { .. }));
-        if has_wildcard {
-            // Relation has a wildcard (i.e. we don't know all the columns)
-            // which means we cannot list all columns.
-            // Instead we can just stick FrameColumn::All into the frame.
-            // We could do this for all columns, but it is less transparent,
-            // so let's use it just as a last resort.
+    // special case: wildcard
+    let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::All { .. }));
+    if has_wildcard {
+        // Relation has a wildcard (i.e. we don't know all the columns)
+        // which means we cannot list all columns.
+        // Instead we can just stick TupleField::All into the tuple.
+        // We could do this for all columns, but it is less transparent,
+        // so let's use it just as a last resort.
 
-            let input_ident_fq = Ident::from_path(vec![NS_THIS, self.name.as_str()]);
+        todo!();
 
-            let except = except
-                .iter()
-                .filter_map(|e| match &e.kind {
-                    ExprKind::Ident(i) => Some(i),
-                    _ => None,
-                })
-                .filter(|i| i.starts_with(&input_ident_fq))
-                .map(|i| i.name.clone())
-                .collect();
+        // let input_ident_fq = Ident::from_path(vec![NS_THIS]);
 
-            return vec![LineageColumn::All {
-                input_name: self.name.clone(),
-                except,
-            }];
-        }
+        // let except = except
+        //     .iter()
+        //     .filter_map(|e| match &e.kind {
+        //         ExprKind::Ident(i) => Some(i),
+        //         _ => None,
+        //     })
+        //     .filter(|i| i.starts_with(&input_ident_fq))
+        //     .map(|i| i.name.clone())
+        //     .collect();
 
-        // base case: convert rel_def into frame columns
-        columns
-            .iter()
-            .map(|col| {
-                let name = col.as_single().unwrap().0.clone().map(Ident::from_name);
-                LineageColumn::Single {
-                    name,
-                    target_id: self.id,
-                    target_name: None,
-                }
-            })
-            .collect_vec()
+        // return vec![TupleField::All {
+
+        // }];
     }
+
+    // base case: convert rel_def into frame columns
+    columns.clone()
 }
 
 // Expects closure's args to be resolved.

@@ -9,12 +9,12 @@ use crate::{
     ast::pl::{
         expr::{Expr, ExprKind},
         stmt::Annotation,
-        types::TupleField,
+        types::{TupleField, Ty, TyKind},
     },
     error::WithErrorInfo,
     semantic::{
         context::{Decl, DeclKind, TableDecl, TableExpr},
-        Context, Module, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS,
+        Context, Module, NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_STD, NS_THIS,
     },
     Error,
 };
@@ -32,6 +32,24 @@ impl Context {
             return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
         }
 
+        {
+            // HACK: because we are creating default_db module prior to std,
+            // we cannot provide type annotations correctly.
+            // Here we are adding-in these annotations when they are defined in std module.
+            if ident.path == [NS_STD] && ident.name == "scalar" {
+                let val = decl.as_expr().unwrap().kind.as_type().unwrap().clone();
+
+                let default_db_infer = Ident::from_path(vec![NS_DEFAULT_DB, NS_INFER]);
+                let infer = self.root_mod.get_mut(&default_db_infer).unwrap();
+                let infer_table = infer.kind.as_infer_mut().unwrap();
+                let infer_table = infer_table.as_table_decl_mut().unwrap();
+                let infer_ty = infer_table.ty.as_mut().unwrap();
+                let infer_field = infer_ty.as_relation_mut().unwrap().get_mut(0).unwrap();
+                let (ty, _) = infer_field.as_all_mut().unwrap();
+                *ty = Some(val);
+            }
+        }
+
         let decl = Decl {
             kind: decl,
             declared_at: id,
@@ -45,7 +63,10 @@ impl Context {
     pub(super) fn prepare_expr_decl(&mut self, value: Box<Expr>) -> DeclKind {
         match &value.ty {
             Some(ty) if ty.is_relation() => {
-                let ty = Some(ty.clone());
+                let mut ty = ty.clone();
+                ty.flatten_tuples();
+                let ty = Some(ty);
+
                 let expr = TableExpr::RelationVar(value);
                 DeclKind::TableDecl(TableDecl { expr, ty })
             }
@@ -59,16 +80,12 @@ impl Context {
         default_namespace: Option<&String>,
     ) -> Result<Ident, Error> {
         // special case: wildcard
-        if ident.name == "*" {
-            // TODO: we may want to raise an error if someone has passed `download*` in
-            // an attempt to query for all `download` columns and expects to be able
-            // to select a `download_2020_01_01` column later in the query. But
-            // sometimes we want to query for `*.parquet` files, and give them an
-            // alias. So we don't raise an error here, but if there's a way of
-            // differentiating the cases, we can implement that.
-            // if ident.name != "*" {
-            //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
-            // }
+        if ident.name.contains('*') {
+            if ident.name != "*" {
+                return Err(Error::new_simple(
+                    "Unsupported feature: advanced wildcard column matching",
+                ));
+            }
             return self
                 .resolve_ident_wildcard(ident)
                 .map_err(Error::new_simple);
@@ -183,69 +200,40 @@ impl Context {
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        // Try matching ident prefix with a module
-        let (mod_ident, mod_decl) = {
-            if ident.path.len() > 1 {
-                // Ident has specified full path
-                let mod_ident = ident.clone().pop().unwrap();
-                let mod_decl = (self.root_mod.get_mut(&mod_ident))
-                    .ok_or_else(|| format!("Unknown relation {ident}"))?;
+        let mod_ident = self.find_module_of_wildcard(ident)?;
+        let mod_decl = self.root_mod.get(&mod_ident).unwrap();
 
-                (mod_ident, mod_decl)
-            } else {
-                // Ident could be just part of NS_THIS
-                let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
+        let instance_of = mod_decl.kind.as_instance_of().unwrap();
+        let decl = self.root_mod.get(instance_of).unwrap();
+        let decl = decl.kind.as_table_decl().unwrap();
 
-                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
-                    (mod_ident, mod_decl)
-                } else {
-                    // ... or part of NS_THAT
-                    let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
+        let fields = decl.ty.clone().unwrap().into_relation().unwrap();
 
-                    let mod_decl = self.root_mod.get_mut(&mod_ident);
-
-                    // ... well - I guess not. Throw.
-                    let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
-
-                    (mod_ident, mod_decl)
-                }
-            }
-        };
-
-        // Unwrap module
-        let module = (mod_decl.kind.as_module_mut())
-            .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
-
-        let fq_cols = if module.names.contains_key(NS_INFER) {
-            // Columns can be inferred, which means that we don't know all column names at
-            // compile time: use ExprKind::All
-            vec![Expr::new(ExprKind::All {
-                within: mod_ident.clone(),
-                except: Vec::new(),
-            })]
-        } else {
-            // Columns cannot be inferred, what's in the namespace is all there
-            // could be in this namespace.
-            (module.names.iter())
-                .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
-                .sorted_by_key(|(_, decl)| decl.order)
-                .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
-                .map(|fq_col| Expr::new(ExprKind::Ident(fq_col)))
-                .collect_vec()
-        };
-
-        // This is just a workaround to return an Expr from this function.
+        // This is just a workaround to return an Ident from this function.
         // We wrap the expr into DeclKind::Expr and save it into context.
         let cols_expr = Expr {
-            flatten: true,
-            ..Expr::new(ExprKind::Tuple(fq_cols))
+            ty: Some(Ty {
+                ..Ty::from(TyKind::Tuple(fields))
+            }),
+            ..Expr::new(ExprKind::TupleFields(vec![]))
         };
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
-        module.names.insert(save_as.to_string(), cols_expr.into());
+        self.root_mod
+            .names
+            .insert(save_as.to_string(), cols_expr.into());
 
         // Then we can return ident to that decl.
-        Ok(mod_ident + Ident::from_name(save_as))
+        Ok(Ident::from_name(save_as))
+    }
+
+    fn find_module_of_wildcard(&self, wildcard_ident: &Ident) -> Result<Ident, String> {
+        let mod_ident = wildcard_ident.clone().pop().unwrap() + Ident::from_name(NS_SELF);
+
+        let fq_mod_idents = self.root_mod.lookup(&mod_ident);
+
+        // TODO: gracefully handle this
+        Ok(fq_mod_idents.into_iter().exactly_one().unwrap())
     }
 
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
@@ -256,10 +244,14 @@ impl Context {
             return Err(format!("Variable {table_ident:?} is not a relation."));
         };
 
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::All { .. }));
-        if !has_wildcard {
+        let ty = if let Some(all) = columns.iter_mut().find_map(|c| c.as_all_mut()) {
+            all.1.insert(Ident::from_name(col_name));
+
+            // Use the type from TupleField::All for the inferred field.
+            all.0.clone()
+        } else {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
-        }
+        };
 
         let exists = columns.iter().any(|c| match c {
             TupleField::Single(Some(n), _) => n == col_name,
@@ -269,7 +261,7 @@ impl Context {
             return Ok(());
         }
 
-        columns.push(TupleField::Single(Some(col_name.to_string()), None));
+        columns.push(TupleField::Single(Some(col_name.to_string()), ty));
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {

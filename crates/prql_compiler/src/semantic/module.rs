@@ -8,7 +8,9 @@ use crate::ast::pl::{Expr, Ident, TupleField, Ty, TyKind};
 use crate::Error;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{NS_INFER, NS_INFER_MODULE, NS_PARAM, NS_SELF, NS_STD, NS_THAT, NS_THIS};
+use super::{
+    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_PARAM, NS_SELF, NS_STD, NS_THAT, NS_THIS,
+};
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -25,7 +27,7 @@ pub struct Module {
     /// - because of redirect `std`, so we look for `average` in `std`,
     /// - there is `average` is `std`,
     /// - result of the lookup is FQ ident `std.average`.
-    pub redirects: Vec<Ident>,
+    pub redirects: HashSet<Ident>,
 
     /// A declaration that has been shadowed (overwritten) by this module.
     pub shadowed: Option<Box<Decl>>,
@@ -45,18 +47,19 @@ impl Module {
         Module {
             names: HashMap::from([
                 (
-                    "default_db".to_string(),
+                    NS_DEFAULT_DB.to_string(),
                     Decl::from(DeclKind::Module(Self::new_database())),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
             ]),
             shadowed: None,
-            redirects: vec![
+            redirects: [
                 Ident::from_name(NS_THIS),
                 Ident::from_name(NS_THAT),
                 Ident::from_name(NS_PARAM),
                 Ident::from_name(NS_STD),
-            ],
+            ]
+            .into(),
         }
     }
 
@@ -67,7 +70,7 @@ impl Module {
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
                     ty: Some(Ty::relation(vec![TupleField::All {
                         ty: None,
-                        except: HashSet::new(),
+                        exclude: HashSet::new(),
                     }])),
                     expr: TableExpr::LocalTable,
                 })))),
@@ -76,7 +79,7 @@ impl Module {
                 NS_INFER_MODULE.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(Module {
                     names: HashMap::new(),
-                    redirects: vec![],
+                    redirects: [].into(),
                     shadowed: None,
                 })))),
             ),
@@ -84,7 +87,7 @@ impl Module {
         Module {
             names,
             shadowed: None,
-            redirects: vec![],
+            redirects: [].into(),
         }
     }
 
@@ -254,9 +257,11 @@ impl Module {
                             sub_mod.insert_ty(name.clone(), ty.as_ref().unwrap(), index + 1);
                         }
 
-                        TupleField::All { .. } => {
-                            let decl_kind =
-                                DeclKind::Infer(Box::new(DeclKind::Column(ty.lineage.unwrap())));
+                        TupleField::All { ty: field_ty, .. } => {
+                            let mut field_ty = field_ty.clone().unwrap();
+                            field_ty.lineage = ty.lineage;
+
+                            let decl_kind = DeclKind::Infer(Box::new(DeclKind::Column(field_ty)));
 
                             let mut decl = Decl::from(decl_kind);
                             decl.order = index + 1;
@@ -265,12 +270,12 @@ impl Module {
                     }
                 }
 
-                self.redirects.push(Ident::from_name(&name));
+                self.redirects.insert(Ident::from_name(&name));
                 DeclKind::Module(sub_mod)
             }
 
             // for anything else, create a plain column
-            _ => DeclKind::Column(ty.lineage.unwrap()),
+            _ => DeclKind::Column(ty.clone()),
         };
 
         let mut decl = Decl::from(decl_kind);
@@ -278,11 +283,11 @@ impl Module {
         self.names.insert(name, decl);
     }
 
-    pub(super) fn insert_relation_col(&mut self, namespace: &str, name: String, id: usize) {
+    pub(super) fn insert_relation_col(&mut self, namespace: &str, name: String, ty: Ty) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        namespace.names.insert(name, DeclKind::Column(id).into());
+        namespace.names.insert(name, DeclKind::Column(ty).into());
     }
 
     pub fn shadow(&mut self, ident: &str) {
@@ -381,7 +386,7 @@ impl Module {
 
 impl std::fmt::Debug for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut ds = f.debug_struct("Namespace");
+        let mut ds = f.debug_struct("Module");
 
         if !self.redirects.is_empty() {
             let redirects = self.redirects.iter().map(|x| x.to_string()).collect_vec();

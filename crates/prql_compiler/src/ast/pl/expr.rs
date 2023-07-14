@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use enum_as_inner::EnumAsInner;
 use prql_ast::expr::{Ident, Literal};
@@ -34,10 +34,6 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_id: Option<usize>,
 
-    /// For [ExprKind::All], these are ids of included nodes
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub target_ids: Vec<usize>,
-
     /// Type of expression this node represents.
     /// [None] means that type should be inferred.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,17 +48,12 @@ pub struct Expr {
 
     #[serde(skip)]
     pub needs_window: bool,
-
-    /// When true on [ExprKind::Tuple], this list will be flattened when placed
-    /// in some other list.
-    // TODO: maybe we should have a special ExprKind instead of this flag?
-    #[serde(skip)]
-    pub flatten: bool,
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(Ident),
+    #[deprecated]
     All {
         within: Ident,
         except: Vec<Expr>,
@@ -70,7 +61,11 @@ pub enum ExprKind {
     Literal(Literal),
     Pipeline(Pipeline),
 
+    /// Container type with a static number of fields.
+    /// Fields don't have to have same type.
     Tuple(Vec<Expr>),
+    /// Container type with a dynamic number of items.
+    /// All items must have same type.
     Array(Vec<Expr>),
     Range(Range),
     Binary(BinaryExpr),
@@ -94,6 +89,40 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
+
+    /// Tuple fields, compounded together into an Expr, except actually being a tuple.
+    /// Syntactically, this would be `a, b, c` (a tuple without braces).
+    ///
+    /// Can only be used inside a tuple, where it will be evaluated to fields of that tuple.
+    ///
+    /// Example:
+    /// ```yaml
+    /// Tuple:
+    /// - a
+    /// - TupleFields:
+    ///   - b
+    ///   - c
+    /// - d
+    /// ```
+    /// ... would be equivalent to:
+    /// ```yaml
+    /// Tuple:
+    /// - a
+    /// - b
+    /// - c
+    /// - d
+    /// ```
+    TupleFields(Vec<Expr>),
+
+    /// An indirection (field access), but instead of selecting mentioned columns,
+    /// selecting all unmentioned and producing a tuple of that fields.
+    TupleExclude {
+        expr: Box<Expr>,
+
+        /// Set of relative field identifiers that should be excluded.
+        /// Relative to the expr.
+        exclude: HashSet<Ident>,
+    },
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

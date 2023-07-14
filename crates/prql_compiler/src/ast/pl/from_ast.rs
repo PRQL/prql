@@ -24,11 +24,9 @@ impl From<prql_ast::expr::Expr> for pl::Expr {
             alias: value.alias,
             id: None,
             target_id: None,
-            target_ids: Vec::new(),
             ty: None,
             lineage: None,
             needs_window: false,
-            flatten: false,
         }
     }
 }
