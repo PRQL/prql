@@ -24,10 +24,11 @@ from employees
 aggregate {average salary}
 ```
 
-_Note:_ In an S-string, the SQL manager treats double-quotes (`"`) as denoting a
-_column-name_. To avoid that, use single-quotes (`'`) around that string, and
-adjust the beginning and ending delimiters as needed. For example, write:
-`let dollars = d -> s"printf('$%,d',{d})"`
+```admonish note
+Because S-string contents are SQL, double-quotes (`"`) will denote a _column name_.
+To avoid that, use single-quotes (`'`) around the SQL string, and
+adjust the quotes of the S-string. For example, instead of `s'CONCAT("hello", "world")'` use `s"CONCAT('hello', 'world')"`
+```
 
 Here's an example of a more involved use of an s-string:
 
