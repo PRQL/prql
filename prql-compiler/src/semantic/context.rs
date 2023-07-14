@@ -61,7 +61,7 @@ pub enum DeclKind {
     QueryDef(QueryDef),
 }
 
-#[derive(PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
     /// This will always be `TyKind::Array(TyKind::Tuple)`.
     /// It is being preparing to be merged with [DeclKind::Expr].
@@ -599,14 +599,6 @@ impl std::fmt::Display for DeclKind {
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }
-    }
-}
-
-impl std::fmt::Debug for TableDecl {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let json = serde_json::to_string(self).unwrap();
-        let json = serde_json::from_str::<serde_json::Value>(&json).unwrap();
-        f.write_str(&serde_yaml::to_string(&json).unwrap())
     }
 }
 
