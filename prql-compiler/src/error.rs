@@ -227,7 +227,7 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
             span = error.span;
             hints.extend(error.hints);
 
-            error.reason.message()
+            error.reason.to_string()
         }
         Err(error) => {
             // default to basic Display
@@ -379,20 +379,22 @@ impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
     }
 }
 
-impl Reason {
-    fn message(&self) -> String {
+impl Display for Reason {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Reason::Simple(text) => text.clone(),
+            Reason::Simple(text) => f.write_str(text),
             Reason::Expected {
                 who,
                 expected,
                 found,
             } => {
-                let who = who.clone().map(|x| format!("{x} ")).unwrap_or_default();
-                format!("{who}expected {expected}, but found {found}")
+                if let Some(who) = who {
+                    write!(f, "{who} ")?;
+                }
+                write!(f, "expected {expected}, but found {found}")
             }
-            Reason::Unexpected { found } => format!("unexpected {found}"),
-            Reason::NotFound { name, namespace } => format!("{namespace} `{name}` not found"),
+            Reason::Unexpected { found } => write!(f, "unexpected {found}"),
+            Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
         }
     }
 }
