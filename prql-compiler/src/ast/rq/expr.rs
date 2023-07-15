@@ -17,7 +17,10 @@ pub enum ExprKind {
     ColumnRef(CId),
     // https://github.com/dtolnay/serde-yaml/issues/363
     // We should repeat this if we encounter any other nested enums.
-    #[serde(with = "serde_yaml::with::singleton_map")]
+    #[cfg_attr(
+        feature = "serde_yaml",
+        serde(with = "serde_yaml::with::singleton_map")
+    )]
     Literal(Literal),
 
     SString(Vec<InterpolateItem<Expr>>),

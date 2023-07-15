@@ -60,7 +60,7 @@ fn test_precedence() {
     select temp_c = (temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
-      ((temp - 32) / 1.8) AS temp_c
+      (("temp" - 32) / 1.8) AS temp_c
     FROM
       x
     "###);
@@ -605,13 +605,13 @@ fn test_rn_ids_are_unique() {
 fn test_quoting() {
     // GH-#822
     assert_display_snapshot!((compile(r###"
-prql target:sql.postgres
-let UPPER = (
-    default_db.lower
-)
-from UPPER
-join `some_schema.tablename` (==id)
-derive `from` = 5
+    prql target:sql.postgres
+    let UPPER = (
+        default_db.lower
+    )
+    from UPPER
+    join `some_schema.tablename` (==id)
+    derive `from` = 5
     "###).unwrap()), @r###"
     WITH "UPPER" AS (
       SELECT
@@ -642,10 +642,10 @@ derive `from` = 5
 
     // GH-#852
     assert_display_snapshot!((compile(r###"
-prql target:sql.bigquery
-from `db.schema.table`
-join `db.schema.table2` (==id)
-join c = `db.schema.t-able` (`db.schema.table`.id == c.id)
+    prql target:sql.bigquery
+    from `db.schema.table`
+    join `db.schema.table2` (==id)
+    join c = `db.schema.t-able` (`db.schema.table`.id == c.id)
     "###).unwrap()), @r###"
     SELECT
       `db.schema.table`.*,
@@ -658,13 +658,22 @@ join c = `db.schema.t-able` (`db.schema.table`.id == c.id)
     "###);
 
     assert_display_snapshot!((compile(r###"
-default_db.table
-select `first name`
+    default_db.table
+    select `first name`
     "###).unwrap()), @r###"
     SELECT
       "first name"
     FROM
-      table
+      "table"
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+        from as=Assessment
+    "###).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      "Assessment" AS "as"
     "###);
 }
 
@@ -4021,5 +4030,41 @@ fn test_returning_constants_only() {
       table_0
     WHERE
       true
+    "###);
+}
+
+#[test]
+fn test_conflicting_names_at_split() {
+    // issue #2697
+    assert_display_snapshot!(compile(
+        r###"
+    from s = workflow_steps
+    join wp=workflow_phases (s.phase_id == wp.id)
+    filter wp.name == "CREATE_OUTLET"
+    join w=workflow (wp.workflow_id == w.id)
+    select {
+        step_id = s.id,
+        phase_id = wp.id,
+    }
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        wp.id,
+        s.id AS _expr_0,
+        wp.workflow_id
+      FROM
+        workflow_steps AS s
+        JOIN workflow_phases AS wp ON s.phase_id = wp.id
+      WHERE
+        wp.name = 'CREATE_OUTLET'
+    )
+    SELECT
+      table_0._expr_0 AS step_id,
+      table_0.id AS phase_id
+    FROM
+      table_0
+      JOIN workflow AS w ON table_0.workflow_id = w.id
     "###);
 }
