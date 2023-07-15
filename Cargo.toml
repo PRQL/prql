@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "crates/*",
+
   # The main crate
   "prql-compiler", #
   # The CLI

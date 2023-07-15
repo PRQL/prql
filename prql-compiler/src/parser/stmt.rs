@@ -4,15 +4,20 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use semver::VersionReq;
 
-use crate::ast::pl::*;
 use crate::semantic::NS_MAIN;
 use crate::semantic::NS_QUERY_DEF;
+use crate::Span;
+use prql_ast::expr::Expr;
+use prql_ast::expr::ExprKind;
+use prql_ast::expr::Extension;
+use prql_ast::literal::Literal;
+use prql_ast::stmt::*;
 
 use super::common::*;
 use super::expr::*;
 use super::lexer::Token;
 
-pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
+pub fn source<T: Extension<Span = Span>>() -> impl Parser<Token, Vec<Stmt<T>>, Error = PError> {
     query_def()
         .or_not()
         .chain(module_contents())
@@ -20,7 +25,8 @@ pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
         .labelled("source file")
 }
 
-fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
+fn module_contents<T: Extension<Span = Span>>() -> impl Parser<Token, Vec<Stmt<T>>, Error = PError>
+{
     recursive(|module_contents| {
         let module_def = keyword("module")
             .ignore_then(ident_part())
@@ -36,13 +42,16 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
     })
 }
 
-fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
+fn query_def<T: Extension<Span = Span>>() -> impl Parser<Token, Stmt<T>, Error = PError> {
     new_line()
         .repeated()
         .ignore_then(keyword("prql"))
         .ignore_then(
             // named arg
-            ident_part().then_ignore(ctrl(':')).then(expr()).repeated(),
+            ident_part()
+                .then_ignore(ctrl(':'))
+                .then(expr::<T>())
+                .repeated(),
         )
         .then_ignore(new_line())
         .try_map(|args, span| {
@@ -94,7 +103,8 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
+fn var_def<T: Extension<Span = Span>>(
+) -> impl Parser<Token, (Vec<Annotation<T>>, (String, StmtKind<T>)), Error = PError> {
     let annotation = just(Token::Annotate)
         .ignore_then(expr())
         .then_ignore(new_line().repeated())
@@ -137,7 +147,8 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error 
     annotation.repeated().then(let_.or(main_or_into))
 }
 
-fn type_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
+fn type_def<T: Extension<Span = Span>>(
+) -> impl Parser<Token, (Vec<Annotation<T>>, (String, StmtKind<T>)), Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
         .then(
@@ -151,7 +162,7 @@ fn type_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error
         .labelled("type definition")
 }
 
-pub fn type_expr() -> impl Parser<Token, Expr, Error = PError> {
+pub fn type_expr<T: Extension<Span = Span>>() -> impl Parser<Token, Expr<T>, Error = PError> {
     let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
     let ident = ident().map(ExprKind::Ident);

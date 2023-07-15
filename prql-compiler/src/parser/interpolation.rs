@@ -1,14 +1,18 @@
 use chumsky::{error::Cheap, prelude::*};
 use itertools::Itertools;
 
-use crate::ast::pl::*;
 use crate::Span;
+use prql_ast::expr::{Expr, ExprKind, Extension, InterpolateItem};
+use prql_ast::Ident;
 
 use super::common::{into_expr, PError};
 use super::lexer::*;
 
 /// Parses interpolated strings
-pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
+pub fn parse<T: Extension<Span = Span>>(
+    string: String,
+    span_base: Span,
+) -> Result<Vec<InterpolateItem<Expr<T>>>, Vec<PError>> {
     let res = parser(span_base).parse(string);
 
     match res {
@@ -20,7 +24,9 @@ pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Ve
     }
 }
 
-fn parser(span_base: Span) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
+fn parser<T: Extension<Span = Span>>(
+    span_base: Span,
+) -> impl Parser<char, Vec<InterpolateItem<Expr<T>>>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
         .at_least(1)

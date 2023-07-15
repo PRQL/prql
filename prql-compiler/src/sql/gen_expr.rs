@@ -8,14 +8,13 @@ use sqlparser::ast::{
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 
-use crate::ast::pl::{
-    self, is_valid_ident, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection,
-    WindowFrame, WindowKind,
-};
+use crate::ast::pl::{self, ColumnSort, Ident, Literal, SortDirection, WindowFrame, WindowKind};
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::OrMap;
+use prql_ast::expr::{InterpolateItem, Range};
+use prql_ast::is_valid_ident;
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
@@ -870,8 +869,8 @@ impl From<sql_ast::Expr> for ExprOrSource {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::pl::Range;
     use insta::assert_yaml_snapshot;
+    use prql_ast::expr::Range;
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {

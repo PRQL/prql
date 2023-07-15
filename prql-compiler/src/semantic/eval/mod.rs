@@ -3,9 +3,12 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::TryCast;
-use crate::ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal};
+use crate::ast::pl::fold::AstFoldExtra;
+use crate::ast::pl::{
+    Expr, ExprKind, Func, FuncCall, FuncExtra, FuncParam, Ident, Literal, TryCast, X,
+};
 use crate::error::{Error, Span, WithErrorInfo};
+use prql_ast::fold::AstFold;
 
 use super::resolver::{binary_to_func_call, unary_to_func_call};
 
@@ -26,7 +29,9 @@ impl Evaluator {
     }
 }
 
-impl AstFold for Evaluator {
+impl AstFoldExtra for Evaluator {}
+
+impl AstFold<X> for Evaluator {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         let mut expr = super::static_analysis::static_analysis(expr);
 
@@ -78,9 +83,9 @@ impl AstFold for Evaluator {
                 let func = self.fold_expr(*func_call.name)?;
                 let mut func = func.try_cast(|x| x.into_func(), Some("func call"), "function")?;
 
-                func.args.extend(func_call.args);
+                func.extra.args.extend(func_call.args);
 
-                if func.args.len() < func.params.len() {
+                if func.extra.args.len() < func.params.len() {
                     ExprKind::Func(func)
                 } else {
                     self.eval_function(*func, expr.span)?
@@ -98,13 +103,10 @@ impl AstFold for Evaluator {
                 return Ok(res);
             }
 
-            ExprKind::All { .. }
-            | ExprKind::TransformCall(_)
+            ExprKind::Other(_)
             | ExprKind::SString(_)
             | ExprKind::FString(_)
             | ExprKind::Case(_)
-            | ExprKind::RqOperator { .. }
-            | ExprKind::Type(_)
             | ExprKind::Param(_)
             | ExprKind::Internal(_) => {
                 return Err(Error::new_simple("not a value").with_span(expr.span).into())
@@ -131,7 +133,7 @@ fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
 
 impl Evaluator {
     fn eval_function(&mut self, func: Func, span: Option<Span>) -> Result<ExprKind> {
-        let func_name = func.name_hint.unwrap().to_string();
+        let func_name = func.extra.name_hint.unwrap().to_string();
 
         // eval args
         let closure = (func.params.iter()).find_position(|x| x.name == "closure");
@@ -139,7 +141,7 @@ impl Evaluator {
         let args = if let Some((closure_position, _)) = closure {
             let mut args = Vec::new();
 
-            for (pos, arg) in func.args.into_iter().enumerate() {
+            for (pos, arg) in func.extra.args.into_iter().enumerate() {
                 if pos == closure_position {
                     // no evaluation
                     args.push(arg);
@@ -150,7 +152,7 @@ impl Evaluator {
             }
             args
         } else {
-            self.fold_exprs(func.args)?
+            self.fold_exprs(func.extra.args)?
         };
 
         // eval body
@@ -430,25 +432,24 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
         .map(|name| FuncParam {
             name: name.to_string(),
             default_value: None,
-            ty: None,
             ty_expr: None,
+            extra: Default::default(),
         })
         .collect();
 
     let kind = ExprKind::Func(Box::new(Func {
-        name_hint: Some(Ident {
-            path: vec!["std".to_string()],
-            name: name.to_string(),
-        }),
-
+        extra: FuncExtra {
+            name_hint: Some(Ident {
+                path: vec!["std".to_string()],
+                name: name.to_string(),
+            }),
+            ..Default::default()
+        },
         // these don't matter
         return_ty_expr: Default::default(),
-        return_ty: Default::default(),
         body: Box::new(Expr::null()),
         params,
         named_params: Default::default(),
-        args: Default::default(),
-        env: Default::default(),
     }));
     Expr {
         alias: Some(name.to_string()),

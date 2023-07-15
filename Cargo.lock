@@ -2888,6 +2888,7 @@ dependencies = [
  "once_cell",
  "pg_bigdecimal",
  "postgres",
+ "prql_ast",
  "regex",
  "rusqlite",
  "semver",
@@ -2947,6 +2948,20 @@ dependencies = [
  "prql-compiler",
  "pyo3",
  "pyo3-build-config",
+]
+
+[[package]]
+name = "prql_ast"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "enum-as-inner",
+ "itertools 0.11.0",
+ "once_cell",
+ "regex",
+ "semver",
+ "serde",
+ "strum 0.25.0",
 ]
 
 [[package]]

@@ -1,18 +1,129 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 
+use prql_ast::Ident;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, WithErrorInfo};
+use prql_ast::expr::Extension;
 
-pub use self::ast::*;
+use super::{Lineage, Ty};
 
-mod ast;
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct X;
+
+impl Extension for X {
+    type Span = crate::Span;
+
+    type ExprExtra = ExprExtra;
+
+    type ExprKindVariant = ExprKindExtra;
+
+    type FuncExtra = FuncExtra;
+
+    type FuncParamExtra = FuncParamExtra;
+}
+
+pub type Expr = prql_ast::expr::Expr<X>;
+pub type ExprKind = prql_ast::expr::ExprKind<X>;
+pub type Func = prql_ast::expr::Func<X>;
+pub type FuncCall = prql_ast::expr::FuncCall<X>;
+pub type FuncParam = prql_ast::expr::FuncParam<X>;
+pub type Pipeline = prql_ast::expr::Pipeline<X>;
+pub type UnaryExpr = prql_ast::expr::UnaryExpr<X>;
+pub type BinaryExpr = prql_ast::expr::BinaryExpr<X>;
+
+pub type Range = prql_ast::expr::Range<Box<Expr>>;
+pub type InterpolateItem = prql_ast::expr::InterpolateItem<Expr>;
+pub type SwitchCase = prql_ast::expr::SwitchCase<Expr>;
+
+/// Expr is anything that has a value and thus a type.
+/// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct ExprExtra {
+    /// Unique identificator of the node. Set exactly once during semantic::resolve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<usize>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
+
+    /// For [Ident]s, this is id of node referenced by the ident
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<usize>,
+
+    /// For [ExprKind::All], these are ids of included nodes
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub target_ids: Vec<usize>,
+
+    /// Type of expression this node represents.
+    /// [None] means that type should be inferred.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+
+    /// Information about where data of this expression will come from.
+    ///
+    /// Currently, this is used to infer relational pipeline frames.
+    /// Must always exists if ty is a relation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<Lineage>,
+
+    #[serde(skip)]
+    pub needs_window: bool,
+
+    /// When true on [ExprKind::Tuple], this list will be flattened when placed
+    /// in some other list.
+    // TODO: maybe we should have a special ExprKind instead of this flag?
+    #[serde(skip)]
+    pub flatten: bool,
+}
+
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+pub enum ExprKindExtra {
+    All { within: Ident, except: Vec<Expr> },
+    TransformCall(TransformCall),
+
+    RqOperator { name: String, args: Vec<Expr> },
+
+    Type(Ty),
+}
+
+impl From<ExprKindExtra> for ExprKind {
+    fn from(value: ExprKindExtra) -> Self {
+        Self::Other(value)
+    }
+}
+
+/// Function called with possibly missing positional arguments.
+/// May also contain environment that is needed to evaluate the body.
+#[derive(Debug, PartialEq, Default, Clone, Serialize, Deserialize)]
+pub struct FuncExtra {
+    /// Name of the function. Used for user-facing messages only.
+    pub name_hint: Option<Ident>,
+
+    /// Type requirement for the function body expression.
+    pub return_ty: Option<Ty>,
+
+    /// Arguments that have already been provided.
+    pub args: Vec<Expr>,
+
+    /// Additional variables that the body of the function may need to be
+    /// evaluated.
+    pub env: HashMap<String, Expr>,
+}
+
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
+pub struct FuncParamExtra {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct WindowFrame<T = Box<Expr>> {
     pub kind: WindowKind,
-    pub range: Range<T>,
+    pub range: prql_ast::expr::Range<T>,
 }
 
 /// FuncCall with better typing. Returns the modified table.
@@ -164,7 +275,7 @@ impl<T> Default for WindowFrame<T> {
     fn default() -> Self {
         Self {
             kind: WindowKind::Rows,
-            range: Range::unbounded(),
+            range: prql_ast::expr::Range::<T>::unbounded(),
         }
     }
 }

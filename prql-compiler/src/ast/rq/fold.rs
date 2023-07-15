@@ -4,7 +4,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::{InterpolateItem, SwitchCase};
+use prql_ast::expr::{Range, SwitchCase};
 
 use super::*;
 

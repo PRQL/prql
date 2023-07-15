@@ -116,7 +116,7 @@ impl Context {
     }
 
     pub fn prepare_expr_decl(&mut self, value: Box<Expr>) -> DeclKind {
-        match &value.lineage {
+        match &value.extra.lineage {
             Some(frame) => {
                 let columns = (frame.columns.iter())
                     .map(|col| match col {
@@ -301,7 +301,7 @@ impl Context {
         let fq_cols = if module.names.contains_key(NS_INFER) {
             // Columns can be inferred, which means that we don't know all column names at
             // compile time: use ExprKind::All
-            vec![Expr::new(ExprKind::All {
+            vec![Expr::new(ExprKindExtra::All {
                 within: mod_ident.clone(),
                 except: Vec::new(),
             })]
@@ -318,10 +318,8 @@ impl Context {
 
         // This is just a workaround to return an Expr from this function.
         // We wrap the expr into DeclKind::Expr and save it into context.
-        let cols_expr = Expr {
-            flatten: true,
-            ..Expr::new(ExprKind::Tuple(fq_cols))
-        };
+        let mut cols_expr = Expr::new(ExprKind::Tuple(fq_cols));
+        cols_expr.extra.flatten = true;
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
         module.names.insert(save_as.to_string(), cols_expr.into());
@@ -355,7 +353,7 @@ impl Context {
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(frame) = &expr.lineage {
+            if let Some(frame) = &expr.extra.lineage {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_all())
                     .collect_vec();

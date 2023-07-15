@@ -438,7 +438,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
 }
 
 pub(super) fn translate_query_sstring(
-    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
+    items: Vec<prql_ast::expr::InterpolateItem<Expr>>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
     let string = translate_sstring(items, ctx)?;

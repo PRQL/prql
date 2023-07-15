@@ -1,22 +1,25 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
-use expr::{BinaryExpr, UnaryExpr};
 
-use crate::ast::pl::*;
 use crate::Span;
+use prql_ast::expr::{
+    BinOp, BinaryExpr, Expr, ExprKind, Extension, Func, FuncCall, FuncParam, Pipeline, Range,
+    SwitchCase, UnOp, UnaryExpr,
+};
+use prql_ast::Ident;
 
 use super::interpolation;
 use super::lexer::Token;
 use super::{common::*, stmt::type_expr};
 
-pub fn expr_call() -> impl Parser<Token, Expr, Error = PError> {
+pub fn expr_call<T: Extension<Span = Span>>() -> impl Parser<Token, Expr<T>, Error = PError> {
     let expr = expr();
 
     lambda_func(expr.clone()).or(func_call(expr))
 }
 
-pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
+pub fn expr<T: Extension<Span = Span>>() -> impl Parser<Token, Expr<T>, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
@@ -83,19 +86,27 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
                     |_| Expr::null(),
                 ));
 
-        let interpolation = select! {
-            Token::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
-            Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+        enum StringKind {
+            SString,
+            FString,
         }
-        .validate(|(finish, string), span: Span, emit| {
-            match interpolation::parse(string, span + 2) {
-                Ok(items) => finish(items),
+        let interpolation = select! {
+            Token::Interpolation('s', string) => (StringKind::SString, string),
+            Token::Interpolation('f', string) => (StringKind::FString, string),
+        }
+        .validate(|(kind, string), span: Span, emit| {
+            let items = match interpolation::parse(string, span + 2) {
+                Ok(items) => items,
                 Err(errors) => {
                     for err in errors {
                         emit(err)
                     }
-                    finish(vec![])
+                    vec![]
                 }
+            };
+            match kind {
+                StringKind::SString => ExprKind::SString(items),
+                StringKind::FString => ExprKind::FString(items),
             }
         })
         .labelled("interpolated string");
@@ -146,9 +157,9 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
         //  ..y (only end bound)
         //  ..  (unbounded)
         #[derive(Clone)]
-        enum RangeCase {
-            NoOp(Expr),
-            Range(Option<Expr>, Option<Expr>),
+        enum RangeCase<T: Extension> {
+            NoOp(Expr<T>),
+            Range(Option<Expr<T>>, Option<Expr<T>>),
         }
         let term = choice((
             // with start bound (first 3 cases)
@@ -201,9 +212,11 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
     })
 }
 
-pub fn pipeline<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
+pub fn pipeline<E, T: Extension<Span = Span>>(
+    expr: E,
+) -> impl Parser<Token, Expr<T>, Error = PError>
 where
-    E: Parser<Token, Expr, Error = PError>,
+    E: Parser<Token, Expr<T>, Error = PError>,
 {
     // expr has to be a param, because it can be either a normal expr() or
     // a recursive expr called from within expr()
@@ -233,12 +246,12 @@ where
         .labelled("pipeline")
 }
 
-pub fn binary_op_parser<'a, Term, Op>(
+pub fn binary_op_parser<'a, Term, Op, T: Extension<Span = Span>>(
     term: Term,
     op: Op,
-) -> impl Parser<Token, Expr, Error = PError> + 'a
+) -> impl Parser<Token, Expr<T>, Error = PError> + 'a
 where
-    Term: Parser<Token, Expr, Error = PError> + 'a,
+    Term: Parser<Token, Expr<T>, Error = PError> + 'a,
     Op: Parser<Token, BinOp, Error = PError> + 'a,
 {
     let term = term.map_with_span(|e, s| (e, s)).boxed();
@@ -262,9 +275,9 @@ where
         .boxed()
 }
 
-fn func_call<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
+fn func_call<E, T: Extension<Span = Span>>(expr: E) -> impl Parser<Token, Expr<T>, Error = PError>
 where
-    E: Parser<Token, Expr, Error = PError> + Clone,
+    E: Parser<Token, Expr<T>, Error = PError> + Clone,
 {
     let func_name = expr.clone();
 
@@ -314,9 +327,9 @@ where
         .labelled("function call")
 }
 
-fn lambda_func<E>(expr: E) -> impl Parser<Token, Expr, Error = PError>
+fn lambda_func<E, T: Extension<Span = Span>>(expr: E) -> impl Parser<Token, Expr<T>, Error = PError>
 where
-    E: Parser<Token, Expr, Error = PError> + Clone + 'static,
+    E: Parser<Token, Expr<T>, Error = PError> + Clone + 'static,
 {
     let param = ident_part()
         .then(type_expr().or_not())
@@ -352,8 +365,8 @@ where
             .map(|((name, ty_expr), default_value)| FuncParam {
                 name,
                 ty_expr,
-                ty: None,
                 default_value,
+                extra: Default::default(),
             })
             .partition(|p| p.default_value.is_none());
 
@@ -363,11 +376,7 @@ where
 
             body: Box::new(body),
             return_ty_expr,
-            return_ty: None,
-
-            name_hint: None,
-            args: Vec::new(),
-            env: HashMap::new(),
+            extra: Default::default(),
         })
     })
     .map(ExprKind::Func)

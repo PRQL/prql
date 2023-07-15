@@ -1,108 +1,66 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 use enum_as_inner::EnumAsInner;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{
-    ast::pl::{Ident, Lineage, Literal, Ty},
-    Span,
-};
+use super::{ident::Ident, literal::Literal};
 
-use super::TransformCall;
+pub trait Extension: 'static + Default + Clone + Serialize {
+    type Span: Debug + Clone + PartialEq + Serialize + DeserializeOwned;
+    type ExprExtra: Default + Debug + Clone + PartialEq + Serialize + DeserializeOwned;
+    type ExprKindVariant: Debug + Clone + PartialEq + Serialize + DeserializeOwned;
+    type FuncExtra: Default + Debug + Clone + PartialEq + Serialize + DeserializeOwned;
+    type FuncParamExtra: Default + Debug + Clone + PartialEq + Serialize + DeserializeOwned;
+}
 
 /// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Expr {
-    /// Unique identificator of the node. Set exactly once during semantic::resolve.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<usize>,
+pub struct Expr<T: Extension> {
     #[serde(flatten)]
-    pub kind: ExprKind,
+    pub kind: ExprKind<T>,
     #[serde(skip)]
-    pub span: Option<Span>,
+    pub span: Option<T::Span>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 
-    /// For [Ident]s, this is id of node referenced by the ident
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_id: Option<usize>,
-
-    /// For [ExprKind::All], these are ids of included nodes
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub target_ids: Vec<usize>,
-
-    /// Type of expression this node represents.
-    /// [None] means that type should be inferred.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Ty>,
-
-    /// Information about where data of this expression will come from.
-    ///
-    /// Currently, this is used to infer relational pipeline frames.
-    /// Must always exists if ty is a relation.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub lineage: Option<Lineage>,
-
-    #[serde(skip)]
-    pub needs_window: bool,
-
-    /// When true on [ExprKind::Tuple], this list will be flattened when placed
-    /// in some other list.
-    // TODO: maybe we should have a special ExprKind instead of this flag?
-    #[serde(skip)]
-    pub flatten: bool,
+    #[serde(flatten)]
+    pub extra: T::ExprExtra,
 }
 
-impl Expr {
-    pub fn new(kind: ExprKind) -> Self {
+impl<T: Extension> Expr<T> {
+    pub fn new(kind: impl Into<ExprKind<T>>) -> Self {
         Expr {
-            id: None,
-            kind,
+            kind: kind.into(),
             span: None,
-            target_id: None,
-            target_ids: Vec::new(),
-            ty: None,
-            lineage: None,
-            needs_window: false,
             alias: None,
-            flatten: false,
+            extra: Default::default(),
         }
     }
 
-    pub fn null() -> Expr {
+    pub fn null() -> Self {
         Expr::new(ExprKind::Literal(Literal::Null))
     }
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
-pub enum ExprKind {
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Deserialize, strum::AsRefStr)]
+pub enum ExprKind<T: Extension> {
     Ident(Ident),
-    All {
-        within: Ident,
-        except: Vec<Expr>,
-    },
     Literal(Literal),
-    Pipeline(Pipeline),
+    Pipeline(Pipeline<T>),
 
-    Tuple(Vec<Expr>),
-    Array(Vec<Expr>),
-    Range(Range),
-    Binary(BinaryExpr),
-    Unary(UnaryExpr),
-    FuncCall(FuncCall),
-    Func(Box<Func>),
-    TransformCall(TransformCall),
-    SString(Vec<InterpolateItem>),
-    FString(Vec<InterpolateItem>),
-    Case(Vec<SwitchCase>),
-    RqOperator {
-        name: String,
-        args: Vec<Expr>,
-    },
-
-    Type(Ty),
+    Tuple(Vec<Expr<T>>),
+    Array(Vec<Expr<T>>),
+    Range(Range<Box<Expr<T>>>),
+    Binary(BinaryExpr<T>),
+    Unary(UnaryExpr<T>),
+    FuncCall(FuncCall<T>),
+    Func(Box<Func<T>>),
+    SString(Vec<InterpolateItem<Expr<T>>>),
+    FString(Vec<InterpolateItem<Expr<T>>>),
+    Case(Vec<SwitchCase<Box<Expr<T>>>>),
 
     /// placeholder for values provided after query is compiled
     Param(String),
@@ -110,13 +68,15 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
+
+    Other(T::ExprKindVariant),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct BinaryExpr {
-    pub left: Box<Expr>,
+pub struct BinaryExpr<T: Extension> {
+    pub left: Box<Expr<T>>,
     pub op: BinOp,
-    pub right: Box<Expr>,
+    pub right: Box<Expr<T>>,
 }
 
 #[derive(
@@ -167,9 +127,9 @@ pub enum BinOp {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct UnaryExpr {
+pub struct UnaryExpr<T: Extension> {
     pub op: UnOp,
-    pub expr: Box<Expr>,
+    pub expr: Box<Expr<T>>,
 }
 
 #[derive(
@@ -197,15 +157,15 @@ pub enum UnOp {
 
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncCall {
-    pub name: Box<Expr>,
-    pub args: Vec<Expr>,
+pub struct FuncCall<T: Extension> {
+    pub name: Box<Expr<T>>,
+    pub args: Vec<Expr<T>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub named_args: HashMap<String, Expr>,
+    pub named_args: HashMap<String, Expr<T>>,
 }
 
-impl FuncCall {
-    pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {
+impl<T: Extension> FuncCall<T> {
+    pub fn new_simple(name: Expr<T>, args: Vec<Expr<T>>) -> Self {
         FuncCall {
             name: Box::new(name),
             args,
@@ -214,65 +174,53 @@ impl FuncCall {
     }
 }
 
-/// Function called with possibly missing positional arguments.
-/// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Func {
-    /// Name of the function. Used for user-facing messages only.
-    pub name_hint: Option<Ident>,
-
-    pub return_ty_expr: Option<Expr>,
-
-    /// Type requirement for the function body expression.
-    pub return_ty: Option<Ty>,
+pub struct Func<T: Extension> {
+    pub return_ty_expr: Option<Expr<T>>,
 
     /// Expression containing parameter (and environment) references.
-    pub body: Box<Expr>,
+    pub body: Box<Expr<T>>,
 
     /// Positional function parameters.
-    pub params: Vec<FuncParam>,
+    pub params: Vec<FuncParam<T>>,
 
     /// Named function parameters.
-    pub named_params: Vec<FuncParam>,
+    pub named_params: Vec<FuncParam<T>>,
 
-    /// Arguments that have already been provided.
-    pub args: Vec<Expr>,
-
-    /// Additional variables that the body of the function may need to be
-    /// evaluated.
-    pub env: HashMap<String, Expr>,
+    #[serde(flatten)]
+    pub extra: T::FuncExtra,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncParam {
+pub struct FuncParam<T: Extension> {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty_expr: Option<Expr>,
+    pub ty_expr: Option<Expr<T>>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Ty>,
+    pub default_value: Option<Box<Expr<T>>>,
 
-    pub default_value: Option<Box<Expr>>,
+    #[serde(flatten)]
+    pub extra: T::FuncParamExtra,
 }
 
 /// A value and a series of functions that are to be applied to that value one after another.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Pipeline {
-    pub exprs: Vec<Expr>,
+pub struct Pipeline<T: Extension> {
+    pub exprs: Vec<Expr<T>>,
 }
 
-impl From<Vec<Expr>> for Pipeline {
-    fn from(nodes: Vec<Expr>) -> Self {
+impl<T: Extension> From<Vec<Expr<T>>> for Pipeline<T> {
+    fn from(nodes: Vec<Expr<T>>) -> Self {
         Pipeline { exprs: nodes }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum InterpolateItem<T = Expr> {
+pub enum InterpolateItem<E> {
     String(String),
     Expr {
-        expr: Box<T>,
+        expr: Box<E>,
         format: Option<String>,
     },
 }
@@ -280,9 +228,9 @@ pub enum InterpolateItem<T = Expr> {
 /// Inclusive-inclusive range.
 /// Missing bound means unbounded range.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Range<T = Box<Expr>> {
-    pub start: Option<T>,
-    pub end: Option<T>,
+pub struct Range<E> {
+    pub start: Option<E>,
+    pub end: Option<E>,
 }
 
 impl<T> Range<T> {
@@ -309,7 +257,7 @@ impl<T> Range<T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct SwitchCase<T = Box<Expr>> {
-    pub condition: T,
-    pub value: T,
+pub struct SwitchCase<E> {
+    pub condition: E,
+    pub value: E,
 }

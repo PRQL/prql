@@ -5,15 +5,14 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::{
-    ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
-};
+use crate::ast::pl::{ColumnSort, JoinSide, Literal, WindowFrame, WindowKind};
 use crate::ast::rq::{
     self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
 };
 use crate::error::{Error, WithErrorInfo};
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
+use prql_ast::expr::{InterpolateItem, Range};
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;

@@ -12,8 +12,8 @@ pub struct Expr {
     pub span: Option<Span>,
 }
 
-pub type InterpolateItem = crate::ast::pl::expr::InterpolateItem<Expr>;
-pub type SwitchCase = crate::ast::pl::expr::SwitchCase<Expr>;
+pub type InterpolateItem = prql_ast::expr::InterpolateItem<Expr>;
+pub type SwitchCase = prql_ast::expr::SwitchCase<Expr>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {

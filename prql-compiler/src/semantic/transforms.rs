@@ -5,10 +5,11 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use crate::ast::pl::expr::BinaryExpr;
-use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
+use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFoldExtra};
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
+use prql_ast::expr::{BinOp, BinaryExpr};
+use prql_ast::fold::AstFold;
 
 use super::context::{Decl, DeclKind};
 use super::module::Module;
@@ -57,7 +58,9 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
-                        ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
+                        ExprKind::Other(ExprKindExtra::RqOperator { name, mut args })
+                            if name == "std.neg" =>
+                        {
                             (args.remove(0), SortDirection::Desc)
                         }
                         _ => (node, SortDirection::default()),
@@ -122,7 +125,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let by = coerce_into_tuple_and_flatten(by)?;
 
             let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+                fold_by_simulating_eval(resolver, pipeline, tbl.extra.lineage.clone().unwrap())?;
 
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
@@ -176,7 +179,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             };
 
             let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+                fold_by_simulating_eval(resolver, pipeline, tbl.extra.lineage.clone().unwrap())?;
 
             let transform_kind = TransformKind::Window {
                 kind,
@@ -194,7 +197,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let [pipeline, tbl] = unpack::<2>(closure);
 
             let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+                fold_by_simulating_eval(resolver, pipeline, tbl.extra.lineage.clone().unwrap())?;
 
             (TransformKind::Loop(Box::new(pipeline)), tbl)
         }
@@ -344,7 +347,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 }
             };
 
-            let expr_id = text_expr.id.unwrap();
+            let expr_id = text_expr.extra.id.unwrap();
             let input_name = text_expr.alias.unwrap_or_else(|| "text".to_string());
 
             let columns: Vec<_> = res
@@ -370,8 +373,11 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     .collect(),
             ));
             let res = Expr {
-                lineage: Some(frame),
-                id: text_expr.id,
+                extra: ExprExtra {
+                    lineage: Some(frame),
+                    id: text_expr.extra.id,
+                    ..res.extra
+                },
                 ..res
             };
             return Ok(res);
@@ -392,7 +398,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         frame: WindowFrame::default(),
         sort: Vec::new(),
     };
-    Ok(Expr::new(ExprKind::TransformCall(transform_call)))
+    Ok(Expr::new(ExprKindExtra::TransformCall(transform_call)))
 }
 
 /// Wraps non-tuple Exprs into a singleton Tuple.
@@ -469,7 +475,7 @@ fn fold_by_simulating_eval(
     // chunk and instruct resolver to apply the transform on that.
 
     let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.lineage = Some(val_lineage);
+    dummy.extra.lineage = Some(val_lineage);
 
     let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
         pipeline,
@@ -491,21 +497,18 @@ fn fold_by_simulating_eval(
     // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
 
     let pipeline = Expr::new(ExprKind::Func(Box::new(Func {
-        name_hint: None,
         body: Box::new(pipeline),
-        return_ty: None,
         return_ty_expr: None,
 
-        args: vec![],
         params: vec![FuncParam {
             name: param_id.to_string(),
-            ty: None,
+            extra: FuncParamExtra { ty: None },
             ty_expr: None,
             default_value: None,
         }],
         named_params: vec![],
 
-        env: Default::default(),
+        extra: FuncExtra::default(),
     })));
     Ok(pipeline)
 }
@@ -515,7 +518,8 @@ impl TransformCall {
         use TransformKind::*;
 
         fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
-            expr.lineage
+            expr.extra
+                .lineage
                 .clone()
                 .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
         }
@@ -538,12 +542,15 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                let mut frame = body.lineage.clone().unwrap();
+                let mut frame = body.extra.lineage.clone().unwrap();
 
                 log::debug!("inferring type of group with pipeline: {body}");
 
                 // prepend aggregate with `by` columns
-                if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
+                if let ExprKind::Other(ExprKindExtra::TransformCall(TransformCall {
+                    kind, ..
+                })) = &body.as_ref().kind
+                {
                     if let TransformKind::Aggregate { .. } = kind.as_ref() {
                         let aggregate_columns = frame.columns;
                         frame.columns = Vec::new();
@@ -563,7 +570,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                body.lineage.clone().unwrap()
+                body.extra.lineage.clone().unwrap()
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
@@ -659,13 +666,17 @@ impl Lineage {
 
     pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
         // spacial case: all except
-        if let ExprKind::All { except, .. } = &expr.kind {
-            let except_exprs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_id.iter()).collect();
-            let except_inputs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_ids.iter()).collect();
+        if let ExprKind::Other(ExprKindExtra::All { except, .. }) = &expr.kind {
+            let except_exprs: HashSet<&usize> = except
+                .iter()
+                .flat_map(|e| e.extra.target_id.iter())
+                .collect();
+            let except_inputs: HashSet<&usize> = except
+                .iter()
+                .flat_map(|e| e.extra.target_ids.iter())
+                .collect();
 
-            for target_id in &expr.target_ids {
+            for target_id in &expr.extra.target_ids {
                 let target_input = self.inputs.iter().find(|i| i.id == *target_id);
                 match target_input {
                     Some(input) => {
@@ -694,7 +705,7 @@ impl Lineage {
         }
 
         // base case: append the column into the frame
-        let id = expr.id.unwrap();
+        let id = expr.extra.id.unwrap();
 
         let alias = expr.alias.as_ref();
         let name = alias
@@ -800,7 +811,7 @@ impl LineageInput {
 // Expects closure's args to be resolved.
 // Note that named args are before positional args, in order of declaration.
 fn unpack<const P: usize>(closure: Func) -> [Expr; P] {
-    closure.args.try_into().expect("bad transform cast")
+    closure.extra.args.try_into().expect("bad transform cast")
 }
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
@@ -846,16 +857,17 @@ impl Flattener {
     }
 }
 
-impl AstFold for Flattener {
+impl AstFoldExtra for Flattener {}
+impl AstFold<X> for Flattener {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
-        if let Some(target) = &expr.target_id {
+        if let Some(target) = &expr.extra.target_id {
             if let Some(replacement) = self.replace_map.remove(target) {
                 return Ok(replacement);
             }
         }
 
         expr.kind = match expr.kind {
-            ExprKind::TransformCall(t) => {
+            ExprKind::Other(ExprKindExtra::TransformCall(t)) => {
                 log::debug!("flattening {}", (*t.kind).as_ref());
 
                 let (input, kind) = match *t.kind {
@@ -895,8 +907,11 @@ impl AstFold for Flattener {
                         self.sort_undone = sort_undone;
 
                         return Ok(Expr {
-                            ty: expr.ty,
-                            lineage: expr.lineage,
+                            extra: ExprExtra {
+                                ty: expr.extra.ty,
+                                lineage: expr.extra.lineage,
+                                ..pipeline.extra
+                            },
                             ..pipeline
                         });
                     }
@@ -920,21 +935,24 @@ impl AstFold for Flattener {
                         self.replace_map.remove(&param_id);
 
                         return Ok(Expr {
-                            ty: expr.ty,
-                            lineage: expr.lineage,
+                            extra: ExprExtra {
+                                ty: expr.extra.ty,
+                                lineage: expr.extra.lineage,
+                                ..pipeline.extra
+                            },
                             ..pipeline
                         });
                     }
                     kind => (self.fold_expr(*t.input)?, fold_transform_kind(self, kind)?),
                 };
 
-                ExprKind::TransformCall(TransformCall {
+                ExprKind::Other(ExprKindExtra::TransformCall(TransformCall {
                     input: Box::new(input),
                     kind: Box::new(kind),
                     partition: self.partition.clone(),
                     frame: self.window.clone(),
                     sort: self.sort.clone(),
-                })
+                }))
             }
             kind => self.fold_expr_kind(kind)?,
         };

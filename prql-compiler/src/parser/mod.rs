@@ -16,17 +16,19 @@ use itertools::Itertools;
 
 use self::lexer::Token;
 
-use super::ast::pl::*;
-
 use crate::SourceTree;
 use crate::{
     error::{Error, Errors, Reason, WithErrorInfo},
     utils::IdGenerator,
 };
+use prql_ast::{expr::Extension, stmt::Stmt};
 pub use span::Span;
 
 /// Build PL AST from a PRQL query string.
-pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
+pub fn parse_source<T: Extension<Span = Span>>(
+    source: &str,
+    source_id: u16,
+) -> Result<Vec<Stmt<T>>> {
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
@@ -56,7 +58,9 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
     }
 }
 
-pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
+pub fn parse<T: Extension<Span = Span>>(
+    file_tree: &SourceTree<String>,
+) -> Result<SourceTree<Vec<Stmt<T>>>> {
     let mut res = SourceTree::default();
 
     let ids: HashMap<_, _> = file_tree.source_ids.iter().map(|(a, b)| (b, a)).collect();
@@ -77,7 +81,7 @@ pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
 
 /// Helper that does not track source_ids
 #[cfg(test)]
-pub fn parse_single(source: &str) -> Result<Vec<Stmt>> {
+pub fn parse_single<T: Extension<Span = Span>>(source: &str) -> Result<Vec<Stmt<T>>> {
     parse_source(source, 0)
 }
 
@@ -190,8 +194,13 @@ fn prepare_stream(
 mod common {
     use chumsky::prelude::*;
 
+    use crate::Span;
+
     use super::lexer::Token;
-    use crate::{ast::pl::*, Span};
+    use prql_ast::{
+        expr::{Expr, ExprKind, Extension},
+        stmt::{Annotation, Stmt, StmtKind},
+    };
 
     pub type PError = Simple<Token, Span>;
 
@@ -217,10 +226,10 @@ mod common {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt(
-        (annotations, (name, kind)): (Vec<Annotation>, (String, StmtKind)),
+    pub fn into_stmt<T: Extension<Span = Span>>(
+        (annotations, (name, kind)): (Vec<Annotation<T>>, (String, StmtKind<T>)),
         span: Span,
-    ) -> Stmt {
+    ) -> Stmt<T> {
         Stmt {
             id: None,
             name,
@@ -230,7 +239,7 @@ mod common {
         }
     }
 
-    pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
+    pub fn into_expr<T: Extension<Span = Span>>(kind: ExprKind<T>, span: Span) -> Expr<T> {
         Expr {
             span: Some(span),
             ..Expr::new(kind)
@@ -241,11 +250,24 @@ mod common {
 #[cfg(test)]
 mod test {
 
+    use prql_ast::expr::{Expr, FuncCall};
+
     use super::*;
     use anyhow::anyhow;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
-    fn parse_expr(source: &str) -> Result<Expr, Vec<anyhow::Error>> {
+    #[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+    struct VoidExt;
+
+    impl Extension for VoidExt {
+        type Span = Span;
+        type ExprExtra = ();
+        type ExprKindVariant = ();
+        type FuncExtra = ();
+        type FuncParamExtra = ();
+    }
+
+    fn parse_expr(source: &str) -> Result<Expr<VoidExt>, Vec<anyhow::Error>> {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
             errs.into_iter()
                 .map(|e| anyhow!(convert_lexer_error(source, e, 0)))
@@ -254,7 +276,11 @@ mod test {
 
         let stream = prepare_stream(tokens, source, 0);
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
-            .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())
+            .map_err(|errs| errs.into_iter().map(|e| anyhow!("{:?}", e)).collect_vec())
+    }
+
+    fn parse_single(source: &str) -> Result<Vec<Stmt<VoidExt>>> {
+        super::parse_single(source)
     }
 
     #[test]
@@ -1198,9 +1224,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1214,8 +1238,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1227,9 +1249,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Ident:
                     - x
@@ -1237,8 +1257,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1250,9 +1268,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1266,8 +1282,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1279,9 +1293,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1295,8 +1307,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1309,9 +1319,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   FuncCall:
                     name:
@@ -1343,8 +1351,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1356,9 +1362,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Literal:
                     Integer: 42
@@ -1366,8 +1370,6 @@ Canada
                   - name: return_constant
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Main
           annotations: []
@@ -1380,9 +1382,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   SString:
                     - String: SUM(
@@ -1396,8 +1396,6 @@ Canada
                   - name: X
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1419,9 +1417,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Pipeline:
                     exprs:
@@ -1457,8 +1453,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1470,9 +1464,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -1490,8 +1482,6 @@ Canada
                     default_value:
                       Ident:
                         - a
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -1524,7 +1514,7 @@ Canada
 
         // A non-friendly option for #154
         let ast = parse_expr(r#"count s'*'"#).unwrap();
-        let func_call: FuncCall = ast.kind.into_func_call().unwrap();
+        let func_call: FuncCall<VoidExt> = ast.kind.into_func_call().unwrap();
         assert_yaml_snapshot!(
             func_call, @r###"
         ---
@@ -1848,9 +1838,7 @@ Canada
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Pipeline:
                     exprs:
@@ -1867,8 +1855,6 @@ Canada
                   - name: x
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations: []
@@ -2675,9 +2661,7 @@ join s=salaries (==id)
           VarDef:
             value:
               Func:
-                name_hint: ~
                 return_ty_expr: ~
-                return_ty: ~
                 body:
                   Binary:
                     left:
@@ -2693,8 +2677,6 @@ join s=salaries (==id)
                   - name: b
                     default_value: ~
                 named_params: []
-                args: []
-                env: {}
             ty_expr: ~
             kind: Let
           annotations:

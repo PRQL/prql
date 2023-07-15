@@ -1,21 +1,70 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use self::ast::fold_range;
-use crate::ast::pl::*;
+use prql_ast::fold::{fold_range, AstFold, Fold};
 
-pub use ast::AstFold;
+use super::{
+    ColumnSort, ExprKindExtra, FuncExtra, TransformCall, TransformKind, Ty, WindowFrame, X,
+};
 
-pub mod ast;
+impl<F: AstFoldExtra> Fold<X, F> for ExprKindExtra {
+    fn fold(self, folder: &mut F) -> Result<Self> {
+        use ExprKindExtra::*;
+        Ok(match self {
+            All { within, except } => All {
+                within,
+                except: folder.fold_exprs(except)?,
+            },
 
-pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: WindowFrame) -> Result<WindowFrame> {
+            TransformCall(transform) => TransformCall(folder.fold_transform_call(transform)?),
+            RqOperator { name, args } => RqOperator {
+                name,
+                args: folder.fold_exprs(args)?,
+            },
+            // None of these capture variables, so we don't need to fold them.
+            Type(_) => self,
+        })
+    }
+}
+
+impl<F: AstFoldExtra> Fold<X, F> for FuncExtra {
+    fn fold(self, folder: &mut F) -> Result<Self> {
+        Ok(FuncExtra {
+            args: self
+                .args
+                .into_iter()
+                .map(|item| folder.fold_expr(item))
+                .try_collect()?,
+            ..self
+        })
+    }
+}
+
+pub trait AstFoldExtra: AstFold<X> {
+    fn fold_transform_call(&mut self, transform_call: TransformCall) -> Result<TransformCall> {
+        fold_transform_call(self, transform_call)
+    }
+
+    fn fold_window(&mut self, window: WindowFrame) -> Result<WindowFrame> {
+        fold_window(self, window)
+    }
+
+    fn fold_type(&mut self, t: Ty) -> Result<Ty> {
+        Ok(t)
+    }
+}
+
+pub fn fold_window<F: ?Sized + AstFoldExtra>(
+    fold: &mut F,
+    window: WindowFrame,
+) -> Result<WindowFrame> {
     Ok(WindowFrame {
         kind: window.kind,
         range: fold_range(fold, window.range)?,
     })
 }
 
-pub fn fold_column_sorts<F: ?Sized + AstFold>(
+pub fn fold_column_sorts<F: ?Sized + AstFoldExtra>(
     fold: &mut F,
     sort: Vec<ColumnSort>,
 ) -> Result<Vec<ColumnSort>> {
@@ -24,8 +73,8 @@ pub fn fold_column_sorts<F: ?Sized + AstFold>(
         .try_collect()
 }
 
-pub fn fold_column_sort<T: ?Sized + AstFold>(
-    fold: &mut T,
+pub fn fold_column_sort<F: ?Sized + AstFoldExtra>(
+    fold: &mut F,
     sort_column: ColumnSort,
 ) -> Result<ColumnSort> {
     Ok(ColumnSort {
@@ -34,8 +83,8 @@ pub fn fold_column_sort<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_transform_call<T: ?Sized + AstFold>(
-    fold: &mut T,
+pub fn fold_transform_call<F: ?Sized + AstFold<X> + AstFoldExtra>(
+    fold: &mut F,
     t: TransformCall,
 ) -> Result<TransformCall> {
     Ok(TransformCall {
@@ -47,8 +96,8 @@ pub fn fold_transform_call<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_transform_kind<T: ?Sized + AstFold>(
-    fold: &mut T,
+pub fn fold_transform_kind<F: ?Sized + AstFoldExtra>(
+    fold: &mut F,
     t: TransformKind,
 ) -> Result<TransformKind> {
     use TransformKind::*;

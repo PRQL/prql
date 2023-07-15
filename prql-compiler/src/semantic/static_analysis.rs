@@ -1,19 +1,19 @@
 //! Static analysis - compile time expression evaluation
 
-use crate::ast::pl::{Expr, ExprKind, Literal};
+use crate::ast::pl::{Expr, ExprKind, ExprKindExtra, Literal};
 
 pub fn static_analysis(mut expr: Expr) -> Expr {
     expr.kind = eval(expr.kind);
 
     if expr.kind.is_literal() {
-        expr.ty = None;
+        expr.extra.ty = None;
     }
     expr
 }
 
 fn eval(kind: ExprKind) -> ExprKind {
     match kind {
-        ExprKind::RqOperator { name, mut args } => {
+        ExprKind::Other(ExprKindExtra::RqOperator { name, mut args }) => {
             match name.as_str() {
                 "std.not" => {
                     if let ExprKind::Literal(Literal::Boolean(val)) = &args[0].kind {
@@ -76,7 +76,7 @@ fn eval(kind: ExprKind) -> ExprKind {
 
                 _ => {}
             };
-            ExprKind::RqOperator { name, args }
+            ExprKind::Other(ExprKindExtra::RqOperator { name, args })
         }
 
         ExprKind::Case(items) => {

@@ -7,8 +7,10 @@ use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 use super::context::{DeclKind, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
 use super::{Context, Lineage};
-use crate::ast::pl::{fold::*, *};
+use crate::ast::pl::fold::AstFoldExtra;
+use crate::ast::pl::*;
 use crate::error::Span;
+use prql_ast::fold::AstFold;
 
 pub fn label_references(context: &Context, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
@@ -70,7 +72,8 @@ impl<'a> Labeler<'a> {
     }
 }
 
-impl<'a> AstFold for Labeler<'a> {
+impl<'a> AstFoldExtra for Labeler<'a> {}
+impl<'a> AstFold<X> for Labeler<'a> {
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
@@ -106,7 +109,7 @@ impl<'a> AstFold for Labeler<'a> {
                     };
 
                     (format!("{decl}{location}"), color)
-                } else if let Some(decl_id) = node.target_id {
+                } else if let Some(decl_id) = node.extra.target_id {
                     let lines = self.get_span_lines(decl_id).unwrap_or_default();
 
                     (format!("variable{lines}"), Color::Yellow)
@@ -141,12 +144,12 @@ pub fn collect_frames(expr: Expr) -> Vec<(Span, Lineage)> {
 struct FrameCollector {
     frames: Vec<(Span, Lineage)>,
 }
-
-impl AstFold for FrameCollector {
+impl AstFoldExtra for FrameCollector {}
+impl AstFold<X> for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
-        if matches!(expr.kind, ExprKind::TransformCall(_)) {
+        if matches!(expr.kind, ExprKind::Other(ExprKindExtra::TransformCall(_))) {
             if let Some(span) = expr.span {
-                let lineage = expr.lineage.clone();
+                let lineage = expr.extra.lineage.clone();
                 if let Some(lineage) = lineage {
                     self.frames.push((span, lineage));
                 }
@@ -198,7 +201,8 @@ impl CallTreeDebugger {
     }
 }
 
-impl AstFold for CallTreeDebugger {
+impl AstFoldExtra for CallTreeDebugger {}
+impl AstFold<X> for CallTreeDebugger {
     fn fold_expr_kind(&mut self, expr_kind: ExprKind) -> Result<ExprKind> {
         match expr_kind {
             ExprKind::FuncCall(mut call) => {

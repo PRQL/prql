@@ -81,7 +81,6 @@
 #![allow(clippy::result_large_err)]
 
 pub mod ast;
-mod codegen;
 mod error;
 mod parser;
 pub mod semantic;
@@ -296,7 +295,7 @@ pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorM
 
 /// Generate PRQL code from PL AST
 pub fn pl_to_prql(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
-    Ok(codegen::write(&pl))
+    Ok(prql_ast::codegen::write(&pl))
 }
 
 /// JSON serialization and deserialization functions

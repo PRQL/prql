@@ -4,7 +4,7 @@ mod test {
     use similar_asserts::assert_eq;
 
     use crate::ast::pl;
-    use crate::codegen::{WriteOpt, WriteSource};
+    use prql_ast::codegen::{WriteOpt, WriteSource};
 
     fn assert_is_formatted(input: &str) {
         let stmt = format_single_stmt(input);

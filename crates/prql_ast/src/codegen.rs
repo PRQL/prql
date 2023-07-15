@@ -2,14 +2,16 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use crate::ast::pl::{
-    expr::{BinOp, BinaryExpr, Expr, ExprKind, InterpolateItem, SwitchCase, UnOp, UnaryExpr},
+use crate::{
+    expr::{
+        BinOp, BinaryExpr, Expr, ExprKind, Extension, InterpolateItem, SwitchCase, UnOp, UnaryExpr,
+    },
     is_valid_ident,
     stmt::{Stmt, StmtKind, VarDefKind},
     Ident,
 };
 
-pub fn write(stmts: &Vec<Stmt>) -> String {
+pub fn write<T: Extension>(stmts: &Vec<Stmt<T>>) -> String {
     let mut opt = WriteOpt::default();
 
     loop {
@@ -21,7 +23,7 @@ pub fn write(stmts: &Vec<Stmt>) -> String {
     }
 }
 
-impl std::fmt::Display for Expr {
+impl<T: Extension> std::fmt::Display for Expr<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let opt = WriteOpt::new_width(u16::MAX);
         f.write_str(&self.write(opt).unwrap())
@@ -53,7 +55,11 @@ pub trait WriteSource {
         Some(r)
     }
 
-    fn write_within(&self, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
+    fn write_within<T: Extension>(
+        &self,
+        parent: &ExprKind<T>,
+        mut opt: WriteOpt,
+    ) -> Option<String> {
         let parent_strength = binding_strength(parent);
         opt.context_strength = opt.context_strength.max(parent_strength);
 
@@ -143,7 +149,7 @@ impl WriteOpt {
     }
 }
 
-impl WriteSource for Expr {
+impl<T: Extension> WriteSource for Expr<T> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -165,24 +171,12 @@ impl WriteSource for Expr {
     }
 }
 
-impl WriteSource for ExprKind {
+impl<T: Extension> WriteSource for ExprKind<T> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
-        use ExprKind::*;
+        use crate::expr::ExprKind::*;
 
         match &self {
             Ident(ident) => ident.write(opt),
-            All { within, except } => {
-                let mut r = String::new();
-                r += opt.consume(&within.write(opt.clone())?)?;
-
-                r += ".!{";
-                for e in except {
-                    r += opt.consume(&e.write(opt.clone())?)?;
-                    r += opt.consume(",")?;
-                }
-                r += "}";
-                Some(r)
-            }
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
                 line_end: "",
@@ -278,21 +272,10 @@ impl WriteSource for ExprKind {
                 r += "-> ";
                 r += &c.body.to_string();
 
-                if !c.args.is_empty() {
-                    r = format!("({r})");
-                    for args in &c.args {
-                        r += " ";
-                        r += &args.to_string();
-                    }
-                    r = format!("({r})");
-                }
                 Some(r)
             }
             SString(parts) => display_interpolation("s", parts, opt),
             FString(parts) => display_interpolation("f", parts, opt),
-            TransformCall(transform) => {
-                Some(format!("{} <unimplemented>", (*transform.kind).as_ref()))
-            }
             Literal(literal) => Some(literal.to_string()),
             Case(cases) => {
                 let mut r = String::new();
@@ -305,20 +288,18 @@ impl WriteSource for ExprKind {
                 .write_between("{", "}", opt)?;
                 Some(r)
             }
-            RqOperator { .. } => Some("<built-in>".to_string()),
-            Type(ty) => ty.write(opt),
             Param(id) => Some(format!("${id}")),
             Internal(operator_name) => Some(format!("internal {operator_name}")),
+            Other(_) => None,
         }
     }
 }
 
-fn binding_strength(expr: &ExprKind) -> u8 {
+fn binding_strength<T: Extension>(expr: &ExprKind<T>) -> u8 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
         ExprKind::Ident(_) => 100,
-        ExprKind::All { .. } => 100,
 
         // Stronger than a range, since `-1..2` is `(-1)..2`
         // Stronger than binary op, since `-x == y` is `(-x) == y`
@@ -354,7 +335,7 @@ fn binding_strength(expr: &ExprKind) -> u8 {
 }
 
 /// True if this expression could be mistakenly bound with an expression on the left.
-fn can_bind_left(expr: &ExprKind) -> bool {
+fn can_bind_left<T: Extension>(expr: &ExprKind<T>) -> bool {
     matches!(
         expr,
         ExprKind::Unary(UnaryExpr {
@@ -393,7 +374,7 @@ pub fn write_ident_part(s: &str) -> String {
     }
 }
 
-impl WriteSource for Vec<Stmt> {
+impl<T: Extension> WriteSource for Vec<Stmt<T>> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         opt.reset_line()?;
 
@@ -410,7 +391,7 @@ impl WriteSource for Vec<Stmt> {
     }
 }
 
-impl WriteSource for Stmt {
+impl<T: Extension> WriteSource for Stmt<T> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -541,7 +522,11 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
     }
 }
 
-fn display_interpolation(prefix: &str, parts: &[InterpolateItem], opt: WriteOpt) -> Option<String> {
+fn display_interpolation<T: Extension>(
+    prefix: &str,
+    parts: &[InterpolateItem<Expr<T>>],
+    opt: WriteOpt,
+) -> Option<String> {
     let mut r = String::new();
     r += prefix;
     r += "\"";
@@ -560,7 +545,7 @@ fn display_interpolation(prefix: &str, parts: &[InterpolateItem], opt: WriteOpt)
     Some(r)
 }
 
-impl WriteSource for SwitchCase {
+impl<T: Extension> WriteSource for SwitchCase<Box<Expr<T>>> {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
         r += &self.condition.write(opt.clone())?;

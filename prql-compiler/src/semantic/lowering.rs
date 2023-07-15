@@ -6,10 +6,9 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, BinaryExpr, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef,
-    Range, SwitchCase, TupleField, UnaryExpr, WindowFrame,
+    self, fold::AstFoldExtra, BinaryExpr, ExprKind, ExprKindExtra, Ident, Lineage, LineageColumn,
+    QueryDef, TupleField, UnaryExpr, WindowFrame, X,
 };
 use crate::ast::rq::{
     self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform,
@@ -19,6 +18,8 @@ use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
+use prql_ast::expr::{InterpolateItem, Range, SwitchCase};
+use prql_ast::fold::AstFold;
 
 use super::context::{self, Context, DeclKind};
 use super::NS_DEFAULT_DB;
@@ -189,22 +190,23 @@ impl Lowerer {
     }
 
     /// Lower an expression into a instance of a table in the query
-    fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
+    fn lower_table_ref(&mut self, expr: pl::Expr) -> Result<rq::TableRef> {
         let mut expr = expr;
-        if expr.lineage.is_none() {
+        if expr.extra.lineage.is_none() {
             // make sure that type of this expr has been inferred to be a table
-            expr.lineage = Some(Lineage::default());
+            expr.extra.lineage = Some(Lineage::default());
         }
 
         Ok(match expr.kind {
             ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
-                let id = expr.id.unwrap();
+                let id = expr.extra.id.unwrap();
                 let tid = *self.table_mapping.get(&fq_table_name).unwrap();
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
                 let input_name = expr
+                    .extra
                     .lineage
                     .as_ref()
                     .and_then(|f| f.inputs.first())
@@ -213,9 +215,9 @@ impl Lowerer {
 
                 self.create_a_table_instance(id, name, tid)
             }
-            ExprKind::TransformCall(_) => {
+            ExprKind::Other(ExprKindExtra::TransformCall(_)) => {
                 // pipeline that has to be pulled out into a table
-                let id = expr.id.unwrap();
+                let id = expr.extra.id.unwrap();
 
                 // create a new table
                 let tid = self.tid.gen();
@@ -241,13 +243,13 @@ impl Lowerer {
                 table_ref
             }
             ExprKind::SString(items) => {
-                let id = expr.id.unwrap();
+                let id = expr.extra.id.unwrap();
 
                 // create a new table
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
+                let frame = expr.extra.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
@@ -274,14 +276,14 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
-            ExprKind::RqOperator { name, args } => {
-                let id = expr.id.unwrap();
+            ExprKind::Other(ExprKindExtra::RqOperator { name, args }) => {
+                let id = expr.extra.id.unwrap();
 
                 // create a new table
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
+                let frame = expr.extra.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
                 let table_decl = self.context.root_mod.get(&input.table).unwrap();
@@ -310,13 +312,13 @@ impl Lowerer {
             }
 
             ExprKind::Array(elements) => {
-                let id = expr.id.unwrap();
+                let id = expr.extra.id.unwrap();
 
                 // create a new table
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
+                let frame = expr.extra.lineage.as_ref().unwrap();
                 let columns = (frame.columns.iter())
                     .map(|c| {
                         RelationColumn::Single(
@@ -423,8 +425,8 @@ impl Lowerer {
         }
     }
 
-    fn lower_relation(&mut self, expr: Expr) -> Result<rq::Relation> {
-        let lineage = expr.lineage.clone();
+    fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
+        let lineage = expr.extra.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_pipeline(expr, None)?;
@@ -444,14 +446,14 @@ impl Lowerer {
     // Result is stored in self.pipeline
     fn lower_pipeline(&mut self, ast: pl::Expr, closure_param: Option<usize>) -> Result<()> {
         let transform_call = match ast.kind {
-            pl::ExprKind::TransformCall(transform) => transform,
+            ExprKind::Other(ExprKindExtra::TransformCall(transform)) => transform,
             pl::ExprKind::Func(closure) => {
                 let param = closure.params.first();
                 let param = param.and_then(|p| p.name.parse::<usize>().ok());
                 return self.lower_pipeline(*closure.body, param);
             }
             _ => {
-                if let Some(target) = ast.target_id {
+                if let Some(target) = ast.extra.target_id {
                     if Some(target) == closure_param {
                         // ast is a closure param, so we can skip pushing From
                         return Ok(());
@@ -554,7 +556,7 @@ impl Lowerer {
         Ok(())
     }
 
-    fn lower_range(&mut self, range: pl::Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
+    fn lower_range(&mut self, range: Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
         Ok(Range {
             start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
             end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
@@ -634,7 +636,7 @@ impl Lowerer {
     ) -> Result<Vec<CId>> {
         let mut r = Vec::with_capacity(exprs.len());
         for expr in exprs {
-            let pl::ExprKind::All { except, .. } = expr.kind else {
+            let pl::ExprKind::Other(ExprKindExtra::All { except, .. }) = expr.kind else {
                 // base case
                 r.push(self.declare_as_column(expr, is_aggregation)?);
                 continue;
@@ -642,7 +644,7 @@ impl Lowerer {
 
             // special case: ExprKind::All
             let mut selected = Vec::<CId>::new();
-            for target_id in expr.target_ids {
+            for target_id in expr.extra.target_ids {
                 match &self.node_mapping[&target_id] {
                     LoweredTarget::Compute(cid) => {
                         selected.push(*cid);
@@ -657,9 +659,9 @@ impl Lowerer {
 
             let except: HashSet<CId> = except
                 .into_iter()
-                .filter(|e| e.target_id.is_some())
+                .filter(|e| e.extra.target_id.is_some())
                 .map(|e| {
-                    let id = e.target_id.unwrap();
+                    let id = e.extra.target_id.unwrap();
                     self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
                 })
                 .try_collect()?;
@@ -676,7 +678,8 @@ impl Lowerer {
         is_aggregation: bool,
     ) -> Result<rq::CId> {
         // short-circuit if this node has already been lowered
-        if let Some(LoweredTarget::Compute(lowered)) = self.node_mapping.get(&expr_ast.id.unwrap())
+        if let Some(LoweredTarget::Compute(lowered)) =
+            self.node_mapping.get(&expr_ast.extra.id.unwrap())
         {
             return Ok(*lowered);
         }
@@ -684,14 +687,14 @@ impl Lowerer {
         // copy metadata before lowering
         let alias = expr_ast.alias.clone();
         let has_alias = alias.is_some();
-        let needs_window = expr_ast.needs_window;
-        expr_ast.needs_window = false;
+        let needs_window = expr_ast.extra.needs_window;
+        expr_ast.extra.needs_window = false;
         let alias_for = if has_alias {
             expr_ast.kind.as_ident().map(|x| x.name.clone())
         } else {
             None
         };
-        let id = expr_ast.id.unwrap();
+        let id = expr_ast.extra.id.unwrap();
 
         // lower
         let expr = self.lower_expr(expr_ast)?;
@@ -726,7 +729,7 @@ impl Lowerer {
     }
 
     fn lower_expr(&mut self, ast: pl::Expr) -> Result<rq::Expr> {
-        if ast.needs_window {
+        if ast.extra.needs_window {
             let span = ast.span;
             let cid = self.declare_as_column(ast, false)?;
 
@@ -736,9 +739,9 @@ impl Lowerer {
 
         let kind = match ast.kind {
             pl::ExprKind::Ident(ident) => {
-                log::debug!("lowering ident {ident} (target {:?})", ast.target_id);
+                log::debug!("lowering ident {ident} (target {:?})", ast.extra.target_id);
 
-                if let Some(id) = ast.target_id {
+                if let Some(id) = ast.extra.target_id {
                     let cid = self.lookup_cid(id, Some(&ident.name))?;
 
                     rq::ExprKind::ColumnRef(cid)
@@ -748,10 +751,10 @@ impl Lowerer {
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            pl::ExprKind::All { except, .. } => {
+            pl::ExprKind::Other(ExprKindExtra::All { except, .. }) => {
                 let mut targets = Vec::new();
 
-                for target_id in &ast.target_ids {
+                for target_id in &ast.extra.target_ids {
                     match self.node_mapping.get(target_id) {
                         Some(LoweredTarget::Compute(cid)) => targets.push(*cid),
                         Some(LoweredTarget::Input(input_columns)) => {
@@ -766,7 +769,7 @@ impl Lowerer {
                     .iter()
                     .map(|e| {
                         let ident = e.kind.as_ident().unwrap();
-                        self.lookup_cid(e.target_id.unwrap(), Some(&ident.name))
+                        self.lookup_cid(e.extra.target_id.unwrap(), Some(&ident.name))
                             .unwrap()
                     })
                     .collect();
@@ -812,7 +815,7 @@ impl Lowerer {
                     })
                     .try_collect()?,
             ),
-            pl::ExprKind::RqOperator { name, args } => {
+            pl::ExprKind::Other(ExprKindExtra::RqOperator { name, args }) => {
                 let args = args.into_iter().map(|x| self.lower_expr(x)).try_collect()?;
 
                 rq::ExprKind::Operator { name, args }
@@ -825,8 +828,8 @@ impl Lowerer {
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)
             | pl::ExprKind::Pipeline(_)
-            | pl::ExprKind::Type(_)
-            | pl::ExprKind::TransformCall(_) => {
+            | pl::ExprKind::Other(ExprKindExtra::Type(_))
+            | pl::ExprKind::Other(ExprKindExtra::TransformCall(_)) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("`{ast}`"),
@@ -851,7 +854,7 @@ impl Lowerer {
 
     fn lower_interpolations(
         &mut self,
-        items: Vec<InterpolateItem>,
+        items: Vec<InterpolateItem<pl::Expr>>,
     ) -> Result<Vec<InterpolateItem<rq::Expr>>> {
         items
             .into_iter()
@@ -1023,19 +1026,20 @@ impl TableDepsCollector {
     }
 }
 
-impl AstFold for TableDepsCollector {
-    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+impl AstFoldExtra for TableDepsCollector {}
+impl AstFold<X> for TableDepsCollector {
+    fn fold_expr(&mut self, mut expr: pl::Expr) -> Result<pl::Expr> {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
-                if let Some(ty) = &expr.ty {
+                if let Some(ty) = &expr.extra.ty {
                     if ty.is_relation() {
                         self.deps.push(ident.clone());
                     }
                 }
                 expr.kind
             }
-            pl::ExprKind::TransformCall(tc) => {
-                pl::ExprKind::TransformCall(self.fold_transform_call(tc)?)
+            pl::ExprKind::Other(ExprKindExtra::TransformCall(tc)) => {
+                pl::ExprKind::Other(ExprKindExtra::TransformCall(self.fold_transform_call(tc)?))
             }
             pl::ExprKind::Func(func) => pl::ExprKind::Func(Box::new(self.fold_func(*func)?)),
 

@@ -5,29 +5,27 @@ use enum_as_inner::EnumAsInner;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Span;
-
-use super::*;
+use super::expr::{Expr, ExprKind, Extension};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Stmt {
+pub struct Stmt<T: Extension> {
     #[serde(skip)]
     pub id: Option<usize>,
     pub name: String,
     #[serde(flatten)]
-    pub kind: StmtKind,
+    pub kind: StmtKind<T>,
     #[serde(skip)]
-    pub span: Option<Span>,
+    pub span: Option<T::Span>,
 
-    pub annotations: Vec<Annotation>,
+    pub annotations: Vec<Annotation<T>>,
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
-pub enum StmtKind {
+pub enum StmtKind<T: Extension> {
     QueryDef(Box<QueryDef>),
-    VarDef(VarDef),
-    TypeDef(TypeDef),
-    ModuleDef(ModuleDef),
+    VarDef(VarDef<T>),
+    TypeDef(TypeDef<T>),
+    ModuleDef(ModuleDef<T>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
@@ -38,9 +36,9 @@ pub struct QueryDef {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct VarDef {
-    pub value: Box<Expr>,
-    pub ty_expr: Option<Box<Expr>>,
+pub struct VarDef<T: Extension> {
+    pub value: Box<Expr<T>>,
+    pub ty_expr: Option<Box<Expr<T>>>,
     pub kind: VarDefKind,
 }
 
@@ -52,24 +50,24 @@ pub enum VarDefKind {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct TypeDef {
-    pub value: Option<Box<Expr>>,
+pub struct TypeDef<T: Extension> {
+    pub value: Option<Box<Expr<T>>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ModuleDef {
-    pub stmts: Vec<Stmt>,
+pub struct ModuleDef<T: Extension> {
+    pub stmts: Vec<Stmt<T>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Annotation {
-    pub expr: Box<Expr>,
+pub struct Annotation<T: Extension> {
+    pub expr: Box<Expr<T>>,
 }
 
-impl Annotation {
+impl<T: Extension> Annotation<T> {
     /// Find the items in a `@{a=b}`. We're only using annotations with tuples;
     /// we can consider formalizing this constraint.
-    pub fn tuple_items(self) -> anyhow::Result<Vec<(String, ExprKind)>> {
+    pub fn tuple_items(self) -> anyhow::Result<Vec<(String, ExprKind<T>)>> {
         match self.expr.kind {
             ExprKind::Tuple(items) => items
                 .into_iter()
@@ -80,15 +78,15 @@ impl Annotation {
     }
 }
 
-impl From<StmtKind> for anyhow::Error {
+impl<T: Extension> From<StmtKind<T>> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
-    fn from(_: StmtKind) -> Self {
+    fn from(_: StmtKind<T>) -> Self {
         anyhow!("Failed to convert statement")
     }
 }
 
-impl Display for Stmt {
+impl<T: Extension> Display for Stmt<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.kind {
             StmtKind::QueryDef(query) => {

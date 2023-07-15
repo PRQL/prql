@@ -11,23 +11,29 @@
 mod display;
 pub mod expr;
 pub mod fold;
-pub mod ident;
 pub mod lineage;
-pub mod literal;
-pub mod stmt;
 pub mod types;
 pub mod utils;
 
 use crate::{ast::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
 use crate::{ast::rq::TableRef, *};
+use prql_ast::expr::{BinOp, UnOp};
+pub use prql_ast::stmt::QueryDef;
+use prql_ast::stmt::VarDefKind;
 
 pub use self::expr::*;
-pub use self::ident::*;
 pub use self::lineage::*;
-pub use self::literal::*;
-pub use self::stmt::*;
 pub use self::types::*;
 pub use self::utils::*;
+pub use prql_ast::literal::*;
+pub use prql_ast::Ident;
+
+pub type Stmt = prql_ast::stmt::Stmt<X>;
+pub type StmtKind = prql_ast::stmt::StmtKind<X>;
+pub type Annotation = prql_ast::stmt::Annotation<X>;
+pub type ModuleDef = prql_ast::stmt::ModuleDef<X>;
+pub type TypeDef = prql_ast::stmt::TypeDef<X>;
+pub type VarDef = prql_ast::stmt::VarDef<X>;
 
 pub fn print_mem_sizes() {
     use std::mem::size_of;

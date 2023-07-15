@@ -21,7 +21,7 @@ fn coerce_to_aliased_type(resolver: &mut Resolver, expr: Expr) -> Result<(Option
 fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
     Ok(match expr {
         // already resolved type expressions (mostly primitives)
-        ExprKind::Type(set_expr) => set_expr,
+        ExprKind::Other(ExprKindExtra::Type(set_expr)) => set_expr,
 
         // singletons
         ExprKind::Literal(lit) => Ty {
@@ -79,7 +79,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         }
 
         // unions
-        ExprKind::RqOperator { name, args } if name == "std.or" => {
+        ExprKind::Other(ExprKindExtra::RqOperator { name, args }) if name == "std.or" => {
             let [left, right]: [_; 2] = args.try_into().unwrap();
             let left = coerce_to_type(resolver, left)?;
             let right = coerce_to_type(resolver, right)?;
@@ -107,7 +107,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         ExprKind::Func(func) => Ty {
             name: None,
             kind: TyKind::Function(TyFunc {
-                args: func.params.into_iter().map(|p| p.ty).collect_vec(),
+                args: func.params.into_iter().map(|p| p.extra.ty).collect_vec(),
                 return_ty: Box::new(resolver.fold_type_expr(Some(*func.body))?),
             }),
         },
@@ -121,7 +121,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
 }
 
 pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
-    if let Some(ty) = &node.ty {
+    if let Some(ty) = &node.extra.ty {
         return Ok(Some(ty.clone()));
     }
 
@@ -144,7 +144,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
         ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
         ExprKind::Range(_) => return Ok(None), // TODO
 
-        ExprKind::TransformCall(_) => return Ok(None), // TODO
+        ExprKind::Other(ExprKindExtra::TransformCall(_)) => return Ok(None), // TODO
         ExprKind::Tuple(fields) => TyKind::Tuple(
             fields
                 .iter()
@@ -194,7 +194,7 @@ impl Resolver {
     where
         F: Fn() -> Option<String>,
     {
-        let found_ty = found.ty.clone();
+        let found_ty = found.extra.ty.clone();
 
         // infer
         let Some(expected) = expected else {
@@ -205,20 +205,20 @@ impl Resolver {
         let Some(found_ty) = found_ty else {
             // found is none: infer from expected
 
-            if found.lineage.is_none() && expected.is_relation() {
+            if found.extra.lineage.is_none() && expected.is_relation() {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns
                 // of this table, which means it needs to be defined somewhere in the module structure.
                 let frame =
-                    self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
+                    self.declare_table_for_literal(found.extra.id.unwrap(), None, found.alias.clone());
 
                 // override the empty frame with frame of the new table
-                found.lineage = Some(frame)
+                found.extra.lineage = Some(frame)
             }
 
             // base case: infer expected type
-            found.ty = Some(expected.clone());
+            found.extra.ty = Some(expected.clone());
 
             return Ok(());
         };
@@ -259,7 +259,10 @@ impl Resolver {
             .with_span(found.span));
 
             if found_ty.is_function() && !expected.is_function() {
-                let func_name = found.kind.as_func().and_then(|c| c.name_hint.as_ref());
+                let func_name = found
+                    .kind
+                    .as_func()
+                    .and_then(|c| c.extra.name_hint.as_ref());
                 let to_what = func_name
                     .map(|n| format!("to function {n}"))
                     .unwrap_or_else(|| "in this function call?".to_string());

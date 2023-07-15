@@ -11,14 +11,16 @@ mod utils;
 pub use expr::{Expr, ExprKind, UnOp};
 pub use fold::*;
 pub use ids::*;
+use prql_ast::expr::InterpolateItem;
+use prql_ast::literal::Literal;
 pub use transform::*;
 pub use utils::*;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::pl::{ColumnSort, Literal, QueryDef, Range, WindowFrame};
-use super::pl::{Ident, InterpolateItem};
+use super::pl::Ident;
+use super::pl::{ColumnSort, QueryDef, WindowFrame};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {

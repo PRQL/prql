@@ -2,7 +2,8 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::JoinSide;
-use crate::ast::pl::{ColumnSort, Range, WindowFrame};
+use crate::ast::pl::{ColumnSort, WindowFrame};
+use prql_ast::expr::Range;
 
 use super::*;
 

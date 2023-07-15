@@ -1,4 +1,4 @@
-use crate::codegen::{SeparatedExprs, WriteOpt, WriteSource};
+use prql_ast::codegen::{SeparatedExprs, WriteOpt, WriteSource};
 
 use super::{TupleField, Ty, TyKind};
 
