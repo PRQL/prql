@@ -192,13 +192,6 @@ impl FuncCall {
     }
 }
 
-/// An expression that may have already been converted to a type.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
-pub enum TyOrExpr {
-    Ty(Ty),
-    Expr(Box<Expr>),
-}
-
 /// Function called with possibly missing positional arguments.
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -206,8 +199,10 @@ pub struct Func {
     /// Name of the function. Used for user-facing messages only.
     pub name_hint: Option<Ident>,
 
+    pub return_ty_expr: Option<Expr>,
+
     /// Type requirement for the function body expression.
-    pub return_ty: Option<TyOrExpr>,
+    pub return_ty: Option<Ty>,
 
     /// Expression containing parameter (and environment) references.
     pub body: Box<Expr>,
@@ -231,7 +226,10 @@ pub struct FuncParam {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<TyOrExpr>,
+    pub ty_expr: Option<Expr>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
 
     pub default_value: Option<Box<Expr>>,
 }

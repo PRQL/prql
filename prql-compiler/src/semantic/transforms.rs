@@ -494,11 +494,13 @@ fn fold_by_simulating_eval(
         name_hint: None,
         body: Box::new(pipeline),
         return_ty: None,
+        return_ty_expr: None,
 
         args: vec![],
         params: vec![FuncParam {
             name: param_id.to_string(),
             ty: None,
+            ty_expr: None,
             default_value: None,
         }],
         named_params: vec![],

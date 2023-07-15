@@ -70,7 +70,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "Ty", size_of::<Ty>());
     println!("{:16}= {}", "TyFunc", size_of::<TyFunc>());
     println!("{:16}= {}", "TyKind", size_of::<TyKind>());
-    println!("{:16}= {}", "TyOrExpr", size_of::<TyOrExpr>());
     println!("{:16}= {}", "TypeDef", size_of::<TypeDef>());
     println!("{:16}= {}", "UnaryExpr", size_of::<UnaryExpr>());
     println!("{:16}= {}", "UnOp", size_of::<UnOp>());

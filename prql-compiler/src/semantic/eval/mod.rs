@@ -431,6 +431,7 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
             name: name.to_string(),
             default_value: None,
             ty: None,
+            ty_expr: None,
         })
         .collect();
 
@@ -441,6 +442,7 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
         }),
 
         // these don't matter
+        return_ty_expr: Default::default(),
         return_ty: Default::default(),
         body: Box::new(Expr::null()),
         params,

@@ -319,7 +319,7 @@ where
     E: Parser<Token, Expr, Error = PError> + Clone + 'static,
 {
     let param = ident_part()
-        .then(type_expr().map(Box::new).or_not())
+        .then(type_expr().or_not())
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
         .boxed();
 
@@ -342,16 +342,17 @@ where
         param.repeated(),
     ))
     .then_ignore(just(Token::ArrowThin))
-    // return type
-    .then(type_expr().map(Box::new).or_not())
+    // return type expression
+    .then(type_expr().or_not())
     // body
     .then(choice((internal, func_call(expr))))
-    .map(|((params, return_ty), body)| {
+    .map(|((params, return_ty_expr), body)| {
         let (pos, name) = params
             .into_iter()
-            .map(|((name, ty), default_value)| FuncParam {
+            .map(|((name, ty_expr), default_value)| FuncParam {
                 name,
-                ty: ty.map(TyOrExpr::Expr),
+                ty_expr,
+                ty: None,
                 default_value,
             })
             .partition(|p| p.default_value.is_none());
@@ -361,7 +362,8 @@ where
             named_params: name,
 
             body: Box::new(body),
-            return_ty: return_ty.map(TyOrExpr::Expr),
+            return_ty_expr,
+            return_ty: None,
 
             name_hint: None,
             args: Vec::new(),

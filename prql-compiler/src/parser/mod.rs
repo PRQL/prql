@@ -1199,6 +1199,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Binary:
@@ -1227,6 +1228,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Ident:
@@ -1249,6 +1251,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Binary:
@@ -1277,6 +1280,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Binary:
@@ -1306,6 +1310,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   FuncCall:
@@ -1352,6 +1357,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Literal:
@@ -1375,6 +1381,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   SString:
@@ -1413,6 +1420,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Pipeline:
@@ -1463,6 +1471,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Binary:
@@ -1840,6 +1849,7 @@ Canada
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Pipeline:
@@ -2666,6 +2676,7 @@ join s=salaries (==id)
             value:
               Func:
                 name_hint: ~
+                return_ty_expr: ~
                 return_ty: ~
                 body:
                   Binary:

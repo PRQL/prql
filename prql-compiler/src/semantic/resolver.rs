@@ -90,7 +90,7 @@ impl Resolver {
                         }
                     }
 
-                    let mut ty = self.fold_type_expr(Some(value))?.unwrap();
+                    let mut ty = self.fold_type_expr(Some(*value))?.unwrap();
                     ty.name = Some(ident.name.clone());
 
                     VarDef {
@@ -143,7 +143,7 @@ impl Resolver {
                 }
             }
 
-            let expected_ty = self.fold_type_expr(def.ty_expr)?;
+            let expected_ty = self.fold_type_expr(def.ty_expr.map(|t| *t))?;
             if expected_ty.is_some() {
                 let who = || Some(stmt.name.clone());
                 self.validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
@@ -492,11 +492,13 @@ impl Resolver {
                 name_hint: None,
                 body: Box::new(value),
                 return_ty: None,
+                return_ty_expr: None,
 
                 args: vec![],
                 params: vec![FuncParam {
                     name: closure_param.to_string(),
                     default_value: None,
+                    ty_expr: None,
                     ty: None,
                 }],
                 named_params: vec![],
@@ -585,7 +587,7 @@ impl Resolver {
 
             let needs_window = (closure.params.last())
                 .and_then(|p| p.ty.as_ref())
-                .map(|t| t.as_ty().unwrap().is_sub_type_of_array())
+                .map(|t| t.is_sub_type_of_array())
                 .unwrap_or_default();
 
             // evaluate
@@ -594,7 +596,7 @@ impl Resolver {
 
                 if operator_name.starts_with("std.") {
                     Expr {
-                        ty: closure.return_ty.map(|t| t.into_ty().unwrap()),
+                        ty: closure.return_ty,
                         needs_window,
                         ..Expr::new(ExprKind::RqOperator {
                             name: operator_name.clone(),
@@ -636,6 +638,7 @@ impl Resolver {
                         named_params: vec![],
                         body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
                         return_ty: None,
+                        return_ty_expr: None,
                         env: HashMap::new(),
                     })))
                 } else {
@@ -657,14 +660,9 @@ impl Resolver {
                     .params
                     .iter()
                     .skip(args_len)
-                    .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
+                    .map(|a| a.ty.clone())
                     .collect(),
-                return_ty: Box::new(
-                    closure
-                        .return_ty
-                        .as_ref()
-                        .map(|x| x.as_ty().cloned().unwrap()),
-                ),
+                return_ty: Box::new(closure.return_ty.clone()),
             };
 
             let mut node = Expr::new(ExprKind::Func(Box::new(closure)));
@@ -685,12 +683,13 @@ impl Resolver {
             .into_iter()
             .map(|p| -> Result<_> {
                 Ok(FuncParam {
-                    ty: self.fold_ty_or_expr(p.ty)?,
+                    ty: self.fold_ty_or_expr(p.ty.clone(), p.ty_expr.clone())?,
                     ..p
                 })
             })
             .try_collect()?;
-        closure.return_ty = self.fold_ty_or_expr(closure.return_ty)?;
+        closure.return_ty =
+            self.fold_ty_or_expr(closure.return_ty, closure.return_ty_expr.clone())?;
         Ok(closure)
     }
 
@@ -739,7 +738,6 @@ impl Resolver {
                 let is_relation = param
                     .ty
                     .as_ref()
-                    .and_then(|t| t.as_ty())
                     .map(|t| t.is_relation())
                     .unwrap_or_default();
 
@@ -826,8 +824,7 @@ impl Resolver {
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
-            let ty = param.ty.as_ref().map(|t| t.as_ty().unwrap());
-            self.validate_type(&mut arg, ty, &who)?;
+            self.validate_type(&mut arg, param.ty.as_ref(), &who)?;
         }
 
         Ok(arg)
@@ -896,14 +893,14 @@ impl Resolver {
         }))
     }
 
-    pub fn fold_type_expr(&mut self, expr: Option<Box<Expr>>) -> Result<Option<Ty>> {
+    pub fn fold_type_expr(&mut self, expr: Option<Expr>) -> Result<Option<Ty>> {
         Ok(match expr {
             Some(expr) => {
                 let name = expr.kind.as_ident().map(|i| i.name.clone());
 
                 let old = self.disable_type_checking;
                 self.disable_type_checking = true;
-                let expr = self.fold_expr(*expr)?;
+                let expr = self.fold_expr(expr)?;
                 self.disable_type_checking = old;
 
                 let mut set_expr = type_resolver::coerce_to_type(self, expr)?;
@@ -914,13 +911,11 @@ impl Resolver {
         })
     }
 
-    fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
-        Ok(match ty_or_expr {
-            Some(TyOrExpr::Expr(ty_expr)) => {
-                Some(TyOrExpr::Ty(self.fold_type_expr(Some(ty_expr))?.unwrap()))
-            }
-            _ => ty_or_expr,
-        })
+    fn fold_ty_or_expr(&mut self, ty: Option<Ty>, ty_expr: Option<Expr>) -> Result<Option<Ty>> {
+        if let Some(ty) = ty {
+            return Ok(Some(ty));
+        }
+        self.fold_type_expr(ty_expr)
     }
 }
 
