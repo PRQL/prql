@@ -90,8 +90,9 @@ pub mod sql;
 mod tests;
 mod utils;
 
+pub use ast::Span;
 pub use error::{
-    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation, Span,
+    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation,
 };
 
 use once_cell::sync::Lazy;
