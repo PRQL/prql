@@ -38,7 +38,7 @@ derive {
 }
 ```
 
-## Piping
+## Piping values into functions
 
 Consistent with the principles of PRQL, it's possible to pipe values into
 functions, which makes composing many functions more readable. When piping a
@@ -79,7 +79,7 @@ derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
 
 ### Late binding
 
-Functions can binding to any variables in scope when the function is executed.
+Functions can bind to any variable that is in scope when the function is executed.
 For example, here `cost_total` refers to the column that's introduced in the
 `from`.
 

@@ -4,22 +4,21 @@
 
 ## Scalar value
 
-Define a constant that's used multiple times in a query with `let`:
+Define a constant that might be used multiple times in a query:
 ```
 let pi = 3.14159
 ```
 ## Function
 
-Define a function as described in [Functions](./functions.md):
+Define a function (full description in [Functions](./functions.md)):
 ```
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 ```
 ## Pipeline or relation
 
 Define a relation — similar to a CTE in SQL — with two approaches — a
-prefix `let` or a postfix `into`.
-
-Here we assign a variable to `foo` with `let` by prefixing with `let foo =`:
+prefix `let` or a postfix `into`. This example assigns a relation
+(defined by a pipeline of commands) to the variable `top_50`:
 
 ```prql
 let top_50 = (
@@ -49,7 +48,7 @@ from grouping
 ```
 
 ```admonish info
-**Why introduce `into`?** It seems that `let = ...` completely covers the use case without introducing new grammar. 
+**Why introduce `into`?** It seems that `let = ...` completely covers the use case without introducing a new language feature. 
 Does `into` work with scalars and functions?
 ```
 
@@ -68,7 +67,7 @@ from top_50      # Starts a new pipeline
 ```
 
 ```admonish info
-**Is this still relevant?**
+**Is this advice still relevant?**
 In PRQL variables are far less common than CTEs are in SQL, since a linear series
 of CTEs can be represented with a single pipeline.
 ```
