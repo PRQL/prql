@@ -53,6 +53,7 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
                     Primitive: Date
                   name: date
           name: ~
+  alias: net_salary
   ty:
     kind:
       Union:
@@ -73,5 +74,4 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
               Primitive: Date
             name: date
     name: ~
-  alias: net_salary
 

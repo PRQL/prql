@@ -66,6 +66,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     Primitive: Date
                   name: date
           name: ~
+  alias: b
   ty:
     kind:
       Union:
@@ -86,5 +87,4 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
               Primitive: Date
             name: date
     name: ~
-  alias: b
 
