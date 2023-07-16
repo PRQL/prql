@@ -1,30 +1,37 @@
 # Variables and `let`
 
-`let` assigns a scalar value, a function, an array, or a pipeline to a named variable.
+`let` assigns a scalar value, a function, an array, or a pipeline to a named
+variable.
 
 ## Scalar value
 
 Define a constant that might be used multiple times in a query:
+
 ```
 let pi = 3.14159
 ```
+
 ## Function
 
 Define a function (full description in [Functions](./functions.md)):
+
 ```
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 ```
-## Array 
+
+## Array
 
 Define a relation using the array (`[]`) notation:
+
 ```
 let table = [{a=5, b=false}, {a=6, b=true}]
 ```
-## Pipeline 
 
-Define a relation — similar to a CTE in SQL — with two approaches — a
-prefix `let` or a postfix `into`. This example assigns a relation
-(defined by a pipeline of commands) to the variable `top_50`:
+## Pipeline
+
+Define a relation — similar to a CTE in SQL — with two approaches — a prefix
+`let` or a postfix `into`. This example assigns a relation (defined by a
+pipeline of commands) to the variable `top_50`:
 
 ```prql
 let top_50 = (
@@ -54,7 +61,7 @@ from grouping
 ```
 
 ```admonish info
-**Why introduce `into`?** It seems that `let = ...` completely covers the use case without introducing a new language feature. 
+**Why introduce `into`?** It seems that `let = ...` completely covers the use case without introducing a new language feature.
 Does `into` work with scalars and functions?
 ```
 

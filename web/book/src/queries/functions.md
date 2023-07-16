@@ -79,9 +79,9 @@ derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
 
 ### Late binding
 
-Functions can bind to any variable that is in scope when the function is executed.
-For example, here `cost_total` refers to the column that's introduced in the
-`from`.
+Functions can bind to any variable that is in scope when the function is
+executed. For example, here `cost_total` refers to the column that's introduced
+in the `from`.
 
 ```prql
 let cost_share = cost -> cost / cost_total
