@@ -3,7 +3,7 @@
 `let` assigns a scalar value, a function, an array, or a pipeline to a named
 variable.
 
-## Scalar value
+### Scalar value
 
 Define a constant that might be used multiple times in a query:
 
@@ -11,7 +11,7 @@ Define a constant that might be used multiple times in a query:
 let pi = 3.14159
 ```
 
-## Function
+### Function
 
 Define a function (full description in [Functions](./functions.md)):
 
@@ -19,7 +19,7 @@ Define a function (full description in [Functions](./functions.md)):
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 ```
 
-## Array
+### Array
 
 Define a relation using the array (`[...]`) notation:
 
@@ -27,7 +27,7 @@ Define a relation using the array (`[...]`) notation:
 let table = [{a=5, b=false}, {a=6, b=true}]
 ```
 
-## Pipeline
+### Pipeline
 
 Define a relation — similar to a CTE in SQL — with two approaches — a prefix
 `let` or a postfix `into`. This example assigns a relation (defined by a
@@ -65,7 +65,7 @@ from grouping
 Does `into` work with scalars and functions?
 ```
 
-## `into`
+#### `into`
 
 We can also assign a variable to `foo` by postfixing with `into foo`:
 
