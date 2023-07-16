@@ -16,6 +16,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
                 Singleton: "Null"
               name: ~
           name: array
+  alias: one
   ty:
     kind:
       Union:
@@ -28,5 +29,4 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
               Primitive: Float
             name: float
     name: ~
-  alias: one
 
