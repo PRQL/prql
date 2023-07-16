@@ -22,3 +22,12 @@ command = "mdbook-admonish"
 [preprocessor.footnote]
 # Seems to be required for footnotes to show properly.
 after = ["admonish"]
+
+[build]
+# Turn off "index" preprocessor that renames README.md to index.html
+#   (because it breaks the markdown-link-check in CI)
+# But need to restore on the "links" preprocessor
+# https://rust-lang.github.io/mdBook/format/configuration/general.html#build-options
+use-default-preprocessors = false  # DON'T use any of the default preprocessors (links or index)
+
+[preprocessor.links] # but make sure "links" preprocessor runs
