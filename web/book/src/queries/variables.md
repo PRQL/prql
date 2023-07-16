@@ -1,6 +1,6 @@
 # Variables and `let`
 
-`let` assigns a scalar value, a function, or a pipeline to a named variable.
+`let` assigns a scalar value, a function, an array, or a pipeline to a named variable.
 
 ## Scalar value
 
@@ -14,7 +14,13 @@ Define a function (full description in [Functions](./functions.md)):
 ```
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 ```
-## Pipeline or relation
+## Array 
+
+Define a relation using the array (`[]`) notation:
+```
+let table = [{a=5, b=false}, {a=6, b=true}]
+```
+## Pipeline 
 
 Define a relation — similar to a CTE in SQL — with two approaches — a
 prefix `let` or a postfix `into`. This example assigns a relation
