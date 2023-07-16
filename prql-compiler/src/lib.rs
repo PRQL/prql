@@ -91,8 +91,9 @@ mod tests;
 mod utils;
 
 pub use error::{
-    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation, Span,
+    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation,
 };
+pub use parser::Span;
 
 use once_cell::sync::Lazy;
 use semver::Version;

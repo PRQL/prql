@@ -1,6 +1,7 @@
 mod expr;
 mod interpolation;
 mod lexer;
+mod span;
 mod stmt;
 
 use std::collections::HashMap;
@@ -17,11 +18,12 @@ use self::lexer::Token;
 
 use super::ast::pl::*;
 
+use crate::SourceTree;
 use crate::{
     error::{Error, Errors, Reason, WithErrorInfo},
     utils::IdGenerator,
 };
-use crate::{SourceTree, Span};
+pub use span::Span;
 
 /// Build PL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
@@ -232,32 +234,6 @@ mod common {
         Expr {
             span: Some(span),
             ..Expr::new(kind)
-        }
-    }
-
-    impl chumsky::Span for Span {
-        type Context = u16;
-
-        type Offset = usize;
-
-        fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
-            Span {
-                start: range.start,
-                end: range.end,
-                source_id: context,
-            }
-        }
-
-        fn context(&self) -> Self::Context {
-            self.source_id
-        }
-
-        fn start(&self) -> Self::Offset {
-            self.start
-        }
-
-        fn end(&self) -> Self::Offset {
-            self.end
         }
     }
 }
