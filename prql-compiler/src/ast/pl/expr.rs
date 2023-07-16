@@ -298,8 +298,8 @@ impl<T> Range<T> {
 
 impl Range {
     pub(crate) fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
-        let start = start.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
-        let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
+        let start = start.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
+        let end = end.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
         Range { start, end }
     }
 
@@ -430,7 +430,7 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn null() -> Expr {
-        Expr::from(ExprKind::Literal(Literal::Null))
+        Expr::new(ExprKind::Literal(Literal::Null))
     }
 
     pub(crate) fn try_cast<T, F, S2: ToString>(
@@ -446,15 +446,15 @@ impl Expr {
             Error::new(Reason::Expected {
                 who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: format!("`{}`", Expr::from(i)),
+                found: format!("`{}`", Expr::new(i)),
             })
             .with_span(self.span)
         })
     }
 }
 
-impl From<ExprKind> for Expr {
-    fn from(kind: ExprKind) -> Self {
+impl Expr {
+    pub fn new(kind: ExprKind) -> Self {
         Expr {
             id: None,
             kind,

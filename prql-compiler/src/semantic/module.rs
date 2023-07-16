@@ -424,7 +424,7 @@ mod tests {
         let mut module = Module::default();
 
         let ident = Ident::from_name("test_name");
-        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let expr: Expr = Expr::new(ExprKind::Literal(Literal::Integer(42)));
         let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
 
         assert!(module.insert(ident.clone(), decl.clone()).is_ok());
@@ -442,7 +442,7 @@ mod tests {
         let mut module = Module::default();
 
         let ident = Ident::from_name("test_name");
-        let expr: Expr = ExprKind::Literal(Literal::Integer(42)).into();
+        let expr: Expr = Expr::new(ExprKind::Literal(Literal::Integer(42)));
         let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
 
         module.insert(ident.clone(), decl.clone()).unwrap();
