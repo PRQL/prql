@@ -15,13 +15,18 @@ use super::{Lineage, TransformCall, Ty, TyOrExpr};
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
+    #[serde(flatten)]
+    pub kind: ExprKind,
+
+    #[serde(skip)]
+    pub span: Option<Span>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
+
     /// Unique identificator of the node. Set exactly once during semantic::resolve.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<usize>,
-    #[serde(flatten)]
-    pub kind: ExprKind,
-    #[serde(skip)]
-    pub span: Option<Span>,
 
     /// For [Ident]s, this is id of node referenced by the ident
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,9 +50,6 @@ pub struct Expr {
 
     #[serde(skip)]
     pub needs_window: bool,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub alias: Option<String>,
 
     /// When true on [ExprKind::Tuple], this list will be flattened when placed
     /// in some other list.
