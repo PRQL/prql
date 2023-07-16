@@ -22,6 +22,7 @@ let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 ## Array
 
 Define a relation using the array (`[...]`) notation:
+
 ```
 let table = [{a=5, b=false}, {a=6, b=true}]
 ```
