@@ -94,7 +94,7 @@ impl Resolver {
                     ty.name = Some(ident.name.clone());
 
                     VarDef {
-                        value: Box::new(Expr::from(ExprKind::Type(ty))),
+                        value: Box::new(Expr::new(ExprKind::Type(ty))),
                         ty_expr: None,
                         kind: VarDefKind::Let,
                     }
@@ -132,7 +132,7 @@ impl Resolver {
             };
 
             if let VarDefKind::Main = def.kind {
-                def.ty_expr = Some(Box::new(Expr::from(ExprKind::Ident(Ident::from_path(
+                def.ty_expr = Some(Box::new(Expr::new(ExprKind::Ident(Ident::from_path(
                     vec!["std", "relation"],
                 )))));
             }
@@ -231,7 +231,7 @@ impl AstFold for Resolver {
                         ExprKind::Func(closure) => {
                             let closure = self.fold_function_types(*closure.clone())?;
 
-                            let expr = Expr::from(ExprKind::Func(Box::new(closure)));
+                            let expr = Expr::new(ExprKind::Func(Box::new(closure)));
 
                             if self.in_func_call_name {
                                 expr
@@ -418,8 +418,8 @@ pub fn unary_to_func_call(UnaryExpr { op, expr }: UnaryExpr, span: Option<Span>)
         UnOp::Not => ["std", "not"],
         UnOp::Add | UnOp::EqSelf => unreachable!(),
     };
-    let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
-        Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+    let mut func_call = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+        Expr::new(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
         vec![*expr],
     )));
     func_call.span = span;
@@ -445,8 +445,8 @@ pub fn binary_to_func_call(BinaryExpr { op, left, right }: BinaryExpr, span: Opt
         BinOp::Or => ["std", "or"],
         BinOp::Coalesce => ["std", "coalesce"],
     };
-    let mut func_call = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
-        Expr::from(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
+    let mut func_call = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+        Expr::new(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
         vec![*left, *right],
     )));
     func_call.span = span;
@@ -468,7 +468,7 @@ impl Resolver {
             // only apply this workaround if closure expects a single arg
             if (closure.params.len() - closure.args.len()) == 1 {
                 let param = "_pip_val";
-                let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
+                let value = Expr::new(ExprKind::Ident(Ident::from_name(param)));
                 closure.args.push(value);
                 Some(param)
             } else {
@@ -482,13 +482,13 @@ impl Resolver {
         for expr in exprs {
             let span = expr.span;
 
-            value = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![value])));
+            value = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![value])));
             value.span = span;
         }
 
         // second part of the workaround
         if let Some(closure_param) = closure_param {
-            value = Expr::from(ExprKind::Func(Box::new(Func {
+            value = Expr::new(ExprKind::Func(Box::new(Func {
                 name_hint: None,
                 body: Box::new(value),
                 return_ty: None,
@@ -596,7 +596,7 @@ impl Resolver {
                     Expr {
                         ty: closure.return_ty.map(|t| t.into_ty().unwrap()),
                         needs_window,
-                        ..Expr::from(ExprKind::RqOperator {
+                        ..Expr::new(ExprKind::RqOperator {
                             name: operator_name.clone(),
                             args: closure.args,
                         })
@@ -629,12 +629,12 @@ impl Resolver {
                     let missing = missing.to_vec();
                     inner_closure.params = got.to_vec();
 
-                    Expr::from(ExprKind::Func(Box::new(Func {
+                    Expr::new(ExprKind::Func(Box::new(Func {
                         name_hint: None,
                         args: vec![],
                         params: missing,
                         named_params: vec![],
-                        body: Box::new(Expr::from(ExprKind::Func(inner_closure))),
+                        body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
                         return_ty: None,
                         env: HashMap::new(),
                     })))
@@ -667,7 +667,7 @@ impl Resolver {
                 ),
             };
 
-            let mut node = Expr::from(ExprKind::Func(Box::new(closure)));
+            let mut node = Expr::new(ExprKind::Func(Box::new(closure)));
             node.ty = Some(Ty {
                 kind: TyKind::Function(ty),
                 name: None,
@@ -857,12 +857,12 @@ impl Resolver {
         if !ident.path.is_empty() {
             bail!("you cannot use namespace prefix with self-equality operator.");
         }
-        let mut left = Expr::from(ExprKind::Ident(Ident {
+        let mut left = Expr::new(ExprKind::Ident(Ident {
             path: vec![NS_THIS.to_string()],
             name: ident.name.clone(),
         }));
         left.span = span;
-        let mut right = Expr::from(ExprKind::Ident(Ident {
+        let mut right = Expr::new(ExprKind::Ident(Ident {
             path: vec![NS_THAT.to_string()],
             name: ident.name,
         }));
@@ -890,7 +890,7 @@ impl Resolver {
             })
             .try_collect()?;
 
-        self.fold_expr(Expr::from(ExprKind::All {
+        self.fold_expr(Expr::new(ExprKind::All {
             within: Ident::from_name(NS_THIS),
             except,
         }))
@@ -1014,7 +1014,7 @@ pub(super) mod test {
         let derive = expr
             .kind
             .into_transform_call()
-            .unwrap_or_else(|e| panic!("Failed to convert `{}`", Expr::from(e)));
+            .unwrap_or_else(|e| panic!("Failed to convert `{}`", Expr::new(e)));
         let exprs = derive
             .kind
             .into_derive()

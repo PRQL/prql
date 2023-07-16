@@ -118,7 +118,7 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
 
         _ => {
             return Err(
-                Error::new_simple(format!("not a type expression: {}", Expr::from(expr))).into(),
+                Error::new_simple(format!("not a type expression: {}", Expr::new(expr))).into(),
             )
         }
     })

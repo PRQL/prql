@@ -301,7 +301,7 @@ impl Context {
         let fq_cols = if module.names.contains_key(NS_INFER) {
             // Columns can be inferred, which means that we don't know all column names at
             // compile time: use ExprKind::All
-            vec![Expr::from(ExprKind::All {
+            vec![Expr::new(ExprKind::All {
                 within: mod_ident.clone(),
                 except: Vec::new(),
             })]
@@ -312,7 +312,7 @@ impl Context {
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
                 .sorted_by_key(|(_, decl)| decl.order)
                 .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
-                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
+                .map(|fq_col| Expr::new(ExprKind::Ident(fq_col)))
                 .collect_vec()
         };
 
@@ -320,7 +320,7 @@ impl Context {
         // We wrap the expr into DeclKind::Expr and save it into context.
         let cols_expr = Expr {
             flatten: true,
-            ..Expr::from(ExprKind::Tuple(fq_cols))
+            ..Expr::new(ExprKind::Tuple(fq_cols))
         };
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
