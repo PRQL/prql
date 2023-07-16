@@ -8,6 +8,7 @@
 //!
 //! Top-level construct is a list of statements [Vec<Stmt>].
 
+mod display;
 pub mod expr;
 pub mod fold;
 pub mod ident;

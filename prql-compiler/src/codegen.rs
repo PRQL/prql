@@ -23,20 +23,6 @@ impl std::fmt::Display for pl::Expr {
     }
 }
 
-impl std::fmt::Display for pl::Ty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let opt = WriteOpt::new_width(u16::MAX);
-        f.write_str(&self.write(opt).unwrap())
-    }
-}
-
-impl std::fmt::Display for pl::TyKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let opt = WriteOpt::new_width(u16::MAX);
-        f.write_str(&self.write(opt).unwrap())
-    }
-}
-
 pub trait WriteSource {
     /// Converts self to its source representation according to specified
     /// options.
@@ -118,7 +104,7 @@ impl Default for WriteOpt {
 }
 
 impl WriteOpt {
-    fn new_width(max_width: u16) -> Self {
+    pub fn new_width(max_width: u16) -> Self {
         WriteOpt {
             max_width,
             rem_width: max_width,
@@ -492,10 +478,10 @@ impl WriteSource for pl::Stmt {
     }
 }
 
-struct SeparatedExprs<'a, T: WriteSource> {
-    exprs: &'a [T],
-    inline: &'static str,
-    line_end: &'static str,
+pub struct SeparatedExprs<'a, T: WriteSource> {
+    pub exprs: &'a [T],
+    pub inline: &'static str,
+    pub line_end: &'static str,
 }
 
 impl<'a, T: WriteSource> WriteSource for SeparatedExprs<'a, T> {
@@ -580,90 +566,6 @@ impl WriteSource for pl::SwitchCase {
         r += " => ";
         r += &self.value.write(opt)?;
         Some(r)
-    }
-}
-
-impl WriteSource for pl::Ty {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        if let Some(name) = &self.name {
-            Some(name.clone())
-        } else {
-            self.kind.write(opt)
-        }
-    }
-}
-
-impl WriteSource for Option<&pl::Ty> {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        match self {
-            Some(ty) => ty.write(opt),
-            None => Some("infer".to_string()),
-        }
-    }
-}
-
-impl WriteSource for pl::TyKind {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        use pl::TyKind::*;
-
-        match &self {
-            Primitive(prim) => Some(prim.to_string()),
-            Union(variants) => {
-                let variants: Vec<_> = variants.iter().map(|x| &x.1).collect();
-
-                SeparatedExprs {
-                    exprs: &variants,
-                    inline: " || ",
-                    line_end: " ||",
-                }
-                .write(opt)
-            }
-            Singleton(lit) => Some(lit.to_string()),
-            Tuple(elements) => SeparatedExprs {
-                exprs: elements,
-                inline: ", ",
-                line_end: ",",
-            }
-            .write_between("{", "}", opt),
-            Set => Some("set".to_string()),
-            Array(elem) => Some(format!("[{}]", elem.write(opt)?)),
-            Function(func) => {
-                let mut r = String::new();
-
-                for t in &func.args {
-                    r += &t.as_ref().write(opt.clone())?;
-                    r += " ";
-                }
-                r += "-> ";
-                r += &(*func.return_ty).as_ref().write(opt)?;
-                Some(r)
-            }
-        }
-    }
-}
-
-impl WriteSource for pl::TupleField {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        match self {
-            Self::Wildcard(generic_el) => match generic_el {
-                Some(el) => Some(format!("{}..", el.write(opt)?)),
-                None => Some("*..".to_string()),
-            },
-            Self::Single(name, expr) => {
-                let mut r = String::new();
-
-                if let Some(name) = name {
-                    r += name;
-                    r += " = ";
-                }
-                if let Some(expr) = expr {
-                    r += &expr.write(opt)?;
-                } else {
-                    r += "?";
-                }
-                Some(r)
-            }
-        }
     }
 }
 
