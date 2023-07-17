@@ -10,12 +10,12 @@ use sqlparser::ast::{
 
 use crate::ast::pl::{
     self, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection, WindowFrame,
-    WindowKind,
+    WindowKind, VALID_IDENT,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::sql::srq::context::ColumnDecl;
-use crate::utils::{OrMap, VALID_IDENT};
+use crate::utils::OrMap;
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};

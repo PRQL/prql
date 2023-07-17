@@ -2,10 +2,7 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use crate::{
-    ast::pl::{self, BinaryExpr},
-    utils::VALID_IDENT,
-};
+use crate::ast::pl::{self, BinaryExpr, VALID_IDENT};
 
 pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     let mut opt = WriteOpt::default();

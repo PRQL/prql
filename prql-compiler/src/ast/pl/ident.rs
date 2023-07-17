@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
@@ -151,6 +153,21 @@ pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), st
     } else {
         write!(f, "{s}")
     }
+}
+
+pub static VALID_IDENT: Lazy<Regex> = Lazy::new(|| {
+    // One of:
+    // - `*`
+    // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
+    //
+    // We could replace this with pomsky (regex<>pomsky : sql<>prql)
+    // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
+    Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
+});
+
+#[test]
+fn test_write_ident_part() {
+    assert!(!VALID_IDENT.is_match(""));
 }
 
 #[test]
