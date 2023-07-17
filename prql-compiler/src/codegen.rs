@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use crate::ast::pl::{self, BinaryExpr, VALID_IDENT};
+use crate::ast::pl::{self, is_valid_ident, BinaryExpr};
 
 pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     let mut opt = WriteOpt::default();
@@ -395,7 +395,7 @@ pub static KEYWORDS: Lazy<HashSet<&str>> = Lazy::new(|| {
 });
 
 pub fn write_ident_part(s: &str) -> String {
-    if VALID_IDENT.is_match(s) && !KEYWORDS.contains(s) {
+    if is_valid_ident(s) && !KEYWORDS.contains(s) {
         s.to_string()
     } else {
         format!("`{}`", s)

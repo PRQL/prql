@@ -9,8 +9,8 @@ use sqlparser::ast::{
 };
 
 use crate::ast::pl::{
-    self, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection, WindowFrame,
-    WindowKind, VALID_IDENT,
+    self, is_valid_ident, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection,
+    WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
@@ -677,7 +677,7 @@ pub(super) fn translate_ident(
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    let is_bare = VALID_IDENT.is_match(&ident);
+    let is_bare = is_valid_ident(&ident);
 
     if is_bare && !keywords::is_keyword(&ident) {
         sql_ast::Ident::new(ident)

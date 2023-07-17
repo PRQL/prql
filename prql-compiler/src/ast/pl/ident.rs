@@ -155,7 +155,7 @@ pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), st
     }
 }
 
-pub static VALID_IDENT: Lazy<Regex> = Lazy::new(|| {
+static VALID_IDENT: Lazy<Regex> = Lazy::new(|| {
     // One of:
     // - `*`
     // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
@@ -165,9 +165,13 @@ pub static VALID_IDENT: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap()
 });
 
+pub fn is_valid_ident(str: &str) -> bool {
+    VALID_IDENT.is_match(str)
+}
+
 #[test]
-fn test_write_ident_part() {
-    assert!(!VALID_IDENT.is_match(""));
+fn test_empty_string_is_invalid_ident() {
+    assert!(!is_valid_ident(""));
 }
 
 #[test]
