@@ -2,9 +2,14 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use crate::ast::pl::{self, is_valid_ident, BinaryExpr};
+use crate::ast::pl::{
+    expr::{BinOp, BinaryExpr, Expr, ExprKind, InterpolateItem, SwitchCase, UnOp, UnaryExpr},
+    is_valid_ident,
+    stmt::{Stmt, StmtKind, VarDefKind},
+    Ident,
+};
 
-pub fn write(stmts: &Vec<pl::Stmt>) -> String {
+pub fn write(stmts: &Vec<Stmt>) -> String {
     let mut opt = WriteOpt::default();
 
     loop {
@@ -16,7 +21,7 @@ pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     }
 }
 
-impl std::fmt::Display for pl::Expr {
+impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let opt = WriteOpt::new_width(u16::MAX);
         f.write_str(&self.write(opt).unwrap())
@@ -48,7 +53,7 @@ pub trait WriteSource {
         Some(r)
     }
 
-    fn write_within(&self, parent: &pl::ExprKind, mut opt: WriteOpt) -> Option<String> {
+    fn write_within(&self, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
         let parent_strength = binding_strength(parent);
         opt.context_strength = opt.context_strength.max(parent_strength);
 
@@ -138,7 +143,7 @@ impl WriteOpt {
     }
 }
 
-impl WriteSource for pl::Expr {
+impl WriteSource for Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -160,9 +165,9 @@ impl WriteSource for pl::Expr {
     }
 }
 
-impl WriteSource for pl::ExprKind {
+impl WriteSource for ExprKind {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
-        use pl::ExprKind::*;
+        use ExprKind::*;
 
         match &self {
             Ident(ident) => ident.write(opt),
@@ -213,7 +218,7 @@ impl WriteSource for pl::ExprKind {
                 }
                 Some(r)
             }
-            Binary(pl::BinaryExpr { op, left, right }) => {
+            Binary(BinaryExpr { op, left, right }) => {
                 let mut r = String::new();
 
                 let left = left.write_within(self, opt.clone())?;
@@ -226,7 +231,7 @@ impl WriteSource for pl::ExprKind {
                 r += &right.write_within(self, opt)?;
                 Some(r)
             }
-            Unary(pl::UnaryExpr { op, expr }) => {
+            Unary(UnaryExpr { op, expr }) => {
                 let mut r = String::new();
 
                 r += opt.consume(&op.to_string())?;
@@ -308,40 +313,40 @@ impl WriteSource for pl::ExprKind {
     }
 }
 
-fn binding_strength(expr: &pl::ExprKind) -> u8 {
+fn binding_strength(expr: &ExprKind) -> u8 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
-        pl::ExprKind::Ident(_) => 100,
-        pl::ExprKind::All { .. } => 100,
+        ExprKind::Ident(_) => 100,
+        ExprKind::All { .. } => 100,
 
         // Stronger than a range, since `-1..2` is `(-1)..2`
         // Stronger than binary op, since `-x == y` is `(-x) == y`
         // Stronger than a func call, since `exists !y` is `exists (!y)`
-        pl::ExprKind::Unary(..) => 20,
+        ExprKind::Unary(..) => 20,
 
-        pl::ExprKind::Range(_) => 19,
+        ExprKind::Range(_) => 19,
 
-        pl::ExprKind::Binary(BinaryExpr { op, .. }) => match op {
-            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 18,
-            pl::BinOp::Add | pl::BinOp::Sub => 17,
-            pl::BinOp::Eq
-            | pl::BinOp::Ne
-            | pl::BinOp::Gt
-            | pl::BinOp::Lt
-            | pl::BinOp::Gte
-            | pl::BinOp::Lte
-            | pl::BinOp::RegexSearch => 16,
-            pl::BinOp::Coalesce => 15,
-            pl::BinOp::And => 14,
-            pl::BinOp::Or => 13,
+        ExprKind::Binary(BinaryExpr { op, .. }) => match op {
+            BinOp::Mul | BinOp::DivInt | BinOp::DivFloat | BinOp::Mod => 18,
+            BinOp::Add | BinOp::Sub => 17,
+            BinOp::Eq
+            | BinOp::Ne
+            | BinOp::Gt
+            | BinOp::Lt
+            | BinOp::Gte
+            | BinOp::Lte
+            | BinOp::RegexSearch => 16,
+            BinOp::Coalesce => 15,
+            BinOp::And => 14,
+            BinOp::Or => 13,
         },
 
         // Weaker than a child assign, since `select x = 1`
         // Weaker than a binary operator, since `filter x == 1`
-        pl::ExprKind::FuncCall(_) => 10,
-        // pl::ExprKind::FuncCall(_) if !is_parent => 2,
-        pl::ExprKind::Func(_) => 7,
+        ExprKind::FuncCall(_) => 10,
+        // ExprKind::FuncCall(_) if !is_parent => 2,
+        ExprKind::Func(_) => 7,
 
         // other nodes should not contain any inner exprs
         _ => 100,
@@ -349,17 +354,17 @@ fn binding_strength(expr: &pl::ExprKind) -> u8 {
 }
 
 /// True if this expression could be mistakenly bound with an expression on the left.
-fn can_bind_left(expr: &pl::ExprKind) -> bool {
+fn can_bind_left(expr: &ExprKind) -> bool {
     matches!(
         expr,
-        pl::ExprKind::Unary(pl::UnaryExpr {
-            op: pl::UnOp::EqSelf | pl::UnOp::Add | pl::UnOp::Neg,
+        ExprKind::Unary(UnaryExpr {
+            op: UnOp::EqSelf | UnOp::Add | UnOp::Neg,
             ..
         })
     )
 }
 
-impl WriteSource for pl::Ident {
+impl WriteSource for Ident {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
         opt.consume_width(width as u16)?;
@@ -388,7 +393,7 @@ pub fn write_ident_part(s: &str) -> String {
     }
 }
 
-impl WriteSource for Vec<pl::Stmt> {
+impl WriteSource for Vec<Stmt> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         opt.reset_line()?;
 
@@ -405,7 +410,7 @@ impl WriteSource for Vec<pl::Stmt> {
     }
 }
 
-impl WriteSource for pl::Stmt {
+impl WriteSource for Stmt {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -418,7 +423,7 @@ impl WriteSource for pl::Stmt {
         }
 
         match &self.kind {
-            pl::StmtKind::QueryDef(query) => {
+            StmtKind::QueryDef(query) => {
                 r += "prql";
                 if let Some(version) = &query.version {
                     r += &format!(r#" version:"{}""#, version);
@@ -428,16 +433,16 @@ impl WriteSource for pl::Stmt {
                 }
                 r += "\n";
             }
-            pl::StmtKind::VarDef(var_def) => match var_def.kind {
-                pl::VarDefKind::Let => {
+            StmtKind::VarDef(var_def) => match var_def.kind {
+                VarDefKind::Let => {
                     r += opt.consume(&format!("let {} = ", self.name))?;
 
                     r += &var_def.value.write(opt)?;
                     r += "\n";
                 }
-                pl::VarDefKind::Into | pl::VarDefKind::Main => {
+                VarDefKind::Into | VarDefKind::Main => {
                     match &var_def.value.kind {
-                        pl::ExprKind::Pipeline(pipeline) => {
+                        ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
                                 r += &expr.write(opt.clone())?;
                                 r += "\n";
@@ -448,13 +453,13 @@ impl WriteSource for pl::Stmt {
                         }
                     }
 
-                    if let pl::VarDefKind::Into = var_def.kind {
+                    if let VarDefKind::Into = var_def.kind {
                         r += &format!("into {}", self.name);
                         r += "\n";
                     }
                 }
             },
-            pl::StmtKind::TypeDef(type_def) => {
+            StmtKind::TypeDef(type_def) => {
                 r += opt.consume(&format!("let {}", self.name))?;
 
                 if let Some(value) = &type_def.value {
@@ -463,7 +468,7 @@ impl WriteSource for pl::Stmt {
                 }
                 r += "\n";
             }
-            pl::StmtKind::ModuleDef(module_def) => {
+            StmtKind::ModuleDef(module_def) => {
                 r += &format!("module {} {{\n", self.name);
                 opt.indent += 1;
 
@@ -536,19 +541,15 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
     }
 }
 
-fn display_interpolation(
-    prefix: &str,
-    parts: &[pl::InterpolateItem],
-    opt: WriteOpt,
-) -> Option<String> {
+fn display_interpolation(prefix: &str, parts: &[InterpolateItem], opt: WriteOpt) -> Option<String> {
     let mut r = String::new();
     r += prefix;
     r += "\"";
     for part in parts {
         match &part {
             // We use double braces to escape braces
-            pl::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
-            pl::InterpolateItem::Expr { expr, .. } => {
+            InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
+            InterpolateItem::Expr { expr, .. } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
                 r += "}"
@@ -559,7 +560,7 @@ fn display_interpolation(
     Some(r)
 }
 
-impl WriteSource for pl::SwitchCase {
+impl WriteSource for SwitchCase {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
         r += &self.condition.write(opt.clone())?;
