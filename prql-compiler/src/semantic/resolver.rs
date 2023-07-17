@@ -5,6 +5,7 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::expr::{BinaryExpr, UnaryExpr};
+use crate::ast::pl::fold::ast::{fold_expr_kind, fold_optional_box};
 use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::transforms::coerce_into_tuple_and_flatten;
