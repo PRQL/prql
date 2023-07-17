@@ -258,29 +258,6 @@ pub type SwitchCase = generic_expr::SwitchCase<Box<Expr>>;
 pub type WindowFrame = crate::generic::WindowFrame<Box<Expr>>;
 pub type ColumnSort = crate::generic::ColumnSort<Box<Expr>>;
 
-impl Range {
-    pub(crate) fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
-        let start = start.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
-        let end = end.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
-        Range { start, end }
-    }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        fn as_int(bound: &Option<Box<Expr>>) -> Option<i64> {
-            bound
-                .as_ref()
-                .and_then(|s| s.kind.as_literal())
-                .and_then(|l| l.as_integer().cloned())
-        }
-
-        if let Some((s, e)) = as_int(&self.start).zip(as_int(&self.end)) {
-            s >= e
-        } else {
-            false
-        }
-    }
-}
-
 /// FuncCall with better typing. Returns the modified table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TransformCall {
