@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use enum_as_inner::EnumAsInner;
-use semver::VersionReq;
 
 use serde::{Deserialize, Serialize};
 
@@ -89,15 +88,6 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
-}
-
-impl ExprKind {
-    pub fn parse_version(self) -> std::result::Result<VersionReq, Self> {
-        match self {
-            Self::Literal(Literal::String(ref s)) => VersionReq::parse(s).map_err(|_| self),
-            _ => Err(self),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
