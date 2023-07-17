@@ -461,22 +461,6 @@ impl Expr {
             .with_span(self.span)
         })
     }
-
-    pub fn collect_and(mut exprs: Vec<Expr>) -> Expr {
-        let mut aggregate = if let Some(first) = exprs.pop() {
-            first
-        } else {
-            return Expr::from(ExprKind::Literal(Literal::Boolean(true)));
-        };
-        while let Some(e) = exprs.pop() {
-            aggregate = Expr::from(ExprKind::Binary(BinaryExpr {
-                left: Box::new(e),
-                op: BinOp::And,
-                right: Box::new(aggregate),
-            }))
-        }
-        aggregate
-    }
 }
 
 impl From<ExprKind> for Expr {
