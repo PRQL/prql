@@ -433,7 +433,7 @@ impl Expr {
         Expr::from(ExprKind::Literal(Literal::Null))
     }
 
-    pub fn try_cast<T, F, S2: ToString>(
+    pub(crate) fn try_cast<T, F, S2: ToString>(
         self,
         f: F,
         who: Option<&str>,
