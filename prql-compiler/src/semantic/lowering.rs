@@ -9,9 +9,11 @@ use itertools::Itertools;
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
     self, BinaryExpr, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef,
-    Range, RelationLiteral, SwitchCase, TupleField, UnaryExpr, WindowFrame,
+    Range, SwitchCase, TupleField, UnaryExpr, WindowFrame,
 };
-use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
+use crate::ast::rq::{
+    self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform,
+};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;

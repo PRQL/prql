@@ -10,8 +10,8 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
-use crate::ast::pl::{JoinSide, Literal, RelationLiteral};
-use crate::ast::rq::{CId, Expr, ExprKind, Query};
+use crate::ast::pl::{JoinSide, Literal};
+use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationLiteral};
 use crate::error::WithErrorInfo;
 use crate::utils::{BreakUp, Pluck};
 use crate::Error;

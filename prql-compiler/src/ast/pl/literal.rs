@@ -24,14 +24,6 @@ pub struct ValueAndUnit {
     pub unit: String, // Could be an enum IntervalType,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct RelationLiteral {
-    /// Column names
-    pub columns: Vec<String>,
-    /// Row-oriented data
-    pub rows: Vec<Vec<Literal>>,
-}
-
 impl From<Literal> for anyhow::Error {
     fn from(item: Literal) -> Self {
         anyhow!("Failed to convert `{item}`")
