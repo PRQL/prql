@@ -26,15 +26,6 @@ impl WriteSource for Ty {
     }
 }
 
-impl WriteSource for Option<&Ty> {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        match self {
-            Some(ty) => ty.write(opt),
-            None => Some("infer".to_string()),
-        }
-    }
-}
-
 impl WriteSource for TyKind {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         use TyKind::*;
@@ -64,14 +55,21 @@ impl WriteSource for TyKind {
                 let mut r = String::new();
 
                 for t in &func.args {
-                    r += &t.as_ref().write(opt.clone())?;
+                    r += &write_opt_ty(t.as_ref(), opt.clone())?;
                     r += " ";
                 }
                 r += "-> ";
-                r += &(*func.return_ty).as_ref().write(opt)?;
+                r += &write_opt_ty((*func.return_ty).as_ref(), opt)?;
                 Some(r)
             }
         }
+    }
+}
+
+fn write_opt_ty(opt_ty: Option<&Ty>, opt: WriteOpt) -> Option<String> {
+    match opt_ty {
+        Some(ty) => ty.write(opt),
+        None => Some("infer".to_string()),
     }
 }
 
