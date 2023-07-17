@@ -24,4 +24,5 @@ To avoid complaints from `markdown-link-check` in the CI, we use "markdown-link-
 | F-strings         | [Combine several column's data with F-strings](./f-strings.md)          |
 | Target & Version  | [Specify a target SQL engine and PRQL version](./target.md)             |
 
+<!-- markdown-link-check-disable -->
 [Common functions in SQL]: ./standard-library/index.html
