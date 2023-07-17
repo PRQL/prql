@@ -297,13 +297,13 @@ impl<T> Range<T> {
 }
 
 impl Range {
-    pub fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
+    pub(crate) fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
         let start = start.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         Range { start, end }
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         fn as_int(bound: &Option<Box<Expr>>) -> Option<i64> {
             bound
                 .as_ref()
