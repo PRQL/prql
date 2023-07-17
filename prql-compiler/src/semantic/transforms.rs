@@ -74,7 +74,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let [expr, tbl] = unpack::<2>(closure);
 
             let range = match expr.kind {
-                ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                ExprKind::Literal(Literal::Integer(n)) => range_from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
                 _ => {
                     return Err(Error::new(Reason::Expected {
@@ -161,15 +161,15 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let range = range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?;
 
             let (kind, range) = if expanding {
-                (WindowKind::Rows, Range::from_ints(None, Some(0)))
+                (WindowKind::Rows, range_from_ints(None, Some(0)))
             } else if rolling > 0 {
                 (
                     WindowKind::Rows,
-                    Range::from_ints(Some(-rolling + 1), Some(0)),
+                    range_from_ints(Some(-rolling + 1), Some(0)),
                 )
-            } else if !rows.is_empty() {
+            } else if !range_is_empty(&rows) {
                 (WindowKind::Rows, rows)
-            } else if !range.is_empty() {
+            } else if !range_is_empty(&range) {
                 (WindowKind::Range, range)
             } else {
                 (WindowKind::Rows, Range::unbounded())
@@ -426,6 +426,27 @@ pub fn coerce_into_tuple_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
         res2.extend(coerce_into_tuple(item)?);
     }
     Ok(res2)
+}
+
+fn range_is_empty(range: &Range) -> bool {
+    fn as_int(bound: &Option<Box<Expr>>) -> Option<i64> {
+        bound
+            .as_ref()
+            .and_then(|s| s.kind.as_literal())
+            .and_then(|l| l.as_integer().cloned())
+    }
+
+    if let Some((s, e)) = as_int(&range.start).zip(as_int(&range.end)) {
+        s >= e
+    } else {
+        false
+    }
+}
+
+fn range_from_ints(start: Option<i64>, end: Option<i64>) -> Range {
+    let start = start.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
+    let end = end.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
+    Range { start, end }
 }
 
 /// Simulate evaluation of the inner pipeline of group or window
