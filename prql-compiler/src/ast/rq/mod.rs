@@ -17,7 +17,7 @@ pub use utils::*;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::pl::{ColumnSort, QueryDef, Range, RelationLiteral, WindowFrame};
+use super::pl::{ColumnSort, Literal, QueryDef, Range, WindowFrame};
 use super::pl::{Ident, InterpolateItem};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -44,6 +44,14 @@ pub enum RelationKind {
     Literal(RelationLiteral),
     SString(Vec<InterpolateItem<Expr>>),
     BuiltInFunction { name: String, args: Vec<Expr> },
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct RelationLiteral {
+    /// Column names
+    pub columns: Vec<String>,
+    /// Row-oriented data
+    pub rows: Vec<Vec<Literal>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]

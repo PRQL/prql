@@ -920,6 +920,8 @@ impl AstFold for Flattener {
 }
 
 mod from_text {
+    use crate::ast::rq::RelationLiteral;
+
     use super::*;
 
     // TODO: Can we dynamically get the types, like in pandas? We need to put
