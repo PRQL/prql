@@ -3,7 +3,10 @@
 The pages of this section describe how PRQL handles various aspects of the
 language.
 
-<!-- we're linking to README.md files as index.html to work around https://github.com/rust-lang/mdBook/issues/984  by using "markdown_link_check_disable"-->
+<!-- 
+To work around https://github.com/rust-lang/mdBook/issues/984 we link to "index.html" instead of "README.md". T
+To avoid complaints from `markdown-link-check` in the CI, we use "markdown-link-check-disable" 
+-->
 
 | Feature           | Purpose                                                                 |
 | ----------------- | ----------------------------------------------------------------------- |
@@ -15,8 +18,10 @@ language.
 | Null handling     | [Handle `NULL` values](./null.md)                                       |
 | Ranges            | [Syntax for all forms of ranges](./ranges.md)                           |
 | Regex             | [Handle regular expressions](./regex.md)                                |
-| <!-- markdown-link-check-disable --> Standard Library  | [Common functions in SQL](./standard-library/index.html)                |
-| <!-- markdown-link-check-enable--> Strings           | [Rules for creating strings](./strings.md)                              |
+| Standard Library  | [Common functions in SQL]                                               |
+| Strings           | [Rules for creating strings](./strings.md)                              |
 | S-strings         | [Insert SQL directly into a query with an S-string](./s-strings.md)     |
 | F-strings         | [Combine several column's data with F-strings](./f-strings.md)          |
 | Target & Version  | [Specify a target SQL engine and PRQL version](./target.md)             |
+
+[Common functions in SQL]: ./standard-library/index.html

@@ -43,7 +43,11 @@ select {e.name, gross_salary, d.name}
 
 ## See also
 
+<!-- 
+To work around https://github.com/rust-lang/mdBook/issues/984 we link to "index.html" instead of "README.md". 
+To avoid complaints from `markdown-link-check` in the CI, we use "markdown-link-check-disable" 
+-->
 <!-- markdown-link-check-disable -->
-<!-- we're linking to README.md files as index.html to work around https://github.com/rust-lang/mdBook/issues/984 -->
 - [Transforms](../transforms/index.html) - PRQL Transforms
 - [Syntax](../syntax/index.html) - Notation for PRQL queries
+<!-- markdown-link-check-enable -->
