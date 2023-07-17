@@ -1011,7 +1011,10 @@ pub(super) mod test {
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
-        let derive = expr.kind.into_transform_call()?;
+        let derive = expr
+            .kind
+            .into_transform_call()
+            .unwrap_or_else(|e| panic!("Failed to convert `{}`", Expr::from(e)));
         let exprs = derive.kind.into_derive()?;
         let exprs = IdEraser {}.fold_exprs(exprs).unwrap();
         Ok(exprs)
