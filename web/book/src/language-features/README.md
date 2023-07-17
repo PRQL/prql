@@ -4,7 +4,7 @@ The pages of this section describe how PRQL handles various aspects of the
 language.
 
 <!-- 
-To work around https://github.com/rust-lang/mdBook/issues/984 we link to "index.html" instead of "README.md". T
+To work around https://github.com/rust-lang/mdBook/issues/984 we link to "index.html" instead of "README.md".
 To avoid complaints from `markdown-link-check` in the CI, we use "markdown-link-check-disable" 
 -->
 

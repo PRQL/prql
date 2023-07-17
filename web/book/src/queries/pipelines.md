@@ -48,6 +48,7 @@ To work around https://github.com/rust-lang/mdBook/issues/984 we link to "index.
 To avoid complaints from `markdown-link-check` in the CI, we use "markdown-link-check-disable" 
 -->
 <!-- markdown-link-check-disable -->
+
 - [Transforms](../transforms/index.html) - PRQL Transforms
 - [Syntax](../syntax/index.html) - Notation for PRQL queries
 <!-- markdown-link-check-enable -->
