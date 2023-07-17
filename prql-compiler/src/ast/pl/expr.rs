@@ -409,13 +409,21 @@ impl Expr {
     pub fn null() -> Expr {
         Expr::new(ExprKind::Literal(Literal::Null))
     }
+}
 
-    pub(crate) fn try_cast<T, F, S2: ToString>(
+pub(crate) trait TryCast {
+    fn try_cast<T, F, S2: ToString>(
         self,
         f: F,
         who: Option<&str>,
         expected: S2,
     ) -> Result<T, Error>
+    where
+        F: FnOnce(ExprKind) -> Result<T, ExprKind>;
+}
+
+impl TryCast for Expr {
+    fn try_cast<T, F, S2: ToString>(self, f: F, who: Option<&str>, expected: S2) -> Result<T, Error>
     where
         F: FnOnce(ExprKind) -> Result<T, ExprKind>,
     {

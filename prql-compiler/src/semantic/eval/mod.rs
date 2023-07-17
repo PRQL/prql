@@ -3,6 +3,7 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
+use crate::ast::pl::TryCast;
 use crate::ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal};
 use crate::error::{Error, Span, WithErrorInfo};
 
