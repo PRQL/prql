@@ -500,14 +500,6 @@ impl<T> Default for WindowFrame<T> {
     }
 }
 
-impl From<ExprKind> for anyhow::Error {
-    // https://github.com/bluejekyll/enum-as-inner/issues/84
-    #[allow(unreachable_code)]
-    fn from(kind: ExprKind) -> Self {
-        anyhow!("Failed to convert `{}`", Expr::from(kind))
-    }
-}
-
 impl From<TransformKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
