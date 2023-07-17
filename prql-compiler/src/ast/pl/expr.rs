@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 
 use serde::{Deserialize, Serialize};
@@ -497,13 +497,5 @@ impl<T> Default for WindowFrame<T> {
             kind: WindowKind::Rows,
             range: Range::unbounded(),
         }
-    }
-}
-
-impl From<TransformKind> for anyhow::Error {
-    // https://github.com/bluejekyll/enum-as-inner/issues/84
-    #[allow(unreachable_code)]
-    fn from(kind: TransformKind) -> Self {
-        anyhow!("Failed to convert `{kind:?}`")
     }
 }

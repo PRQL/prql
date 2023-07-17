@@ -1015,7 +1015,11 @@ pub(super) mod test {
             .kind
             .into_transform_call()
             .unwrap_or_else(|e| panic!("Failed to convert `{}`", Expr::from(e)));
-        let exprs = derive.kind.into_derive()?;
+        let exprs = derive
+            .kind
+            .into_derive()
+            .unwrap_or_else(|e| panic!("Failed to convert `{e:?}`"));
+
         let exprs = IdEraser {}.fold_exprs(exprs).unwrap();
         Ok(exprs)
     }
