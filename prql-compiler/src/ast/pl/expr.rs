@@ -226,14 +226,6 @@ pub struct Func {
     pub env: HashMap<String, Expr>,
 }
 
-impl Func {
-    pub(crate) fn as_debug_name(&self) -> &str {
-        let ident = self.name_hint.as_ref();
-
-        ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncParam {
     pub name: String,

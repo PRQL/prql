@@ -542,7 +542,7 @@ impl Resolver {
 
         log::debug!(
             "func {} {}/{} params",
-            closure.as_debug_name(),
+            func_debug_name(&closure),
             closure.args.len(),
             closure.params.len()
         );
@@ -550,7 +550,7 @@ impl Resolver {
         if closure.args.len() > closure.params.len() {
             return Err(Error::new_simple(format!(
                 "Too many arguments to function `{}`",
-                closure.as_debug_name()
+                func_debug_name(&closure),
             ))
             .with_span(span)
             .into());
@@ -607,7 +607,7 @@ impl Resolver {
                 }
             } else {
                 // base case: materialize
-                log::debug!("stack_push for {}", closure.as_debug_name());
+                log::debug!("stack_push for {}", func_debug_name(&closure));
 
                 let (func_env, body) = env_of_closure(closure);
 
@@ -974,6 +974,12 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         kind: TyKind::Primitive(set),
         name: None,
     }))
+}
+
+pub fn func_debug_name(func: &Func) -> &str {
+    let ident = func.name_hint.as_ref();
+
+    ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
 }
 
 #[cfg(test)]
