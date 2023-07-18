@@ -17,7 +17,6 @@ repos:
     hooks:
       - id: prettier
         additional_dependencies:
-          - prettier
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.0.278
