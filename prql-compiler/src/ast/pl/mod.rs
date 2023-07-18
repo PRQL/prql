@@ -11,7 +11,6 @@
 pub mod expr;
 pub mod fold;
 pub mod lineage;
-pub mod literal;
 pub mod stmt;
 pub mod types;
 pub mod utils;
@@ -22,7 +21,6 @@ use crate::{ast::rq::TableRef, *};
 
 pub use self::expr::*;
 pub use self::lineage::*;
-pub use self::literal::*;
 pub use self::stmt::*;
 pub use self::types::*;
 pub use self::utils::*;
