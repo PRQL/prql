@@ -7,6 +7,9 @@ use crate::{
     utils::VALID_IDENT,
 };
 
+mod literal;
+pub use literal::DisplayLiteral;
+
 pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     let mut opt = WriteOpt::default();
 
@@ -305,7 +308,7 @@ impl WriteSource for pl::ExprKind {
             TransformCall(transform) => {
                 Some(format!("{} <unimplemented>", (*transform.kind).as_ref()))
             }
-            Literal(literal) => Some(literal.to_string()),
+            Literal(literal) => Some(DisplayLiteral(literal).to_string()),
             Case(cases) => {
                 let mut r = String::new();
                 r += "case ";
@@ -621,7 +624,7 @@ impl WriteSource for pl::TyKind {
                 }
                 .write(opt)
             }
-            Singleton(lit) => Some(lit.to_string()),
+            Singleton(lit) => Some(DisplayLiteral(lit).to_string()),
             Tuple(elements) => SeparatedExprs {
                 exprs: elements,
                 inline: ", ",

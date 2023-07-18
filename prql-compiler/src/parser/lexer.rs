@@ -1,6 +1,6 @@
 use chumsky::{error::Cheap, prelude::*};
 
-use crate::ast::pl::*;
+use crate::{ast::pl::*, codegen};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {
@@ -403,7 +403,7 @@ impl std::fmt::Display for Token {
                 }
             }
             Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Self::Literal(arg0) => write!(f, "{arg0}"),
+            Self::Literal(arg0) => write!(f, "{}", codegen::DisplayLiteral(arg0)),
             Self::Control(arg0) => write!(f, "{arg0}"),
 
             Self::ArrowThin => f.write_str("->"),
