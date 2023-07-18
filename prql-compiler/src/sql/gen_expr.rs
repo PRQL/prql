@@ -8,12 +8,11 @@ use sqlparser::ast::{
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 
-use crate::ast::pl::{
-    self, ColumnSort, Ident, InterpolateItem, Literal, Range, SortDirection, WindowFrame,
-    WindowKind,
-};
+use crate::ast::generic::{InterpolateItem, Range};
+use crate::ast::pl::{self, Ident, Literal};
 use crate::ast::rq::*;
 use crate::error::{Error, Span, WithErrorInfo};
+use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
 
@@ -870,7 +869,7 @@ impl From<sql_ast::Expr> for ExprOrSource {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::pl::Range;
+    use crate::ast::generic::Range;
     use insta::assert_yaml_snapshot;
 
     #[test]

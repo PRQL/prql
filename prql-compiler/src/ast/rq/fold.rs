@@ -4,7 +4,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::{InterpolateItem, SwitchCase};
+use crate::generic::{ColumnSort, WindowFrame};
 
 use super::*;
 
@@ -243,8 +243,8 @@ pub fn fold_optional_box<F: ?Sized + RqFold>(
 
 pub fn fold_interpolate_items<T: ?Sized + RqFold>(
     fold: &mut T,
-    items: Vec<InterpolateItem<Expr>>,
-) -> Result<Vec<InterpolateItem<Expr>>> {
+    items: Vec<InterpolateItem>,
+) -> Result<Vec<InterpolateItem>> {
     items
         .into_iter()
         .map(|i| fold_interpolate_item(fold, i))
@@ -253,8 +253,8 @@ pub fn fold_interpolate_items<T: ?Sized + RqFold>(
 
 pub fn fold_interpolate_item<T: ?Sized + RqFold>(
     fold: &mut T,
-    item: InterpolateItem<Expr>,
-) -> Result<InterpolateItem<Expr>> {
+    item: InterpolateItem,
+) -> Result<InterpolateItem> {
     Ok(match item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
         InterpolateItem::Expr { expr, format } => InterpolateItem::Expr {
@@ -264,10 +264,7 @@ pub fn fold_interpolate_item<T: ?Sized + RqFold>(
     })
 }
 
-pub fn fold_switch_case<F: ?Sized + RqFold>(
-    fold: &mut F,
-    case: SwitchCase<Expr>,
-) -> Result<SwitchCase<Expr>> {
+pub fn fold_switch_case<F: ?Sized + RqFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
     Ok(SwitchCase {
         condition: fold.fold_expr(case.condition)?,
         value: fold.fold_expr(case.value)?,

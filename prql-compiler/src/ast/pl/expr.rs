@@ -6,6 +6,7 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span, WithErrorInfo};
+use ast::generic as generic_expr;
 
 use super::*;
 
@@ -244,57 +245,18 @@ pub struct FuncParam {
     pub default_value: Option<Box<Expr>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct WindowFrame<T = Box<Expr>> {
-    pub kind: WindowKind,
-    pub range: Range<T>,
-}
-
 /// A value and a series of functions that are to be applied to that value one after another.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
     pub exprs: Vec<Expr>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum InterpolateItem<T = Expr> {
-    String(String),
-    Expr {
-        expr: Box<T>,
-        format: Option<String>,
-    },
-}
+pub type Range = generic_expr::Range<Box<Expr>>;
+pub type InterpolateItem = generic_expr::InterpolateItem<Expr>;
+pub type SwitchCase = generic_expr::SwitchCase<Box<Expr>>;
 
-/// Inclusive-inclusive range.
-/// Missing bound means unbounded range.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Range<T = Box<Expr>> {
-    pub start: Option<T>,
-    pub end: Option<T>,
-}
-
-impl<T> Range<T> {
-    pub const fn unbounded() -> Self {
-        Range {
-            start: None,
-            end: None,
-        }
-    }
-
-    pub fn try_map<U, E, F: Fn(T) -> Result<U, E>>(self, f: F) -> Result<Range<U>, E> {
-        Ok(Range {
-            start: self.start.map(&f).transpose()?,
-            end: self.end.map(f).transpose()?,
-        })
-    }
-
-    pub fn map<U, F: Fn(T) -> U>(self, f: F) -> Range<U> {
-        Range {
-            start: self.start.map(&f),
-            end: self.end.map(f),
-        }
-    }
-}
+pub type WindowFrame = crate::generic::WindowFrame<Box<Expr>>;
+pub type ColumnSort = crate::generic::ColumnSort<Box<Expr>>;
 
 impl Range {
     pub(crate) fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
@@ -317,12 +279,6 @@ impl Range {
             false
         }
     }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct SwitchCase<T = Box<Expr>> {
-    pub condition: T,
-    pub value: T,
 }
 
 /// FuncCall with better typing. Returns the modified table.
@@ -381,25 +337,6 @@ pub enum TransformKind {
     },
     Append(Box<Expr>),
     Loop(Box<Expr>),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ColumnSort<T = Box<Expr>> {
-    pub direction: SortDirection,
-    pub column: T,
-}
-
-#[derive(Debug, Clone, Serialize, Default, Deserialize, PartialEq, Eq)]
-pub enum SortDirection {
-    #[default]
-    Asc,
-    Desc,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum WindowKind {
-    Rows,
-    Range,
 }
 
 /// A reference to a table that is not in scope of this query.
@@ -473,29 +410,5 @@ impl Expr {
 impl From<Vec<Expr>> for Pipeline {
     fn from(nodes: Vec<Expr>) -> Self {
         Pipeline { exprs: nodes }
-    }
-}
-
-impl WindowFrame {
-    fn is_default(&self) -> bool {
-        matches!(
-            self,
-            WindowFrame {
-                kind: WindowKind::Rows,
-                range: Range {
-                    start: None,
-                    end: None
-                }
-            }
-        )
-    }
-}
-
-impl<T> Default for WindowFrame<T> {
-    fn default() -> Self {
-        Self {
-            kind: WindowKind::Rows,
-            range: Range::unbounded(),
-        }
     }
 }

@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::super::pl::{InterpolateItem, Literal, SwitchCase};
+use super::super::pl::Literal;
 use super::CId;
 use crate::error::Span;
 
@@ -11,6 +11,10 @@ pub struct Expr {
     pub kind: ExprKind,
     pub span: Option<Span>,
 }
+
+pub(super) type Range = crate::ast::generic::Range<Expr>;
+pub(super) type InterpolateItem = crate::ast::generic::InterpolateItem<Expr>;
+pub(super) type SwitchCase = crate::ast::generic::SwitchCase<Expr>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {
@@ -23,9 +27,9 @@ pub enum ExprKind {
     )]
     Literal(Literal),
 
-    SString(Vec<InterpolateItem<Expr>>),
+    SString(Vec<InterpolateItem>),
 
-    Case(Vec<SwitchCase<Expr>>),
+    Case(Vec<SwitchCase>),
 
     Operator {
         name: String,
