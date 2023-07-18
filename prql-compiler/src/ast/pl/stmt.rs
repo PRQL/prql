@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::Span;
 
-use super::*;
-
 pub use prql_ast::stmt::{QueryDef, VarDefKind};
+
+use super::expr::Expr;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
