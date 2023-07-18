@@ -45,6 +45,7 @@ jobs:
 
   test-rust:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
