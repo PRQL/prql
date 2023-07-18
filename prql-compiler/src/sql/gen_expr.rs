@@ -1,6 +1,6 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
@@ -495,7 +495,11 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
 
 fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
     fn cast_bound(bound: Expr) -> Result<i64> {
-        Ok(bound.kind.into_literal()?.into_integer()?)
+        bound
+            .kind
+            .into_literal()?
+            .into_integer()
+            .map_err(|kind| anyhow!("Failed to convert `{kind:?}`"))
     }
 
     Ok(Range {
@@ -605,7 +609,11 @@ fn translate_windowed(
 
 fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
     fn parse_bound(bound: Expr) -> Result<WindowFrameBound> {
-        let as_int = bound.kind.into_literal()?.into_integer()?;
+        let as_int = bound
+            .kind
+            .into_literal()?
+            .into_integer()
+            .map_err(|kind| anyhow!("Failed to convert `{kind:?}`"))?;
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
             1.. => WindowFrameBound::Following(Some(Box::new(sql_ast::Expr::Value(
