@@ -2954,7 +2954,9 @@ dependencies = [
 name = "prql_ast"
 version = "0.0.0"
 dependencies = [
+ "enum-as-inner",
  "serde",
+ "strum 0.25.0",
 ]
 
 [[package]]
