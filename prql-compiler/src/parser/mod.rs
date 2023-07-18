@@ -224,7 +224,6 @@ mod common {
         span: ParserSpan,
     ) -> Stmt {
         Stmt {
-            id: None,
             name,
             kind,
             span: Some(span.0),
