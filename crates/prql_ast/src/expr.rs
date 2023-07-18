@@ -15,6 +15,16 @@ use serde::{Deserialize, Serialize};
 use crate::Span;
 use generic as generic_expr;
 
+impl Expr {
+    pub fn new(kind: ExprKind) -> Self {
+        Expr {
+            kind,
+            span: None,
+            alias: None,
+        }
+    }
+}
+
 // The following code is tested by misc_tests to match expr.rs in prql_compiler.
 
 /// Expr is anything that has a value and thus a type.

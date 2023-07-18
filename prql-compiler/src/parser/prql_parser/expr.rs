@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
-use expr::{BinaryExpr, UnaryExpr};
 
-use super::span::ParserSpan;
-use crate::ast::pl::*;
-use crate::Span;
+use prql_ast::expr::*;
+use prql_ast::Span;
 
 use super::interpolation;
 use super::lexer::Token;
+use super::span::ParserSpan;
 use super::{common::*, stmt::type_expr};
 
 pub fn expr_call() -> impl Parser<Token, Expr, Error = PError> {
@@ -81,7 +80,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
                         (Token::Control('['), Token::Control(']')),
                         (Token::Control('('), Token::Control(')')),
                     ],
-                    |_| Expr::null(),
+                    |_| Expr::new(ExprKind::Literal(Literal::Null)),
                 ));
 
         let interpolation = select! {
@@ -352,7 +351,7 @@ where
             .into_iter()
             .map(|((name, ty), default_value)| FuncParam {
                 name,
-                ty: ty.map(TyOrExpr::Expr),
+                ty,
                 default_value,
             })
             .partition(|p| p.default_value.is_none());
@@ -362,11 +361,7 @@ where
             named_params: name,
 
             body: Box::new(body),
-            return_ty: return_ty.map(TyOrExpr::Expr),
-
-            name_hint: None,
-            args: Vec::new(),
-            env: HashMap::new(),
+            return_ty,
         })
     })
     .map(ExprKind::Func)

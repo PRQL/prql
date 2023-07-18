@@ -1,7 +1,7 @@
 use chumsky::{error::Cheap, prelude::*};
 use itertools::Itertools;
+use prql_ast::expr::*;
 
-use crate::ast::pl::*;
 use crate::Span;
 
 use super::common::{into_expr, PError};
