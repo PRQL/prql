@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
-use std::ops::{Add, Range};
+use std::ops::Range;
 use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
@@ -388,18 +388,6 @@ impl Display for Reason {
             }
             Reason::Unexpected { found } => write!(f, "unexpected {found}"),
             Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
-        }
-    }
-}
-
-impl Add<usize> for Span {
-    type Output = Span;
-
-    fn add(self, rhs: usize) -> Span {
-        Span {
-            start: self.start + rhs,
-            end: self.end + rhs,
-            source_id: self.source_id,
         }
     }
 }

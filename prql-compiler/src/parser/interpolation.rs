@@ -6,9 +6,10 @@ use crate::Span;
 
 use super::common::{into_expr, PError};
 use super::lexer::*;
+use super::span::ParserSpan;
 
 /// Parses interpolated strings
-pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
+pub fn parse(string: String, span_base: ParserSpan) -> Result<Vec<InterpolateItem>, Vec<PError>> {
     let res = parser(span_base).parse(string);
 
     match res {
@@ -20,7 +21,7 @@ pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Ve
     }
 }
 
-fn parser(span_base: Span) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
+fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
         .at_least(1)
@@ -53,10 +54,10 @@ fn parser(span_base: Span) -> impl Parser<char, Vec<InterpolateItem>, Error = Ch
     escape.or(expr).or(string).repeated().then_ignore(end())
 }
 
-fn offset_span(base: Span, range: std::ops::Range<usize>) -> Span {
-    Span {
-        start: base.start + range.start,
-        end: base.start + range.end,
-        source_id: base.source_id,
-    }
+fn offset_span(base: ParserSpan, range: std::ops::Range<usize>) -> ParserSpan {
+    ParserSpan(Span {
+        start: base.0.start + range.start,
+        end: base.0.start + range.end,
+        source_id: base.0.source_id,
+    })
 }

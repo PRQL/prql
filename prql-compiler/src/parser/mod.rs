@@ -23,6 +23,10 @@ use crate::{
 };
 use crate::{SourceTree, Span};
 
+mod span;
+
+use span::ParserSpan;
+
 /// Build PL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
@@ -109,7 +113,7 @@ fn convert_parser_error(e: common::PError) -> Error {
     }
 
     if let SimpleReason::Custom(message) = e.reason() {
-        return Error::new_simple(message).with_span(Some(span));
+        return Error::new_simple(message).with_span(Some(*span));
     }
 
     fn token_to_string(t: Option<Token>) -> String {
@@ -139,7 +143,7 @@ fn convert_parser_error(e: common::PError) -> Error {
     if expected.is_empty() || expected.len() > 10 {
         let label = token_to_string(e.found().cloned());
         return Error::new_simple(format!("unexpected {label}{while_parsing}"))
-            .with_span(Some(span));
+            .with_span(Some(*span));
     }
 
     let mut expected = expected;
@@ -165,33 +169,33 @@ fn convert_parser_error(e: common::PError) -> Error {
             "Expected {expected}, but didn't find anything before the end."
         ))),
     }
-    .with_span(Some(span))
+    .with_span(Some(*span))
 }
 
 fn prepare_stream(
     tokens: Vec<(Token, std::ops::Range<usize>)>,
     source: &str,
     source_id: u16,
-) -> Stream<Token, Span, impl Iterator<Item = (Token, Span)> + Sized> {
+) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |(t, s)| (t, Span::new(source_id, s)));
+        .map(move |(t, s)| (t, ParserSpan::new(source_id, s)));
     let len = source.chars().count();
-    let eoi = Span {
+    let eoi = ParserSpan(Span {
         start: len,
         end: len + 1,
         source_id,
-    };
+    });
     Stream::from_iter(eoi, tokens)
 }
 
 mod common {
     use chumsky::prelude::*;
 
-    use super::lexer::Token;
-    use crate::{ast::pl::*, Span};
+    use super::{lexer::Token, span::ParserSpan};
+    use crate::ast::pl::*;
 
-    pub type PError = Simple<Token, Span>;
+    pub type PError = Simple<Token, ParserSpan>;
 
     pub fn ident_part() -> impl Parser<Token, String, Error = PError> {
         select! { Token::Ident(ident) => ident }.map_err(|e: PError| {
@@ -217,47 +221,21 @@ mod common {
 
     pub fn into_stmt(
         (annotations, (name, kind)): (Vec<Annotation>, (String, StmtKind)),
-        span: Span,
+        span: ParserSpan,
     ) -> Stmt {
         Stmt {
             id: None,
             name,
             kind,
-            span: Some(span),
+            span: Some(span.0),
             annotations,
         }
     }
 
-    pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
+    pub fn into_expr(kind: ExprKind, span: ParserSpan) -> Expr {
         Expr {
-            span: Some(span),
+            span: Some(span.0),
             ..Expr::new(kind)
-        }
-    }
-
-    impl chumsky::Span for Span {
-        type Context = u16;
-
-        type Offset = usize;
-
-        fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
-            Span {
-                start: range.start,
-                end: range.end,
-                source_id: context,
-            }
-        }
-
-        fn context(&self) -> Self::Context {
-            self.source_id
-        }
-
-        fn start(&self) -> Self::Offset {
-            self.start
-        }
-
-        fn end(&self) -> Self::Offset {
-            self.end
         }
     }
 }
