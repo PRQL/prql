@@ -26,5 +26,7 @@ pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
 }
 
 fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
-    prql_parser::parse_source(source, source_id)
+    let stmts = prql_parser::parse_source(source, source_id)?;
+
+    Ok(stmts.into_iter().map(Stmt::from).collect())
 }

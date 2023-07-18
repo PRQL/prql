@@ -4,9 +4,10 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use semver::VersionReq;
 
-use crate::ast::pl::*;
 use crate::semantic::NS_MAIN;
 use crate::semantic::NS_QUERY_DEF;
+use prql_ast::expr::*;
+use prql_ast::stmt::*;
 
 use super::common::*;
 use super::expr::*;

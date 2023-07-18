@@ -1,6 +1,7 @@
 use chumsky::{error::Cheap, prelude::*};
+use prql_ast::expr::*;
 
-use crate::{ast::pl::*, codegen};
+use crate::codegen;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {

@@ -40,6 +40,18 @@ pub enum InterpolateItem<T> {
     },
 }
 
+impl<T> InterpolateItem<T> {
+    pub fn map<U, F: Fn(T) -> U>(self, f: F) -> InterpolateItem<U> {
+        match self {
+            Self::String(s) => InterpolateItem::String(s),
+            Self::Expr { expr, format } => InterpolateItem::Expr {
+                expr: Box::new(f(*expr)),
+                format,
+            },
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct SwitchCase<T> {
     pub condition: T,
