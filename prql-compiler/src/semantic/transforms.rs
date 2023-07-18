@@ -9,6 +9,7 @@ use crate::ast::pl::expr::BinaryExpr;
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
+use crate::generic::{SortDirection, WindowKind};
 
 use super::context::{Decl, DeclKind};
 use super::module::Module;

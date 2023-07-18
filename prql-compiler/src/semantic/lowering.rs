@@ -6,15 +6,16 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
+use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, BinaryExpr, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range, SwitchCase,
-    TupleField, UnaryExpr, WindowFrame,
+    self, BinaryExpr, Ident, Lineage, LineageColumn, QueryDef, TupleField, UnaryExpr,
 };
 use crate::ast::rq::{
     self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform,
 };
 use crate::error::{Error, Reason, Span, WithErrorInfo};
+use crate::generic::{ColumnSort, WindowFrame};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
@@ -554,18 +555,18 @@ impl Lowerer {
         Ok(())
     }
 
-    fn lower_range(&mut self, range: pl::Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
+    fn lower_range(&mut self, range: Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
         Ok(Range {
             start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
             end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
         })
     }
 
-    fn lower_sorts(&mut self, by: Vec<pl::ColumnSort>) -> Result<Vec<pl::ColumnSort<CId>>> {
+    fn lower_sorts(&mut self, by: Vec<ColumnSort<Box<pl::Expr>>>) -> Result<Vec<ColumnSort<CId>>> {
         by.into_iter()
-            .map(|pl::ColumnSort { column, direction }| {
+            .map(|ColumnSort { column, direction }| {
                 let column = self.declare_as_column(*column, false)?;
-                Ok(pl::ColumnSort { direction, column })
+                Ok(ColumnSort { direction, column })
             })
             .try_collect()
     }
@@ -792,8 +793,8 @@ impl Lowerer {
                 let mut res = None;
                 for item in items {
                     let item = Some(match item {
-                        InterpolateItem::String(string) => str_lit(string),
-                        InterpolateItem::Expr { expr, .. } => self.lower_expr(*expr)?,
+                        pl::InterpolateItem::String(string) => str_lit(string),
+                        pl::InterpolateItem::Expr { expr, .. } => self.lower_expr(*expr)?,
                     });
 
                     res = rq::maybe_binop(res, "std.concat", item);
@@ -851,7 +852,7 @@ impl Lowerer {
 
     fn lower_interpolations(
         &mut self,
-        items: Vec<InterpolateItem>,
+        items: Vec<InterpolateItem<pl::Expr>>,
     ) -> Result<Vec<InterpolateItem<rq::Expr>>> {
         items
             .into_iter()

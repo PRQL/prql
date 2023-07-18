@@ -83,6 +83,7 @@
 pub mod ast;
 mod codegen;
 mod error;
+mod generic;
 mod parser;
 pub mod semantic;
 pub mod sql;

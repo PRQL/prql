@@ -2,7 +2,8 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::JoinSide;
-use crate::ast::pl::{ColumnSort, Range, WindowFrame};
+use crate::generic::ColumnSort;
+use crate::generic::WindowFrame;
 
 use super::*;
 
@@ -30,7 +31,7 @@ pub enum Transform {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Take {
-    pub range: Range<Expr>,
+    pub range: Range,
     pub partition: Vec<CId>,
     pub sort: Vec<ColumnSort<CId>>,
 }

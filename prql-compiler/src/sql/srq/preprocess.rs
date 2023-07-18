@@ -5,13 +5,13 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::{
-    ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
-};
+use crate::ast::generic::{InterpolateItem, Range};
+use crate::ast::pl::{JoinSide, Literal};
 use crate::ast::rq::{
     self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
 };
 use crate::error::{Error, WithErrorInfo};
+use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
 
@@ -203,7 +203,7 @@ fn into_column_sort(partition: &[CId]) -> Vec<ColumnSort<CId>> {
     partition
         .iter()
         .map(|cid| ColumnSort {
-            direction: crate::ast::pl::SortDirection::Asc,
+            direction: SortDirection::Asc,
             column: *cid,
         })
         .collect_vec()
