@@ -8,8 +8,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, BinaryExpr, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef,
-    Range, SwitchCase, TupleField, UnaryExpr, WindowFrame,
+    self, BinaryExpr, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef, Range, SwitchCase,
+    TupleField, UnaryExpr, WindowFrame,
 };
 use crate::ast::rq::{
     self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform,
@@ -189,7 +189,7 @@ impl Lowerer {
     }
 
     /// Lower an expression into a instance of a table in the query
-    fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
+    fn lower_table_ref(&mut self, expr: pl::Expr) -> Result<rq::TableRef> {
         let mut expr = expr;
         if expr.lineage.is_none() {
             // make sure that type of this expr has been inferred to be a table
@@ -197,7 +197,7 @@ impl Lowerer {
         }
 
         Ok(match expr.kind {
-            ExprKind::Ident(fq_table_name) => {
+            pl::ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
                 let id = expr.id.unwrap();
                 let tid = *self.table_mapping.get(&fq_table_name).unwrap();
@@ -213,7 +213,7 @@ impl Lowerer {
 
                 self.create_a_table_instance(id, name, tid)
             }
-            ExprKind::TransformCall(_) => {
+            pl::ExprKind::TransformCall(_) => {
                 // pipeline that has to be pulled out into a table
                 let id = expr.id.unwrap();
 
@@ -240,7 +240,7 @@ impl Lowerer {
 
                 table_ref
             }
-            ExprKind::SString(items) => {
+            pl::ExprKind::SString(items) => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -274,7 +274,7 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
-            ExprKind::RqOperator { name, args } => {
+            pl::ExprKind::RqOperator { name, args } => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -309,7 +309,7 @@ impl Lowerer {
                 self.create_a_table_instance(id, None, tid)
             }
 
-            ExprKind::Array(elements) => {
+            pl::ExprKind::Array(elements) => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -423,7 +423,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_relation(&mut self, expr: Expr) -> Result<rq::Relation> {
+    fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
         let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
@@ -1024,7 +1024,7 @@ impl TableDepsCollector {
 }
 
 impl AstFold for TableDepsCollector {
-    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+    fn fold_expr(&mut self, mut expr: pl::Expr) -> Result<pl::Expr> {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
                 if let Some(ty) = &expr.ty {
