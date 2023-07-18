@@ -4,8 +4,8 @@ use enum_as_inner::EnumAsInner;
 use prql_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
-use crate::error::Span;
 use prql_ast::expr::generic as generic_expr;
+use prql_ast::Span;
 
 pub use prql_ast::expr::{BinOp, UnOp};
 

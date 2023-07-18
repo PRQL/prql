@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Span;
+use prql_ast::Span;
 
 pub use prql_ast::stmt::{QueryDef, VarDefKind};
 
