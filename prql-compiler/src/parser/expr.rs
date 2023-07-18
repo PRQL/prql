@@ -4,6 +4,7 @@ use chumsky::prelude::*;
 use expr::{BinaryExpr, UnaryExpr};
 
 use crate::ast::pl::*;
+use crate::parser::span::ParserSpan;
 use crate::Span;
 
 use super::interpolation;
@@ -87,7 +88,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
             Token::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
             Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
         }
-        .validate(|(finish, string), span: Span, emit| {
+        .validate(|(finish, string), span: ParserSpan, emit| {
             match interpolation::parse(string, span + 2) {
                 Ok(items) => finish(items),
                 Err(errors) => {
@@ -246,11 +247,11 @@ where
     (term.clone())
         .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
-            let span = Span {
+            let span = ParserSpan(Span {
                 start: left.1.start,
                 end: right.1.end,
                 source_id: left.1.source_id,
-            };
+            });
             let kind = ExprKind::Binary(BinaryExpr {
                 left: Box::new(left.0),
                 op,
