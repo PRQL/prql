@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use std::fmt::Display;
 
 use enum_as_inner::EnumAsInner;
@@ -22,12 +21,6 @@ pub enum Literal {
 pub struct ValueAndUnit {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
-}
-
-impl From<Literal> for anyhow::Error {
-    fn from(item: Literal) -> Self {
-        anyhow!("Failed to convert `{item}`")
-    }
 }
 
 impl Display for Literal {
