@@ -1,13 +1,14 @@
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 
 use anyhow::{anyhow, bail};
 use enum_as_inner::EnumAsInner;
-use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Span;
 
 use super::*;
+
+pub use prql_ast::stmt::{QueryDef, VarDefKind};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
@@ -30,25 +31,11 @@ pub enum StmtKind {
     ModuleDef(ModuleDef),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
-pub struct QueryDef {
-    pub version: Option<VersionReq>,
-    #[serde(default)]
-    pub other: HashMap<String, String>,
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
     pub value: Box<Expr>,
     pub ty_expr: Option<Box<Expr>>,
     pub kind: VarDefKind,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum VarDefKind {
-    Let,
-    Into,
-    Main,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
