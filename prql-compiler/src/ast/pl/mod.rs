@@ -10,7 +10,6 @@
 
 pub mod expr;
 pub mod fold;
-pub mod ident;
 pub mod lineage;
 pub mod literal;
 pub mod stmt;
@@ -22,12 +21,12 @@ use crate::{ast::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
 use crate::{ast::rq::TableRef, *};
 
 pub use self::expr::*;
-pub use self::ident::*;
 pub use self::lineage::*;
 pub use self::literal::*;
 pub use self::stmt::*;
 pub use self::types::*;
 pub use self::utils::*;
+pub use prql_ast::expr::*;
 
 pub fn print_mem_sizes() {
     use std::mem::size_of;

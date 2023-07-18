@@ -2953,6 +2953,9 @@ dependencies = [
 [[package]]
 name = "prql_ast"
 version = "0.0.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "prqlc"
