@@ -2888,6 +2888,7 @@ dependencies = [
  "once_cell",
  "pg_bigdecimal",
  "postgres",
+ "prql_ast",
  "regex",
  "rusqlite",
  "semver",
@@ -2948,6 +2949,10 @@ dependencies = [
  "pyo3",
  "pyo3-build-config",
 ]
+
+[[package]]
+name = "prql_ast"
+version = "0.0.0"
 
 [[package]]
 name = "prqlc"
