@@ -5,7 +5,7 @@ use prql_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Span;
-use ast::generic as generic_expr;
+use prql_ast::expr::generic as generic_expr;
 
 pub use prql_ast::expr::{BinOp, UnOp};
 
