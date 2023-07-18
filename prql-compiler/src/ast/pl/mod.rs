@@ -9,6 +9,7 @@
 //! Top-level construct is a list of statements [Vec<Stmt>].
 
 pub mod expr;
+pub mod extra;
 pub mod fold;
 pub mod lineage;
 pub mod stmt;
@@ -20,6 +21,7 @@ use crate::{ast::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
 use crate::{ast::rq::TableRef, *};
 
 pub use self::expr::*;
+pub use self::extra::expr::*;
 pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::types::*;
