@@ -18,6 +18,10 @@ env:
   # https://github.com/PRQL/prql/pull/2797
   RUSTFLAGS: "-C debuginfo=0"
 
+  # Build scripts on Windows for some reason have been seen to fail with
+  # "thread 'main' has overflowed its stack" ... maybe this helps?
+  RUST_MIN_STACK: 8388608
+
 jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
