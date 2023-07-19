@@ -1,0 +1,17 @@
+label: Basic example
+prql: |
+  from employees
+  select {id, first_name, age}
+  sort age
+  take 10
+sql: |
+  SELECT
+    id,
+    first_name,
+    age
+  FROM
+    employees
+  ORDER BY
+    age
+  LIMIT
+    10
