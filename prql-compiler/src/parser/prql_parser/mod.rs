@@ -9,7 +9,6 @@ use chumsky::{
     prelude::*,
     Stream,
 };
-use itertools::Itertools;
 
 use self::lexer::Token;
 
@@ -100,7 +99,7 @@ fn convert_parser_error(e: common::PError) -> Error {
     let is_all_whitespace = e
         .expected()
         .all(|t| matches!(t, None | Some(Token::NewLine)));
-    let expected = e
+    let expected: Vec<String> = e
         .expected()
         // TODO: could we collapse this into a `filter_map`? (though semantically
         // identical)
@@ -109,7 +108,7 @@ fn convert_parser_error(e: common::PError) -> Error {
         .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
         .cloned()
         .map(token_to_string)
-        .collect_vec();
+        .collect();
 
     let while_parsing = e
         .label()
@@ -228,12 +227,12 @@ mod test {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
             errs.into_iter()
                 .map(|e| anyhow!(convert_lexer_error(source, e, 0)))
-                .collect_vec()
+                .collect::<Vec<_>>()
         })?;
 
         let stream = prepare_stream(tokens, source, 0);
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
-            .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())
+            .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect())
     }
 
     #[test]
