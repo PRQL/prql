@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use enum_as_inner::EnumAsInner;
-use semver::VersionReq;
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span, WithErrorInfo};
+use ast::generic as generic_expr;
 
 use super::*;
 
@@ -89,15 +89,6 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
-}
-
-impl ExprKind {
-    pub fn parse_version(self) -> std::result::Result<VersionReq, Self> {
-        match self {
-            Self::Literal(Literal::String(ref s)) => VersionReq::parse(s).map_err(|_| self),
-            _ => Err(self),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -237,7 +228,7 @@ pub struct Func {
 }
 
 impl Func {
-    pub fn as_debug_name(&self) -> &str {
+    pub(crate) fn as_debug_name(&self) -> &str {
         let ident = self.name_hint.as_ref();
 
         ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
@@ -254,66 +245,27 @@ pub struct FuncParam {
     pub default_value: Option<Box<Expr>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct WindowFrame<T = Box<Expr>> {
-    pub kind: WindowKind,
-    pub range: Range<T>,
-}
-
 /// A value and a series of functions that are to be applied to that value one after another.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
     pub exprs: Vec<Expr>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum InterpolateItem<T = Expr> {
-    String(String),
-    Expr {
-        expr: Box<T>,
-        format: Option<String>,
-    },
-}
+pub type Range = generic_expr::Range<Box<Expr>>;
+pub type InterpolateItem = generic_expr::InterpolateItem<Expr>;
+pub type SwitchCase = generic_expr::SwitchCase<Box<Expr>>;
 
-/// Inclusive-inclusive range.
-/// Missing bound means unbounded range.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Range<T = Box<Expr>> {
-    pub start: Option<T>,
-    pub end: Option<T>,
-}
-
-impl<T> Range<T> {
-    pub const fn unbounded() -> Self {
-        Range {
-            start: None,
-            end: None,
-        }
-    }
-
-    pub fn try_map<U, E, F: Fn(T) -> Result<U, E>>(self, f: F) -> Result<Range<U>, E> {
-        Ok(Range {
-            start: self.start.map(&f).transpose()?,
-            end: self.end.map(f).transpose()?,
-        })
-    }
-
-    pub fn map<U, F: Fn(T) -> U>(self, f: F) -> Range<U> {
-        Range {
-            start: self.start.map(&f),
-            end: self.end.map(f),
-        }
-    }
-}
+pub type WindowFrame = crate::generic::WindowFrame<Box<Expr>>;
+pub type ColumnSort = crate::generic::ColumnSort<Box<Expr>>;
 
 impl Range {
-    pub fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
-        let start = start.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
-        let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
+    pub(crate) fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
+        let start = start.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
+        let end = end.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
         Range { start, end }
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         fn as_int(bound: &Option<Box<Expr>>) -> Option<i64> {
             bound
                 .as_ref()
@@ -327,12 +279,6 @@ impl Range {
             false
         }
     }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct SwitchCase<T = Box<Expr>> {
-    pub condition: T,
-    pub value: T,
 }
 
 /// FuncCall with better typing. Returns the modified table.
@@ -393,25 +339,6 @@ pub enum TransformKind {
     Loop(Box<Expr>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ColumnSort<T = Box<Expr>> {
-    pub direction: SortDirection,
-    pub column: T,
-}
-
-#[derive(Debug, Clone, Serialize, Default, Deserialize, PartialEq, Eq)]
-pub enum SortDirection {
-    #[default]
-    Asc,
-    Desc,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum WindowKind {
-    Rows,
-    Range,
-}
-
 /// A reference to a table that is not in scope of this query.
 ///
 /// > Note: We're not using this at the moment in
@@ -440,10 +367,10 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn null() -> Expr {
-        Expr::from(ExprKind::Literal(Literal::Null))
+        Expr::new(ExprKind::Literal(Literal::Null))
     }
 
-    pub fn try_cast<T, F, S2: ToString>(
+    pub(crate) fn try_cast<T, F, S2: ToString>(
         self,
         f: F,
         who: Option<&str>,
@@ -456,31 +383,15 @@ impl Expr {
             Error::new(Reason::Expected {
                 who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: format!("`{}`", Expr::from(i)),
+                found: format!("`{}`", Expr::new(i)),
             })
             .with_span(self.span)
         })
     }
-
-    pub fn collect_and(mut exprs: Vec<Expr>) -> Expr {
-        let mut aggregate = if let Some(first) = exprs.pop() {
-            first
-        } else {
-            return Expr::from(ExprKind::Literal(Literal::Boolean(true)));
-        };
-        while let Some(e) = exprs.pop() {
-            aggregate = Expr::from(ExprKind::Binary(BinaryExpr {
-                left: Box::new(e),
-                op: BinOp::And,
-                right: Box::new(aggregate),
-            }))
-        }
-        aggregate
-    }
 }
 
-impl From<ExprKind> for Expr {
-    fn from(kind: ExprKind) -> Self {
+impl Expr {
+    pub fn new(kind: ExprKind) -> Self {
         Expr {
             id: None,
             kind,
@@ -499,45 +410,5 @@ impl From<ExprKind> for Expr {
 impl From<Vec<Expr>> for Pipeline {
     fn from(nodes: Vec<Expr>) -> Self {
         Pipeline { exprs: nodes }
-    }
-}
-
-impl WindowFrame {
-    fn is_default(&self) -> bool {
-        matches!(
-            self,
-            WindowFrame {
-                kind: WindowKind::Rows,
-                range: Range {
-                    start: None,
-                    end: None
-                }
-            }
-        )
-    }
-}
-
-impl<T> Default for WindowFrame<T> {
-    fn default() -> Self {
-        Self {
-            kind: WindowKind::Rows,
-            range: Range::unbounded(),
-        }
-    }
-}
-
-impl From<ExprKind> for anyhow::Error {
-    // https://github.com/bluejekyll/enum-as-inner/issues/84
-    #[allow(unreachable_code)]
-    fn from(kind: ExprKind) -> Self {
-        anyhow!("Failed to convert `{}`", Expr::from(kind))
-    }
-}
-
-impl From<TransformKind> for anyhow::Error {
-    // https://github.com/bluejekyll/enum-as-inner/issues/84
-    #[allow(unreachable_code)]
-    fn from(kind: TransformKind) -> Self {
-        anyhow!("Failed to convert `{kind:?}`")
     }
 }

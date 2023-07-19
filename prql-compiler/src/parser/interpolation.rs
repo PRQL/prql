@@ -23,6 +23,7 @@ pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Ve
 fn parser(span_base: Span) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
+        .at_least(1)
         .then(
             just(':')
                 .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())

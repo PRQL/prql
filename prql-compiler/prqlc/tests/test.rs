@@ -6,9 +6,7 @@ use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::Command;
 
-// Windows has slightly different outputs (e.g. `prqlc.exe` instead of `prqlc`),
-// so we exclude.
-#[cfg(not(target_family = "windows"))]
+#[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn help() {
     assert_cmd_snapshot!(prqlc_command().arg("--help"), @r###"
@@ -81,6 +79,7 @@ fn compile() {
     "###);
 }
 
+#[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn compile_help() {
     let mut cmd = prqlc_command();
@@ -112,13 +111,13 @@ fn compile_help() {
 
     -t, --target <TARGET>
             Target to compile to
-
+            
             [env: PRQLC_TARGET=]
             [default: sql.any]
 
         --color <WHEN>
             Controls when to use color
-
+            
             [default: auto]
             [possible values: auto, always, never]
 

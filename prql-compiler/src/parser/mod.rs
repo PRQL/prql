@@ -231,7 +231,7 @@ mod common {
     pub fn into_expr(kind: ExprKind, span: Span) -> Expr {
         Expr {
             span: Some(span),
-            ..Expr::from(kind)
+            ..Expr::new(kind)
         }
     }
 

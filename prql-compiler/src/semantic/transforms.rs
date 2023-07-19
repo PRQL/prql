@@ -9,6 +9,7 @@ use crate::ast::pl::expr::BinaryExpr;
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
+use crate::generic::{SortDirection, WindowKind};
 
 use super::context::{Decl, DeclKind};
 use super::module::Module;
@@ -207,14 +208,14 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             match pattern.kind {
                 ExprKind::Range(Range { start, end }) => {
                     let start = start.map(|start| {
-                        Expr::from(ExprKind::Binary(BinaryExpr {
+                        Expr::new(ExprKind::Binary(BinaryExpr {
                             left: Box::new(value.clone()),
                             op: BinOp::Gte,
                             right: start,
                         }))
                     });
                     let end = end.map(|end| {
-                        Expr::from(ExprKind::Binary(BinaryExpr {
+                        Expr::new(ExprKind::Binary(BinaryExpr {
                             left: Box::new(value),
                             op: BinOp::Lte,
                             right: end,
@@ -222,8 +223,8 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     });
 
                     let res = new_binop(start, BinOp::And, end);
-                    let res = res
-                        .unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+                    let res =
+                        res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
                     return Ok(res);
                 }
                 ExprKind::Tuple(_) => {
@@ -252,7 +253,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             for item in list {
                 res = new_binop(res, BinOp::And, Some(item));
             }
-            let res = res.unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+            let res = res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
 
             return Ok(res);
         }
@@ -266,7 +267,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let list_items = list_items
                 .into_iter()
                 .map(|item| {
-                    Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+                    Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
                         func.clone(),
                         vec![item],
                     )))
@@ -288,10 +289,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
 
             let mut res = Vec::new();
             for (a, b) in std::iter::zip(a, b) {
-                res.push(Expr::from(ExprKind::Tuple(vec![a, b])));
+                res.push(Expr::new(ExprKind::Tuple(vec![a, b])));
             }
 
-            return Ok(Expr::from(ExprKind::Tuple(res)));
+            return Ok(Expr::new(ExprKind::Tuple(res)));
         }
 
         "_eq" => {
@@ -357,13 +358,13 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let frame =
                 resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
 
-            let res = Expr::from(ExprKind::Array(
+            let res = Expr::new(ExprKind::Array(
                 res.rows
                     .into_iter()
                     .map(|row| {
-                        Expr::from(ExprKind::Tuple(
+                        Expr::new(ExprKind::Tuple(
                             row.into_iter()
-                                .map(|lit| Expr::from(ExprKind::Literal(lit)))
+                                .map(|lit| Expr::new(ExprKind::Literal(lit)))
                                 .collect(),
                         ))
                     })
@@ -392,7 +393,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         frame: WindowFrame::default(),
         sort: Vec::new(),
     };
-    Ok(Expr::from(ExprKind::TransformCall(transform_call)))
+    Ok(Expr::new(ExprKind::TransformCall(transform_call)))
 }
 
 /// Wraps non-tuple Exprs into a singleton Tuple.
@@ -447,10 +448,10 @@ fn fold_by_simulating_eval(
     // thats why we trick the resolver with a dummy node that acts as table
     // chunk and instruct resolver to apply the transform on that.
 
-    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
+    let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
     dummy.lineage = Some(val_lineage);
 
-    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall::new_simple(
+    let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
         pipeline,
         vec![dummy],
     )));
@@ -467,9 +468,9 @@ fn fold_by_simulating_eval(
 
     // extract reference to the dummy node
     // let mut tbl_node = extract_ref_to_first(&mut pipeline);
-    // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
+    // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
 
-    let pipeline = Expr::from(ExprKind::Func(Box::new(Func {
+    let pipeline = Expr::new(ExprKind::Func(Box::new(Func {
         name_hint: None,
         body: Box::new(pipeline),
         return_ty: None,
@@ -920,6 +921,8 @@ impl AstFold for Flattener {
 }
 
 mod from_text {
+    use crate::ast::rq::RelationLiteral;
+
     use super::*;
 
     // TODO: Can we dynamically get the types, like in pandas? We need to put

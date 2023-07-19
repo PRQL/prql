@@ -89,7 +89,7 @@ impl AstFold for Evaluator {
                 let mut res = self.fold_expr(pipeline.exprs.remove(0))?;
                 for expr in pipeline.exprs {
                     let func_call =
-                        Expr::from(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![res])));
+                        Expr::new(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![res])));
 
                     res = self.fold_expr(func_call)?;
                 }
@@ -320,7 +320,7 @@ impl Evaluator {
         // restore relation for outer calls
         self.context = prev_relation;
 
-        Ok(Expr::from(ExprKind::Array(output_array)))
+        Ok(Expr::new(ExprKind::Array(output_array)))
     }
 
     fn eval_within_context(&mut self, expr: Expr, context: Expr) -> Result<Expr> {
@@ -366,7 +366,7 @@ fn rows_to_cols(expr: Expr) -> Result<Expr> {
     for field in relation_rows.first().unwrap().kind.as_tuple().unwrap() {
         arg_tuple.push(Expr {
             alias: field.alias.clone(),
-            ..Expr::from(ExprKind::Array(Vec::new()))
+            ..Expr::new(ExprKind::Array(Vec::new()))
         });
     }
 
@@ -378,7 +378,7 @@ fn rows_to_cols(expr: Expr) -> Result<Expr> {
             arg_tuple[index].kind.as_array_mut().unwrap().push(field);
         }
     }
-    Ok(Expr::from(ExprKind::Tuple(arg_tuple)))
+    Ok(Expr::new(ExprKind::Tuple(arg_tuple)))
 }
 
 /// Converts `{a = [1, 2], b = [false, true]}`
@@ -398,14 +398,14 @@ fn cols_to_rows(expr: Expr) -> Result<Expr> {
             })
         }
 
-        rows.push(Expr::from(ExprKind::Tuple(row)));
+        rows.push(Expr::new(ExprKind::Tuple(row)));
     }
 
-    Ok(Expr::from(ExprKind::Array(rows)))
+    Ok(Expr::new(ExprKind::Array(rows)))
 }
 
 fn std_module() -> Expr {
-    Expr::from(ExprKind::Tuple(
+    Expr::new(ExprKind::Tuple(
         [
             new_func("floor", &["x"]),
             new_func("add", &["x", "y"]),
@@ -449,7 +449,7 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
     }));
     Expr {
         alias: Some(name.to_string()),
-        ..Expr::from(kind)
+        ..Expr::new(kind)
     }
 }
 
@@ -462,7 +462,7 @@ fn zip_relations(l: Expr, r: Expr) -> ExprKind {
         let l_fields = l.kind.into_tuple().unwrap();
         let r_fields = r.kind.into_tuple().unwrap();
 
-        res.push(Expr::from(ExprKind::Tuple([l_fields, r_fields].concat())));
+        res.push(Expr::new(ExprKind::Tuple([l_fields, r_fields].concat())));
     }
 
     ExprKind::Array(res)

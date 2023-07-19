@@ -6,13 +6,16 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
+use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, BinaryExpr, Expr, ExprKind, Ident, InterpolateItem, Lineage, LineageColumn, QueryDef,
-    Range, RelationLiteral, SwitchCase, TupleField, UnaryExpr, WindowFrame,
+    self, BinaryExpr, Ident, Lineage, LineageColumn, QueryDef, TupleField, UnaryExpr,
 };
-use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
+use crate::ast::rq::{
+    self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform,
+};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
+use crate::generic::{ColumnSort, WindowFrame};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
@@ -187,7 +190,7 @@ impl Lowerer {
     }
 
     /// Lower an expression into a instance of a table in the query
-    fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
+    fn lower_table_ref(&mut self, expr: pl::Expr) -> Result<rq::TableRef> {
         let mut expr = expr;
         if expr.lineage.is_none() {
             // make sure that type of this expr has been inferred to be a table
@@ -195,7 +198,7 @@ impl Lowerer {
         }
 
         Ok(match expr.kind {
-            ExprKind::Ident(fq_table_name) => {
+            pl::ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
                 let id = expr.id.unwrap();
                 let tid = *self.table_mapping.get(&fq_table_name).unwrap();
@@ -211,7 +214,7 @@ impl Lowerer {
 
                 self.create_a_table_instance(id, name, tid)
             }
-            ExprKind::TransformCall(_) => {
+            pl::ExprKind::TransformCall(_) => {
                 // pipeline that has to be pulled out into a table
                 let id = expr.id.unwrap();
 
@@ -238,7 +241,7 @@ impl Lowerer {
 
                 table_ref
             }
-            ExprKind::SString(items) => {
+            pl::ExprKind::SString(items) => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -272,7 +275,7 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
-            ExprKind::RqOperator { name, args } => {
+            pl::ExprKind::RqOperator { name, args } => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -307,7 +310,7 @@ impl Lowerer {
                 self.create_a_table_instance(id, None, tid)
             }
 
-            ExprKind::Array(elements) => {
+            pl::ExprKind::Array(elements) => {
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -421,7 +424,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_relation(&mut self, expr: Expr) -> Result<rq::Relation> {
+    fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
         let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
@@ -552,18 +555,18 @@ impl Lowerer {
         Ok(())
     }
 
-    fn lower_range(&mut self, range: pl::Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
+    fn lower_range(&mut self, range: Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
         Ok(Range {
             start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
             end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
         })
     }
 
-    fn lower_sorts(&mut self, by: Vec<pl::ColumnSort>) -> Result<Vec<pl::ColumnSort<CId>>> {
+    fn lower_sorts(&mut self, by: Vec<ColumnSort<Box<pl::Expr>>>) -> Result<Vec<ColumnSort<CId>>> {
         by.into_iter()
-            .map(|pl::ColumnSort { column, direction }| {
+            .map(|ColumnSort { column, direction }| {
                 let column = self.declare_as_column(*column, false)?;
-                Ok(pl::ColumnSort { direction, column })
+                Ok(ColumnSort { direction, column })
             })
             .try_collect()
     }
@@ -790,8 +793,8 @@ impl Lowerer {
                 let mut res = None;
                 for item in items {
                     let item = Some(match item {
-                        InterpolateItem::String(string) => str_lit(string),
-                        InterpolateItem::Expr { expr, .. } => self.lower_expr(*expr)?,
+                        pl::InterpolateItem::String(string) => str_lit(string),
+                        pl::InterpolateItem::Expr { expr, .. } => self.lower_expr(*expr)?,
                     });
 
                     res = rq::maybe_binop(res, "std.concat", item);
@@ -849,7 +852,7 @@ impl Lowerer {
 
     fn lower_interpolations(
         &mut self,
-        items: Vec<InterpolateItem>,
+        items: Vec<InterpolateItem<pl::Expr>>,
     ) -> Result<Vec<InterpolateItem<rq::Expr>>> {
         items
             .into_iter()
@@ -1022,7 +1025,7 @@ impl TableDepsCollector {
 }
 
 impl AstFold for TableDepsCollector {
-    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+    fn fold_expr(&mut self, mut expr: pl::Expr) -> Result<pl::Expr> {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {
                 if let Some(ty) = &expr.ty {

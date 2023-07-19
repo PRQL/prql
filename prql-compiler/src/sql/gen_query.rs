@@ -10,8 +10,9 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
-use crate::ast::pl::{JoinSide, Literal, RelationLiteral};
-use crate::ast::rq::{CId, Expr, ExprKind, Query};
+use crate::ast::generic::InterpolateItem;
+use crate::ast::pl::{JoinSide, Literal};
+use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationLiteral};
 use crate::error::WithErrorInfo;
 use crate::utils::{BreakUp, Pluck};
 use crate::Error;
@@ -438,7 +439,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
 }
 
 pub(super) fn translate_query_sstring(
-    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
+    items: Vec<InterpolateItem<Expr>>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
     let string = translate_sstring(items, ctx)?;

@@ -695,8 +695,8 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = pl::Expr::from(pl::ExprKind::Ident(pl::Ident::from_path(vec!["short"])));
-        let long = pl::Expr::from(pl::ExprKind::Ident(pl::Ident::from_path(vec![
+        let short = pl::Expr::new(pl::ExprKind::Ident(pl::Ident::from_path(vec!["short"])));
+        let long = pl::Expr::new(pl::ExprKind::Ident(pl::Ident::from_path(vec![
             "some_module",
             "submodule",
             "a_really_long_name",
@@ -708,13 +708,13 @@ mod test {
         };
 
         // short pipelines should be inlined
-        let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
+        let pipeline = pl::Expr::new(pl::ExprKind::Pipeline(pl::Pipeline {
             exprs: vec![short.clone(), short.clone(), short.clone()],
         }));
         assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @"(short | short | short)");
 
         // long pipelines should be indented
-        let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline {
+        let pipeline = pl::Expr::new(pl::ExprKind::Pipeline(pl::Pipeline {
             exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
@@ -730,7 +730,7 @@ mod test {
         // sometimes, there is just not enough space
         opt.rem_width = 4;
         opt.indent = 100;
-        let pipeline = pl::Expr::from(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
+        let pipeline = pl::Expr::new(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
     }
 

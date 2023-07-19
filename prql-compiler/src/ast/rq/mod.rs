@@ -15,10 +15,11 @@ pub use transform::*;
 pub use utils::*;
 
 use enum_as_inner::EnumAsInner;
+use expr::{InterpolateItem, Range, SwitchCase};
 use serde::{Deserialize, Serialize};
 
-use super::pl::{ColumnSort, QueryDef, Range, RelationLiteral, WindowFrame};
-use super::pl::{Ident, InterpolateItem};
+use super::pl::Ident;
+use super::pl::{Literal, QueryDef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
@@ -42,8 +43,16 @@ pub enum RelationKind {
     ExternRef(Ident),
     Pipeline(Vec<Transform>),
     Literal(RelationLiteral),
-    SString(Vec<InterpolateItem<Expr>>),
+    SString(Vec<InterpolateItem>),
     BuiltInFunction { name: String, args: Vec<Expr> },
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct RelationLiteral {
+    /// Column names
+    pub columns: Vec<String>,
+    /// Row-oriented data
+    pub rows: Vec<Vec<Literal>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]

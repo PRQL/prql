@@ -17,6 +17,7 @@ pub mod stmt;
 pub mod types;
 pub mod utils;
 
+use crate::generic::{SortDirection, WindowKind};
 use crate::{ast::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
 use crate::{ast::rq::TableRef, *};
 

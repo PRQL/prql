@@ -61,7 +61,7 @@ pub enum DeclKind {
     QueryDef(QueryDef),
 }
 
-#[derive(PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
     /// This will always be `TyKind::Array(TyKind::Tuple)`.
     /// It is being preparing to be merged with [DeclKind::Expr].
@@ -301,7 +301,7 @@ impl Context {
         let fq_cols = if module.names.contains_key(NS_INFER) {
             // Columns can be inferred, which means that we don't know all column names at
             // compile time: use ExprKind::All
-            vec![Expr::from(ExprKind::All {
+            vec![Expr::new(ExprKind::All {
                 within: mod_ident.clone(),
                 except: Vec::new(),
             })]
@@ -312,7 +312,7 @@ impl Context {
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
                 .sorted_by_key(|(_, decl)| decl.order)
                 .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
-                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
+                .map(|fq_col| Expr::new(ExprKind::Ident(fq_col)))
                 .collect_vec()
         };
 
@@ -320,7 +320,7 @@ impl Context {
         // We wrap the expr into DeclKind::Expr and save it into context.
         let cols_expr = Expr {
             flatten: true,
-            ..Expr::from(ExprKind::Tuple(fq_cols))
+            ..Expr::new(ExprKind::Tuple(fq_cols))
         };
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
@@ -599,14 +599,6 @@ impl std::fmt::Display for DeclKind {
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }
-    }
-}
-
-impl std::fmt::Debug for TableDecl {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let json = serde_json::to_string(self).unwrap();
-        let json = serde_json::from_str::<serde_json::Value>(&json).unwrap();
-        f.write_str(&serde_yaml::to_string(&json).unwrap())
     }
 }
 
