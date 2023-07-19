@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use chumsky::{error::SimpleReason, Span as ChumskySpan};
 use prql_ast::Span;
+use prql_parser::chumsky;
 
 use crate::{
     ast::pl::Stmt,
@@ -12,8 +13,6 @@ use crate::{
     SourceTree,
 };
 use prql_parser::lexer::Token;
-
-mod prql_parser;
 
 pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     let mut res = SourceTree::default();
