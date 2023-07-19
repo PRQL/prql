@@ -11,6 +11,8 @@ pub use prql_ast::expr::{BinOp, UnOp};
 
 use super::{Lineage, TransformCall, Ty, TyOrExpr};
 
+// The following code is tested by misc_tests to match expr.rs in prql_ast.
+
 /// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

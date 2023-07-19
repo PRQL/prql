@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/*",
+  "misc_tests",
 
   # The main crate
   "prql-compiler", #

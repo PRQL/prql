@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use crate::Span;
 use generic as generic_expr;
 
+// The following code is tested by misc_tests to match expr.rs in prql_compiler.
+
 /// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
