@@ -43,23 +43,23 @@ impl Display for Stmt {
                 let pipeline = &var.value;
                 match &pipeline.kind {
                     ExprKind::FuncCall(_) => {
-                        write!(f, "let {} = (\n  {pipeline}\n)\n\n", self.name)?;
+                        write!(f, "let {} = (\n  {pipeline}\n)\n\n", self.name())?;
                     }
 
                     _ => {
-                        write!(f, "let {} = {pipeline}\n\n", self.name)?;
+                        write!(f, "let {} = {pipeline}\n\n", self.name())?;
                     }
                 };
             }
             StmtKind::TypeDef(ty_def) => {
                 if let Some(value) = &ty_def.value {
-                    write!(f, "type {} = {value}\n\n", self.name)?;
+                    write!(f, "type {} = {value}\n\n", self.name())?;
                 } else {
-                    write!(f, "type {}\n\n", self.name)?;
+                    write!(f, "type {}\n\n", self.name())?;
                 }
             }
             StmtKind::ModuleDef(module_def) => {
-                write!(f, "module {} {{", self.name)?;
+                write!(f, "module {} {{", self.name())?;
                 for stmt in &module_def.stmts {
                     write!(f, "{}", stmt)?;
                 }

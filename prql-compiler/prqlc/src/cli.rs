@@ -314,7 +314,7 @@ impl Command {
 
                     for stmt in stmts {
                         if let StmtKind::VarDef(def) = stmt.kind {
-                            res += &format!("## {}\n", stmt.name);
+                            res += &format!("## {}\n", def.name.as_deref().unwrap_or("(main)"));
 
                             let val = semantic::eval(*def.value)
                                 .map_err(downcast)
@@ -637,8 +637,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         sources:
           '':
-          - name: main
-            VarDef:
+          - VarDef:
+              name: null
               value:
                 Pipeline:
                   exprs:

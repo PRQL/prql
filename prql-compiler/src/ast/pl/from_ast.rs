@@ -111,7 +111,6 @@ impl From<prql_ast::stmt::Stmt> for pl::Stmt {
     fn from(value: prql_ast::stmt::Stmt) -> Self {
         Self {
             id: None,
-            name: value.name,
             kind: value.kind.into(),
             span: value.span,
             annotations: value.annotations.into_iter().map(Into::into).collect(),
@@ -124,14 +123,17 @@ impl From<StmtKind> for pl::StmtKind {
         match value {
             StmtKind::QueryDef(v) => Self::QueryDef(v),
             StmtKind::VarDef(v) => Self::VarDef(pl::VarDef {
+                name: v.name,
                 value: map_box_into(v.value),
                 ty_expr: v.ty_expr.map(map_box_into),
                 kind: v.kind,
             }),
             StmtKind::TypeDef(v) => Self::TypeDef(pl::TypeDef {
+                name: v.name,
                 value: v.value.map(map_box_into),
             }),
             StmtKind::ModuleDef(v) => Self::ModuleDef(pl::ModuleDef {
+                name: v.name,
                 stmts: map_vec_into(v.stmts),
             }),
         }

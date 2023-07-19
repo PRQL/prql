@@ -103,12 +103,8 @@ mod common {
         just(Token::Control(char)).ignored()
     }
 
-    pub fn into_stmt(
-        (annotations, (name, kind)): (Vec<Annotation>, (String, StmtKind)),
-        span: ParserSpan,
-    ) -> Stmt {
+    pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: ParserSpan) -> Stmt {
         Stmt {
-            name,
             kind,
             span: Some(span.0),
             annotations,
@@ -175,8 +171,8 @@ take 20
 
         assert_yaml_snapshot!(parse_single(r#"take 10"#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -192,8 +188,8 @@ take 20
 
         assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -212,8 +208,8 @@ take 20
 
         assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -468,8 +464,8 @@ take 20
         select a"#
         ).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -800,8 +796,8 @@ Canada
         assert_yaml_snapshot!(
             parse_single(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -824,8 +820,8 @@ Canada
         assert_yaml_snapshot!(
             parse_single(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -863,8 +859,8 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -902,8 +898,8 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -1098,8 +1094,8 @@ Canada
     fn test_function() {
         assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap(), @r###"
         ---
-        - name: plus_one
-          VarDef:
+        - VarDef:
+            name: plus_one
             value:
               Func:
                 return_ty: ~
@@ -1123,8 +1119,8 @@ Canada
         assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
         , @r###"
         ---
-        - name: identity
-          VarDef:
+        - VarDef:
+            name: identity
             value:
               Func:
                 return_ty: ~
@@ -1142,8 +1138,8 @@ Canada
         assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
-        - name: plus_one
-          VarDef:
+        - VarDef:
+            name: plus_one
             value:
               Func:
                 return_ty: ~
@@ -1167,8 +1163,8 @@ Canada
         assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
         ---
-        - name: plus_one
-          VarDef:
+        - VarDef:
+            name: plus_one
             value:
               Func:
                 return_ty: ~
@@ -1193,8 +1189,8 @@ Canada
         assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
-        - name: foo
-          VarDef:
+        - VarDef:
+            name: foo
             value:
               Func:
                 return_ty: ~
@@ -1236,8 +1232,8 @@ Canada
 
         assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Func:
                 return_ty: ~
@@ -1256,8 +1252,8 @@ Canada
         assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
-        - name: count
-          VarDef:
+        - VarDef:
+            name: count
             value:
               Func:
                 return_ty: ~
@@ -1291,8 +1287,8 @@ Canada
         )
         .unwrap(), @r###"
         ---
-        - name: lag_day
-          VarDef:
+        - VarDef:
+            name: lag_day
             value:
               Func:
                 return_ty: ~
@@ -1338,8 +1334,8 @@ Canada
 
         assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
         ---
-        - name: add
-          VarDef:
+        - VarDef:
+            name: add
             value:
               Func:
                 return_ty: ~
@@ -1548,8 +1544,8 @@ Canada
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
         ---
-        - name: newest_employees
-          VarDef:
+        - VarDef:
+            name: newest_employees
             value:
               FuncCall:
                 name:
@@ -1577,8 +1573,8 @@ Canada
         )"#.trim()).unwrap(),
          @r###"
         ---
-        - name: newest_employees
-          VarDef:
+        - VarDef:
+            name: newest_employees
             value:
               Pipeline:
                 exprs:
@@ -1633,8 +1629,8 @@ Canada
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
         ---
-        - name: e
-          VarDef:
+        - VarDef:
+            name: e
             value:
               SString:
                 - String: SELECT * FROM employees
@@ -1655,8 +1651,8 @@ Canada
           from x"
         ).unwrap(), @r###"
         ---
-        - name: x
-          VarDef:
+        - VarDef:
+            name: x
             value:
               Pipeline:
                 exprs:
@@ -1678,8 +1674,8 @@ Canada
             ty_expr: ~
             kind: Let
           annotations: []
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -1712,8 +1708,8 @@ Canada
         "###);
         assert_yaml_snapshot!(parse_single("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
-        - name: median
-          VarDef:
+        - VarDef:
+            name: median
             value:
               Func:
                 return_ty: ~
@@ -1749,8 +1745,8 @@ Canada
         }
         "#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -1813,8 +1809,8 @@ join `my-proj`.`dataset`.`table`
 
         assert_yaml_snapshot!(parse_single(prql).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -1883,8 +1879,8 @@ join `my-proj`.`dataset`.`table`
         sort {issued_at, -amount, +num_of_articles}
         ").unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -1962,8 +1958,8 @@ join `my-proj`.`dataset`.`table`
         derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -2026,8 +2022,8 @@ join `my-proj`.`dataset`.`table`
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -2050,8 +2046,8 @@ join `my-proj`.`dataset`.`table`
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -2088,8 +2084,8 @@ join `my-proj`.`dataset`.`table`
         derive x = true
         "###).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -2114,8 +2110,8 @@ join `my-proj`.`dataset`.`table`
         select {_employees._underscored_column}
         "###).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -2175,8 +2171,8 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -2252,8 +2248,8 @@ from employees
 join s=salaries (==id)
         "###).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Pipeline:
                 exprs:
@@ -2358,8 +2354,8 @@ join s=salaries (==id)
         let source = "from tète";
         assert_yaml_snapshot!(parse_single(source).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               FuncCall:
                 name:
@@ -2382,8 +2378,8 @@ join s=salaries (==id)
         )
         "#).unwrap(), @r###"
         ---
-        - name: a
-          VarDef:
+        - VarDef:
+            name: a
             value:
               Ident:
                 - x
@@ -2397,8 +2393,8 @@ join s=salaries (==id)
         into a
         "#).unwrap(), @r###"
         ---
-        - name: a
-          VarDef:
+        - VarDef:
+            name: a
             value:
               Ident:
                 - x
@@ -2411,8 +2407,8 @@ join s=salaries (==id)
         x
         "#).unwrap(), @r###"
         ---
-        - name: main
-          VarDef:
+        - VarDef:
+            name: ~
             value:
               Ident:
                 - x
@@ -2429,8 +2425,8 @@ join s=salaries (==id)
         let a = [false, "hello"]
         "#).unwrap(), @r###"
         ---
-        - name: a
-          VarDef:
+        - VarDef:
+            name: a
             value:
               Array:
                 - Literal:
@@ -2440,8 +2436,8 @@ join s=salaries (==id)
             ty_expr: ~
             kind: Let
           annotations: []
-        - name: a
-          VarDef:
+        - VarDef:
+            name: a
             value:
               Array:
                 - Literal:
@@ -2461,8 +2457,8 @@ join s=salaries (==id)
         let add = a b -> a + b
         "#).unwrap(), @r###"
         ---
-        - name: add
-          VarDef:
+        - VarDef:
+            name: add
             value:
               Func:
                 return_ty: ~
