@@ -64,8 +64,10 @@ impl Resolver {
 
             let ident = Ident {
                 path: self.current_module_path.clone(),
-                name: stmt.name.clone(),
+                name: stmt.name().to_string(),
             };
+
+            let stmt_name = stmt.name().to_string();
 
             let mut def = match stmt.kind {
                 StmtKind::QueryDef(d) => {
@@ -94,6 +96,7 @@ impl Resolver {
                     ty.name = Some(ident.name.clone());
 
                     VarDef {
+                        name: Some(ty_def.name),
                         value: Box::new(Expr::new(ExprKind::Type(ty))),
                         ty_expr: None,
                         kind: VarDefKind::Let,
@@ -145,7 +148,7 @@ impl Resolver {
 
             let expected_ty = self.fold_type_expr(def.ty_expr)?;
             if expected_ty.is_some() {
-                let who = || Some(stmt.name.clone());
+                let who = || Some(stmt_name.clone());
                 self.validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
             }
 
@@ -172,6 +175,7 @@ impl AstFold for Resolver {
         };
 
         Ok(VarDef {
+            name: var_def.name,
             value,
             ty_expr: fold_optional_box(self, var_def.ty_expr)?,
             kind: var_def.kind,

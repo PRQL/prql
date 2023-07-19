@@ -4,8 +4,6 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use semver::VersionReq;
 
-use crate::semantic::NS_MAIN;
-use crate::semantic::NS_QUERY_DEF;
 use prql_ast::expr::*;
 use prql_ast::stmt::*;
 
@@ -26,7 +24,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
         let module_def = keyword("module")
             .ignore_then(ident_part())
             .then(module_contents.delimited_by(ctrl('{'), ctrl('}')))
-            .map(|(name, stmts)| (Vec::new(), (name, StmtKind::ModuleDef(ModuleDef { stmts }))))
+            .map(|(name, stmts)| (Vec::new(), StmtKind::ModuleDef(ModuleDef { name, stmts })))
             .labelled("module definition");
 
         choice((type_def(), var_def(), module_def))
@@ -90,12 +88,12 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
 
             Ok(StmtKind::QueryDef(Box::new(QueryDef { version, other })))
         })
-        .map(|kind| (Vec::new(), (NS_QUERY_DEF.to_string(), kind)))
+        .map(|kind| (Vec::new(), kind))
         .map_with_span(into_stmt)
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
+fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> {
     let annotation = just(Token::Annotate)
         .ignore_then(expr())
         .then_ignore(new_line().repeated())
@@ -109,46 +107,40 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error 
         .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
         .map(|((name, ty_expr), value)| {
-            let stmt = StmtKind::VarDef(VarDef {
+            StmtKind::VarDef(VarDef {
+                name: Some(name),
                 value,
                 ty_expr,
                 kind: VarDefKind::Let,
-            });
-            (name, stmt)
+            })
         })
         .labelled("variable definition");
 
     let main_or_into = pipeline(expr_call())
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
-        .map(|(value, into)| {
-            let (kind, name) = match into {
-                None => (VarDefKind::Main, NS_MAIN.to_string()),
-                Some(name) => (VarDefKind::Into, name),
+        .map(|(value, name)| {
+            let kind = match &name {
+                None => VarDefKind::Main,
+                Some(_) => VarDefKind::Into,
             };
-            let stmt = StmtKind::VarDef(VarDef {
+            StmtKind::VarDef(VarDef {
+                name,
                 value,
                 ty_expr: None,
                 kind,
-            });
-            (name, stmt)
+            })
         })
         .labelled("variable definition");
 
     annotation.repeated().then(let_.or(main_or_into))
 }
 
-fn type_def() -> impl Parser<Token, (Vec<Annotation>, (String, StmtKind)), Error = PError> {
+fn type_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
-        .then(
-            ctrl('=')
-                .ignore_then(expr_call().map(Box::new))
-                .or_not()
-                .map(|value| TypeDef { value })
-                .map(StmtKind::TypeDef),
-        )
-        .map(|(name, kind)| (Vec::new(), (name, kind)))
+        .then(ctrl('=').ignore_then(expr_call().map(Box::new)).or_not())
+        .map(|(name, value)| (Vec::new(), StmtKind::TypeDef(TypeDef { name, value })))
         .labelled("type definition")
 }
 

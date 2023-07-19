@@ -41,6 +41,7 @@ pub trait AstFold {
     }
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
         Ok(TypeDef {
+            name: ty_def.name,
             value: fold_optional_box(self, ty_def.value)?,
         })
     }
@@ -132,12 +133,14 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
 
 fn fold_module_def<F: ?Sized + AstFold>(fold: &mut F, module_def: ModuleDef) -> Result<ModuleDef> {
     Ok(ModuleDef {
+        name: module_def.name,
         stmts: fold.fold_stmts(module_def.stmts)?,
     })
 }
 
 pub fn fold_var_def<F: ?Sized + AstFold>(fold: &mut F, var_def: VarDef) -> Result<VarDef> {
     Ok(VarDef {
+        name: var_def.name,
         value: Box::new(fold.fold_expr(*var_def.value)?),
         ty_expr: fold_optional_box(fold, var_def.ty_expr)?,
         kind: var_def.kind,

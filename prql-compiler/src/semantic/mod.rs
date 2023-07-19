@@ -21,7 +21,7 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::ast::pl::{Lineage, LineageColumn, Stmt};
+use crate::ast::pl::{Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ast::rq::Query;
 use crate::error::WithErrorInfo;
 use crate::{Error, SourceTree};
@@ -157,6 +157,20 @@ pub const NS_INFER: &str = "_infer";
 
 // implies we can infer new module declarations in the containing module
 pub const NS_INFER_MODULE: &str = "_infer_module";
+
+impl Stmt {
+    pub(crate) fn name(&self) -> &str {
+        match &self.kind {
+            StmtKind::QueryDef(_) => NS_QUERY_DEF,
+            StmtKind::VarDef(VarDef { name, .. }) => match name {
+                Some(name) => name,
+                None => NS_MAIN,
+            },
+            StmtKind::TypeDef(TypeDef { name, .. }) => name,
+            StmtKind::ModuleDef(ModuleDef { name, .. }) => name,
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod test {

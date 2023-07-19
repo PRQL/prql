@@ -450,7 +450,7 @@ impl WriteSource for pl::Stmt {
             }
             pl::StmtKind::VarDef(var_def) => match var_def.kind {
                 pl::VarDefKind::Let => {
-                    r += opt.consume(&format!("let {} = ", self.name))?;
+                    r += opt.consume(&format!("let {} = ", self.name()))?;
 
                     r += &var_def.value.write(opt)?;
                     r += "\n";
@@ -469,13 +469,13 @@ impl WriteSource for pl::Stmt {
                     }
 
                     if let pl::VarDefKind::Into = var_def.kind {
-                        r += &format!("into {}", self.name);
+                        r += &format!("into {}", self.name());
                         r += "\n";
                     }
                 }
             },
             pl::StmtKind::TypeDef(type_def) => {
-                r += opt.consume(&format!("let {}", self.name))?;
+                r += opt.consume(&format!("let {}", self.name()))?;
 
                 if let Some(value) = &type_def.value {
                     r += opt.consume(" = ")?;
@@ -484,7 +484,7 @@ impl WriteSource for pl::Stmt {
                 r += "\n";
             }
             pl::StmtKind::ModuleDef(module_def) => {
-                r += &format!("module {} {{\n", self.name);
+                r += &format!("module {} {{\n", self.name());
                 opt.indent += 1;
 
                 r += &module_def.stmts.write(opt.clone())?;

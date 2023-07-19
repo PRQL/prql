@@ -13,7 +13,6 @@ use super::expr::Expr;
 pub struct Stmt {
     #[serde(skip)]
     pub id: Option<usize>,
-    pub name: String,
     #[serde(flatten)]
     pub kind: StmtKind,
     #[serde(skip)]
@@ -32,6 +31,7 @@ pub enum StmtKind {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
+    pub name: Option<String>,
     pub value: Box<Expr>,
     pub ty_expr: Option<Box<Expr>>,
     pub kind: VarDefKind,
@@ -39,11 +39,13 @@ pub struct VarDef {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TypeDef {
+    pub name: String,
     pub value: Option<Box<Expr>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ModuleDef {
+    pub name: String,
     pub stmts: Vec<Stmt>,
 }
 
