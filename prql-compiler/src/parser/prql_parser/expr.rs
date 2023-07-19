@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use expr::{BinaryExpr, UnaryExpr};
 
+use super::span::ParserSpan;
 use crate::ast::pl::*;
-use crate::parser::span::ParserSpan;
 use crate::Span;
 
 use super::interpolation;
