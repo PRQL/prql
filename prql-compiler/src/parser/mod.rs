@@ -260,9 +260,31 @@ mod test {
 
     #[test]
     fn test_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse_single(include_str!(
-            "../../examples/compile-files/queries/variables.prql"
-        ))
+        assert_yaml_snapshot!(parse_single(
+            r#"
+from employees
+filter country == "USA"                      # Each line transforms the previous result.
+derive {                                     # This adds columns / variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.
+}
+filter gross_cost > 0
+group {title, country} (                     # For each group use a nested pipeline
+  aggregate {                                # Aggregate each group to a single row
+    average salary,
+    average gross_salary,
+    sum salary,
+    sum gross_salary,
+    average gross_cost,
+    sum_gross_cost = sum gross_cost,
+    ct = count salary,
+  }
+)
+sort sum_gross_cost
+filter ct > 200
+take 20
+        "#
+        )
         .unwrap());
     }
 
