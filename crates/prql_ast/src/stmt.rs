@@ -20,6 +20,8 @@ pub enum VarDefKind {
     Main,
 }
 
+// The following code is tested by misc_tests to match stmt.rs in prql_compiler.
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
     pub name: String,
