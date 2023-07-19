@@ -6,6 +6,7 @@ use prql_ast::Span;
 
 use crate::{
     ast::pl::Stmt,
+    codegen,
     error::{Error, Errors, Reason, WithErrorInfo},
     utils::IdGenerator,
     SourceTree,
@@ -83,7 +84,7 @@ fn convert_parser_error(e: prql_parser::PError) -> Error {
     }
 
     fn token_to_string(t: Option<Token>) -> String {
-        t.map(|t| t.to_string())
+        t.map(|t| DisplayToken(&t).to_string())
             .unwrap_or_else(|| "end of input".to_string())
     }
 
@@ -128,7 +129,7 @@ fn convert_parser_error(e: prql_parser::PError) -> Error {
         Some(found) => Error::new(Reason::Expected {
             who: e.label().map(|x| x.to_string()),
             expected,
-            found: found.to_string(),
+            found: DisplayToken(found).to_string(),
         }),
         // We want a friendlier message than "found end of input"...
         None => Error::new(Reason::Simple(format!(
@@ -136,6 +137,54 @@ fn convert_parser_error(e: prql_parser::PError) -> Error {
         ))),
     }
     .with_span(Some(*span))
+}
+
+struct DisplayToken<'a>(&'a Token);
+
+impl std::fmt::Display for DisplayToken<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Token::NewLine => write!(f, "new line"),
+            Token::Ident(arg0) => {
+                if arg0.is_empty() {
+                    write!(f, "an identifier")
+                } else {
+                    write!(f, "`{arg0}`")
+                }
+            }
+            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
+            Token::Literal(arg0) => write!(f, "{}", codegen::DisplayLiteral(arg0)),
+            Token::Control(arg0) => write!(f, "{arg0}"),
+
+            Token::ArrowThin => f.write_str("->"),
+            Token::ArrowFat => f.write_str("=>"),
+            Token::Eq => f.write_str("=="),
+            Token::Ne => f.write_str("!="),
+            Token::Gte => f.write_str(">="),
+            Token::Lte => f.write_str("<="),
+            Token::RegexSearch => f.write_str("~="),
+            Token::And => f.write_str("&&"),
+            Token::Or => f.write_str("||"),
+            Token::Coalesce => f.write_str("??"),
+            Token::DivInt => f.write_str("//"),
+            Token::Annotate => f.write_str("@{"),
+
+            Token::Param(id) => write!(f, "${id}"),
+
+            Token::Range {
+                bind_left,
+                bind_right,
+            } => write!(
+                f,
+                "'{}..{}'",
+                if *bind_left { "" } else { " " },
+                if *bind_right { "" } else { " " }
+            ),
+            Token::Interpolation(c, s) => {
+                write!(f, "{c}\"{}\"", s)
+            }
+        }
+    }
 }
 
 #[cfg(test)]

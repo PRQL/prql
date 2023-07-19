@@ -1,8 +1,6 @@
 use chumsky::{error::Cheap, prelude::*};
 use prql_ast::expr::*;
 
-use crate::codegen;
-
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {
     NewLine,
@@ -391,49 +389,3 @@ impl std::hash::Hash for Token {
 }
 
 impl std::cmp::Eq for Token {}
-
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NewLine => write!(f, "new line"),
-            Self::Ident(arg0) => {
-                if arg0.is_empty() {
-                    write!(f, "an identifier")
-                } else {
-                    write!(f, "`{arg0}`")
-                }
-            }
-            Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Self::Literal(arg0) => write!(f, "{}", codegen::DisplayLiteral(arg0)),
-            Self::Control(arg0) => write!(f, "{arg0}"),
-
-            Self::ArrowThin => f.write_str("->"),
-            Self::ArrowFat => f.write_str("=>"),
-            Self::Eq => f.write_str("=="),
-            Self::Ne => f.write_str("!="),
-            Self::Gte => f.write_str(">="),
-            Self::Lte => f.write_str("<="),
-            Self::RegexSearch => f.write_str("~="),
-            Self::And => f.write_str("&&"),
-            Self::Or => f.write_str("||"),
-            Self::Coalesce => f.write_str("??"),
-            Self::DivInt => f.write_str("//"),
-            Self::Annotate => f.write_str("@{"),
-
-            Self::Param(id) => write!(f, "${id}"),
-
-            Self::Range {
-                bind_left,
-                bind_right,
-            } => write!(
-                f,
-                "'{}..{}'",
-                if *bind_left { "" } else { " " },
-                if *bind_right { "" } else { " " }
-            ),
-            Self::Interpolation(c, s) => {
-                write!(f, "{c}\"{}\"", s)
-            }
-        }
-    }
-}
