@@ -14,6 +14,7 @@ mod span;
 
 use span::ParserSpan;
 
+pub use chumsky;
 pub use common::PError;
 
 #[derive(Debug)]

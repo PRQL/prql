@@ -1,0 +1,27 @@
+[package]
+name = "prql_parser"
+version = "0.0.0"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prql_ast = {path="../prql_ast"}
+itertools = "0.11.0"
+semver = {version = "1.0.14"}
+
+# Chumsky's default features have issues when running in wasm (though we only
+# see it when compiling on MacOS), so we only include features when running
+# outside wasm.
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+chumsky = "0.9.2"
+[target.'cfg(target_family="wasm")'.dependencies]
+chumsky = {version = "0.9.2", features = ["ahash", "std"], default-features = false}
+
+[dev-dependencies]
+insta = {version = "1.31", features = ["colors", "glob", "yaml"]}

@@ -2885,7 +2885,6 @@ dependencies = [
  "ariadne",
  "cfg-if",
  "chrono",
- "chumsky",
  "criterion",
  "csv",
  "duckdb",
@@ -2898,6 +2897,7 @@ dependencies = [
  "pg_bigdecimal",
  "postgres",
  "prql_ast",
+ "prql_parser",
  "regex",
  "rusqlite",
  "semver",
@@ -2967,6 +2967,17 @@ dependencies = [
  "semver",
  "serde",
  "strum 0.25.0",
+]
+
+[[package]]
+name = "prql_parser"
+version = "0.0.0"
+dependencies = [
+ "chumsky",
+ "insta",
+ "itertools 0.11.0",
+ "prql_ast",
+ "semver",
 ]
 
 [[package]]
