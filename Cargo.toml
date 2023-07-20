@@ -3,12 +3,6 @@ members = [
   "crates/*",
   "misc_tests",
 
-  # The main crate
-  "prql-compiler", #
-  # The CLI
-  "prql-compiler/prqlc", #
-  # Macros
-  "prql-compiler/prql-compiler-macros", #
   # Bindings
   "bindings/prql-elixir/native/prql",
   "bindings/prql-java",
@@ -18,7 +12,7 @@ members = [
   # The book / docs
   "web/book", #
   # An example
-  "prql-compiler/examples/compile-files", #
+  "crates/prql_compiler/examples/compile-files", #
 ]
 resolver = "2"
 
