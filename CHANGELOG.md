@@ -10,13 +10,13 @@ will become the public version at the next release._
 - The major breaking change is new syntax for lists, which have been renamed to
   _tuples_, and are now represented with braces `{}` rather than brackets `[]`.
 
-  We are also adding _arrays_, which use the `[]` syntax. Arrays cannot contain
-  name assignments and are restricted to only one type of elements.
+  We made the syntax change to incorporate arrays. Almost every major language
+  uses `[]` for arrays. We are adopting that convention — arrays use `[]`,
+  tuples will use `{}`. (Though we recognize that `{}` for tuples is also rare
+  (Hi, Erlang!), but didn't want to further load parentheses with meaning.)
 
-  We made this syntax change to incorporate arrays. Almost every major language
-  uses `[]` for arrays. We are adopting that convention, and will use `{}` for
-  tuples. (Though we recognize that `{}` for tuples is also rare (Hi, Erlang!),
-  but didn't want to further load parentheses with meaning.)
+  Arrays are conceptually similar to columns — their elements have a single
+  type. Array syntax can't contain assignments.
 
   To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
   `{ ... }`.
@@ -66,8 +66,8 @@ will become the public version at the next release._
 
 - _Breaking:_ We've changed our function declaration syntax to match other
   declarations. Functions were one of the first language constructs in PRQL, and
-  since then we've added normal declarations there's no compelling reason to
-  have functions be different.
+  since then we've added normal declarations there's no compelling reason for
+  functions to be different.
 
   ```prql no-eval
   let add = a b -> a + b
@@ -100,7 +100,7 @@ will become the public version at the next release._
   select this.sum   # does not conflict with `std.sum`
   ```
 
-  Within `join` transform, there is also a reference to the right relation:
+  Within a `join` transform, there is also a reference to the right relation:
   `that`.
 
 - _Breaking:_ functions `count`, `rank` and `row_number` now require an argument
