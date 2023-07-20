@@ -20,7 +20,7 @@ parts:
   prqlc:
     plugin: rust
     source: .
-    rust-path: [prql-compiler/prqlc]
+    rust-path: [crates/prqlc]
 
 apps:
   prqlc:
