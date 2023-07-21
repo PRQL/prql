@@ -84,7 +84,7 @@ impl Resolver {
                     let mut value = if let Some(value) = ty_def.value {
                         value
                     } else {
-                        Box::new(Expr::null())
+                        Box::new(Expr::new(Literal::Null))
                     };
 
                     // This is a hacky way to provide values to std.int and friends.
@@ -733,7 +733,7 @@ impl Resolver {
 
     fn resolve_function_args(&mut self, to_resolve: Func) -> Result<Func> {
         let mut closure = Func {
-            args: vec![Expr::null(); to_resolve.args.len()],
+            args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
             ..to_resolve
         };
 
