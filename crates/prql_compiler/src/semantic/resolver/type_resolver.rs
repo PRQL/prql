@@ -4,7 +4,7 @@ use itertools::Itertools;
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
-use super::resolver::Resolver;
+use super::Resolver;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
 pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {

@@ -7,16 +7,18 @@ use itertools::{Itertools, Position};
 use crate::ast::pl::expr::{BinaryExpr, UnaryExpr};
 use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
-use crate::semantic::transforms::coerce_into_tuple_and_flatten;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind};
 use super::module::Module;
 use super::reporting::debug_call_tree;
-use super::transforms::{self, Flattener};
-use super::type_resolver::{self, infer_type};
 use super::{NS_STD, NS_THAT, NS_THIS};
+use transforms::{coerce_into_tuple_and_flatten, Flattener};
+use type_resolver::infer_type;
+
+mod transforms;
+mod type_resolver;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {

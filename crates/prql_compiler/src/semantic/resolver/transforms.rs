@@ -11,9 +11,9 @@ use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 use crate::generic::{SortDirection, WindowKind};
 
-use super::context::{Decl, DeclKind};
-use super::module::Module;
-use super::resolver::Resolver;
+use super::super::context::{Decl, DeclKind};
+use super::super::module::Module;
+use super::Resolver;
 use super::{Context, Lineage};
 use super::{NS_PARAM, NS_THIS};
 
@@ -1140,7 +1140,7 @@ mod tests {
         .unwrap();
         let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
         let expr = res.clone().into_relation_var().unwrap();
-        let expr = super::super::resolver::test::erase_ids(*expr);
+        let expr = super::super::test::erase_ids(*expr);
         assert_yaml_snapshot!(expr);
     }
 
