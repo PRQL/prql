@@ -7,4 +7,5 @@ programming languages can be found in [../bindings/](../bindings/).
 Other related crates that live in separate repositories are:
 
 - [prql-query] — another CLI that can also query .csv, .parquet and .json files
-  [prql-query]: https://github.com/PRQL/prql-query
+
+[prql-query]: https://github.com/PRQL/prql-query
