@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     ast::pl::{Expr, ExprKind, Func, FuncCall, Range, Ty},
-    error::WithErrorInfo,
     generic::WindowKind,
-    Error, Reason,
 };
 
 impl FuncCall {
@@ -119,27 +117,6 @@ pub enum JoinSide {
     Left,
     Right,
     Full,
-}
-
-impl Expr {
-    pub(crate) fn try_cast<T, F, S2: ToString>(
-        self,
-        f: F,
-        who: Option<&str>,
-        expected: S2,
-    ) -> Result<T, Error>
-    where
-        F: FnOnce(ExprKind) -> Result<T, ExprKind>,
-    {
-        f(self.kind).map_err(|i| {
-            Error::new(Reason::Expected {
-                who: who.map(|s| s.to_string()),
-                expected: expected.to_string(),
-                found: format!("`{}`", Expr::new(i)),
-            })
-            .with_span(self.span)
-        })
-    }
 }
 
 impl Expr {
