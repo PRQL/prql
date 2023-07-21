@@ -19,10 +19,10 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::ast::pl::{Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ast::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ast::rq::Query;
 use crate::error::WithErrorInfo;
-use crate::{Error, SourceTree};
+use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(file_tree: SourceTree<Vec<Stmt>>, main_path: &[String]) -> Result<Query> {
@@ -167,6 +167,22 @@ impl Stmt {
             StmtKind::TypeDef(TypeDef { name, .. }) => name,
             StmtKind::ModuleDef(ModuleDef { name, .. }) => name,
         }
+    }
+}
+
+impl pl::Expr {
+    fn try_cast<T, F, S2: ToString>(self, f: F, who: Option<&str>, expected: S2) -> Result<T, Error>
+    where
+        F: FnOnce(pl::ExprKind) -> Result<T, pl::ExprKind>,
+    {
+        f(self.kind).map_err(|i| {
+            Error::new(Reason::Expected {
+                who: who.map(|s| s.to_string()),
+                expected: expected.to_string(),
+                found: format!("`{}`", pl::Expr::new(i)),
+            })
+            .with_span(self.span)
+        })
     }
 }
 
