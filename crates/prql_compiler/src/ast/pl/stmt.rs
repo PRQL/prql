@@ -7,7 +7,7 @@ pub use prql_ast::stmt::{QueryDef, VarDefKind};
 
 use super::expr::Expr;
 
-// The following code is tested by misc_tests to match stmt.rs in prql_ast.
+// The following code is tested by the tests_misc crate to match stmt.rs in prql_ast.
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {

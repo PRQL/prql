@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "crates/*",
-  "misc_tests",
 
   # Bindings
   "bindings/prql-elixir/native/prql",

@@ -10,8 +10,8 @@ fn test_expr_ast_code_matches() {
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../crates/prql_ast/src/expr.rs").unwrap(),
-            &read_to_string("../crates/prql_compiler/src/ast/pl/expr.rs").unwrap(),
+            &read_to_string("../../crates/prql_ast/src/expr.rs").unwrap(),
+            &read_to_string("../../crates/prql_compiler/src/ast/pl/expr.rs").unwrap(),
         ), @r###"
     @@ .. @@
     -    pub return_ty: Option<Box<Expr>>,
@@ -29,14 +29,15 @@ fn test_stmt_ast_code_matches() {
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../crates/prql_ast/src/stmt.rs").unwrap(),
-            &read_to_string("../crates/prql_compiler/src/ast/pl/stmt.rs").unwrap(),
+            &read_to_string("../../crates/prql_ast/src/stmt.rs").unwrap(),
+            &read_to_string("../../crates/prql_compiler/src/ast/pl/stmt.rs").unwrap(),
         ), @""
     )
 }
 
 fn diff_code_after_start(old: &str, new: &str) -> String {
-    let divider_regex = Regex::new("// The following code is tested by misc_tests .*\n").unwrap();
+    let divider_regex =
+        Regex::new("// The following code is tested by the tests_misc crate .*\n").unwrap();
     let old = divider_regex.splitn(old, 2).nth(1).unwrap();
     let new = divider_regex.splitn(new, 2).nth(1).unwrap();
     diff_code(old, new)
