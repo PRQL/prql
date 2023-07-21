@@ -290,7 +290,7 @@ impl Evaluator {
 
                 if !array.is_empty() {
                     array.pop();
-                    array.insert(0, Expr::null());
+                    array.insert(0, Expr::new(Literal::Null));
                 }
 
                 ExprKind::Array(array)
@@ -441,7 +441,7 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
 
         // these don't matter
         return_ty: Default::default(),
-        body: Box::new(Expr::null()),
+        body: Box::new(Expr::new(Literal::Null)),
         params,
         named_params: Default::default(),
         args: Default::default(),

@@ -122,10 +122,6 @@ pub enum JoinSide {
 }
 
 impl Expr {
-    pub fn null() -> Expr {
-        Expr::new(ExprKind::Literal(Literal::Null))
-    }
-
     pub(crate) fn try_cast<T, F, S2: ToString>(
         self,
         f: F,
@@ -147,10 +143,10 @@ impl Expr {
 }
 
 impl Expr {
-    pub fn new(kind: ExprKind) -> Self {
+    pub fn new(kind: impl Into<ExprKind>) -> Self {
         Expr {
             id: None,
-            kind,
+            kind: kind.into(),
             span: None,
             target_id: None,
             target_ids: Vec::new(),
@@ -160,5 +156,11 @@ impl Expr {
             alias: None,
             flatten: false,
         }
+    }
+}
+
+impl From<Literal> for ExprKind {
+    fn from(value: Literal) -> Self {
+        Self::Literal(value)
     }
 }
