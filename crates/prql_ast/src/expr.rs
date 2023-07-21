@@ -25,7 +25,7 @@ impl Expr {
     }
 }
 
-// The following code is tested by misc_tests to match expr.rs in prql_compiler.
+// The following code is tested by the tests_misc crate to match expr.rs in prql_compiler.
 
 /// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
