@@ -18,6 +18,7 @@ use super::{NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use transforms::{coerce_into_tuple_and_flatten, Flattener};
 use type_resolver::infer_type;
 
+mod context_impl;
 mod transforms;
 mod type_resolver;
 
