@@ -13,16 +13,6 @@ updates:
     commit-message:
       prefix: "chore: "
 
-  # Every month, bump all patch versions of rust dependencies too
-  - package-ecosystem: cargo
-    directory: "/"
-    schedule:
-      interval: monthly
-    groups:
-      all:
-        patterns:
-          - "*"
-
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
