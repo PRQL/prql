@@ -18,7 +18,7 @@ use super::{Context, Lineage};
 use super::{NS_PARAM, NS_THIS};
 
 /// try to convert function call with enough args into transform
-pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
+pub(super) fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
     let internal_name = closure.body.kind.as_internal().unwrap();
 
     let (kind, input) = match internal_name.as_str() {

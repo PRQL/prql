@@ -21,8 +21,18 @@ mod context_impl;
 mod transforms;
 mod type_resolver;
 
+pub fn resolve(
+    context: &mut Context,
+    module_path: Vec<String>,
+    stmts: Vec<Stmt>,
+    options: &ResolverOptions,
+) -> Result<()> {
+    let mut resolver = Resolver::new(context, module_path, options);
+    resolver.fold_statements(stmts)
+}
+
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
-pub struct Resolver<'a> {
+struct Resolver<'a> {
     context: &'a mut Context,
 
     pub current_module_path: Vec<String>,
@@ -43,11 +53,15 @@ pub struct ResolverOptions {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn new(context: &'a mut Context, options: &'a ResolverOptions) -> Resolver<'a> {
+    pub fn new(
+        context: &'a mut Context,
+        module_path: Vec<String>,
+        options: &'a ResolverOptions,
+    ) -> Resolver<'a> {
         Resolver {
             context,
             options,
-            current_module_path: Vec::new(),
+            current_module_path: module_path,
             default_namespace: None,
             in_func_call_name: false,
             disable_type_checking: false,

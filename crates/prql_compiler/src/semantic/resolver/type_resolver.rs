@@ -7,7 +7,7 @@ use crate::error::{Error, Reason, WithErrorInfo};
 use super::Resolver;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
-pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
+pub(super) fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
     coerce_kind_to_set(resolver, expr.kind)
 }
 

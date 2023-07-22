@@ -14,7 +14,6 @@ use std::path::PathBuf;
 
 pub use self::context::Context;
 pub use self::module::Module;
-use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
@@ -51,13 +50,11 @@ pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -
         root_mod: Module::new_root(),
         ..Context::default()
     };
-    let mut resolver = Resolver::new(&mut context, &options);
 
     // resolve sources one by one
     // TODO: recursive references
     for (path, stmts) in normalize(file_tree)? {
-        resolver.current_module_path = path;
-        resolver.fold_statements(stmts)?;
+        resolver::resolve(&mut context, path, stmts, &options)?;
     }
 
     Ok(context)
