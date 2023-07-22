@@ -1,0 +1,113 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add_one bar to:3,\n                added_default = add_one bar\n            }\n            \"#).unwrap()"
+---
+- RqOperator:
+    name: std.add
+    args:
+      - Ident:
+          - this
+          - foo_table
+          - bar
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Literal:
+          Integer: 3
+        ty:
+          kind:
+            Primitive: Int
+          name: ~
+  alias: added
+  ty:
+    kind:
+      Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+    name: ~
+- RqOperator:
+    name: std.add
+    args:
+      - Ident:
+          - this
+          - foo_table
+          - bar
+        ty:
+          kind:
+            Union:
+              - - int
+                - kind:
+                    Primitive: Int
+                  name: int
+              - - float
+                - kind:
+                    Primitive: Float
+                  name: float
+              - - timestamp
+                - kind:
+                    Primitive: Timestamp
+                  name: timestamp
+              - - date
+                - kind:
+                    Primitive: Date
+                  name: date
+          name: ~
+      - Literal:
+          Integer: 1
+        ty:
+          kind:
+            Primitive: Int
+          name: ~
+  alias: added_default
+  ty:
+    kind:
+      Union:
+        - - int
+          - kind:
+              Primitive: Int
+            name: int
+        - - float
+          - kind:
+              Primitive: Float
+            name: float
+        - - timestamp
+          - kind:
+              Primitive: Timestamp
+            name: timestamp
+        - - date
+          - kind:
+              Primitive: Date
+            name: date
+    name: ~
+

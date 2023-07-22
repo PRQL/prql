@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nfilter country == \"USA\"                      # Each line transforms the previous result.\nderive {                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n}\nfilter gross_cost > 0\ngroup {title, country} (                     # For each group use a nested pipeline\n  aggregate {                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost = sum gross_cost,\n    ct = count s\"*\",\n  }\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n"
+expression: "from employees\nfilter country == \"USA\"                      # Each line transforms the previous result.\nderive {                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n}\nfilter gross_cost > 0\ngroup {title, country} (                     # For each group use a nested pipeline\n  aggregate {                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost = sum gross_cost,\n    ct = count this,\n  }\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n"
 ---
 WITH table_0 AS (
   SELECT
@@ -19,10 +19,10 @@ SELECT
   country,
   AVG(salary),
   AVG(_expr_1),
-  SUM(salary),
-  SUM(_expr_1),
+  COALESCE(SUM(salary), 0),
+  COALESCE(SUM(_expr_1), 0),
   AVG(_expr_0),
-  SUM(_expr_0) AS sum_gross_cost,
+  COALESCE(SUM(_expr_0), 0) AS sum_gross_cost,
   COUNT(*) AS ct
 FROM
   table_0

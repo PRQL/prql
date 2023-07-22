@@ -18,10 +18,10 @@ test = false
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 ansi-to-html = "0.1.2"
 anyhow = "1.0.57"
-itertools = "0.10.3"
+itertools = "0.11.0"
 mdbook = {version = "0.4.21", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
-prql-compiler = {path = "../../prql-compiler", default-features = false}
+prql-compiler = {path = "../../crates/prql_compiler", default-features = false}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 semver = "1.0.9"
@@ -32,9 +32,9 @@ strum_macros = "0.25.0"
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
 globset = "0.4.8"
-insta = {version = "1.29", features = ["colors", "glob"]}
+insta = {version = "1.31", features = ["colors", "glob"]}
 log = "0.4.17"
-regex = "1.8.1"
+regex = "1.9.0"
 serde_yaml = "0.9"
 walkdir = "2.3.2"
 

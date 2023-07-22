@@ -1,0 +1,10 @@
+label: F-strings
+prql: |
+  from web
+  # Just like Python
+  select url = f"https://www.{domain}.{tld}/{page}"
+sql: |
+  SELECT
+    CONCAT('https://www.', domain, '.', tld, '/', page) AS url
+  FROM
+    web

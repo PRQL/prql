@@ -5,17 +5,18 @@
 _The following unreleased features are only available in the `main` branch. They
 will become the public version at the next release._
 
-**Features**:
+**Language**:
 
-- We've made one large breaking change — Lists are now Tuples, and represented
-  with braces `{}` rather than brackets `[]`.
+- The major breaking change is new syntax for lists, which have been renamed to
+  _tuples_, and are now represented with braces `{}` rather than brackets `[]`.
 
-  We now have Arrays, which use the `[]` syntax.
+  We made the syntax change to incorporate arrays. Almost every major language
+  uses `[]` for arrays. We are adopting that convention — arrays use `[]`,
+  tuples will use `{}`. (Though we recognize that `{}` for tuples is also rare
+  (Hi, Erlang!), but didn't want to further load parentheses with meaning.)
 
-  We made this syntax change to incorporate arrays. Almost every major language
-  uses `[]` for arrays. We are adopting that convention, and will use `{}` for
-  tuples. (Though we recognize that `{}` for tuples is also rare (Hi, Erlang!),
-  but didn't want to further load parentheses with meaning.)
+  Arrays are conceptually similar to columns — their elements have a single
+  type. Array syntax can't contain assignments.
 
   To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
   `{ ... }`.
@@ -30,13 +31,13 @@ will become the public version at the next release._
   - _Breaking_: The `sql.duckdb` target supports DuckDB 0.8 (@eitsupi, #2810).
   - _Breaking_: The `sql.hive` target is removed (@eitsupi, #2837).
 
-- Three new operators. These compile to different function or operator depending
-  on the target.
+- New arithmetic operators. These compile to different function or operator
+  depending on the target.
 
-  - _Breaking_: Floating division operator `/` and truncated integer division
-    operator `//`. In previous versions, `/` was simply compiled into SQL `/`,
-    but `/` now always does floating division. (@aljazerzen, #2684).
-    <!-- TODO: link to division operator docs -->
+  - _Breaking:_ Operator `/` now always performs floating division (@aljazerzen,
+    #2684). _TODO: add link to division operator docs_
+
+  - Truncated integer division operator `//` (@aljazerzen, #2684).
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
 
@@ -60,10 +61,13 @@ will become the public version at the next release._
     [Regex docs](https://prql-lang.org/book/language-features/regex.html) for
     more details.
 
-- We've changed our function declaration syntax to match other declarations.
-  Functions were one of the first language constructs in PRQL, and since then
-  we've added normal declarations; and there's no compelling reason to have
-  functions be different.
+- New aggregation functions: `every`, `any`, `average`, and `concat_array`.
+  _Breaking:_ Remove `avg` in favor of `average`.
+
+- _Breaking:_ We've changed our function declaration syntax to match other
+  declarations. Functions were one of the first language constructs in PRQL, and
+  since then we've added normal declarations there's no compelling reason for
+  functions to be different.
 
   ```prql no-eval
   let add = a b -> a + b
@@ -75,10 +79,11 @@ will become the public version at the next release._
   func add a b -> a + b
   ```
 
-- Modules allow importing declarations from other files: See TODO: insert link
+- Modules allow importing declarations from other files: _TODO: insert link_
 
-- "Relation Literals", which create inline relations / tables from data in the
-  query:
+- Relation literals create a relation (a "table") as an _array_ of _tuples_.
+  This example demonstrates the new syntax for arrays `[]` and tuples `{}`.
+  (@aljazerzen, #2605)
 
   ```prql no-eval
   from [{a=5, b=false}, {a=6, b=true}]
@@ -86,11 +91,28 @@ will become the public version at the next release._
   select a
   ```
 
-  This example demonstrates both the new tuple syntax (`{}`) and arrays `[]`.
+- We've stabilized a reference to current pipeline: `this`, which can be used in
+  situations where plain column name would be ambiguous:
 
-  (@aljazerzen, #2605)
+  ```prql no-eval
+  from x
+  derive sum = my_column
+  select this.sum   # does not conflict with `std.sum`
+  ```
 
-<!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
+  Within a `join` transform, there is also a reference to the right relation:
+  `that`.
+
+- _Breaking:_ functions `count`, `rank` and `row_number` now require an argument
+  of the array to operate on. In most cases you can directly replace `count`
+  with `count this`. The `non_null` argument of `count` has been removed.
+
+**Fixes**:
+
+- Numbers expressed with scientific notation — `1e9` — are now handled correctly
+  by the compiler (@max-sixty, #2865).
+
+**prql-compiler**:
 
 - We've changed how we handle colors. We now use the
   [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
@@ -108,16 +130,13 @@ will become the public version at the next release._
 - `prqlc` can now show backtraces when the standard backtrace env var
   (`RUST_BACKTRACE`) is active. (@max-sixty, #2751)
 
-**Fixes**:
-
-- Numbers expressed with scientific notation — `1e9` — are now handled correctly
-  by the compiler (@max-sixty, #2865).
-
 **Documentation**:
 
 **Web**:
 
 **Integrations**:
+
+- prql-python now provides type hints (@philpep, #2912)
 
 **Internal changes**:
 
@@ -136,6 +155,8 @@ will become the public version at the next release._
 - ClickHouse is tested in CI (@eitsupi, #2815).
 
 **New Contributors**:
+
+- @philpep, with #2912
 
 ## 0.8.1 — 2023-04-29
 

@@ -13,7 +13,7 @@ WITH table_0 AS (
     50
 ), top_50 AS (
   SELECT
-    SUM(salary) AS total_salary
+    COALESCE(SUM(salary), 0) AS total_salary
   FROM
     table_0
 )
