@@ -126,8 +126,8 @@ To stay in touch with PRQL:
 
 This repo is composed of:
 
-- **[prql-compiler](./prql-compiler/)** — the compiler, written in rust, whose
-  main role is to compile PRQL into SQL. It also includes
+- **[prql-compiler](./crates/prql_compiler/)** — the compiler, written in rust,
+  whose main role is to compile PRQL into SQL. It also includes
   [prqlc](./crates/prqlc/), the CLI.
 - **[web](./web/)** — our web content: the [Book][prql book],
   [Website][prql website], and [Playground][prql playground].
