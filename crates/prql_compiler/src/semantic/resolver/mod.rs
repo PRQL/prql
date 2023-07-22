@@ -37,7 +37,7 @@ pub struct Resolver<'a> {
 
     pub id: IdGenerator<usize>,
 
-    pub options: ResolverOptions,
+    pub options: &'a ResolverOptions,
 }
 
 #[derive(Default, Clone)]
@@ -45,8 +45,8 @@ pub struct ResolverOptions {
     pub allow_module_decls: bool,
 }
 
-impl Resolver<'_> {
-    pub fn new(context: &mut Context, options: ResolverOptions) -> Resolver {
+impl<'a> Resolver<'a> {
+    pub fn new(context: &'a mut Context, options: &'a ResolverOptions) -> Resolver<'a> {
         Resolver {
             context,
             options,

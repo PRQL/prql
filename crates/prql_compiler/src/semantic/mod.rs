@@ -51,7 +51,7 @@ pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -
         root_mod: Module::new_root(),
         ..Context::default()
     };
-    let mut resolver = Resolver::new(&mut context, options);
+    let mut resolver = Resolver::new(&mut context, &options);
 
     // resolve sources one by one
     // TODO: recursive references
