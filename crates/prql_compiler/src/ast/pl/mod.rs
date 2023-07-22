@@ -6,7 +6,7 @@
 //!
 //! The central struct here is [Expr] and its [ExprKind].
 //!
-//! Top-level construct is a list of statements [Vec<Stmt>].
+//! Top-level construct is a list of statements [`Vec<Stmt>`].
 
 pub mod expr;
 pub mod extra;
