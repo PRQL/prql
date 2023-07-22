@@ -47,11 +47,11 @@ pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -
     }
 
     // init empty context
-    let context = Context {
+    let mut context = Context {
         root_mod: Module::new_root(),
         ..Context::default()
     };
-    let mut resolver = Resolver::new(context, options);
+    let mut resolver = Resolver::new(&mut context, options);
 
     // resolve sources one by one
     // TODO: recursive references
@@ -60,7 +60,7 @@ pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -
         resolver.fold_statements(stmts)?;
     }
 
-    Ok(resolver.context)
+    Ok(context)
 }
 
 /// Preferred way of injecting std module.

@@ -23,8 +23,8 @@ mod transforms;
 mod type_resolver;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
-pub struct Resolver {
-    pub context: Context,
+pub struct Resolver<'a> {
+    context: &'a mut Context,
 
     pub current_module_path: Vec<String>,
 
@@ -45,8 +45,8 @@ pub struct ResolverOptions {
     pub allow_module_decls: bool,
 }
 
-impl Resolver {
-    pub fn new(context: Context, options: ResolverOptions) -> Self {
+impl Resolver<'_> {
+    pub fn new(context: &mut Context, options: ResolverOptions) -> Resolver {
         Resolver {
             context,
             options,
@@ -250,7 +250,7 @@ impl Resolver {
     }
 }
 
-impl AstFold for Resolver {
+impl AstFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
         unreachable!()
     }
@@ -479,7 +479,7 @@ impl AstFold for Resolver {
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(&self.context)?);
+                r.lineage = Some(call.infer_type(self.context)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -545,7 +545,7 @@ pub fn binary_to_func_call(BinaryExpr { op, left, right }: BinaryExpr, span: Opt
     func_call
 }
 
-impl Resolver {
+impl Resolver<'_> {
     fn resolve_pipeline(&mut self, Pipeline { mut exprs }: Pipeline) -> Result<Expr> {
         let mut value = exprs.remove(0);
         value = self.fold_expr(value)?;
