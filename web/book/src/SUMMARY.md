@@ -61,6 +61,7 @@
   - [Elixir](./bindings/elixir.md)
   - [Java](./bindings/java.md)
   - [JavaScript](./bindings/javascript.md)
+  - [PHP](./bindings/php.md)
   - [Python](./bindings/python.md)
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
