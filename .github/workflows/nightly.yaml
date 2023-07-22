@@ -40,7 +40,7 @@ jobs:
           command: bench
           args: --timings --all-targets
 
-  check-links:
+  check-links-markdown:
     # We run only on modified files and only on our resources in PRs; here we
     # run on all links and all files.
     runs-on: ubuntu-latest
