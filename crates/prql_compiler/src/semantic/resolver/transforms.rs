@@ -20,39 +20,40 @@ use super::{NS_PARAM, NS_THIS};
 /// try to convert function call with enough args into transform
 pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
     let internal_name = closure.body.kind.as_internal().unwrap();
+    let args = closure.args;
 
     let (kind, input) = match internal_name.as_str() {
         "from" => {
-            let [source] = unpack::<1>(closure);
+            let [source] = unpack::<1>(args);
 
             return Ok(source);
         }
         "select" => {
-            let [assigns, tbl] = unpack::<2>(closure);
+            let [assigns, tbl] = unpack::<2>(args);
 
             let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "filter" => {
-            let [filter, tbl] = unpack::<2>(closure);
+            let [filter, tbl] = unpack::<2>(args);
 
             let filter = Box::new(filter);
             (TransformKind::Filter { filter }, tbl)
         }
         "derive" => {
-            let [assigns, tbl] = unpack::<2>(closure);
+            let [assigns, tbl] = unpack::<2>(args);
 
             let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "aggregate" => {
-            let [assigns, tbl] = unpack::<2>(closure);
+            let [assigns, tbl] = unpack::<2>(args);
 
             let assigns = coerce_into_tuple_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "sort" => {
-            let [by, tbl] = unpack::<2>(closure);
+            let [by, tbl] = unpack::<2>(args);
 
             let by = coerce_into_tuple_and_flatten(by)?
                 .into_iter()
@@ -72,7 +73,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             (TransformKind::Sort { by }, tbl)
         }
         "take" => {
-            let [expr, tbl] = unpack::<2>(closure);
+            let [expr, tbl] = unpack::<2>(args);
 
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => range_from_ints(None, Some(n)),
@@ -93,7 +94,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             (TransformKind::Take { range }, tbl)
         }
         "join" => {
-            let [side, with, filter, tbl] = unpack::<4>(closure);
+            let [side, with, filter, tbl] = unpack::<4>(args);
 
             let side = {
                 let span = side.span;
@@ -118,7 +119,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             (TransformKind::Join { side, with, filter }, tbl)
         }
         "group" => {
-            let [by, pipeline, tbl] = unpack::<3>(closure);
+            let [by, pipeline, tbl] = unpack::<3>(args);
 
             let by = coerce_into_tuple_and_flatten(by)?;
 
@@ -129,7 +130,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             (TransformKind::Group { by, pipeline }, tbl)
         }
         "window" => {
-            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
+            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(args);
 
             let expanding = {
                 let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
@@ -187,12 +188,12 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             (transform_kind, tbl)
         }
         "append" => {
-            let [bottom, top] = unpack::<2>(closure);
+            let [bottom, top] = unpack::<2>(args);
 
             (TransformKind::Append(Box::new(bottom)), top)
         }
         "loop" => {
-            let [pipeline, tbl] = unpack::<2>(closure);
+            let [pipeline, tbl] = unpack::<2>(args);
 
             let pipeline =
                 fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
@@ -203,7 +204,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "in" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [pattern, value] = unpack::<2>(closure);
+            let [pattern, value] = unpack::<2>(args);
 
             match pattern.kind {
                 ExprKind::Range(Range { start, end }) => {
@@ -246,7 +247,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "tuple_every" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [list] = unpack::<1>(closure);
+            let [list] = unpack::<1>(args);
             let list = list.kind.into_tuple().unwrap();
 
             let mut res = None;
@@ -261,7 +262,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "tuple_map" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [func, list] = unpack::<2>(closure);
+            let [func, list] = unpack::<2>(args);
             let list_items = list.kind.into_tuple().unwrap();
 
             let list_items = list_items
@@ -283,7 +284,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "tuple_zip" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [a, b] = unpack::<2>(closure);
+            let [a, b] = unpack::<2>(args);
             let a = a.kind.into_tuple().unwrap();
             let b = b.kind.into_tuple().unwrap();
 
@@ -298,7 +299,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "_eq" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [list] = unpack::<1>(closure);
+            let [list] = unpack::<1>(args);
             let list = list.kind.into_tuple().unwrap();
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
@@ -309,7 +310,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         "from_text" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [format, text_expr] = unpack::<2>(closure);
+            let [format, text_expr] = unpack::<2>(args);
 
             let text = match text_expr.kind {
                 ExprKind::Literal(Literal::String(text)) => text,
@@ -798,8 +799,8 @@ impl LineageInput {
 
 // Expects closure's args to be resolved.
 // Note that named args are before positional args, in order of declaration.
-fn unpack<const P: usize>(closure: Func) -> [Expr; P] {
-    closure.args.try_into().expect("bad transform cast")
+fn unpack<const P: usize>(args: Vec<Expr>) -> [Expr; P] {
+    args.try_into().expect("bad transform cast")
 }
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
