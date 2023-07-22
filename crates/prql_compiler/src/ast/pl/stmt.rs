@@ -3,9 +3,16 @@ use serde::{Deserialize, Serialize};
 
 use prql_ast::Span;
 
-pub use prql_ast::stmt::{QueryDef, VarDefKind};
+pub use prql_ast::stmt::QueryDef;
 
 use super::expr::Expr;
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub enum VarDefKind {
+    Let,
+    Into,
+    Main,
+}
 
 // The following code is tested by the tests_misc crate to match stmt.rs in prql_ast.
 

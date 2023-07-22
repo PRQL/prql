@@ -17,7 +17,6 @@ pub struct QueryDef {
 pub enum VarDefKind {
     Let,
     Into,
-    Main,
 }
 
 // The following code is tested by the tests_misc crate to match stmt.rs in prql_compiler.
@@ -35,6 +34,7 @@ pub struct Stmt {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum StmtKind {
     QueryDef(Box<QueryDef>),
+    Main(Box<Expr>),
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
@@ -42,7 +42,7 @@ pub enum StmtKind {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
-    pub name: Option<String>,
+    pub name: String,
     pub value: Box<Expr>,
     pub ty_expr: Option<Box<Expr>>,
     pub kind: VarDefKind,

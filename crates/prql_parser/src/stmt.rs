@@ -108,7 +108,7 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
         .then(expr_call().map(Box::new))
         .map(|((name, ty_expr), value)| {
             StmtKind::VarDef(VarDef {
-                name: Some(name),
+                name,
                 value,
                 ty_expr,
                 kind: VarDefKind::Let,
@@ -119,17 +119,14 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
     let main_or_into = pipeline(expr_call())
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
-        .map(|(value, name)| {
-            let kind = match &name {
-                None => VarDefKind::Main,
-                Some(_) => VarDefKind::Into,
-            };
-            StmtKind::VarDef(VarDef {
+        .map(|(value, name)| match name {
+            None => StmtKind::Main(value),
+            Some(name) => StmtKind::VarDef(VarDef {
                 name,
                 value,
                 ty_expr: None,
-                kind,
-            })
+                kind: VarDefKind::Into,
+            }),
         })
         .labelled("variable definition");
 
