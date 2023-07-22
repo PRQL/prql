@@ -6,6 +6,7 @@ use std::{collections::HashMap, fmt::Debug};
 use super::*;
 use crate::ast::pl::*;
 use crate::error::Span;
+use crate::utils::IdGenerator;
 
 /// Context of the pipeline.
 #[derive(Default, Clone)]
@@ -14,6 +15,8 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
+
+    pub(crate) id: IdGenerator<usize>,
 }
 
 /// A struct containing information about a single declaration.

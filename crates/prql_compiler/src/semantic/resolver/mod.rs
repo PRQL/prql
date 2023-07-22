@@ -9,7 +9,6 @@ use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::semantic::context::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
-use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind, TableExpr};
 use super::module::Module;
@@ -35,8 +34,6 @@ pub struct Resolver<'a> {
 
     disable_type_checking: bool,
 
-    pub id: IdGenerator<usize>,
-
     pub options: &'a ResolverOptions,
 }
 
@@ -54,14 +51,13 @@ impl<'a> Resolver<'a> {
             default_namespace: None,
             in_func_call_name: false,
             disable_type_checking: false,
-            id: IdGenerator::new(),
         }
     }
 
     // entry point
     pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
-            stmt.id = Some(self.id.gen());
+            stmt.id = Some(self.context.id.gen());
             if let Some(span) = stmt.span {
                 self.context.span_map.insert(stmt.id.unwrap(), span);
             }
@@ -275,7 +271,7 @@ impl AstFold for Resolver<'_> {
             return Ok(node);
         }
 
-        let id = self.id.gen();
+        let id = self.context.id.gen();
         let alias = node.alias.clone();
         let span = node.span;
 

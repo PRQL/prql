@@ -460,7 +460,7 @@ fn fold_by_simulating_eval(
     log::debug!("fold by simulating evaluation");
 
     let param_name = "_tbl";
-    let param_id = resolver.id.gen();
+    let param_id = resolver.context.id.gen();
 
     // resolver will not resolve a function call if any arguments are missing
     // but would instead return a closure to be resolved later.
