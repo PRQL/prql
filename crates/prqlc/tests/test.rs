@@ -285,7 +285,6 @@ fn format() {
     take 20
 
     ----- stderr -----
-    Currently `fmt` only works with a single source, but found multiple sources: "`Project.prql`, `artists.prql`, `long_query.prql`"
     "###);
 }
 
