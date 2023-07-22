@@ -72,9 +72,8 @@ caching issues. We can also re-enable them if the `cargo` issue is resolved.
 
 To test on Mac temporarily — for example if there's an error in GHA and we're on
 a Mac locally — apply a diff like this, and then run `cargo build` from the
-`prql-elixir` path, which will enable the local
-[`.cargo/config.toml`](native/prql/.cargo/config.toml)). (We could also make a
-feature like `elixir-mac` which enabled building on Mac).
+`prql-elixir` path, which will enable the local [`.cargo/config.toml`]). (We
+could also make a feature like `elixir-mac` which enabled building on Mac).
 
 ```diff
 diff --git a/bindings/prql-elixir/native/prql/Cargo.toml b/bindings/prql-elixir/native/prql/Cargo.toml
@@ -101,3 +100,6 @@ index 2c5c8f27..68e77217 100644
  // TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
 
 ```
+
+[`.cargo/config.toml`]:
+  https://github.com/PRQL/prql/blob/main/bindings/prql-elixir/native/prql/.cargo/config.toml
