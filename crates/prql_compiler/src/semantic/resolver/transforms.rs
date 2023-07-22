@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
+use prql_ast::Span;
 use serde::Deserialize;
 use std::iter::zip;
 
@@ -18,11 +19,13 @@ use super::{Context, Lineage};
 use super::{NS_PARAM, NS_THIS};
 
 /// try to convert function call with enough args into transform
-pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
-    let internal_name = closure.body.kind.as_internal().unwrap();
-    let args = closure.args;
-
-    let (kind, input) = match internal_name.as_str() {
+pub fn cast_transform(
+    internal_name: &str,
+    args: Vec<Expr>,
+    body_span: Option<Span>,
+    resolver: &mut Resolver,
+) -> Result<Expr> {
+    let (kind, input) = match internal_name {
         "from" => {
             let [source] = unpack::<1>(args);
 
@@ -382,7 +385,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
         _ => {
             return Err(Error::new_simple("unknown operator {internal_name}")
                 .push_hint("this is a bug in prql-compiler")
-                .with_span(closure.body.span)
+                .with_span(body_span)
                 .into())
         }
     };

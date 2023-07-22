@@ -694,7 +694,12 @@ impl Resolver {
                         })
                     }
                 } else {
-                    let expr = transforms::cast_transform(self, closure)?;
+                    let expr = transforms::cast_transform(
+                        operator_name,
+                        closure.args,
+                        closure.body.span,
+                        self,
+                    )?;
                     self.fold_expr(expr)?
                 }
             } else {
