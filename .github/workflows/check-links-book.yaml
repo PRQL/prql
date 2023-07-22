@@ -1,0 +1,53 @@
+# We also have a check-links-markdown job, however it will not spot mdbook
+# mistakes such as forgetting to list an .md file in SUMMARY.md.
+# Running a link checker on the generated HTML is more reliable.
+
+name: check-links-book
+
+on:
+  pull_request:
+    paths:
+      - "web/book/**"
+      - ".github/workflows/check-links-book.yaml"
+  workflow_call:
+
+env:
+  RUSTFLAGS: "-C debuginfo=0"
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-check-links
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook
+
+      # the link checker
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: hyperlink
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 0.8.1
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Build the mdbook
+        run: mdbook build web/book/
+
+      - name: Check links
+        run: hyperlink web/book/book/
