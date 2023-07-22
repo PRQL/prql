@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use prql_ast::{expr::ExprKind, stmt::StmtKind};
+use prql_ast::{
+    expr::ExprKind,
+    stmt::{StmtKind, VarDefKind},
+};
 
 use crate::ast::pl;
 
@@ -122,11 +125,17 @@ impl From<StmtKind> for pl::StmtKind {
     fn from(value: prql_ast::stmt::StmtKind) -> Self {
         match value {
             StmtKind::QueryDef(v) => Self::QueryDef(v),
+            StmtKind::Main(v) => Self::VarDef(pl::VarDef {
+                name: None,
+                value: map_box_into(v),
+                ty_expr: None,
+                kind: pl::VarDefKind::Main,
+            }),
             StmtKind::VarDef(v) => Self::VarDef(pl::VarDef {
-                name: v.name,
+                name: Some(v.name),
                 value: map_box_into(v.value),
                 ty_expr: v.ty_expr.map(map_box_into),
-                kind: v.kind,
+                kind: v.kind.into(),
             }),
             StmtKind::TypeDef(v) => Self::TypeDef(pl::TypeDef {
                 name: v.name,
@@ -136,6 +145,15 @@ impl From<StmtKind> for pl::StmtKind {
                 name: v.name,
                 stmts: map_vec_into(v.stmts),
             }),
+        }
+    }
+}
+
+impl From<VarDefKind> for pl::VarDefKind {
+    fn from(value: VarDefKind) -> Self {
+        match value {
+            VarDefKind::Let => Self::Let,
+            VarDefKind::Into => Self::Into,
         }
     }
 }

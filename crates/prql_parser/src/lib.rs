@@ -172,60 +172,48 @@ take 20
 
         assert_yaml_snapshot!(parse_single(r#"take 10"#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - take
-                args:
-                  - Literal:
-                      Integer: 10
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - take
+              args:
+                - Literal:
+                    Integer: 10
           annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - take
-                args:
-                  - Range:
-                      start: ~
-                      end:
-                        Literal:
-                          Integer: 10
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - take
+              args:
+                - Range:
+                    start: ~
+                    end:
+                      Literal:
+                        Integer: 10
           annotations: []
         "###);
 
         assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - take
-                args:
-                  - Range:
-                      start:
-                        Literal:
-                          Integer: 1
-                      end:
-                        Literal:
-                          Integer: 10
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - take
+              args:
+                - Range:
+                    start:
+                      Literal:
+                        Integer: 1
+                    end:
+                      Literal:
+                        Integer: 10
           annotations: []
         "###);
     }
@@ -465,18 +453,14 @@ take 20
         select a"#
         ).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - select
-                args:
-                  - Ident:
-                      - a
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - select
+              args:
+                - Ident:
+                    - a
           annotations: []
         "###);
         assert_yaml_snapshot!(parse_expr(
@@ -797,53 +781,45 @@ Canada
         assert_yaml_snapshot!(
             parse_single(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - filter
-                args:
-                  - Binary:
-                      left:
-                        Ident:
-                          - country
-                      op: Eq
-                      right:
-                        Literal:
-                          String: USA
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - filter
+              args:
+                - Binary:
+                    left:
+                      Ident:
+                        - country
+                    op: Eq
+                    right:
+                      Literal:
+                        String: USA
           annotations: []
         "###);
 
         assert_yaml_snapshot!(
             parse_single(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - filter
-                args:
-                  - Binary:
-                      left:
-                        FuncCall:
-                          name:
-                            Ident:
-                              - upper
-                          args:
-                            - Ident:
-                                - country
-                      op: Eq
-                      right:
-                        Literal:
-                          String: USA
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - filter
+              args:
+                - Binary:
+                    left:
+                      FuncCall:
+                        name:
+                          Ident:
+                            - upper
+                        args:
+                          - Ident:
+                              - country
+                    op: Eq
+                    right:
+                      Literal:
+                        String: USA
           annotations: []
         "###
         );
@@ -860,34 +836,30 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - group
-                args:
-                  - Tuple:
-                      - Ident:
-                          - title
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - aggregate
-                      args:
-                        - Tuple:
-                            - FuncCall:
-                                name:
-                                  Ident:
-                                    - sum
-                                args:
-                                  - Ident:
-                                      - salary
-                            - Ident:
-                                - count
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - group
+              args:
+                - Tuple:
+                    - Ident:
+                        - title
+                - FuncCall:
+                    name:
+                      Ident:
+                        - aggregate
+                    args:
+                      - Tuple:
+                          - FuncCall:
+                              name:
+                                Ident:
+                                  - sum
+                              args:
+                                - Ident:
+                                    - salary
+                          - Ident:
+                              - count
           annotations: []
         "###);
         let aggregate = parse_single(
@@ -899,32 +871,28 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - group
-                args:
-                  - Tuple:
-                      - Ident:
-                          - title
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - aggregate
-                      args:
-                        - Tuple:
-                            - FuncCall:
-                                name:
-                                  Ident:
-                                    - sum
-                                args:
-                                  - Ident:
-                                      - salary
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - group
+              args:
+                - Tuple:
+                    - Ident:
+                        - title
+                - FuncCall:
+                    name:
+                      Ident:
+                        - aggregate
+                    args:
+                      - Tuple:
+                          - FuncCall:
+                              name:
+                                Ident:
+                                  - sum
+                              args:
+                                - Ident:
+                                    - salary
           annotations: []
         "###);
     }
@@ -1233,20 +1201,16 @@ Canada
 
         assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Literal:
-                    Integer: 42
-                params:
-                  - name: return_constant
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Func:
+              return_ty: ~
+              body:
+                Literal:
+                  Integer: 42
+              params:
+                - name: return_constant
+                  default_value: ~
+              named_params: []
           annotations: []
         "###);
 
@@ -1675,18 +1639,14 @@ Canada
             ty_expr: ~
             kind: Let
           annotations: []
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - from
-                args:
-                  - Ident:
-                      - x
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - from
+              args:
+                - Ident:
+                    - x
           annotations: []
         "###);
     }
@@ -1746,40 +1706,36 @@ Canada
         }
         "#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - mytable
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - filter
-                      args:
-                        - Tuple:
-                            - Binary:
-                                left:
-                                  Ident:
-                                    - first_name
-                                op: Eq
-                                right:
-                                  Param: "1"
-                            - Binary:
-                                left:
-                                  Ident:
-                                    - last_name
-                                op: Eq
-                                right:
-                                  Param: 2.name
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - mytable
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Tuple:
+                          - Binary:
+                              left:
+                                Ident:
+                                  - first_name
+                              op: Eq
+                              right:
+                                Param: "1"
+                          - Binary:
+                              left:
+                                Ident:
+                                  - last_name
+                              op: Eq
+                              right:
+                                Param: 2.name
           annotations: []
         "###);
     }
@@ -1810,61 +1766,57 @@ join `my-proj`.`dataset`.`table`
 
         assert_yaml_snapshot!(parse_single(prql).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - a/*.parquet
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - aggregate
-                      args:
-                        - Tuple:
-                            - FuncCall:
-                                name:
-                                  Ident:
-                                    - max
-                                args:
-                                  - Ident:
-                                      - c
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - join
-                      args:
-                        - Ident:
-                            - schema.table
-                        - Unary:
-                            op: EqSelf
-                            expr:
-                              Ident:
-                                - id
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - join
-                      args:
-                        - Ident:
-                            - my-proj.dataset.table
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - join
-                      args:
-                        - Ident:
-                            - my-proj
-                            - dataset
-                            - table
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - a/*.parquet
+                - FuncCall:
+                    name:
+                      Ident:
+                        - aggregate
+                    args:
+                      - Tuple:
+                          - FuncCall:
+                              name:
+                                Ident:
+                                  - max
+                              args:
+                                - Ident:
+                                    - c
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - schema.table
+                      - Unary:
+                          op: EqSelf
+                          expr:
+                            Ident:
+                              - id
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - my-proj.dataset.table
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - my-proj
+                          - dataset
+                          - table
           annotations: []
         "###);
     }
@@ -1880,74 +1832,70 @@ join `my-proj`.`dataset`.`table`
         sort {issued_at, -amount, +num_of_articles}
         ").unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - invoices
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Ident:
-                            - issued_at
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Unary:
-                            op: Neg
-                            expr:
-                              Ident:
-                                - issued_at
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Tuple:
-                            - Ident:
-                                - issued_at
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Tuple:
-                            - Unary:
-                                op: Neg
-                                expr:
-                                  Ident:
-                                    - issued_at
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Tuple:
-                            - Ident:
-                                - issued_at
-                            - Unary:
-                                op: Neg
-                                expr:
-                                  Ident:
-                                    - amount
-                            - Unary:
-                                op: Add
-                                expr:
-                                  Ident:
-                                    - num_of_articles
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - invoices
+                - FuncCall:
+                    name:
+                      Ident:
+                        - sort
+                    args:
+                      - Ident:
+                          - issued_at
+                - FuncCall:
+                    name:
+                      Ident:
+                        - sort
+                    args:
+                      - Unary:
+                          op: Neg
+                          expr:
+                            Ident:
+                              - issued_at
+                - FuncCall:
+                    name:
+                      Ident:
+                        - sort
+                    args:
+                      - Tuple:
+                          - Ident:
+                              - issued_at
+                - FuncCall:
+                    name:
+                      Ident:
+                        - sort
+                    args:
+                      - Tuple:
+                          - Unary:
+                              op: Neg
+                              expr:
+                                Ident:
+                                  - issued_at
+                - FuncCall:
+                    name:
+                      Ident:
+                        - sort
+                    args:
+                      - Tuple:
+                          - Ident:
+                              - issued_at
+                          - Unary:
+                              op: Neg
+                              expr:
+                                Ident:
+                                  - amount
+                          - Unary:
+                              op: Add
+                              expr:
+                                Ident:
+                                  - num_of_articles
           annotations: []
         "###);
     }
@@ -1959,37 +1907,33 @@ join `my-proj`.`dataset`.`table`
         derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - employees
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - derive
-                      args:
-                        - Tuple:
-                            - Binary:
-                                left:
-                                  Ident:
-                                    - age
-                                op: Add
-                                right:
-                                  Literal:
-                                    ValueAndUnit:
-                                      n: 2
-                                      unit: years
-                              alias: age_plus_two_years
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - employees
+                - FuncCall:
+                    name:
+                      Ident:
+                        - derive
+                    args:
+                      - Tuple:
+                          - Binary:
+                              left:
+                                Ident:
+                                  - age
+                              op: Add
+                              right:
+                                Literal:
+                                  ValueAndUnit:
+                                    n: 2
+                                    unit: years
+                            alias: age_plus_two_years
           annotations: []
         "###);
 
@@ -2023,19 +1967,15 @@ join `my-proj`.`dataset`.`table`
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - derive
-                args:
-                  - Ident:
-                      - r
-                    alias: x
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - derive
+              args:
+                - Ident:
+                    - r
+                  alias: x
           annotations: []
         "### )
     }
@@ -2047,34 +1987,30 @@ join `my-proj`.`dataset`.`table`
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - employees
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - derive
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - amount
-                            op: Coalesce
-                            right:
-                              Literal:
-                                Integer: 0
-                          alias: amount
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - employees
+                - FuncCall:
+                    name:
+                      Ident:
+                        - derive
+                    args:
+                      - Binary:
+                          left:
+                            Ident:
+                              - amount
+                          op: Coalesce
+                          right:
+                            Literal:
+                              Integer: 0
+                        alias: amount
           annotations: []
         "### )
     }
@@ -2085,19 +2021,15 @@ join `my-proj`.`dataset`.`table`
         derive x = true
         "###).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - derive
-                args:
-                  - Literal:
-                      Boolean: true
-                    alias: x
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - derive
+              args:
+                - Literal:
+                    Boolean: true
+                  alias: x
           annotations: []
         "###)
     }
@@ -2111,53 +2043,49 @@ join `my-proj`.`dataset`.`table`
         select {_employees._underscored_column}
         "###).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - employees
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - join
-                      args:
-                        - Ident:
-                            - _salary
-                        - Unary:
-                            op: EqSelf
-                            expr:
-                              Ident:
-                                - employee_id
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - filter
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - first_name
-                            op: Eq
-                            right:
-                              Param: "1"
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - select
-                      args:
-                        - Tuple:
-                            - Ident:
-                                - _employees
-                                - _underscored_column
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - employees
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - _salary
+                      - Unary:
+                          op: EqSelf
+                          expr:
+                            Ident:
+                              - employee_id
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident:
+                              - first_name
+                          op: Eq
+                          right:
+                            Param: "1"
+                - FuncCall:
+                    name:
+                      Ident:
+                        - select
+                    args:
+                      - Tuple:
+                          - Ident:
+                              - _employees
+                              - _underscored_column
           annotations: []
         "###)
     }
@@ -2172,72 +2100,68 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - people
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - filter
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - age
-                            op: Gte
-                            right:
-                              Literal:
-                                Integer: 100
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - filter
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - num_grandchildren
-                            op: Lte
-                            right:
-                              Literal:
-                                Integer: 10
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - filter
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - salary
-                            op: Gt
-                            right:
-                              Literal:
-                                Integer: 0
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - filter
-                      args:
-                        - Binary:
-                            left:
-                              Ident:
-                                - num_eyes
-                            op: Lt
-                            right:
-                              Literal:
-                                Integer: 2
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - people
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident:
+                              - age
+                          op: Gte
+                          right:
+                            Literal:
+                              Integer: 100
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident:
+                              - num_grandchildren
+                          op: Lte
+                          right:
+                            Literal:
+                              Integer: 10
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident:
+                              - salary
+                          op: Gt
+                          right:
+                            Literal:
+                              Integer: 0
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident:
+                              - num_eyes
+                          op: Lt
+                          right:
+                            Literal:
+                              Integer: 2
           annotations: []
         "###)
     }
@@ -2249,33 +2173,29 @@ from employees
 join s=salaries (==id)
         "###).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - employees
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - join
-                      args:
-                        - Ident:
-                            - salaries
-                          alias: s
-                        - Unary:
-                            op: EqSelf
-                            expr:
-                              Ident:
-                                - id
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - employees
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - salaries
+                        alias: s
+                      - Unary:
+                          op: EqSelf
+                          expr:
+                            Ident:
+                              - id
           annotations: []
         "###);
     }
@@ -2355,18 +2275,14 @@ join s=salaries (==id)
         let source = "from tète";
         assert_yaml_snapshot!(parse_single(source).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - from
-                args:
-                  - Ident:
-                      - tète
-            ty_expr: ~
-            kind: Main
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - from
+              args:
+                - Ident:
+                    - tète
           annotations: []
         "###);
     }
@@ -2408,13 +2324,9 @@ join s=salaries (==id)
         x
         "#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: ~
-            value:
-              Ident:
-                - x
-            ty_expr: ~
-            kind: Main
+        - Main:
+            Ident:
+              - x
           annotations: []
         "###);
     }

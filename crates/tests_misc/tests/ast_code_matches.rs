@@ -31,7 +31,13 @@ fn test_stmt_ast_code_matches() {
         diff_code_after_start(
             &read_to_string("../../crates/prql_ast/src/stmt.rs").unwrap(),
             &read_to_string("../../crates/prql_compiler/src/ast/pl/stmt.rs").unwrap(),
-        ), @""
+        ), @r###"
+    @@ .. @@
+    -    Main(Box<Expr>),
+    @@ .. @@
+    -    pub name: String,
+    +    pub name: Option<String>,
+    "###
     )
 }
 
