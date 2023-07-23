@@ -15,10 +15,12 @@ use super::context::{Context, Decl, DeclKind, TableExpr};
 use super::module::Module;
 use super::reporting::debug_call_tree;
 use super::{NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
-use transforms::{coerce_into_tuple_and_flatten, Flattener};
+use flatten::Flattener;
+use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
 
 mod context_impl;
+mod flatten;
 mod transforms;
 mod type_resolver;
 
