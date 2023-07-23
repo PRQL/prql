@@ -8,7 +8,7 @@ use crate::ast::pl::*;
 use crate::error::Span;
 
 /// Context of the pipeline.
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Clone)]
 pub struct Context {
     /// Map of all accessible names (for each namespace)
     pub(crate) root_mod: Module,
