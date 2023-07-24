@@ -7,6 +7,7 @@ mod module;
 pub mod reporting;
 mod resolver;
 mod static_analysis;
+mod ast_expand;
 
 use anyhow::Result;
 use itertools::Itertools;

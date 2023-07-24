@@ -2,16 +2,12 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use chumsky::{error::SimpleReason, Span as ChumskySpan};
-use prql_ast::Span;
+use prql_ast::{stmt::Stmt, Span};
 use prql_parser::chumsky;
 
-use crate::{
-    codegen,
-    error::{Error, Errors, Reason, WithErrorInfo},
-    ir::pl::Stmt,
-    utils::IdGenerator,
-    SourceTree,
-};
+use crate::error::{Error, Errors, Reason, WithErrorInfo};
+use crate::utils::IdGenerator;
+use crate::{codegen, SourceTree};
 use prql_parser::lexer::Token;
 
 pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
@@ -46,7 +42,7 @@ fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
         )
     })?;
 
-    Ok(stmts.into_iter().map(Stmt::from).collect())
+    Ok(stmts)
 }
 
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
