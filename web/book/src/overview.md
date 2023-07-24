@@ -2,6 +2,13 @@
 
 PRQL project documentation.
 
+## [Tutorial](./tutorial/relations.md)
+
+A friendly & accessible guide for learning PRQL. It has a gradual increase of
+difficulty and requires only basic understanding of programming languages.
+Knowledge of SQL is beneficial, because of many comparisons to SQL, but it is
+not required.
+
 ## [Language reference](./reference/syntax/index.md)
 
 In-depth information about the PRQL language. Includes justifications for
