@@ -1,9 +1,9 @@
-mod literal;
 mod ast;
+mod literal;
 mod pl;
 
-pub use literal::DisplayLiteral;
 pub use ast::{write_expr, write_stmts};
+pub use literal::DisplayLiteral;
 
 pub trait WriteSource {
     /// Converts self to its source representation according to specified

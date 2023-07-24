@@ -387,7 +387,6 @@ impl WriteSource for SwitchCase {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;

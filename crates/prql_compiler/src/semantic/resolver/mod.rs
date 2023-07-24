@@ -13,7 +13,7 @@ use crate::utils::IdGenerator;
 use super::context::{Context, Decl, DeclKind, TableExpr};
 use super::module::Module;
 use super::reporting::debug_call_tree;
-use super::{NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS, write_pl};
+use super::{write_pl, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
