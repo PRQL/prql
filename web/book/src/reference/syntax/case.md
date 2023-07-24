@@ -21,4 +21,3 @@ derive distance = case {
   true => "Unknown",
 }
 ```
-

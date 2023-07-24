@@ -2,9 +2,9 @@
 
 ## Simple
 
-A distinction between PRQL and most other programming languages is the
-function call syntax. It consists of the function name followed by arguments
-separated by whitespace.
+A distinction between PRQL and most other programming languages is the function
+call syntax. It consists of the function name followed by arguments separated by
+whitespace.
 
 ```prql no-eval
 function_name arg1 arg2 arg3

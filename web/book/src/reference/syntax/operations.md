@@ -53,9 +53,8 @@ This is currently experimental
 ```
 
 To perform a case-sensitive regex search, use the `~=` operator. This generally
-compiles to `REGEXP`, though differs by dialect. A
-regex search means that to match an exact value, the start and end need to be
-anchored with `^foo$`.
+compiles to `REGEXP`, though differs by dialect. A regex search means that to
+match an exact value, the start and end need to be anchored with `^foo$`.
 
 ```prql
 from tracks
