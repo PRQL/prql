@@ -91,8 +91,8 @@ will become the public version at the next release._
   select a
   ```
 
-- We've stabilized a reference to current pipeline: `this`, which can be used in
-  situations where plain column name would be ambiguous:
+- `this` can be used to refer to the current pipeline, for situations where
+  plain column name would be ambiguous:
 
   ```prql no-eval
   from x
@@ -107,12 +107,7 @@ will become the public version at the next release._
   of the array to operate on. In most cases you can directly replace `count`
   with `count this`. The `non_null` argument of `count` has been removed.
 
-**Fixes**:
-
-- Numbers expressed with scientific notation — `1e9` — are now handled correctly
-  by the compiler (@max-sixty, #2865).
-
-**prql-compiler**:
+**Features**:
 
 - We've changed how we handle colors. We now use the
   [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
@@ -129,6 +124,11 @@ will become the public version at the next release._
 
 - `prqlc` can now show backtraces when the standard backtrace env var
   (`RUST_BACKTRACE`) is active. (@max-sixty, #2751)
+
+**Fixes**:
+
+- Numbers expressed with scientific notation — `1e9` — are now handled correctly
+  by the compiler (@max-sixty, #2865).
 
 **Documentation**:
 
