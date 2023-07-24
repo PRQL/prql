@@ -15,8 +15,8 @@ A summary of PRQL syntax:
 | `:`             | [Named args & parameters](../declarations/functions.md)                        | `interp low:0 1600 sat_score`                           |
 | `{}`            | [Tuples](./tuples.md)                                                          | `{id, false, total = 3}`                                |
 | `[]`            | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
-| `! && == +`     | [Operations](./operators.md)                                                  | <code>filter a == b + c \|\| d >= e</code>              |
-| `()`            | [Parentheses](./operators.md#parentheses)                                     | `derive celsius = (fahrenheit - 32) / 1.8`              |
+| `! && == +`     | [Operations](./operators.md)                                                   | <code>filter a == b + c \|\| d >= e</code>              |
+| `()`            | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''`, `""`      | [Strings](./strings.md)                                                        | `derive name = 'Mary'`                                  |
 | `` ` ` ``       | [Quoted identifiers](./keywords.md#quoting)                                    | `` select `first name`  ``                              |
 | `#`             | [Comments](./comments.md)                                                      | `# A comment`                                           |
@@ -25,7 +25,7 @@ A summary of PRQL syntax:
 | `->`            | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
 | `=>`            | [Case statement](./case.md)                                                    | `case {a==1 => c, a==2 => d }`                          |
 | `+`/`-`         | [Sort order](../stdlib/transforms/sort.md)                                     | `sort {-amount, +date}`                                 |
-| `??`            | [Coalesce](./operators.md#coalesce)                                           | `amount ?? 0`                                           |
+| `??`            | [Coalesce](./operators.md#coalesce)                                            | `amount ?? 0`                                           |
 
 <!-- TODO: Arrays -->
 
