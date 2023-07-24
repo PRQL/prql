@@ -14,14 +14,14 @@ repos:
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
     # Upgrading to the bare `v3.0.0` seems to break the plugin; contributions welcome to fix.
-    rev: v3.0.0-alpha.9-for-vscode
+    rev: v3.0.0
     hooks:
       - id: prettier
         additional_dependencies:
           - prettier
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.278
+    rev: v0.0.280
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
