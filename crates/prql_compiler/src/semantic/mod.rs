@@ -23,7 +23,7 @@ pub use lowering::lower_to_ir;
 use crate::error::WithErrorInfo;
 use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::Query;
-use crate::{Error, Reason, SourceTree, codegen};
+use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
@@ -95,7 +95,9 @@ pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
         .try_collect()
 }
 
-fn normalize(mut tree: SourceTree<Vec<prql_ast::stmt::Stmt>>) -> Result<Vec<(Vec<String>, Vec<prql_ast::stmt::Stmt>)>> {
+fn normalize(
+    mut tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
+) -> Result<Vec<(Vec<String>, Vec<prql_ast::stmt::Stmt>)>> {
     // find root
     let root_path = PathBuf::from("");
 
@@ -188,13 +190,21 @@ impl pl::Expr {
             Error::new(Reason::Expected {
                 who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: format!("`{}`", codegen::write_expr(pl::Expr::new(i))),
+                found: format!("`{}`", write_pl(pl::Expr::new(i))),
             })
             .with_span(self.span)
         })
     }
 }
 
+/// Write a PL IR to string.
+///
+/// Because PL needs to be restricted back to AST, ownerships of expr is required.
+pub fn write_pl(expr: pl::Expr) -> String {
+    let expr = ast_expand::restrict_expr(expr);
+
+    crate::codegen::write_expr(&expr)
+}
 #[cfg(test)]
 pub mod test {
     use anyhow::Result;

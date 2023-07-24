@@ -99,7 +99,7 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::TableDecl(TableDecl { ty, .. }) => {
                             format!(
                                 "table {}",
-                                ty.as_ref().and_then(|t| t.name).unwrap_or_default()
+                                ty.as_ref().and_then(|t| t.name.clone()).unwrap_or_default()
                             )
                         }
                         _ => decl.to_string(),

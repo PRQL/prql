@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use prql_ast::expr::{Expr, ExprKind};
+use prql_ast::expr::{BinaryExpr, Expr, ExprKind, Ident};
 use prql_ast::stmt::{Annotation, Stmt, StmtKind, VarDefKind};
 
 use crate::ir::pl;
 
+/// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: Expr) -> pl::Expr {
     pl::Expr {
         kind: expand_expr_kind(expr.kind),
@@ -100,6 +101,7 @@ fn expand_func_params(value: Vec<prql_ast::expr::FuncParam>) -> Vec<pl::FuncPara
     value.into_iter().map(expand_func_param).collect::<Vec<_>>()
 }
 
+#[allow(clippy::boxed_local)]
 fn expand_ty_or_expr(value: Box<prql_ast::expr::Expr>) -> pl::TyOrExpr {
     pl::TyOrExpr::Expr(Box::new(expand_expr(*value)))
 }
@@ -158,4 +160,134 @@ fn expand_annotation(value: Annotation) -> pl::Annotation {
     pl::Annotation {
         expr: expand_expr_box(value.expr),
     }
+}
+
+/// An AST pass that tries to revert the mapping from AST to PL
+pub fn restrict_expr(expr: pl::Expr) -> Expr {
+    Expr {
+        kind: restrict_expr_kind(expr.kind),
+        span: expr.span,
+        alias: expr.alias,
+    }
+}
+
+#[allow(clippy::boxed_local)]
+fn restrict_expr_box(expr: Box<pl::Expr>) -> Box<prql_ast::expr::Expr> {
+    Box::new(restrict_expr(*expr))
+}
+
+fn restrict_exprs(exprs: Vec<pl::Expr>) -> Vec<Expr> {
+    exprs.into_iter().map(restrict_expr).collect()
+}
+
+fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
+    match value {
+        pl::ExprKind::Ident(v) => ExprKind::Ident(v),
+        pl::ExprKind::Literal(v) => ExprKind::Literal(v),
+        pl::ExprKind::Pipeline(v) => ExprKind::Pipeline(prql_ast::expr::Pipeline {
+            exprs: restrict_exprs(v.exprs),
+        }),
+        pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
+        pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
+        pl::ExprKind::Range(v) => ExprKind::Range(v.map(restrict_expr_box)),
+        pl::ExprKind::Binary(v) => ExprKind::Binary(BinaryExpr {
+            left: restrict_expr_box(v.left),
+            op: v.op,
+            right: restrict_expr_box(v.right),
+        }),
+        pl::ExprKind::Unary(v) => ExprKind::Unary(prql_ast::expr::UnaryExpr {
+            op: v.op,
+            expr: restrict_expr_box(v.expr),
+        }),
+        pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(prql_ast::expr::FuncCall {
+            name: restrict_expr_box(v.name),
+            args: restrict_exprs(v.args),
+            named_args: v
+                .named_args
+                .into_iter()
+                .map(|(k, v)| (k, restrict_expr(v)))
+                .collect(),
+        }),
+        pl::ExprKind::Func(v) => ExprKind::Func(
+            prql_ast::expr::Func {
+                return_ty: v.return_ty.map(restrict_ty_or_expr).map(Box::new),
+                body: restrict_expr_box(v.body),
+                params: restrict_func_params(v.params),
+                named_params: restrict_func_params(v.named_params),
+            }
+            .into(),
+        ),
+        pl::ExprKind::SString(v) => {
+            ExprKind::SString(v.into_iter().map(|v| v.map(restrict_expr)).collect())
+        }
+        pl::ExprKind::FString(v) => {
+            ExprKind::FString(v.into_iter().map(|v| v.map(restrict_expr)).collect())
+        }
+        pl::ExprKind::Case(v) => ExprKind::Case(
+            v.into_iter()
+                .map(|case| prql_ast::expr::SwitchCase {
+                    condition: restrict_expr_box(case.condition),
+                    value: restrict_expr_box(case.value),
+                })
+                .collect(),
+        ),
+        pl::ExprKind::Param(v) => ExprKind::Param(v),
+        pl::ExprKind::Internal(v) => ExprKind::Internal(v),
+        pl::ExprKind::All { .. }
+        | pl::ExprKind::TransformCall(_)
+        | pl::ExprKind::RqOperator { .. }
+        | pl::ExprKind::Type(_) => ExprKind::Ident(Ident::from_name("?")),
+    }
+}
+
+fn restrict_func_params(value: Vec<pl::FuncParam>) -> Vec<prql_ast::expr::FuncParam> {
+    value.into_iter().map(restrict_func_param).collect()
+}
+
+fn restrict_func_param(value: pl::FuncParam) -> prql_ast::expr::FuncParam {
+    prql_ast::expr::FuncParam {
+        name: value.name,
+        ty: value.ty.map(restrict_ty_or_expr).map(Box::new),
+        default_value: value.default_value.map(restrict_expr_box),
+    }
+}
+
+fn restrict_ty_or_expr(value: pl::TyOrExpr) -> prql_ast::expr::Expr {
+    match value {
+        pl::TyOrExpr::Ty(ty) => restrict_ty(ty),
+        pl::TyOrExpr::Expr(expr) => restrict_expr(*expr),
+    }
+}
+
+fn restrict_ty(value: pl::Ty) -> prql_ast::expr::Expr {
+    let expr_kind = match value.kind {
+        pl::TyKind::Primitive(prim) => {
+            ExprKind::Ident(Ident::from_path(vec!["std".to_string(), prim.to_string()]))
+        }
+        pl::TyKind::Singleton(lit) => ExprKind::Literal(lit),
+        pl::TyKind::Union(_) => todo!(),
+        pl::TyKind::Tuple(fields) => ExprKind::Tuple(
+            fields
+                .into_iter()
+                .map(|field| match field {
+                    pl::TupleField::Single(name, ty) => {
+                        // TODO: ty might be None
+                        let mut e = restrict_ty(ty.unwrap());
+                        if let Some(name) = name {
+                            e.alias = Some(name);
+                        }
+                        e
+                    }
+                    pl::TupleField::Wildcard(_) => {
+                        // TODO: this is not correct
+                        Expr::new(ExprKind::Ident(Ident::from_name("*")))
+                    }
+                })
+                .collect(),
+        ),
+        pl::TyKind::Array(item_ty) => ExprKind::Array(vec![restrict_ty(*item_ty)]),
+        pl::TyKind::Set => todo!(),
+        pl::TyKind::Function(_) => todo!(),
+    };
+    Expr::new(expr_kind)
 }

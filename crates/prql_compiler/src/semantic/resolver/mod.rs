@@ -4,7 +4,6 @@ use std::iter::zip;
 use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
-use crate::codegen;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::ir::pl::*;
 use crate::semantic::context::TableDecl;
@@ -14,7 +13,7 @@ use crate::utils::IdGenerator;
 use super::context::{Context, Decl, DeclKind, TableExpr};
 use super::module::Module;
 use super::reporting::debug_call_tree;
-use super::{NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
+use super::{NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS, write_pl};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
@@ -979,7 +978,7 @@ impl Resolver {
                 _ => Err(Error::new(Reason::Expected {
                     who: Some("exclusion".to_string()),
                     expected: "column name".to_string(),
-                    found: format!("`{}`", codegen::write_expr(&e)),
+                    found: format!("`{}`", write_pl(e)),
                 })),
             })
             .try_collect()?;

@@ -3000,6 +3000,7 @@ dependencies = [
  "minijinja",
  "notify",
  "prql-compiler",
+ "prql_ast",
  "regex",
  "serde",
  "serde_json",
