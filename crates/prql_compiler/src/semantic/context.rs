@@ -6,7 +6,6 @@ use std::{collections::HashMap, fmt::Debug};
 use super::*;
 use crate::error::Span;
 use crate::ir::pl::*;
-use crate::utils::IdGenerator;
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
