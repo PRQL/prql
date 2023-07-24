@@ -260,7 +260,7 @@ impl Options {
 pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl(prql: &str) -> Result<Vec<ir::pl::Stmt>, ErrorMessages> {
+pub fn prql_to_pl(prql: &str) -> Result<Vec<prql_ast::stmt::Stmt>, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
     parser::parse(&sources)
@@ -270,21 +270,23 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ir::pl::Stmt>, ErrorMessages> {
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ir::pl::Stmt>>, ErrorMessages> {
+pub fn prql_to_pl_tree(
+    prql: &SourceTree,
+) -> Result<SourceTree<Vec<prql_ast::stmt::Stmt>>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
         .map_err(|e| e.composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
-pub fn pl_to_rq(pl: Vec<ir::pl::Stmt>) -> Result<ir::rq::Query, ErrorMessages> {
+pub fn pl_to_rq(pl: Vec<prql_ast::stmt::Stmt>) -> Result<ir::rq::Query, ErrorMessages> {
     let source_tree = SourceTree::single(PathBuf::new(), pl);
     semantic::resolve_and_lower(source_tree, &[]).map_err(error::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: SourceTree<Vec<ir::pl::Stmt>>,
+    pl: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     main_path: &[String],
 ) -> Result<ir::rq::Query, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
@@ -296,7 +298,7 @@ pub fn rq_to_sql(rq: ir::rq::Query, options: &Options) -> Result<String, ErrorMe
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: Vec<ir::pl::Stmt>) -> Result<String, ErrorMessages> {
+pub fn pl_to_prql(pl: Vec<prql_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
     Ok(codegen::write(&pl))
 }
 
@@ -305,12 +307,12 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: Vec<ir::pl::Stmt>) -> Result<String, ErrorMessages> {
+    pub fn from_pl(pl: Vec<prql_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
         serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<Vec<ir::pl::Stmt>, ErrorMessages> {
+    pub fn to_pl(json: &str) -> Result<Vec<prql_ast::stmt::Stmt>, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 

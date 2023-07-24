@@ -474,13 +474,16 @@ mod test {
     use insta::assert_display_snapshot;
     use itertools::Itertools;
 
+    use crate::semantic::ast_expand;
+
     use super::*;
 
     fn eval(source: &str) -> Result<String> {
         let stmts = crate::prql_to_pl(source)?.into_iter().exactly_one()?;
-        let expr = stmts.kind.into_var_def()?.value;
+        let expr = stmts.kind.into_var_def().unwrap().value;
+        let expr = ast_expand::expand_expr(*expr);
 
-        let value = super::eval(*expr)?;
+        let value = super::eval(expr)?;
 
         Ok(value.to_string())
     }

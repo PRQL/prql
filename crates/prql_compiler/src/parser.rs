@@ -29,7 +29,7 @@ pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     Ok(res)
 }
 
-fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>> {
+fn parse_source(source: &str, source_id: u16) -> Result<Vec<prql_ast::stmt::Stmt>> {
     let stmts = prql_parser::parse_source(source, source_id).map_err(|errors| {
         Errors(
             errors
@@ -186,7 +186,7 @@ impl std::fmt::Display for DisplayToken<'_> {
 mod tests {
     use insta::assert_debug_snapshot;
 
-    use crate::ir::pl::Stmt;
+    use prql_ast::stmt::Stmt;
 
     /// Helper that does not track source_ids
     #[cfg(test)]

@@ -117,6 +117,10 @@ fn expand_stmt(value: Stmt) -> pl::Stmt {
     }
 }
 
+pub fn expand_stmts(value: Vec<Stmt>) -> Vec<pl::Stmt> {
+    value.into_iter().map(expand_stmt).collect()
+}
+
 fn expand_stmt_kind(value: StmtKind) -> pl::StmtKind {
     match value {
         StmtKind::QueryDef(v) => pl::StmtKind::QueryDef(v),
@@ -138,7 +142,7 @@ fn expand_stmt_kind(value: StmtKind) -> pl::StmtKind {
         }),
         StmtKind::ModuleDef(v) => pl::StmtKind::ModuleDef(pl::ModuleDef {
             name: v.name,
-            stmts: v.stmts.into_iter().map(expand_stmt).collect(),
+            stmts: expand_stmts(v.stmts),
         }),
     }
 }
