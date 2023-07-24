@@ -12,8 +12,8 @@ enableGitInfo: true
 menu:
   nav:
     # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
-    - identifier: Book
-      name: Book
+    - identifier: Docs
+      name: Docs
       url: /book/
       weight: 1
     - identifier: Playground

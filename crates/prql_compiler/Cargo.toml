@@ -71,7 +71,7 @@ name = "bench"
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../web/book/src/language-features/target.md"
+file = "../web/book/src/project/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
 

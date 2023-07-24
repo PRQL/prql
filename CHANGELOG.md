@@ -58,7 +58,7 @@ will become the public version at the next release._
     ```
 
     ...though the exact form differs by dialect; see the
-    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for
+    [Regex docs](https://prql-lang.org/book/syntax/operators.html#regex) for
     more details.
 
 - New aggregation functions: `every`, `any`, `average`, and `concat_array`.
@@ -584,10 +584,9 @@ below in this release).
   (@aljazerzen, #1315). See the
   [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
-- _Experimental:_ The
-  [`case`](https://prql-lang.org/book/language-features/case.html) function sets
-  a variable to a value based on one of several expressions (@aljazerzen,
-  #1278).
+- _Experimental:_ The [`case`](https://prql-lang.org/book/syntax/case.html)
+  function sets a variable to a value based on one of several expressions
+  (@aljazerzen, #1278).
 
   ```prql no-eval
   derive var = case [
@@ -613,9 +612,8 @@ below in this release).
     bar
   ```
 
-  Check out the
-  [`case` docs](https://prql-lang.org/book/language-features/case.html) for more
-  details.
+  Check out the [`case` docs](https://prql-lang.org/book/syntax/case.html) for
+  more details.
 
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
   #1329)
