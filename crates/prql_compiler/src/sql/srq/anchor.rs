@@ -2,11 +2,11 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::rq::{
+use crate::generic::ColumnSort;
+use crate::ir::rq::{
     self, fold_column_sorts, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef,
     Transform,
 };
-use crate::generic::ColumnSort;
 use crate::sql::srq::context::RelationAdapter;
 
 use super::ast::{SqlTransform, SrqMapper};

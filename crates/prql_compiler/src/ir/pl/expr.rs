@@ -4,7 +4,7 @@ use enum_as_inner::EnumAsInner;
 use prql_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
-use prql_ast::expr::generic as generic_expr;
+use prql_ast::expr::generic;
 use prql_ast::Span;
 
 pub use prql_ast::expr::{BinOp, UnOp};
@@ -161,9 +161,9 @@ pub struct Pipeline {
     pub exprs: Vec<Expr>,
 }
 
-pub type Range = generic_expr::Range<Box<Expr>>;
-pub type InterpolateItem = generic_expr::InterpolateItem<Expr>;
-pub type SwitchCase = generic_expr::SwitchCase<Box<Expr>>;
+pub type Range = generic::Range<Box<Expr>>;
+pub type InterpolateItem = generic::InterpolateItem<Expr>;
+pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 
 impl From<Vec<Expr>> for Pipeline {
     fn from(nodes: Vec<Expr>) -> Self {

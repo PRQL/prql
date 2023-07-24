@@ -1,8 +1,8 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
+use crate::ir::pl::*;
 
 use super::Resolver;
 

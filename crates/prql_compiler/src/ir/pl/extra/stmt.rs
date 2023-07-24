@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use anyhow::{anyhow, bail};
 
-use crate::ast::pl::{Annotation, ExprKind, Stmt, StmtKind};
+use crate::ir::pl::{Annotation, ExprKind, Stmt, StmtKind};
 
 impl Annotation {
     /// Find the items in a `@{a=b}`. We're only using annotations with tuples;

@@ -8,8 +8,8 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use serde::Serialize;
 
-use crate::ast::pl::Ident;
-use crate::ast::rq::{
+use crate::ir::pl::Ident;
+use crate::ir::rq::{
     fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
     TableDecl, TableRef, Transform,
 };

@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
-use prql_ast::{
-    expr::ExprKind,
-    stmt::{StmtKind, VarDefKind},
-};
+use prql_ast::expr::ExprKind;
+use prql_ast::stmt::{StmtKind, VarDefKind};
 
-use crate::ast::pl;
+use crate::ir::pl;
 
 fn map_vec_into<I: Into<O>, O>(exprs: Vec<I>) -> Vec<O> {
     exprs.into_iter().map(Into::into).collect::<Vec<_>>()

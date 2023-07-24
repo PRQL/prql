@@ -4,7 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::pl::{Expr, Ident, TupleField, Ty};
+use crate::ir::pl::{Expr, Ident, TupleField, Ty};
 use crate::Error;
 
 use super::context::{Decl, DeclKind, TableDecl, TableExpr};
@@ -416,7 +416,7 @@ impl std::fmt::Debug for Module {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::pl::{Expr, ExprKind, Literal};
+    use crate::ir::pl::{Expr, ExprKind, Literal};
 
     // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
     #[test]

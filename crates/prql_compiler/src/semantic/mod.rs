@@ -19,9 +19,9 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::ast::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
-use crate::ast::rq::Query;
 use crate::error::WithErrorInfo;
+use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::rq::Query;
 use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
@@ -191,7 +191,7 @@ pub mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::rq::Query;
+    use crate::ir::rq::Query;
     use crate::parser::parse;
 
     use super::{resolve, resolve_and_lower, Context};

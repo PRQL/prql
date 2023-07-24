@@ -7,8 +7,8 @@ use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 use super::context::{DeclKind, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
 use super::{Context, Lineage};
-use crate::ast::pl::{fold::*, *};
 use crate::error::Span;
+use crate::ir::pl::*;
 
 pub fn label_references(context: &Context, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
@@ -70,7 +70,7 @@ impl<'a> Labeler<'a> {
     }
 }
 
-impl<'a> AstFold for Labeler<'a> {
+impl<'a> PlFold for Labeler<'a> {
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
@@ -142,7 +142,7 @@ struct FrameCollector {
     frames: Vec<(Span, Lineage)>,
 }
 
-impl AstFold for FrameCollector {
+impl PlFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
@@ -198,7 +198,7 @@ impl CallTreeDebugger {
     }
 }
 
-impl AstFold for CallTreeDebugger {
+impl PlFold for CallTreeDebugger {
     fn fold_expr_kind(&mut self, expr_kind: ExprKind) -> Result<ExprKind> {
         match expr_kind {
             ExprKind::FuncCall(mut call) => {

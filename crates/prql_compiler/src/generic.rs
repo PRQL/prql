@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ast::generic::Range;
+use crate::ir::generic::Range;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ColumnSort<T> {
@@ -18,7 +18,7 @@ pub enum SortDirection {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct WindowFrame<T> {
     pub kind: WindowKind,
-    pub range: crate::ast::generic::Range<T>,
+    pub range: crate::ir::generic::Range<T>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

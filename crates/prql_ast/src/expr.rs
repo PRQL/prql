@@ -13,7 +13,6 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use crate::Span;
-use generic as generic_expr;
 
 impl Expr {
     pub fn new(kind: ExprKind) -> Self {
@@ -121,9 +120,9 @@ pub struct Pipeline {
     pub exprs: Vec<Expr>,
 }
 
-pub type Range = generic_expr::Range<Box<Expr>>;
-pub type InterpolateItem = generic_expr::InterpolateItem<Expr>;
-pub type SwitchCase = generic_expr::SwitchCase<Box<Expr>>;
+pub type Range = generic::Range<Box<Expr>>;
+pub type InterpolateItem = generic::InterpolateItem<Expr>;
+pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 
 impl From<Vec<Expr>> for Pipeline {
     fn from(nodes: Vec<Expr>) -> Self {

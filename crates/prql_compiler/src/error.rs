@@ -12,7 +12,7 @@ use std::{collections::HashMap, io::stderr};
 
 use crate::SourceTree;
 
-pub use crate::ast::Span;
+pub use crate::ir::Span;
 
 #[derive(Debug, Clone)]
 pub struct Error {

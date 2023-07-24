@@ -9,8 +9,8 @@ use once_cell::sync::Lazy;
 use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
 
-use crate::ast::{pl, rq};
 use crate::error::WithErrorInfo;
+use crate::ir::{pl, rq};
 use crate::semantic;
 use crate::utils::Pluck;
 use crate::Error;

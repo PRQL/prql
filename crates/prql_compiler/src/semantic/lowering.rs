@@ -6,16 +6,13 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
-use crate::ast::pl::fold::AstFold;
-use crate::ast::pl::{
-    self, BinaryExpr, Ident, Lineage, LineageColumn, QueryDef, TupleField, UnaryExpr,
-};
-use crate::ast::rq::{
-    self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform,
-};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, WindowFrame};
+use crate::ir::generic::{InterpolateItem, Range, SwitchCase};
+use crate::ir::pl::{
+    self, BinaryExpr, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField, UnaryExpr,
+};
+use crate::ir::rq::{self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
@@ -1024,7 +1021,7 @@ impl TableDepsCollector {
     }
 }
 
-impl AstFold for TableDepsCollector {
+impl PlFold for TableDepsCollector {
     fn fold_expr(&mut self, mut expr: pl::Expr) -> Result<pl::Expr> {
         expr.kind = match expr.kind {
             pl::ExprKind::Ident(ref ident) => {

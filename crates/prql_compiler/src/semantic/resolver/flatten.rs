@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use crate::ast::pl::{
-    fold::{fold_column_sorts, fold_transform_kind, AstFold},
-    ColumnSort, Expr, ExprKind, TransformCall, TransformKind, WindowFrame,
+use crate::ir::pl::{
+    fold_column_sorts, fold_transform_kind, ColumnSort, Expr, ExprKind, PlFold, TransformCall,
+    TransformKind, WindowFrame,
 };
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
@@ -50,7 +50,7 @@ impl Flattener {
     }
 }
 
-impl AstFold for Flattener {
+impl PlFold for Flattener {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         if let Some(target) = &expr.target_id {
             if let Some(replacement) = self.replace_map.remove(target) {

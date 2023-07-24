@@ -5,11 +5,11 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use crate::ast::pl::expr::BinaryExpr;
-use crate::ast::pl::fold::AstFold;
-use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 use crate::generic::{SortDirection, WindowKind};
+use crate::ir::pl::BinaryExpr;
+use crate::ir::pl::PlFold;
+use crate::ir::pl::*;
 
 use super::super::context::{Decl, DeclKind};
 use super::super::module::Module;
@@ -803,7 +803,7 @@ fn unpack<const P: usize>(closure: Func) -> [Expr; P] {
 }
 
 mod from_text {
-    use crate::ast::rq::RelationLiteral;
+    use crate::ir::rq::RelationLiteral;
 
     use super::*;
 

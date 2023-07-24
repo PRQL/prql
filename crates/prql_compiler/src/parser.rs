@@ -6,9 +6,9 @@ use prql_ast::Span;
 use prql_parser::chumsky;
 
 use crate::{
-    ast::pl::Stmt,
     codegen,
     error::{Error, Errors, Reason, WithErrorInfo},
+    ir::pl::Stmt,
     utils::IdGenerator,
     SourceTree,
 };
@@ -190,7 +190,7 @@ impl std::fmt::Display for DisplayToken<'_> {
 mod tests {
     use insta::assert_debug_snapshot;
 
-    use crate::ast::pl::Stmt;
+    use crate::ir::pl::Stmt;
 
     /// Helper that does not track source_ids
     #[cfg(test)]

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::ast::pl::Literal;
+use crate::ir::pl::Literal;
 
 pub struct DisplayLiteral<'a>(pub &'a Literal);
 
