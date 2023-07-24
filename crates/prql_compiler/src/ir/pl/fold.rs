@@ -18,7 +18,7 @@ use super::*;
 // we define a function outside the trait, by default call it, and let
 // implementors override the default while calling the function directly for
 // some cases. Ref https://stackoverflow.com/a/66077767/3064736
-pub trait AstFold {
+pub trait PlFold {
     fn fold_stmt(&mut self, mut stmt: Stmt) -> Result<Stmt> {
         stmt.kind = fold_stmt_kind(self, stmt.kind)?;
         Ok(stmt)
@@ -71,7 +71,7 @@ pub trait AstFold {
     }
 }
 
-pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) -> Result<ExprKind> {
+pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> Result<ExprKind> {
     use ExprKind::*;
     Ok(match expr_kind {
         Ident(ident) => Ident(ident),
@@ -120,7 +120,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
     })
 }
 
-pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) -> Result<StmtKind> {
+pub fn fold_stmt_kind<T: ?Sized + PlFold>(fold: &mut T, stmt_kind: StmtKind) -> Result<StmtKind> {
     use StmtKind::*;
     Ok(match stmt_kind {
         // FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
@@ -131,14 +131,14 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     })
 }
 
-fn fold_module_def<F: ?Sized + AstFold>(fold: &mut F, module_def: ModuleDef) -> Result<ModuleDef> {
+fn fold_module_def<F: ?Sized + PlFold>(fold: &mut F, module_def: ModuleDef) -> Result<ModuleDef> {
     Ok(ModuleDef {
         name: module_def.name,
         stmts: fold.fold_stmts(module_def.stmts)?,
     })
 }
 
-pub fn fold_var_def<F: ?Sized + AstFold>(fold: &mut F, var_def: VarDef) -> Result<VarDef> {
+pub fn fold_var_def<F: ?Sized + PlFold>(fold: &mut F, var_def: VarDef) -> Result<VarDef> {
     Ok(VarDef {
         name: var_def.name,
         value: Box::new(fold.fold_expr(*var_def.value)?),
@@ -147,21 +147,21 @@ pub fn fold_var_def<F: ?Sized + AstFold>(fold: &mut F, var_def: VarDef) -> Resul
     })
 }
 
-pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: WindowFrame) -> Result<WindowFrame> {
+pub fn fold_window<F: ?Sized + PlFold>(fold: &mut F, window: WindowFrame) -> Result<WindowFrame> {
     Ok(WindowFrame {
         kind: window.kind,
         range: fold_range(fold, window.range)?,
     })
 }
 
-pub fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range) -> Result<Range> {
+pub fn fold_range<F: ?Sized + PlFold>(fold: &mut F, Range { start, end }: Range) -> Result<Range> {
     Ok(Range {
         start: fold_optional_box(fold, start)?,
         end: fold_optional_box(fold, end)?,
     })
 }
 
-pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
+pub fn fold_pipeline<T: ?Sized + PlFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
     Ok(Pipeline {
         exprs: fold.fold_exprs(pipeline.exprs)?,
     })
@@ -170,14 +170,14 @@ pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> R
 // This aren't strictly in the hierarchy, so we don't need to
 // have an assoc. function for `fold_optional_box` — we just
 // call out to the function in this module
-pub fn fold_optional_box<F: ?Sized + AstFold>(
+pub fn fold_optional_box<F: ?Sized + PlFold>(
     fold: &mut F,
     opt: Option<Box<Expr>>,
 ) -> Result<Option<Box<Expr>>> {
     Ok(opt.map(|n| fold.fold_expr(*n)).transpose()?.map(Box::from))
 }
 
-pub fn fold_interpolate_item<F: ?Sized + AstFold>(
+pub fn fold_interpolate_item<F: ?Sized + PlFold>(
     fold: &mut F,
     interpolate_item: InterpolateItem,
 ) -> Result<InterpolateItem> {
@@ -190,24 +190,21 @@ pub fn fold_interpolate_item<F: ?Sized + AstFold>(
     })
 }
 
-fn fold_cases<F: ?Sized + AstFold>(
-    fold: &mut F,
-    cases: Vec<SwitchCase>,
-) -> Result<Vec<SwitchCase>> {
+fn fold_cases<F: ?Sized + PlFold>(fold: &mut F, cases: Vec<SwitchCase>) -> Result<Vec<SwitchCase>> {
     cases
         .into_iter()
         .map(|c| fold_switch_case(fold, c))
         .try_collect()
 }
 
-pub fn fold_switch_case<F: ?Sized + AstFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
+pub fn fold_switch_case<F: ?Sized + PlFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
     Ok(SwitchCase {
         condition: Box::new(fold.fold_expr(*case.condition)?),
         value: Box::new(fold.fold_expr(*case.value)?),
     })
 }
 
-pub fn fold_column_sorts<F: ?Sized + AstFold>(
+pub fn fold_column_sorts<F: ?Sized + PlFold>(
     fold: &mut F,
     sort: Vec<ColumnSort>,
 ) -> Result<Vec<ColumnSort>> {
@@ -216,7 +213,7 @@ pub fn fold_column_sorts<F: ?Sized + AstFold>(
         .try_collect()
 }
 
-pub fn fold_column_sort<T: ?Sized + AstFold>(
+pub fn fold_column_sort<T: ?Sized + PlFold>(
     fold: &mut T,
     sort_column: ColumnSort,
 ) -> Result<ColumnSort> {
@@ -226,7 +223,7 @@ pub fn fold_column_sort<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {
+pub fn fold_func_call<T: ?Sized + PlFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {
     Ok(FuncCall {
         name: Box::new(fold.fold_expr(*func_call.name)?),
         args: fold.fold_exprs(func_call.args)?,
@@ -238,7 +235,7 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
     })
 }
 
-pub fn fold_transform_call<T: ?Sized + AstFold>(
+pub fn fold_transform_call<T: ?Sized + PlFold>(
     fold: &mut T,
     t: TransformCall,
 ) -> Result<TransformCall> {
@@ -251,7 +248,7 @@ pub fn fold_transform_call<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_transform_kind<T: ?Sized + AstFold>(
+pub fn fold_transform_kind<T: ?Sized + PlFold>(
     fold: &mut T,
     t: TransformKind,
 ) -> Result<TransformKind> {
@@ -298,7 +295,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_func<T: ?Sized + AstFold>(fold: &mut T, func: Func) -> Result<Func> {
+pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
     Ok(Func {
         body: Box::new(fold.fold_expr(*func.body)?),
         args: func
@@ -310,7 +307,7 @@ pub fn fold_func<T: ?Sized + AstFold>(fold: &mut T, func: Func) -> Result<Func> 
     })
 }
 
-pub fn fold_func_param<T: ?Sized + AstFold>(
+pub fn fold_func_param<T: ?Sized + PlFold>(
     fold: &mut T,
     nodes: Vec<FuncParam>,
 ) -> Result<Vec<FuncParam>> {

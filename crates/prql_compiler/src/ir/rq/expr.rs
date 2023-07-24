@@ -12,9 +12,9 @@ pub struct Expr {
     pub span: Option<Span>,
 }
 
-pub(super) type Range = crate::ast::generic::Range<Expr>;
-pub(super) type InterpolateItem = crate::ast::generic::InterpolateItem<Expr>;
-pub(super) type SwitchCase = crate::ast::generic::SwitchCase<Expr>;
+pub(super) type Range = crate::ir::generic::Range<Expr>;
+pub(super) type InterpolateItem = crate::ir::generic::InterpolateItem<Expr>;
+pub(super) type SwitchCase = crate::ir::generic::SwitchCase<Expr>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {

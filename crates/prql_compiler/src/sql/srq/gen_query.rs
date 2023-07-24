@@ -6,8 +6,8 @@ use std::str::FromStr;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::Ident;
-use crate::ast::rq::{Query, RelationKind, RqFold, Transform};
+use crate::ir::pl::Ident;
+use crate::ir::rq::{Query, RelationKind, RqFold, Transform};
 use crate::utils::BreakUp;
 use crate::Target;
 

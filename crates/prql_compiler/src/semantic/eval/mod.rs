@@ -3,8 +3,8 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::pl::{fold::AstFold, Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal};
 use crate::error::{Error, Span, WithErrorInfo};
+use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal, PlFold};
 
 use super::resolver::{binary_to_func_call, unary_to_func_call};
 
@@ -25,7 +25,7 @@ impl Evaluator {
     }
 }
 
-impl AstFold for Evaluator {
+impl PlFold for Evaluator {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         let mut expr = super::static_analysis::static_analysis(expr);
 

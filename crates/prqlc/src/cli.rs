@@ -6,7 +6,7 @@ use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
-use prql_compiler::ast::pl::StmtKind;
+use prql_compiler::ir::pl::StmtKind;
 use std::collections::HashMap;
 use std::env;
 use std::io::Read;
@@ -20,8 +20,8 @@ use prql_compiler::semantic::{
     self,
     reporting::{collect_frames, label_references},
 };
-use prql_compiler::{ast::pl::Lineage, pl_to_prql};
 use prql_compiler::{downcast, Options, Target};
+use prql_compiler::{ir::pl::Lineage, pl_to_prql};
 use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree, Span};
 
 use crate::watch;
@@ -214,7 +214,7 @@ impl Command {
                 Ok(())
             }
             Command::Debug(DebugCommand::Ast) => {
-                prql_compiler::ast::pl::print_mem_sizes();
+                prql_compiler::ir::pl::print_mem_sizes();
                 Ok(())
             }
             _ => self.run_io_command(),

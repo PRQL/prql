@@ -4,9 +4,8 @@ use std::iter::zip;
 use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
-use crate::ast::pl::expr::{BinaryExpr, UnaryExpr};
-use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span, WithErrorInfo};
+use crate::ir::pl::*;
 use crate::semantic::context::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
@@ -252,7 +251,7 @@ impl Resolver {
     }
 }
 
-impl AstFold for Resolver {
+impl PlFold for Resolver {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
         unreachable!()
     }
@@ -1075,7 +1074,7 @@ pub(super) mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ast::pl::{fold::AstFold, Expr, Lineage};
+    use crate::ir::pl::{Expr, Lineage, PlFold};
 
     pub fn erase_ids(expr: Expr) -> Expr {
         IdEraser {}.fold_expr(expr).unwrap()
@@ -1083,7 +1082,7 @@ pub(super) mod test {
 
     struct IdEraser {}
 
-    impl AstFold for IdEraser {
+    impl PlFold for IdEraser {
         fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
             expr.kind = self.fold_expr_kind(expr.kind)?;
             expr.id = None;

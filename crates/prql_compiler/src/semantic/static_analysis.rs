@@ -1,6 +1,6 @@
 //! Static analysis - compile time expression evaluation
 
-use crate::ast::pl::{Expr, ExprKind, Literal};
+use crate::ir::pl::{Expr, ExprKind, Literal};
 
 pub fn static_analysis(mut expr: Expr) -> Expr {
     expr.kind = eval(expr.kind);

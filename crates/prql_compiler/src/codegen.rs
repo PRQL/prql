@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use once_cell::sync::Lazy;
 
 use crate::{
-    ast::pl::{self, BinaryExpr},
+    ir::pl::{self, BinaryExpr},
     utils::VALID_IDENT,
 };
 

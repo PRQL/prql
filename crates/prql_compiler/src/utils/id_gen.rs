@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use anyhow::Result;
 
-use crate::ast::rq::{fold_table, CId, Query, RqFold, TId, TableDecl};
+use crate::ir::rq::{fold_table, CId, Query, RqFold, TId, TableDecl};
 
 #[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {

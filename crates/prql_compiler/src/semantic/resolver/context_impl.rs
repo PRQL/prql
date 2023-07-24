@@ -5,20 +5,11 @@ use itertools::Itertools;
 
 use prql_ast::expr::Ident;
 
-use crate::{
-    ast::pl::{
-        expr::{Expr, ExprKind},
-        lineage::LineageColumn,
-        stmt::Annotation,
-        types::{TupleField, Ty},
-    },
-    error::WithErrorInfo,
-    semantic::{
-        context::{Decl, DeclKind, TableDecl, TableExpr},
-        Context, Module, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS,
-    },
-    Error,
-};
+use crate::error::WithErrorInfo;
+use crate::ir::pl::{Annotation, Expr, ExprKind, LineageColumn, TupleField, Ty};
+use crate::semantic::context::{Decl, DeclKind, TableDecl, TableExpr};
+use crate::semantic::{Context, Module, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::Error;
 
 impl Context {
     pub(super) fn declare(

@@ -12,7 +12,7 @@ pub use dialect::{Dialect, SupportLevel};
 
 use anyhow::Result;
 
-use crate::{ast::rq::Query, Options, COMPILER_VERSION};
+use crate::{ir::rq::Query, Options, COMPILER_VERSION};
 
 use self::dialect::DialectHandler;
 use self::srq::ast::Cte;
@@ -60,7 +60,7 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
     use super::*;
-    use crate::ast::rq::{Query, Transform};
+    use crate::ir::rq::{Query, Transform};
 
     pub use super::srq::ast::SqlTransform;
 

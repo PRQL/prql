@@ -10,10 +10,10 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
-use crate::ast::generic::InterpolateItem;
-use crate::ast::pl::{JoinSide, Literal};
-use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationLiteral};
 use crate::error::WithErrorInfo;
+use crate::ir::generic::InterpolateItem;
+use crate::ir::pl::{JoinSide, Literal};
+use crate::ir::rq::{CId, Expr, ExprKind, Query, RelationLiteral};
 use crate::utils::{BreakUp, Pluck};
 use crate::Error;
 

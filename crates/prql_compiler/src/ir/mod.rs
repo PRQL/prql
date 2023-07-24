@@ -1,4 +1,4 @@
-//! Abstract Syntax Tree
+//! Intermediate Representations of Abstract Syntax Tree
 //!
 pub mod pl;
 pub mod rq;

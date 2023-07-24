@@ -8,21 +8,23 @@
 //!
 //! Top-level construct is a list of statements [`Vec<Stmt>`].
 
-pub mod expr;
-pub mod extra;
-pub mod fold;
+mod expr;
+mod extra;
+mod fold;
 mod from_ast;
-pub mod lineage;
-pub mod stmt;
-pub mod types;
-pub mod utils;
+mod lineage;
+mod stmt;
+mod types;
+mod utils;
 
 use crate::generic::{SortDirection, WindowKind};
-use crate::{ast::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
-use crate::{ast::rq::TableRef, *};
+use crate::ir::rq::TableRef;
+use crate::*;
+use crate::{ir::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
 
 pub use self::expr::*;
 pub use self::extra::expr::*;
+pub use self::fold::*;
 pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::types::*;
@@ -36,8 +38,8 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "BinaryExpr", size_of::<BinaryExpr>());
     println!("{:16}= {}", "BinOp", size_of::<BinOp>());
     println!("{:16}= {}", "ColumnSort", size_of::<ColumnSort>());
-    println!("{:16}= {}", "pl::Expr", size_of::<crate::ast::pl::Expr>());
-    println!("{:16}= {}", "rq::Expr", size_of::<crate::ast::rq::Expr>());
+    println!("{:16}= {}", "pl::Expr", size_of::<crate::ir::pl::Expr>());
+    println!("{:16}= {}", "rq::Expr", size_of::<crate::ir::rq::Expr>());
     println!("{:16}= {}", "ErrorMessage", size_of::<ErrorMessage>());
     println!("{:16}= {}", "ErrorMessages", size_of::<ErrorMessages>());
     println!("{:16}= {}", "ExprKind", size_of::<ExprKind>());

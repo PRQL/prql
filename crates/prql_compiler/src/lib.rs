@@ -80,10 +80,10 @@
 // yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
-pub mod ast;
 mod codegen;
 mod error;
 mod generic;
+pub mod ir;
 mod parser;
 pub mod semantic;
 pub mod sql;
@@ -91,10 +91,10 @@ pub mod sql;
 mod tests;
 mod utils;
 
-pub use ast::Span;
 pub use error::{
     downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation,
 };
+pub use ir::Span;
 
 use once_cell::sync::Lazy;
 use semver::Version;
@@ -260,7 +260,7 @@ impl Options {
 pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+pub fn prql_to_pl(prql: &str) -> Result<Vec<ir::pl::Stmt>, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
     parser::parse(&sources)
@@ -270,33 +270,33 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ast::pl::Stmt>>, ErrorMessages> {
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<SourceTree<Vec<ir::pl::Stmt>>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
         .map_err(|e| e.composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
-pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
+pub fn pl_to_rq(pl: Vec<ir::pl::Stmt>) -> Result<ir::rq::Query, ErrorMessages> {
     let source_tree = SourceTree::single(PathBuf::new(), pl);
     semantic::resolve_and_lower(source_tree, &[]).map_err(error::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: SourceTree<Vec<ast::pl::Stmt>>,
+    pl: SourceTree<Vec<ir::pl::Stmt>>,
     main_path: &[String],
-) -> Result<ast::rq::Query, ErrorMessages> {
+) -> Result<ir::rq::Query, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.
-pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
+pub fn rq_to_sql(rq: ir::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
     sql::compile(rq, options).map_err(error::downcast)
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
+pub fn pl_to_prql(pl: Vec<ir::pl::Stmt>) -> Result<String, ErrorMessages> {
     Ok(codegen::write(&pl))
 }
 
@@ -305,22 +305,22 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
+    pub fn from_pl(pl: Vec<ir::pl::Stmt>) -> Result<String, ErrorMessages> {
         serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+    pub fn to_pl(json: &str) -> Result<Vec<ir::pl::Stmt>, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON serialization
-    pub fn from_rq(rq: ast::rq::Query) -> Result<String, ErrorMessages> {
+    pub fn from_rq(rq: ir::rq::Query) -> Result<String, ErrorMessages> {
         serde_json::to_string(&rq).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_rq(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
+    pub fn to_rq(json: &str) -> Result<ir::rq::Query, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 }

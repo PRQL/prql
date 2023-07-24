@@ -5,13 +5,13 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::generic::{InterpolateItem, Range};
-use crate::ast::pl::{JoinSide, Literal};
-use crate::ast::rq::{
-    self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
-};
 use crate::error::{Error, WithErrorInfo};
 use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
+use crate::ir::generic::{InterpolateItem, Range};
+use crate::ir::pl::{JoinSide, Literal};
+use crate::ir::rq::{
+    self, maybe_binop, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
+};
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
 
