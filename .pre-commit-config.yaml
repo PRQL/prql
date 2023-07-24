@@ -6,6 +6,9 @@ repos:
         exclude: '(.*\.snap|.*render-link.html|head.hbs)'
       - id: check-yaml
       - id: mixed-line-ending
+      - id: trailing-whitespace
+        # rustfmt handles, and in some snapshots we expect spaces.
+        exclude: '.*\.rs$'
   - repo: https://github.com/crate-ci/typos
     rev: v1.16.1
     hooks:
