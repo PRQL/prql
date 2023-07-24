@@ -40,9 +40,9 @@
 
 - [Declarations]()
   <!-- I don't know what to call this section. -->
+
   - [Variables](./reference/declarations/variables.md)
   - [Functions](./reference/declarations/functions.md)
-  
 
 - [Standard library](./reference/stdlib/README.md)
 
