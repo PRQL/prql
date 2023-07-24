@@ -2,15 +2,15 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use crate::{
-    ir::pl::{self, BinaryExpr},
-    utils::VALID_IDENT,
-};
+use prql_ast::expr::*;
+use prql_ast::stmt::*;
+
+use crate::utils::VALID_IDENT;
 
 mod literal;
 pub use literal::DisplayLiteral;
 
-pub fn write(stmts: &Vec<pl::Stmt>) -> String {
+pub fn write_stmts(stmts: &Vec<Stmt>) -> String {
     let mut opt = WriteOpt::default();
 
     loop {
@@ -22,26 +22,24 @@ pub fn write(stmts: &Vec<pl::Stmt>) -> String {
     }
 }
 
-impl std::fmt::Display for pl::Expr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let opt = WriteOpt::new_width(u16::MAX);
-        f.write_str(&self.write(opt).unwrap())
-    }
+pub fn write_expr(expr: &Expr) -> String {
+    let opt = WriteOpt::new_width(u16::MAX);
+    expr.write(opt).unwrap()
 }
 
-impl std::fmt::Display for pl::Ty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let opt = WriteOpt::new_width(u16::MAX);
-        f.write_str(&self.write(opt).unwrap())
-    }
-}
+// impl std::fmt::Display for Ty {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         let opt = WriteOpt::new_width(u16::MAX);
+//         f.write_str(&self.write(opt).unwrap())
+//     }
+// }
 
-impl std::fmt::Display for pl::TyKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let opt = WriteOpt::new_width(u16::MAX);
-        f.write_str(&self.write(opt).unwrap())
-    }
-}
+// impl std::fmt::Display for TyKind {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         let opt = WriteOpt::new_width(u16::MAX);
+//         f.write_str(&self.write(opt).unwrap())
+//     }
+// }
 
 pub trait WriteSource {
     /// Converts self to its source representation according to specified
@@ -68,7 +66,7 @@ pub trait WriteSource {
         Some(r)
     }
 
-    fn write_within(&self, parent: &pl::ExprKind, mut opt: WriteOpt) -> Option<String> {
+    fn write_within(&self, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
         let parent_strength = binding_strength(parent);
         opt.context_strength = opt.context_strength.max(parent_strength);
 
@@ -158,7 +156,7 @@ impl WriteOpt {
     }
 }
 
-impl WriteSource for pl::Expr {
+impl WriteSource for Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -180,24 +178,12 @@ impl WriteSource for pl::Expr {
     }
 }
 
-impl WriteSource for pl::ExprKind {
+impl WriteSource for ExprKind {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
-        use pl::ExprKind::*;
+        use ExprKind::*;
 
         match &self {
             Ident(ident) => ident.write(opt),
-            All { within, except } => {
-                let mut r = String::new();
-                r += opt.consume(&within.write(opt.clone())?)?;
-
-                r += ".!{";
-                for e in except {
-                    r += opt.consume(&e.write(opt.clone())?)?;
-                    r += opt.consume(",")?;
-                }
-                r += "}";
-                Some(r)
-            }
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
                 line_end: "",
@@ -233,7 +219,7 @@ impl WriteSource for pl::ExprKind {
                 }
                 Some(r)
             }
-            Binary(pl::BinaryExpr { op, left, right }) => {
+            Binary(BinaryExpr { op, left, right }) => {
                 let mut r = String::new();
 
                 let left = left.write_within(self, opt.clone())?;
@@ -246,7 +232,7 @@ impl WriteSource for pl::ExprKind {
                 r += &right.write_within(self, opt)?;
                 Some(r)
             }
-            Unary(pl::UnaryExpr { op, expr }) => {
+            Unary(UnaryExpr { op, expr }) => {
                 let mut r = String::new();
 
                 r += opt.consume(&op.to_string())?;
@@ -287,27 +273,16 @@ impl WriteSource for pl::ExprKind {
                 for param in &c.named_params {
                     r += &write_ident_part(&param.name);
                     r += ":";
-                    r += &param.default_value.as_ref().unwrap().to_string();
+                    r += &param.default_value.as_ref().unwrap().write(opt.clone())?;
                     r += " ";
                 }
                 r += "-> ";
-                r += &c.body.to_string();
+                r += &c.body.write(opt)?;
 
-                if !c.args.is_empty() {
-                    r = format!("({r})");
-                    for args in &c.args {
-                        r += " ";
-                        r += &args.to_string();
-                    }
-                    r = format!("({r})");
-                }
                 Some(r)
             }
             SString(parts) => display_interpolation("s", parts, opt),
             FString(parts) => display_interpolation("f", parts, opt),
-            TransformCall(transform) => {
-                Some(format!("{} <unimplemented>", (*transform.kind).as_ref()))
-            }
             Literal(literal) => Some(DisplayLiteral(literal).to_string()),
             Case(cases) => {
                 let mut r = String::new();
@@ -320,48 +295,45 @@ impl WriteSource for pl::ExprKind {
                 .write_between("{", "}", opt)?;
                 Some(r)
             }
-            RqOperator { .. } => Some("<built-in>".to_string()),
-            Type(ty) => ty.write(opt),
             Param(id) => Some(format!("${id}")),
             Internal(operator_name) => Some(format!("internal {operator_name}")),
         }
     }
 }
 
-fn binding_strength(expr: &pl::ExprKind) -> u8 {
+fn binding_strength(expr: &ExprKind) -> u8 {
     match expr {
         // For example, if it's an Ident, it's basically infinite — a simple
         // ident never needs parentheses around it.
-        pl::ExprKind::Ident(_) => 100,
-        pl::ExprKind::All { .. } => 100,
+        ExprKind::Ident(_) => 100,
 
         // Stronger than a range, since `-1..2` is `(-1)..2`
         // Stronger than binary op, since `-x == y` is `(-x) == y`
         // Stronger than a func call, since `exists !y` is `exists (!y)`
-        pl::ExprKind::Unary(..) => 20,
+        ExprKind::Unary(..) => 20,
 
-        pl::ExprKind::Range(_) => 19,
+        ExprKind::Range(_) => 19,
 
-        pl::ExprKind::Binary(BinaryExpr { op, .. }) => match op {
-            pl::BinOp::Mul | pl::BinOp::DivInt | pl::BinOp::DivFloat | pl::BinOp::Mod => 18,
-            pl::BinOp::Add | pl::BinOp::Sub => 17,
-            pl::BinOp::Eq
-            | pl::BinOp::Ne
-            | pl::BinOp::Gt
-            | pl::BinOp::Lt
-            | pl::BinOp::Gte
-            | pl::BinOp::Lte
-            | pl::BinOp::RegexSearch => 16,
-            pl::BinOp::Coalesce => 15,
-            pl::BinOp::And => 14,
-            pl::BinOp::Or => 13,
+        ExprKind::Binary(BinaryExpr { op, .. }) => match op {
+            BinOp::Mul | BinOp::DivInt | BinOp::DivFloat | BinOp::Mod => 18,
+            BinOp::Add | BinOp::Sub => 17,
+            BinOp::Eq
+            | BinOp::Ne
+            | BinOp::Gt
+            | BinOp::Lt
+            | BinOp::Gte
+            | BinOp::Lte
+            | BinOp::RegexSearch => 16,
+            BinOp::Coalesce => 15,
+            BinOp::And => 14,
+            BinOp::Or => 13,
         },
 
         // Weaker than a child assign, since `select x = 1`
         // Weaker than a binary operator, since `filter x == 1`
-        pl::ExprKind::FuncCall(_) => 10,
-        // pl::ExprKind::FuncCall(_) if !is_parent => 2,
-        pl::ExprKind::Func(_) => 7,
+        ExprKind::FuncCall(_) => 10,
+        // ExprKind::FuncCall(_) if !is_parent => 2,
+        ExprKind::Func(_) => 7,
 
         // other nodes should not contain any inner exprs
         _ => 100,
@@ -369,17 +341,17 @@ fn binding_strength(expr: &pl::ExprKind) -> u8 {
 }
 
 /// True if this expression could be mistakenly bound with an expression on the left.
-fn can_bind_left(expr: &pl::ExprKind) -> bool {
+fn can_bind_left(expr: &ExprKind) -> bool {
     matches!(
         expr,
-        pl::ExprKind::Unary(pl::UnaryExpr {
-            op: pl::UnOp::EqSelf | pl::UnOp::Add | pl::UnOp::Neg,
+        ExprKind::Unary(UnaryExpr {
+            op: UnOp::EqSelf | UnOp::Add | UnOp::Neg,
             ..
         })
     )
 }
 
-impl WriteSource for pl::Ident {
+impl WriteSource for Ident {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let width = self.path.iter().map(|p| p.len() + 1).sum::<usize>() + self.name.len();
         opt.consume_width(width as u16)?;
@@ -408,7 +380,7 @@ pub fn write_ident_part(s: &str) -> String {
     }
 }
 
-impl WriteSource for Vec<pl::Stmt> {
+impl WriteSource for Vec<Stmt> {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         opt.reset_line()?;
 
@@ -425,7 +397,7 @@ impl WriteSource for Vec<pl::Stmt> {
     }
 }
 
-impl WriteSource for pl::Stmt {
+impl WriteSource for Stmt {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
@@ -438,7 +410,7 @@ impl WriteSource for pl::Stmt {
         }
 
         match &self.kind {
-            pl::StmtKind::QueryDef(query) => {
+            StmtKind::QueryDef(query) => {
                 r += "prql";
                 if let Some(version) = &query.version {
                     r += &format!(r#" version:"{}""#, version);
@@ -448,16 +420,16 @@ impl WriteSource for pl::Stmt {
                 }
                 r += "\n";
             }
-            pl::StmtKind::VarDef(var_def) => match var_def.kind {
-                pl::VarDefKind::Let => {
-                    r += opt.consume(&format!("let {} = ", self.name()))?;
+            StmtKind::VarDef(var_def) => match var_def.kind {
+                VarDefKind::Let => {
+                    r += opt.consume(&format!("let {} = ", var_def.name))?;
 
                     r += &var_def.value.write(opt)?;
                     r += "\n";
                 }
-                pl::VarDefKind::Into | pl::VarDefKind::Main => {
+                VarDefKind::Into => {
                     match &var_def.value.kind {
-                        pl::ExprKind::Pipeline(pipeline) => {
+                        ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
                                 r += &expr.write(opt.clone())?;
                                 r += "\n";
@@ -468,14 +440,23 @@ impl WriteSource for pl::Stmt {
                         }
                     }
 
-                    if let pl::VarDefKind::Into = var_def.kind {
-                        r += &format!("into {}", self.name());
+                    r += &format!("into {}", var_def.name);
+                    r += "\n";
+                }
+            },
+            StmtKind::Main(value) => match &value.kind {
+                ExprKind::Pipeline(pipeline) => {
+                    for expr in &pipeline.exprs {
+                        r += &expr.write(opt.clone())?;
                         r += "\n";
                     }
                 }
+                _ => {
+                    r += &value.write(opt)?;
+                }
             },
-            pl::StmtKind::TypeDef(type_def) => {
-                r += opt.consume(&format!("let {}", self.name()))?;
+            StmtKind::TypeDef(type_def) => {
+                r += opt.consume(&format!("let {}", type_def.name))?;
 
                 if let Some(value) = &type_def.value {
                     r += opt.consume(" = ")?;
@@ -483,8 +464,8 @@ impl WriteSource for pl::Stmt {
                 }
                 r += "\n";
             }
-            pl::StmtKind::ModuleDef(module_def) => {
-                r += &format!("module {} {{\n", self.name());
+            StmtKind::ModuleDef(module_def) => {
+                r += &format!("module {} {{\n", module_def.name);
                 opt.indent += 1;
 
                 r += &module_def.stmts.write(opt.clone())?;
@@ -556,19 +537,15 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
     }
 }
 
-fn display_interpolation(
-    prefix: &str,
-    parts: &[pl::InterpolateItem],
-    opt: WriteOpt,
-) -> Option<String> {
+fn display_interpolation(prefix: &str, parts: &[InterpolateItem], opt: WriteOpt) -> Option<String> {
     let mut r = String::new();
     r += prefix;
     r += "\"";
     for part in parts {
         match &part {
             // We use double braces to escape braces
-            pl::InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
-            pl::InterpolateItem::Expr { expr, .. } => {
+            InterpolateItem::String(s) => r += s.replace('{', "{{").replace('}', "}}").as_str(),
+            InterpolateItem::Expr { expr, .. } => {
                 r += "{";
                 r += &expr.write(opt.clone())?;
                 r += "}"
@@ -579,7 +556,7 @@ fn display_interpolation(
     Some(r)
 }
 
-impl WriteSource for pl::SwitchCase {
+impl WriteSource for SwitchCase {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
         r += &self.condition.write(opt.clone())?;
@@ -589,89 +566,89 @@ impl WriteSource for pl::SwitchCase {
     }
 }
 
-impl WriteSource for pl::Ty {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        if let Some(name) = &self.name {
-            Some(name.clone())
-        } else {
-            self.kind.write(opt)
-        }
-    }
-}
+// impl WriteSource for Ty {
+//     fn write(&self, opt: WriteOpt) -> Option<String> {
+//         if let Some(name) = &self.name {
+//             Some(name.clone())
+//         } else {
+//             self.kind.write(opt)
+//         }
+//     }
+// }
 
-impl WriteSource for Option<&pl::Ty> {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        match self {
-            Some(ty) => ty.write(opt),
-            None => Some("infer".to_string()),
-        }
-    }
-}
+// impl WriteSource for Option<&Ty> {
+//     fn write(&self, opt: WriteOpt) -> Option<String> {
+//         match self {
+//             Some(ty) => ty.write(opt),
+//             None => Some("infer".to_string()),
+//         }
+//     }
+// }
 
-impl WriteSource for pl::TyKind {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        use pl::TyKind::*;
+// impl WriteSource for TyKind {
+//     fn write(&self, opt: WriteOpt) -> Option<String> {
+//         use TyKind::*;
 
-        match &self {
-            Primitive(prim) => Some(prim.to_string()),
-            Union(variants) => {
-                let variants: Vec<_> = variants.iter().map(|x| &x.1).collect();
+//         match &self {
+//             Primitive(prim) => Some(prim.to_string()),
+//             Union(variants) => {
+//                 let variants: Vec<_> = variants.iter().map(|x| &x.1).collect();
 
-                SeparatedExprs {
-                    exprs: &variants,
-                    inline: " || ",
-                    line_end: " ||",
-                }
-                .write(opt)
-            }
-            Singleton(lit) => Some(DisplayLiteral(lit).to_string()),
-            Tuple(elements) => SeparatedExprs {
-                exprs: elements,
-                inline: ", ",
-                line_end: ",",
-            }
-            .write_between("{", "}", opt),
-            Set => Some("set".to_string()),
-            Array(elem) => Some(format!("[{}]", elem.write(opt)?)),
-            Function(func) => {
-                let mut r = String::new();
+//                 SeparatedExprs {
+//                     exprs: &variants,
+//                     inline: " || ",
+//                     line_end: " ||",
+//                 }
+//                 .write(opt)
+//             }
+//             Singleton(lit) => Some(DisplayLiteral(lit).to_string()),
+//             Tuple(elements) => SeparatedExprs {
+//                 exprs: elements,
+//                 inline: ", ",
+//                 line_end: ",",
+//             }
+//             .write_between("{", "}", opt),
+//             Set => Some("set".to_string()),
+//             Array(elem) => Some(format!("[{}]", elem.write(opt)?)),
+//             Function(func) => {
+//                 let mut r = String::new();
 
-                for t in &func.args {
-                    r += &t.as_ref().write(opt.clone())?;
-                    r += " ";
-                }
-                r += "-> ";
-                r += &(*func.return_ty).as_ref().write(opt)?;
-                Some(r)
-            }
-        }
-    }
-}
+//                 for t in &func.args {
+//                     r += &t.as_ref().write(opt.clone())?;
+//                     r += " ";
+//                 }
+//                 r += "-> ";
+//                 r += &(*func.return_ty).as_ref().write(opt)?;
+//                 Some(r)
+//             }
+//         }
+//     }
+// }
 
-impl WriteSource for pl::TupleField {
-    fn write(&self, opt: WriteOpt) -> Option<String> {
-        match self {
-            Self::Wildcard(generic_el) => match generic_el {
-                Some(el) => Some(format!("{}..", el.write(opt)?)),
-                None => Some("*..".to_string()),
-            },
-            Self::Single(name, expr) => {
-                let mut r = String::new();
+// impl WriteSource for TupleField {
+//     fn write(&self, opt: WriteOpt) -> Option<String> {
+//         match self {
+//             Self::Wildcard(generic_el) => match generic_el {
+//                 Some(el) => Some(format!("{}..", el.write(opt)?)),
+//                 None => Some("*..".to_string()),
+//             },
+//             Self::Single(name, expr) => {
+//                 let mut r = String::new();
 
-                if let Some(name) = name {
-                    r += name;
-                    r += " = ";
-                }
-                if let Some(expr) = expr {
-                    r += &expr.write(opt)?;
-                } else {
-                    r += "?";
-                }
-                Some(r)
-            }
-        }
-    }
-}
+//                 if let Some(name) = name {
+//                     r += name;
+//                     r += " = ";
+//                 }
+//                 if let Some(expr) = expr {
+//                     r += &expr.write(opt)?;
+//                 } else {
+//                     r += "?";
+//                 }
+//                 Some(r)
+//             }
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod test {
@@ -698,8 +675,8 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = pl::Expr::new(pl::ExprKind::Ident(pl::Ident::from_path(vec!["short"])));
-        let long = pl::Expr::new(pl::ExprKind::Ident(pl::Ident::from_path(vec![
+        let short = Expr::new(ExprKind::Ident(Ident::from_path(vec!["short"])));
+        let long = Expr::new(ExprKind::Ident(Ident::from_path(vec![
             "some_module",
             "submodule",
             "a_really_long_name",
@@ -711,13 +688,13 @@ mod test {
         };
 
         // short pipelines should be inlined
-        let pipeline = pl::Expr::new(pl::ExprKind::Pipeline(pl::Pipeline {
+        let pipeline = Expr::new(ExprKind::Pipeline(Pipeline {
             exprs: vec![short.clone(), short.clone(), short.clone()],
         }));
         assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @"(short | short | short)");
 
         // long pipelines should be indented
-        let pipeline = pl::Expr::new(pl::ExprKind::Pipeline(pl::Pipeline {
+        let pipeline = Expr::new(ExprKind::Pipeline(Pipeline {
             exprs: vec![short.clone(), long.clone(), long, short.clone()],
         }));
         // colons are a workaround to avoid trimming
@@ -733,7 +710,7 @@ mod test {
         // sometimes, there is just not enough space
         opt.rem_width = 4;
         opt.indent = 100;
-        let pipeline = pl::Expr::new(pl::ExprKind::Pipeline(pl::Pipeline { exprs: vec![short] }));
+        let pipeline = Expr::new(ExprKind::Pipeline(Pipeline { exprs: vec![short] }));
         assert!(pipeline.write(opt).is_none());
     }
 

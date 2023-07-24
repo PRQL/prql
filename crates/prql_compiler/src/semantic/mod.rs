@@ -23,7 +23,7 @@ pub use lowering::lower_to_ir;
 use crate::error::WithErrorInfo;
 use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::Query;
-use crate::{Error, Reason, SourceTree};
+use crate::{Error, Reason, SourceTree, codegen};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
@@ -188,7 +188,7 @@ impl pl::Expr {
             Error::new(Reason::Expected {
                 who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: format!("`{}`", pl::Expr::new(i)),
+                found: format!("`{}`", codegen::write_expr(pl::Expr::new(i))),
             })
             .with_span(self.span)
         })

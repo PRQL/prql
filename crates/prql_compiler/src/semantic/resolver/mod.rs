@@ -4,6 +4,7 @@ use std::iter::zip;
 use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
+use crate::codegen;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::ir::pl::*;
 use crate::semantic::context::TableDecl;
@@ -978,7 +979,7 @@ impl Resolver {
                 _ => Err(Error::new(Reason::Expected {
                     who: Some("exclusion".to_string()),
                     expected: "column name".to_string(),
-                    found: format!("`{e}`"),
+                    found: format!("`{}`", codegen::write_expr(&e)),
                 })),
             })
             .try_collect()?;
@@ -1104,10 +1105,7 @@ pub(super) mod test {
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
-        let derive = expr
-            .kind
-            .into_transform_call()
-            .unwrap_or_else(|e| panic!("Failed to convert `{}`", Expr::new(e)));
+        let derive = expr.kind.into_transform_call().unwrap();
         let exprs = derive
             .kind
             .into_derive()

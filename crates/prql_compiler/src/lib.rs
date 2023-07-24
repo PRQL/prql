@@ -299,7 +299,7 @@ pub fn rq_to_sql(rq: ir::rq::Query, options: &Options) -> Result<String, ErrorMe
 
 /// Generate PRQL code from PL AST
 pub fn pl_to_prql(pl: Vec<prql_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
-    Ok(codegen::write(&pl))
+    Ok(codegen::write_stmts(&pl))
 }
 
 /// JSON serialization and deserialization functions

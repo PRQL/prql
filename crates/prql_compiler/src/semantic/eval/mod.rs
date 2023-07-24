@@ -474,7 +474,7 @@ mod test {
     use insta::assert_display_snapshot;
     use itertools::Itertools;
 
-    use crate::semantic::ast_expand;
+    use crate::{codegen, semantic::ast_expand};
 
     use super::*;
 
@@ -485,7 +485,7 @@ mod test {
 
         let value = super::eval(expr)?;
 
-        Ok(value.to_string())
+        Ok(codegen::write_expr(&value))
     }
 
     #[test]
