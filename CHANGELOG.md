@@ -58,7 +58,7 @@ will become the public version at the next release._
     ```
 
     ...though the exact form differs by dialect; see the
-    [Regex docs](https://prql-lang.org/book/syntax/operators.html#regex) for
+    [Regex docs](https://prql-lang.org/book/reference/syntax/operators.html#regex) for
     more details.
 
 - New aggregation functions: `every`, `any`, `average`, and `concat_array`.

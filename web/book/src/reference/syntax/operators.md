@@ -1,4 +1,4 @@
-# Operations
+# Operators
 
 Expressions can be composed from _function calls_ and _operations_, such as
 `2 + 3` or `((1 + x) * -y)`. In the example below, note the use of expressions
