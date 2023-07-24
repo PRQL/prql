@@ -5,10 +5,6 @@
 name: check-links-book
 
 on:
-  pull_request:
-    paths:
-      - "web/book/**"
-      - ".github/workflows/check-links-book.yaml"
   workflow_call:
 
 env:
@@ -20,7 +16,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            src:
+              - '.github/workflows/check-links-book.yaml'
+              - 'web/book/**'
+
   check:
+    needs: changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
+
     runs-on: ubuntu-latest
 
     steps:

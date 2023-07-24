@@ -73,6 +73,9 @@ jobs:
           # We also run without this in the nightly workflow
           check-modified-files-only: "yes"
 
+  check-links-book:
+    uses: ./.github/workflows/check-links-book.yaml
+
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
     # everything in this workflow has passed and, unlike including each task in
@@ -93,6 +96,7 @@ jobs:
     if: always()
     needs:
       - check-links-markdown
+      - check-links-book
       - lint-megalinter
       - nightly
       - publish-web
