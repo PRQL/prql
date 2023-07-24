@@ -2,7 +2,7 @@
 
 ## Simple
 
-The major distinction between PRQL and most other programming languages is the
+A distinction between PRQL and most other programming languages is the
 function call syntax. It consists of the function name followed by arguments
 separated by whitespace.
 
@@ -18,7 +18,7 @@ of outer function start.
 outer_func arg_1 (inner_func arg_a, arg_b) arg_2
 ```
 
-Function name must refer to a function variable, which has either
+The function name must refer to a function variable, which has either
 [been declared](../declarations/functions.md) in the
 [standard library](../stdlib/README.md) or some other module.
 

@@ -6,7 +6,7 @@ Specifies a data source.
 from table_reference
 ```
 
-Table names containing schemas or needing to be quoted for other reasons
+Table names containing schemas, keywords, or special characters
 [need to be contained within backticks](../../syntax/keywords.md#quoting).
 
 ## Examples

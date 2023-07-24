@@ -1,6 +1,6 @@
 # Case
 
-Search for the first condition that evaluates to `true` and return it's
+Search for the first condition that evaluates to `true` and return its
 associated value. If none of the conditions match, `null` is returned.
 
 ```prql
@@ -22,6 +22,3 @@ derive distance = case {
 }
 ```
 
-```admonish info
-`case` was previously (PRQL 0.4 to 0.5) called `switch` and renamed to `case` in PRQL 0.6.0.
-```

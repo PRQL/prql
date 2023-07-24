@@ -5,7 +5,7 @@ data type.
 
 ## Numbers
 
-Number literals can contain number characters as well as dot, underscore and
+Number literals can contain number characters as well as a period, underscores and
 char `e`.
 
 If a number literal contains a dot or character `e`, it is treated as floating
