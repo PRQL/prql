@@ -7,7 +7,7 @@ repos:
       - id: check-yaml
       - id: mixed-line-ending
       - id: trailing-whitespace
-        # rustfmt handles, and in some snapshots we expect spaces.
+        # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
         exclude: '.*\.rs$'
   - repo: https://github.com/crate-ci/typos
     rev: v1.16.1
