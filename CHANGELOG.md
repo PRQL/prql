@@ -67,8 +67,8 @@ A small selection of the changes:
     ```
 
     ...though the exact form differs by dialect; see the
-    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for
-    more details.
+    [Regex docs](https://prql-lang.org/book/reference/syntax/operators.html#regex)
+    for more details.
 
 - New aggregation functions: `every`, `any`, `average`, and `concat_array`.
   _Breaking:_ Remove `avg` in favor of `average`.
@@ -299,8 +299,8 @@ This release has 54 commits from 6 contributors. Selected changes:
 **Documentation**:
 
 - Add a policy for which bindings are supported / unsupported / nascent. See
-  <https://prql-lang.org/book/bindings/index.html> for more details (@max-sixty,
-  #2062) (@max-sixty, #2062)
+  <https://prql-lang.org/book/bindings/> for more details (@max-sixty, #2062)
+  (@max-sixty, #2062)
 
 **Integrations**:
 
@@ -595,7 +595,7 @@ below in this release).
   [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
 - _Experimental:_ The
-  [`case`](https://prql-lang.org/book/language-features/case.html) function sets
+  [`case`](https://prql-lang.org/book/reference/syntax/case.html) function sets
   a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
@@ -624,7 +624,7 @@ below in this release).
   ```
 
   Check out the
-  [`case` docs](https://prql-lang.org/book/language-features/case.html) for more
+  [`case` docs](https://prql-lang.org/book/reference/syntax/case.html) for more
   details.
 
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,

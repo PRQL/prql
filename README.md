@@ -145,7 +145,7 @@ Many thanks to those who've made our progress possible:
 
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org
-[contributing]: https://prql-lang.org/book/contributing/index.html
+[contributing]: https://prql-lang.org/book/contributing/
 [development]: https://prql-lang.org/book/contributing/development.html
 [prql playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql
