@@ -1,5 +1,9 @@
 # PRQL Changelog
 
+## 0.9.1 — 2023-07-25
+
+0.9.1 is a small release to fix an issue in the 0.9.0 release pipeline.
+
 ## 0.9.0 — 2023-07-24
 
 0.9.0 is probably PRQL's biggest ever release. We have dialect-specific
