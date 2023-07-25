@@ -13,8 +13,12 @@ A small selection of the changes:
 
 **Language**:
 
-- The major breaking change is new syntax for lists, which have been renamed to
-  _tuples_, and are now represented with braces `{}` rather than brackets `[]`.
+- The major breaking change is a new syntax for lists, which have been renamed
+  to _tuples_, and are now represented with braces `{}` rather than brackets
+  `[]`.
+
+  To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
+  `{ ... }`.
 
   We made the syntax change to incorporate arrays. Almost every major language
   uses `[]` for arrays. We are adopting that convention — arrays use `[]`,
@@ -23,9 +27,6 @@ A small selection of the changes:
 
   Arrays are conceptually similar to columns — their elements have a single
   type. Array syntax can't contain assignments.
-
-  To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
-  `{ ... }`.
 
   As part of this, we've also formalized tuples as containing both individual
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
