@@ -4,8 +4,10 @@
 
 0.9.0 is probably PRQL's biggest ever release. We have dialect-specific
 standard-libraries, a regex operator, an initial implementation of multiple-file
-projects & modules. We've made a few backward incompatible syntax changes. Most
-queries will work with a simple find/replace, see below for details.
+projects & modules, lots of bug fixes, and many many internal changes.
+
+We've made a few backward incompatible syntax changes. Most queries will work
+with a simple find/replace; see below for details.
 
 The release has 421 commits from 12 contributors.
 
