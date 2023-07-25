@@ -50,7 +50,7 @@ function Sidebar({ library, onLoadFile }) {
               {name ?? filename}
             </div>
           )}
-        </React.Fragment>
+        </React.Fragment>,
       );
     }
 
@@ -59,7 +59,7 @@ function Sidebar({ library, onLoadFile }) {
         <h2>{section}</h2>
 
         {fileRows}
-      </section>
+      </section>,
     );
   }
 

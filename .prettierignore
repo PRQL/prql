@@ -15,3 +15,6 @@ target/
 **/dist
 /web/book/book
 /web/website/public
+
+# TODO: fix the go-template issue in `.prettierrc.yaml`
+**/*.html

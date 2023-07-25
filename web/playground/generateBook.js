@@ -98,7 +98,7 @@ function getSnippets(content, file) {
     const snippets = isFile(filePath)
       ? getSnippets(
           (await readFile(filePath)).toString(),
-          basename(filePath).replace(/\..+/g, "").trim()
+          basename(filePath).replace(/\..+/g, "").trim(),
         )
       : [];
     if (!snippets.length && isFile(filePath)) {
