@@ -61,7 +61,8 @@ impl WriteSource for TyKind {
             .write_between("{", "}", opt),
             Set => Some("set".to_string()),
             Array(elem) => Some(format!("[{}]", elem.write(opt)?)),
-            Function(func) => {
+            Function(None) => Some("func".to_string()),
+            Function(Some(func)) => {
                 let mut r = String::new();
 
                 for t in &func.args {

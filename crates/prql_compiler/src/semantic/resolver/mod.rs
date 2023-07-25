@@ -1004,7 +1004,7 @@ fn expr_of_func(func: Func) -> Expr {
 
     Expr {
         ty: Some(Ty {
-            kind: TyKind::Function(ty),
+            kind: TyKind::Function(Some(ty)),
             name: None,
         }),
         ..Expr::new(ExprKind::Func(Box::new(func)))
@@ -1055,6 +1055,12 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "date" => PrimitiveSet::Date,
         "time" => PrimitiveSet::Time,
         "timestamp" => PrimitiveSet::Timestamp,
+        "func" => {
+            return Some(ExprKind::Type(Ty {
+                kind: TyKind::Function(None),
+                name: None,
+            }))
+        }
         _ => return None,
     };
     Some(ExprKind::Type(Ty {

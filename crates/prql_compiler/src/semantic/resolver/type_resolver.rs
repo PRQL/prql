@@ -107,14 +107,14 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         // functions
         ExprKind::Func(func) => Ty {
             name: None,
-            kind: TyKind::Function(TyFunc {
+            kind: TyKind::Function(Some(TyFunc {
                 args: func
                     .params
                     .into_iter()
                     .map(|p| p.ty.map(|t| t.into_ty().unwrap()))
                     .collect_vec(),
                 return_ty: Box::new(resolver.fold_type_expr(Some(func.body))?),
-            }),
+            })),
         },
 
         _ => {
