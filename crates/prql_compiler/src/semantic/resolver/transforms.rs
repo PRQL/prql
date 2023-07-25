@@ -10,6 +10,7 @@ use crate::generic::{SortDirection, WindowKind};
 use crate::ir::pl::BinaryExpr;
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
+use crate::semantic::write_pl;
 
 use super::super::context::{Decl, DeclKind};
 use super::super::module::Module;
@@ -81,7 +82,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     return Err(Error::new(Reason::Expected {
                         who: Some("`take`".to_string()),
                         expected: "int or range".to_string(),
-                        found: expr.to_string(),
+                        found: write_pl(expr.clone()),
                     })
                     // Possibly this should refer to the item after the `take` where
                     // one exists?
@@ -138,7 +139,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     Error::new(Reason::Expected {
                         who: Some("parameter `expanding`".to_string()),
                         expected: "a boolean".to_string(),
-                        found: format!("{expanding}"),
+                        found: write_pl(expanding.clone()),
                     })
                     .with_span(expanding.span)
                 })?
@@ -151,7 +152,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     Error::new(Reason::Expected {
                         who: Some("parameter `rolling`".to_string()),
                         expected: "a number".to_string(),
-                        found: format!("{rolling}"),
+                        found: write_pl(rolling.clone()),
                     })
                     .with_span(rolling.span)
                 })?
@@ -237,7 +238,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             return Err(Error::new(Reason::Expected {
                 who: Some("std.in".to_string()),
                 expected: "a pattern".to_string(),
-                found: pattern.to_string(),
+                found: write_pl(pattern.clone()),
             })
             .with_span(pattern.span)
             .into());
@@ -317,7 +318,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                     return Err(Error::new(Reason::Expected {
                         who: Some("std.from_text".to_string()),
                         expected: "a string literal".to_string(),
-                        found: format!("`{text_expr}`"),
+                        found: format!("`{}`", write_pl(text_expr.clone())),
                     })
                     .with_span(text_expr.span)
                     .into());
@@ -539,7 +540,10 @@ impl TransformCall {
 
                 let mut frame = body.lineage.clone().unwrap();
 
-                log::debug!("inferring type of group with pipeline: {body}");
+                log::debug!(
+                    "inferring type of group with pipeline: {}",
+                    write_pl(*body.clone())
+                );
 
                 // prepend aggregate with `by` columns
                 if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {

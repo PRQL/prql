@@ -53,10 +53,9 @@ params:
           playground](https://github.com/PRQL/prql/tree/main/web/playground)"
       - text:
           "Is SQL your mother-tongue? [Show us SQL queries which translate well
-          /
-          badly](https://prql-lang.org/book/contributing/#language-design).
-          We are looking for any use-cases that expose a poor design choice, a
-          need of a feature, or a sharp edge of the language."
+          / badly](https://prql-lang.org/book/contributing/#language-design). We
+          are looking for any use-cases that expose a poor design choice, a need
+          of a feature, or a sharp edge of the language."
     button:
       text: Contribute
       link: https://prql-lang.org/book/contributing/

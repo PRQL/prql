@@ -1,2 +1,2 @@
-Please check the
-[Reference implementation of PRQL compiler](../compiler/prql-compiler.md) page.
+Please check the documentation of the
+[prql-compiler crate](https://docs.rs/prql-compiler/latest/prql_compiler/).
