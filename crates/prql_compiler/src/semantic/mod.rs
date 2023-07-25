@@ -1,5 +1,6 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
+mod ast_expand;
 mod context;
 mod eval;
 mod lowering;
@@ -25,7 +26,10 @@ use crate::ir::rq::Query;
 use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
-pub fn resolve_and_lower(file_tree: SourceTree<Vec<Stmt>>, main_path: &[String]) -> Result<Query> {
+pub fn resolve_and_lower(
+    file_tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
+    main_path: &[String],
+) -> Result<Query> {
     let context = resolve(file_tree, Default::default())?;
 
     let (query, _) = lowering::lower_to_ir(context, main_path)?;
@@ -33,7 +37,10 @@ pub fn resolve_and_lower(file_tree: SourceTree<Vec<Stmt>>, main_path: &[String])
 }
 
 /// Runs semantic analysis on the query.
-pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -> Result<Context> {
+pub fn resolve(
+    mut file_tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
+    options: ResolverOptions,
+) -> Result<Context> {
     // inject std module if it does not exist
     if !file_tree.sources.contains_key(&PathBuf::from("std.prql")) {
         let mut source_tree = SourceTree {
@@ -56,6 +63,8 @@ pub fn resolve(mut file_tree: SourceTree<Vec<Stmt>>, options: ResolverOptions) -
     // resolve sources one by one
     // TODO: recursive references
     for (path, stmts) in normalize(file_tree)? {
+        let stmts = ast_expand::expand_stmts(stmts);
+
         resolver.current_module_path = path;
         resolver.fold_statements(stmts)?;
     }
@@ -86,7 +95,9 @@ pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
         .try_collect()
 }
 
-fn normalize(mut tree: SourceTree<Vec<Stmt>>) -> Result<Vec<(Vec<String>, Vec<Stmt>)>> {
+fn normalize(
+    mut tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
+) -> Result<Vec<(Vec<String>, Vec<prql_ast::stmt::Stmt>)>> {
     // find root
     let root_path = PathBuf::from("");
 
@@ -179,13 +190,21 @@ impl pl::Expr {
             Error::new(Reason::Expected {
                 who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: format!("`{}`", pl::Expr::new(i)),
+                found: format!("`{}`", write_pl(pl::Expr::new(i))),
             })
             .with_span(self.span)
         })
     }
 }
 
+/// Write a PL IR to string.
+///
+/// Because PL needs to be restricted back to AST, ownerships of expr is required.
+pub fn write_pl(expr: pl::Expr) -> String {
+    let expr = ast_expand::restrict_expr(expr);
+
+    crate::codegen::write_expr(&expr)
+}
 #[cfg(test)]
 pub mod test {
     use anyhow::Result;

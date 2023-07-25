@@ -2,7 +2,7 @@
 
 Identifiers can contain alphanumeric characters and `_` and must not start with
 a number. They can be chained together with the `.` indirection operator, used
-to retrieve a tuple from a field or a variable from a module. .
+to retrieve a tuple from a field or a variable from a module.
 
 ```prql no-eval
 hello
@@ -59,7 +59,7 @@ PRQL uses following keywords:
 - `into` - variable definition
 - `case` - flow control
 - `type` - type declaration
-- `func` - function declaration
+- `func` - explicit function declaration
 - `module` - used internally
 - `internal` - used internally
 - `true` - [literal](./literals.md)

@@ -30,7 +30,7 @@
   - [Identifiers & keywords](./reference/syntax/keywords.md)
   - [Function calls](./reference/syntax/function-calls.md)
   - [Pipes](./reference/syntax/pipes.md)
-  - [Operations](./reference/syntax/operations.md)
+  - [Operations](./reference/syntax/operators.md)
   - [Case](./reference/syntax/case.md)
   - [Ranges](./reference/syntax/ranges.md)
   - [F-strings](./reference/syntax/f-strings.md)

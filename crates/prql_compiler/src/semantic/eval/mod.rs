@@ -6,9 +6,12 @@ use itertools::Itertools;
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal, PlFold};
 
+use super::ast_expand;
 use super::resolver::{binary_to_func_call, unary_to_func_call};
 
-pub fn eval(expr: Expr) -> Result<Expr> {
+pub fn eval(expr: prql_ast::expr::Expr) -> Result<Expr> {
+    let expr = ast_expand::expand_expr(expr);
+
     Evaluator::new().fold_expr(expr)
 }
 
@@ -474,15 +477,17 @@ mod test {
     use insta::assert_display_snapshot;
     use itertools::Itertools;
 
+    use crate::semantic::write_pl;
+
     use super::*;
 
     fn eval(source: &str) -> Result<String> {
         let stmts = crate::prql_to_pl(source)?.into_iter().exactly_one()?;
-        let expr = stmts.kind.into_var_def()?.value;
+        let expr = stmts.kind.into_main().unwrap();
 
         let value = super::eval(*expr)?;
 
-        Ok(value.to_string())
+        Ok(write_pl(value))
     }
 
     #[test]

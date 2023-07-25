@@ -1,7 +1,7 @@
 # Pipes
 
-Pipes — the connection between [transforms](../transforms/) that make up a
-pipeline — can be either line breaks or a pipe character (`|`).
+Pipes — the connection between [transforms](../stdlib/transforms/) that make up
+a pipeline — can be either line breaks or a pipe character (`|`).
 
 In almost all situations, line-breaks pipe the result of a line's transform into
 the transform on the following line. For example, the `filter` transform
