@@ -5,10 +5,9 @@ members = [
   "bindings/prql-java",
   "bindings/prql-js",
   "bindings/prql-lib",
-  "bindings/prql-python", #  # The book / docs
-  "web/book", #
-  # An example
-  "crates/prql-compiler/examples/compile-files", #
+  "bindings/prql-python",
+  "web/book", # The book / docs  
+  "crates/prql-compiler/examples/compile-files", # An example
 ]
 resolver = "2"
 
