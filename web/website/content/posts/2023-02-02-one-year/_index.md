@@ -23,14 +23,15 @@ language if the tooling is made accessible enough.
 
 Language design & development in the last year have been focused on these areas:
 
-- design of basic [transforms](https://prql-lang.org/book/transforms/) and their
-  [interactions](https://github.com/PRQL/prql/issues/300),
+- design of basic
+  [transforms](https://prql-lang.org/book/reference/stdlib/transforms/) and
+  their [interactions](https://github.com/PRQL/prql/issues/300),
 
 - fundamentals of how [functions](https://github.com/PRQL/prql/issues/444) and
   pipelines are [evaluated](#define-functional-semantics).
 
 - small quality-of-life language features (e.g. syntax for
-  [f-strings, dates, coalesce operator](https://prql-lang.org/book/syntax/),
+  [f-strings, dates, coalesce operator](https://prql-lang.org/book/reference/syntax/
   [case](https://github.com/PRQL/prql/issues/504)),
 
 PRQL is now in a state where it can greatly improve the developer experience for
@@ -95,8 +96,7 @@ of how functions in PRQL work, what they can express and how can they be abused.
 
 To keep this post brief, we'll expose a single snippet of what's possible and
 invite you to read more in
-[a recent post](https://prql-lang.org/functional-relations/) or in
-[the language documentation](https://prql-lang.org/book/internals/functional-lang.html).
+[a recent post](https://prql-lang.org/functional-relations/).
 
 ```prql
 let take_oldest = n rel -> (
