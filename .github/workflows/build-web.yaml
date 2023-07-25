@@ -56,7 +56,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.9.0
+          prefix-key: 0.9.1
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
