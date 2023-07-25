@@ -43,5 +43,8 @@ select {e.name, gross_salary, d.name}
 
 ## See also
 
-- [Transforms](../transforms/README.md) - PRQL Transforms
-- [Syntax](../syntax/README.md) - Notation for PRQL queries
+<!-- markdown-link-check-disable -->
+<!-- we're linking the README.md files as index.html to work around https://github.com/rust-lang/mdBook/issues/984 -->
+
+- [Transforms](../transforms/index.html) - PRQL Transforms
+- [Syntax](../syntax/index.html) - Notation for PRQL queries

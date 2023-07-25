@@ -59,7 +59,7 @@ jobs:
     uses: ./.github/workflows/nightly.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-nightly')
 
-  check-links:
+  check-links-markdown:
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
@@ -72,6 +72,9 @@ jobs:
           base-branch: main
           # We also run without this in the nightly workflow
           check-modified-files-only: "yes"
+
+  check-links-book:
+    uses: ./.github/workflows/check-links-book.yaml
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
@@ -92,7 +95,8 @@ jobs:
     # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
     needs:
-      - check-links
+      - check-links-markdown
+      - check-links-book
       - lint-megalinter
       - nightly
       - publish-web
@@ -103,10 +107,10 @@ jobs:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
-          # We don't include `check-links`, since occasionally we'll want to merge
+          # We don't include `check-links-markdown`, since occasionally we'll want to merge
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
-          allowed-failures: check-links
+          allowed-failures: check-links-markdown
           allowed-skips: test-all, publish-web, nightly
           jobs: ${{ toJSON(needs) }}
 

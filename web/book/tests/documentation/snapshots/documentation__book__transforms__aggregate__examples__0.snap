@@ -4,7 +4,7 @@ expression: "from employees\naggregate {\n  average salary,\n  ct = count salary
 ---
 SELECT
   AVG(salary),
-  COUNT(salary) AS ct
+  COUNT(*) AS ct
 FROM
   employees
 

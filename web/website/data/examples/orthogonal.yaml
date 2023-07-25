@@ -1,0 +1,22 @@
+label: Orthogonality
+prql: |
+  from employees
+  # `filter` before aggregations...
+  filter start_date > @2021-01-01
+  group country (
+    aggregate {max_salary = max salary}
+  )
+  # ...and `filter` after aggregations!
+  filter max_salary > 100_000
+sql: |
+  SELECT
+    country,
+    MAX(salary) AS max_salary
+  FROM
+    employees
+  WHERE
+    start_date > DATE '2021-01-01'
+  GROUP BY
+    country
+  HAVING
+    MAX(salary) > 100000

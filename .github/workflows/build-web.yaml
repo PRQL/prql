@@ -68,6 +68,6 @@ jobs:
       - name: 🕷️ Build website
         run: task build-web
 
-      - uses: actions/upload-pages-artifact@v1.0.9
+      - uses: actions/upload-pages-artifact@v2.0.0
         with:
           path: web/website/public/

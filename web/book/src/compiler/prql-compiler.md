@@ -1,1 +1,1 @@
-{{#include ../../../../prql-compiler/README.md}}
+{{#include ../../../../crates/prql_compiler/README.md}}

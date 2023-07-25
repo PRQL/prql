@@ -18,7 +18,7 @@ table_0 AS (
     title,
     country,
     AVG(_expr_2) AS _expr_0,
-    SUM(_expr_1) AS sum_gross_cost
+    COALESCE(SUM(_expr_1), 0) AS sum_gross_cost
   FROM
     table_1
   WHERE

@@ -40,7 +40,7 @@ jobs:
           command: bench
           args: --timings --all-targets
 
-  check-links:
+  check-links-markdown:
     # We run only on modified files and only on our resources in PRs; here we
     # run on all links and all files.
     runs-on: ubuntu-latest
@@ -184,3 +184,48 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
+
+  build-prqlc:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/build-prqlc
+        with:
+          target: ${{ matrix.target }}
+          profile: release
+
+  build-python-wheels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64
+          - os: ubuntu-latest
+            target: aarch64
+          - os: ubuntu-latest
+            target: source
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: Build wheel
+        uses: ./.github/actions/build-prql-python
+        with:
+          target: ${{ matrix.target }}

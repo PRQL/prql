@@ -1,9 +1,9 @@
 # S-strings
 
 An s-string inserts SQL directly, as an escape hatch when there's something that
-PRQL doesn't yet implement. For example, there's no `version()` function in SQL
-that returns the Postgres version, so if we want to use that, we use an
-s-string:
+PRQL doesn't yet implement. For example, there's a `version()` function in
+PostgreSQL that returns the PostgreSQL version, so if we want to use that, we
+use an s-string:
 
 ```prql
 from my_table
@@ -22,6 +22,12 @@ So this compiles using the function:
 ```prql
 from employees
 aggregate {average salary}
+```
+
+```admonish note
+Because S-string contents are SQL, double-quotes (`"`) will denote a _column name_.
+To avoid that, use single-quotes (`'`) around the SQL string, and
+adjust the quotes of the S-string. For example, instead of `s'CONCAT("hello", "world")'` use `s"CONCAT('hello', 'world')"`
 ```
 
 Here's an example of a more involved use of an s-string:
