@@ -71,7 +71,7 @@ name = "bench"
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../web/book/src/language-features/target.md"
+file = "../../web/book/src/language-features/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
 
@@ -80,48 +80,48 @@ search = 'prql version:"[\d.]+"'
 # contains the current version unfortunately).
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/workflows/build-web.yaml"
+file = "../../.github/workflows/build-web.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/workflows/test-rust.yaml"
+file = "../../.github/workflows/test-rust.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/actions/time-compilation/action.yaml"
+file = "../../.github/actions/time-compilation/action.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/workflows/test-taskfile.yaml"
+file = "../../.github/workflows/test-taskfile.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/workflows/test-lib.yaml"
+file = "../../.github/workflows/test-lib.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/actions/build-prql-python/action.yaml"
+file = "../../.github/actions/build-prql-python/action.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/actions/build-prqlc/action.yaml"
+file = "../../.github/actions/build-prqlc/action.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
-file = "../.github/workflows/test-all.yaml"
+file = "../../.github/workflows/test-all.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
