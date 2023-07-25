@@ -1,9 +1,15 @@
 # PRQL Changelog
 
-## 0.9.0 — [unreleased]
+## 0.9.0 — 2023-07-24
 
-_The following unreleased features are only available in the `main` branch. They
-will become the public version at the next release._
+0.9.0 is probably PRQL's biggest ever release. We have dialect-specific
+standard-libraries, a regex operator, an initial implementation of multiple-file
+projects & modules. We've made a few backward incompatible syntax changes. Most
+queries will work with a simple find/replace, see below for details.
+
+The release has 421 commits from 12 contributors.
+
+A small selection of the changes:
 
 **Language**:
 
@@ -79,7 +85,8 @@ will become the public version at the next release._
   func add a b -> a + b
   ```
 
-- Modules allow importing declarations from other files: _TODO: insert link_
+- Experimental modules, which allow importing declarations from other files.
+  Docs are forthcoming.
 
 - Relation literals create a relation (a "table") as an _array_ of _tuples_.
   This example demonstrates the new syntax for arrays `[]` and tuples `{}`.
@@ -109,9 +116,7 @@ will become the public version at the next release._
 
 **Features**:
 
-- We've changed how we handle colors. We now use the
-  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
-  `prql-compiler`.
+- We've changed how we handle colors.
 
   `Options::color` is deprecated and has no effect. Code which consumes
   `prql_compiler::compile` should instead accept the output with colors and use
@@ -119,6 +124,10 @@ will become the public version at the next release._
   minimal disruption, `prql_compiler` will currently strip color codes when a
   standard environment variable such as `CLI_COLOR=0` is set or when it detects
   `stderr` is not a TTY.
+
+  We now use the
+  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
+  `prql-compiler`.
 
   (@max-sixty, #2773)
 
@@ -129,10 +138,6 @@ will become the public version at the next release._
 
 - Numbers expressed with scientific notation — `1e9` — are now handled correctly
   by the compiler (@max-sixty, #2865).
-
-**Documentation**:
-
-**Web**:
 
 **Integrations**:
 
@@ -156,7 +161,10 @@ will become the public version at the next release._
 
 **New Contributors**:
 
+- @maxmcd, with #2533
+- @khoa165, with #2876
 - @philpep, with #2912
+- @not-my-profile, with #2971
 
 ## 0.8.1 — 2023-04-29
 
