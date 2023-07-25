@@ -116,7 +116,7 @@ take_oldest 3
 
 The design of prql-compiler strives to have a complexity bottleneck with an
 intermediate representation named
-[Relation Query](https://docs.rs/prql-compiler/latest/prql_compiler/ast/rq/index.html)
+[Relation Query](https://docs.rs/prql-compiler/latest/prql-compiler/ast/rq/index.html)
 or RQ for short. Think of it as equivalent to a
 [Substrait plan](https://substrait.io/).
 

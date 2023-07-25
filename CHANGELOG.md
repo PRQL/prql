@@ -693,7 +693,7 @@ below in this release).
 
 - The crate's external API has changed to allow for compiling to intermediate
   representation. This also affects bindings. See
-  [`prql_compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
+  [`prql-compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
   for more details.
 
 **Fixes**:
