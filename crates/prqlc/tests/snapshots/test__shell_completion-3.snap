@@ -8,8 +8,8 @@ info:
     - powershell
   env:
     RUST_BACKTRACE: ""
-    RUST_LOG: ""
     CLICOLOR_FORCE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0

@@ -7,9 +7,9 @@ info:
     - shell-completion
     - fish
   env:
+    RUST_LOG: ""
     CLICOLOR_FORCE: ""
     RUST_BACKTRACE: ""
-    RUST_LOG: ""
 ---
 success: true
 exit_code: 0

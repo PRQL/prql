@@ -234,9 +234,13 @@ fn format() {
 
 #[test]
 fn shell_completion() {
-    for shell in ["bash", "fish", "powershell", "zsh"].iter() {
-        assert_cmd_snapshot!(prqlc_command().args(["shell-completion", shell]));
-    }
+    use insta::with_settings;
+    with_settings!({sort_maps => true}, {
+        for shell in ["bash", "fish", "powershell", "zsh"].iter() {
+            assert_cmd_snapshot!(prqlc_command().args(["shell-completion", shell]));
+        }
+      }
+    )
 }
 
 fn project_path() -> PathBuf {
