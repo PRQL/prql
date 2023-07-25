@@ -9,7 +9,7 @@ export async function init() {
   const worker_url = URL.createObjectURL(
     new Blob([`importScripts("${bundle.mainWorker}");`], {
       type: "text/javascript",
-    })
+    }),
   );
 
   // Instantiate the asynchronous version of DuckDB-wasm
@@ -44,8 +44,13 @@ async function registerChinook(db) {
 
   await Promise.all(
     CHINOOK_TABLES.map((table) =>
-      db.registerFileURL(`${table}.csv`, `${baseUrl}/${table}.csv`, http, false)
-    )
+      db.registerFileURL(
+        `${table}.csv`,
+        `${baseUrl}/${table}.csv`,
+        http,
+        false,
+      ),
+    ),
   );
 
   const c = await db.connect();
