@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/prqlc/tests/test.rs
+source: crates/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -7,9 +7,9 @@ info:
     - shell-completion
     - fish
   env:
-    RUST_LOG: ""
     CLICOLOR_FORCE: ""
     RUST_BACKTRACE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
