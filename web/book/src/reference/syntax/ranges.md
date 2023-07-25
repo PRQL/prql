@@ -31,7 +31,7 @@ operator.
 
 ## See also
 
-- [take transform](../transforms/take.md)
+- [take transform](../stdlib/transforms/take.md)
 
 ## Roadmap
 

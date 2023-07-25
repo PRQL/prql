@@ -20,7 +20,7 @@ outer_func arg_1 (inner_func arg_a, arg_b) arg_2
 
 The function name must refer to a function variable, which has either
 [been declared](../declarations/functions.md) in the
-[standard library](../stdlib/README.md) or some other module.
+[standard library](../stdlib/) or some other module.
 
 Function calls can also specify named parameters using `:` notation:
 

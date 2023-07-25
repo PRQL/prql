@@ -103,9 +103,6 @@ PRQL uses parentheses `()` for several purposes:
 - Parentheses group operands to control the order of evaluation, for example:
   `((1 + x) * y)`
 
-- Parentheses delimit an [inner transform](./inner-transforms.md) for the
-  `group ()` and `window ()` transforms.
-
 - Parentheses delimit a minus sign of a function argument, for example:
   `add (-1) (-3)`
 

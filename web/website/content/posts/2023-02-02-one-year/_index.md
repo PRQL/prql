@@ -23,14 +23,14 @@ language if the tooling is made accessible enough.
 
 Language design & development in the last year have been focused on these areas:
 
-- design of basic [transforms](https://prql-lang.org/book/transforms/index.html)
+- design of basic [transforms](https://prql-lang.org/book/transforms/)
   and their [interactions](https://github.com/PRQL/prql/issues/300),
 
 - fundamentals of how [functions](https://github.com/PRQL/prql/issues/444) and
   pipelines are [evaluated](#define-functional-semantics).
 
 - small quality-of-life language features (e.g. syntax for
-  [f-strings, dates, coalesce operator](https://prql-lang.org/book/syntax/index.html),
+  [f-strings, dates, coalesce operator](https://prql-lang.org/book/syntax/),
   [case](https://github.com/PRQL/prql/issues/504)),
 
 PRQL is now in a state where it can greatly improve the developer experience for
