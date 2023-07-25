@@ -308,8 +308,8 @@ This release has 54 commits from 6 contributors. Selected changes:
 **Documentation**:
 
 - Add a policy for which bindings are supported / unsupported / nascent. See
-  <https://prql-lang.org/book/bindings/> for more details (@max-sixty, #2062)
-  (@max-sixty, #2062)
+  <https://prql-lang.org/book/project/bindings/index.html> for more details
+  (@max-sixty, #2062) (@max-sixty, #2062)
 
 **Integrations**:
 
@@ -601,7 +601,8 @@ below in this release).
 
 - Defining a temporary table is now expressed as `let` rather than `table`
   (@aljazerzen, #1315). See the
-  [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
+  [tables docs](https://prql-lang.org/book/reference/declarations/variables.html)
+  for details.
 
 - _Experimental:_ The
   [`case`](https://prql-lang.org/book/reference/syntax/case.html) function sets
@@ -653,8 +654,8 @@ below in this release).
   ```
 
   Check out the
-  [`append` docs](https://prql-lang.org/book/transforms/append.html) for more
-  details.
+  [`append` docs](https://prql-lang.org/book/reference/stdlib/transforms/append.html)
+  for more details.
 
 - Numbers can contain underscores, which can make reading long numbers easier
   (@max-sixty, #1467):
@@ -713,7 +714,7 @@ below in this release).
 improvements]
 
 - Add docs on aliases in
-  [Select](https://prql-lang.org/book/transforms/select.html)
+  [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
 - Add JS template literal and multiline example (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
 - Improve prql-compiler docs & examples (@aljazerzen, #1515)
@@ -978,9 +979,7 @@ We also have new features in the
 
 **Documentation**:
 
-- Add docs on
-  [Architecture](https://prql-lang.org/book/internals/compiler-architecture.html)
-  (@aljazerzen, #904)
+- Add docs on Architecture (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
 **Internal changes**:
