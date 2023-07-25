@@ -23,8 +23,8 @@ language if the tooling is made accessible enough.
 
 Language design & development in the last year have been focused on these areas:
 
-- design of basic [transforms](https://prql-lang.org/book/transforms/)
-  and their [interactions](https://github.com/PRQL/prql/issues/300),
+- design of basic [transforms](https://prql-lang.org/book/transforms/) and their
+  [interactions](https://github.com/PRQL/prql/issues/300),
 
 - fundamentals of how [functions](https://github.com/PRQL/prql/issues/444) and
   pipelines are [evaluated](#define-functional-semantics).
