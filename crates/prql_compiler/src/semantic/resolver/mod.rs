@@ -13,7 +13,7 @@ use crate::utils::IdGenerator;
 use super::context::{Context, Decl, DeclKind, TableExpr};
 use super::module::Module;
 use super::reporting::debug_call_tree;
-use super::{NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
+use super::{write_pl, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
@@ -978,7 +978,7 @@ impl Resolver {
                 _ => Err(Error::new(Reason::Expected {
                     who: Some("exclusion".to_string()),
                     expected: "column name".to_string(),
-                    found: format!("`{e}`"),
+                    found: format!("`{}`", write_pl(e)),
                 })),
             })
             .try_collect()?;
@@ -1104,10 +1104,7 @@ pub(super) mod test {
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
-        let derive = expr
-            .kind
-            .into_transform_call()
-            .unwrap_or_else(|e| panic!("Failed to convert `{}`", Expr::new(e)));
+        let derive = expr.kind.into_transform_call().unwrap();
         let exprs = derive
             .kind
             .into_derive()
