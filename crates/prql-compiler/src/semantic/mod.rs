@@ -63,7 +63,7 @@ pub fn resolve(
     // resolve sources one by one
     // TODO: recursive references
     for (path, stmts) in normalize(file_tree)? {
-        let stmts = ast_expand::expand_stmts(stmts);
+        let stmts = ast_expand::expand_stmts(stmts)?;
 
         resolver.current_module_path = path;
         resolver.fold_statements(stmts)?;
