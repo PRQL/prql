@@ -18,7 +18,7 @@ A summary of PRQL syntax:
 | `! && == +`     | [Operations](./operators.md)                                                   | <code>filter a == b + c \|\| d >= e</code>              |
 | `()`            | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''`, `""`      | [Strings](./literals.md#strings)                                               | `derive name = 'Mary'`                                  |
-| `` ` ` ``       | [Quoted identifiers](./keywords.md#quoting)                                    | ``select `first name` ``                                |
+| `` ` ` ``       | [Quoted identifiers](./keywords.md#quoting)                                    | `` select `first name`  ``                              |
 | `#`             | [Comments](./comments.md)                                                      | `# A comment`                                           |
 | `@`             | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
 | `==`            | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |

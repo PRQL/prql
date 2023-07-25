@@ -4,9 +4,7 @@
   font-weight: 800;
   font-style: normal;
   font-display: swap;
-  src:
-    local(""),
-    url("../fonts/inter-extra-bold.woff2") format("woff2"),
+  src: local(""), url("../fonts/inter-extra-bold.woff2") format("woff2"),
     url("../fonts/inter-extra-bold.woff") format("woff");
 }
 
