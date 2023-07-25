@@ -1,95 +1,99 @@
 # Aggregation
 
 A key feature of analytics is reducing many values down to some summary. This
-act is called aggregation and always includes an aggregation function, for
-example `average` or `sum`:
+act is called "aggregation" and always includes a function &mdash; for example,
+`average` or `sum` &mdash; that reduces the table to a single row.
 
-<!-- aggregating ids does not make much sense, should we switch to some other table? -->
-
-```
-from albums
-aggregate {sum_of_ids = sum album_id}
-```
-
-`aggregate` is quite similar to `derive` and `select` as it is creating a new
-column, with the option to assign it a name. Just as select, it will discard all
-columns that are not present in the tuple, but with a key difference: it will
-always produce a single row.
-
-Just as `select` (and actually `derive` too), `aggregate` takes a tuple of
-aggregation expressions, which means that you can produce multiple summaries at
-once:
+**aggregate:** The `aggregate` transform takes a tuple to create one or many new
+columns that "distill down" data from all the rows.
 
 ```
-from albums
+from invoices
+aggregate { sum_of_orders = sum total }
+```
+
+In the example above, the `total` column of all rows of the `invoices` table is
+summed to produce a single value.
+
+`aggregate` can produce multiple summaries at once when one or more aggregation
+expressions are contained in a tuple. `aggregate` discards all columns that are
+not present in the tuple.
+
+```
+from invoices
 aggregate {
-    sum_of_ids = sum album_id,
-    mean_id = average album_id,
+    num_orders = count this,
+    sum_of_orders = sum total,
 }
 ```
 
-Here we've also split the tuple over multiple lines to make it more readable.
-Obviously, you can do this with `select` and `derive` too.
+In the example above, the result is a single row with two columns. The `count`
+function displays the number of rows in the table that was passed in; the `sum`
+function adds up the values of the `total` column of all rows.
 
 ## Grouping
 
-Say that now we want to produce summaries of albums _for each artist
-separately_. We cannot do this, as `aggregate` will always produce a single row.
+Suppose we want to produce summaries of invoices _for each city_ in the table.
+`aggregate` cannot do this because it will always produce a single row.
 
-What we can do, is separate the relation into groups corresponding to individual
-artists, and apply `aggregate` to each one of them:
-
-```
-from albums
-filter artist_id == 1
-aggregate {sum_of_ids = sum album_id}
-```
+We could separate the relation into groups corresponding to individual cities,
+and apply `aggregate` to each one of them:
 
 ```
 from albums
-filter artist_id == 2
-aggregate {sum_of_ids = sum album_id}
+filter billing_city == "Oslo"
+aggregate { sum_of_orders = sum total }
 ```
 
 ```
 from albums
-filter artist_id == 3
-aggregate {sum_of_ids = sum album_id}
+filter billing_city == "Frankfurt"
+aggregate { sum_of_orders = sum total }
 ```
-
-... and so on. Of course this is not the way to go, because it is way too
-repetitive and we need to type all of the artist ids by hand. Luckily, `group`
-will do exactly what we want: separate relation into groups, apply a function to
-each of the groups and combine the results back together:
 
 ```
 from albums
-group artist_id (
-    aggregate {sum_of_ids = sum album_id}
+filter billing_city == "London"
+aggregate { sum_of_orders = sum total }
+```
+
+... and so on. Of course this is repetitive (and boring) and error prone
+(because we would need to type each `billing_city` by hand). Moreover, we would
+need to create the `billing_city` list before we started.
+
+**group:** The `group` transform separates the table into groups (say, those
+having the same city) using information that's already in the table. It then
+applies a transform to each group, and combines the results back together:
+
+```
+from invoices
+group billing_city (
+    aggregate {
+        num_orders = count this,
+        sum_of_orders = sum total,
+    }
 )
 ```
 
-People who know how this is done in SQL would probably noticed that we just
-decoupled aggregation from grouping. These two very connected operations benefit
-immensely from each being a standalone function. Firstly, this allows each of
-them to have some invariants that the query engine can leverage to produce more
-efficient query planes. Additionally, they can be used with other transform
-functions:
+People who know how this is done in SQL will probably have noticed that we just
+decoupled aggregation from grouping. These two very connected operations (in
+SQL) benefit immensely from each being a standalone function.
+
+Firstly, each can have invariants that the query engine can leverage to produce
+more efficient queries. Additionally, they can be used with other transform
+functions, such as:
 
 ```
-from albums
-group artist_id (
+from invoices
+group billing_city (
     take 2
 )
 ```
 
-We can derive what this code chunk is doing using the same logic use used
-before: `group` splits the relation into chunks each of which is corresponding
-to some `artist_id`. Then it applies function `take 2`, which will take first
-two rows of the chunk, and at the end it combines the rows back together.
+This code collects the first two rows for each city's `group`.
 
-SQL needed to replicate this behavior includes window functions and multiple
-sub-queries. Some dialects (PostgreSQL, DuckDB, Google BigQuery) have a special
-syntax to improve performance and reduce the query complexity with
-`DISTINCT ON`. This approach only works when we have `take 1` instead of
-`take 2`, so it's not a general case solution.
+The SQL needed to replicate this behavior might include window functions and
+sub-queries. PRQL handles all the complexity. Some dialects (PostgreSQL, DuckDB,
+Google BigQuery) have a special syntax to improve performance and reduce the
+query complexity (for example ,`DISTINCT ON` if the query uses `take 1`). But
+it's not a general solution for the case of `take 2`.
