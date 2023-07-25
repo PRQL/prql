@@ -125,3 +125,9 @@ exactly = 1
 file = "../../.github/workflows/test-all.yaml"
 replace = 'prefix-key: {{version}}'
 search = 'prefix-key: [\d.]+'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../../.github/workflows/check-links-book.yaml"
+replace = 'prefix-key: {{version}}'
+search = 'prefix-key: [\d.]+'
