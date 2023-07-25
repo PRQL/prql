@@ -13,6 +13,11 @@ DISABLE_LINTERS:
   - PHP_PHPSTAN # Disabled for now as we couldn't figure out how to prevent false positives. #2069
   - SQL_TSQLLINT
   - REPOSITORY_KICS
+  - SPELL_LYCHEE # Throwing network errors. We already check link in other GH actions.
+  - MARKDOWN_MARKDOWN_LINK_CHECK # Slow (40+ seconds). We already check links in other GH actions.
+  - REPOSITORY_TRUFFLEHOG # Detecting secrets in .git/config, which is not even committed.
+  - REPOSITORY_GRYPE # Slow (10+ seconds). Blocking unrelated PRs. We already have depandabot.
+  - YAML_V8R # Slow (70+ seconds). We don't use YAML schema.
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
@@ -30,6 +35,5 @@ DISABLE_ERRORS_LINTERS:
   - MAKEFILE_CHECKMAKE
   - MARKDOWN_MARKDOWN_LINK_CHECK
   - SPELL_MISSPELL
-  - YAML_V8R
 PHP_PHPCS_ARGUMENTS:
   - --standard=PSR12
