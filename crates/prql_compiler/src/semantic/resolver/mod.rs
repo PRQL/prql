@@ -367,7 +367,7 @@ impl PlFold for Resolver {
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, node.span)?
+                self.fold_function(func, span)?
             }
 
             ExprKind::Pipeline(pipeline) => {
@@ -375,7 +375,7 @@ impl PlFold for Resolver {
                 self.resolve_pipeline(pipeline)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(*closure, node.span)?,
+            ExprKind::Func(closure) => self.fold_function(*closure, span)?,
 
             ExprKind::Unary(UnaryExpr {
                 op: UnOp::EqSelf,
@@ -629,9 +629,8 @@ impl Resolver {
         // );
     }
 
-    fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr, anyhow::Error> {
+    fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr> {
         let closure = self.fold_function_types(closure)?;
-        let args_len = closure.args.len();
 
         log::debug!(
             "func {} {}/{} params",
@@ -650,126 +649,101 @@ impl Resolver {
         }
 
         let enough_args = closure.args.len() == closure.params.len();
-
-        let mut r = if enough_args {
-            // make sure named args are pushed into params
-            let closure = if !closure.named_params.is_empty() {
-                self.apply_args_to_closure(closure, [].into(), [].into())?
-            } else {
-                closure
-            };
-
-            // push the env
-            let closure_env = Module::from_exprs(closure.env);
-            self.context.root_mod.stack_push(NS_PARAM, closure_env);
-            let closure = Func {
-                env: HashMap::new(),
-                ..closure
-            };
-
-            if log::log_enabled!(log::Level::Debug) {
-                let name = closure
-                    .name_hint
-                    .clone()
-                    .unwrap_or_else(|| Ident::from_name("<unnamed>"));
-                log::debug!("resolving args of function {}", name);
-            }
-            let closure = self.resolve_function_args(closure)?;
-
-            let needs_window = (closure.params.last())
-                .and_then(|p| p.ty.as_ref())
-                .map(|t| t.as_ty().unwrap().is_sub_type_of_array())
-                .unwrap_or_default();
-
-            // evaluate
-            let res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
-                // special case: functions that have internal body
-
-                if operator_name.starts_with("std.") {
-                    Expr {
-                        ty: closure.return_ty.map(|t| t.into_ty().unwrap()),
-                        needs_window,
-                        ..Expr::new(ExprKind::RqOperator {
-                            name: operator_name.clone(),
-                            args: closure.args,
-                        })
-                    }
-                } else {
-                    let expr = transforms::cast_transform(self, closure)?;
-                    self.fold_expr(expr)?
-                }
-            } else {
-                // base case: materialize
-                log::debug!("stack_push for {}", closure.as_debug_name());
-
-                let (func_env, body) = env_of_closure(closure);
-
-                self.context.root_mod.stack_push(NS_PARAM, func_env);
-
-                // fold again, to resolve inner variables & functions
-                let body = self.fold_expr(body)?;
-
-                // remove param decls
-                log::debug!("stack_pop: {:?}", body.id);
-                let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
-
-                if let ExprKind::Func(mut inner_closure) = body.kind {
-                    // body couldn't been resolved - construct a closure to be evaluated later
-
-                    inner_closure.env = func_env.into_exprs();
-
-                    let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
-                    let missing = missing.to_vec();
-                    inner_closure.params = got.to_vec();
-
-                    Expr::new(ExprKind::Func(Box::new(Func {
-                        name_hint: None,
-                        args: vec![],
-                        params: missing,
-                        named_params: vec![],
-                        body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
-                        return_ty: None,
-                        env: HashMap::new(),
-                    })))
-                } else {
-                    // resolved, return result
-                    body
-                }
-            };
-
-            // pop the env
-            self.context.root_mod.stack_pop(NS_PARAM).unwrap();
-
-            res
-        } else {
+        if !enough_args {
             // not enough arguments: don't fold
             log::debug!("returning as closure");
+            return Ok(expr_of_func(closure));
+        }
 
-            let ty = TyFunc {
-                args: closure
-                    .params
-                    .iter()
-                    .skip(args_len)
-                    .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
-                    .collect(),
-                return_ty: Box::new(
-                    closure
-                        .return_ty
-                        .as_ref()
-                        .map(|x| x.as_ty().cloned().unwrap()),
-                ),
-            };
-
-            let mut node = Expr::new(ExprKind::Func(Box::new(closure)));
-            node.ty = Some(Ty {
-                kind: TyKind::Function(ty),
-                name: None,
-            });
-
-            node
+        // make sure named args are pushed into params
+        let closure = if !closure.named_params.is_empty() {
+            self.apply_args_to_closure(closure, [].into(), [].into())?
+        } else {
+            closure
         };
-        r.span = span;
-        Ok(r)
+
+        // push the env
+        let closure_env = Module::from_exprs(closure.env);
+        self.context.root_mod.stack_push(NS_PARAM, closure_env);
+        let closure = Func {
+            env: HashMap::new(),
+            ..closure
+        };
+
+        if log::log_enabled!(log::Level::Debug) {
+            let name = closure
+                .name_hint
+                .clone()
+                .unwrap_or_else(|| Ident::from_name("<unnamed>"));
+            log::debug!("resolving args of function {}", name);
+        }
+        let closure = self.resolve_function_args(closure)?;
+
+        let needs_window = (closure.params.last())
+            .and_then(|p| p.ty.as_ref())
+            .map(|t| t.as_ty().unwrap().is_sub_type_of_array())
+            .unwrap_or_default();
+
+        // evaluate
+        let res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
+            // special case: functions that have internal body
+
+            if operator_name.starts_with("std.") {
+                Expr {
+                    ty: closure.return_ty.map(|t| t.into_ty().unwrap()),
+                    needs_window,
+                    ..Expr::new(ExprKind::RqOperator {
+                        name: operator_name.clone(),
+                        args: closure.args,
+                    })
+                }
+            } else {
+                let expr = transforms::cast_transform(self, closure)?;
+                self.fold_expr(expr)?
+            }
+        } else {
+            // base case: materialize
+            log::debug!("stack_push for {}", closure.as_debug_name());
+
+            let (func_env, body) = env_of_closure(closure);
+
+            self.context.root_mod.stack_push(NS_PARAM, func_env);
+
+            // fold again, to resolve inner variables & functions
+            let body = self.fold_expr(body)?;
+
+            // remove param decls
+            log::debug!("stack_pop: {:?}", body.id);
+            let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
+
+            if let ExprKind::Func(mut inner_closure) = body.kind {
+                // body couldn't been resolved - construct a closure to be evaluated later
+
+                inner_closure.env = func_env.into_exprs();
+
+                let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
+                let missing = missing.to_vec();
+                inner_closure.params = got.to_vec();
+
+                Expr::new(ExprKind::Func(Box::new(Func {
+                    name_hint: None,
+                    args: vec![],
+                    params: missing,
+                    named_params: vec![],
+                    body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
+                    return_ty: None,
+                    env: HashMap::new(),
+                })))
+            } else {
+                // resolved, return result
+                body
+            }
+        };
+
+        // pop the env
+        self.context.root_mod.stack_pop(NS_PARAM).unwrap();
+
+        Ok(res)
     }
 
     fn fold_function_types(&mut self, mut closure: Func) -> Result<Func> {
@@ -968,7 +942,7 @@ impl Resolver {
         Ok(kind)
     }
 
-    fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr, anyhow::Error> {
+    fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
         let tuple = coerce_into_tuple_and_flatten(expr)?;
         let except: Vec<Expr> = tuple
@@ -1014,6 +988,26 @@ impl Resolver {
             }
             _ => ty_or_expr,
         })
+    }
+}
+
+fn expr_of_func(func: Func) -> Expr {
+    let ty = TyFunc {
+        args: func
+            .params
+            .iter()
+            .skip(func.args.len())
+            .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
+            .collect(),
+        return_ty: Box::new(func.return_ty.as_ref().map(|x| x.as_ty().cloned().unwrap())),
+    };
+
+    Expr {
+        ty: Some(Ty {
+            kind: TyKind::Function(ty),
+            name: None,
+        }),
+        ..Expr::new(ExprKind::Func(Box::new(func)))
     }
 }
 
