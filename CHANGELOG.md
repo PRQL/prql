@@ -2,7 +2,8 @@
 
 ## 0.9.2 — 2023-07-25
 
-0.9.2 is a hotfix release to fix an issue in the 0.9.0 & 0.9.1 release pipelines.
+0.9.2 is a hotfix release to fix an issue in the 0.9.0 & 0.9.1 release
+pipelines.
 
 ## 0.9.1 — 2023-07-25
 
