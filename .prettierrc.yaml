@@ -6,4 +6,3 @@ proseWrap: always
 #       - "*.html"
 #     options:
 #       parser: "go-template"
-

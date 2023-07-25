@@ -29,13 +29,13 @@ describe("prql-js", () => {
       const sql = prql.compile(employee_prql);
       assert(
         sql.trim().toLowerCase().startsWith("with") ||
-          sql.trim().toLowerCase().startsWith("select")
+          sql.trim().toLowerCase().startsWith("select"),
       );
     });
 
     it("should throw an error on invalid prql", () => {
       expect(() =>
-        prql.compile("Mississippi has four Ss and four Is.")
+        prql.compile("Mississippi has four Ss and four Is."),
       ).to.throw("Error");
     });
 
@@ -57,7 +57,7 @@ describe("prql-js", () => {
 
       const res = prql.compile(
         "prql target:sql.sqlite\nfrom a | take 10",
-        opts
+        opts,
       );
       assert(res.includes("SELECT TOP (10) * FROM a"));
       assert(res.includes("target:sql.mssql"));
