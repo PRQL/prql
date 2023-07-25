@@ -1,4 +1,4 @@
-# Operations
+# Operators
 
 Expressions can be composed from _function calls_ and _operations_, such as
 `2 + 3` or `((1 + x) * -y)`. In the example below, note the use of expressions
@@ -53,9 +53,8 @@ This is currently experimental
 ```
 
 To perform a case-sensitive regex search, use the `~=` operator. This generally
-compiles to `REGEXP`, though differs by dialect more than most functions. A
-regex search means that to match an exact value, the start and end need to be
-anchored with `^foo$`.
+compiles to `REGEXP`, though differs by dialect. A regex search means that to
+match an exact value, the start and end need to be anchored with `^foo$`.
 
 ```prql
 from tracks
@@ -103,9 +102,6 @@ PRQL uses parentheses `()` for several purposes:
 
 - Parentheses group operands to control the order of evaluation, for example:
   `((1 + x) * y)`
-
-- Parentheses delimit an [inner transform](./inner-transforms.md) for the
-  `group ()` and `window ()` transforms.
 
 - Parentheses delimit a minus sign of a function argument, for example:
   `add (-1) (-3)`
