@@ -23,7 +23,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.1
+          prefix-key: 0.9.2
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build
         uses: richb-hanover/cargo@v1.1.0

@@ -106,7 +106,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: 0.8.1
+          prefix-key: 0.9.2
       - run:
           cargo tarpaulin --skip-clean --all-targets --features=test-dbs
           --out=Xml
@@ -140,7 +140,7 @@ jobs:
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prql-compiler
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: crates/prql_compiler
+        working-directory: crates/prql-compiler
         run: cargo msrv verify
       - name: Verify minimum rust version — prqlc
         working-directory: crates/prqlc

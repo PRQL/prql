@@ -76,8 +76,8 @@ fn test_prql_examples_rq_serialize() -> Result<(), ErrorMessages> {
             continue;
         }
         let rq = prql_to_pl(&prql).map(pl_to_rq)?;
-        // Serialize to YAML
-        assert!(serde_yaml::to_string(&rq).is_ok());
+        // Serialize
+        serde_json::to_string(&rq).unwrap();
     }
 
     Ok(())

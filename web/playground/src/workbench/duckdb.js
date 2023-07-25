@@ -9,7 +9,7 @@ export async function init() {
   const worker_url = URL.createObjectURL(
     new Blob([`importScripts("${bundle.mainWorker}");`], {
       type: "text/javascript",
-    })
+    }),
   );
 
   // Instantiate the asynchronous version of DuckDB-wasm
@@ -39,20 +39,19 @@ export const CHINOOK_TABLES = [
 ];
 
 async function registerChinook(db) {
-  const baseUrl = `${window.location.href}/data/chinook`;
-  const http = duckdb.DuckDBDataProtocol.HTTP;
+  const baseUrl = `${window.location.href}data/chinook`;
 
   await Promise.all(
-    CHINOOK_TABLES.map((table) =>
-      db.registerFileURL(`${table}.csv`, `${baseUrl}/${table}.csv`, http, false)
-    )
+    CHINOOK_TABLES.map(async (table) => {
+      const res = await fetch(`${baseUrl}/${table}.csv`);
+
+      db.registerFileText(`${table}.csv`, res);
+    }),
   );
 
   const c = await db.connect();
   for (const table of CHINOOK_TABLES) {
-    await c.query(`
-      CREATE TABLE ${table} AS SELECT * FROM read_csv_auto('${table}.csv');
-    `);
+    await c.insertCSVFromPath(`${table}.csv`, { name: table, detect: true });
   }
   c.close();
 }

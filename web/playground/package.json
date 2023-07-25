@@ -12,7 +12,7 @@
     ]
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "^1.27.0",
+    "@duckdb/duckdb-wasm": "^1.24.0",
     "@monaco-editor/react": "^4.5.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.0.0",
@@ -40,9 +40,9 @@
   "private": true,
   "scripts": {
     "build": "react-scripts build",
-    "prepare": "rsync -ai --checksum --delete ../../crates/prql_compiler/tests/integration/data/ public/data/ && node generateBook.js",
+    "prepare": "rsync -ai --checksum --delete ../../crates/prql-compiler/tests/integration/data/ public/data/ && node generateBook.js",
     "start": "react-scripts start",
     "test": "react-scripts test"
   },
-  "version": "0.8.1"
+  "version": "0.9.2"
 }
