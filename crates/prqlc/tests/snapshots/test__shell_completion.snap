@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/prqlc/tests/test.rs
+source: crates/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -7,8 +7,8 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
+    RUST_BACKTRACE: ""
     RUST_LOG: ""
 ---
 success: true
