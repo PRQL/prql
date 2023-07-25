@@ -83,7 +83,7 @@ jobs:
             }}
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./crates/prql_compiler/tests/integration
+        working-directory: ./crates/prql-compiler/tests/integration
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1

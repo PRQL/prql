@@ -40,7 +40,7 @@
   "private": true,
   "scripts": {
     "build": "react-scripts build",
-    "prepare": "rsync -ai --checksum --delete ../../crates/prql_compiler/tests/integration/data/ public/data/ && node generateBook.js",
+    "prepare": "rsync -ai --checksum --delete ../../crates/prql-compiler/tests/integration/data/ public/data/ && node generateBook.js",
     "start": "react-scripts start",
     "test": "react-scripts test"
   },

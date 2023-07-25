@@ -10,8 +10,8 @@ fn test_expr_ast_code_matches() {
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../../crates/prql_ast/src/expr.rs").unwrap(),
-            &read_to_string("../../crates/prql_compiler/src/ir/pl/expr.rs").unwrap(),
+            &read_to_string("../../crates/prql-ast/src/expr.rs").unwrap(),
+            &read_to_string("../../crates/prql-compiler/src/ir/pl/expr.rs").unwrap(),
         ), @r###"
     @@ .. @@
     -    pub return_ty: Option<Box<Expr>>,
@@ -29,8 +29,8 @@ fn test_stmt_ast_code_matches() {
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../../crates/prql_ast/src/stmt.rs").unwrap(),
-            &read_to_string("../../crates/prql_compiler/src/ir/pl/stmt.rs").unwrap(),
+            &read_to_string("../../crates/prql-ast/src/stmt.rs").unwrap(),
+            &read_to_string("../../crates/prql-compiler/src/ir/pl/stmt.rs").unwrap(),
         ), @r###"
     @@ .. @@
     -    Main(Box<Expr>),
