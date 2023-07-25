@@ -1,5 +1,6 @@
 [package]
-name = "prql_ast"
+description = "The AST for the PRQL language."
+name = "prql-ast"
 
 edition.workspace = true
 license.workspace = true
