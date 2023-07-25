@@ -21,7 +21,7 @@ TransformCall:
             input_name: c_invoice
             except: []
       inputs:
-        - id: 182
+        - id: 203
           name: c_invoice
           table:
             - default_db
@@ -185,14 +185,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 205
+        target_id: 204
         target_name: ~
     - Single:
         name: ~
-        target_id: 229
+        target_id: 228
         target_name: ~
   inputs:
-    - id: 182
+    - id: 203
       name: c_invoice
       table:
         - default_db

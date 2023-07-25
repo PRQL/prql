@@ -59,16 +59,11 @@ fn test_bad_error_messages() {
     from artists
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:2:5]
+       ╭─[:3:5]
        │
-     2 │ ╭─▶     select tracks
-     3 │ ├─▶     from artists
-       │ │
-       │ ╰────────────────────── main expected type `relation`, but found type `infer -> infer`
-       │
-       │     Help: Have you forgotten an argument to function main?
-       │
-       │     Note: Type `relation` expands to `[tuple_of_scalars]`
+     3 │     from artists
+       │     ──────┬─────
+       │           ╰─────── expected a function, but found `default_db.artists`
     ───╯
     "###);
 
@@ -77,13 +72,8 @@ fn test_bad_error_messages() {
     from artists
     sort -name
     "###).unwrap_err(), @r###"
-    Error:
-       ╭─[:3:11]
-       │
-     3 │     sort -name
-       │           ──┬─
-       │             ╰─── Unknown name
-    ───╯
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: are you missing `from` statement?
     "###);
 }
 
