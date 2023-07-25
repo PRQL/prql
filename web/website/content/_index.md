@@ -178,7 +178,7 @@ integrations_section:
       text: Extension with syntax highlighting and an upcoming language server.
 
     - label: "Prefect"
-      link: https://prql-lang.org/book/integrations/prefect.html
+      link: https://prql-lang.org/book/project/integrations/prefect.html
       text: Add PRQL models to your Prefect workflows with a single function.
 
     - label: "DuckDB"
