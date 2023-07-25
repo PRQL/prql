@@ -17,7 +17,7 @@ A summary of PRQL syntax:
 | `[]`            | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
 | `! && == +`     | [Operations](./operators.md)                                                   | <code>filter a == b + c \|\| d >= e</code>              |
 | `()`            | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fahrenheit - 32) / 1.8`              |
-| `''`, `""`      | [Strings](./strings.md)                                                        | `derive name = 'Mary'`                                  |
+| `''`, `""`      | [Strings](./literals.md#strings)                                               | `derive name = 'Mary'`                                  |
 | `` ` ` ``       | [Quoted identifiers](./keywords.md#quoting)                                    | `` select `first name`  ``                              |
 | `#`             | [Comments](./comments.md)                                                      | `# A comment`                                           |
 | `@`             | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
