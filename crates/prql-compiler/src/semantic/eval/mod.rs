@@ -4,7 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::error::{Error, Span, WithErrorInfo};
-use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, FuncParam, Ident, Literal, PlFold};
+use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
 
 use super::ast_expand;
 use super::resolver::{binary_to_func_call, unary_to_func_call};
@@ -87,17 +87,6 @@ impl PlFold for Evaluator {
                 } else {
                     self.eval_function(*func, expr.span)?
                 }
-            }
-            ExprKind::Pipeline(mut pipeline) => {
-                let mut res = self.fold_expr(pipeline.exprs.remove(0))?;
-                for expr in pipeline.exprs {
-                    let func_call =
-                        Expr::new(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![res])));
-
-                    res = self.fold_expr(func_call)?;
-                }
-
-                return Ok(res);
             }
 
             ExprKind::All { .. }

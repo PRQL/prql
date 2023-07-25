@@ -145,7 +145,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
             Literal::ValueAndUnit(_) => return Ok(None), // TODO
         },
 
-        ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => return Ok(None),
+        ExprKind::Ident(_) | ExprKind::FuncCall(_) => return Ok(None),
 
         ExprKind::SString(_) => return Ok(None),
         ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),

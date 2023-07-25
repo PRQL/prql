@@ -48,9 +48,6 @@ pub trait PlFold {
     fn fold_module_def(&mut self, module_def: ModuleDef) -> Result<ModuleDef> {
         fold_module_def(self, module_def)
     }
-    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
-        fold_pipeline(self, pipeline)
-    }
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
     }
@@ -91,7 +88,6 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
         Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
         Range(range) => Range(fold_range(fold, range)?),
-        Pipeline(p) => Pipeline(fold.fold_pipeline(p)?),
         SString(items) => SString(
             items
                 .into_iter()
@@ -158,12 +154,6 @@ pub fn fold_range<F: ?Sized + PlFold>(fold: &mut F, Range { start, end }: Range)
     Ok(Range {
         start: fold_optional_box(fold, start)?,
         end: fold_optional_box(fold, end)?,
-    })
-}
-
-pub fn fold_pipeline<T: ?Sized + PlFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
-    Ok(Pipeline {
-        exprs: fold.fold_exprs(pipeline.exprs)?,
     })
 }
 
