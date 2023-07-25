@@ -125,9 +125,8 @@ A small selection of the changes:
   standard environment variable such as `CLI_COLOR=0` is set or when it detects
   `stderr` is not a TTY.
 
-  We now use the
-  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
-  `prql-compiler`.
+  We now use the [`anstream`](https://github.com/rust-cli/anstyle) library in
+  `prqlc` & `prql-compiler`.
 
   (@max-sixty, #2773)
 
