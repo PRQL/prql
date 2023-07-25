@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use prql_ast::expr::{BinaryExpr, Expr, ExprKind, Ident};
+use prql_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident};
 use prql_ast::stmt::{Annotation, Stmt, StmtKind, VarDefKind};
 
 use crate::ir::pl;
@@ -233,10 +233,17 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         ),
         pl::ExprKind::Param(v) => ExprKind::Param(v),
         pl::ExprKind::Internal(v) => ExprKind::Internal(v),
-        pl::ExprKind::All { .. }
-        | pl::ExprKind::TransformCall(_)
-        | pl::ExprKind::RqOperator { .. }
-        | pl::ExprKind::Type(_) => ExprKind::Ident(Ident::from_name("?")),
+
+        // TODO: these are not correct, they are producing invalid PRQL
+        pl::ExprKind::All { within, .. } => ExprKind::Ident(within),
+        pl::ExprKind::Type(ty) => ExprKind::Ident(Ident::from_name(format!("<{}>", ty))),
+        pl::ExprKind::TransformCall(tc) => ExprKind::Ident(Ident::from_name(format!(
+            "({} ...)",
+            tc.kind.as_ref().as_ref()
+        ))),
+        pl::ExprKind::RqOperator { name, .. } => {
+            ExprKind::Ident(Ident::from_name(format!("({} ...)", name)))
+        }
     }
 }
 
@@ -265,7 +272,19 @@ fn restrict_ty(value: pl::Ty) -> prql_ast::expr::Expr {
             ExprKind::Ident(Ident::from_path(vec!["std".to_string(), prim.to_string()]))
         }
         pl::TyKind::Singleton(lit) => ExprKind::Literal(lit),
-        pl::TyKind::Union(_) => todo!(),
+        pl::TyKind::Union(mut variants) => {
+            variants.reverse();
+            let mut res = restrict_ty(variants.pop().unwrap().1);
+            while let Some((_, ty)) = variants.pop() {
+                let ty = restrict_ty(ty);
+                res = Expr::new(ExprKind::Binary(BinaryExpr {
+                    left: Box::new(res),
+                    op: BinOp::Or,
+                    right: Box::new(ty),
+                }));
+            }
+            return res;
+        }
         pl::TyKind::Tuple(fields) => ExprKind::Tuple(
             fields
                 .into_iter()

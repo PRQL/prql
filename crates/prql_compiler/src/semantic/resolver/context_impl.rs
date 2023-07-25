@@ -70,9 +70,10 @@ impl Context {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
-            return self
-                .resolve_ident_wildcard(ident)
-                .map_err(Error::new_simple);
+            return self.resolve_ident_wildcard(ident).map_err(|e| {
+                log::debug!("{:#?}", self.root_mod);
+                Error::new_simple(e)
+            });
         }
 
         // base case: direct lookup
