@@ -1,17 +1,14 @@
 [workspace]
 members = [
-  "crates/*",
-
-  # Bindings
+  "crates/*", # Bindings
   "bindings/prql-elixir/native/prql",
   "bindings/prql-java",
   "bindings/prql-js",
   "bindings/prql-lib",
-  "bindings/prql-python", #
-  # The book / docs
+  "bindings/prql-python", #  # The book / docs
   "web/book", #
   # An example
-  "crates/prql_compiler/examples/compile-files", #
+  "crates/prql-compiler/examples/compile-files", #
 ]
 resolver = "2"
 

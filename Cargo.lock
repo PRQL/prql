@@ -2877,6 +2877,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prql-ast"
+version = "0.9.1"
+dependencies = [
+ "enum-as-inner",
+ "semver",
+ "serde",
+ "strum 0.25.0",
+]
+
+[[package]]
 name = "prql-compiler"
 version = "0.9.1"
 dependencies = [
@@ -2896,8 +2906,8 @@ dependencies = [
  "once_cell",
  "pg_bigdecimal",
  "postgres",
- "prql_ast",
- "prql_parser",
+ "prql-ast",
+ "prql-parser",
  "regex",
  "rusqlite",
  "semver",
@@ -2950,6 +2960,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "prql-parser"
+version = "0.9.1"
+dependencies = [
+ "chumsky",
+ "insta",
+ "itertools 0.11.0",
+ "prql-ast",
+ "semver",
+]
+
+[[package]]
 name = "prql-python"
 version = "0.9.1"
 dependencies = [
@@ -2957,27 +2978,6 @@ dependencies = [
  "prql-compiler",
  "pyo3",
  "pyo3-build-config",
-]
-
-[[package]]
-name = "prql_ast"
-version = "0.9.1"
-dependencies = [
- "enum-as-inner",
- "semver",
- "serde",
- "strum 0.25.0",
-]
-
-[[package]]
-name = "prql_parser"
-version = "0.9.1"
-dependencies = [
- "chumsky",
- "insta",
- "itertools 0.11.0",
- "prql_ast",
- "semver",
 ]
 
 [[package]]
@@ -2999,8 +2999,8 @@ dependencies = [
  "itertools 0.11.0",
  "minijinja",
  "notify",
+ "prql-ast",
  "prql-compiler",
- "prql_ast",
  "regex",
  "serde",
  "serde_json",

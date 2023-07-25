@@ -22,7 +22,7 @@ test = false
 default = ["console_error_panic_hook"]
 
 [dependencies]
-prql-compiler = {path = "../../crates/prql_compiler", default-features = false}
+prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
 wasm-bindgen = "0.2.87"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

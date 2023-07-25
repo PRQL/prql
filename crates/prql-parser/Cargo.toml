@@ -1,6 +1,6 @@
 [package]
 description = "A parser for the PRQL query language."
-name = "prql_parser"
+name = "prql-parser"
 
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ version.workspace = true
 
 [dependencies]
 itertools = "0.11.0"
-prql_ast = {path = "../prql_ast"}
+prql-ast = {path = "../prql-ast", version = '0.9.1'}
 semver = {version = "1.0.14"}
 
 # Chumsky's default features have issues when running in wasm (though we only
