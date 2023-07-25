@@ -3,6 +3,7 @@ use itertools::Itertools;
 
 use crate::error::{Error, Reason, WithErrorInfo};
 use crate::ir::pl::*;
+use crate::semantic::write_pl;
 
 use super::Resolver;
 
@@ -117,9 +118,11 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         },
 
         _ => {
-            return Err(
-                Error::new_simple(format!("not a type expression: {}", Expr::new(expr))).into(),
-            )
+            return Err(Error::new_simple(format!(
+                "not a type expression: {}",
+                write_pl(Expr::new(expr))
+            ))
+            .into())
         }
     })
 }
@@ -326,14 +329,16 @@ impl Resolver {
 #[allow(dead_code)]
 fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
     let err = Error::new(Reason::Expected {
-        who: Some(format!("{}", call.name)),
+        who: Some(write_pl(*call.name.clone())),
         expected: format!("{} arguments", expected_len),
         found: format!("{}", passed_len),
     });
     if passed_len >= 2 {
         err.push_hint(format!(
             "if you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            call.name, call.args[0], call.args[1]
+            write_pl(*call.name.clone()),
+            call.args[0],
+            call.args[1]
         ))
     } else {
         err

@@ -11,7 +11,6 @@
 mod expr;
 mod extra;
 mod fold;
-mod from_ast;
 mod lineage;
 mod stmt;
 mod types;

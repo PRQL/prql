@@ -15,6 +15,7 @@ use crate::ir::pl::{
 use crate::ir::rq::{self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
+use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 
@@ -361,7 +362,7 @@ impl Lowerer {
                 return Err(Error::new(Reason::Expected {
                     who: None,
                     expected: "a pipeline that resolves to a table".to_string(),
-                    found: format!("`{expr}`"),
+                    found: format!("`{}`", write_pl(expr.clone())),
                 })
                 .push_hint("are you missing `from` statement?")
                 .with_span(expr.span)
@@ -723,20 +724,20 @@ impl Lowerer {
         Ok(cid)
     }
 
-    fn lower_expr(&mut self, ast: pl::Expr) -> Result<rq::Expr> {
-        if ast.needs_window {
-            let span = ast.span;
-            let cid = self.declare_as_column(ast, false)?;
+    fn lower_expr(&mut self, expr: pl::Expr) -> Result<rq::Expr> {
+        if expr.needs_window {
+            let span = expr.span;
+            let cid = self.declare_as_column(expr, false)?;
 
             let kind = rq::ExprKind::ColumnRef(cid);
             return Ok(rq::Expr { kind, span });
         }
 
-        let kind = match ast.kind {
+        let kind = match expr.kind {
             pl::ExprKind::Ident(ident) => {
-                log::debug!("lowering ident {ident} (target {:?})", ast.target_id);
+                log::debug!("lowering ident {ident} (target {:?})", expr.target_id);
 
-                if let Some(id) = ast.target_id {
+                if let Some(id) = expr.target_id {
                     let cid = self.lookup_cid(id, Some(&ident.name))?;
 
                     rq::ExprKind::ColumnRef(cid)
@@ -749,7 +750,7 @@ impl Lowerer {
             pl::ExprKind::All { except, .. } => {
                 let mut targets = Vec::new();
 
-                for target_id in &ast.target_ids {
+                for target_id in &expr.target_ids {
                     match self.node_mapping.get(target_id) {
                         Some(LoweredTarget::Compute(cid)) => targets.push(*cid),
                         Some(LoweredTarget::Input(input_columns)) => {
@@ -776,7 +777,7 @@ impl Lowerer {
                 } else {
                     return Err(
                         Error::new_simple("This wildcard usage is not yet supported.")
-                            .with_span(ast.span)
+                            .with_span(expr.span)
                             .into(),
                     );
                 }
@@ -825,25 +826,25 @@ impl Lowerer {
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
             | pl::ExprKind::TransformCall(_) => {
-                log::debug!("cannot lower {ast:?}");
+                log::debug!("cannot lower {expr:?}");
                 return Err(Error::new(Reason::Unexpected {
-                    found: format!("`{ast}`"),
+                    found: format!("`{}`", write_pl(expr.clone())),
                 })
                 .push_hint("this is probably a 'bad type' error (we are working on that)")
-                .with_span(ast.span)
+                .with_span(expr.span)
                 .into());
             }
 
             pl::ExprKind::Unary(UnaryExpr { .. })
             | pl::ExprKind::Binary(BinaryExpr { .. })
             | pl::ExprKind::Internal(_) => {
-                panic!("Unresolved lowering: {ast}")
+                panic!("Unresolved lowering: {}", write_pl(expr))
             }
         };
 
         Ok(rq::Expr {
             kind,
-            span: ast.span,
+            span: expr.span,
         })
     }
 

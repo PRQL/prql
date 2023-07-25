@@ -198,7 +198,7 @@ impl std::fmt::Display for DeclKind {
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
-            Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
+            Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }
     }
