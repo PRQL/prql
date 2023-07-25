@@ -39,7 +39,7 @@ export const CHINOOK_TABLES = [
 ];
 
 async function registerChinook(db) {
-  const baseUrl = `${window.location.href}/data/chinook`;
+  const baseUrl = `${window.location.href}data/chinook`;
   const http = duckdb.DuckDBDataProtocol.HTTP;
 
   await Promise.all(
