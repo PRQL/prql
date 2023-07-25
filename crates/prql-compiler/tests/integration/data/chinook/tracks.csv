@@ -141,7 +141,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 140,Born To Booze,14,1,3,,282122,9257358,0.99
 141,World Of Trouble,14,1,3,,359157,11820932,0.99
 142,No More Tears,14,1,3,,555075,18041629,0.99
-143,The Begining... At Last,14,1,3,,365662,11965109,0.99
+143,The Beginning... At Last,14,1,3,,365662,11965109,0.99
 144,Heart Of Gold,15,1,3,,194873,6417460,0.99
 145,Snowblind,15,1,3,,420022,13842549,0.99
 146,Like A Bird,15,1,3,,276532,9115657,0.99
@@ -204,7 +204,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 203,Too Many Ways (Alternate),20,1,6,Willie Dixon,135053,4459946,0.99
 204,Talkin' 'Bout Women Obviously,20,1,6,Amos Blakemore/Buddy Guy,589531,19161377,0.99
 205,Jorge Da Capadócia,21,1,7,Jorge Ben,177397,5842196,0.99
-206,Prenda Minha,21,1,7,Tradicional,99369,3225364,0.99
+206,Prenda Minha,21,1,7,Traditional,99369,3225364,0.99
 207,Meditação,21,1,7,Tom Jobim - Newton Mendoça,148793,4865597,0.99
 208,Terra,21,1,7,Caetano Veloso,482429,15889054,0.99
 209,Eclipse Oculto,21,1,7,Caetano Veloso,221936,7382703,0.99
@@ -399,13 +399,13 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 398,Only A Dream In Rio,34,1,7,Vários,371356,12192989,0.99
 399,Abrir A Porta,34,1,7,Vários,271960,8991141,0.99
 400,Alice,34,1,7,Vários,165982,5594341,0.99
-401,Momentos Que Marcam,34,1,7,Vários,280137,9313740,0.99
+401,Moments Que Marcam,34,1,7,Vários,280137,9313740,0.99
 402,Um Jantar Pra Dois,34,1,7,Vários,237714,7819755,0.99
 403,Bumbo Da Mangueira,34,1,7,Vários,270158,9073350,0.99
 404,Mr Funk Samba,34,1,7,Vários,213890,7102545,0.99
 405,Santo Antonio,34,1,7,Vários,162716,5492069,0.99
 406,Por Você,34,1,7,Vários,205557,6792493,0.99
-407,Só Tinha De Ser Com Você,34,1,7,Vários,389642,13085596,0.99
+407,Só Tinha De Set Com Você,34,1,7,Vários,389642,13085596,0.99
 408,Free Speech For The Dumb,35,1,3,Molaney/Morris/Roberts/Wainwright,155428,5076048,0.99
 409,It's Electric,35,1,3,Harris/Tatler,213995,6978601,0.99
 410,Sabbra Cadabra,35,1,3,Black Sabbath,380342,12418147,0.99
@@ -440,7 +440,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 439,Sure Know Something,37,1,1,"Paul Stanley, Vincent Poncia",242468,7939886,0.99
 440,Love Gun,37,1,1,Paul Stanley,196257,6424915,0.99
 441,Deuce,37,1,1,Gene Simmons,185077,6097210,0.99
-442,Goin' Blind,37,1,1,"Gene Simmons, S. Coronel",216215,7045314,0.99
+442,Going' Blind,37,1,1,"Gene Simmons, S. Coronel",216215,7045314,0.99
 443,Shock Me,37,1,1,Ace Frehley,227291,7529336,0.99
 444,Do You Love Me,37,1,1,"Paul Stanley, B. Ezrin, K. Fowley",214987,6976194,0.99
 445,She,37,1,1,"Gene Simmons, S. Coronel",248346,8229734,0.99
@@ -540,7 +540,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 539,Rita Lee,42,1,4,Arnaldo Baptista/Rita Lee/Sérgio Dias,189257,6270503,0.99
 540,"Posso Perder Minha Mulher, Minha Mãe, Desde Que Eu Tenha O Rock And Roll",42,1,4,Arnaldo Baptista - Rita Lee - Arnolpho Lima Filho,222955,7346254,0.99
 541,Banho De Lua,42,1,4,B. de Filippi - F. Migliaci - Versão: Fred Jorge,221831,7232123,0.99
-542,Meu Refrigerador Não Funciona,42,1,4,Arnaldo Baptista - Rita Lee - Sérgio Dias,382981,12495906,0.99
+542,Meu Refrigerator Não Funciona,42,1,4,Arnaldo Baptista - Rita Lee - Sérgio Dias,382981,12495906,0.99
 543,Burn,43,1,1,Coverdale/Lord/Paice,453955,14775708,0.99
 544,Stormbringer,43,1,1,Coverdale,277133,9050022,0.99
 545,Gypsy,43,1,1,Coverdale/Hughes/Lord/Paice,339173,11046952,0.99
@@ -567,7 +567,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 566,Caprichosos,45,1,7,Gule/Jorge 101/Lequinho/Luiz Piao,351320,11870956,0.99
 567,Tradição,45,1,7,Adalto Magalha/Lourenco,269165,9114880,0.99
 568,Império Serrano,45,1,7,Arlindo Cruz/Carlos Sena/Elmo Caetano/Mauricao,334942,11161196,0.99
-569,Tuiuti,45,1,7,"Claudio Martins/David Lima/Kleber Rodrigues/Livre, Cesare Som",259657,8749492,0.99
+569,Tuiuti,45,1,7,"Claudio Martins/David Lima/Kleber Rodrigues/Livre, Cesare Some",259657,8749492,0.99
 570,(Da Le) Yaleo,46,1,1,Santana,353488,11769507,0.99
 571,Love Of My Life,46,1,1,Carlos Santana & Dave Matthews,347820,11634337,0.99
 572,Put Your Lights On,46,1,1,E. Shrody,285178,9394769,0.99
@@ -611,7 +611,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 610,My Funny Valentine (Live),49,1,2,Miles Davis,907520,29416781,0.99
 611,E.S.P.,49,1,2,Miles Davis,330684,11079866,0.99
 612,Nefertiti,49,1,2,Miles Davis,473495,15478450,0.99
-613,Petits Machins (Little Stuff),49,1,2,Miles Davis,487392,16131272,0.99
+613,Petits Machines (Little Stuff),49,1,2,Miles Davis,487392,16131272,0.99
 614,Miles Runs The Voodoo Down,49,1,2,Miles Davis,843964,27967919,0.99
 615,Little Church (Live),49,1,2,Miles Davis,196101,6273225,0.99
 616,Black Satin,49,1,2,Miles Davis,316682,10529483,0.99
@@ -623,7 +623,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 622,Mistreated (Alternate Version),50,1,1,Blackmore/Coverdale,854700,27775442,0.99
 623,You Fool No One (Alternate Version),50,1,1,Blackmore/Coverdale/Lord/Paice,763924,24887209,0.99
 624,Jeepers Creepers,51,1,2,,185965,5991903,0.99
-625,Blue Rythm Fantasy,51,1,2,,348212,11204006,0.99
+625,Blue Rhythm Fantasy,51,1,2,,348212,11204006,0.99
 626,Drum Boogie,51,1,2,,191555,6185636,0.99
 627,Let Me Off Uptown,51,1,2,,187637,6034685,0.99
 628,Leave Us Leap,51,1,2,,182726,5898810,0.99
@@ -672,7 +672,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 671,As Rosas Não Falam (Beth Carvalho),53,1,7,,116767,3836641,0.99
 672,Wave (Os Cariocas),53,1,7,,130063,4298006,0.99
 673,Garota de Ipanema (Dick Farney),53,1,7,,174367,5767474,0.99
-674,Preciso Apender a Viver Só (Maysa),53,1,7,,143464,4642359,0.99
+674,Preciso Appender a Viver Só (Maysa),53,1,7,,143464,4642359,0.99
 675,Susie Q,54,1,1,Hawkins-Lewis-Broadwater,275565,9043825,0.99
 676,I Put A Spell On You,54,1,1,Jay Hawkins,272091,8943000,0.99
 677,Proud Mary,54,1,1,J. C. Fogerty,189022,6229590,0.99
@@ -795,7 +795,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 794,A Touch Away,63,1,1,"Ian Gillan, Roger Glover, Jon Lord, Steve Morse, Ian Paice",276323,9098561,0.99
 795,Hey Cisco,63,1,1,"Ian Gillan, Roger Glover, Jon Lord, Steve Morse, Ian Paice",354089,11600029,0.99
 796,Somebody Stole My Guitar,63,1,1,"Ian Gillan, Roger Glover, Jon Lord, Steve Morse, Ian Paice",249443,8180421,0.99
-797,The Purpendicular Waltz,63,1,1,"Ian Gillan, Roger Glover, Jon Lord, Steve Morse, Ian Paice",283924,9299131,0.99
+797,The Perpendicular Waltz,63,1,1,"Ian Gillan, Roger Glover, Jon Lord, Steve Morse, Ian Paice",283924,9299131,0.99
 798,King Of Dreams,64,1,1,"Blackmore, Glover, Turner",328385,10733847,0.99
 799,The Cut Runs Deep,64,1,1,"Blackmore, Glover, Turner, Lord, Paice",342752,11191650,0.99
 800,Fire In The Basement,64,1,1,"Blackmore, Glover, Turner, Lord, Paice",283977,9267550,0.99
@@ -839,7 +839,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 838,Have You Ever Needed Someone So Bad,67,1,1,,319320,10400020,0.99
 839,Rock Of Ages,67,1,1,,248424,8150318,0.99
 840,Hysteria,67,1,1,,355056,11622738,0.99
-841,Bringin' On The Heartbreak,67,1,1,,272457,8853324,0.99
+841,Bringing' On The Heartbreak,67,1,1,,272457,8853324,0.99
 842,Roll Call,68,1,2,Jim Beard,321358,10653494,0.99
 843,Otay,68,1,2,"John Scofield, Robert Aries, Milton Chambers and Gary Grainger",423653,14176083,0.99
 844,Groovus Interruptus,68,1,2,Jim Beard,319373,10602166,0.99
@@ -848,7 +848,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 847,Plan B,68,1,2,"Dean Brown, Dennis Chambers & Jim Beard",272039,9032315,0.99
 848,Outbreak,68,1,2,Jim Beard & Jon Herington,659226,21685807,0.99
 849,"Baltimore, DC",68,1,2,John Scofield,346932,11394473,0.99
-850,Talkin Loud and Saying Nothin,68,1,2,James Brown & Bobby Byrd,360411,11994859,0.99
+850,Talkin Loud and Saying Nothing,68,1,2,James Brown & Bobby Byrd,360411,11994859,0.99
 851,Pétala,69,1,7,,270080,8856165,0.99
 852,Meu Bem-Querer,69,1,7,,255608,8330047,0.99
 853,Cigano,69,1,7,,304692,10037362,0.99
@@ -1078,7 +1078,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1077,Último Pau-De-Arara,85,1,10,Corumbá/José Gumarães/Venancio,200437,6638563,0.99
 1078,Asa Branca,85,1,10,Humberto Teixeira/Luiz Gonzaga,217051,7387183,0.99
 1079,Qui Nem Jiló,85,1,10,Humberto Teixeira/Luiz Gonzaga,204695,6937472,0.99
-1080,Assum Preto,85,1,10,Humberto Teixeira/Luiz Gonzaga,199653,6625000,0.99
+1080,Assume Preto,85,1,10,Humberto Teixeira/Luiz Gonzaga,199653,6625000,0.99
 1081,Pau-De-Arara,85,1,10,"Guio De Morais E Seus ""Parentes""/Luiz Gonzaga",191660,6340649,0.99
 1082,A Volta Da Asa Branca,85,1,10,Luiz Gonzaga/Zé Dantas,271020,9098093,0.99
 1083,O Amor Daqui De Casa,85,1,10,Gilberto Gil,148636,4888292,0.99
@@ -1098,7 +1098,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1097,Opachorô (Live),86,1,7,,259526,8596384,0.99
 1098,Copacabana (Live),86,1,7,,289671,9673672,0.99
 1099,A Novidade (Live),86,1,7,,316969,10508000,0.99
-1100,Ghandi (Live),86,1,7,,222458,7481950,0.99
+1100,Gandhi (Live),86,1,7,,222458,7481950,0.99
 1101,De Ouro E Marfim (Live),86,1,7,,234971,7838453,0.99
 1102,Doce De Carnaval (Candy All),87,1,2,,356101,11998470,0.99
 1103,Lamento De Carnaval,87,1,2,,294530,9819276,0.99
@@ -1114,7 +1114,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1113,Sampa,73,1,7,Gilberto Gil,225697,7469905,0.99
 1114,Parabolicamará,73,1,7,Gilberto Gil,284943,9543435,0.99
 1115,Tempo Rei,73,1,7,Gilberto Gil,302733,10019269,0.99
-1116,Expresso 2222,73,1,7,Gilberto Gil,284760,9690577,0.99
+1116,Espresso 2222,73,1,7,Gilberto Gil,284760,9690577,0.99
 1117,Aquele Abraço,73,1,7,Gilberto Gil,263993,8805003,0.99
 1118,Palco,73,1,7,Gilberto Gil,270550,9049901,0.99
 1119,Toda Menina Baiana,73,1,7,Gilberto Gil,278177,9351000,0.99
@@ -1194,7 +1194,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1193,Gypsy,93,1,2,Kevin Robinson,330997,11083374,0.99
 1194,Journey Into Sunlight,93,1,2,Jean Paul Maunick,249756,8241177,0.99
 1195,Sunchild,93,1,2,Graham Harvey,259970,8593143,0.99
-1196,Millenium,93,1,2,Maxton Gig Beesley Jnr.,379167,12511939,0.99
+1196,Millennium,93,1,2,Maxton Gig Beesley Jnr.,379167,12511939,0.99
 1197,Thinking 'Bout Tomorrow,93,1,2,Fayyaz Virgi/Richard Bull,355395,11865384,0.99
 1198,Jacob's Ladder,93,1,2,Julian Crampton,367647,12201595,0.99
 1199,She Wears Black,93,1,2,G Harvey/R Hope-Taylor,528666,17617944,0.99
@@ -1562,7 +1562,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1561,Tyrant (Live),125,1,3,,282253,9190536,0.99
 1562,Comin' Home,126,1,1,"Paul Stanley, Ace Frehley",172068,5661120,0.99
 1563,Plaster Caster,126,1,1,Gene Simmons,198060,6528719,0.99
-1564,Goin' Blind,126,1,1,"Gene Simmons, Stephen Coronel",217652,7167523,0.99
+1564,Going' Blind,126,1,1,"Gene Simmons, Stephen Coronel",217652,7167523,0.99
 1565,Do You Love Me,126,1,1,"Paul Stanley, Bob Ezrin, Kim Fowley",193619,6343111,0.99
 1566,Domino,126,1,1,Gene Simmons,226377,7488191,0.99
 1567,Sure Know Something,126,1,1,"Paul Stanley, Vincent Poncia",254354,8375190,0.99
@@ -1573,7 +1573,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1572,Every Time I Look At You,126,1,1,"Paul Stanley, Vincent Cusano",283898,9290948,0.99
 1573,"2,000 Man",126,1,1,"Mick Jagger, Keith Richard",312450,10292829,0.99
 1574,Beth,126,1,1,"Peter Criss, Stan Penridge, Bob Ezrin",170187,5577807,0.99
-1575,Nothin' To Lose,126,1,1,Gene Simmons,222354,7351460,0.99
+1575,Nothing' To Lose,126,1,1,Gene Simmons,222354,7351460,0.99
 1576,Rock And Roll All Nite,126,1,1,"Paul Stanley, Gene Simmons",259631,8549296,0.99
 1577,Immigrant Song,127,1,1,Robert Plant,201247,6457766,0.99
 1578,Heartbreaker,127,1,1,John Bonham/John Paul Jones/Robert Plant,316081,10179657,0.99
@@ -1748,7 +1748,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1747,Lavender,144,1,1,"Kelly, Mosley, Rothery, Trewaves",153417,4999814,0.99
 1748,Bitter Suite: Brief Encounter / Lost Weekend / Blue Angel,144,1,1,"Kelly, Mosley, Rothery, Trewaves",356493,11791068,0.99
 1749,Heart Of Lothian: Wide Boy / Curtain Call,144,1,1,"Kelly, Mosley, Rothery, Trewaves",366053,11893723,0.99
-1750,Waterhole (Expresso Bongo),144,1,1,"Kelly, Mosley, Rothery, Trewaves",133093,4378835,0.99
+1750,Waterhole (Espresso Bongo),144,1,1,"Kelly, Mosley, Rothery, Trewaves",133093,4378835,0.99
 1751,Lords Of The Backstage,144,1,1,"Kelly, Mosley, Rothery, Trewaves",112875,3741319,0.99
 1752,Blind Curve: Vocal Under A Bloodlight / Passing Strangers / Mylo / Perimeter Walk / Threshold,144,1,1,"Kelly, Mosley, Rothery, Trewaves",569704,18578995,0.99
 1753,Childhoods End?,144,1,1,"Kelly, Mosley, Rothery, Trewaves",272796,9015366,0.99
@@ -1903,16 +1903,16 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1902,Springsville,157,1,2,J. Carisi,207725,6776219,0.99
 1903,The Maids Of Cadiz,157,1,2,L. Delibes,233534,7505275,0.99
 1904,The Duke,157,1,2,Dave Brubeck,214961,6977626,0.99
-1905,My Ship,157,1,2,"Ira Gershwin, Kurt Weill",268016,8581144,0.99
+1905,My Ship,157,1,2,"Ira Gershwin, Kurt Will",268016,8581144,0.99
 1906,Miles Ahead,157,1,2,"Miles Davis, Gil Evans",209893,6807707,0.99
 1907,Blues For Pablo,157,1,2,Gil Evans,318328,10218398,0.99
 1908,New Rhumba,157,1,2,A. Jamal,276871,8980400,0.99
-1909,The Meaning Of The Blues,157,1,2,"R. Troup, L. Worth",168594,5395412,0.99
+1909,The Meaning Of The Blues,157,1,2,"R. Troupe, L. Worth",168594,5395412,0.99
 1910,Lament,157,1,2,J.J. Johnson,134191,4293394,0.99
 1911,I Don't Wanna Be Kissed (By Anyone But You),157,1,2,"H. Spina, J. Elliott",191320,6219487,0.99
 1912,Springsville (Alternate Take),157,1,2,J. Carisi,196388,6382079,0.99
 1913,Blues For Pablo (Alternate Take),157,1,2,Gil Evans,212558,6900619,0.99
-1914,The Meaning Of The Blues/Lament (Alternate Take),157,1,2,"J.J. Johnson/R. Troup, L. Worth",309786,9912387,0.99
+1914,The Meaning Of The Blues/Lament (Alternate Take),157,1,2,"J.J. Johnson/R. Troupe, L. Worth",309786,9912387,0.99
 1915,I Don't Wanna Be Kissed (By Anyone But You) (Alternate Take),157,1,2,"H. Spina, J. Elliott",192078,6254796,0.99
 1916,Coração De Estudante,158,1,7,"Wagner Tiso, Milton Nascimento",238550,7797308,0.99
 1917,A Noite Do Meu Bem,158,1,7,Dolores Duran,220081,7125225,0.99
@@ -1935,7 +1935,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 1934,Ponta de Areia,159,1,7,"Milton Nascimento, Fernando Brant",272796,8874285,0.99
 1935,Trastevere,159,1,7,"Milton Nascimento, Ronaldo Bastos",265665,8708399,0.99
 1936,Idolatrada,159,1,7,"Milton Nascimento, Fernando Brant",286249,9426153,0.99
-1937,Leila (Venha Ser Feliz),159,1,7,Milton Nascimento,209737,6898507,0.99
+1937,Leila (Venha Set Feliz),159,1,7,Milton Nascimento,209737,6898507,0.99
 1938,Paula E Bebeto,159,1,7,"Milton Nascimento, Caetano Veloso",135732,4583956,0.99
 1939,Simples,159,1,7,Nelson Angelo,133093,4326333,0.99
 1940,Norwegian Wood,159,1,7,"John Lennon, Paul McCartney",413910,13520382,0.99
@@ -2051,7 +2051,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2050,I Feel Good (I Got You) - Sossego,167,1,7,James Brown/Tim Maia,244976,8091302,0.99
 2051,Uns Dias,167,1,7,Herbert Vianna,240796,7931552,0.99
 2052,Sincero Breu,167,1,7,C. A./C.A./Celso Alvim/Herbert Vianna/Mário Moura/Pedro Luís/Sidon Silva,208013,6921669,0.99
-2053,Meu Erro,167,1,7,Herbert Vianna,188577,6192791,0.99
+2053,Meu Error,167,1,7,Herbert Vianna,188577,6192791,0.99
 2054,Selvagem,167,1,7,Bi Ribeiro/Herbert Vianna/João Barone,148558,4942831,0.99
 2055,Brasília 5:31,167,1,7,Herbert Vianna,178337,5857116,0.99
 2056,Tendo A Lua,167,1,7,Herbert Vianna/Tet Tillett,198922,6568180,0.99
@@ -2083,7 +2083,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2082,Melô Do Marinheiro,169,1,7,,208352,6905668,0.99
 2083,Vital E Sua Moto,169,1,7,,210207,6902878,0.99
 2084,O Beco,169,1,7,,189178,6293184,0.99
-2085,Meu Erro,169,1,7,,208431,6893533,0.99
+2085,Meu Error,169,1,7,,208431,6893533,0.99
 2086,Perplexo,169,1,7,,161175,5355013,0.99
 2087,Me Liga,169,1,7,,229590,7565912,0.99
 2088,Quase Um Segundo,169,1,7,,275644,8971355,0.99
@@ -2216,7 +2216,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2215,Indifference,182,1,1,Dave Abbruzzese/Eddie Vedder/Jeff Ament/Mike McCready/Stone Gossard,302053,9756133,0.99
 2216,Johnny B. Goode,141,1,8,,243200,8092024,0.99
 2217,Don't Look Back,141,1,8,,221100,7344023,0.99
-2218,Jah Seh No,141,1,8,,276871,9134476,0.99
+2218,Jah She No,141,1,8,,276871,9134476,0.99
 2219,I'm The Toughest,141,1,8,,230191,7657594,0.99
 2220,Nothing But Love,141,1,8,,221570,7335228,0.99
 2221,Buk-In-Hamm Palace,141,1,8,,265665,8964369,0.99
@@ -2641,7 +2641,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2640,Soul Kitchen,214,1,1,"Robby Krieger, Ray Manzarek, John Densmore, Jim Morrison",215066,7040865,0.99
 2641,The Crystal Ship,214,1,1,"Robby Krieger, Ray Manzarek, John Densmore, Jim Morrison",154853,5052658,0.99
 2642,Twentienth Century Fox,214,1,1,"Robby Krieger, Ray Manzarek, John Densmore, Jim Morrison",153913,5069211,0.99
-2643,Alabama Song,214,1,1,Weill-Brecht,200097,6563411,0.99
+2643,Alabama Song,214,1,1,Will-Brecht,200097,6563411,0.99
 2644,Light My Fire,214,1,1,"Robby Krieger, Ray Manzarek, John Densmore, Jim Morrison",428329,13963351,0.99
 2645,Back Door Man,214,1,1,"Willie Dixon, C. Burnett",214360,7035636,0.99
 2646,I Looked At You,214,1,1,"Robby Krieger, Ray Manzarek, John Densmore, Jim Morrison",142080,4663988,0.99
@@ -2681,7 +2681,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2680,Memory Motel,217,1,1,Jagger/Richards,365844,11982431,0.99
 2681,Corinna,217,1,1,Jesse Ed Davis III/Taj Mahal,257488,8449471,0.99
 2682,Saint Of Me,217,1,1,Jagger/Richards,325694,10725160,0.99
-2683,Wainting On A Friend,217,1,1,Jagger/Richards,302497,9978046,0.99
+2683,Waiting On A Friend,217,1,1,Jagger/Richards,302497,9978046,0.99
 2684,Sister Morphine,217,1,1,Faithfull/Jagger/Richards,376215,12345289,0.99
 2685,Live With Me,217,1,1,Jagger/Richards,234893,7709006,0.99
 2686,Respectable,217,1,1,Jagger/Richards,215693,7099669,0.99
@@ -2763,7 +2763,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2762,Cristina Nº 2,222,1,7,Carlos Imperial/Tim Maia,90148,2978589,0.99
 2763,Compadre,222,1,7,Tim Maia,171389,5631446,0.99
 2764,Over Again,222,1,7,Tim Maia,200489,6612634,0.99
-2765,Réu Confesso,222,1,7,Tim Maia,217391,7189874,0.99
+2765,Réu Confession,222,1,7,Tim Maia,217391,7189874,0.99
 2766,O Que Me Importa,223,1,7,,153155,4977852,0.99
 2767,Gostava Tanto De Você,223,1,7,,253805,8380077,0.99
 2768,Você,223,1,7,,242599,7911702,0.99
@@ -2774,9 +2774,9 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 2773,Padre Cícero,223,1,7,,139598,4581685,0.99
 2774,Nosso Adeus,223,1,7,,206471,6793270,0.99
 2775,Canário Do Reino,223,1,7,,139337,4552858,0.99
-2776,Preciso Ser Amado,223,1,7,,174001,5618895,0.99
+2776,Preciso Set Amado,223,1,7,,174001,5618895,0.99
 2777,Balanço,223,1,7,,209737,6890327,0.99
-2778,Preciso Aprender A Ser Só,223,1,7,,162220,5213894,0.99
+2778,Preciso Aprender A Set Só,223,1,7,,162220,5213894,0.99
 2779,Esta É A Canção,223,1,7,,184450,6069933,0.99
 2780,Formigueiro,223,1,7,,252943,8455132,0.99
 2781,Comida,224,1,4,Titãs,322612,10786578,0.99
@@ -3064,7 +3064,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 3063,Happy Trails,242,1,1,Dale Evans,65488,2111141,0.99
 3064,Eruption,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",102164,3272891,0.99
 3065,Ain't Talkin' 'bout Love,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",228336,7569506,0.99
-3066,Runnin' With The Devil,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",215902,7061901,0.99
+3066,Running' With The Devil,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",215902,7061901,0.99
 3067,Dance the Night Away,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",185965,6087433,0.99
 3068,And the Cradle Will Rock...,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",213968,7011402,0.99
 3069,Unchained,243,1,1,"Edward Van Halen, Alex Van Halen, David Lee Roth, Michael Anthony",208953,6777078,0.99
@@ -3079,7 +3079,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 3078,Humans Being,243,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony,/Edward Van Halen, Alex Van Halen, Michael Anthony, Sammy Hagar",308950,10014683,0.99
 3079,Can't Get This Stuff No More,243,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony,/Edward Van Halen, Alex Van Halen, Michael Anthony, David Lee Roth",315376,10355753,0.99
 3080,Me Wise Magic,243,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony,/Edward Van Halen, Alex Van Halen, Michael Anthony, David Lee Roth",366053,12013467,0.99
-3081,Runnin' With The Devil,244,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony and David Lee Roth",216032,7056863,0.99
+3081,Running' With The Devil,244,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony and David Lee Roth",216032,7056863,0.99
 3082,Eruption,244,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony and David Lee Roth",102556,3286026,0.99
 3083,You Really Got Me,244,1,1,Ray Davies,158589,5194092,0.99
 3084,Ain't Talkin' 'Bout Love,244,1,1,"Edward Van Halen, Alex Van Halen, Michael Anthony and David Lee Roth",230060,7617284,0.99
@@ -3408,8 +3408,8 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 3407,"Concerto for 2 Violins in D Minor, BWV 1043: I. Vivace",276,2,24,Johann Sebastian Bach,193722,3192890,0.99
 3408,"Aria Mit 30 Veränderungen, BWV 988 ""Goldberg Variations"": Aria",277,2,24,Johann Sebastian Bach,120463,2081895,0.99
 3409,"Suite for Solo Cello No. 1 in G Major, BWV 1007: I. Prélude",278,2,24,Johann Sebastian Bach,143288,2315495,0.99
-3410,"The Messiah: Behold, I Tell You a Mystery... The Trumpet Shall Sound",279,2,24,George Frideric Handel,582029,9553140,0.99
-3411,Solomon HWV 67: The Arrival of the Queen of Sheba,280,2,24,George Frideric Handel,197135,3247914,0.99
+3410,"The Messiah: Behold, I Tell You a Mystery... The Trumpet Shall Sound",279,2,24,George Frideric Handle,582029,9553140,0.99
+3411,Solomon HWV 67: The Arrival of the Queen of Sheba,280,2,24,George Frideric Handle,197135,3247914,0.99
 3412,"""Eine Kleine Nachtmusik"" Serenade In G, K. 525: I. Allegro",281,2,24,Wolfgang Amadeus Mozart,348971,5760129,0.99
 3413,"Concerto for Clarinet in A Major, K. 622: II. Adagio",282,2,24,Wolfgang Amadeus Mozart,394482,6474980,0.99
 3414,"Symphony No. 104 in D Major ""London"": IV. Finale: Spiritoso",283,4,24,Franz Joseph Haydn,306687,10085867,0.99
@@ -3447,11 +3447,11 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 3446,"Symphonie Fantastique, Op. 14: V. Songe d'une nuit du sabbat",312,2,24,Hector Berlioz,561967,9173344,0.99
 3447,Carmen: Overture,313,2,24,Georges Bizet,132932,2189002,0.99
 3448,"Lamentations of Jeremiah, First Set \ Incipit Lamentatio",314,2,24,Thomas Tallis,69194,1208080,0.99
-3449,"Music for the Royal Fireworks, HWV351 (1749): La Réjouissance",315,2,24,George Frideric Handel,120000,2193734,0.99
+3449,"Music for the Royal Fireworks, HWV351 (1749): La Réjouissance",315,2,24,George Frideric Handle,120000,2193734,0.99
 3450,"Peer Gynt Suite No.1, Op.46: 1. Morning Mood",316,2,24,Edvard Grieg,253422,4298769,0.99
 3451,"Die Zauberflöte, K.620: ""Der Hölle Rache Kocht in Meinem Herze""",317,2,25,Wolfgang Amadeus Mozart,174813,2861468,0.99
 3452,"SCRIABIN: Prelude in B Major, Op. 11, No. 11",318,4,24,,101293,3819535,0.99
-3453,"Pavan, Lachrimae Antiquae",319,2,24,John Dowland,253281,4211495,0.99
+3453,"Pavan, Lachrimae Antique",319,2,24,John Dowland,253281,4211495,0.99
 3454,"Symphony No. 41 in C Major, K. 551, ""Jupiter"": IV. Molto allegro",320,2,24,Wolfgang Amadeus Mozart,362933,6173269,0.99
 3455,Rehab,321,2,14,,213240,3416878,0.99
 3456,You Know I'm No Good,321,2,14,,256946,4133694,0.99
@@ -3487,7 +3487,7 @@ track_id,name,album_id,media_type_id,genre_id,composer,milliseconds,bytes,unit_p
 3486,"Act IV, Symphony",331,2,24,Henry Purcell,364296,5987695,0.99
 3487,"3 Gymnopédies: No.1 - Lent Et Grave, No.3 - Lent Et Douloureux",332,2,24,Erik Satie,385506,6458501,0.99
 3488,"Music for the Funeral of Queen Mary: VI. ""Thou Knowest, Lord, the Secrets of Our Hearts""",333,2,24,Henry Purcell,142081,2365930,0.99
-3489,Symphony No. 2: III. Allegro vivace,334,2,24,Kurt Weill,376510,6129146,0.99
+3489,Symphony No. 2: III. Allegro vivace,334,2,24,Kurt Will,376510,6129146,0.99
 3490,"Partita in E Major, BWV 1006A: I. Prelude",335,2,24,Johann Sebastian Bach,285673,4744929,0.99
 3491,Le Sacre Du Printemps: I.iv. Spring Rounds,336,2,24,Igor Stravinsky,234746,4072205,0.99
 3492,Sing Joyfully,314,2,24,William Byrd,133768,2256484,0.99
