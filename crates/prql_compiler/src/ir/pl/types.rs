@@ -27,7 +27,7 @@ pub enum TyKind {
     Set,
 
     /// Type of functions with defined params and return types.
-    Function(TyFunc),
+    Function(Option<TyFunc>),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -146,7 +146,9 @@ impl TyKind {
                 many.iter().any(|(_, any)| any.kind.is_super_type_of(one))
             }
 
-            (TyKind::Function(sup), TyKind::Function(sub)) => {
+            (TyKind::Function(None), TyKind::Function(_)) => true,
+            (TyKind::Function(Some(_)), TyKind::Function(None)) => true,
+            (TyKind::Function(Some(sup)), TyKind::Function(Some(sub))) => {
                 if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
                     return false;
                 }

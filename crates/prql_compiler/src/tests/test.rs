@@ -179,17 +179,16 @@ fn test_append() {
 
     assert_display_snapshot!(compile(r###"
     from employees
-    derive {name, cost = salary}
+    select {name, cost = salary}
     take 3
     append (
         from employees
-        derive {name, cost = salary + bonuses}
+        select {name, cost = salary + bonuses}
         take 10
     )
     "###).unwrap(), @r###"
     WITH table_0 AS (
       SELECT
-        *,
         name,
         salary + bonuses AS cost
       FROM
@@ -202,7 +201,6 @@ fn test_append() {
     FROM
       (
         SELECT
-          *,
           name,
           salary AS cost
         FROM
@@ -3042,7 +3040,7 @@ fn test_closures_and_pipelines() {
     assert_display_snapshot!(compile(
         r###"
     let addthree = a b c -> s"{a} || {b} || {c}"
-    let arg = myarg myfunc -> ( myfunc myarg )
+    let arg = myarg myfunc <func> -> ( myfunc myarg )
 
     from y
     select x = (

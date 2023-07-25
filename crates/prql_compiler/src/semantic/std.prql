@@ -45,6 +45,7 @@ type text
 type date
 type time
 type timestamp
+type `func`
 
 ## Generic array
 # TODO: an array of anything, not just nulls
@@ -133,7 +134,10 @@ let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
   filter (tuple_every (tuple_map _is_null b.*))
   select t.*
 )
-let loop = pipeline top<relation> -> <relation> internal loop
+let loop = func
+  pipeline <transform>
+  top <relation>
+  -> <relation> internal loop
 
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
@@ -177,11 +181,11 @@ let as = `noresolve.type` column -> <scalar> internal std.as
 let in = pattern value -> <bool> internal in
 
 ## Tuple functions
-let tuple_every = list -> <bool> internal tuple_every
-let tuple_map = fn list -> internal tuple_map
-let tuple_zip = a b -> internal tuple_zip
-let _eq = a -> internal _eq
-let _is_null = a -> _param.a == null
+let tuple_every = func list -> <bool> internal tuple_every
+let tuple_map = func fn <func> list -> internal tuple_map
+let tuple_zip = func a b -> internal tuple_zip
+let _eq = func a -> internal _eq
+let _is_null = func a -> _param.a == null
 
 ## Misc
 let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_text
