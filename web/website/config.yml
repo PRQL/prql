@@ -12,8 +12,8 @@ enableGitInfo: true
 menu:
   nav:
     # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
-    - identifier: Book
-      name: Book
+    - identifier: Docs
+      name: Docs
       url: /book/
       weight: 1
     - identifier: Playground
@@ -44,22 +44,22 @@ params:
           PRQL? Send them a link to PRQL.
       - text:
           "Know Rust (or want to learn!)? [Contribute to our
-          compiler](https://prql-lang.org/book/contributing/index.html#compiler)"
+          compiler](https://prql-lang.org/book/project/contributing/#compiler)"
       - text:
           "Familiar with web? Spot a mistake? [Improve the website design or
-          copy](https://prql-lang.org/book/contributing/index.html#marketing)"
+          copy](https://prql-lang.org/book/project/contributing/#marketing)"
       - text:
           "Interested in helping people explore their data? [Help improve the
           playground](https://github.com/PRQL/prql/tree/main/web/playground)"
       - text:
           "Is SQL your mother-tongue? [Show us SQL queries which translate well
           /
-          badly](https://prql-lang.org/book/contributing/index.html#language-design).
+          badly](https://prql-lang.org/book/project/contributing/#language-design).
           We are looking for any use-cases that expose a poor design choice, a
           need of a feature, or a sharp edge of the language."
     button:
       text: Contribute
-      link: https://prql-lang.org/book/contributing/index.html
+      link: https://prql-lang.org/book/project/contributing/
   follow:
     subtitle: "Follow us:"
     list:

@@ -36,10 +36,11 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
+      - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.1
+          prefix-key: ${{ env.version }}
           shared-key: rust-${{ inputs.target}}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
@@ -48,9 +49,23 @@ jobs:
           command: clippy
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-          args:
-            --all-targets --all-features --target=${{ inputs.target }} -- -D
-            warnings
+          #
+          # Autoformatting doesn't make this clear to read, but this tertiary
+          # expression states to run:
+          # - External DB integration tests — `--features=test-dbs-external`
+          #   on Linux
+          # - No features on Windows
+          # - Internal DB integration tests — `--features=test-dbs` otherwise
+          #
+          # Below, we also add:
+          # - Unreferenced snapshots - `--unreferenced=auto` on Linux
+          #
+          # We'd like to reenable on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
+          args: >
+            --all-targets --target=${{ inputs.target }} --features=${{
+            inputs.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external'
+            || inputs.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
+            -- -D warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -62,16 +77,17 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
-          args:
-            "--no-run --locked --target=${{ inputs.target }} ${{ inputs.target
-            == 'x86_64-unknown-linux-gnu' && '--features=test-external-dbs' ||
-            '' }}"
+          args: >
+            --no-run --locked --target=${{ inputs.target }} --features=${{
+            inputs.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external'
+            || inputs.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
+            }}
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration
+        working-directory: ./crates/prql-compiler/tests/integration
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
       - name: Wait for database
-        uses: ifaxity/wait-on-action@v1
+        uses: ifaxity/wait-on-action@v1.1.0
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000
@@ -80,11 +96,9 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # Autoformatting doesn't make this clear to read, but this tertiary
-          # expression states to only check these on ubuntu linux:
-          # - External DB integration tests — `--features=test-external-dbs`.
-          # - Unreferenced snapshots - `--unreferenced=auto`.
-          args:
-            test --target=${{ inputs.target }} ${{ inputs.target==
-            'x86_64-unknown-linux-gnu' && '--unreferenced=auto
-            --features=test-external-dbs' || '' }}
+          # See Compile step for explanation of args
+          args: >
+            test --target=${{ inputs.target }} --features=${{ inputs.target ==
+            'x86_64-unknown-linux-gnu' && 'test-dbs-external' || inputs.target
+            != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }} ${{ inputs.target
+            == 'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}

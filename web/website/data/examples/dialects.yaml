@@ -1,0 +1,14 @@
+label: Dialects
+prql: |
+  prql target:sql.mssql  # Will generate TOP rather than LIMIT
+
+  from employees
+  sort age
+  take 10
+sql: |
+  SELECT
+    TOP (10) *
+  FROM
+    employees
+  ORDER BY
+    age

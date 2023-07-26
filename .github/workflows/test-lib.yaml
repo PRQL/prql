@@ -20,10 +20,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.1
+          prefix-key: ${{ env.version }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Build
         uses: richb-hanover/cargo@v1.1.0

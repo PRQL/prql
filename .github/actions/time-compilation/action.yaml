@@ -9,12 +9,14 @@ inputs:
 runs:
   using: composite
   steps:
+    - run: ./.github/set_version.sh
+      shell: bash
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v2
       with:
         save-if: ${{ github.ref == 'refs/heads/main' }}
-        prefix-key: 0.8.1
+        prefix-key: ${{ env.version }}
       # 'true' seems to require quotes (and using a bare `inputs.use_cache`
       # doesn't work); I'm really not sure why. There are some issues on the
       # interwebs around this, but I couldn't find one that explained it.

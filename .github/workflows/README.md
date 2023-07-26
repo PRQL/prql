@@ -1,5 +1,5 @@
 # GitHub Workflows
 
 See
-[our development docs](https://prql-lang.org/book/contributing/development.html)
+[our development docs](https://prql-lang.org/book/project/contributing/development.html)
 for docs & discussion.

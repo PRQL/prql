@@ -1,9 +1,0 @@
----
-source: web/book/tests/documentation/book.rs
-expression: "from employees\nselect {salary}\n"
----
-SELECT
-  salary
-FROM
-  employees
-

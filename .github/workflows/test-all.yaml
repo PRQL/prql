@@ -24,8 +24,8 @@ on:
   pull_request:
     paths:
       - "**/Cargo.*"
-      - ".github/workflows/test-all.yaml"
-  # Called by pull-request when specifically requested
+      - ".github/workflows/**"
+  # Called by `pull-request.yaml` when specifically requested
   workflow_call:
   workflow_dispatch:
 
@@ -94,24 +94,23 @@ jobs:
 
   measure-code-cov:
     runs-on: ubuntu-latest
-    # Currently this runs `cargo clean` which makes the run take a long time.
-    # TODO: see whether `skip_clean` is reliable and then add this job to the
-    # pull-request workflow.
+    # TODO: see whether we can add this job to the pull-request workflow,
+    # possibly waiting for https://github.com/PRQL/prql/issues/2870
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-tarpaulin
+      - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      # actions-rs is unmaintained, using fork with fix for update to node 16
-      # https://github.com/actions-rs/tarpaulin/pull/22
-      # Copying from https://github.com/ActivityWatch/aw-server-rust/blob/73b5ae31826315b94208805f222b42a7818169b3/.github/workflows/build.yml#L105
-      - uses: FreeMasen/tarpaulin-action@9f7e03f06fea8f374c85a95c2ecff6a4d5805845
-        with:
-          version: "0.22.0"
-          # TODO: move this exclusion to a config file.
-          args: "--workspace --exclude prql-python -- --test-threads 1"
+          prefix-key: ${{ env.version }}
+      - run:
+          cargo tarpaulin --skip-clean --all-targets --features=test-dbs
+          --out=Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
       - name: Upload code coverage results
@@ -138,12 +137,12 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prql-compiler/Cargo.toml` (and `prql-compiler/prqlc/Cargo.toml` below), because of
+        # `prql-compiler/Cargo.toml` (and `prqlc/Cargo.toml` below), because of
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prql-compiler
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: prql-compiler
+        working-directory: crates/prql-compiler
         run: cargo msrv verify
       - name: Verify minimum rust version — prqlc
-        working-directory: prql-compiler/prqlc
+        working-directory: crates/prqlc
         run: cargo msrv verify
