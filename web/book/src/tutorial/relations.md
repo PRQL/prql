@@ -68,7 +68,7 @@ trailing commas are ignored.
 Finally, you can assign any of the expressions to a _variable_
 that becomes the name of the resulting column in the SQL output.
 
-Suppose you only need the `order_id`, `total`, and `value_added_tax`.
+Suppose we only need the `order_id`, `total`, and `value_added_tax`.
 Use `select` to choose the columns to pass through:
 
 ```
