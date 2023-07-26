@@ -4,15 +4,16 @@ A key feature of analytics is reducing many values down to some summary. This
 act is called "aggregation" and always includes a function &mdash; for
 example, `average` or `sum` &mdash; that reduces the table to a single row.
 
-**aggregate:** The `aggregate` transform takes a tuple to create one or more new columns
+### `aggregate` transform
+
+The `aggregate` transform takes a tuple to create one or more new columns
 that "distill down" data from all the rows.
 
 ```
 from invoices
 aggregate { sum_of_orders = sum total }
 ```
-In the example above, the `total` column of all rows of the `invoices` table
-is summed to produce a single value.
+The query above computes the sum of the `total` column of all rows of the `invoices` table to produce a single value.
 
 `aggregate` can produce multiple summaries at once when
 one or more aggregation expressions are contained in a tuple.
@@ -34,10 +35,7 @@ the `sum` function adds up the values of the `total` column of all rows.
 
 Suppose we want to produce summaries of invoices _for each city_
 in the table.
-`aggregate` cannot do this because it will always produce a single row.
-
-We could separate the relation into groups corresponding to individual
-cities, and apply `aggregate` to each one of them:
+We could create a query for each city, and aggregate its rows:
 
 ```
 from albums
@@ -45,21 +43,11 @@ filter billing_city == "Oslo"
 aggregate { sum_of_orders = sum total }
 ```
 
-```
-from albums
-filter billing_city == "Frankfurt"
-aggregate { sum_of_orders = sum total }
-```
+But we would need to do it for each city: `London`, `Frankfurt`, etc. Of course this is repetitive (and boring) and error prone (because we would need to type each `billing_city` by hand). Moreover, we would need to create a list of each `billing_city` before we started.
 
-```
-from albums
-filter billing_city == "London"
-aggregate { sum_of_orders = sum total }
-```
+### `group` transform
 
-... and so on. Of course this is repetitive (and boring) and error prone (because we would need to type each `billing_city` by hand). Moreover, we would need to create the `billing_city` list before we started.
-
-**group:** The `group` transform separates the table into groups (say, those having the same city)
+The `group` transform separates the table into groups (say, those having the same city)
 using information that's already in the table.
 It then applies a transform to each group, and combines the results back together:
 
@@ -74,7 +62,8 @@ group billing_city (
 ```
 
 Those familiar with SQL have probably noticed that we just
-decoupled aggregation from grouping. These connected operations (in SQL) benefit
+decoupled aggregation from grouping.
+These connected operations (in SQL) benefit
 from each being a standalone function.
 
 Firstly, each can have invariants that the query engine can
@@ -89,6 +78,10 @@ group billing_city (
 ```
 
 This code collects the first two rows for each city's `group`.
+
+### Move to Reference?
+
+_The following items might be better moved to the Reference section_
 
 The SQL needed to replicate this behavior might include window functions and
 sub-queries. PRQL handles all the complexity.
