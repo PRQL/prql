@@ -5,7 +5,6 @@ use once_cell::sync::Lazy;
 use prql_ast::expr::*;
 use prql_ast::stmt::*;
 
-use crate::codegen::DisplayLiteral;
 use crate::codegen::SeparatedExprs;
 use crate::utils::VALID_IDENT;
 
@@ -162,7 +161,7 @@ impl WriteSource for ExprKind {
             }
             SString(parts) => display_interpolation("s", parts, opt),
             FString(parts) => display_interpolation("f", parts, opt),
-            Literal(literal) => Some(DisplayLiteral(literal).to_string()),
+            Literal(literal) => Some(literal.to_string()),
             Case(cases) => {
                 let mut r = String::new();
                 r += "case ";

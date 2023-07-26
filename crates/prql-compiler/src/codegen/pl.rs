@@ -1,4 +1,4 @@
-use crate::codegen::{DisplayLiteral, SeparatedExprs};
+use crate::codegen::SeparatedExprs;
 use crate::ir::pl::*;
 
 use super::{WriteOpt, WriteSource};
@@ -52,7 +52,7 @@ impl WriteSource for TyKind {
                 }
                 .write(opt)
             }
-            Singleton(lit) => Some(DisplayLiteral(lit).to_string()),
+            Singleton(lit) => Some(lit.to_string()),
             Tuple(elements) => SeparatedExprs {
                 exprs: elements,
                 inline: ", ",
