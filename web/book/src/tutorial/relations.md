@@ -81,7 +81,7 @@ select {
 }
 ```
 
-Once you `select` certain columns, subsequent transforms will have access only to those columns named in the tuple.
+Once we `select` certain columns, subsequent transforms will have access only to those columns named in the tuple.
 
 **join:** The `join` transform also _adds_ columns to a table.
 This transform combines rows from two tables "side by side" to make them into one table.
