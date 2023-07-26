@@ -39,19 +39,20 @@ export const CHINOOK_TABLES = [
 ];
 
 async function registerChinook(db) {
-  const baseUrl = `${window.location.href}data/chinook`;
+  const baseUrl = `${window.location.href}/data/chinook`;
 
   await Promise.all(
     CHINOOK_TABLES.map(async (table) => {
       const res = await fetch(`${baseUrl}/${table}.csv`);
+      const text = await res.text();
 
-      db.registerFileText(`${table}.csv`, res);
+      db.registerFileText(`${table}.csv`, text);
     }),
   );
 
   const c = await db.connect();
   for (const table of CHINOOK_TABLES) {
-    await c.insertCSVFromPath(`${table}.csv`, { name: table, detect: true });
+    await c.insertCSVFromPath(`${table}.csv`, { name: table, detect: true, header: true });
   }
   c.close();
 }
