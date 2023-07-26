@@ -50,6 +50,16 @@ impl<T> InterpolateItem<T> {
             },
         }
     }
+
+    pub fn try_map<U, E, F: Fn(T) -> Result<U, E>>(self, f: F) -> Result<InterpolateItem<U>, E> {
+        Ok(match self {
+            Self::String(s) => InterpolateItem::String(s),
+            Self::Expr { expr, format } => InterpolateItem::Expr {
+                expr: Box::new(f(*expr)?),
+                format,
+            },
+        })
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

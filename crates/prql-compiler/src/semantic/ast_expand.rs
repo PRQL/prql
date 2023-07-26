@@ -1,14 +1,77 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
 use prql_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident};
 use prql_ast::stmt::{Annotation, Stmt, StmtKind, VarDefKind};
 
-use crate::ir::pl;
+use crate::ir::pl::{self, new_binop};
+use crate::semantic::{NS_THAT, NS_THIS};
 
 /// An AST pass that maps AST to PL.
-pub fn expand_expr(expr: Expr) -> pl::Expr {
-    pl::Expr {
-        kind: expand_expr_kind(expr.kind),
+pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
+    let kind = match expr.kind {
+        ExprKind::Ident(v) => pl::ExprKind::Ident(v),
+        ExprKind::Literal(v) => pl::ExprKind::Literal(v),
+        ExprKind::Pipeline(v) => {
+            let mut e = desugar_pipeline(v)?;
+            e.alias = expr.alias.or(e.alias);
+            return Ok(e);
+        }
+        ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)?),
+        ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)?),
+        ExprKind::Range(v) => pl::ExprKind::Range(v.try_map(expand_expr_box)?),
+
+        ExprKind::Unary(unary) => expand_unary(unary)?,
+        ExprKind::Binary(binary) => expand_binary(binary)?,
+
+        ExprKind::FuncCall(v) => pl::ExprKind::FuncCall(pl::FuncCall {
+            name: expand_expr_box(v.name)?,
+            args: expand_exprs(v.args)?,
+            named_args: v
+                .named_args
+                .into_iter()
+                .map(|(k, v)| -> Result<_> { Ok((k, expand_expr(v)?)) })
+                .try_collect()?,
+        }),
+        ExprKind::Func(v) => pl::ExprKind::Func(
+            pl::Func {
+                return_ty: v.return_ty.map(expand_ty_or_expr).transpose()?,
+                body: expand_expr_box(v.body)?,
+                params: expand_func_params(v.params)?,
+                named_params: expand_func_params(v.named_params)?,
+                name_hint: None,
+                args: Vec::new(),
+                env: HashMap::new(),
+            }
+            .into(),
+        ),
+        ExprKind::SString(v) => pl::ExprKind::SString(
+            v.into_iter()
+                .map(|v| v.try_map(expand_expr))
+                .try_collect()?,
+        ),
+        ExprKind::FString(v) => pl::ExprKind::FString(
+            v.into_iter()
+                .map(|v| v.try_map(expand_expr))
+                .try_collect()?,
+        ),
+        ExprKind::Case(v) => pl::ExprKind::Case(
+            v.into_iter()
+                .map(|case| -> Result<_> {
+                    Ok(pl::SwitchCase {
+                        condition: expand_expr_box(case.condition)?,
+                        value: expand_expr_box(case.value)?,
+                    })
+                })
+                .try_collect()?,
+        ),
+        ExprKind::Param(v) => pl::ExprKind::Param(v),
+        ExprKind::Internal(v) => pl::ExprKind::Internal(v),
+    };
+
+    Ok(pl::Expr {
+        kind,
         span: expr.span,
         alias: expr.alias,
         id: None,
@@ -18,135 +81,164 @@ pub fn expand_expr(expr: Expr) -> pl::Expr {
         lineage: None,
         needs_window: false,
         flatten: false,
-    }
+    })
 }
 
-fn expand_exprs(exprs: Vec<prql_ast::expr::Expr>) -> Vec<pl::Expr> {
-    exprs.into_iter().map(expand_expr).collect::<Vec<_>>()
+fn expand_exprs(exprs: Vec<prql_ast::expr::Expr>) -> Result<Vec<pl::Expr>> {
+    exprs.into_iter().map(expand_expr).collect()
 }
 
 #[allow(clippy::boxed_local)]
-fn expand_expr_box(expr: Box<prql_ast::expr::Expr>) -> Box<pl::Expr> {
-    Box::new(expand_expr(*expr))
+fn expand_expr_box(expr: Box<prql_ast::expr::Expr>) -> Result<Box<pl::Expr>> {
+    Ok(Box::new(expand_expr(*expr)?))
 }
 
-fn expand_expr_kind(value: ExprKind) -> pl::ExprKind {
-    match value {
-        ExprKind::Ident(v) => pl::ExprKind::Ident(v),
-        ExprKind::Literal(v) => pl::ExprKind::Literal(v),
-        ExprKind::Pipeline(v) => pl::ExprKind::Pipeline(pl::Pipeline {
-            exprs: expand_exprs(v.exprs),
-        }),
-        ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)),
-        ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)),
-        ExprKind::Range(v) => pl::ExprKind::Range(v.map(expand_expr_box)),
-        ExprKind::Binary(v) => pl::ExprKind::Binary(pl::BinaryExpr {
-            left: expand_expr_box(v.left),
-            op: v.op,
-            right: expand_expr_box(v.right),
-        }),
-        ExprKind::Unary(v) => pl::ExprKind::Unary(pl::UnaryExpr {
-            op: v.op,
-            expr: expand_expr_box(v.expr),
-        }),
-        ExprKind::FuncCall(v) => pl::ExprKind::FuncCall(pl::FuncCall {
-            name: expand_expr_box(v.name),
-            args: expand_exprs(v.args),
-            named_args: v
-                .named_args
-                .into_iter()
-                .map(|(k, v)| (k, expand_expr(v)))
-                .collect(),
-        }),
-        ExprKind::Func(v) => pl::ExprKind::Func(
-            pl::Func {
-                return_ty: v.return_ty.map(expand_ty_or_expr),
-                body: expand_expr_box(v.body),
-                params: expand_func_params(v.params),
-                named_params: expand_func_params(v.named_params),
-                name_hint: None,
-                args: Vec::new(),
-                env: HashMap::new(),
+fn desugar_pipeline(mut pipeline: prql_ast::expr::Pipeline) -> Result<pl::Expr> {
+    let value = pipeline.exprs.remove(0);
+    let mut value = expand_expr(value)?;
+
+    for expr in pipeline.exprs {
+        let expr = expand_expr(expr)?;
+        let span = expr.span;
+
+        value = pl::Expr::new(pl::ExprKind::FuncCall(pl::FuncCall::new_simple(
+            expr,
+            vec![value],
+        )));
+        value.span = span;
+    }
+
+    Ok(value)
+}
+
+/// Desugar unary operators into function calls.
+fn expand_unary(
+    prql_ast::expr::UnaryExpr { op, expr }: prql_ast::expr::UnaryExpr,
+) -> Result<pl::ExprKind> {
+    use prql_ast::expr::UnOp::*;
+
+    let expr = expand_expr(*expr)?;
+
+    let func_name = match op {
+        Neg => ["std", "neg"],
+        Not => ["std", "not"],
+        Add => return Ok(expr.kind),
+        EqSelf => {
+            let ident = expr.kind.into_ident().map_err(|_| {
+                anyhow!("you can only use column names with self-equality operator.")
+            })?;
+            if !ident.path.is_empty() {
+                return Err(anyhow!(
+                    "you cannot use namespace prefix with self-equality operator."
+                ));
             }
-            .into(),
-        ),
-        ExprKind::SString(v) => {
-            pl::ExprKind::SString(v.into_iter().map(|v| v.map(expand_expr)).collect())
-        }
-        ExprKind::FString(v) => {
-            pl::ExprKind::FString(v.into_iter().map(|v| v.map(expand_expr)).collect())
-        }
-        ExprKind::Case(v) => pl::ExprKind::Case(
-            v.into_iter()
-                .map(|case| pl::SwitchCase {
-                    condition: expand_expr_box(case.condition),
-                    value: expand_expr_box(case.value),
+            let left = pl::Expr {
+                span: expr.span,
+                ..pl::Expr::new(Ident {
+                    path: vec![NS_THIS.to_string()],
+                    name: ident.name.clone(),
                 })
-                .collect(),
-        ),
-        ExprKind::Param(v) => pl::ExprKind::Param(v),
-        ExprKind::Internal(v) => pl::ExprKind::Internal(v),
-    }
+            };
+            let right = pl::Expr {
+                span: expr.span,
+                ..pl::Expr::new(Ident {
+                    path: vec![NS_THAT.to_string()],
+                    name: ident.name,
+                })
+            };
+            return Ok(new_binop(left, &["std", "eq"], right).kind);
+        }
+    };
+    Ok(pl::ExprKind::FuncCall(pl::FuncCall::new_simple(
+        pl::Expr::new(Ident::from_path(func_name.to_vec())),
+        vec![expr],
+    )))
 }
 
-fn expand_func_param(value: prql_ast::expr::FuncParam) -> pl::FuncParam {
-    pl::FuncParam {
+/// Desugar binary operators into function calls.
+fn expand_binary(BinaryExpr { op, left, right }: BinaryExpr) -> Result<pl::ExprKind> {
+    let left = expand_expr(*left)?;
+    let right = expand_expr(*right)?;
+
+    let func_name = match op {
+        BinOp::Mul => ["std", "mul"],
+        BinOp::DivInt => ["std", "div_i"],
+        BinOp::DivFloat => ["std", "div_f"],
+        BinOp::Mod => ["std", "mod"],
+        BinOp::Add => ["std", "add"],
+        BinOp::Sub => ["std", "sub"],
+        BinOp::Eq => ["std", "eq"],
+        BinOp::Ne => ["std", "ne"],
+        BinOp::Gt => ["std", "gt"],
+        BinOp::Lt => ["std", "lt"],
+        BinOp::Gte => ["std", "gte"],
+        BinOp::Lte => ["std", "lte"],
+        BinOp::RegexSearch => ["std", "regex_search"],
+        BinOp::And => ["std", "and"],
+        BinOp::Or => ["std", "or"],
+        BinOp::Coalesce => ["std", "coalesce"],
+    };
+    Ok(new_binop(left, &func_name, right).kind)
+}
+
+fn expand_func_param(value: prql_ast::expr::FuncParam) -> Result<pl::FuncParam> {
+    Ok(pl::FuncParam {
         name: value.name,
-        ty: value.ty.map(expand_ty_or_expr),
-        default_value: value.default_value.map(expand_expr_box),
-    }
+        ty: value.ty.map(expand_ty_or_expr).transpose()?,
+        default_value: value.default_value.map(expand_expr_box).transpose()?,
+    })
 }
 
-fn expand_func_params(value: Vec<prql_ast::expr::FuncParam>) -> Vec<pl::FuncParam> {
-    value.into_iter().map(expand_func_param).collect::<Vec<_>>()
+fn expand_func_params(value: Vec<prql_ast::expr::FuncParam>) -> Result<Vec<pl::FuncParam>> {
+    value.into_iter().map(expand_func_param).collect()
 }
 
 #[allow(clippy::boxed_local)]
-fn expand_ty_or_expr(value: Box<prql_ast::expr::Expr>) -> pl::TyOrExpr {
-    pl::TyOrExpr::Expr(Box::new(expand_expr(*value)))
+fn expand_ty_or_expr(value: Box<prql_ast::expr::Expr>) -> Result<pl::TyOrExpr> {
+    Ok(pl::TyOrExpr::Expr(Box::new(expand_expr(*value)?)))
 }
 
-fn expand_stmt(value: Stmt) -> pl::Stmt {
-    pl::Stmt {
+fn expand_stmt(value: Stmt) -> Result<pl::Stmt> {
+    Ok(pl::Stmt {
         id: None,
-        kind: expand_stmt_kind(value.kind),
+        kind: expand_stmt_kind(value.kind)?,
         span: value.span,
         annotations: value
             .annotations
             .into_iter()
             .map(expand_annotation)
-            .collect(),
-    }
+            .try_collect()?,
+    })
 }
 
-pub fn expand_stmts(value: Vec<Stmt>) -> Vec<pl::Stmt> {
+pub fn expand_stmts(value: Vec<Stmt>) -> Result<Vec<pl::Stmt>> {
     value.into_iter().map(expand_stmt).collect()
 }
 
-fn expand_stmt_kind(value: StmtKind) -> pl::StmtKind {
-    match value {
+fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
+    Ok(match value {
         StmtKind::QueryDef(v) => pl::StmtKind::QueryDef(v),
         StmtKind::Main(v) => pl::StmtKind::VarDef(pl::VarDef {
             name: None,
-            value: expand_expr_box(v),
+            value: expand_expr_box(v)?,
             ty_expr: None,
             kind: pl::VarDefKind::Main,
         }),
         StmtKind::VarDef(v) => pl::StmtKind::VarDef(pl::VarDef {
             name: Some(v.name),
-            value: expand_expr_box(v.value),
-            ty_expr: v.ty_expr.map(expand_expr_box),
+            value: expand_expr_box(v.value)?,
+            ty_expr: v.ty_expr.map(expand_expr_box).transpose()?,
             kind: expand_var_def_kind(v.kind),
         }),
         StmtKind::TypeDef(v) => pl::StmtKind::TypeDef(pl::TypeDef {
             name: v.name,
-            value: v.value.map(expand_expr_box),
+            value: v.value.map(expand_expr_box).transpose()?,
         }),
         StmtKind::ModuleDef(v) => pl::StmtKind::ModuleDef(pl::ModuleDef {
             name: v.name,
-            stmts: expand_stmts(v.stmts),
+            stmts: expand_stmts(v.stmts)?,
         }),
-    }
+    })
 }
 
 fn expand_var_def_kind(value: VarDefKind) -> pl::VarDefKind {
@@ -156,10 +248,10 @@ fn expand_var_def_kind(value: VarDefKind) -> pl::VarDefKind {
     }
 }
 
-fn expand_annotation(value: Annotation) -> pl::Annotation {
-    pl::Annotation {
-        expr: expand_expr_box(value.expr),
-    }
+fn expand_annotation(value: Annotation) -> Result<pl::Annotation> {
+    Ok(pl::Annotation {
+        expr: expand_expr_box(value.expr)?,
+    })
 }
 
 /// An AST pass that tries to revert the mapping from AST to PL
@@ -184,21 +276,9 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
     match value {
         pl::ExprKind::Ident(v) => ExprKind::Ident(v),
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
-        pl::ExprKind::Pipeline(v) => ExprKind::Pipeline(prql_ast::expr::Pipeline {
-            exprs: restrict_exprs(v.exprs),
-        }),
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
         pl::ExprKind::Range(v) => ExprKind::Range(v.map(restrict_expr_box)),
-        pl::ExprKind::Binary(v) => ExprKind::Binary(BinaryExpr {
-            left: restrict_expr_box(v.left),
-            op: v.op,
-            right: restrict_expr_box(v.right),
-        }),
-        pl::ExprKind::Unary(v) => ExprKind::Unary(prql_ast::expr::UnaryExpr {
-            op: v.op,
-            expr: restrict_expr_box(v.expr),
-        }),
         pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(prql_ast::expr::FuncCall {
             name: restrict_expr_box(v.name),
             args: restrict_exprs(v.args),

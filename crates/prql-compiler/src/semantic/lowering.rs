@@ -9,9 +9,7 @@ use itertools::Itertools;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, WindowFrame};
 use crate::ir::generic::{InterpolateItem, Range, SwitchCase};
-use crate::ir::pl::{
-    self, BinaryExpr, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField, UnaryExpr,
-};
+use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
 use crate::ir::rq::{self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
@@ -823,7 +821,6 @@ impl Lowerer {
             | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)
-            | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {expr:?}");
@@ -835,9 +832,7 @@ impl Lowerer {
                 .into());
             }
 
-            pl::ExprKind::Unary(UnaryExpr { .. })
-            | pl::ExprKind::Binary(BinaryExpr { .. })
-            | pl::ExprKind::Internal(_) => {
+            pl::ExprKind::Internal(_) => {
                 panic!("Unresolved lowering: {}", write_pl(expr))
             }
         };

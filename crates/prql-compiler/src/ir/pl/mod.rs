@@ -28,7 +28,7 @@ pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::types::*;
 pub use self::utils::*;
-pub use prql_ast::expr::{BinOp, Ident, Literal, UnOp, ValueAndUnit};
+pub use prql_ast::expr::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
 pub fn print_mem_sizes() {
     use std::mem::size_of;
@@ -51,7 +51,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "LineageColumn", size_of::<LineageColumn>());
     println!("{:16}= {}", "LineageInput", size_of::<LineageInput>());
     println!("{:16}= {}", "ModuleDef", size_of::<ModuleDef>());
-    println!("{:16}= {}", "Pipeline", size_of::<Pipeline>());
     println!("{:16}= {}", "PrimitiveSet", size_of::<PrimitiveSet>());
     println!("{:16}= {}", "Query", size_of::<Query>());
     println!("{:16}= {}", "QueryDef", size_of::<QueryDef>());

@@ -51,10 +51,12 @@ jobs:
         with:
           crate: hyperlink
 
+      - run: ./.github/set_version.sh
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.9.2
+          prefix-key: ${{ env.version }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - uses: arduino/setup-task@v1

@@ -120,17 +120,15 @@ let window = func
   tbl <relation>
   -> <relation> internal window
 
-let noop = x -> x
-
 let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
 let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
-  noop t = top
-  join (noop b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+  t = top
+  join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   select t.*
 )
 let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
-  noop t = top
-  join side:left (noop b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+  t = top
+  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   filter (tuple_every (tuple_map _is_null b.*))
   select t.*
 )
