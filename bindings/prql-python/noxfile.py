@@ -32,7 +32,7 @@ def tests(session: Session) -> None:
 
 @nox.session(python=VERSIONS)  # type: ignore[misc]
 def typing(session: Session) -> None:
-    """Run the test suite with pytest."""
+    """Check types with mypy"""
     _install_prql_python(session)
     session.install("mypy==1.4.0")
     session.run("mypy")
