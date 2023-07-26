@@ -12,7 +12,6 @@ use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind, TableExpr};
 use super::module::Module;
-use super::reporting::debug_call_tree;
 use super::{write_pl, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
@@ -370,11 +369,6 @@ impl PlFold for Resolver {
                 self.fold_function(func, span)?
             }
 
-            ExprKind::Pipeline(pipeline) => {
-                self.default_namespace = None;
-                self.resolve_pipeline(pipeline)?
-            }
-
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
 
             ExprKind::Unary(UnaryExpr {
@@ -547,26 +541,6 @@ pub fn binary_to_func_call(BinaryExpr { op, left, right }: BinaryExpr, span: Opt
 }
 
 impl Resolver {
-    fn resolve_pipeline(&mut self, Pipeline { mut exprs }: Pipeline) -> Result<Expr> {
-        let mut value = exprs.remove(0);
-
-        // the beef of this function: wrapping into func calls
-        for expr in exprs {
-            let span = expr.span;
-
-            value = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(expr, vec![value])));
-            value.span = span;
-        }
-
-        if log::log_enabled!(log::Level::Debug) {
-            let (v, tree) = debug_call_tree(value);
-            value = v;
-            log::debug!("unpacked pipeline to following call tree: \n{tree}");
-        }
-
-        self.fold_expr(value)
-    }
-
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
         if let Some(default_namespace) = &self.default_namespace {
             self.context.resolve_ident(ident, Some(default_namespace))

@@ -7,36 +7,14 @@ use crate::ir::pl;
 
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: Expr) -> pl::Expr {
-    pl::Expr {
-        kind: expand_expr_kind(expr.kind),
-        span: expr.span,
-        alias: expr.alias,
-        id: None,
-        target_id: None,
-        target_ids: Vec::new(),
-        ty: None,
-        lineage: None,
-        needs_window: false,
-        flatten: false,
-    }
-}
-
-fn expand_exprs(exprs: Vec<prql_ast::expr::Expr>) -> Vec<pl::Expr> {
-    exprs.into_iter().map(expand_expr).collect::<Vec<_>>()
-}
-
-#[allow(clippy::boxed_local)]
-fn expand_expr_box(expr: Box<prql_ast::expr::Expr>) -> Box<pl::Expr> {
-    Box::new(expand_expr(*expr))
-}
-
-fn expand_expr_kind(value: ExprKind) -> pl::ExprKind {
-    match value {
+    let kind = match expr.kind {
         ExprKind::Ident(v) => pl::ExprKind::Ident(v),
         ExprKind::Literal(v) => pl::ExprKind::Literal(v),
-        ExprKind::Pipeline(v) => pl::ExprKind::Pipeline(pl::Pipeline {
-            exprs: expand_exprs(v.exprs),
-        }),
+        ExprKind::Pipeline(v) => {
+            let mut e = desugar_pipeline(v);
+            e.alias = expr.alias.or(e.alias);
+            return e;
+        }
         ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)),
         ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)),
         ExprKind::Range(v) => pl::ExprKind::Range(v.map(expand_expr_box)),
@@ -86,7 +64,47 @@ fn expand_expr_kind(value: ExprKind) -> pl::ExprKind {
         ),
         ExprKind::Param(v) => pl::ExprKind::Param(v),
         ExprKind::Internal(v) => pl::ExprKind::Internal(v),
+    };
+
+    pl::Expr {
+        kind,
+        span: expr.span,
+        alias: expr.alias,
+        id: None,
+        target_id: None,
+        target_ids: Vec::new(),
+        ty: None,
+        lineage: None,
+        needs_window: false,
+        flatten: false,
     }
+}
+
+fn expand_exprs(exprs: Vec<prql_ast::expr::Expr>) -> Vec<pl::Expr> {
+    exprs.into_iter().map(expand_expr).collect::<Vec<_>>()
+}
+
+#[allow(clippy::boxed_local)]
+fn expand_expr_box(expr: Box<prql_ast::expr::Expr>) -> Box<pl::Expr> {
+    Box::new(expand_expr(*expr))
+}
+
+fn desugar_pipeline(mut pipeline: prql_ast::expr::Pipeline) -> pl::Expr {
+    let value = pipeline.exprs.remove(0);
+    let mut value = expand_expr(value);
+
+    for expr in pipeline.exprs {
+        let expr = expand_expr(expr);
+        let span = expr.span;
+
+        value = pl::Expr::new(pl::ExprKind::FuncCall(pl::FuncCall::new_simple(
+            expr,
+            vec![value],
+        )));
+        value.span = span;
+    }
+
+    value
 }
 
 fn expand_func_param(value: prql_ast::expr::FuncParam) -> pl::FuncParam {
@@ -184,9 +202,6 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
     match value {
         pl::ExprKind::Ident(v) => ExprKind::Ident(v),
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
-        pl::ExprKind::Pipeline(v) => ExprKind::Pipeline(prql_ast::expr::Pipeline {
-            exprs: restrict_exprs(v.exprs),
-        }),
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
         pl::ExprKind::Range(v) => ExprKind::Range(v.map(restrict_expr_box)),

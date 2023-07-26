@@ -823,7 +823,6 @@ impl Lowerer {
             | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)
-            | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::Type(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {expr:?}");

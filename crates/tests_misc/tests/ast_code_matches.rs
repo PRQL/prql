@@ -14,11 +14,27 @@ fn test_expr_ast_code_matches() {
             &read_to_string("../../crates/prql-compiler/src/ir/pl/expr.rs").unwrap(),
         ), @r###"
     @@ .. @@
+    -    Pipeline(Pipeline),
+    @@ .. @@
     -    pub return_ty: Option<Box<Expr>>,
     +    pub return_ty: Option<TyOrExpr>,
     @@ .. @@
     -    pub ty: Option<Box<Expr>>,
     +    pub ty: Option<TyOrExpr>,
+    @@ .. @@
+    -/// A value and a series of functions that are to be applied to that value one after another.
+    -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+    -pub struct Pipeline {
+    -    pub exprs: Vec<Expr>,
+    -}
+    -
+    @@ .. @@
+    -
+    -impl From<Vec<Expr>> for Pipeline {
+    -    fn from(nodes: Vec<Expr>) -> Self {
+    -        Pipeline { exprs: nodes }
+    -    }
+    -}
     "###
     );
 }
