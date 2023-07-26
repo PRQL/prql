@@ -4,7 +4,7 @@ A key feature of analytics is reducing many values down to some summary. This
 act is called "aggregation" and always includes a function &mdash; for
 example, `average` or `sum` &mdash; that reduces the table to a single row.
 
-**aggregate:** The `aggregate` transform takes a tuple to create one or many new columns
+**aggregate:** The `aggregate` transform takes a tuple to create one or more new columns
 that "distill down" data from all the rows.
 
 ```
