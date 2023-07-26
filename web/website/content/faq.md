@@ -194,7 +194,7 @@ PRQL:
 > etc.
 
 For more detail, check out the docs in the
-[PRQL Book](https://prql-lang.org/book/transforms/aggregate.html).
+[PRQL Book](https://prql-lang.org/book/reference/stdlib/transforms/aggregate.html).
 
 {{</ faq >}}
 
