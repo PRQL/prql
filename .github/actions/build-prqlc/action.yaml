@@ -32,7 +32,7 @@ runs:
         sudo apt-get update
         sudo apt-get install -y musl-tools
 
-    - if: runner.os == 'Windows'
+    - if: runner.os == 'Windows' && inputs.profile == 'release'
       shell: bash
       run: |
         echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
