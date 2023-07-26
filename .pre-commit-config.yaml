@@ -16,12 +16,13 @@ repos:
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
-    # Upgrading to the bare `v3.0.0` seems to break the plugin; contributions welcome to fix.
     rev: v3.0.0
     hooks:
       - id: prettier
         additional_dependencies:
           - prettier
+          # TODO: This doesn't seem to work, would be great to fix.
+          # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.0.280
