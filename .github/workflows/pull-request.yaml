@@ -159,8 +159,6 @@ jobs:
       pull-requests: write
       contents: write
 
-    if: github.actor == 'dependabot[bot]'
-
     steps:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
