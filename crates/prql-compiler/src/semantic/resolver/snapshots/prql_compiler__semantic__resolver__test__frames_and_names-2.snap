@@ -10,12 +10,12 @@ columns:
       input_name: customers
       except: []
 inputs:
-  - id: 182
+  - id: 193
     name: table_1
     table:
       - default_db
       - table_1
-  - id: 194
+  - id: 186
     name: customers
     table:
       - default_db
