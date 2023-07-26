@@ -20,7 +20,7 @@ Every table has zero to many rows, each containing the same set of columns.
 The table above has `invoice_id` and `customer_id` columns with a data type of "integer number",
 a `billing_city` column with a data type of "text",
 a number of other columns, and
-and a `total` column that contains floating-point number. [^2]
+and a `total` column that contains floating-point numbers. [^2]
 
 ## Queries
 
