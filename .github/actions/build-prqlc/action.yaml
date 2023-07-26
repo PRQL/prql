@@ -32,6 +32,11 @@ runs:
         sudo apt-get update
         sudo apt-get install -y musl-tools
 
+    - if: runner.os == 'Windows' && inputs.profile == 'release'
+      shell: bash
+      run: |
+        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
+
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
       run: |
