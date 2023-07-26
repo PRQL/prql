@@ -52,9 +52,10 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
+        # We previously had `--package=prqlc`, but this caches much worse than just building the whole workspace.
+        # https://github.com/PRQL/prql/issues/3098
         args:
-          --package=prqlc --profile=${{ inputs.profile }} --locked --target=${{
-          inputs.target }}
+          --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
