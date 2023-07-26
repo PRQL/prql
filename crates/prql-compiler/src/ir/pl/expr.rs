@@ -72,8 +72,6 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     Array(Vec<Expr>),
     Range(Range),
-    Binary(BinaryExpr),
-    Unary(UnaryExpr),
     FuncCall(FuncCall),
     Func(Box<Func>),
     TransformCall(TransformCall),
@@ -93,19 +91,6 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct BinaryExpr {
-    pub left: Box<Expr>,
-    pub op: BinOp,
-    pub right: Box<Expr>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct UnaryExpr {
-    pub op: UnOp,
-    pub expr: Box<Expr>,
 }
 
 /// Function call.

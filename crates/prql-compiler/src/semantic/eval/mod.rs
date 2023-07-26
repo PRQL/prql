@@ -7,10 +7,9 @@ use crate::error::{Error, Span, WithErrorInfo};
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
 
 use super::ast_expand;
-use super::resolver::{binary_to_func_call, unary_to_func_call};
 
 pub fn eval(expr: prql_ast::expr::Expr) -> Result<Expr> {
-    let expr = ast_expand::expand_expr(expr);
+    let expr = ast_expand::expand_expr(expr)?;
 
     Evaluator::new().fold_expr(expr)
 }
@@ -43,16 +42,6 @@ impl PlFold for Evaluator {
 
             // functions are values
             ExprKind::Func(f) => ExprKind::Func(f),
-
-            // convert to function calls and then evaluate to a value
-            ExprKind::Binary(binary) => {
-                let func_call = binary_to_func_call(binary, expr.span);
-                self.fold_expr(func_call)?.kind
-            }
-            ExprKind::Unary(unary) => {
-                let func_call = unary_to_func_call(unary, expr.span);
-                self.fold_expr(func_call)?.kind
-            }
 
             // ident are not values
             ExprKind::Ident(ident) => {

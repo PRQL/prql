@@ -7,7 +7,6 @@ use std::iter::zip;
 
 use crate::error::{Error, Reason, WithErrorInfo};
 use crate::generic::{SortDirection, WindowKind};
-use crate::ir::pl::BinaryExpr;
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
@@ -208,22 +207,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
 
             match pattern.kind {
                 ExprKind::Range(Range { start, end }) => {
-                    let start = start.map(|start| {
-                        Expr::new(ExprKind::Binary(BinaryExpr {
-                            left: Box::new(value.clone()),
-                            op: BinOp::Gte,
-                            right: start,
-                        }))
-                    });
-                    let end = end.map(|end| {
-                        Expr::new(ExprKind::Binary(BinaryExpr {
-                            left: Box::new(value),
-                            op: BinOp::Lte,
-                            right: end,
-                        }))
-                    });
+                    let start = start.map(|s| new_binop(value.clone(), &["std", "gte"], *s));
+                    let end = end.map(|end| new_binop(value, &["std", "lte"], *end));
 
-                    let res = new_binop(start, BinOp::And, end);
+                    let res = maybe_binop(start, &["std", "and"], end);
                     let res =
                         res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
                     return Ok(res);
@@ -252,7 +239,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
 
             let mut res = None;
             for item in list {
-                res = new_binop(res, BinOp::And, Some(item));
+                res = maybe_binop(res, &["std", "and"], Some(item));
             }
             let res = res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
 
@@ -303,7 +290,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
             let list = list.kind.into_tuple().unwrap();
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
-            let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
+            let res = maybe_binop(Some(a), &["std", "eq"], Some(b)).unwrap();
             return Ok(res);
         }
 

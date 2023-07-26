@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::Result;
 use itertools::{Itertools, Position};
 
 use crate::error::{Error, Reason, Span, WithErrorInfo};
@@ -350,6 +350,14 @@ impl PlFold for Resolver {
                 }
             }
 
+            ExprKind::FuncCall(FuncCall { name, args, .. })
+                if (name.kind.as_ident()).map_or(false, |i| i.to_string() == "std.not")
+                    && matches!(args[0].kind, ExprKind::Tuple(_)) =>
+            {
+                let arg = args.into_iter().exactly_one().unwrap();
+                self.resolve_column_exclusion(arg)?
+            }
+
             ExprKind::FuncCall(FuncCall {
                 name,
                 args,
@@ -370,30 +378,6 @@ impl PlFold for Resolver {
             }
 
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
-
-            ExprKind::Unary(UnaryExpr {
-                op: UnOp::EqSelf,
-                expr,
-            }) => {
-                let kind = self.resolve_eq_self(*expr, span)?;
-                Expr { kind, ..node }
-            }
-
-            ExprKind::Unary(UnaryExpr {
-                op: UnOp::Add,
-                expr,
-            }) => self.fold_expr(*expr)?,
-
-            ExprKind::Unary(UnaryExpr {
-                op: UnOp::Not,
-                expr,
-            }) if matches!(expr.kind, ExprKind::Tuple(_)) => {
-                self.resolve_column_exclusion(*expr)?
-            }
-
-            ExprKind::Unary(unary) => self.fold_expr(unary_to_func_call(unary, span))?,
-
-            ExprKind::Binary(binary) => self.fold_expr(binary_to_func_call(binary, span))?,
 
             ExprKind::All { within, except } => {
                 let decl = self.context.root_mod.get(&within);
@@ -497,47 +481,6 @@ impl PlFold for Resolver {
         }
         Ok(r)
     }
-}
-
-pub fn unary_to_func_call(UnaryExpr { op, expr }: UnaryExpr, span: Option<Span>) -> Expr {
-    let func_name = match op {
-        UnOp::Neg => ["std", "neg"],
-        UnOp::Not => ["std", "not"],
-        UnOp::Add | UnOp::EqSelf => unreachable!(),
-    };
-    let mut func_call = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
-        Expr::new(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
-        vec![*expr],
-    )));
-    func_call.span = span;
-    func_call
-}
-
-pub fn binary_to_func_call(BinaryExpr { op, left, right }: BinaryExpr, span: Option<Span>) -> Expr {
-    let func_name = match op {
-        BinOp::Mul => ["std", "mul"],
-        BinOp::DivInt => ["std", "div_i"],
-        BinOp::DivFloat => ["std", "div_f"],
-        BinOp::Mod => ["std", "mod"],
-        BinOp::Add => ["std", "add"],
-        BinOp::Sub => ["std", "sub"],
-        BinOp::Eq => ["std", "eq"],
-        BinOp::Ne => ["std", "ne"],
-        BinOp::Gt => ["std", "gt"],
-        BinOp::Lt => ["std", "lt"],
-        BinOp::Gte => ["std", "gte"],
-        BinOp::Lte => ["std", "lte"],
-        BinOp::RegexSearch => ["std", "regex_search"],
-        BinOp::And => ["std", "and"],
-        BinOp::Or => ["std", "or"],
-        BinOp::Coalesce => ["std", "coalesce"],
-    };
-    let mut func_call = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
-        Expr::new(ExprKind::Ident(Ident::from_path(func_name.to_vec()))),
-        vec![*left, *right],
-    )));
-    func_call.span = span;
-    func_call
 }
 
 impl Resolver {
@@ -890,32 +833,6 @@ impl Resolver {
         let res = self.fold_expr(expr);
         self.default_namespace = prev_namespace;
         res
-    }
-
-    fn resolve_eq_self(&mut self, expr: Expr, span: Option<Span>) -> Result<ExprKind> {
-        let ident = expr
-            .kind
-            .into_ident()
-            .map_err(|_| anyhow!("you can only use column names with self-equality operator."))?;
-        if !ident.path.is_empty() {
-            bail!("you cannot use namespace prefix with self-equality operator.");
-        }
-        let mut left = Expr::new(ExprKind::Ident(Ident {
-            path: vec![NS_THIS.to_string()],
-            name: ident.name.clone(),
-        }));
-        left.span = span;
-        let mut right = Expr::new(ExprKind::Ident(Ident {
-            path: vec![NS_THAT.to_string()],
-            name: ident.name,
-        }));
-        right.span = span;
-        let kind = ExprKind::RqOperator {
-            name: "std.eq".to_string(),
-            args: vec![left, right],
-        };
-        let kind = fold_expr_kind(self, kind)?;
-        Ok(kind)
     }
 
     fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
