@@ -12,6 +12,9 @@
       "pattern": "^https://twitter.com"
     },
     {
+      "pattern": "^https://www.cs.ox.ac.uk"
+    },
+    {
       "pattern": "^https://www.php.net"
     }
   ]
