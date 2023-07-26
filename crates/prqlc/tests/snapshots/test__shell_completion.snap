@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/prqlc/tests/test.rs
+source: crates/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -7,9 +7,9 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
     RUST_LOG: ""
+    RUST_BACKTRACE: ""
 ---
 success: true
 exit_code: 0
@@ -161,7 +161,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__compile)
-            opts="-t -h --hide-signature-comment --target --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            opts="-t -h --hide-signature-comment --no-format --target --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

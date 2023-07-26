@@ -228,9 +228,13 @@ impl Default for Options {
 }
 
 impl Options {
-    pub fn no_format(mut self) -> Self {
-        self.format = false;
+    pub fn with_format(mut self, format: bool) -> Self {
+        self.format = format;
         self
+    }
+
+    pub fn no_format(self) -> Self {
+        self.with_format(false)
     }
 
     pub fn with_signature_comment(mut self, signature_comment: bool) -> Self {
@@ -238,9 +242,8 @@ impl Options {
         self
     }
 
-    pub fn no_signature(mut self) -> Self {
-        self.signature_comment = false;
-        self
+    pub fn no_signature(self) -> Self {
+        self.with_signature_comment(false)
     }
 
     pub fn with_target(mut self, target: Target) -> Self {
