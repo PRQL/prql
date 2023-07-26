@@ -102,11 +102,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-tarpaulin
+      - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: 0.9.2
+          prefix-key: ${{ env.version }}
       - run:
           cargo tarpaulin --skip-clean --all-targets --features=test-dbs
           --out=Xml
