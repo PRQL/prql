@@ -6,8 +6,8 @@ very handy for editing, saving, and reusing PRQL queries in VS Code.
 
 To install the VS Code extension, open VS Code and type
 <kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>P</kbd>
-(<kbd>Cmd</kbd>-<kbd>Shift</kbd>-<kbd>P</kbd> on a Mac) and type `PRQL`.
-Install the extension as usual.
+(<kbd>Cmd</kbd>-<kbd>Shift</kbd>-<kbd>P</kbd> on a Mac) and type `PRQL`. Install
+the extension as usual.
 
 [Repo for the PRQL VS Code extension](https://github.com/PRQL/prql-vscode)
 
