@@ -75,7 +75,7 @@ group billing_city (
 
 People who know how this is done in SQL will probably have noticed that we just
 decoupled aggregation from grouping. These two very connected operations (in SQL) benefit
-immensely from each being a standalone function.
+from each being a standalone function.
 
 Firstly, each can have invariants that the query engine can
 leverage to produce more efficient queries.
