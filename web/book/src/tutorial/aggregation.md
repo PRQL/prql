@@ -33,7 +33,7 @@ the `sum` function adds up the values of the `total` column of all rows.
 ## Grouping
 
 Suppose we want to produce summaries of invoices _for each city_
-in the table. 
+in the table.
 `aggregate` cannot do this because it will always produce a single row.
 
 We could separate the relation into groups corresponding to individual
@@ -75,10 +75,10 @@ group billing_city (
 
 People who know how this is done in SQL will probably have noticed that we just
 decoupled aggregation from grouping. These two very connected operations (in SQL) benefit
-immensely from each being a standalone function. 
+immensely from each being a standalone function.
 
-Firstly, each can have invariants that the query engine can 
-leverage to produce more efficient queries. 
+Firstly, each can have invariants that the query engine can
+leverage to produce more efficient queries.
 Additionally, they can be used with other transform functions, such as:
 
 ```
@@ -88,7 +88,7 @@ group billing_city (
 )
 ```
 
-This code collects the first two rows for each city's `group`. 
+This code collects the first two rows for each city's `group`.
 
 The SQL needed to replicate this behavior might include window functions and
 sub-queries. PRQL handles all the complexity.
