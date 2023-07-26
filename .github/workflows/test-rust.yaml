@@ -36,10 +36,11 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
+      - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.9.2
+          prefix-key: ${{ env.version }}
           shared-key: rust-${{ inputs.target}}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
