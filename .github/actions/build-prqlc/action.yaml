@@ -35,7 +35,7 @@ runs:
     - if: runner.os == 'Windows'
       shell: bash
       run: |
-        echo 'RUSTFLAGS="-C target-feature=+crt-static"' >>"$GITHUB_ENV"
+        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
