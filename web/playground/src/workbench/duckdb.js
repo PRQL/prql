@@ -52,7 +52,11 @@ async function registerChinook(db) {
 
   const c = await db.connect();
   for (const table of CHINOOK_TABLES) {
-    await c.insertCSVFromPath(`${table}.csv`, { name: table, detect: true, header: true });
+    await c.insertCSVFromPath(`${table}.csv`, {
+      name: table,
+      detect: true,
+      header: true,
+    });
   }
   c.close();
 }
