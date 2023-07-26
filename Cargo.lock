@@ -2991,7 +2991,6 @@ dependencies = [
  "clap_complete_command",
  "clio",
  "color-eyre",
- "colorchoice",
  "colorchoice-clap",
  "env_logger",
  "insta",
