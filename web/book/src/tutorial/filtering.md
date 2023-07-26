@@ -21,7 +21,7 @@ PRQL converts the single `filter` transform to use the appropriate
 SQL `WHERE` or `HAVING` command,
 depending on where it appears in the pipeline it is used.
 
-### `take` transform 
+### `take` transform
 
 The `take` transform picks rows to pass through based on their position within the table.
 The position (the set of rows) can be specified in two ways:

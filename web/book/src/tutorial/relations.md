@@ -17,7 +17,7 @@ For example, the `invoices` table from the Chinook database ([https://github.com
 
 A table (relation) is composed of columns, each of which has an unique name and a designated data type.
 Every table has zero to several rows, each containing the same set of columns.
-The table above has 
+The table above has
 `invoice_id`, `customer_id`, and `artist_id` columns with a data type of "integer number",
 a `billing_city` column with a data type of "text",
 a number of other columns, and
@@ -100,7 +100,7 @@ join customers ( ==customer_id )
 This example "connects" the customer information from the `customers` table with the information from the `invoices` table, using identical values of the `customer_id` column from each table to match the rows.
 
 It is frequently useful to assign an alias to both tables being joined together
-so that each table's columns can be referred to uniquely. 
+so that each table's columns can be referred to uniquely.
 
 ```
 from inv=invoices
@@ -119,7 +119,7 @@ This final example combines the above into a single query.
 It illustrates _a pipeline_ &mdash; the fundamental basis of PRQL.
 We simply add new lines (transforms) at the end of the query.
 Each transform modifies the table produced by the statement above
-to produce the desired result. 
+to produce the desired result.
 
 ```
 from inv=invoices
