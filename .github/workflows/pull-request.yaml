@@ -155,6 +155,8 @@ jobs:
     # https://github.com/fastify/github-action-merge-dependabot/issues/355.
     runs-on: ubuntu-latest
 
+    if: github.actor == 'dependabot[bot]'
+
     permissions:
       pull-requests: write
       contents: write
