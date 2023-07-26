@@ -82,8 +82,8 @@ Our immediate focus for the code is on:
 - Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
-  standard SQL queries; for example [date to string
-  functions](https://github.com/PRQL/prql/issues/366).
+  standard SQL queries; for example
+  [date to string functions](https://github.com/PRQL/prql/issues/366).
 - Expanding our set of supported features — we've recently added experimental
   support for modules / multi-file projects, and for auto-formatting.
 
@@ -94,9 +94,8 @@ We're also spending time thinking about:
   extension & Jupyter integration. If there are tools you're familiar with that
   you think would be open to integrating with PRQL, please let us know in an
   issue.
-- Whether all our initial decisions were correct — for example [how we handle
-  window functions outside of a `window`
-  transform](https://github.com/PRQL/prql/issues/2723).
+- Whether all our initial decisions were correct — for example
+  [how we handle window functions outside of a `window` transform](https://github.com/PRQL/prql/issues/2723).
 - Making it easier to contribute to the compiler. We have a wide group of
   contributors to the project, but contributions to the compiler itself are
   quite concentrated. We're keen to expand this;
