@@ -103,6 +103,7 @@ jobs:
         with:
           crate: cargo-tarpaulin
       - run: ./.github/set_version.sh
+        shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:

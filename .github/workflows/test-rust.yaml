@@ -37,6 +37,7 @@ jobs:
         with:
           crate: cargo-insta
       - run: ./.github/set_version.sh
+        shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
