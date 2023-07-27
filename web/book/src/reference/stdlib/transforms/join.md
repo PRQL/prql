@@ -3,16 +3,14 @@
 Adds columns from another table, matching rows based on a condition.
 
 ```prql no-eval
-join side:{inner|left|right|full} table (conditions)
+join side:{inner|left|right|full} table (condition)
 ```
 
 ## Parameters
 
 - `side` decides which rows to include, defaulting to `inner`.
-- Table reference
-- List of conditions
-  - The result of join operation is a cartesian (cross) product of rows from
-    both tables, which is then filtered to match all of these conditions.
+- Relation reference
+- A condition
   - If name is the same from both tables, it can be expressed with only `==col`.
 
 ## Examples
@@ -25,6 +23,14 @@ join side:left positions (employees.id==positions.employee_id)
 ```prql
 from employees
 join side:left p=positions (employees.id==p.employee_id)
+```
+
+```prql
+from tracks
+join side:left artists (
+  artists.id==tracks.artist_id && artists.country=='UK'
+  # As an alternative to filtering
+)
 ```
 
 ## Self equality operator

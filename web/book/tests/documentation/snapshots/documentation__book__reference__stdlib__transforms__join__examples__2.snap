@@ -1,0 +1,12 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from tracks\njoin side:left artists (\n  artists.id==tracks.artist_id && artists.country=='UK'\n  # As an alternative to filtering\n)\n"
+---
+SELECT
+  tracks.*,
+  artists.*
+FROM
+  tracks
+  LEFT JOIN artists ON artists.id = tracks.artist_id
+  AND artists.country = 'UK'
+
