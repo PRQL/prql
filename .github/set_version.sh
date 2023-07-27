@@ -2,4 +2,4 @@
 # since the caches seem to accumulate cruft over time;
 # ref https://github.com/PRQL/prql/pull/2407
 
-grep '^version =' Cargo.toml | tr -d ' ' >> $GITHUB_ENV
+grep '^version =' Cargo.toml | tr -d ' "' >> $GITHUB_ENV
