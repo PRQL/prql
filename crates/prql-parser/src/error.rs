@@ -1,9 +1,48 @@
+use std::fmt::Display;
+
 use chumsky::{error::SimpleReason, Span as ChumskySpan};
 use prql_ast::Span;
-use prql_parser::chumsky;
-use prql_parser::lexer::Token;
 
-use crate::{error::WithErrorInfo, Error, Reason};
+use crate::{lexer::Token, PError};
+
+#[derive(Debug)]
+pub struct Error {
+    pub span: Span,
+    pub kind: ErrorKind,
+}
+
+#[derive(Debug)]
+pub enum ErrorKind {
+    Lexer(LexerError),
+    Parser(ParserError),
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::Lexer(err) => write!(f, "{err}"),
+            ErrorKind::Parser(err) => write!(f, "{err}"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct LexerError(String);
+
+#[derive(Debug)]
+pub struct ParserError(String);
+
+impl Display for ParserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Display for LexerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unexpected {}", self.0)
+    }
+}
 
 pub(crate) fn convert_lexer_error(
     source: &str,
@@ -17,16 +56,19 @@ pub(crate) fn convert_lexer_error(
         .skip(e.span().start)
         .take(e.span().end() - e.span().start)
         .collect();
-    let span = Some(Span {
+    let span = Span {
         start: e.span().start,
         end: e.span().end,
         source_id,
-    });
+    };
 
-    Error::new(Reason::Unexpected { found }).with_span(span)
+    Error {
+        span,
+        kind: ErrorKind::Lexer(LexerError(found)),
+    }
 }
 
-pub(crate) fn convert_parser_error(e: prql_parser::PError) -> Error {
+pub(crate) fn convert_parser_error(e: PError) -> Error {
     let mut span = e.span();
 
     if e.found().is_none() {
@@ -39,7 +81,10 @@ pub(crate) fn convert_parser_error(e: prql_parser::PError) -> Error {
     }
 
     if let SimpleReason::Custom(message) = e.reason() {
-        return Error::new_simple(message).with_span(Some(*span));
+        return Error {
+            span: *span,
+            kind: ErrorKind::Parser(ParserError(message.clone())),
+        };
     }
 
     fn token_to_string(t: Option<Token>) -> String {
@@ -68,8 +113,11 @@ pub(crate) fn convert_parser_error(e: prql_parser::PError) -> Error {
 
     if expected.is_empty() || expected.len() > 10 {
         let label = token_to_string(e.found().cloned());
-        return Error::new_simple(format!("unexpected {label}{while_parsing}"))
-            .with_span(Some(*span));
+
+        return Error {
+            span: *span,
+            kind: ErrorKind::Parser(ParserError(format!("unexpected {label}{while_parsing}"))),
+        };
     }
 
     let mut expected = expected;
@@ -84,18 +132,19 @@ pub(crate) fn convert_parser_error(e: prql_parser::PError) -> Error {
         }
     };
 
-    match e.found() {
-        Some(found) => Error::new(Reason::Expected {
-            who: e.label().map(|x| x.to_string()),
-            expected,
-            found: DisplayToken(found).to_string(),
-        }),
-        // We want a friendlier message than "found end of input"...
-        None => Error::new(Reason::Simple(format!(
-            "Expected {expected}, but didn't find anything before the end."
-        ))),
+    Error {
+        span: *span,
+        kind: ErrorKind::Parser(ParserError(match e.found() {
+            Some(found) => format!(
+                "{who}expected {expected}, but found {found}",
+                who = e.label().map(|l| format!("{l} ")).unwrap_or_default(),
+                found = DisplayToken(found)
+            ),
+
+            // We want a friendlier message than "found end of input"...
+            None => format!("Expected {expected}, but didn't find anything before the end."),
+        })),
     }
-    .with_span(Some(*span))
 }
 
 struct DisplayToken<'a>(&'a Token);

@@ -3,25 +3,22 @@ mod interpolation;
 pub mod lexer;
 mod stmt;
 
-use chumsky::{error::Cheap, prelude::*, Stream};
+use chumsky::{prelude::*, Stream};
+use error::convert_lexer_error;
+use error::convert_parser_error;
+pub use error::Error;
 
 use self::lexer::Token;
 
 use prql_ast::stmt::*;
 use prql_ast::Span;
 
+mod error;
 mod span;
 
 use span::ParserSpan;
 
-pub use chumsky;
-pub use common::PError;
-
-#[derive(Debug)]
-pub enum Error {
-    Lexer(Cheap<char>),
-    Parser(PError),
-}
+use common::PError;
 
 /// Build PRQL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error>> {
@@ -29,14 +26,18 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
 
-    errors.extend(lex_errors.into_iter().map(Error::Lexer));
+    errors.extend(
+        lex_errors
+            .into_iter()
+            .map(|err| convert_lexer_error(source, err, source_id)),
+    );
 
     let ast = if let Some(tokens) = tokens {
         let stream = prepare_stream(tokens, source, source_id);
 
         let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
-        errors.extend(parse_errors.into_iter().map(Error::Parser));
+        errors.extend(parse_errors.into_iter().map(convert_parser_error));
 
         ast
     } else {
@@ -128,12 +129,15 @@ mod test {
     use prql_ast::expr::{Expr, FuncCall};
 
     fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
-        let tokens = Parser::parse(&lexer::lexer(), source)
-            .map_err(|errs| errs.into_iter().map(Error::Lexer).collect::<Vec<_>>())?;
+        let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
+            errs.into_iter()
+                .map(|err| convert_lexer_error(source, err, 0))
+                .collect::<Vec<_>>()
+        })?;
 
         let stream = prepare_stream(tokens, source, 0);
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
-            .map_err(|errs| errs.into_iter().map(Error::Parser).collect())
+            .map_err(|errs| errs.into_iter().map(convert_parser_error).collect())
     }
 
     #[test]
