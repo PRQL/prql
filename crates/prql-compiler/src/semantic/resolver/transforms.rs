@@ -5,11 +5,11 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use crate::error::{Error, Reason, WithErrorInfo};
 use crate::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
+use crate::{Error, Reason, WithErrorInfo};
 
 use super::super::context::{Decl, DeclKind};
 use super::super::module::Module;

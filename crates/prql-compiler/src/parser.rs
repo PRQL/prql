@@ -5,9 +5,9 @@ use chumsky::{error::SimpleReason, Span as ChumskySpan};
 use prql_ast::{stmt::Stmt, Span};
 use prql_parser::chumsky;
 
-use crate::error::{Error, Errors, Reason, WithErrorInfo};
 use crate::utils::IdGenerator;
 use crate::SourceTree;
+use crate::{Error, Errors, Reason, WithErrorInfo};
 use prql_parser::lexer::Token;
 
 pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {

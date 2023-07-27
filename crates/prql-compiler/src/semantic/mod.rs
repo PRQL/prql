@@ -20,9 +20,9 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::error::WithErrorInfo;
 use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::Query;
+use crate::WithErrorInfo;
 use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.

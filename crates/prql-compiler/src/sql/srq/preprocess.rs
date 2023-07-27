@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::error::{Error, WithErrorInfo};
 use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::generic::{InterpolateItem, Range};
 use crate::ir::pl::{JoinSide, Literal};
@@ -14,6 +13,7 @@ use crate::ir::rq::{
 };
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
+use crate::{Error, WithErrorInfo};
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;

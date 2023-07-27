@@ -7,9 +7,9 @@ use sqlparser::ast::{
     WildcardAdditionalOptions,
 };
 
-use crate::error::{Error, Span, WithErrorInfo};
 use crate::ir::pl::Ident;
 use crate::ir::rq::{CId, RelationColumn};
+use crate::{Error, Span, WithErrorInfo};
 
 use super::dialect::ColumnExclude;
 use super::gen_expr::*;

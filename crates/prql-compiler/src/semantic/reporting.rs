@@ -7,8 +7,8 @@ use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 use super::context::{DeclKind, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
 use super::{Context, Lineage};
-use crate::error::Span;
 use crate::ir::pl::*;
+use crate::Span;
 
 pub fn label_references(context: &Context, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);

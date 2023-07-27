@@ -3,8 +3,8 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::error::{Error, Span, WithErrorInfo};
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
+use crate::{Error, Span, WithErrorInfo};
 
 use super::ast_expand;
 

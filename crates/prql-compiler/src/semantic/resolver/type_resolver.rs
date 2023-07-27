@@ -1,9 +1,9 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::error::{Error, Reason, WithErrorInfo};
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
+use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
 
