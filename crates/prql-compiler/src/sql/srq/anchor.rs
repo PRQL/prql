@@ -2,7 +2,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-use crate::generic::ColumnSort;
+use crate::ir::generic::ColumnSort;
 use crate::ir::rq::{
     self, fold_column_sorts, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef,
     Transform,

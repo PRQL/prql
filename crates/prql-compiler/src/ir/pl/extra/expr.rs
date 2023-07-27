@@ -2,7 +2,7 @@ use enum_as_inner::EnumAsInner;
 use prql_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
-use crate::generic::WindowKind;
+use crate::ir::generic::WindowKind;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Range, Ty};
 
 impl FuncCall {
@@ -30,8 +30,8 @@ impl Func {
     }
 }
 
-pub type WindowFrame = crate::generic::WindowFrame<Box<Expr>>;
-pub type ColumnSort = crate::generic::ColumnSort<Box<Expr>>;
+pub type WindowFrame = crate::ir::generic::WindowFrame<Box<Expr>>;
+pub type ColumnSort = crate::ir::generic::ColumnSort<Box<Expr>>;
 
 /// FuncCall with better typing. Returns the modified table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
