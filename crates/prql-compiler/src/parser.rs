@@ -7,7 +7,7 @@ use prql_parser::chumsky;
 
 use crate::error::{Error, Errors, Reason, WithErrorInfo};
 use crate::utils::IdGenerator;
-use crate::{codegen, SourceTree};
+use crate::SourceTree;
 use prql_parser::lexer::Token;
 
 pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
@@ -148,7 +148,7 @@ impl std::fmt::Display for DisplayToken<'_> {
                 }
             }
             Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Token::Literal(arg0) => write!(f, "{}", codegen::DisplayLiteral(arg0)),
+            Token::Literal(..) => write!(f, "literal"),
             Token::Control(arg0) => write!(f, "{arg0}"),
 
             Token::ArrowThin => f.write_str("->"),
