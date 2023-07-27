@@ -1,24 +1,19 @@
 mod expr;
 mod interpolation;
-pub mod lexer;
+mod lexer;
+mod span;
 mod stmt;
 
+use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
-use error::convert_lexer_error;
-use error::convert_parser_error;
-pub use error::Error;
 
-use self::lexer::Token;
-
+use prql_ast::error::Error;
+use prql_ast::error::Reason;
 use prql_ast::stmt::*;
 use prql_ast::Span;
 
-mod error;
-mod span;
-
+use lexer::Token;
 use span::ParserSpan;
-
-use common::PError;
 
 /// Build PRQL AST from a PRQL query string.
 pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error>> {
@@ -29,7 +24,7 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     errors.extend(
         lex_errors
             .into_iter()
-            .map(|err| convert_lexer_error(source, err, source_id)),
+            .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
     let ast = if let Some(tokens) = tokens {
@@ -49,29 +44,6 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     } else {
         Err(errors)
     }
-}
-
-/// Helper that does not track source_ids
-#[cfg(test)]
-pub fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    parse_source(source, 0)
-}
-
-fn prepare_stream(
-    tokens: Vec<(Token, std::ops::Range<usize>)>,
-    source: &str,
-    source_id: u16,
-) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
-    let tokens = tokens
-        .into_iter()
-        .map(move |(t, s)| (t, ParserSpan::new(source_id, s)));
-    let len = source.chars().count();
-    let eoi = ParserSpan(Span {
-        start: len,
-        end: len + 1,
-        source_id,
-    });
-    Stream::from_iter(eoi, tokens)
 }
 
 mod common {
@@ -121,23 +93,211 @@ mod common {
     }
 }
 
+fn prepare_stream(
+    tokens: Vec<(Token, std::ops::Range<usize>)>,
+    source: &str,
+    source_id: u16,
+) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
+    let tokens = tokens
+        .into_iter()
+        .map(move |(t, s)| (t, ParserSpan::new(source_id, s)));
+    let len = source.chars().count();
+    let eoi = ParserSpan(Span {
+        start: len,
+        end: len + 1,
+        source_id,
+    });
+    Stream::from_iter(eoi, tokens)
+}
+
+fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
+    // TODO: is there a neater way of taking a span? We want to take it based on
+    // the chars, not the bytes, so can't just index into the str.
+    let found = source
+        .chars()
+        .skip(e.span().start)
+        .take(e.span().end() - e.span().start)
+        .collect();
+    let span = Some(Span {
+        start: e.span().start,
+        end: e.span().end,
+        source_id,
+    });
+
+    let mut e = Error::new(Reason::Unexpected { found });
+    e.span = span;
+    e
+}
+
+fn convert_parser_error(e: common::PError) -> Error {
+    let mut span = e.span();
+
+    if e.found().is_none() {
+        // found end of file
+        // fix for span outside of source
+        if span.start > 0 && span.end > 0 {
+            span.start -= 1;
+            span.end -= 1;
+        }
+    }
+
+    let mut e = construct_parser_error(e);
+    e.span = Some(*span);
+    e
+}
+
+fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
+    if let SimpleReason::Custom(message) = e.reason() {
+        return Error::new_simple(message);
+    }
+
+    fn token_to_string(t: Option<Token>) -> String {
+        t.as_ref()
+            .map(Token::to_string)
+            .unwrap_or_else(|| "end of input".to_string())
+    }
+
+    let is_all_whitespace = e
+        .expected()
+        .all(|t| matches!(t, None | Some(Token::NewLine)));
+    let expected: Vec<String> = e
+        .expected()
+        // TODO: could we collapse this into a `filter_map`? (though semantically
+        // identical)
+        //
+        // Only include whitespace if we're _only_ expecting whitespace
+        .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
+        .cloned()
+        .map(token_to_string)
+        .collect();
+
+    let while_parsing = e
+        .label()
+        .map(|l| format!(" while parsing {l}"))
+        .unwrap_or_default();
+
+    if expected.is_empty() || expected.len() > 10 {
+        let label = token_to_string(e.found().cloned());
+        return Error::new_simple(format!("unexpected {label}{while_parsing}"));
+    }
+
+    let mut expected = expected;
+    expected.sort();
+
+    let expected = match expected.len() {
+        1 => expected.remove(0),
+        2 => expected.join(" or "),
+        _ => {
+            let last = expected.pop().unwrap();
+            format!("one of {} or {last}", expected.join(", "))
+        }
+    };
+
+    match e.found() {
+        Some(found) => Error::new(Reason::Expected {
+            who: e.label().map(|x| x.to_string()),
+            expected,
+            found: found.to_string(),
+        }),
+        // We want a friendlier message than "found end of input"...
+        None => Error::new(Reason::Simple(format!(
+            "Expected {expected}, but didn't find anything before the end."
+        ))),
+    }
+}
+
 #[cfg(test)]
 mod test {
-
     use super::*;
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
     use prql_ast::expr::{Expr, FuncCall};
+
+    /// Helper that does not track source_ids
+    fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
+        parse_source(source, 0)
+    }
 
     fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
             errs.into_iter()
-                .map(|err| convert_lexer_error(source, err, 0))
+                .map(|e| convert_lexer_error(source, e, 0))
                 .collect::<Vec<_>>()
         })?;
 
         let stream = prepare_stream(tokens, source, 0);
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
-            .map_err(|errs| errs.into_iter().map(convert_parser_error).collect())
+            .map_err(|errs| errs.into_iter().map(construct_parser_error).collect())
+    }
+
+
+    #[test]
+    fn test_error_unicode_string() {
+        // Test various unicode strings successfully parse errors. We were
+        // getting loops in the lexer before.
+        parse_single("s’ ").unwrap_err();
+        parse_single("s’").unwrap_err();
+        parse_single(" s’").unwrap_err();
+        parse_single(" ’ s").unwrap_err();
+        parse_single("’s").unwrap_err();
+        parse_single("👍 s’").unwrap_err();
+
+        let source = "Mississippi has four S’s and four I’s.";
+        assert_debug_snapshot!(parse_single(source).unwrap_err(), @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:22-23,
+                ),
+                reason: Unexpected {
+                    found: "’",
+                },
+                hints: [],
+                code: None,
+            },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:35-36,
+                ),
+                reason: Unexpected {
+                    found: "’",
+                },
+                hints: [],
+                code: None,
+            },
+            Error {
+                kind: Error,
+                span: Some(
+                    0:37-38,
+                ),
+                reason: Simple(
+                    "Expected * or an identifier, but didn't find anything before the end.",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "###);
+    }
+
+    #[test]
+    fn test_error_unexpected() {
+        assert_debug_snapshot!(parse_single("Answer: T-H-A-T!").unwrap_err(), @r###"
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:6-7,
+                ),
+                reason: Simple(
+                    "unexpected : while parsing source file",
+                ),
+                hints: [],
+                code: None,
+            },
+        ]
+        "###);
     }
 
     #[test]
