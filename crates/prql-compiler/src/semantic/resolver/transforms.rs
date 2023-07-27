@@ -7,7 +7,7 @@ use std::iter::zip;
 
 use prql_ast::error::{Error, Reason};
 
-use crate::generic::{SortDirection, WindowKind};
+use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;

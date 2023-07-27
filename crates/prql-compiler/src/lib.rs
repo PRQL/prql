@@ -82,7 +82,6 @@
 
 mod codegen;
 mod error_message;
-mod generic;
 pub mod ir;
 mod parser;
 pub mod semantic;
