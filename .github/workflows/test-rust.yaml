@@ -41,8 +41,6 @@ jobs:
           crate: cargo-insta
       - run: ./.github/set_version.sh
         shell: bash
-      # TODO: remove
-      - run: echo ${{ github.workflow }}
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
