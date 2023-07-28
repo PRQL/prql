@@ -75,6 +75,7 @@ jobs:
     with:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
+      features: ${{ matrix.features }}
 
   test-php:
     uses: ./.github/workflows/test-php.yaml
