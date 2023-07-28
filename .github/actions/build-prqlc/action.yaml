@@ -11,7 +11,7 @@ inputs:
   features:
     description: Features to enable
     required: false
-    default: ''
+    default: ""
 outputs:
   artifact-name:
     description: The name of the artifact

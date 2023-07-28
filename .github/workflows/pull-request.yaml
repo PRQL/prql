@@ -155,7 +155,7 @@ jobs:
             features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            features: ''
+            features: ""
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
