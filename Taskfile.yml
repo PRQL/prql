@@ -337,9 +337,8 @@ tasks:
 
   test-php:
     dir: bindings/prql-php
-    cmds: 
-    - vendor/bin/phpunit tests
-
+    cmds:
+      - vendor/bin/phpunit tests
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
