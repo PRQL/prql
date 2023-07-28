@@ -1,0 +1,14 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from invoices\nderive t = time\n"
+---
+Error:
+   ╭─[:2:12]
+   │
+ 2 │ derive t = time
+   │            ──┬─
+   │              ╰─── unexpected `t = `<time>``
+   │
+   │ Help: this is probably a 'bad type' error (we are working on that)
+───╯
+
