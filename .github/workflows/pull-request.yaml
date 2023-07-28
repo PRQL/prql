@@ -36,6 +36,10 @@ jobs:
     with:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
+      # We previously ran with these, but removing until
+      # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile times
+      # ${{ matrix.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external' || matrix.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
+      features: ""
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
