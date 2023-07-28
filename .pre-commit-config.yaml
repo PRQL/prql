@@ -2,30 +2,34 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-      - id: trailing-whitespace
       - id: end-of-file-fixer
         exclude: '(.*\.snap|.*render-link.html|head.hbs)'
       - id: check-yaml
       - id: mixed-line-ending
+      - id: trailing-whitespace
+        # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
+        exclude: '.*\.rs$'
   - repo: https://github.com/crate-ci/typos
-    rev: typos-dict-v0.10.1
+    rev: v1.16.1
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.9-for-vscode
+    rev: v3.0.0
     hooks:
       - id: prettier
         additional_dependencies:
           - prettier
+          # TODO: This doesn't seem to work, would be great to fix.
+          # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.272
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.280
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
   - repo: https://github.com/r0x0d/pre-commit-rust
@@ -34,7 +38,7 @@ repos:
       - id: fmt
       - id: clippy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.4.1
     hooks:
       - id: mypy
   - repo: https://github.com/tcort/markdown-link-check

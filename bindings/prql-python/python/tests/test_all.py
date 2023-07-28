@@ -1,7 +1,7 @@
 import prql_python as prql
 
 
-def test_all():
+def test_all() -> None:
     """
     Test the basic python functions
 
@@ -43,7 +43,7 @@ def test_all():
     assert prql.compile(prql_query, options)
 
 
-def test_compile_options():
+def test_compile_options() -> None:
     """
     Test the CompileOptions
     """

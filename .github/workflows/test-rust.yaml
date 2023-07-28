@@ -36,10 +36,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
+      - run: ./.github/set_version.sh
+        shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.1
+          prefix-key: ${{ env.version }}
           shared-key: rust-${{ inputs.target}}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: 📎 Clippy
@@ -83,10 +85,10 @@ jobs:
             }}
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prql-compiler/tests/integration
+        working-directory: ./crates/prql-compiler/tests/integration
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
       - name: Wait for database
-        uses: ifaxity/wait-on-action@v1
+        uses: ifaxity/wait-on-action@v1.1.0
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000

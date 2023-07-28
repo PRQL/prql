@@ -21,8 +21,8 @@ test = false
 [features]
 default = ["console_error_panic_hook"]
 
-[dependencies]
-prql-compiler = {path = "../../prql-compiler", default-features = false}
+[target.'cfg(target_family="wasm")'.dependencies]
+prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
 wasm-bindgen = "0.2.87"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
@@ -31,7 +31,7 @@ wasm-bindgen = "0.2.87"
 # code size when deploying.
 console_error_panic_hook = {version = "0.1.7", optional = true}
 
-[dev-dependencies]
+[target.'cfg(target_family="wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.30"
 
 [package.metadata.cargo-udeps.ignore]
@@ -52,7 +52,7 @@ exactly = 2
 file = "package-lock.json"
 replace = '$1"{{version}}"'
 search = '''
-(".*/prql-js": \{
+(\s+"prql-js",
 \s+"version": )"[\d\.]+"'''
 
 [[package.metadata.release.pre-release-replacements]]

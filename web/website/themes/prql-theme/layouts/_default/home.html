@@ -27,7 +27,7 @@
             </div>
             <div class="col-lg-6 pt-4 pt-lg-0">
               <pre tabindex="0">
-          <code class="language-prql hljs" data-lang="prql">{{ .prql_example }}</code>
+          <code class="language-prql hljs" data-lang="prql">{{ $.Site.Data.examples.hero.prql }}</code>
         </pre>
             </div>
           </div>
@@ -98,15 +98,16 @@
                   {{ range $index, $e := .examples }}
                     <button
                       class="nav-link {{ if (eq 0 $index) }}active{{ end }}"
-                      id="v-pills-{{ $e.id }}-tab"
+                      id="v-pills-{{ $e }}-tab"
                       data-bs-toggle="pill"
-                      data-bs-target="#v-pills-{{ $e.id }}"
+                      data-bs-target="#v-pills-{{ $e }}"
                       type="button"
                       role="tab"
-                      aria-controls="v-pills-{{ $e.id }}"
+                      aria-controls="v-pills-{{ $e }}"
                       aria-selected="false"
                     >
-                      {{ $e.label }}
+                      {{ $example := or (index site.Data.examples $e) (errorf "couldn't find example %q (expected such a .yaml file in data/examples)" $e) }}
+                      {{ $example.label }}
                     </button>
                   {{ end }}
                 </div>
@@ -116,13 +117,14 @@
                       class="tab-pane fade{{ if (eq 0 $index) }}
                         show active
                       {{ end }} row"
-                      id="v-pills-{{ $e.id }}"
+                      id="v-pills-{{ $e }}"
                       role="tabpanel"
-                      aria-labelledby="v-pills-{{ $e.id }}-tab"
+                      aria-labelledby="v-pills-{{ $e }}-tab"
                       tabindex="0"
                     >
-                      <pre><code class="language-prql hljs" data-lang="prql">{{ $e.prql }}</code></pre>
-                      <pre><code class="language-sql hljs" data-lang="sql">{{ $e.sql }}</code></pre>
+                      {{ $example := index $.Site.Data.examples $e }}
+                      <pre><code class="language-prql hljs" data-lang="prql">{{ $example.prql }}</code></pre>
+                      <pre><code class="language-sql hljs" data-lang="sql">{{ $example.sql }}</code></pre>
                     </div>
                   {{ end }}
                 </div>

@@ -1,24 +1,61 @@
 # PRQL Changelog
 
-## 0.9.0 — [unreleased]
+## [unreleased]
 
-_The following unreleased features are only available in the `main` branch. They
-will become the public version at the next release._
+**Language**:
 
 **Features**:
 
-- We've made one large breaking change — Lists are now Tuples, and represented
-  with braces `{}` rather than brackets `[]`.
+**Fixes**:
 
-  We now have Arrays, which use the `[]` syntax.
+**Documentation**:
 
-  We made this syntax change to incorporate arrays. Almost every major language
-  uses `[]` for arrays. We are adopting that convention, and will use `{}` for
-  tuples. (Though we recognize that `{}` for tuples is also rare (Hi, Erlang!),
-  but didn't want to further load parentheses with meaning.)
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.9.2 — 2023-07-25
+
+0.9.2 is a hotfix release to fix an issue in the 0.9.0 & 0.9.1 release
+pipelines.
+
+## 0.9.1 — 2023-07-25
+
+0.9.1 is a hotfix release to fix an issue in the 0.9.0 release pipeline.
+
+## 0.9.0 — 2023-07-24
+
+0.9.0 is probably PRQL's biggest ever release. We have dialect-specific
+standard-libraries, a regex operator, an initial implementation of multiple-file
+projects & modules, lots of bug fixes, and many many internal changes.
+
+We've made a few backward incompatible syntax changes. Most queries will work
+with a simple find/replace; see below for details.
+
+The release has 421 commits from 12 contributors.
+
+A small selection of the changes:
+
+**Language**:
+
+- The major breaking change is a new syntax for lists, which have been renamed
+  to _tuples_, and are now represented with braces `{}` rather than brackets
+  `[]`.
 
   To convert previous PRQL queries to this new syntax simply change `[ ... ]` to
   `{ ... }`.
+
+  We made the syntax change to incorporate arrays. Almost every major language
+  uses `[]` for arrays. We are adopting that convention — arrays use `[]`,
+  tuples will use `{}`. (Though we recognize that `{}` for tuples is also rare
+  (Hi, Erlang!), but didn't want to further load parentheses with meaning.)
+
+  Arrays are conceptually similar to columns — their elements have a single
+  type. Array syntax can't contain assignments.
 
   As part of this, we've also formalized tuples as containing both individual
   items (`select {foo, baz}`), and assignments (`select {foo=bar, baz=fuz}`).
@@ -30,19 +67,19 @@ will become the public version at the next release._
   - _Breaking_: The `sql.duckdb` target supports DuckDB 0.8 (@eitsupi, #2810).
   - _Breaking_: The `sql.hive` target is removed (@eitsupi, #2837).
 
-- Three new operators. These compile to different function or operator depending
-  on the target.
+- New arithmetic operators. These compile to different function or operator
+  depending on the target.
 
-  - _Breaking_: Floating division operator `/` and truncated integer division
-    operator `//`. In previous versions, `/` was simply compiled into SQL `/`,
-    but `/` now always does floating division. (@aljazerzen, #2684).
-    <!-- TODO: link to division operator docs -->
+  - _Breaking:_ Operator `/` now always performs floating division (@aljazerzen,
+    #2684). _TODO: add link to division operator docs_
+
+  - Truncated integer division operator `//` (@aljazerzen, #2684).
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
 
     ```prql no-eval
     from tracks
-    filter {name ~= "Love"}
+    filter (name ~= "Love")
     ```
 
     ...compiles to;
@@ -57,13 +94,16 @@ will become the public version at the next release._
     ```
 
     ...though the exact form differs by dialect; see the
-    [Regex docs](https://prql-lang.org/book/language-features/regex.html) for
-    more details.
+    [Regex docs](https://prql-lang.org/book/reference/syntax/operators.html#regex)
+    for more details.
 
-- We've changed our function declaration syntax to match other declarations.
-  Functions were one of the first language constructs in PRQL, and since then
-  we've added normal declarations; and there's no compelling reason to have
-  functions be different.
+- New aggregation functions: `every`, `any`, `average`, and `concat_array`.
+  _Breaking:_ Remove `avg` in favor of `average`.
+
+- _Breaking:_ We've changed our function declaration syntax to match other
+  declarations. Functions were one of the first language constructs in PRQL, and
+  since then we've added normal declarations there's no compelling reason for
+  functions to be different.
 
   ```prql no-eval
   let add = a b -> a + b
@@ -75,10 +115,12 @@ will become the public version at the next release._
   func add a b -> a + b
   ```
 
-- Modules allow importing declarations from other files: See TODO: insert link
+- Experimental modules, which allow importing declarations from other files.
+  Docs are forthcoming.
 
-- "Relation Literals", which create inline relations / tables from data in the
-  query:
+- Relation literals create a relation (a "table") as an _array_ of _tuples_.
+  This example demonstrates the new syntax for arrays `[]` and tuples `{}`.
+  (@aljazerzen, #2605)
 
   ```prql no-eval
   from [{a=5, b=false}, {a=6, b=true}]
@@ -86,15 +128,25 @@ will become the public version at the next release._
   select a
   ```
 
-  This example demonstrates both the new tuple syntax (`{}`) and arrays `[]`.
+- `this` can be used to refer to the current pipeline, for situations where
+  plain column name would be ambiguous:
 
-  (@aljazerzen, #2605)
+  ```prql no-eval
+  from x
+  derive sum = my_column
+  select this.sum   # does not conflict with `std.sum`
+  ```
 
-<!-- TODO: should we have a section for "Library changes? There's a missing category between "Language features" and "Internal changes" -->
+  Within a `join` transform, there is also a reference to the right relation:
+  `that`.
 
-- We've changed how we handle colors. We now use the
-  [`anstream`](https://github.com/rust-cli/anstyle) library in `prqlc` &
-  `prql-compiler`.
+- _Breaking:_ functions `count`, `rank` and `row_number` now require an argument
+  of the array to operate on. In most cases you can directly replace `count`
+  with `count this`. The `non_null` argument of `count` has been removed.
+
+**Features**:
+
+- We've changed how we handle colors.
 
   `Options::color` is deprecated and has no effect. Code which consumes
   `prql_compiler::compile` should instead accept the output with colors and use
@@ -102,6 +154,9 @@ will become the public version at the next release._
   minimal disruption, `prql_compiler` will currently strip color codes when a
   standard environment variable such as `CLI_COLOR=0` is set or when it detects
   `stderr` is not a TTY.
+
+  We now use the [`anstream`](https://github.com/rust-cli/anstyle) library in
+  `prqlc` & `prql-compiler`.
 
   (@max-sixty, #2773)
 
@@ -113,11 +168,9 @@ will become the public version at the next release._
 - Numbers expressed with scientific notation — `1e9` — are now handled correctly
   by the compiler (@max-sixty, #2865).
 
-**Documentation**:
-
-**Web**:
-
 **Integrations**:
+
+- prql-python now provides type hints (@philpep, #2912)
 
 **Internal changes**:
 
@@ -136,6 +189,11 @@ will become the public version at the next release._
 - ClickHouse is tested in CI (@eitsupi, #2815).
 
 **New Contributors**:
+
+- @maxmcd, with #2533
+- @khoa165, with #2876
+- @philpep, with #2912
+- @not-my-profile, with #2971
 
 ## 0.8.1 — 2023-04-29
 
@@ -268,8 +326,8 @@ This release has 54 commits from 6 contributors. Selected changes:
 **Documentation**:
 
 - Add a policy for which bindings are supported / unsupported / nascent. See
-  <https://prql-lang.org/book/bindings/index.html> for more details (@max-sixty,
-  #2062) (@max-sixty, #2062)
+  <https://prql-lang.org/book/project/bindings/index.html> for more details
+  (@max-sixty, #2062) (@max-sixty, #2062)
 
 **Integrations**:
 
@@ -561,10 +619,11 @@ below in this release).
 
 - Defining a temporary table is now expressed as `let` rather than `table`
   (@aljazerzen, #1315). See the
-  [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
+  [tables docs](https://prql-lang.org/book/reference/declarations/variables.html)
+  for details.
 
 - _Experimental:_ The
-  [`case`](https://prql-lang.org/book/language-features/case.html) function sets
+  [`case`](https://prql-lang.org/book/reference/syntax/case.html) function sets
   a variable to a value based on one of several expressions (@aljazerzen,
   #1278).
 
@@ -593,7 +652,7 @@ below in this release).
   ```
 
   Check out the
-  [`case` docs](https://prql-lang.org/book/language-features/case.html) for more
+  [`case` docs](https://prql-lang.org/book/reference/syntax/case.html) for more
   details.
 
 - _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
@@ -613,8 +672,8 @@ below in this release).
   ```
 
   Check out the
-  [`append` docs](https://prql-lang.org/book/transforms/append.html) for more
-  details.
+  [`append` docs](https://prql-lang.org/book/reference/stdlib/transforms/append.html)
+  for more details.
 
 - Numbers can contain underscores, which can make reading long numbers easier
   (@max-sixty, #1467):
@@ -658,7 +717,7 @@ below in this release).
 
 - The crate's external API has changed to allow for compiling to intermediate
   representation. This also affects bindings. See
-  [`prql_compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
+  [`prql-compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
   for more details.
 
 **Fixes**:
@@ -673,7 +732,7 @@ below in this release).
 improvements]
 
 - Add docs on aliases in
-  [Select](https://prql-lang.org/book/transforms/select.html)
+  [Select](https://prql-lang.org/book/reference/stdlib/transforms/select.html)
 - Add JS template literal and multiline example (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
 - Improve prql-compiler docs & examples (@aljazerzen, #1515)
@@ -938,9 +997,7 @@ We also have new features in the
 
 **Documentation**:
 
-- Add docs on
-  [Architecture](https://prql-lang.org/book/internals/compiler-architecture.html)
-  (@aljazerzen, #904)
+- Add docs on Architecture (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
 **Internal changes**:

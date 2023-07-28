@@ -102,11 +102,13 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-tarpaulin
+      - run: ./.github/set_version.sh
+        shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: 0.8.1
+          prefix-key: ${{ env.version }}
       - run:
           cargo tarpaulin --skip-clean --all-targets --features=test-dbs
           --out=Xml
@@ -136,12 +138,12 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prql-compiler/Cargo.toml` (and `prql-compiler/prqlc/Cargo.toml` below), because of
+        # `prql-compiler/Cargo.toml` (and `prqlc/Cargo.toml` below), because of
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prql-compiler
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: prql-compiler
+        working-directory: crates/prql-compiler
         run: cargo msrv verify
       - name: Verify minimum rust version — prqlc
-        working-directory: prql-compiler/prqlc
+        working-directory: crates/prqlc
         run: cargo msrv verify

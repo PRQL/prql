@@ -19,18 +19,28 @@ runs:
     - run: rustup target add ${{ inputs.target }}
       shell: bash
 
+    - run: ./.github/set_version.sh
+      shell: bash
+
     - uses: Swatinem/rust-cache@v2
       with:
-        # Share cache with `test-rust`
-        save-if: false
+        # Share cache with `test-rust`, except for `musl` targets.
+        save-if:
+          ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
+          'musl') }}
         shared-key: rust-${{ inputs.target }}
-        prefix-key: 0.8.1
+        prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y musl-tools
+
+    - if: runner.os == 'Windows' && inputs.profile == 'release'
+      shell: bash
+      run: |
+        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
@@ -44,9 +54,15 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
+        # We previously had `--package=prqlc` for all, but this caches much
+        # worse than just building the whole workspace.
+        # https://github.com/PRQL/prql/issues/3098, so we just build the whole
+        # workspace — except for the `musl` target, which can't build the whole
+        # workspace. (This is overly complicated and would be great to simplify,
+        # even at the cost of slighly less efficiency.)
         args:
-          --package=prqlc --profile=${{ inputs.profile }} --locked --target=${{
-          inputs.target }}
+          --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
+          ${{ contains(inputs.target, 'musl') && '--package=prqlc' || '' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
@@ -55,7 +71,7 @@ runs:
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE -C ../../../prql-compiler/prqlc/ README.md
+        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE -C ../../../crates/prqlc/ README.md
 
     - name: Create artifact for Windows
       shell: bash
@@ -64,7 +80,7 @@ runs:
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE ../../../prql-compiler/prqlc/README.md
+        7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE ../../../crates/prqlc/README.md
 
     - name: Upload prqlc
       uses: actions/upload-artifact@v3

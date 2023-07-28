@@ -506,7 +506,7 @@ checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
 dependencies = [
  "lazy_static",
  "memchr",
- "regex-automata",
+ "regex-automata 0.1.10",
 ]
 
 [[package]]
@@ -517,7 +517,7 @@ checksum = "a246e68bb43f6cd9db24bea052a53e40405417c5fb372e3d1a8a7f770a564ef5"
 dependencies = [
  "memchr",
  "once_cell",
- "regex-automata",
+ "regex-automata 0.1.10",
  "serde",
 ]
 
@@ -764,10 +764,11 @@ checksum = "2da6da31387c7e4ef160ffab6d5e7f00c42626fe39aea70a7b0f1773f7dd6c1b"
 
 [[package]]
 name = "clio"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5f8d4adf1833f1d75ee8b5af282fe742de6631f6741d1b02656c3c5c46b7206"
+checksum = "20a7c15685caad17ac973fde985e95c8a0b7a4206de22f6b5fb58a70f430b2cc"
 dependencies = [
+ "atty",
  "cfg-if",
  "clap 4.3.0",
  "libc",
@@ -851,7 +852,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "prql-compiler",
 ]
@@ -952,7 +953,7 @@ dependencies = [
  "clap 4.3.0",
  "criterion-plot",
  "is-terminal",
- "itertools",
+ "itertools 0.10.5",
  "num-traits",
  "once_cell",
  "oorandom",
@@ -973,7 +974,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
- "itertools",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -1780,9 +1781,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.29.0"
+version = "1.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a28d25139df397cbca21408bb742cf6837e04cdbebf1b07b760caf971d6a972"
+checksum = "a0770b0a3d4c70567f0d58331f3088b0e4c4f56c9b8d764efe654b4a5d46de3a"
 dependencies = [
  "console",
  "globset",
@@ -1796,9 +1797,9 @@ dependencies = [
 
 [[package]]
 name = "insta-cmd"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76cb631fa6f0f228ef5c5d05cc66b3c2455c398536b97621a0f0316621bbae47"
+checksum = "48dee4ceca7bb4634484c679a445b96d1cf1e454b956540ce18dba18e922d8d0"
 dependencies = [
  "insta",
  "serde",
@@ -1852,6 +1853,15 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
 ]
@@ -2009,9 +2019,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.144"
+version = "0.2.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b00cc1c228a6782d0f076e7b232802e0c5689d41bb5df366f2a6b6621cfdfe1"
+checksum = "b4668fb0ea861c1df094127ac5f1da3409a82116a4ba74fca2e58ef927159bb3"
 
 [[package]]
 name = "libduckdb-sys"
@@ -2163,14 +2173,14 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "ansi-to-html",
  "anstream",
  "anyhow",
  "globset",
  "insta",
- "itertools",
+ "itertools 0.11.0",
  "log",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
@@ -2253,6 +2263,15 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.45.0",
+]
+
+[[package]]
+name = "misc"
+version = "0.9.2"
+dependencies = [
+ "insta",
+ "regex",
+ "similar",
 ]
 
 [[package]]
@@ -2842,42 +2861,53 @@ checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.59"
+version = "1.0.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aeca18b86b413c660b781aa319e4e2648a3e6f9eadc9b47e9038e6fe9f3451b"
+checksum = "18fb31db3f9bddb2ea821cde30a9f70117e3f119938b5ee630b7403aa6e2ead9"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "prql"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "prql-compiler",
  "rustler",
 ]
 
 [[package]]
+name = "prql-ast"
+version = "0.9.2"
+dependencies = [
+ "enum-as-inner",
+ "semver",
+ "serde",
+ "strum 0.25.0",
+]
+
+[[package]]
 name = "prql-compiler"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "anstream",
  "anyhow",
  "ariadne",
  "cfg-if",
  "chrono",
- "chumsky",
  "criterion",
  "csv",
  "duckdb",
  "enum-as-inner",
  "insta",
- "itertools",
+ "itertools 0.11.0",
  "log",
  "mysql",
  "once_cell",
  "pg_bigdecimal",
  "postgres",
+ "prql-ast",
+ "prql-parser",
  "regex",
  "rusqlite",
  "semver",
@@ -2896,7 +2926,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "prql-compiler",
  "syn 2.0.17",
@@ -2904,7 +2934,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2912,7 +2942,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2922,7 +2952,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2930,8 +2960,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "prql-parser"
+version = "0.9.2"
+dependencies = [
+ "chumsky",
+ "insta",
+ "itertools 0.11.0",
+ "prql-ast",
+ "semver",
+]
+
+[[package]]
 name = "prql-python"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "insta",
  "prql-compiler",
@@ -2941,24 +2982,23 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.8.1"
+version = "0.9.2"
 dependencies = [
  "anstream",
  "anyhow",
  "ariadne",
- "atty",
  "clap 4.3.0",
  "clap_complete_command",
  "clio",
  "color-eyre",
- "colorchoice",
  "colorchoice-clap",
  "env_logger",
  "insta",
  "insta-cmd",
- "itertools",
+ "itertools 0.11.0",
  "minijinja",
  "notify",
+ "prql-ast",
  "prql-compiler",
  "regex",
  "serde",
@@ -3205,12 +3245,13 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.8.3"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81ca098a9821bd52d6b24fd8b10bd081f47d39c22778cafaa75a2857a62c6390"
+checksum = "b2eae68fc220f7cf2532e4494aded17545fce192d59cd996e0fe7887f4ceb575"
 dependencies = [
  "aho-corasick 1.0.1",
  "memchr",
+ "regex-automata 0.3.3",
  "regex-syntax",
 ]
 
@@ -3221,10 +3262,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 
 [[package]]
-name = "regex-syntax"
-version = "0.7.2"
+name = "regex-automata"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "436b050e76ed2903236f032a59761c1eb99e1b0aead2c257922771dab1fc8c78"
+checksum = "39354c10dd07468c2e73926b23bb9c2caca74c5501e38a35da70406f1d923310"
+dependencies = [
+ "aho-corasick 1.0.1",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ab07dc67230e4a4718e70fd5c20055a4334b121f1f9db8fe63ef39ce9b8c846"
 
 [[package]]
 name = "rend"
@@ -3324,9 +3376,9 @@ dependencies = [
 
 [[package]]
 name = "rustler"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d7a2f98cb272ae0548e434bb3afde626012084cbebef84542bc7afed868bd6f"
+checksum = "095fb0fb2864560480609c5b1427fe9f3872f6b3e400036f5531e8f06ff33026"
 dependencies = [
  "lazy_static",
  "rustler_codegen",
@@ -3335,9 +3387,9 @@ dependencies = [
 
 [[package]]
 name = "rustler_codegen"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ae37fb154683a1ff13e95dfd16c15043d6aee9853ea650ca34a45bd94e319a5"
+checksum = "a8911f25973c1d68a3ffdea53d664026f6b0877c949bd3f9f5bc263385c33553"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -3347,9 +3399,9 @@ dependencies = [
 
 [[package]]
 name = "rustler_sys"
-version = "2.2.1"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae0eb19e2fdf4abc3662441087fc499a58b7550822cc8007e79f15c40157c883"
+checksum = "0b311902a5c224452d0d8e1821a4b682d43f58248a2c559f613a7b52e0980075"
 dependencies = [
  "regex",
  "unreachable",
@@ -3604,16 +3656,16 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c12bc9199d1db8234678b7051747c07f517cdcf019262d1847b94ec8b1aee3e"
 dependencies = [
- "itertools",
+ "itertools 0.10.5",
  "nom",
  "unicode_categories",
 ]
 
 [[package]]
 name = "sqlparser"
-version = "0.34.0"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37d3706eefb17039056234df6b566b0014f303f867f2656108334a55b8096f59"
+checksum = "f20da3167d59ddf22c226d7fb34f8e56419a4cbc14df554f499e23d2dafc329f"
 dependencies = [
  "log",
  "serde",
@@ -3932,11 +3984,12 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.28.1"
+version = "1.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aa32867d44e6f2ce3385e89dceb990188b8bb0fb25b0cf576647a6f98ac5105"
+checksum = "374442f06ee49c3a28a8fc9f01a2596fed7559c6b99b31279c3261778e77d84f"
 dependencies = [
  "autocfg",
+ "backtrace",
  "bytes",
  "libc",
  "mio",

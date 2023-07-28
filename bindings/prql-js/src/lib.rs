@@ -1,3 +1,5 @@
+#![cfg(target_family = "wasm")]
+
 mod utils;
 
 use std::str::FromStr;

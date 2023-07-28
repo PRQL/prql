@@ -1,21 +1,13 @@
 [workspace]
 members = [
-  # The main crate
-  "prql-compiler", #
-  # The CLI
-  "prql-compiler/prqlc", #
-  # Macros
-  "prql-compiler/prql-compiler-macros", #
-  # Bindings
+  "crates/*",
   "bindings/prql-elixir/native/prql",
   "bindings/prql-java",
   "bindings/prql-js",
   "bindings/prql-lib",
-  "bindings/prql-python", #
-  # The book / docs
-  "web/book", #
-  # An example
-  "prql-compiler/examples/compile-files", #
+  "bindings/prql-python",
+  "web/book", # The book / docs
+  "crates/prql-compiler/examples/compile-files", # An example
 ]
 resolver = "2"
 
@@ -24,10 +16,10 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.8.1"
+version = "0.9.2"
 
 [profile.release.package.prql-js]
-# Tell `rust-js` to optimize for small code size.
+# Optimize for small code size.
 opt-level = "s"
 # Insta runs faster this way, ref https://insta.rs/docs/quickstart/
 [profile.dev.package.insta]
