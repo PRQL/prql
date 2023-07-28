@@ -55,8 +55,8 @@ jobs:
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           #
           args: >
-            --all-targets --target=${{ inputs.target }} --features=${{ inputs.features }}
-            -- -D warnings
+            --all-targets --target=${{ inputs.target }} --features=${{
+            inputs.features }} -- -D warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -71,7 +71,8 @@ jobs:
           # Here, we also add:
           # - Unreferenced snapshots - `--unreferenced=auto` on Linux
           args: >
-            --no-run --locked --target=${{ inputs.target }} --features=${{ inputs.features }}
+            --no-run --locked --target=${{ inputs.target }} --features=${{
+            inputs.features }}
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./crates/prql-compiler/tests/integration
