@@ -8,6 +8,10 @@ inputs:
   profile:
     description: Build profile option; `dev` or `release`.
     required: true
+  features:
+    description: Features to enable
+    required: false
+    default: ""
 outputs:
   artifact-name:
     description: The name of the artifact
@@ -28,7 +32,7 @@ runs:
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
           'musl') }}
-        shared-key: rust-${{ inputs.target }}
+        shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
         prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
