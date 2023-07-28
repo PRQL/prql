@@ -17,7 +17,10 @@ final class CompilerTest extends TestCase
 
     public function testPrqlLibraryFileExists(): void
     {
-        $fileExists = file_exists("lib/libprql_lib.so") || file_exists("lib/libprql_lib.dylib") || file_exists("lib/libprql_lib.dll");
+        $fileExists = file_exists("lib/libprql_lib.so") 
+                  || file_exists("lib/libprql_lib.dylib") 
+                  || file_exists("lib/libprql_lib.dll");
+    
         $this->assertTrue($fileExists);
     }
 
