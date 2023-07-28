@@ -54,17 +54,6 @@ jobs:
           # Note that `--all-targets` doesn't refer to targets like
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           #
-          # Autoformatting doesn't make this clear to read, but this tertiary
-          # expression states to run:
-          # - External DB integration tests — `--features=test-dbs-external`
-          #   on Linux
-          # - No features on Windows
-          # - Internal DB integration tests — `--features=test-dbs` otherwise
-          #
-          # Below, we also add:
-          # - Unreferenced snapshots - `--unreferenced=auto` on Linux
-          #
-          # We'd like to reenable on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
           args: >
             --all-targets --target=${{ inputs.target }} --features=${{ inputs.features }}
             -- -D warnings
@@ -79,11 +68,10 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
+          # Here, we also add:
+          # - Unreferenced snapshots - `--unreferenced=auto` on Linux
           args: >
-            --no-run --locked --target=${{ inputs.target }} --features=${{
-            inputs.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external'
-            || inputs.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
-            }}
+            --no-run --locked --target=${{ inputs.target }} --features=${{ inputs.features }}
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./crates/prql-compiler/tests/integration

@@ -37,7 +37,16 @@ jobs:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
       # We previously ran with these, but removing until
-      # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile times
+      # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile
+      # times
+      # # Autoformatting doesn't make this clear to read, but this tertiary
+      # # expression states to run:
+      # # - External DB integration tests — `--features=test-dbs-external`
+      # #   on Linux
+      # # - No features on Windows
+      # # - Internal DB integration tests — `--features=test-dbs` otherwise
+      # #
+      # # We'd like to reenable on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
       # ${{ matrix.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external' || matrix.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
       features: ""
 
