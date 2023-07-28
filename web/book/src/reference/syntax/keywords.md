@@ -12,6 +12,24 @@ _h3llo
 hello.world
 ```
 
+## `this` & `that`
+
+`this` refers to the current relation:
+
+```prql
+from invoices
+aggregate (
+    count this
+)
+```
+
+Within a `join`, `that` refers to the other table:
+
+```prql
+from invoices
+join tracks (this.track_id==that.id)
+```
+
 ## Quoting
 
 To use characters that would be otherwise invalid, identifiers can be surrounded
