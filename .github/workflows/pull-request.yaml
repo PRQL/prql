@@ -85,12 +85,18 @@ jobs:
     # (and is strictly inferior to a GitHub feature that would just say "don't
     # allow merging on any failing test"). We could change that by moving the
     # triggers for those into this workflow, and using an external action to
-    # assess whether the paths have changed. That would move us closer to a
-    # world where all tasks are defined in a single workflow, and we use
-    # job-level criteria to decide what to run. But it's quite a change, I
-    # (@max-sixty) have probably done too much devops already, and it's possible
-    # that GitHub releases something to enable path triggers within workflows
-    # natively.
+    # assess whether the paths have changed, such as
+    # https://github.com/dorny/paths-filter/tree/v2.
+
+    # If we wanted to start this, we could move `test-all.yaml` in, by removing
+    # that workflow's triggers, adding the triggers to the call to it from this
+    # workflow.
+
+    # That would move us closer to a world where all tasks are defined in a
+    # single workflow, and we use job-level criteria to decide what to run. But
+    # it's quite a change, I (@max-sixty) have probably done too much devops
+    # already, and it's possible that GitHub releases something to enable path
+    # triggers within workflows natively.
     #
     # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
