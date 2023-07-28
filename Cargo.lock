@@ -3596,7 +3596,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
 dependencies = [
  "bstr 0.2.17",
- "serde",
  "unicode-segmentation",
 ]
 
