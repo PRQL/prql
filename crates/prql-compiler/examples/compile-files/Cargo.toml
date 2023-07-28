@@ -8,8 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
-[lib]
-doctest = false
+[[bin]]
+name = "compile-files"
 test = false
 
 [build-dependencies]
