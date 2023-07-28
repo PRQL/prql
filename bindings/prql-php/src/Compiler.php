@@ -269,5 +269,4 @@ final class Compiler
         }
         return $ffi_ptr[0];
     }
-
 }
