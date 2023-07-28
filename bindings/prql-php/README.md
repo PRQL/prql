@@ -49,16 +49,16 @@ This will pull-in ext-ffi extension, because it's declared in `composer.json`.
 
 ### Building
 
-There is a `build.sh` script that:
+There is a `task build-php` script that:
 
 - runs cargo to build `libprql_lib`,
-- copies `libprql_lib.so` into `lib`,
+- copies `libprql_lib.*` into `lib`,
 - copies `libprql_lib.h` into `lib`.
 
 ### Tests
 
 ```
-sh build.sh
+task build-php
 ./vendor/bin/phpunit tests
 ```
 
