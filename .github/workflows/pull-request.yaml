@@ -91,7 +91,7 @@ jobs:
     # If we wanted to start this, we could move `test-all.yaml` in, by removing
     # that workflow's triggers, adding the triggers to the call to it from this
     # workflow.
-    
+
     # That would move us closer to a world where all tasks are defined in a
     # single workflow, and we use job-level criteria to decide what to run. But
     # it's quite a change, I (@max-sixty) have probably done too much devops
