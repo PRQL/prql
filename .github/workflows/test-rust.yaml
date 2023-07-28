@@ -88,6 +88,6 @@ jobs:
           # Here, we also add:
           # - Unreferenced snapshots - `--unreferenced=auto` on Linux
           args: >
-            test --no-run --locked --target=${{ inputs.target }} --features=${{
+            test --target=${{ inputs.target }} --features=${{
             inputs.features }} ${{ inputs.target == 'x86_64-unknown-linux-gnu'
             && '--unreferenced=auto' || '' }}
