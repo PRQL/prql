@@ -59,7 +59,7 @@ There is a `task build-php` script that:
 
 ```
 task build-php
-./vendor/bin/phpunit tests
+task test-php
 ```
 
 ### Code style

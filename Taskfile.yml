@@ -334,6 +334,12 @@ tasks:
     - cp target/release/libprql_lib.* bindings/prql-lib/libprql_lib.h
       bindings/prql-php/lib/
     - cd bindings/prql-php && composer install
+
+  test-php:
+    dir: bindings/prql-php
+    cmds: 
+    - vendor/bin/phpunit tests
+
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
