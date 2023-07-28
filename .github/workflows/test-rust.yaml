@@ -68,8 +68,6 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: test
-          # Here, we also add:
-          # - Unreferenced snapshots - `--unreferenced=auto` on Linux
           args: >
             --no-run --locked --target=${{ inputs.target }} --features=${{
             inputs.features }}
@@ -87,9 +85,9 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # See Compile step for explanation of args
+          # Here, we also add:
+          # - Unreferenced snapshots - `--unreferenced=auto` on Linux
           args: >
-            test --target=${{ inputs.target }} --features=${{ inputs.target ==
-            'x86_64-unknown-linux-gnu' && 'test-dbs-external' || inputs.target
-            != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }} ${{ inputs.target
-            == 'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+            test --no-run --locked --target=${{ inputs.target }} --features=${{
+            inputs.features }} ${{ inputs.target == 'x86_64-unknown-linux-gnu'
+            && '--unreferenced=auto' || '' }}
