@@ -61,7 +61,7 @@ A small selection of the changes:
 
     ```prql no-eval
     from tracks
-    filter {name ~= "Love"}
+    filter (name ~= "Love")
     ```
 
     ...compiles to;
