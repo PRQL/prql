@@ -72,10 +72,11 @@ PRQL still has some minor bugs and some missing features, and is probably only
 ready to be rolled out to non-technical teams for fairly simple queries.
 
 We recently release [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0),
-our biggest release ever.
-
-Here's our current [Roadmap](https://prql-lang.org/roadmap/) and our
-[Milestones](https://github.com/PRQL/prql/milestones).
+our biggest release ever. Here's our current
+[Roadmap](https://prql-lang.org/roadmap/).
+<!-- TODO: add back when we get them 
+and our
+[Milestones](https://github.com/PRQL/prql/milestones). -->
 
 Our immediate focus for the code is on:
 
