@@ -11,7 +11,7 @@ use super::{
 };
 
 /// Context of the pipeline.
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RootModule {
     /// Map of all accessible names (for each namespace)
     pub(crate) root_mod: Module,
