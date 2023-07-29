@@ -112,3 +112,20 @@ fn empty_interpolations() {
     ───╯
     "###);
 }
+
+#[test]
+fn select_with_extra_fstr() {
+    // Should complain in the same way as `select lower "mooo"`
+    assert_display_snapshot!(compile(r###"
+    from foo
+    select lower f"{x}/{y}"
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:20]
+       │
+     3 │     select lower f"{x}/{y}"
+       │                    ─┬─
+       │                     ╰─── Unknown name
+    ───╯
+    "###);
+}
