@@ -1,7 +1,7 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 mod ast_expand;
-mod context;
+mod decl;
 mod eval;
 mod lowering;
 mod module;

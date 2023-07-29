@@ -11,7 +11,7 @@ use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
 
-use super::super::context::{Decl, DeclKind};
+use super::super::decl::{Decl, DeclKind};
 use super::super::module::Module;
 use super::Resolver;
 use super::{Lineage, RootModule};

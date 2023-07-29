@@ -7,7 +7,7 @@ use prql_ast::expr::Ident;
 
 use crate::error::WithErrorInfo;
 use crate::ir::pl::{Annotation, Expr, ExprKind, LineageColumn, TupleField, Ty};
-use crate::semantic::context::{Decl, DeclKind, TableDecl, TableExpr};
+use crate::semantic::decl::{Decl, DeclKind, TableDecl, TableExpr};
 use crate::semantic::{Module, RootModule, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 

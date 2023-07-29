@@ -6,7 +6,7 @@ use prql_ast::{expr::Ident, stmt::QueryDef, Span};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    context::{Decl, TableExpr},
+    decl::{Decl, TableExpr},
     Module, NS_MAIN, NS_QUERY_DEF,
 };
 
