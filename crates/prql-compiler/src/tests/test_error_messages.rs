@@ -190,6 +190,7 @@ fn test_basic_type_checking() {
 }
 
 // See also test_bad_error_messages::misplaced_type_error
+// Note that the ``` Help: Type `bool` expands to `bool` ``` is not that useful
 #[test]
 fn test_type_error_placement() {
     assert_display_snapshot!(compile(r###"
