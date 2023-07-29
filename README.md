@@ -74,7 +74,8 @@ ready to be rolled out to non-technical teams for fairly simple queries.
 We recently release [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0),
 our biggest release ever. Here's our current
 [Roadmap](https://prql-lang.org/roadmap/).
-<!-- TODO: add back when we get them 
+
+<!-- TODO: add back when we get them
 and our
 [Milestones](https://github.com/PRQL/prql/milestones). -->
 
@@ -119,13 +120,13 @@ To stay in touch with PRQL:
 - For those who might be interested in contributing to the code now, here are a
   few bugs (as of 2023-07-29) that we'd be keen to fix and someone with
   basic-ish rust knowledge could make good progress. As discussed in our
-  [contributing
-  docs](https://prql-lang.org/book/project/contributing/development.html).
+  [contributing docs](https://prql-lang.org/book/project/contributing/development.html).
   always feel free to ask questions or open a draft PR.
-  - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
+  - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at
+    least not panic
   - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
-  - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward defined in the issue
-
+  - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward
+    defined in the issue
 
 ## Explore
 
