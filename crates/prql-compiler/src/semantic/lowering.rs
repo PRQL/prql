@@ -19,8 +19,8 @@ use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 
-use super::context::{self, DeclKind, RootModule};
-use super::NS_DEFAULT_DB;
+use super::context::{self, DeclKind};
+use super::{RootModule, NS_DEFAULT_DB};
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,

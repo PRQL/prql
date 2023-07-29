@@ -7,16 +7,17 @@ mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
+mod root_module;
 mod static_analysis;
 
 use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-pub use self::context::RootModule;
 pub use self::module::Module;
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
+pub use self::root_module::RootModule;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
