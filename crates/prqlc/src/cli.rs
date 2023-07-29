@@ -530,46 +530,9 @@ sort full
         "###);
     }
 
-    #[ignore = "Need to write a fmt test with the full CLI when insta_cmd is fixed"]
-    #[test]
-    fn format() {
-        // This is the previous previous approach with the Format command; which
-        // now doesn't run through `execute`; instead through `run`.
-        let output = Command::execute(
-            &Command::Format {
-                input: clio::ClioPath::default(),
-            },
-            &mut r#"
-from table.subdivision
- derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
-group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 1 c_column} )
-        "#
-            .into(),
-            "",
-        )
-        .unwrap();
-
-        // this test is here just to document behavior - the result is far from being correct:
-        // - indentation does not stack
-        // - operator precedence is not considered (parenthesis are not inserted for numerical
-        //   operations but are always inserted for function calls)
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(),
-        @r###"
-        from table.subdivision
-        derive `želva_means_turtle` = (`column with spaces` + 1) * 3
-        group a_column (
-          take 10
-          sort b_column
-          derive {the_number = rank, last = lag 1 c_column}
-        )
-        "###);
-    }
-
     /// Check we get an error on a bad input
     #[test]
     fn compile() {
-        // Disable colors (would be better if this were a proper CLI test and
-        // passed in `--color=never`)
         anstream::ColorChoice::Never.write_global();
 
         let result = Command::execute(
