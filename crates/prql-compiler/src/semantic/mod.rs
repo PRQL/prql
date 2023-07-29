@@ -55,11 +55,11 @@ pub fn resolve(
     }
 
     // init empty context
-    let context = RootModule {
+    let root_module = RootModule {
         root_mod: Module::new_root(),
         ..RootModule::default()
     };
-    let mut resolver = Resolver::new(context, options);
+    let mut resolver = Resolver::new(root_module, options);
 
     // resolve sources one by one
     // TODO: recursive references
