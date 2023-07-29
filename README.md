@@ -87,9 +87,11 @@ Our immediate focus for the code is on:
     As discussed in our
     [contributing docs](https://prql-lang.org/book/project/contributing/development.html).
     always feel free to ask questions or open a draft PR!
-    - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
+    - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at
+      least not panic
     - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
-    - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward defined in the issue
+    - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward
+      defined in the issue
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
   standard SQL queries; for example
   [date to string functions](https://github.com/PRQL/prql/issues/366).
