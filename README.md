@@ -117,9 +117,9 @@ To stay in touch with PRQL:
   started — the project can be built in a couple of commands, and we're a really
   friendly community!
 - For those who might be interested in contributing to the code now, here are a
-  few bugs (as of 2023-07-29) that we'd be keen to fix and are at the level of
-  someone with basic-ish rust knowledge could make good progress. As discussed
-  in our [contributing
+  few bugs (as of 2023-07-29) that we'd be keen to fix and someone with
+  basic-ish rust knowledge could make good progress. As discussed in our
+  [contributing
   docs](https://prql-lang.org/book/project/contributing/development.html).
   always feel free to ask questions or open a draft PR.
   - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
