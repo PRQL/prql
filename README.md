@@ -84,8 +84,8 @@ Our immediate focus for the code is on:
   - For those who might be interested in contributing, here are a few bugs that
     we'd be keen to fix and are at the level where someone who knows some amount
     of rust could fix, either independently or with a small amount of guidance.
-    As discussed in our [contributing
-    docs](https://prql-lang.org/book/project/contributing/development.html).
+    As discussed in our
+    [contributing docs](https://prql-lang.org/book/project/contributing/development.html).
     always feel free to ask questions or open a draft PR!
     - #3151 — confined to parser
     - #3111 — maybe not fix, but at least not panic
