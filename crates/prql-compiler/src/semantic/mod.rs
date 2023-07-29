@@ -63,8 +63,7 @@ pub fn resolve(
     for (path, stmts) in normalize(file_tree)? {
         let stmts = ast_expand::expand_stmts(stmts)?;
 
-        resolver.current_module_path = path;
-        resolver.fold_statements(stmts)?;
+        resolver.resolve(path, stmts)?;
     }
 
     Ok(root_module)

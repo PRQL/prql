@@ -26,7 +26,7 @@ mod type_resolver;
 pub struct Resolver<'a> {
     context: &'a mut RootModule,
 
-    pub current_module_path: Vec<String>,
+    current_module_path: Vec<String>,
 
     default_namespace: Option<String>,
 
@@ -58,8 +58,12 @@ impl Resolver<'_> {
         }
     }
 
-    // entry point
-    pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
+    pub fn resolve(&mut self, path: Vec<String>, stmts: Vec<Stmt>) -> Result<()> {
+        self.current_module_path = path;
+        self.fold_statements(stmts)
+    }
+
+    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
