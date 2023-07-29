@@ -6,11 +6,11 @@ use itertools::{Itertools, Position};
 
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::ir::pl::*;
-use crate::semantic::context::TableDecl;
+use crate::semantic::decl::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
-use super::context::{Decl, DeclKind, TableExpr};
+use super::decl::{Decl, DeclKind, TableExpr};
 use super::module::Module;
 use super::{write_pl, RootModule, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use flatten::Flattener;

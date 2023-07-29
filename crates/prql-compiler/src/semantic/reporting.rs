@@ -4,7 +4,7 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::context::{DeclKind, TableDecl, TableExpr};
+use super::decl::{DeclKind, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
 use super::{Lineage, RootModule};
 use crate::error::Span;
