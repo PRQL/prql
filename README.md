@@ -102,14 +102,14 @@ We're also spending time thinking about:
   quite concentrated. We're keen to expand this;
   [#1840](https://github.com/PRQL/prql/issues/1840) for feedback.
 
-Contributing
+If you're up for contributing today:
 
 For those who might be interested in contributing, here are a few bugs (as of
-2023-07-29) that we'd be keen to fix and are at the level where someone who
-knows some amount of rust could fix, either independently or with a small amount
-of guidance. As discussed in our [contributing
+2023-07-29) that we'd be keen to fix and are at the level of someone with
+basic-ish rust knowledge could make good progress. As discussed in our
+[contributing
 docs](https://prql-lang.org/book/project/contributing/development.html). always
-feel free to ask questions or open a draft PR!
+feel free to ask questions or open a draft PR.
 
 - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
 - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
