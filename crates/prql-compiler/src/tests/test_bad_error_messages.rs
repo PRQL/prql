@@ -134,7 +134,7 @@ fn select_with_extra_fstr() {
 #[test]
 fn misplaced_type_error() {
     // This one should point at `foo` in `select (... foo)`
-    // (preferrably in addition to the error that is currently generated)
+    // (preferably in addition to the error that is currently generated)
     assert_display_snapshot!(compile(r###"
     let foo = 123
     from t
