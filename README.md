@@ -104,16 +104,15 @@ We're also spending time thinking about:
 
 If you're up for contributing today:
 
-For those who might be interested in contributing, here are a few bugs (as of
-2023-07-29) that we'd be keen to fix and are at the level of someone with
-basic-ish rust knowledge could make good progress. As discussed in our
-[contributing
-docs](https://prql-lang.org/book/project/contributing/development.html). always
-feel free to ask questions or open a draft PR.
-
-- [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
-- [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
-- [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward defined in the issue
+- For those who might be interested in contributing, here are a few bugs (as of
+  2023-07-29) that we'd be keen to fix and are at the level of someone with
+  basic-ish rust knowledge could make good progress. As discussed in our
+  [contributing
+  docs](https://prql-lang.org/book/project/contributing/development.html). always
+  feel free to ask questions or open a draft PR.
+  - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
+  - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
+  - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward defined in the issue
 
 ## Get involved
 
