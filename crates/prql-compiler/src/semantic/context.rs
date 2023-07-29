@@ -9,12 +9,14 @@ use crate::ir::pl::*;
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
-pub struct Context {
+pub struct RootModule {
     /// Map of all accessible names (for each namespace)
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
 }
+
+// TODO: impl Deref<Target=Module> for RootModule and DerefMut
 
 /// A struct containing information about a single declaration.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
@@ -90,7 +92,7 @@ pub enum TableColumn {
     Single(Option<String>),
 }
 
-impl Context {
+impl RootModule {
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
     pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), Option<String>> {
@@ -160,7 +162,7 @@ impl Default for DeclKind {
     }
 }
 
-impl Debug for Context {
+impl Debug for RootModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.root_mod.fmt(f)
     }

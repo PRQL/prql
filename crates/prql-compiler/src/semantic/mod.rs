@@ -13,7 +13,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-pub use self::context::Context;
+pub use self::context::RootModule;
 pub use self::module::Module;
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
@@ -40,7 +40,7 @@ pub fn resolve_and_lower(
 pub fn resolve(
     mut file_tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     options: ResolverOptions,
-) -> Result<Context> {
+) -> Result<RootModule> {
     // inject std module if it does not exist
     if !file_tree.sources.contains_key(&PathBuf::from("std.prql")) {
         let mut source_tree = SourceTree {
@@ -54,9 +54,9 @@ pub fn resolve(
     }
 
     // init empty context
-    let context = Context {
+    let context = RootModule {
         root_mod: Module::new_root(),
-        ..Context::default()
+        ..RootModule::default()
     };
     let mut resolver = Resolver::new(context, options);
 
@@ -213,7 +213,7 @@ pub mod test {
     use crate::ir::rq::RelationalQuery;
     use crate::parser::parse;
 
-    use super::{resolve, resolve_and_lower, Context};
+    use super::{resolve, resolve_and_lower, RootModule};
 
     pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery> {
         let mut source_tree = query.into();
@@ -222,7 +222,7 @@ pub mod test {
         resolve_and_lower(parse(&source_tree)?, &[])
     }
 
-    pub fn parse_and_resolve(query: &str) -> Result<Context> {
+    pub fn parse_and_resolve(query: &str) -> Result<RootModule> {
         let mut source_tree = query.into();
         super::load_std_lib(&mut source_tree);
 

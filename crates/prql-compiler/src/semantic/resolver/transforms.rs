@@ -14,7 +14,7 @@ use crate::semantic::write_pl;
 use super::super::context::{Decl, DeclKind};
 use super::super::module::Module;
 use super::Resolver;
-use super::{Context, Lineage};
+use super::{Lineage, RootModule};
 use super::{NS_PARAM, NS_THIS};
 
 /// try to convert function call with enough args into transform
@@ -498,7 +498,7 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, context: &Context) -> Result<Lineage> {
+    pub fn infer_type(&self, context: &RootModule) -> Result<Lineage> {
         use TransformKind::*;
 
         fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
@@ -647,7 +647,7 @@ impl Lineage {
         self.prev_columns.append(&mut self.columns);
     }
 
-    pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
+    pub fn apply_assign(&mut self, expr: &Expr, context: &RootModule) {
         // spacial case: all except
         if let ExprKind::All { except, .. } = &expr.kind {
             let except_exprs: HashSet<&usize> =
@@ -709,7 +709,7 @@ impl Lineage {
         });
     }
 
-    pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
+    pub fn apply_assigns(&mut self, assigns: &[Expr], context: &RootModule) {
         for expr in assigns {
             self.apply_assign(expr, context);
         }
@@ -738,7 +738,7 @@ impl Lineage {
 }
 
 impl LineageInput {
-    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<LineageColumn> {
+    fn get_all_columns(&self, except: &[Expr], context: &RootModule) -> Vec<LineageColumn> {
         let rel_def = context.root_mod.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
