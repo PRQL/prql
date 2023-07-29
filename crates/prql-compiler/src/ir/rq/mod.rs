@@ -22,7 +22,7 @@ use super::pl::Ident;
 use super::pl::{Literal, QueryDef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Query {
+pub struct RelationalQuery {
     pub def: QueryDef,
 
     pub tables: Vec<TableDecl>,
