@@ -100,19 +100,8 @@ We're also spending time thinking about:
 - Making it easier to contribute to the compiler. We have a wide group of
   contributors to the project, but contributions to the compiler itself are
   quite concentrated. We're keen to expand this;
-  [#1840](https://github.com/PRQL/prql/issues/1840) for feedback.
-
-If you're up for contributing today:
-
-- For those who might be interested in contributing, here are a few bugs (as of
-  2023-07-29) that we'd be keen to fix and are at the level of someone with
-  basic-ish rust knowledge could make good progress. As discussed in our
-  [contributing
-  docs](https://prql-lang.org/book/project/contributing/development.html). always
-  feel free to ask questions or open a draft PR.
-  - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
-  - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
-  - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward defined in the issue
+  [#1840](https://github.com/PRQL/prql/issues/1840) for feedback, some
+  suggestions on starter issues are below.
 
 ## Get involved
 
@@ -127,6 +116,16 @@ To stay in touch with PRQL:
 - See the [development][development] documentation for PRQL. It's easy to get
   started — the project can be built in a couple of commands, and we're a really
   friendly community!
+- For those who might be interested in contributing to the code now, here are a
+  few bugs (as of 2023-07-29) that we'd be keen to fix and are at the level of
+  someone with basic-ish rust knowledge could make good progress. As discussed
+  in our [contributing
+  docs](https://prql-lang.org/book/project/contributing/development.html).
+  always feel free to ask questions or open a draft PR.
+  - [#3111](https://github.com/PRQL/prql/issues/3111) — maybe not fix, but at least not panic
+  - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
+  - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward defined in the issue
+
 
 ## Explore
 
