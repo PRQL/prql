@@ -22,14 +22,14 @@ pub use lowering::lower_to_ir;
 
 use crate::error::WithErrorInfo;
 use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
-use crate::ir::rq::Query;
+use crate::ir::rq::RelationalQuery;
 use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
     file_tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     main_path: &[String],
-) -> Result<Query> {
+) -> Result<RelationalQuery> {
     let context = resolve(file_tree, Default::default())?;
 
     let (query, _) = lowering::lower_to_ir(context, main_path)?;
@@ -210,12 +210,12 @@ pub mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ir::rq::Query;
+    use crate::ir::rq::RelationalQuery;
     use crate::parser::parse;
 
     use super::{resolve, resolve_and_lower, Context};
 
-    pub fn parse_resolve_and_lower(query: &str) -> Result<Query> {
+    pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery> {
         let mut source_tree = query.into();
         super::load_std_lib(&mut source_tree);
 

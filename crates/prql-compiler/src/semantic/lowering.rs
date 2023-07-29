@@ -10,7 +10,9 @@ use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, WindowFrame};
 use crate::ir::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
-use crate::ir::rq::{self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform};
+use crate::ir::rq::{
+    self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
+};
 use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::semantic::write_pl;
@@ -24,7 +26,7 @@ use super::NS_DEFAULT_DB;
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
-pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Context)> {
+pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(RelationalQuery, Context)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
     let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
@@ -58,7 +60,7 @@ pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Con
         }
     }
 
-    let query = Query {
+    let query = RelationalQuery {
         def,
         tables: l.table_buffer,
         relation: main_relation.unwrap(),
