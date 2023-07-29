@@ -19,14 +19,17 @@ use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 
-use super::context::{self, Context, DeclKind};
+use super::context::{self, DeclKind, RootModule};
 use super::NS_DEFAULT_DB;
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
-pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(RelationalQuery, Context)> {
+pub fn lower_to_ir(
+    context: RootModule,
+    main_path: &[String],
+) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
     let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
@@ -114,7 +117,7 @@ struct Lowerer {
     cid: IdGenerator<CId>,
     tid: IdGenerator<TId>,
 
-    context: Context,
+    context: RootModule,
 
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
@@ -143,7 +146,7 @@ enum LoweredTarget {
 }
 
 impl Lowerer {
-    fn new(context: Context) -> Self {
+    fn new(context: RootModule) -> Self {
         Lowerer {
             context,
 

@@ -8,10 +8,10 @@ use prql_ast::expr::Ident;
 use crate::error::WithErrorInfo;
 use crate::ir::pl::{Annotation, Expr, ExprKind, LineageColumn, TupleField, Ty};
 use crate::semantic::context::{Decl, DeclKind, TableDecl, TableExpr};
-use crate::semantic::{Context, Module, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{Module, RootModule, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 
-impl Context {
+impl RootModule {
     pub(super) fn declare(
         &mut self,
         ident: Ident,
