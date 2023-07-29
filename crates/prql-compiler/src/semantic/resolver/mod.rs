@@ -17,8 +17,8 @@ use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
 
-mod context_impl;
 mod flatten;
+mod root_module_impl;
 mod transforms;
 mod type_resolver;
 
