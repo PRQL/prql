@@ -55,10 +55,7 @@ pub fn resolve(
     }
 
     // init empty context
-    let root_module = RootModule {
-        root_mod: Module::new_root(),
-        span_map: Default::default(),
-    };
+    let root_module = RootModule::new();
     let mut resolver = Resolver::new(root_module, options);
 
     // resolve sources one by one
