@@ -23,8 +23,8 @@ mod transforms;
 mod type_resolver;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
-pub struct Resolver {
-    pub context: RootModule,
+pub struct Resolver<'a> {
+    context: &'a mut RootModule,
 
     pub current_module_path: Vec<String>,
 
@@ -45,8 +45,8 @@ pub struct ResolverOptions {
     pub allow_module_decls: bool,
 }
 
-impl Resolver {
-    pub fn new(context: RootModule, options: ResolverOptions) -> Self {
+impl Resolver<'_> {
+    pub fn new(context: &mut RootModule, options: ResolverOptions) -> Resolver {
         Resolver {
             context,
             options,
@@ -250,7 +250,7 @@ impl Resolver {
     }
 }
 
-impl PlFold for Resolver {
+impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
         unreachable!()
     }
@@ -458,7 +458,7 @@ impl PlFold for Resolver {
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(&self.context)?);
+                r.lineage = Some(call.infer_type(self.context)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -483,7 +483,7 @@ impl PlFold for Resolver {
     }
 }
 
-impl Resolver {
+impl Resolver<'_> {
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
         if let Some(default_namespace) = &self.default_namespace {
             self.context.resolve_ident(ident, Some(default_namespace))

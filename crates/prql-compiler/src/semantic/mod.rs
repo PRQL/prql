@@ -55,8 +55,8 @@ pub fn resolve(
     }
 
     // init empty context
-    let root_module = RootModule::new();
-    let mut resolver = Resolver::new(root_module, options);
+    let mut root_module = RootModule::new();
+    let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve sources one by one
     // TODO: recursive references
@@ -67,7 +67,7 @@ pub fn resolve(
         resolver.fold_statements(stmts)?;
     }
 
-    Ok(resolver.context)
+    Ok(root_module)
 }
 
 /// Preferred way of injecting std module.
