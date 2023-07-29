@@ -130,9 +130,10 @@ fn select_with_extra_fstr() {
     "###);
 }
 
+// See also test_error_messages::test_type_error_placement
 #[test]
 fn misplaced_type_error() {
-    // These should point at `foo` in `select (... foo)`
+    // This one should point at `foo` in `select (... foo)`
     // (preferrably in addition to the error that is currently generated)
     assert_display_snapshot!(compile(r###"
     let foo = 123
@@ -145,21 +146,6 @@ fn misplaced_type_error() {
      2 │     let foo = 123
        │               ─┬─
        │                ╰─── function std.and, param `right` expected type `bool`, but found type `int`
-       │
-       │ Help: Type `bool` expands to `bool`
-    ───╯
-    "###);
-    assert_display_snapshot!(compile(r###"
-    let foo = x -> (x | as integer)
-    from t
-    select (true && (foo y))
-    "###).unwrap_err(), @r###"
-    Error:
-       ╭─[:2:21]
-       │
-     2 │     let foo = x -> (x | as integer)
-       │                         ─────┬────
-       │                              ╰────── function std.and, param `right` expected type `bool`, but found type `scalar`
        │
        │ Help: Type `bool` expands to `bool`
     ───╯
