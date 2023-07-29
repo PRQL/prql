@@ -81,6 +81,15 @@ Our immediate focus for the code is on:
 
 - Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
+  - For those who might be interested in contributing, here are a few bugs that
+    we'd be keen to fix and are at the level where someone who knows some amount
+    of rust could fix, either independently or with a small amount of guidance.
+    As discussed in our [contributing
+    docs](https://prql-lang.org/book/project/contributing/development.html).
+    always feel free to ask questions or open a draft PR!
+    - #3151 — confined to parser
+    - #3111 — maybe not fix, but at least not panic
+    - #3077 — some path forward defined in the issue
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
   standard SQL queries; for example
   [date to string functions](https://github.com/PRQL/prql/issues/366).
