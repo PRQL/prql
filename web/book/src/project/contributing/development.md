@@ -397,8 +397,9 @@ Currently we release in a semi-automated way:
 
 2. If the current version is correct, then skip ahead. But if the version needs
    to be changed — for example, we had planned on a patch release, but instead
-   require a minor release — then run `cargo release version $version -x && cargo
-   release replace -x` to bump the version and PR the resulting commit.
+   require a minor release — then run
+   `cargo release version $version -x && cargo release replace -x` to bump the
+   version and PR the resulting commit.
 3. After merging, go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
    maintainers have access to this page.}}, copy the changelog entry into the release
