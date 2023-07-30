@@ -24,9 +24,8 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     ty:
                       kind:
                         Array:
-                          kind:
-                            Singleton: "Null"
-                          name: ~
+                          kind: Any
+                          name: any
                       name: array
               ty:
                 kind:

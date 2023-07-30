@@ -12,9 +12,8 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
         ty:
           kind:
             Array:
-              kind:
-                Singleton: "Null"
-              name: ~
+              kind: Any
+              name: any
           name: array
   alias: one
   ty:

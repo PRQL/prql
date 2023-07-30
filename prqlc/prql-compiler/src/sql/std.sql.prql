@@ -31,10 +31,10 @@ let average = column -> s"AVG({column:0})"
 let stddev = column -> s"STDDEV({column:0})"
 
 @{window_frame=true, coalesce="TRUE"}
-let every = column -> s"BOOL_AND({column:0})"
+let all = column -> s"BOOL_AND({column:0})"
 
 @{window_frame=true, coalesce="FALSE"}
-let any = column -> s"BOOL_OR({column:0})"
+let some = column -> s"BOOL_OR({column:0})"
 
 @{window_frame=true, coalesce="''"}
 let concat_array = column -> s"STRING_AGG({column:0}, '')"
@@ -215,10 +215,10 @@ module glaredb {
 
 module sqlite {
   @{window_frame=true, coalesce="TRUE", binding_strength=6}
-  let every = column -> s"MIN({column:0}) > 0"
+  let all = column -> s"MIN({column:0}) > 0"
 
   @{window_frame=true, coalesce="FALSE", binding_strength=6}
-  let any = column -> s"MAX({column:0}) > 0"
+  let some = column -> s"MAX({column:0}) > 0"
 
   @{window_frame=true, coalesce="''"}
   let concat_array = column -> s"GROUP_CONCAT({column:0}, '')"

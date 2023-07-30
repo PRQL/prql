@@ -28,6 +28,10 @@ pub enum TyKind {
 
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),
+
+    /// Type of every possible value. Super type of all other types.
+    /// The breaker of chains. Mother of types.
+    Any,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -136,6 +140,8 @@ impl Ty {
 impl TyKind {
     fn is_super_type_of(&self, subset: &TyKind) -> bool {
         match (self, subset) {
+            (TyKind::Any, _) => true,
+            (_, TyKind::Any) => false,
             (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
 
             (one, TyKind::Union(many)) => many

@@ -116,26 +116,6 @@ fn test_union_all_sqlite() {
 }
 
 #[test]
-fn test_hint_missing_args() {
-    assert_display_snapshot!(compile(r###"
-    from film
-    select {film_id, lag film_id}
-    "###).unwrap_err(), @r###"
-    Error:
-       ╭─[:3:22]
-       │
-     3 │     select {film_id, lag film_id}
-       │                      ─────┬─────
-       │                           ╰─────── function std.select, param `columns` expected type `scalar`, but found type `array -> infer`
-       │
-       │ Help: Have you forgotten an argument to function std.lag?
-       │
-       │ Note: Type `scalar` expands to `int || float || bool || text || date || time || timestamp || null`
-    ───╯
-    "###)
-}
-
-#[test]
 fn test_regex_dialect() {
     assert_display_snapshot!(compile(r###"
     prql target:sql.mssql

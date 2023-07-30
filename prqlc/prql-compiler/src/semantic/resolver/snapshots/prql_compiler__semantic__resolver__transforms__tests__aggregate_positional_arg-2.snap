@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/src/semantic/resolver/transforms.rs
+source: prqlc/prql-compiler/src/semantic/resolver/transforms.rs
 expression: expr
 ---
 TransformCall:
@@ -21,7 +21,7 @@ TransformCall:
             input_name: c_invoice
             except: []
       inputs:
-        - id: 195
+        - id: 198
           name: c_invoice
           table:
             - default_db
@@ -39,9 +39,8 @@ TransformCall:
                 ty:
                   kind:
                     Array:
-                      kind:
-                        Singleton: "Null"
-                      name: ~
+                      kind: Any
+                      name: any
                   name: array
           ty:
             kind:
@@ -95,46 +94,13 @@ TransformCall:
               - kind:
                   Singleton: "Null"
                 name: ~
-            - - tuple_of_scalars
+            - - tuple
               - kind:
                   Tuple:
                     - Wildcard:
-                        kind:
-                          Union:
-                            - - int
-                              - kind:
-                                  Primitive: Int
-                                name: int
-                            - - float
-                              - kind:
-                                  Primitive: Float
-                                name: float
-                            - - bool
-                              - kind:
-                                  Primitive: Bool
-                                name: bool
-                            - - text
-                              - kind:
-                                  Primitive: Text
-                                name: text
-                            - - date
-                              - kind:
-                                  Primitive: Date
-                                name: date
-                            - - time
-                              - kind:
-                                  Primitive: Time
-                                name: time
-                            - - timestamp
-                              - kind:
-                                  Primitive: Timestamp
-                                name: timestamp
-                            - - ~
-                              - kind:
-                                  Singleton: "Null"
-                                name: ~
-                        name: scalar
-                name: tuple_of_scalars
+                        kind: Any
+                        name: any
+                name: tuple
         name: ~
 ty:
   kind:
@@ -142,42 +108,9 @@ ty:
       kind:
         Tuple:
           - Wildcard:
-              kind:
-                Union:
-                  - - int
-                    - kind:
-                        Primitive: Int
-                      name: int
-                  - - float
-                    - kind:
-                        Primitive: Float
-                      name: float
-                  - - bool
-                    - kind:
-                        Primitive: Bool
-                      name: bool
-                  - - text
-                    - kind:
-                        Primitive: Text
-                      name: text
-                  - - date
-                    - kind:
-                        Primitive: Date
-                      name: date
-                  - - time
-                    - kind:
-                        Primitive: Time
-                      name: time
-                  - - timestamp
-                    - kind:
-                        Primitive: Timestamp
-                      name: timestamp
-                  - - ~
-                    - kind:
-                        Singleton: "Null"
-                      name: ~
-              name: scalar
-      name: tuple_of_scalars
+              kind: Any
+              name: any
+      name: tuple
   name: relation
 lineage:
   columns:
@@ -185,14 +118,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 196
+        target_id: 199
         target_name: ~
     - Single:
         name: ~
-        target_id: 219
+        target_id: 222
         target_name: ~
   inputs:
-    - id: 195
+    - id: 198
       name: c_invoice
       table:
         - default_db

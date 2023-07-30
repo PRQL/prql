@@ -33,7 +33,7 @@ fn test_bad_error_messages() {
        │
        │ Help: Have you forgotten an argument to function std.group?
        │
-       │ Note: Type `relation` expands to `[tuple_of_scalars]`
+       │ Note: Type `relation` expands to `[tuple]`
     ───╯
     "###);
 
@@ -162,4 +162,22 @@ fn invalid_lineage_in_transform() {
   "###).unwrap_err(), @r###"
   Error: "Invalid lineage in group, verify the contents of the group call"
   "###);
+}
+
+#[test]
+fn test_hint_missing_args() {
+    assert_display_snapshot!(compile(r###"
+    from film
+    select {film_id, lag film_id}
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:22]
+       │
+     3 │     select {film_id, lag film_id}
+       │                      ─────┬─────
+       │                           ╰─────── unexpected `offset column -> internal std.lag`
+       │
+       │ Help: this is probably a 'bad type' error (we are working on that)
+    ───╯
+    "###)
 }
