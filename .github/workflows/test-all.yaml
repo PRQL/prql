@@ -153,3 +153,21 @@ jobs:
       - name: Verify minimum rust version — prqlc
         working-directory: crates/prqlc
         run: cargo msrv verify
+
+  test-publish-to-cargo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - run: ./.github/set_version.sh
+      - run: |
+          published_version=$(curl -sL https://crates.io/api/v1/crates/prql-compiler/versions | jq -r '.versions[].num' | sort -V | tail -n 1)
+          echo "published_version=${published_version}" >>"$GITHUB_ENV"
+      - uses: baptiste0928/cargo-install@v2
+        if: ${{ env.published_version != env.version }}
+        with:
+          crate: cargo-release
+      - uses: richb-hanover/cargo@v1.1.0
+        if: ${{ env.published_version != env.version }}
+        with:
+          command: release
