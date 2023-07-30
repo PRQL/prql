@@ -57,6 +57,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ env.version }}
+          shared-key: book
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - uses: arduino/setup-task@v1
