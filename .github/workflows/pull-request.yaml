@@ -26,6 +26,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  # This assesses whether we need to run jobs. It's currently only implemented
+  # for `check-links-book`, but we could expand it to other jobs, bringing the
+  # jobs into this workflow.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      book: ${{ steps.filter.outputs.book }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            book:
+              - '.github/workflows/check-links-book.yaml'
+              - 'web/book/**'
+
+
   test-rust:
     strategy:
       matrix:
@@ -87,7 +108,36 @@ jobs:
           check-modified-files-only: "yes"
 
   check-links-book:
-    uses: ./.github/workflows/check-links-book.yaml
+    # We also have a check-links-markdown job, however it will not spot mdbook
+    # mistakes such as forgetting to list an .md file in SUMMARY.md.
+    # Running a link checker on the generated HTML is more reliable.
+    needs: changes
+    if: ${{ needs.changes.outputs.book == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook
+      # the link checker
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: hyperlink
+      - run: ./.github/set_version.sh
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          shared-key: book
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build the mdbook
+        run: mdbook build web/book/
+      - name: Check links
+        run: hyperlink web/book/book/
+
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
