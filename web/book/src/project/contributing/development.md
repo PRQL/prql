@@ -49,8 +49,8 @@ website, we have two options:
 ### Option 1: Use the project's `task`
 
 ```admonish note
-This is tested on MacOS, should work on Linux, but won't work on Windows.
-Because of using the `brew` command inside of `Taskfile.yml`.
+This is tested on MacOS, should work on Linux, but won't work on Windows,
+since it relies on `brew`.
 ```
 
 - [Install Task](https://taskfile.dev/installation/).
