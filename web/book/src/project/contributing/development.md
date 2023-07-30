@@ -49,7 +49,7 @@ website, we have two options:
 ### Option 1: Use the project's `task`
 
 ```admonish note
-This is tested on MacOS, should work on Linux, but won't work on Windows,
+This is tested on macOS, should work on amd64 Linux, but won't work on others (include Windows),
 since it relies on `brew`.
 ```
 
