@@ -2,12 +2,26 @@ name: release
 on:
   release:
     types: [released]
+  workflow_call:
+    inputs:
+      dry-run:
+        description: "Whether to do a dry run"
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Whether to do a dry run"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run != 'true'
     steps:
       - uses: actions/github-script@v6
         with:
@@ -26,6 +40,7 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
+    if: github.event.inputs.dry-run != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +64,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: release
       - name: Upload release artifact
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
           append_body: true
@@ -58,6 +74,7 @@ jobs:
     # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
     # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
+    if: false
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -85,6 +102,7 @@ jobs:
   build-rpm-package:
     # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
     runs-on: ubuntu-latest
+    if: false
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -114,10 +132,7 @@ jobs:
 
   build-and-publish-snap:
     runs-on: ubuntu-latest
-
-    # Skip running workflow on forks
-    if: github.repository_owner == 'prql'
-
+    if: false
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -137,6 +152,7 @@ jobs:
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
+    if: github.event.inputs.dry-run != 'true'
     strategy:
       fail-fast: true
       matrix:
@@ -186,7 +202,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Publish package on npm
-        run: npm publish
+        run:
+          npm publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run'
+          || '' }}
         working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -202,7 +220,9 @@ jobs:
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: release
-          args: publish --no-confirm -x
+          args:
+            publish --no-confirm ${{ github.event.inputs.dry-run == 'true' && ''
+            || '--execute' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -227,10 +247,12 @@ jobs:
 
   push-web-branch:
     runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run != 'true'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
 
   push-devcontainer-base-image:
+    if: github.event.inputs.dry-run != 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
