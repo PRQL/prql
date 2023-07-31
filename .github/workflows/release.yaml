@@ -21,7 +21,7 @@ jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-latest
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !github.event.inputs.dry-run }}
     steps:
       - uses: actions/github-script@v6
         with:
@@ -40,7 +40,7 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !github.event.inputs.dry-run }}
     strategy:
       fail-fast: false
       matrix:
@@ -152,7 +152,7 @@ jobs:
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !github.event.inputs.dry-run }}
     strategy:
       fail-fast: true
       matrix:
@@ -246,12 +246,12 @@ jobs:
 
   push-web-branch:
     runs-on: ubuntu-latest
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !github.event.inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
 
   push-devcontainer-base-image:
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !github.event.inputs.dry-run }}
     uses: ./.github/workflows/build-devcontainer.yaml
