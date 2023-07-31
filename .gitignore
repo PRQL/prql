@@ -23,6 +23,7 @@ _*.sql
 **/node_modules/
 
 .task
+.direnv
 
 *.snap.tmp
 # These shouldn't be committed, and cause watchers to re-run when they're

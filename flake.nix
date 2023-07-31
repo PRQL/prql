@@ -4,9 +4,11 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
+    mdbook-footnote.url = "github:aljazerzen/mdbook-footnote";
+    hyperlink.url = "github:aljazerzen/hyperlink";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -36,8 +38,7 @@
           # book
           mdbook
           mdbook-admonish
-          #mdbook-footnote
-          #mdbook-toc
+          mdbook-footnote.defaultPackage.${system}
 
           # website
           hugo
@@ -45,6 +46,9 @@
           # playground
           nodejs
           nodePackages.npm
+
+          # link check
+          hyperlink.defaultPackage.${system}
         ];
 
         bindings = with pkgs; [
