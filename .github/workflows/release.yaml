@@ -215,6 +215,7 @@ jobs:
           crate: cargo-release
       # Currently, we can only check prql-ast which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
+      # --no-verify is required to prevent build.
       - run:
           cargo release publish --no-confirm ${{ inputs.dry-run && '--no-verify
           --package prql-ast' || '--execute' }}
