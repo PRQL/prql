@@ -9,11 +9,12 @@ join side:{inner|left|right|full} table (condition)
 ## Parameters
 
 - `side` specifies which rows to include, defaulting to `inner`.
-- _table_ - a reference to a relation, possibly including an assignment, e.g.
-  `var= ...`
+- _table_ - a reference to a relation, possibly including an alias, e.g.
+  `a=artists`
 - _condition_ - a boolean condition
-  - If the condition evaluates to True, the rows will be joined
-  - If name is the same from both tables, it can be expressed with only `==col`.
+  - If the condition evaluates to true for a given row, the row will be joined
+  - If name is the same from both tables, it can be expressed with only
+    `(==col)`.
 
 ## Examples
 
@@ -30,8 +31,18 @@ join side:left p=positions (employees.id==p.employee_id)
 ```prql
 from tracks
 join side:left artists (
+  # This adds a `country` condition, as an alternative to filtering
   artists.id==tracks.artist_id && artists.country=='UK'
-  # As an alternative to filtering
+)
+```
+
+[`this` & `that`](../../syntax/keywords.md#this--that) can be used to refer to
+the current & other table respectively:
+
+```prql
+from tracks
+join side:inner artists (
+  this.id==that.artist_id
 )
 ```
 
