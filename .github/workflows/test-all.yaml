@@ -154,20 +154,29 @@ jobs:
         working-directory: crates/prqlc
         run: cargo msrv verify
 
-  test-publish-to-cargo:
+  check-published:
     runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check-version.outputs.published }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: ./.github/set_version.sh
-      - run: |
+      - id: check-version
+        run: |
           published_version=$(curl -sL https://crates.io/api/v1/crates/prql-compiler/versions | jq -r '.versions[].num' | sort -V | tail -n 1)
           echo "published_version=${published_version}" >>"$GITHUB_ENV"
-      - uses: baptiste0928/cargo-install@v2
-        if: ${{ env.published_version != env.version }}
-        with:
-          crate: cargo-release
-      - uses: richb-hanover/cargo@v1.1.0
-        if: ${{ env.published_version != env.version }}
-        with:
-          command: release
+          if [[ "$published_version" == "$version" ]]; then
+            export published=true
+          else
+            export published=false
+          fi
+          echo "published=${published}" >>"$GITHUB_ENV"
+          echo "${published}"
+
+  test-release-dry-run:
+    needs: check-published
+    if: needs.check-published.outputs.published != 'true'
+    uses: ./.github/workflows/release.yaml
+    with:
+      dry-run: true
