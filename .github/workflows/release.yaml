@@ -21,7 +21,7 @@ jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-latest
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !inputs.dry-run }}
     steps:
       - uses: actions/github-script@v6
         with:
@@ -40,7 +40,7 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !inputs.dry-run }}
     strategy:
       fail-fast: false
       matrix:
@@ -152,7 +152,7 @@ jobs:
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !inputs.dry-run }}
     strategy:
       fail-fast: true
       matrix:
@@ -201,9 +201,7 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - run:
-          npm publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run'
-          || '' }}
+      - run: npm publish ${{ inputs.dry-run && '--dry-run' || '' }}
         working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -219,8 +217,8 @@ jobs:
       # Currently, we can only check prql-ast which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
       - run:
-          cargo release publish --no-confirm ${{ github.event.inputs.dry-run !=
-          'true' && '--execute' || '--no-verify --package prql-ast' }}
+          cargo release publish --no-confirm ${{ inputs.dry-run && '--no-verify
+          --package prql-ast' || '--execute' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -245,12 +243,12 @@ jobs:
 
   push-web-branch:
     runs-on: ubuntu-latest
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
 
   push-devcontainer-base-image:
-    if: github.event.inputs.dry-run != 'true'
+    if: ${{ !inputs.dry-run }}
     uses: ./.github/workflows/build-devcontainer.yaml
