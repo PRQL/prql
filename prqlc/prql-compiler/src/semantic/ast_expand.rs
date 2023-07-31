@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use prqlc_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident};
-use prqlc_ast::stmt::{Annotation, Stmt, StmtKind, VarDefKind};
+use prqlc_ast::stmt::{Annotation, Stmt, StmtKind};
 
 use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
@@ -218,17 +218,10 @@ pub fn expand_stmts(value: Vec<Stmt>) -> Result<Vec<pl::Stmt>> {
 fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
     Ok(match value {
         StmtKind::QueryDef(v) => pl::StmtKind::QueryDef(v),
-        StmtKind::Main(v) => pl::StmtKind::VarDef(pl::VarDef {
-            name: None,
-            value: expand_expr_box(v)?,
-            ty_expr: None,
-            kind: pl::VarDefKind::Main,
-        }),
         StmtKind::VarDef(v) => pl::StmtKind::VarDef(pl::VarDef {
-            name: Some(v.name),
+            name: v.name,
             value: expand_expr_box(v.value)?,
             ty_expr: v.ty_expr.map(expand_expr_box).transpose()?,
-            kind: expand_var_def_kind(v.kind),
         }),
         StmtKind::TypeDef(v) => pl::StmtKind::TypeDef(pl::TypeDef {
             name: v.name,
@@ -239,13 +232,6 @@ fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
             stmts: expand_stmts(v.stmts)?,
         }),
     })
-}
-
-fn expand_var_def_kind(value: VarDefKind) -> pl::VarDefKind {
-    match value {
-        VarDefKind::Let => pl::VarDefKind::Let,
-        VarDefKind::Into => pl::VarDefKind::Into,
-    }
 }
 
 fn expand_annotation(value: Annotation) -> Result<pl::Annotation> {

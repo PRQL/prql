@@ -32,10 +32,11 @@ pub fn lower_to_ir(
 ) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
+    let (_, main_ident) = context.find_main_rel(main_path).map_err(|(hint, span)| {
         Error::new_simple("Missing main pipeline")
             .with_code("E0001")
             .with_hints(hint)
+            .with_span(span)
     })?;
 
     // find & validate query def

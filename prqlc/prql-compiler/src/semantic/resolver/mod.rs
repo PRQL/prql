@@ -104,10 +104,9 @@ impl Resolver<'_> {
                     ty.name = Some(ident.name.clone());
 
                     VarDef {
-                        name: Some(ty_def.name),
+                        name: ty_def.name,
                         value: Box::new(Expr::new(ExprKind::Type(ty))),
                         ty_expr: None,
-                        kind: VarDefKind::Let,
                     }
                 }
                 StmtKind::ModuleDef(module_def) => {
@@ -142,7 +141,7 @@ impl Resolver<'_> {
                 }
             };
 
-            if let VarDefKind::Main = def.kind {
+            if def.name == "main" {
                 def.ty_expr = Some(Box::new(Expr::new(ExprKind::Ident(Ident::from_path(
                     vec!["std", "relation"],
                 )))));
@@ -270,7 +269,6 @@ impl PlFold for Resolver<'_> {
             name: var_def.name,
             value,
             ty_expr: fold_optional_box(self, var_def.ty_expr)?,
-            kind: var_def.kind,
         })
     }
 

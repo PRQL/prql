@@ -305,7 +305,7 @@ impl WriteSource for Stmt {
                     r += &var_def.value.write(opt)?;
                     r += "\n";
                 }
-                VarDefKind::Into => {
+                VarDefKind::Into | VarDefKind::Main => {
                     match &var_def.value.kind {
                         ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
@@ -318,19 +318,10 @@ impl WriteSource for Stmt {
                         }
                     }
 
-                    r += &format!("into {}", var_def.name);
-                    r += "\n";
-                }
-            },
-            StmtKind::Main(value) => match &value.kind {
-                ExprKind::Pipeline(pipeline) => {
-                    for expr in &pipeline.exprs {
-                        r += &expr.write(opt.clone())?;
+                    if var_def.kind == VarDefKind::Into {
+                        r += &format!("into {}", var_def.name);
                         r += "\n";
                     }
-                }
-                _ => {
-                    r += &value.write(opt)?;
                 }
             },
             StmtKind::TypeDef(type_def) => {

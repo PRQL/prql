@@ -168,10 +168,7 @@ impl Stmt {
     pub(crate) fn name(&self) -> &str {
         match &self.kind {
             StmtKind::QueryDef(_) => NS_QUERY_DEF,
-            StmtKind::VarDef(VarDef { name, .. }) => match name {
-                Some(name) => name,
-                None => NS_MAIN,
-            },
+            StmtKind::VarDef(VarDef { name, .. }) => name,
             StmtKind::TypeDef(TypeDef { name, .. }) => name,
             StmtKind::ModuleDef(ModuleDef { name, .. }) => name,
         }

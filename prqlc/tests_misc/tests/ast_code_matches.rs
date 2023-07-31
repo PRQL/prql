@@ -67,10 +67,7 @@ fn test_stmt_ast_code_matches() {
             &read_to_string("../prql-compiler/src/ir/pl/stmt.rs").unwrap(),
         ), @r###"
     @@ .. @@
-    -    Main(Box<Expr>),
-    @@ .. @@
-    -    pub name: String,
-    +    pub name: Option<String>,
+    -    pub kind: VarDefKind,
     "###
     )
 }

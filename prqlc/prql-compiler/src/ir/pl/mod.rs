@@ -75,7 +75,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "UnaryExpr", size_of::<UnaryExpr>());
     println!("{:16}= {}", "UnOp", size_of::<UnOp>());
     println!("{:16}= {}", "VarDef", size_of::<VarDef>());
-    println!("{:16}= {}", "VarDefKind", size_of::<VarDefKind>());
     println!("{:16}= {}", "WindowFrame", size_of::<WindowFrame>());
     println!("{:16}= {}", "WindowKind", size_of::<WindowKind>());
 }

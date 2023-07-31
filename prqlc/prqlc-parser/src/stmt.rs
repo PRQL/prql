@@ -119,14 +119,20 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
     let main_or_into = pipeline(expr_call())
         .map(Box::new)
         .then(keyword("into").ignore_then(ident_part()).or_not())
-        .map(|(value, name)| match name {
-            None => StmtKind::Main(value),
-            Some(name) => StmtKind::VarDef(VarDef {
+        .map(|(value, name)| {
+            let kind = if name.is_none() {
+                VarDefKind::Main
+            } else {
+                VarDefKind::Into
+            };
+            let name = name.unwrap_or_else(|| "main".to_string());
+
+            StmtKind::VarDef(VarDef {
                 name,
+                kind,
                 value,
                 ty_expr: None,
-                kind: VarDefKind::Into,
-            }),
+            })
         })
         .labelled("variable definition");
 
