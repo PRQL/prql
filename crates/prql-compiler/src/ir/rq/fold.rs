@@ -39,7 +39,7 @@ pub trait RqFold {
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
     }
-    fn fold_query(&mut self, query: Query) -> Result<Query> {
+    fn fold_query(&mut self, query: RelationalQuery) -> Result<RelationalQuery> {
         fold_query(self, query)
     }
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
@@ -139,8 +139,11 @@ pub fn fold_table_ref<F: ?Sized + RqFold>(fold: &mut F, table_ref: TableRef) -> 
     })
 }
 
-pub fn fold_query<F: ?Sized + RqFold>(fold: &mut F, query: Query) -> Result<Query> {
-    Ok(Query {
+pub fn fold_query<F: ?Sized + RqFold>(
+    fold: &mut F,
+    query: RelationalQuery,
+) -> Result<RelationalQuery> {
+    Ok(RelationalQuery {
         def: query.def,
         relation: fold.fold_relation(query.relation)?,
         tables: query

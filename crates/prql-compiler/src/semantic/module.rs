@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::ir::pl::{Expr, Ident, TupleField, Ty};
 use crate::Error;
 
-use super::context::{Decl, DeclKind, TableDecl, TableExpr};
+use super::decl::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
 use super::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 

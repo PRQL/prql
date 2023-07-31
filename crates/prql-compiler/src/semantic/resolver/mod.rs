@@ -6,25 +6,25 @@ use itertools::{Itertools, Position};
 
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::ir::pl::*;
-use crate::semantic::context::TableDecl;
+use crate::semantic::decl::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
-use super::context::{Context, Decl, DeclKind, TableExpr};
+use super::decl::{Decl, DeclKind, TableExpr};
 use super::module::Module;
-use super::{write_pl, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
+use super::{write_pl, RootModule, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
 
-mod context_impl;
 mod flatten;
+mod root_module_impl;
 mod transforms;
 mod type_resolver;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
-    pub context: Context,
+    pub context: RootModule,
 
     pub current_module_path: Vec<String>,
 
@@ -46,7 +46,7 @@ pub struct ResolverOptions {
 }
 
 impl Resolver {
-    pub fn new(context: Context, options: ResolverOptions) -> Self {
+    pub fn new(context: RootModule, options: ResolverOptions) -> Self {
         Resolver {
             context,
             options,

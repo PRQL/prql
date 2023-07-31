@@ -36,7 +36,11 @@ repos:
     rev: v1.0.1
     hooks:
       - id: fmt
+  - repo: https://github.com/r0x0d/pre-commit-rust
+    rev: v1.0.1
+    hooks:
       - id: clippy
+        stages: [manual]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.4.1
     hooks:
@@ -84,7 +88,8 @@ repos:
   #       args: ["--fix"]
   #       additional_dependencies:
   #         - markdown-it-footnote
+
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, clippy, markdown-link-check]
+  skip: [fmt, markdown-link-check]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
