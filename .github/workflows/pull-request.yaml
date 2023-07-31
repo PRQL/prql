@@ -130,7 +130,8 @@ jobs:
         with:
           prefix-key: ${{ env.version }}
           shared-key: book
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Created by `build-web`
+          save-if: false
       - name: Build the mdbook
         run: mdbook build web/book/
       - name: Check links
