@@ -141,6 +141,7 @@ jobs:
         id: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
+        if: github.ref_type == 'tag' && !inputs.dry-run
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS:
