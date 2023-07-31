@@ -201,7 +201,7 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm publish ${{ github.event.inputs.dry-run && '--dry-run' || '' }}
+      - run: npm publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
         working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -217,7 +217,8 @@ jobs:
       # Currently, we can only check prql-ast which is not dependent other local crates with --dry-run.
       # https://github.com/crate-ci/cargo-release/issues/691
       - run:
-          cargo release publish --no-confirm ${{ !github.event.inputs.dry-run && '--execute' || '--no-verify --package prql-ast' }}
+          cargo release publish --no-confirm ${{ github.event.inputs.dry-run !=
+          'true' && '--execute' || '--no-verify --package prql-ast' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
