@@ -26,7 +26,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   # This assesses whether we need to run jobs. It's currently only implemented
   # for `check-links-book`, but we could expand it to other jobs, bringing the
   # jobs into this workflow.
@@ -45,7 +44,6 @@ jobs:
             book:
               - '.github/workflows/check-links-book.yaml'
               - 'web/book/**'
-
 
   test-rust:
     strategy:
@@ -137,7 +135,6 @@ jobs:
         run: mdbook build web/book/
       - name: Check links
         run: hyperlink web/book/book/
-
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
