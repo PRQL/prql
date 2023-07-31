@@ -201,7 +201,9 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
+      - run:
+          npm publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run'
+          || '' }}
         working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
