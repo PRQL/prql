@@ -154,6 +154,10 @@ jobs:
         working-directory: crates/prqlc
         run: cargo msrv verify
 
+  # One possible alternative to having this workflow is to automatically
+  # bump the version after a commit, auto-merge the PR, and then there
+  # should be no time where the version in the repo has been
+  # published.
   check-published:
     runs-on: ubuntu-latest
     outputs:
