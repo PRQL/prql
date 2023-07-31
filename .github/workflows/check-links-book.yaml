@@ -58,7 +58,8 @@ jobs:
         with:
           prefix-key: ${{ env.version }}
           shared-key: book
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Created by `build-web`
+          save-if: false
 
       - uses: arduino/setup-task@v1
         with:
