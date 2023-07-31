@@ -6,14 +6,14 @@ on:
     inputs:
       dry-run:
         description: "Whether to do a dry run"
-        required: false
+        required: true
         default: true
         type: boolean
   workflow_dispatch:
     inputs:
       dry-run:
         description: "Whether to do a dry run"
-        required: false
+        required: true
         default: true
         type: boolean
 
