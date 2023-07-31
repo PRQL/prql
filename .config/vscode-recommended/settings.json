@@ -1,0 +1,17 @@
+{
+  "nixEnvSelector.args": ".#full",
+  "nixEnvSelector.suggestion": false,
+  "nixEnvSelector.nixFile": "${workspaceRoot}/flake.nix",
+//   "prettier.configPath": ".config/prettier.yaml",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "web/book/book": true,
+    "web/build": true,
+    ".direnv": true
+  }
+}
