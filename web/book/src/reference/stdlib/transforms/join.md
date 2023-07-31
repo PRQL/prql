@@ -8,9 +8,11 @@ join side:{inner|left|right|full} table (condition)
 
 ## Parameters
 
-- `side` decides which rows to include, defaulting to `inner`.
-- Relation reference
-- A condition
+- `side` specifies which rows to include, defaulting to `inner`.
+- _table_ - a reference to a relation, possibly including an assignment, e.g.
+  `var= ...`
+- _condition_ - a boolean condition
+  - If the condition evaluates to True, the rows will be joined
   - If name is the same from both tables, it can be expressed with only `==col`.
 
 ## Examples
