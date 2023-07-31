@@ -8,7 +8,7 @@ join side:{inner|left|right|full} table (condition)
 
 ## Parameters
 
-- _side_ decides which rows to include, defaulting to `inner`.
+- `side` specifies which rows to include, defaulting to `inner`.
 - _table_ - a reference to a relation, possibly including an assignment, e.g.
   `var= ...`
 - _condition_ - a boolean condition
