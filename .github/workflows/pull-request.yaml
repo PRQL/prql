@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   # This assesses whether we need to run jobs. It's currently only implemented
-  # for `check-links-book`, but we could expand it to other jobs, bringing the
+  # for a couple jobs, but we could expand it to other jobs, bringing the
   # jobs into this workflow.
   changes:
     runs-on: ubuntu-latest
@@ -35,6 +35,7 @@ jobs:
       pull-requests: read
     outputs:
       book: ${{ steps.filter.outputs.book }}
+      rust: ${{ steps.filter.outputs.rust }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
