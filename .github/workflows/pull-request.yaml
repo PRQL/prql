@@ -178,7 +178,7 @@ jobs:
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
-          allowed-skips: test-all, publish-web, nightly
+          allowed-skips: test-all, publish-web, nightly, check-links-book
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
