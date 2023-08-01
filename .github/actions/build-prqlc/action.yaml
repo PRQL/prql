@@ -10,10 +10,7 @@ inputs:
     required: true
   features:
     description: Features to enable
-    required: true
-  features2:
-    description: Features to enable
-    required: true
+    default: ""
 outputs:
   artifact-name:
     description: The name of the artifact
@@ -22,12 +19,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - run: echo ${{ inputs.target }}
-      shell: bash
-    - run: echo ${{ inputs.features2 }}
-      shell: bash
-    - run: echo ${{ inputs.features }}
-      shell: bash
     - run: rustup target add ${{ inputs.target }}
       shell: bash
 
