@@ -10,8 +10,7 @@ inputs:
     required: true
   features:
     description: Features to enable
-    required: false
-    default: ""
+    required: true
 outputs:
   artifact-name:
     description: The name of the artifact
