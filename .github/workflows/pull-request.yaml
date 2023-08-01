@@ -195,8 +195,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Match the features with the available caches from tests
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            features: ""
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
@@ -207,7 +209,6 @@ jobs:
           #   target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-            # Match these features with the available caches from tests
             features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -219,6 +220,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: dev
+          features: ${{ matrix.features }}
     # These are the same env variables as in `test-rust.yaml`. Custom actions
     # don't allow setting env variables for the whole job, so we do it here. (We
     # could change the `build-prqlc` action to a workflow...).
