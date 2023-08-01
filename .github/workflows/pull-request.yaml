@@ -189,6 +189,8 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            features: ""
+            features2: ""
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
@@ -201,9 +203,11 @@ jobs:
             target: x86_64-apple-darwin
             # Match these with the available caches from tests
             features: test-dbs
+            features2: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: ""
+            features2: test-dbs
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
