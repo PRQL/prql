@@ -44,14 +44,20 @@ jobs:
             book:
               - '.github/workflows/check-links-book.yaml'
               - 'web/book/**'
+            rust:
+              - '**/*.rs'
+              - 'crates/**'
+              - 'web/book/**'
 
   test-rust:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
+    uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
         # We use a matrix here to mirror `test-all`, so they share a cache.
         os: [ubuntu-latest]
         target: ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
-    uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
@@ -74,9 +80,8 @@ jobs:
 
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meaning a breaking change) in the PR title. (We also run on other
-  # conditions defined in `test-all.yaml`; the conditions defined here aren't
-  # possible to use as conditions for running a workflow, only a job, so we use
-  # this approach.)
+  # conditions defined in `test-all.yaml`; we could move those in here now that
+  # we have the `changes` job.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if:
@@ -178,11 +183,14 @@ jobs:
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
-          allowed-skips: test-all, publish-web, nightly, check-links-book
+          allowed-skips:
+            test-all, publish-web, nightly, check-links-book, test-rust
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -199,7 +207,7 @@ jobs:
           #   target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-            # Match these with the available caches from tests
+            # Match these features with the available caches from tests
             features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
