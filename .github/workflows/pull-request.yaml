@@ -26,13 +26,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # This assesses whether we need to run jobs. It's currently only implemented
+  # for a couple jobs, but we could expand it to other jobs, bringing the
+  # jobs into this workflow.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      book: ${{ steps.filter.outputs.book }}
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            book:
+              - '.github/workflows/check-links-book.yaml'
+              - 'web/book/**'
+            rust:
+              - '**/*.rs'
+              - 'crates/**'
+              - 'web/book/**'
+
   test-rust:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
+    uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
         # We use a matrix here to mirror `test-all`, so they share a cache.
         os: [ubuntu-latest]
         target: ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
-    uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
@@ -55,9 +81,8 @@ jobs:
 
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meaning a breaking change) in the PR title. (We also run on other
-  # conditions defined in `test-all.yaml`; the conditions defined here aren't
-  # possible to use as conditions for running a workflow, only a job, so we use
-  # this approach.)
+  # conditions defined in `test-all.yaml`; we could move those in here now that
+  # we have the `changes` job.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if:
@@ -87,7 +112,36 @@ jobs:
           check-modified-files-only: "yes"
 
   check-links-book:
-    uses: ./.github/workflows/check-links-book.yaml
+    # We also have a check-links-markdown job, however it will not spot mdbook
+    # mistakes such as forgetting to list an .md file in SUMMARY.md.
+    # Running a link checker on the generated HTML is more reliable.
+    needs: changes
+    if: ${{ needs.changes.outputs.book == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook
+      # the link checker
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: hyperlink
+      - run: ./.github/set_version.sh
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          shared-key: web
+          # Created by `build-web`
+          save-if: false
+      - name: Build the mdbook
+        run: mdbook build web/book/
+      - name: Check links
+        run: hyperlink web/book/book/
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
@@ -130,17 +184,22 @@ jobs:
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
-          allowed-skips: test-all, publish-web, nightly
+          allowed-skips:
+            test-all, publish-web, nightly, check-links-book, test-rust
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Match the features with the available caches from tests
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            features: ""
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
@@ -151,7 +210,6 @@ jobs:
           #   target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-            # Match these with the available caches from tests
             features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -163,6 +221,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: dev
+          features: ${{ matrix.features }}
     # These are the same env variables as in `test-rust.yaml`. Custom actions
     # don't allow setting env variables for the whole job, so we do it here. (We
     # could change the `build-prqlc` action to a workflow...).

@@ -4,13 +4,13 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::context::{DeclKind, TableDecl, TableExpr};
+use super::decl::{DeclKind, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
-use super::{Context, Lineage};
+use super::{Lineage, RootModule};
 use crate::error::Span;
 use crate::ir::pl::*;
 
-pub fn label_references(context: &Context, source_id: String, source: String) -> Vec<u8> {
+pub fn label_references(context: &RootModule, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -34,7 +34,7 @@ pub fn label_references(context: &Context, source_id: String, source: String) ->
 
 /// Traverses AST and add labels for each of the idents and function calls
 struct Labeler<'a> {
-    context: &'a Context,
+    context: &'a RootModule,
     source: &'a Source,
     source_id: &'a str,
     report: &'a mut ReportBuilder<'static, (String, Range<usize>)>,

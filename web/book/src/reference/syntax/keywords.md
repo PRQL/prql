@@ -23,7 +23,8 @@ aggregate (
 )
 ```
 
-Within a `join`, `that` refers to the other table:
+Within a [`join`](../stdlib/transforms/join.md), `that` refers to the other
+table:
 
 ```prql
 from invoices

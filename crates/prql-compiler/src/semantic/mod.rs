@@ -1,35 +1,36 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 mod ast_expand;
-mod context;
+mod decl;
 mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
+mod root_module;
 mod static_analysis;
 
 use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-pub use self::context::Context;
 pub use self::module::Module;
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
+pub use self::root_module::RootModule;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
 use crate::error::WithErrorInfo;
 use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
-use crate::ir::rq::Query;
+use crate::ir::rq::RelationalQuery;
 use crate::{Error, Reason, SourceTree};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
     file_tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     main_path: &[String],
-) -> Result<Query> {
+) -> Result<RelationalQuery> {
     let context = resolve(file_tree, Default::default())?;
 
     let (query, _) = lowering::lower_to_ir(context, main_path)?;
@@ -40,7 +41,7 @@ pub fn resolve_and_lower(
 pub fn resolve(
     mut file_tree: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     options: ResolverOptions,
-) -> Result<Context> {
+) -> Result<RootModule> {
     // inject std module if it does not exist
     if !file_tree.sources.contains_key(&PathBuf::from("std.prql")) {
         let mut source_tree = SourceTree {
@@ -54,9 +55,9 @@ pub fn resolve(
     }
 
     // init empty context
-    let context = Context {
+    let context = RootModule {
         root_mod: Module::new_root(),
-        ..Context::default()
+        ..RootModule::default()
     };
     let mut resolver = Resolver::new(context, options);
 
@@ -210,19 +211,19 @@ pub mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
-    use crate::ir::rq::Query;
+    use crate::ir::rq::RelationalQuery;
     use crate::parser::parse;
 
-    use super::{resolve, resolve_and_lower, Context};
+    use super::{resolve, resolve_and_lower, RootModule};
 
-    pub fn parse_resolve_and_lower(query: &str) -> Result<Query> {
+    pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery> {
         let mut source_tree = query.into();
         super::load_std_lib(&mut source_tree);
 
         resolve_and_lower(parse(&source_tree)?, &[])
     }
 
-    pub fn parse_and_resolve(query: &str) -> Result<Context> {
+    pub fn parse_and_resolve(query: &str) -> Result<RootModule> {
         let mut source_tree = query.into();
         super::load_std_lib(&mut source_tree);
 

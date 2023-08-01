@@ -131,7 +131,7 @@ struct CompileResult compile(const char *prql_query, const struct Options *optio
 
 /**
  * Build PL AST from a PRQL string. PL in documented in the
- * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast/pl).
+ * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/pl).
  *
  * Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
  *
@@ -164,7 +164,7 @@ struct CompileResult pl_to_rq(const char *pl_json);
 
 /**
  * Convert RQ AST into an SQL string. RQ is documented in the
- * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast/rq).
+ * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/rq).
  *
  * Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
  *
