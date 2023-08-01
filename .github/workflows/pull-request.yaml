@@ -129,7 +129,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ env.version }}
-          shared-key: book
+          shared-key: web
           # Created by `build-web`
           save-if: false
       - name: Build the mdbook
