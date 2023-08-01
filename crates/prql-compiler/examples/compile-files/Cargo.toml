@@ -8,5 +8,9 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+[[bin]]
+name = "compile-files"
+test = false
+
 [build-dependencies]
 prql-compiler = {path = '../../'}

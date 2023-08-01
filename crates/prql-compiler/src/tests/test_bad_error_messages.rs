@@ -112,3 +112,42 @@ fn empty_interpolations() {
     ───╯
     "###);
 }
+
+#[test]
+fn select_with_extra_fstr() {
+    // Should complain in the same way as `select lower "mooo"`
+    assert_display_snapshot!(compile(r###"
+    from foo
+    select lower f"{x}/{y}"
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:20]
+       │
+     3 │     select lower f"{x}/{y}"
+       │                    ─┬─
+       │                     ╰─── Unknown name
+    ───╯
+    "###);
+}
+
+// See also test_error_messages::test_type_error_placement
+#[test]
+fn misplaced_type_error() {
+    // This one should point at `foo` in `select (... foo)`
+    // (preferably in addition to the error that is currently generated)
+    assert_display_snapshot!(compile(r###"
+    let foo = 123
+    from t
+    select (true && foo)
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:2:15]
+       │
+     2 │     let foo = 123
+       │               ─┬─
+       │                ╰─── function std.and, param `right` expected type `bool`, but found type `int`
+       │
+       │ Help: Type `bool` expands to `bool`
+    ───╯
+    "###);
+}
