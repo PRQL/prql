@@ -13,13 +13,16 @@ on:
 jobs:
   cargo-audit:
     runs-on: ubuntu-latest
-    # We can apparently run on forks too, and there's a backup option
-    # https://github.com/rustsec/audit-check#limitations.
-    # Assuming this works, remove these lines.
-    # # We can't read PRQL repo security events on forks, which causes this to
-    # # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
-    # # could move this to `pull-request-target`.
-    # if: ${{ !github.event.pull_request.head.repo.fork }}
+    # Actually it seems we can't, because it can't seem to read from the API to
+    # know what's been ignored
+    # https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28.
+    # # We can apparently run on forks too, and there's a backup option
+    # # https://github.com/rustsec/audit-check#limitations.
+    # # Assuming this works, remove these lines.
+    # # # We can't read PRQL repo security events on forks, which causes this to
+    # # # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
+    # # # could move this to `pull-request-target`.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     permissions:
       actions: read
       contents: read
