@@ -19,6 +19,8 @@ outputs:
 runs:
   using: composite
   steps:
+    - run: echo ${{ inputs.target }}
+      shell: bash
     - run: echo ${{ inputs.features }}
       shell: bash
     - run: rustup target add ${{ inputs.target }}
