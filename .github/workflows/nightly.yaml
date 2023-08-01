@@ -14,8 +14,8 @@ jobs:
   cargo-audit:
     runs-on: ubuntu-latest
     # We can't read PRQL repo security events on forks, which causes this to
-    # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
-    # could move this to `pull-request-target`.
+    # incorrectly fail ( https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28). So we disable. If we wanted to run checks on PRs, we
+    # could move this to `pull-request-target`. And note that it does suggest that it can run on forks at https://github.com/rustsec/audit-check#limitations
     if: ${{ !github.event.pull_request.head.repo.fork }}
     permissions:
       actions: read
@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/audit-check@v1
+      - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
