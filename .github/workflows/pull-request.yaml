@@ -57,7 +57,7 @@ jobs:
 
   test-rust:
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: needs.changes.outputs.rust == 'true'
     uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
@@ -121,7 +121,7 @@ jobs:
     # mistakes such as forgetting to list an .md file in SUMMARY.md.
     # Running a link checker on the generated HTML is more reliable.
     needs: changes
-    if: ${{ needs.changes.outputs.book == 'true' }}
+    if: needs.changes.outputs.book == 'true'
 
     runs-on: ubuntu-latest
 
@@ -196,7 +196,7 @@ jobs:
   build-prqlc:
     runs-on: ${{ matrix.os }}
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: needs.changes.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
