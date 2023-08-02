@@ -74,3 +74,9 @@ exactly = 1
 file = "../../web/book/src/project/target.md"
 replace = 'prql version:"{{version}}"'
 search = 'prql version:"[\d.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../../CHANGELOG.md"
+replace = "# PRQL Changelog\n\n## [unreleased]\n\n**Language**:\n\n**Features**:\n\n**Fixes**:\n\n**Documentation**:\n\n**Web**:\n\n**Integrations**:\n\n**Internal changes**:\n\n**New Contributors**:\n\n"
+search = "# PRQL Changelog\n\n"

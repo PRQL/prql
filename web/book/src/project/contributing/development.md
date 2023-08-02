@@ -410,31 +410,11 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Run `cargo release version patch -x && cargo release replace -x` to bump the
-   versions, then PR the resulting commit.
-6. Add in the sections for a new Changelog:
-
-   ```md
-   ## [unreleased]
-
-   **Language**:
-
-   **Features**:
-
-   **Fixes**:
-
-   **Documentation**:
-
-   **Web**:
-
-   **Integrations**:
-
-   **Internal changes**:
-
-   **New Contributors**:
-   ```
-
-7. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
+5. Run
+   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
+   to bump the versions and add a new Changelog section; then PR the resulting
+   commit.
+6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
 
 We may make this more automated in future; e.g. automatic changelog creation.
