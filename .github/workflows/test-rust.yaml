@@ -48,21 +48,6 @@ jobs:
           prefix-key: ${{ env.version }}
           shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: 📎 Clippy
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: clippy
-          # Note that `--all-targets` doesn't refer to targets like
-          # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-          #
-          args: >
-            --all-targets --target=${{ inputs.target }} --features=${{
-            inputs.features }} -- -D warnings
-      - name: ⌨️ Fmt
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: fmt
-          args: --all --check
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
@@ -93,3 +78,18 @@ jobs:
             test --target=${{ inputs.target }} --features=${{ inputs.features }}
             ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
             'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+      - name: 📎 Clippy
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: clippy
+          # Note that `--all-targets` doesn't refer to targets like
+          # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
+          #
+          args: >
+            --all-targets --target=${{ inputs.target }} --features=${{
+            inputs.features }} -- -D warnings
+      - name: ⌨️ Fmt
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: fmt
+          args: --all --check
