@@ -55,15 +55,15 @@ typedef struct Message {
   /**
    * Machine-readable identifier of the error
    */
-  const int8_t *const *code;
+  const char *const *code;
   /**
    * Plain text of the error
    */
-  const int8_t *reason;
+  const char *reason;
   /**
    * A list of suggestions of how to fix the error
    */
-  const int8_t *const *hint;
+  const char *const *hint;
   /**
    * Character offset of error origin within a source file
    */
@@ -71,7 +71,7 @@ typedef struct Message {
   /**
    * Annotated code, containing cause and hints.
    */
-  const int8_t *const *display;
+  const char *const *display;
   /**
    * Line and column number of error origin within a source file
    */
@@ -82,7 +82,7 @@ typedef struct Message {
  * Result of compilation.
  */
 typedef struct CompileResult {
-  const int8_t *output;
+  const char *output;
   const struct Message *messages;
   size_t messages_len;
 } CompileResult;
