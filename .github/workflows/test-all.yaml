@@ -176,7 +176,7 @@ jobs:
           else
             export published=false
           fi
-          echo "published=${published}" >>"$GITHUB_ENV"
+          echo "published=${published}" >>"$GITHUB_OUTPUT"
           echo "${published}"
 
   test-release-dry-run:
