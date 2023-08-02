@@ -41,6 +41,7 @@ jobs:
     outputs:
       book: ${{ steps.filter.outputs.book }}
       rust: ${{ steps.filter.outputs.rust }}
+      test-all: ${{ steps.filter.outputs.test-all }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -54,6 +55,12 @@ jobs:
               - '**/*.rs'
               - 'crates/**'
               - 'web/book/**'
+            all:
+              # We can expand this in the future / consolidate with
+              # `test-all.yaml`. For the moment, using this to ensure that we
+              # can't merge a dependency change without running `test-all`,
+              # given this the job here blocks PRs, whereas `test-all.yaml` doesn't.
+              - Cargo.lock
 
   test-rust:
     needs: changes
@@ -90,9 +97,11 @@ jobs:
   # we have the `changes` job.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
+    needs: changes
     if:
       contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
-      contains(github.event.pull_request.title, '!')
+      contains(github.event.pull_request.title, '!') ||
+      needs.changes.outputs.book == 'true'
 
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
