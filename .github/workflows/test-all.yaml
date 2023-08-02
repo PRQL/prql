@@ -55,6 +55,7 @@ jobs:
             features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
             features: ""
           # Only run wasm on ubuntu, given it's the same rust target. (There is a
           # possibility of having a failure on just one platform, but it's quite
