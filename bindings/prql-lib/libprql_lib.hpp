@@ -14,6 +14,8 @@
 #include <new>
 #define FFI_SCOPE "PRQL"
 
+namespace prql {
+
 /// Compile message kind. Currently only Error is implemented.
 enum class MessageKind {
   Error,
@@ -44,22 +46,22 @@ struct Message {
   /// Message kind. Currently only Error is implemented.
   MessageKind kind;
   /// Machine-readable identifier of the error
-  const int8_t *const *code;
+  const char *const *code;
   /// Plain text of the error
-  const int8_t *reason;
+  const char *reason;
   /// A list of suggestions of how to fix the error
-  const int8_t *const *hint;
+  const char *const *hint;
   /// Character offset of error origin within a source file
   const Span *span;
   /// Annotated code, containing cause and hints.
-  const int8_t *const *display;
+  const char *const *display;
   /// Line and column number of error origin within a source file
   const SourceLocation *location;
 };
 
 /// Result of compilation.
 struct CompileResult {
-  const int8_t *output;
+  const char *output;
   const Message *messages;
   size_t messages_len;
 };
@@ -146,7 +148,9 @@ CompileResult rq_to_sql(const char *rq_json, const Options *options);
 /// # Safety
 ///
 /// This function expects to be called exactly once after the call of any the functions
-/// that return CompileResult. No fields should be freed manually.
+/// that return `CompileResult`. No fields should be freed manually.
 void result_destroy(CompileResult res);
 
 } // extern "C"
+
+} // namespace prql
