@@ -79,7 +79,7 @@ echo 'prql target:sql.generic
 PRQL allows specifying a version of the language in the PRQL header, like:
 
 ```prql
-prql version:"0.9.3"
+prql version:"0.9.4"
 
 from employees
 ```

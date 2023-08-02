@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.9.3 — 2023-08-02
 
 0.9.3 is a small release, with mostly documentation, internal, and CI changes.
