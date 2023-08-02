@@ -1,22 +1,18 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.9.3 — 2023-08-02
 
-**Language**:
+0.9.3 is a small release, with mostly documentation, internal, and CI changes.
 
-**Features**:
+This release has 85 commits from 10 contributors.
 
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
+We'd like to welcome @not-my-profile as someone who has helped with lots of
+internal refactoring in the past couple of weeks.
 
 **New Contributors**:
+
+- @vthriller, with #3171
+- @postmeback, with #3216
 
 ## 0.9.2 — 2023-07-25
 
