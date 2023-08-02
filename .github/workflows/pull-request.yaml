@@ -70,14 +70,14 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
+            # Testing whether this works, based on changes in
+            # https://github.com/Swatinem/rust-cache/issues/150
+            features: test-dbs-external
           - target: wasm32-unknown-unknown
     with:
       os: ubuntu-latest
       target: ${{ matrix.target }}
-      # We previously ran with integration tests, but removing until
-      # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile
-      # times
-      features: ""
+      features: ${{ matrix.features }}
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
