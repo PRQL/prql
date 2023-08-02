@@ -26,7 +26,7 @@ class App extends React.Component {
   state = {
     library: {
       examples,
-      chinook,
+      tables: chinook,
       book,
       "local storage": loadLocalStorage(),
     },
