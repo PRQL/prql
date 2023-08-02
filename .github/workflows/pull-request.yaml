@@ -68,11 +68,11 @@ jobs:
     uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
-        # We use a matrix here to mirror `test-all`, so they share a cache.
-        os: [ubuntu-latest]
-        target: ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+        include:
+          - target: x86_64-unknown-linux-gnu
+          - target: wasm32-unknown-unknown
     with:
-      os: ${{ matrix.os }}
+      os: ubuntu-latest
       target: ${{ matrix.target }}
       # We previously ran with these, but removing until
       # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile
