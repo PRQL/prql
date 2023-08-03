@@ -421,6 +421,7 @@ impl Command {
         //
         // See https://github.com/PRQL/prql/issues/3228 for details on us not
         // yet using `input.is_tty()`.
+        // if input.is_tty() {
         if input.path() == Path::new("-") && atty::is(atty::Stream::Stdin) {
             #[cfg(unix)]
             eprintln!("Enter PRQL, then press ctrl-d to compile:\n");
