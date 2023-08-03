@@ -42,9 +42,14 @@ impl Preprocessor for ComparisonPreprocessor {
 #[strum(serialize_all = "kebab_case")]
 pub enum LangTag {
     Prql,
+    // The query either can't be formatted or, after being formatted, it can't
+    // be compiled.
     NoFmt,
+    // Ignore it, as though it's not PRQL.
     NoEval,
+    // The query can't be compiled.
     Error,
+    // Don't test the query.
     NoTest,
     #[strum(default)]
     Other(String),
