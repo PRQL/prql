@@ -8,6 +8,9 @@
 
 **Fixes**:
 
+- `prolc` no longer displays a prompt when piping a query into its stdin
+  (@max-sixty, #3248).
+
 **Documentation**:
 
 **Web**:
