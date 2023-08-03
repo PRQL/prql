@@ -18,9 +18,6 @@ int main() {
 
     CompileResult res = compile(prql_query, nullptr);
     print_result(res);
-    if (sizeof(res.messages) != 0) {
-        return 1;
-    }
     result_destroy(res);
 
     return 0;
