@@ -1,6 +1,7 @@
 # F-strings
 
-F-strings are a readable approach to building new strings from existing strings.
+F-strings are a readable approach to building new strings from existing strings
+& variables.
 
 ```prql
 from employees
@@ -15,8 +16,13 @@ from web
 select url = f"http{tls}://www.{domain}.{tld}/{page}"
 ```
 
-Note that interpolations can only contain plain variable names and not whole
-expression like Python.
+Note that currently interpolations can only contain plain variable names and not
+whole expression like Python, so this won't work:
+
+```prql error no-fmt
+from tracks
+select length_str = f"{length_seconds / 60} minutes"
+```
 
 ## Roadmap
 
