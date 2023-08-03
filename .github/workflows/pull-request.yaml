@@ -55,7 +55,7 @@ jobs:
               - '**/*.rs'
               - 'crates/**'
               - 'web/book/**'
-            all:
+            test-all:
               # We can expand this in the future / consolidate with
               # `test-all.yaml`. For the moment, using this to ensure that we
               # can't merge a dependency change without running `test-all`,
@@ -92,7 +92,7 @@ jobs:
     if:
       contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
       contains(github.event.pull_request.title, '!') ||
-      needs.changes.outputs.book == 'true'
+      needs.changes.outputs.test-all == 'true'
 
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
