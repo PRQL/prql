@@ -27,6 +27,7 @@
     "yaml": "^2.3.0"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "npm-watch": "^0.11.0"
   },
   "eslintConfig": {
