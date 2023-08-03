@@ -36,23 +36,35 @@ fn test_prql_examples_compile() -> Result<()> {
             (true, Err(e)) => errs.push(format!(
                 "
 ---- {name} ---- ERROR
-  Use `prql error` as the language label to assert an error compiling the PRQL.
-  -- Original PRQL --
+Use `prql error` as the language label to assert an error compiling the PRQL.
+
+-- Original PRQL --
+```
 {prql}
-  -- Error --
+```
+
+-- Error --
+```
 {e}
+```
 "
             )),
 
             (false, Ok(output)) => errs.push(format!(
                 "
 ---- {name} ---- UNEXPECTED SUCCESS
-  Succeeded compiling, but example was marked as `error`.
-  Remove `error` as a language label to assert successfully compiling.
-  -- Original PRQL --
+Succeeded compiling, but example was marked as `error`.
+Remove `error` as a language label to assert successfully compiling.
+
+-- Original PRQL --
+```
 {prql}
-  -- Result --
+```
+
+-- Result --
+```
 {output}
+```
 "
             )),
             (_, result) => {
@@ -98,33 +110,44 @@ fn test_prql_examples_display_then_compile() -> Result<()> {
 
     let mut errs = Vec::new();
     for Example { name, tags, prql } in examples {
-        let formatted = prql_to_pl(&prql).and_then(pl_to_prql).unwrap();
+        let result = prql_to_pl(&prql)
+            .and_then(pl_to_prql)
+            .and_then(|x| compile(&x));
 
-        let result = compile(&formatted);
         let should_succeed = !tags.contains(&LangTag::NoFmt);
 
         match (should_succeed, result) {
             (true, Err(e)) => errs.push(format!(
                 "
----- {name} ---- ERROR after formatting
-  Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
-  -- Original PRQL --
+---- {name} ---- ERROR formatting & compiling
+Use `prql no-fmt` as the language label to assert an error from formatting & compiling.
+
+-- Original PRQL --
+
+```
 {prql}
-  -- Formatted PRQL --
-{formatted}
-  -- Error --
-{e}"
+```
+-- Error --
+```
+{e}
+```
+"
             )),
 
             (false, Ok(output)) => errs.push(format!(
                 "
 ---- {name} ---- UNEXPECTED SUCCESS after formatting
-  Succeeded at compiling the formatted result, but example was marked as `no-fmt`.
-  Remove `no-fmt` as a language label to assert successfully compiling the formatted result.
-  -- Original PRQL --
+Succeeded at formatting and then compiling the prql, but example was marked as `no-fmt`.
+Remove `no-fmt` as a language label to assert successfully compiling the formatted result.
+
+-- Original PRQL --
+```
 {prql}
-  -- Result --
+```
+-- Result --
+```
 {output}
+```
 "
             )),
             _ => {}
