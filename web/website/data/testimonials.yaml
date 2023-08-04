@@ -2,7 +2,7 @@
 #
 # (though FYI I (@max-sixty) couldn't get this to work and had to fill out
 # manually, using https://commentpicker.com/twitter-id.php to get the ID, and
-# unable to get the image link...)
+# manually inspecting the Twitter profile page to get the `pbs.twimg` link...)
 
 - quote:
     text:
@@ -25,7 +25,7 @@
     user_id: "12963432"
     name: Armin Ronacher
     screen_name: mitsuhiko
-    # profile_image_url_https: "https://pbs.twimg.com/profile_images/1201721914814656512/B6muDm76_normal.jpg"
+    profile_image_url_https: "https://pbs.twimg.com/profile_images/1542006345049591808/8pjEoSfq_normal.jpg"
     url: https://twitter.com/mitsuhiko/status/1683941196799045632?s=20
     profile_url: https://twitter.com/mitsuhiko
     created_at: "2022-07-25T13:03:21.000Z"
