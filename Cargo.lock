@@ -2193,7 +2193,6 @@ dependencies = [
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "regex",
- "semver",
  "serde_json",
  "serde_yaml",
  "strum 0.25.0",
