@@ -173,6 +173,10 @@ integrations_section:
         a database. It can also set up an in-memory DuckDB instance, populated
         with a pandas DataFrame."
 
+    - label: "ClickHouse"
+      link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
+      text: ClickHouse natively supports PRQL with `SET dialect = 'prql'`
+
     - label: Visual Studio Code
       link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
       text: Extension with syntax highlighting and an upcoming language server.
