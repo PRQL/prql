@@ -263,9 +263,9 @@ jobs:
           # - It's an backport to the web branch
           # - It's a pre-commit-ci update and there's only 1 commit — so it hasn't
           #   made any changes to files
-          github.actor == 'dependabot[bot]' || (github.base_ref ==
-          'web' && github.actor == 'prql-bot') || (github.actor ==
-          'pre-commit-ci' && steps.commit-count.outputs.commit-count == '1')
+          github.actor == 'dependabot[bot]' || (github.base_ref == 'web' &&
+          github.actor == 'prql-bot') || (github.actor == 'pre-commit-ci' &&
+          steps.commit-count.outputs.commit-count == '1')
         run: gh pr merge --auto --merge ${{github.event.pull_request.html_url}}
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
