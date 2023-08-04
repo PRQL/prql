@@ -237,20 +237,35 @@ jobs:
       CLICOLOR_FORCE: 1
       RUSTFLAGS: "-C debuginfo=0"
 
-  automerge-dependabot:
-    # This would arguably fit more naturally in `pull-request-target`, but it's
-    # more often used to merge after a build-task, rather than just auto-merge.
+  automerge:
+    # This would arguably fit more naturally in `pull-request-target`, but the
+    # action is designed to merge after a build-task, rather than just
+    # auto-merge.
     # https://github.com/fastify/github-action-merge-dependabot/issues/355.
     runs-on: ubuntu-latest
 
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request'
 
     permissions:
       pull-requests: write
       contents: write
 
     steps:
-      - uses: fastify/github-action-merge-dependabot@v3
-        with:
-          github-token: ${{ github.token }}
-          use-github-auto-merge: true
+      # Get number of commits in the PR
+      - id: commit-count
+        run: >
+          echo "commit-count=$(curl -s -H 'Authorization: token ${{ github.token
+          }}' https://api.github.com/repos/prql/prql/pulls/${{
+          github.event.pull_request.number }}/commits | jq 'length')" >>
+          "$GITHUB_OUTPUT"
+      - if:
+          # - It's dependabot
+          # - It's an backport to the web branch
+          # - It's a pre-commit-ci update and there's only 1 commit — so it hasn't
+          #   made any changes to files
+          github.actor == 'dependabot[bot]' || (github.base_ref ==
+          'refs/heads/web' && github.actor == 'prql-bot') || (github.actor ==
+          'pre-commit-ci' && steps.commit-count.outputs.commit-count == '1')
+        run: gh pr merge --auto --merge ${{github.event.pull_request.html_url}}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
