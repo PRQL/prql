@@ -1,4 +1,8 @@
 # Tweets can be fetched with https://tweetic.zernonia.com
+#
+# (though FYI I (@max-sixty) couldn't get this to work and had to fill out
+# manually, using https://commentpicker.com/twitter-id.php to get the ID, and
+# unable to get the image link...)
 
 - quote:
     text:
