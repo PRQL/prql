@@ -254,8 +254,8 @@ jobs:
       # Get number of commits in the PR
       - id: commit-count
         run: >
-          echo "commit-count=$(curl -s -H "Authorization: token ${{ github.token
-          }}" https://api.github.com/repos/prql/prql/pulls/${{
+          echo commit-count=$(curl -s -H "Authorization: token ${{ github.token
+          }} https://api.github.com/repos/prql/prql/pulls/${{
           github.event.pull_request.number }}/commits | jq 'length') >>
           "$GITHUB_OUTPUT"
       - uses: fastify/github-action-merge-dependabot@v3
