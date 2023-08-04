@@ -254,9 +254,9 @@ jobs:
       # Get number of commits in the PR
       - id: commit-count
         run: >
-          curl -s -H "Authorization: token ${{ github.token }}"
-          https://api.github.com/repos/prql/prql/pulls/${{
-          github.event.pull_request.number }}/commits | jq 'length' >>
+          echo "commit-count=$(curl -s -H "Authorization: token ${{ github.token
+          }}" https://api.github.com/repos/prql/prql/pulls/${{
+          github.event.pull_request.number }}/commits | jq 'length') >>
           "$GITHUB_OUTPUT"
       - uses: fastify/github-action-merge-dependabot@v3
         if:
@@ -266,7 +266,7 @@ jobs:
           #   made any changes to files
           github.actor == 'dependabot[bot]' || (github.base_ref ==
           'refs/heads/web' && github.actor == 'prql-bot') || (github.actor ==
-          'pre-commit-ci' && steps.commit-count.outputs.commits == '1')
+          'pre-commit-ci' && steps.commit-count.outputs.commit-count == '1')
         with:
           github-token: ${{ github.token }}
           use-github-auto-merge: true
