@@ -207,7 +207,7 @@ bindings_section:
       text: |
         Reference compiler implementation, written in Rust. Transpile, format and annotate PRQL queries.
 
-comments_section:
+testimonials_section:
   enable: true
   title: "What people are saying"
   # The testimonials are in data/testimonials.yaml.
