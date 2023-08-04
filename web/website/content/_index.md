@@ -176,7 +176,7 @@ integrations_section:
     - label: "ClickHouse"
       link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
       text: |
-        ClickHouse natively supports PRQL with 
+        ClickHouse natively supports PRQL with
 
         `SET dialect = 'prql'`
 
