@@ -267,6 +267,7 @@ jobs:
           github.actor == 'prql-bot') || (github.actor == 'pre-commit-ci' &&
           steps.commit-count.outputs.commit-count == '1')
         run:
-          gh pr merge --auto --merge ${{ github.event.pull_request.html_url }}
+          gh pr merge --auto --squash --delete-branch ${{
+          github.event.pull_request.html_url }}
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
