@@ -1182,7 +1182,7 @@ I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 (@aljazerzen) the credit he deserves, who has contributed the majority of the
 difficult work of building out the compiler. Much credit also goes to
 [Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
-PRQL's earliest supporters and the author of PyPrql, and
+PRQL's earliest supporters and the author of pyprql, and
 [Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
 the Jupyter integration among other Python contributions.
 
