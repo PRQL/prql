@@ -31,7 +31,9 @@
     created_at: "2022-07-25T13:03:21.000Z"
     favorite_count: 49
     conversation_count: 4
-    text: Oh wow I missed this. Clickhouse now supports PRQL
+    text:
+      "Oh wow I missed this. Clickhouse now supports PRQL:
+      https://github.com/ClickHouse/ClickHouse/pull/50686"
 
 - tweet:
     user_id: "16080017"
