@@ -18,7 +18,7 @@ ariadne = "0.3.0"
 atty = "0.2.14"
 clap = {version = "4.3.0", features = ["derive", "env", "wrap_help"]}
 clap_complete_command = "0.5.1"
-clio = {version = "0.3.4", features = ['clap-parse']}
+clio = {version = "0.3.3", features = ['clap-parse']}
 color-eyre = "0.6.1"
 colorchoice-clap = "1.0.0"
 env_logger = {version = "0.10.0", features = ["color"]}
