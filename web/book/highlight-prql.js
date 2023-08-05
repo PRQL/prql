@@ -36,7 +36,7 @@ formatting = function (hljs) {
     "window",
   ];
   const BUILTIN_FUNCTIONS = ["case", "in", "as"];
-  const KEYWORDS = ["let", "prql"];
+  const KEYWORDS = ["let", "prql", "into"];
   return {
     name: "PRQL",
     case_insensitive: true,
@@ -168,17 +168,25 @@ formatting = function (hljs) {
         relevance: 10,
       },
       {
-        // number
         scope: "number",
-        // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
-        // it requires a number after a decimal point, so ranges appear as
-        // ranges.
-        // We allow underscores, a bit more liberally than PRQL, which doesn't
-        // allow them at the end (but that's difficult to express with
-        // regex; contributions welcome).
-        // We force a leading break, so that we don't highlight a
-        // number in `foo_1`.
-        match: /\b((\d[\d_]*(\.[\d_]+])?)|(\.[\d_]+))/,
+        // Regex explanation:
+        // 1. `\b`: asserts a word boundary. This ensures that the pattern matches numbers that are distinct words or at the boundaries of words.
+        // 2. `(\d[_\d]*(e|E)\d[_\d]*)`: This is the first alternative in the main group and matches numbers in scientific notation:
+        //     - `\d`: matches a digit (0-9).
+        //     - `[_\d]*`: matches zero or more underscores or digits, representing the numbers before the `e` in scientific notation.
+        //     - `e`: matches the letter 'e' for scientific notation.
+        //     - `\d`: matches a digit (0-9), the beginning of the exponent.
+        //     - `[_\d]*`: matches zero or more underscores or digits, representing the numbers after the `e` in scientific notation.
+        // 3. `(\d[_\d]*\.?[\d_]*\d)`: This is the second alternative in the main group and matches standard numbers without the scientific notation:
+        //     - `\d`: matches a digit (0-9), representing the first digit of the number.
+        //     - `[_\d]*`: matches zero or more underscores or digits, for the sequence before a potential decimal point.
+        //     - `\.?`: matches an optional decimal point.
+        //     - `[\d_]*`: matches zero or more digits or underscores, representing the sequence after the decimal point if it exists.
+        //     - `\d`: ensures the sequence ends in a digit, so there's no trailing underscore.
+        // 4. `(\.[\d_]+)`: This is the third alternative in the main group:
+        //     - `\.`: matches a literal dot, so this alternative captures numbers that begin with a decimal point.
+        //     - `[\d_]+`: matches one or more digits or underscores, for the sequence after the initial dot.
+        match: /\b((\d[_\d]*(e|E)\d[_\d]*)|(\d[_\d]*\.?[\d_]*\d)|(\.[\d_]+))/,
         relevance: 10,
       },
       {
@@ -211,5 +219,5 @@ hljs.registerLanguage("prql", formatting);
 // invocation, which tags unknown-language blocks with CSS classes but doesn't
 // highlight them.
 Array.from(document.querySelectorAll("code.language-prql")).forEach((a) =>
-  hljs.highlightElement(a),
+  hljs.highlightElement(a)
 );
