@@ -88,10 +88,11 @@ tasks:
 
   install-cargo-tools-binstall:
     cmds:
+      # Adjusted to use zsh because of https://github.com/cargo-bins/cargo-binstall/issues/1254
       - cmd:
           curl -L --proto '=https' --tlsv1.2 -sSf
           https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
-          | bash
+          | zsh
         platforms: [linux, darwin]
       - cargo binstall -y --locked {{.cargo_crates}}
 
