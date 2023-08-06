@@ -21,6 +21,90 @@ pub fn parse(string: String, span_base: ParserSpan) -> Result<Vec<InterpolateIte
     }
 }
 
+#[test]
+fn parse_interpolate() {
+    use insta::assert_debug_snapshot;
+    let span_base = ParserSpan::new(0, 0..0);
+
+    assert_debug_snapshot!(
+        parse("concat({a})".to_string(), span_base).unwrap(), 
+    @r###"
+    [
+        String(
+            "concat(",
+        ),
+        Expr {
+            expr: Expr {
+                kind: Ident(
+                    Ident {
+                        path: [],
+                        name: "a",
+                    },
+                ),
+                span: Some(
+                    0:7-10,
+                ),
+                alias: None,
+            },
+            format: None,
+        },
+        String(
+            ")",
+        ),
+    ]
+    "###);
+
+    assert_debug_snapshot!(
+        parse("print('{{hello}}')".to_string(), span_base).unwrap(), 
+    @r###"
+    [
+        String(
+            "print('",
+        ),
+        String(
+            "{hello}",
+        ),
+        String(
+            "')",
+        ),
+    ]
+    "###);
+
+    assert_debug_snapshot!(
+        parse("concat('{{', a, '}}')".to_string(), span_base).unwrap(), 
+    @r###"
+    [
+        String(
+            "concat('",
+        ),
+        String(
+            "{', a, '}",
+        ),
+        String(
+            "')",
+        ),
+    ]
+    "###);
+
+    // This is incorrect — it should return an inner expression, of the `a`, and
+    // convert the `{{` and `}}` to `{` and `}` respectively.
+    assert_debug_snapshot!(
+        parse("concat('{{', {a}, '}}')".to_string(), span_base).unwrap(), 
+    @r###"
+    [
+        String(
+            "concat('",
+        ),
+        String(
+            "{', {a}, '}",
+        ),
+        String(
+            "')",
+        ),
+    ]
+    "###);
+}
+
 fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
