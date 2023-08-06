@@ -1,7 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
-use std::collections::BTreeMap;
 use std::{env, fs};
 
 use anyhow::Context;
@@ -9,7 +8,6 @@ use insta::{assert_snapshot, glob};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use similar_asserts::assert_eq;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
