@@ -6,27 +6,27 @@ use itertools::{Itertools, Position};
 
 use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::ir::pl::*;
-use crate::semantic::context::TableDecl;
+use crate::semantic::decl::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 
-use super::context::{Context, Decl, DeclKind, TableExpr};
+use super::decl::{Decl, DeclKind, TableExpr};
 use super::module::Module;
-use super::{write_pl, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
+use super::{write_pl, RootModule, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
 
-mod context_impl;
 mod flatten;
+mod root_module_impl;
 mod transforms;
 mod type_resolver;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
-pub struct Resolver {
-    pub context: Context,
+pub struct Resolver<'a> {
+    context: &'a mut RootModule,
 
-    pub current_module_path: Vec<String>,
+    current_module_path: Vec<String>,
 
     default_namespace: Option<String>,
 
@@ -45,8 +45,8 @@ pub struct ResolverOptions {
     pub allow_module_decls: bool,
 }
 
-impl Resolver {
-    pub fn new(context: Context, options: ResolverOptions) -> Self {
+impl Resolver<'_> {
+    pub fn new(context: &mut RootModule, options: ResolverOptions) -> Resolver {
         Resolver {
             context,
             options,
@@ -58,8 +58,12 @@ impl Resolver {
         }
     }
 
-    // entry point
-    pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
+    pub fn resolve(&mut self, path: Vec<String>, stmts: Vec<Stmt>) -> Result<()> {
+        self.current_module_path = path;
+        self.fold_statements(stmts)
+    }
+
+    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
@@ -250,7 +254,7 @@ impl Resolver {
     }
 }
 
-impl PlFold for Resolver {
+impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
         unreachable!()
     }
@@ -458,7 +462,7 @@ impl PlFold for Resolver {
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(&self.context)?);
+                r.lineage = Some(call.infer_type(self.context)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -483,7 +487,7 @@ impl PlFold for Resolver {
     }
 }
 
-impl Resolver {
+impl Resolver<'_> {
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
         if let Some(default_namespace) = &self.default_namespace {
             self.context.resolve_ident(ident, Some(default_namespace))

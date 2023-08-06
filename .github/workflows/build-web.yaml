@@ -9,6 +9,8 @@ on:
   workflow_call:
 
 env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
   RUSTFLAGS: "-C debuginfo=0"
 
 concurrency:
@@ -59,6 +61,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ env.version }}
+          shared-key: web
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}

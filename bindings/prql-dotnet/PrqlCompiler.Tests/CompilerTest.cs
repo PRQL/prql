@@ -23,14 +23,14 @@ sealed public class CompilerTest
         Assert.Equal(expected, result.Output);
     }
 
-    [Fact(Skip = "Fails")]
+    [Fact]
     public void TestOtherFunctions()
     {
         // Arrange
         var query = """
             let a = (from employees | take 10)
 
-            from a | select [first_name]
+            from a | select {first_name}
             """;
         var options = new PrqlCompilerOptions();
 
@@ -47,6 +47,7 @@ sealed public class CompilerTest
         var direct = PrqlCompiler.Compile(query);
         Assert.Empty(direct.Messages);
 
-        Assert.Equal(via_json, direct);
+        Assert.Equal(via_json.Messages, direct.Messages);
+        Assert.Equal(via_json.Output, direct.Output);
     }
 }

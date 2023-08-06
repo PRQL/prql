@@ -49,8 +49,8 @@ website, we have two options:
 ### Option 1: Use the project's `task`
 
 ```admonish note
-This is tested on MacOS, should work on Linux, but won't work on Windows.
-Because of using the `brew` command inside of `Taskfile.yml`.
+This is tested on macOS, should work on amd64 Linux, but won't work on others (include Windows),
+since it relies on `brew`.
 ```
 
 - [Install Task](https://taskfile.dev/installation/).
@@ -143,6 +143,11 @@ change!
   - be in the right direction,
   - make incremental progress,
   - be explicit on its current state, so others can continue the progress.
+- That said, there are a few instances when we need to ensure we have some
+  consensus before merging code — for example non-trivial changes to the
+  language, or large refactorings to the library. {{footnote: PRs or Issues are
+  both fine for these. Discord is OK for an initial discussion, but GitHub is
+  the only discussion of record.}}
 - If you have merge permissions, and are reasonably confident that a PR is
   suitable to merge (whether or not you're the author), feel free to merge.
   - If you don't have merge permissions and have authored a few PRs, ask and ye
@@ -390,8 +395,11 @@ Currently we release in a semi-automated way:
    echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
-2. Run `cargo release version patch -x && cargo release replace -x` to bump the
-   versions, then PR the resulting commit.
+2. If the current version is correct, then skip ahead. But if the version needs
+   to be changed — for example, we had planned on a patch release, but instead
+   require a minor release — then run
+   `cargo release version $version -x && cargo release replace -x` to bump the
+   version and PR the resulting commit.
 3. After merging, go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
    maintainers have access to this page.}}, copy the changelog entry into the release
@@ -402,26 +410,10 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Add in the sections for a new Changelog:
-
-   ```md
-   ## 0.8.X — [unreleased]
-
-   **Features**:
-
-   **Fixes**:
-
-   **Documentation**:
-
-   **Web**:
-
-   **Integrations**:
-
-   **Internal changes**:
-
-   **New Contributors**:
-   ```
-
+5. Run
+   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
+   to bump the versions and add a new Changelog section; then PR the resulting
+   commit.
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
 

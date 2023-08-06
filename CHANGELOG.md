@@ -1,5 +1,40 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+- `prolc` no longer displays a prompt when piping a query into its stdin
+  (@max-sixty, #3248).
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.9.3 — 2023-08-02
+
+0.9.3 is a small release, with mostly documentation, internal, and CI changes.
+
+This release has 85 commits from 10 contributors.
+
+We'd like to welcome @not-my-profile as someone who has helped with lots of
+internal refactoring in the past couple of weeks.
+
+**New Contributors**:
+
+- @vthriller, with #3171
+- @postmeback, with #3216
+
 ## 0.9.2 — 2023-07-25
 
 0.9.2 is a hotfix release to fix an issue in the 0.9.0 & 0.9.1 release
@@ -61,7 +96,7 @@ A small selection of the changes:
 
     ```prql no-eval
     from tracks
-    filter {name ~= "Love"}
+    filter (name ~= "Love")
     ```
 
     ...compiles to;
@@ -1147,7 +1182,7 @@ I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 (@aljazerzen) the credit he deserves, who has contributed the majority of the
 difficult work of building out the compiler. Much credit also goes to
 [Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
-PRQL's earliest supporters and the author of PyPrql, and
+PRQL's earliest supporters and the author of pyprql, and
 [Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
 the Jupyter integration among other Python contributions.
 

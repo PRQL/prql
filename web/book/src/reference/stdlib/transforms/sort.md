@@ -88,7 +88,9 @@ JOIN artists USING (artist_id)
 standard doesn't guarantee an order, although most implementations will respect
 it).
 
-## Nulls
+<!-- We rolling this back. Waiting on the outcome of https://github.com/PRQL/prql/issues/2622 -->
+
+<!-- ## Nulls
 
 PRQL defaults to `NULLS LAST` when compiling to SQL. Because databases have
 different defaults, the compiler emits this for all targets for which it's not a

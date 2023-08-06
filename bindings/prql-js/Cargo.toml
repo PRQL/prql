@@ -4,14 +4,10 @@ name = "prql-js"
 publish = false
 
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
-
-# Unsupported by `wasm-pack` (which seems kinda unmaintained now...)
-# license.workspace = true
-# repository.workspace = true
-license = "Apache-2.0"
-repository = "https://github.com/PRQL/prql"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

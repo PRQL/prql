@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from invoices\njoin tracks (this.track_id==that.id)\n"
+---
+SELECT
+  invoices.*,
+  tracks.*
+FROM
+  invoices
+  JOIN tracks ON invoices.track_id = tracks.id
+

@@ -6,9 +6,13 @@ on:
     inputs:
       os:
         type: string
+        required: true
       target:
         type: string
-        default: ""
+        required: true
+      features:
+        type: string
+        required: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,40 +41,13 @@ jobs:
         with:
           crate: cargo-insta
       - run: ./.github/set_version.sh
+        shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ env.version }}
-          shared-key: rust-${{ inputs.target}}
+          shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: 📎 Clippy
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: clippy
-          # Note that `--all-targets` doesn't refer to targets like
-          # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-          #
-          # Autoformatting doesn't make this clear to read, but this tertiary
-          # expression states to run:
-          # - External DB integration tests — `--features=test-dbs-external`
-          #   on Linux
-          # - No features on Windows
-          # - Internal DB integration tests — `--features=test-dbs` otherwise
-          #
-          # Below, we also add:
-          # - Unreferenced snapshots - `--unreferenced=auto` on Linux
-          #
-          # We'd like to reenable on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
-          args: >
-            --all-targets --target=${{ inputs.target }} --features=${{
-            inputs.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external'
-            || inputs.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
-            -- -D warnings
-      - name: ⌨️ Fmt
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: fmt
-          args: --all --check
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
@@ -79,26 +56,40 @@ jobs:
           command: test
           args: >
             --no-run --locked --target=${{ inputs.target }} --features=${{
-            inputs.target == 'x86_64-unknown-linux-gnu' && 'test-dbs-external'
-            || inputs.target != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }}
-            }}
+            inputs.features }}
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./crates/prql-compiler/tests/integration
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1.1.0
         with:
           resource: "tcp:1433 tcp:3306 tcp:5432 tcp:9004"
           timeout: 60000
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: 📋 Test
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # See Compile step for explanation of args
+          # Here, we also add:
+          # - Unreferenced snapshots - `--unreferenced=auto` when testing on
+          #   linux & with `test-dbs` feature.
           args: >
-            test --target=${{ inputs.target }} --features=${{ inputs.target ==
-            'x86_64-unknown-linux-gnu' && 'test-dbs-external' || inputs.target
-            != 'x86_64-pc-windows-msvc' && 'test-dbs' || '' }} ${{ inputs.target
-            == 'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+            test --target=${{ inputs.target }} --features=${{ inputs.features }}
+            ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
+            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+      - name: 📎 Clippy
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: clippy
+          # Note that `--all-targets` doesn't refer to targets like
+          # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
+          #
+          args: >
+            --all-targets --target=${{ inputs.target }} --features=${{
+            inputs.features }} -- -D warnings
+      - name: ⌨️ Fmt
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: fmt
+          args: --all --check

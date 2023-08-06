@@ -35,3 +35,6 @@ jobs:
       - name: Run basic C example
         working-directory: bindings/prql-lib/examples/minimal-c
         run: make run
+      - name: Run basic C++ example
+        working-directory: bindings/prql-lib/examples/minimal-cpp
+        run: make run

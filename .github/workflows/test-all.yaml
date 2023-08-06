@@ -49,15 +49,14 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          # TODO: potentially enable these
-          # - os: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
-          # - os: macos-latest
-          #   target: aarch64-apple-darwin
+            features: test-dbs-external
           - os: macos-latest
             target: x86_64-apple-darwin
+            features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
+            features: ""
           # Only run wasm on ubuntu, given it's the same rust target. (There is a
           # possibility of having a failure on just one platform, but it's quite
           # unlikely. If we do observe this, we can expand, or introduce a
@@ -65,11 +64,19 @@ jobs:
           # using runners & cache space)
           - os: ubuntu-latest
             target: wasm32-unknown-unknown
+            features: ""
+
+          # TODO: potentially enable these
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-musl
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
 
     uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
       target: ${{ matrix.target }}
+      features: ${{ matrix.features }}
 
   test-php:
     uses: ./.github/workflows/test-php.yaml
@@ -103,6 +110,7 @@ jobs:
         with:
           crate: cargo-tarpaulin
       - run: ./.github/set_version.sh
+        shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -146,3 +154,34 @@ jobs:
       - name: Verify minimum rust version — prqlc
         working-directory: crates/prqlc
         run: cargo msrv verify
+
+  # One possible alternative to having this workflow is to automatically
+  # bump the version after a commit, auto-merge the PR, and then there
+  # should be no time where the version in the repo has been
+  # published.
+  check-published:
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check-version.outputs.published }}
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - run: ./.github/set_version.sh
+      - id: check-version
+        run: |
+          published_version=$(curl -sL https://crates.io/api/v1/crates/prql-compiler/versions | jq -r '.versions[].num' | sort -V | tail -n 1)
+          echo "published_version=${published_version}" >>"$GITHUB_ENV"
+          if [[ "$published_version" == "$version" ]]; then
+            export published=true
+          else
+            export published=false
+          fi
+          echo "published=${published}" >>"$GITHUB_OUTPUT"
+          echo "${published}"
+
+  test-release-dry-run:
+    needs: check-published
+    if: needs.check-published.outputs.published != 'true'
+    uses: ./.github/workflows/release.yaml
+    with:
+      dry-run: true

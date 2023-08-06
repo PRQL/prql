@@ -12,6 +12,40 @@ _h3llo
 hello.world
 ```
 
+## `this` & `that`
+
+`this` refers to the current relation:
+
+```prql
+from invoices
+aggregate (
+    count this
+)
+```
+
+Within a [`join`](../stdlib/transforms/join.md), `that` refers to the other
+table:
+
+```prql
+from invoices
+join tracks (this.track_id==that.id)
+```
+
+`this` can also be used to remove any column ambiguity. For example, currently
+using a bare `time` as a column name will fail, because it's also a type:
+
+```prql error no-fmt
+from invoices
+derive t = time
+```
+
+But with `this.time`, we can remove the ambiguity:
+
+```prql
+from invoices
+derive t = this.time
+```
+
 ## Quoting
 
 To use characters that would be otherwise invalid, identifiers can be surrounded

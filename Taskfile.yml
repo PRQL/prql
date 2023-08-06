@@ -184,6 +184,10 @@ tasks:
     cmds:
       - cargo build --all-targets --all-features
       - cargo build --all-targets --all-features --target=wasm32-unknown-unknown
+      # Build without features, as the dependencies have slightly different
+      # features themselves and so require recompiling. This is only useful for
+      # caching.
+      - cargo build --all-targets
       - task: build-web
 
   test-all:
@@ -194,8 +198,11 @@ tasks:
       Running this isn't required when developing; it's for caching or as a reference.
 
     cmds:
-      # TODO: this doesn't run the python tests. We should add them in here.
-      # They are run in `test-all.yaml` on GHA.
+      # TODO:
+      # - Add `prql-python` tests.
+      # - We could add `prql-lib` here.
+      # - We deliberately don't test some other bindings, such as `prql-php`,
+      #   given they require more dependencies and aren't yet supported.
       - task: test-rust
       - task: build-all
       - task: test-js
@@ -327,6 +334,18 @@ tasks:
       - package.json
     generates:
       - node_modules/*
+
+  build-php:
+    - cargo build -p prql-lib --release
+    - mkdir -p bindings/prql-php/lib/
+    - cp target/release/libprql_lib.* bindings/prql-lib/libprql_lib.h
+      bindings/prql-php/lib/
+    - cd bindings/prql-php && composer install
+
+  test-php:
+    dir: bindings/prql-php
+    cmds:
+      - vendor/bin/phpunit tests
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly

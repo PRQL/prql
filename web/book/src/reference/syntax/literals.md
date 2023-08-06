@@ -41,8 +41,9 @@ from my_table
 select x = 'hello world'
 ```
 
-To quote a string containing quotes, either use the "other" type of quote, or
-use 3, 4, 5 or 6 quotes, and close with the same number.
+To quote a string containing quotes, either use the "other" type of quote, or an
+odd number{{footnote: currently up to 7}} of quotes, and close with the same
+number.
 
 ```prql
 from my_table

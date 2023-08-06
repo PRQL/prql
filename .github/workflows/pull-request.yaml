@@ -25,31 +25,74 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+
 jobs:
+  # This assesses whether we need to run jobs. It's currently only implemented
+  # for a couple jobs, but we could expand it to other jobs, bringing the
+  # jobs into this workflow.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      book: ${{ steps.filter.outputs.book }}
+      rust: ${{ steps.filter.outputs.rust }}
+      test-all: ${{ steps.filter.outputs.test-all }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            book:
+              - '.github/workflows/check-links-book.yaml'
+              - 'web/book/**'
+            rust:
+              - '**/*.rs'
+              - 'crates/**'
+              - 'web/book/**'
+            test-all:
+              # We can expand this in the future / consolidate with
+              # `test-all.yaml`. For the moment, using this to ensure that we
+              # can't merge a dependency change without running `test-all`,
+              # given this the job here blocks PRs, whereas `test-all.yaml` doesn't.
+              - Cargo.lock
+
   test-rust:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
-        # We use a matrix here to mirror `test-all`, so they share a cache.
-        os: [ubuntu-latest]
-        target: ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
-    uses: ./.github/workflows/test-rust.yaml
+        include:
+          - target: x86_64-unknown-linux-gnu
+          - target: wasm32-unknown-unknown
     with:
-      os: ${{ matrix.os }}
+      os: ubuntu-latest
       target: ${{ matrix.target }}
+      # We previously ran with integration tests, but removing until
+      # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile
+      # times
+      features: ""
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
   # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
   # (meaning a breaking change) in the PR title. (We also run on other
-  # conditions defined in `test-all.yaml`; the conditions defined here aren't
-  # possible to use as conditions for running a workflow, only a job, so we use
-  # this approach.)
+  # conditions defined in `test-all.yaml`; we could move those in here now that
+  # we have the `changes` job.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
+    needs: changes
     if:
       contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
-      contains(github.event.pull_request.title, '!')
+      contains(github.event.pull_request.title, '!') ||
+      needs.changes.outputs.test-all == 'true'
 
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
@@ -74,7 +117,36 @@ jobs:
           check-modified-files-only: "yes"
 
   check-links-book:
-    uses: ./.github/workflows/check-links-book.yaml
+    # We also have a check-links-markdown job, however it will not spot mdbook
+    # mistakes such as forgetting to list an .md file in SUMMARY.md.
+    # Running a link checker on the generated HTML is more reliable.
+    needs: changes
+    if: needs.changes.outputs.book == 'true'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: mdbook
+      # the link checker
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: hyperlink
+      - run: ./.github/set_version.sh
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          shared-key: web
+          # Created by `build-web`
+          save-if: false
+      - name: Build the mdbook
+        run: mdbook build web/book/
+      - name: Check links
+        run: hyperlink web/book/book/
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
@@ -85,12 +157,18 @@ jobs:
     # (and is strictly inferior to a GitHub feature that would just say "don't
     # allow merging on any failing test"). We could change that by moving the
     # triggers for those into this workflow, and using an external action to
-    # assess whether the paths have changed. That would move us closer to a
-    # world where all tasks are defined in a single workflow, and we use
-    # job-level criteria to decide what to run. But it's quite a change, I
-    # (@max-sixty) have probably done too much devops already, and it's possible
-    # that GitHub releases something to enable path triggers within workflows
-    # natively.
+    # assess whether the paths have changed, such as
+    # https://github.com/dorny/paths-filter/tree/v2.
+
+    # If we wanted to start this, we could move `test-all.yaml` in, by removing
+    # that workflow's triggers, adding the triggers to the call to it from this
+    # workflow.
+
+    # That would move us closer to a world where all tasks are defined in a
+    # single workflow, and we use job-level criteria to decide what to run. But
+    # it's quite a change, I (@max-sixty) have probably done too much devops
+    # already, and it's possible that GitHub releases something to enable path
+    # triggers within workflows natively.
     #
     # Check out `test-all.yaml` for more ideas on organizing these.
     if: always()
@@ -111,17 +189,22 @@ jobs:
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
-          allowed-skips: test-all, publish-web, nightly
+          allowed-skips:
+            test-all, publish-web, nightly, check-links-book, test-rust
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Match the features with the available caches from tests
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            features: ""
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
@@ -132,8 +215,10 @@ jobs:
           #   target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
+            features: test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            features: ""
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -141,6 +226,9 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: dev
+          features: ${{ matrix.features }}
+    # TODO: can we remove this now we have them at the job level?
+    #
     # These are the same env variables as in `test-rust.yaml`. Custom actions
     # don't allow setting env variables for the whole job, so we do it here. (We
     # could change the `build-prqlc` action to a workflow...).
@@ -149,20 +237,37 @@ jobs:
       CLICOLOR_FORCE: 1
       RUSTFLAGS: "-C debuginfo=0"
 
-  automerge-dependabot:
-    # This would arguably fit more naturally in `pull-request-target`, but it's
-    # more often used to merge after a build-task, rather than just auto-merge.
+  automerge:
+    # This would arguably fit more naturally in `pull-request-target`, but the
+    # action is designed to merge after a build-task, rather than just
+    # auto-merge.
     # https://github.com/fastify/github-action-merge-dependabot/issues/355.
     runs-on: ubuntu-latest
 
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request'
 
     permissions:
       pull-requests: write
       contents: write
 
     steps:
-      - uses: fastify/github-action-merge-dependabot@v3
-        with:
-          github-token: ${{ github.token }}
-          use-github-auto-merge: true
+      # Get number of commits in the PR
+      - id: commit-count
+        run: >
+          echo "commit-count=$(curl -s -H 'Authorization: token ${{ github.token
+          }}' https://api.github.com/repos/prql/prql/pulls/${{
+          github.event.pull_request.number }}/commits | jq 'length')" >>
+          "$GITHUB_OUTPUT"
+      - if:
+          # - It's dependabot
+          # - It's an backport to the web branch
+          # - It's a pre-commit-ci update and there's only 1 commit — so it hasn't
+          #   made any changes to files
+          github.actor == 'dependabot[bot]' || (github.base_ref == 'web' &&
+          github.actor == 'prql-bot') || (github.actor == 'pre-commit-ci' &&
+          steps.commit-count.outputs.commit-count == '1')
+        run:
+          gh pr merge --auto --squash --delete-branch ${{
+          github.event.pull_request.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
