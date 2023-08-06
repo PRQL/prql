@@ -68,8 +68,8 @@ PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
 using one of our supported language bindings.
 
-PRQL still has some minor bugs and some missing features, and is probably only
-ready to be rolled out to non-technical teams for fairly simple queries.
+PRQL still has some bugs and some missing features, and is probably only ready
+to be rolled out to non-technical teams for fairly simple queries.
 
 We recently release [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0),
 our biggest release ever. Here's our current
@@ -83,6 +83,8 @@ Our immediate focus for the code is on:
 
 - Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
+  As more folks have started using PRQL, we've had more bug reports — good news,
+  but also gives us more to work on.
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
   standard SQL queries; for example
   [date to string functions](https://github.com/PRQL/prql/issues/366).
@@ -117,14 +119,10 @@ To stay in touch with PRQL:
 - See the [development][development] documentation for PRQL. It's easy to get
   started — the project can be built in a couple of commands, and we're a really
   friendly community!
-- For those who might be interested in contributing to the code now, here are a
-  few bugs (as of 2023-07-29) that we'd be keen to fix and someone with
-  basic-ish rust knowledge could make good progress. As discussed in our
-  [contributing docs](https://prql-lang.org/book/project/contributing/development.html).
-  always feel free to ask questions or open a draft PR.
-  - [#3151](https://github.com/PRQL/prql/issues/3151) — confined to parser
-  - [#3077](https://github.com/PRQL/prql/issues/3077) — some path forward
-    defined in the issue
+- For those who might be interested in contributing to the code now, check out
+  issues with the
+  [good first issue](https://github.com/PRQL/prql/labels/good%20first%20issue)
+  label. Always feel free to ask questions or open a draft PR.
 
 ## Explore
 
