@@ -55,22 +55,18 @@ pub fn resolve(
     }
 
     // init empty context
-    let context = RootModule {
-        root_mod: Module::new_root(),
-        ..RootModule::default()
-    };
-    let mut resolver = Resolver::new(context, options);
+    let mut root_module = RootModule::new();
+    let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve sources one by one
     // TODO: recursive references
     for (path, stmts) in normalize(file_tree)? {
         let stmts = ast_expand::expand_stmts(stmts)?;
 
-        resolver.current_module_path = path;
-        resolver.fold_statements(stmts)?;
+        resolver.resolve(path, stmts)?;
     }
 
-    Ok(resolver.context)
+    Ok(root_module)
 }
 
 /// Preferred way of injecting std module.

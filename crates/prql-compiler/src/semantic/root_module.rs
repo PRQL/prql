@@ -5,13 +5,15 @@ use anyhow::Result;
 use prql_ast::{expr::Ident, stmt::QueryDef, Span};
 use serde::{Deserialize, Serialize};
 
+use super::decl::DeclKind;
 use super::{
     decl::{Decl, TableExpr},
     Module, NS_MAIN, NS_QUERY_DEF,
 };
+use super::{NS_PARAM, NS_STD, NS_THAT, NS_THIS};
 
 /// Context of the pipeline.
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RootModule {
     /// Map of all accessible names (for each namespace)
     pub(crate) root_mod: Module,
@@ -22,6 +24,31 @@ pub struct RootModule {
 // TODO: impl Deref<Target=Module> for RootModule and DerefMut
 
 impl RootModule {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
+        RootModule {
+            root_mod: Module {
+                names: HashMap::from([
+                    (
+                        "default_db".to_string(),
+                        Decl::from(DeclKind::Module(Module::new_database())),
+                    ),
+                    (NS_STD.to_string(), Decl::from(DeclKind::default())),
+                ]),
+                shadowed: None,
+                redirects: vec![
+                    Ident::from_name(NS_THIS),
+                    Ident::from_name(NS_THAT),
+                    Ident::from_name(NS_PARAM),
+                    Ident::from_name(NS_STD),
+                ],
+            },
+            span_map: HashMap::new(),
+        }
+    }
+
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
     pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), Option<String>> {

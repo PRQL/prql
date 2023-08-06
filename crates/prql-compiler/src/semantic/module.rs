@@ -8,8 +8,8 @@ use crate::ir::pl::{Expr, Ident, TupleField, Ty};
 use crate::Error;
 
 use super::decl::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{Lineage, LineageColumn, NS_PARAM, NS_STD};
-use super::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use super::{Lineage, LineageColumn};
+use super::{NS_INFER, NS_INFER_MODULE, NS_SELF};
 
 #[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -37,27 +37,6 @@ impl Module {
         Module {
             names: HashMap::from([(name.to_string(), entry)]),
             ..Default::default()
-        }
-    }
-
-    pub fn new_root() -> Module {
-        // Each module starts with a default namespace that contains a wildcard
-        // and the standard library.
-        Module {
-            names: HashMap::from([
-                (
-                    "default_db".to_string(),
-                    Decl::from(DeclKind::Module(Self::new_database())),
-                ),
-                (NS_STD.to_string(), Decl::from(DeclKind::default())),
-            ]),
-            shadowed: None,
-            redirects: vec![
-                Ident::from_name(NS_THIS),
-                Ident::from_name(NS_THAT),
-                Ident::from_name(NS_PARAM),
-                Ident::from_name(NS_STD),
-            ],
         }
     }
 
