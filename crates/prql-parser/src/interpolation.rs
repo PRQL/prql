@@ -59,13 +59,7 @@ fn parse_interpolate() {
     @r###"
     [
         String(
-            "print('",
-        ),
-        String(
-            "{hello}",
-        ),
-        String(
-            "')",
+            "print('{hello}')",
         ),
     ]
     "###);
@@ -75,13 +69,7 @@ fn parse_interpolate() {
     @r###"
     [
         String(
-            "concat('",
-        ),
-        String(
-            "{', a, '}",
-        ),
-        String(
-            "')",
+            "concat('{', a, '}')",
         ),
     ]
     "###);
@@ -93,13 +81,25 @@ fn parse_interpolate() {
     @r###"
     [
         String(
-            "concat('",
+            "concat('{', ",
         ),
+        Expr {
+            expr: Expr {
+                kind: Ident(
+                    Ident {
+                        path: [],
+                        name: "a",
+                    },
+                ),
+                span: Some(
+                    0:13-16,
+                ),
+                alias: None,
+            },
+            format: None,
+        },
         String(
-            "{', {a}, '}",
-        ),
-        String(
-            "')",
+            ", '}')",
         ),
     ]
     "###);
@@ -123,19 +123,16 @@ fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Erro
             InterpolateItem::Expr { expr, format }
         });
 
-    let escape = (just("{{").to('{'))
-        .chain(just("}}").not().repeated())
-        .chain(just("}}").to('}'))
-        .collect::<String>()
-        .map(InterpolateItem::String);
-
-    let string = none_of('{')
+    // Convert double braces to single braces, and fail on any single braces.
+    let string = (just("{{").to('{'))
+        .or(just("}}").to('}'))
+        .or(none_of("{}"))
         .repeated()
         .at_least(1)
         .collect::<String>()
         .map(InterpolateItem::String);
 
-    escape.or(expr).or(string).repeated().then_ignore(end())
+    expr.or(string).repeated().then_ignore(end())
 }
 
 fn offset_span(base: ParserSpan, range: std::ops::Range<usize>) -> ParserSpan {

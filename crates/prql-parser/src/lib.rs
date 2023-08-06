@@ -613,7 +613,12 @@ Canada
         SString:
           - String: "{?crystal_var}"
         "###);
-        parse_expr(r#"s"foo{{bar""#).unwrap_err();
+        assert_yaml_snapshot!(parse_expr(r#"s"foo{{bar""#).unwrap(), @r###"
+        ---
+        SString:
+          - String: "foo{bar"
+        "###);
+        parse_expr(r#"s"foo{{bar}""#).unwrap_err();
     }
 
     #[test]
