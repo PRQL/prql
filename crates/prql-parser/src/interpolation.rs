@@ -74,8 +74,6 @@ fn parse_interpolate() {
     ]
     "###);
 
-    // This is incorrect — it should return an inner expression, of the `a`, and
-    // convert the `{{` and `}}` to `{` and `}` respectively.
     assert_debug_snapshot!(
         parse("concat('{{', {a}, '}}')".to_string(), span_base).unwrap(), 
     @r###"
