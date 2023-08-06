@@ -293,7 +293,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
 }
 
 fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
-    // I don't know how this could be simplified and implemented for n*2 in general
+    // I don't know how this could be simplified and implemented for (n*2)+1 in general
     choice((
         quoted_string_inner(r#"""""""""#, escaped),
         quoted_string_inner(r#"""""""#, escaped),
