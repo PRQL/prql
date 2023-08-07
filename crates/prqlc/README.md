@@ -74,6 +74,12 @@ take 3
 brew install prqlc
 ```
 
+### via winget (Windows)
+
+```sh
+winget install prqlc
+```
+
 ### From GitHub release page
 
 Precompiled binaries are available for Linux, macOS, and Windows on the
