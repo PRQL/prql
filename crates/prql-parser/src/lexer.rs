@@ -305,11 +305,11 @@ fn quoted_string_of_quote(
     quote: &char,
     escaping: bool,
 ) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
-    // An odd number of quote characters
-    let opening = just(*quote).then((just(*quote).then(just(*quote))).repeated());
+    // An odd number of quote characters: 1, and then any number of pairs.
+    let opening = just(*quote).ignore_then((just(*quote).then(just(*quote))).repeated());
 
     opening.then_with(move |opening| {
-        let opening_len = opening.1.len() * 2 + 1;
+        let opening_len = opening.len() * 2 + 1;
         let delimiter = just(*quote).repeated().exactly(opening_len);
 
         let inner = if escaping {
@@ -401,15 +401,25 @@ fn quotes() {
     assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
     assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
 
-    // An even number means the parsed expressions starts with a quote — not
-    // sure this is correct — possibly the first six characters should be a
-    // closed string?
-    assert_snapshot!(quoted_string(false).parse(r#"''''''aoeu''''''"#).unwrap(), @"'aoeu");
+    // An even number is interpreted as a closed string (and the remainder is unparsed)
+    assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
 
     // When not escaping, we take the inner string between the three quotes
     assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
 
+    assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
+
     // Escape each inner quote depending on the outer quote
     assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
     assert_snapshot!(quoted_string(true).parse(r#"'\'hello\''"#).unwrap(), @"'hello'");
+
+    assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
+}
+
+#[test]
+#[should_panic]
+fn multi_quote_empty() {
+    use insta::assert_snapshot;
+    // TODO: fix
+    assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
 }
