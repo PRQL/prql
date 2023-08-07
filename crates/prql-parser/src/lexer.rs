@@ -293,62 +293,65 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
 }
 
 fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
-    // I don't know how this could be simplified and implemented for (n*2)+1 in general
     choice((
-        quoted_string_inner(r#"""""""""#, escaped),
-        quoted_string_inner(r#"""""""#, escaped),
-        quoted_string_inner(r#"""""#, escaped),
-        quoted_string_inner(r#"""#, escaped),
-        quoted_string_inner(r#"'''''''"#, escaped),
-        quoted_string_inner(r#"'''''"#, escaped),
-        quoted_string_inner(r#"'''"#, escaped),
-        quoted_string_inner(r#"'"#, escaped),
+        quoted_string_quote(&'"', escaped),
+        quoted_string_quote(&'\'', escaped),
     ))
     .collect::<String>()
     .labelled("string")
 }
 
-fn quoted_string_inner(
-    quotes: &str,
+fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
+    just('\\').ignore_then(choice((
+        just('\\'),
+        just('/'),
+        just('b').to('\x08'),
+        just('f').to('\x0C'),
+        just('n').to('\n'),
+        just('r').to('\r'),
+        just('t').to('\t'),
+        (just('u').ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .exactly(4)
+                .collect::<String>()
+                .validate(|digits, span, emit| {
+                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
+                        emit(Cheap::expected_input_found(span, None, None));
+                        '\u{FFFD}' // unicode replacement character
+                    })
+                }),
+        )),
+    )))
+}
+
+fn quoted_string_quote(
+    quote: &char,
     escaping: bool,
 ) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
-    let mut forbidden = just(quotes).boxed();
+    // An odd number of quote characters
+    let opening = just(*quote).then((just(*quote).then(just(*quote))).repeated());
 
-    if escaping {
-        forbidden = just(quotes).or(just("\\")).boxed()
-    };
+    opening.then_with(move |opening| {
+        let opening_len = opening.1.len() * 2 + 1;
+        let delimiter = just(*quote).repeated().exactly(opening_len);
 
-    let mut inner = forbidden.not().boxed();
-
-    if escaping {
-        inner = inner
-            .or(just('\\').ignore_then(
-                just('\\')
-                    .or(just('/'))
-                    .or(just('"'))
-                    .or(just('b').to('\x08'))
-                    .or(just('f').to('\x0C'))
-                    .or(just('n').to('\n'))
-                    .or(just('r').to('\r'))
-                    .or(just('t').to('\t'))
-                    .or(just('u').ignore_then(
-                        filter(|c: &char| c.is_ascii_hexdigit())
-                            .repeated()
-                            .exactly(4)
-                            .collect::<String>()
-                            .validate(|digits, span, emit| {
-                                char::from_u32(u32::from_str_radix(&digits, 16).unwrap())
-                                    .unwrap_or_else(|| {
-                                        emit(Cheap::expected_input_found(span, None, None));
-                                        '\u{FFFD}' // unicode replacement character
-                                    })
-                            }),
-                    )),
+        let inner = if escaping {
+            choice((
+                // If we're escaping, don't allow consuming a backslash
+                // We seem to need the `.chain(any())` to satisfy the type checker
+                (delimiter.or(just('\\').chain(any()))).not(),
+                escaped_character(),
+                // Or escape the quote of the current string
+                just('\\').ignore_then(just(*quote)),
             ))
-            .boxed();
-    }
+            .boxed()
+        } else {
+            delimiter.not().boxed()
+        };
 
-    inner.repeated().delimited_by(just(quotes), just(quotes))
+        inner.repeated().then_ignore(delimiter)
+    })
 }
 
 fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
@@ -387,3 +390,26 @@ impl std::hash::Hash for Token {
 }
 
 impl std::cmp::Eq for Token {}
+
+#[test]
+fn quotes() {
+    use insta::assert_snapshot;
+
+    // All these are valid & equal.
+    assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
+    assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
+    assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
+    assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
+
+    // An even number means the parsed expressions starts with a quote — not
+    // sure this is correct — possibly the first six characetrs should be a
+    // closed string?
+    assert_snapshot!(quoted_string(false).parse(r#"''''''aoeu''''''"#).unwrap(), @"'aoeu");
+
+    // When not escaping, we take the inner string between the three quotes
+    assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
+
+    // Escape each inner quote depending on the outer quote
+    assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
+    assert_snapshot!(quoted_string(true).parse(r#"'\'hello\''"#).unwrap(), @"'hello'");
+}
