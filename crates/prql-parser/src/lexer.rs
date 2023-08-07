@@ -402,7 +402,7 @@ fn quotes() {
     assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
 
     // An even number means the parsed expressions starts with a quote — not
-    // sure this is correct — possibly the first six characetrs should be a
+    // sure this is correct — possibly the first six characters should be a
     // closed string?
     assert_snapshot!(quoted_string(false).parse(r#"''''''aoeu''''''"#).unwrap(), @"'aoeu");
 
