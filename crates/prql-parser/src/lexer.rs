@@ -294,38 +294,14 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
 
 fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
     choice((
-        quoted_string_quote(&'"', escaped),
-        quoted_string_quote(&'\'', escaped),
+        quoted_string_of_quote(&'"', escaped),
+        quoted_string_of_quote(&'\'', escaped),
     ))
     .collect::<String>()
     .labelled("string")
 }
 
-fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
-    just('\\').ignore_then(choice((
-        just('\\'),
-        just('/'),
-        just('b').to('\x08'),
-        just('f').to('\x0C'),
-        just('n').to('\n'),
-        just('r').to('\r'),
-        just('t').to('\t'),
-        (just('u').ignore_then(
-            filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .exactly(4)
-                .collect::<String>()
-                .validate(|digits, span, emit| {
-                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
-                        emit(Cheap::expected_input_found(span, None, None));
-                        '\u{FFFD}' // unicode replacement character
-                    })
-                }),
-        )),
-    )))
-}
-
-fn quoted_string_quote(
+fn quoted_string_of_quote(
     quote: &char,
     escaping: bool,
 ) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
@@ -352,6 +328,30 @@ fn quoted_string_quote(
 
         inner.repeated().then_ignore(delimiter)
     })
+}
+
+fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
+    just('\\').ignore_then(choice((
+        just('\\'),
+        just('/'),
+        just('b').to('\x08'),
+        just('f').to('\x0C'),
+        just('n').to('\n'),
+        just('r').to('\r'),
+        just('t').to('\t'),
+        (just('u').ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .exactly(4)
+                .collect::<String>()
+                .validate(|digits, span, emit| {
+                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
+                        emit(Cheap::expected_input_found(span, None, None));
+                        '\u{FFFD}' // unicode replacement character
+                    })
+                }),
+        )),
+    )))
 }
 
 fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
