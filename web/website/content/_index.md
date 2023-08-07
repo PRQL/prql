@@ -162,6 +162,8 @@ tools_section:
 
         `brew install prqlc`
 
+        `winget install prqlc`
+
 integrations_section:
   enable: true
   title: "Integrations"
