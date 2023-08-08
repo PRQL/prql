@@ -1,9 +1,12 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from my_table\nselect x = \"hello world\"\n"
+expression: "from artists\nderive {\n  single        =   'hello world',\n  double        =   \"hello world\",\n  double_triple = \"\"\"hello world\"\"\",\n}\n"
 ---
 SELECT
-  'hello world' AS x
+  *,
+  'hello world' AS single,
+  'hello world' AS double,
+  'hello world' AS double_triple
 FROM
-  my_table
+  artists
 
