@@ -306,11 +306,14 @@ fn quoted_string_of_quote(
     escaping: bool,
 ) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
     // An odd number of quote characters: 1, and then any number of pairs.
-    let opening = just(*quote).ignore_then((just(*quote).then(just(*quote))).repeated());
+    let opening = just(*quote).repeated().at_least(1);
 
     opening.then_with(move |opening| {
-        let opening_len = opening.len() * 2 + 1;
-        let delimiter = just(*quote).repeated().exactly(opening_len);
+        if opening.len() % 2 == 0 {
+            // If we have an even number of quotes, it's an empty string.
+            return (just(vec![])).boxed();
+        }
+        let delimiter = just(*quote).repeated().exactly(opening.len());
 
         let inner = if escaping {
             choice((
@@ -326,7 +329,7 @@ fn quoted_string_of_quote(
             delimiter.not().boxed()
         };
 
-        inner.repeated().then_ignore(delimiter)
+        inner.repeated().then_ignore(delimiter).boxed()
     })
 }
 
@@ -414,12 +417,10 @@ fn quotes() {
     assert_snapshot!(quoted_string(true).parse(r#"'\'hello\''"#).unwrap(), @"'hello'");
 
     assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
-}
 
-#[test]
-#[should_panic]
-fn multi_quote_empty() {
-    use insta::assert_snapshot;
-    // TODO: fix
+    // An empty input should fail
+    quoted_string(false).parse(r#""#).unwrap_err();
+
+    // An even number of quotes is an empty string
     assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
 }
