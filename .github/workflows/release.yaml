@@ -69,6 +69,20 @@ jobs:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
+  winget-release:
+    runs-on: windows-latest
+    needs: build-prqlc
+    if: github.ref_type == 'tag' && !inputs.dry-run
+    steps:
+      - name: publish
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: PRQL.prqlc
+          version: ${{ github.ref }}
+          installers-regex: '^prqlc-.*-windows-.*\.zip$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          fork-user: prql-bot
+
   build-deb-package:
     # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
     # to add that (and eventually as a release asset)
