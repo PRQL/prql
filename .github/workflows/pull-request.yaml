@@ -270,4 +270,4 @@ jobs:
           gh pr merge --auto --squash --delete-branch ${{
           github.event.pull_request.html_url }}
         env:
-          GITHUB_TOKEN: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}

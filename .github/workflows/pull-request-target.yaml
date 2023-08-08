@@ -60,7 +60,7 @@ jobs:
       - uses: tibdex/backport@v2
         with:
           # This is a personal access token from the @prql-bot
-          github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          github_token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           # Docs are at https://github.com/tibdex/backport/blob/main/action.yml
           # We only use `web` atm
           label_pattern: "^pr-backport-(?<base>([^ ]+))$"

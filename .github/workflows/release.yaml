@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.HOMEBREW_PRQL_TOKEN }}
+          github-token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'prql',
