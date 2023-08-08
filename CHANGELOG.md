@@ -8,7 +8,7 @@
 
 **Fixes**:
 
-- `prolc` no longer displays a prompt when piping a query into its stdin
+- `prqlc` no longer displays a prompt when piping a query into its stdin
   (@max-sixty, #3248).
 - S-strings within double braces now parse correctly (@max-sixty, #3265)
 
