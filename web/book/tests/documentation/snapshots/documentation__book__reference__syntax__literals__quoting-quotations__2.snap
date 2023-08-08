@@ -1,9 +1,0 @@
----
-source: web/book/tests/documentation/book.rs
-expression: "from artists\nselect x = \"\"\"I said \"hello world\"!\"\"\"\n"
----
-SELECT
-  'I said "hello world"!' AS x
-FROM
-  artists
-
