@@ -121,6 +121,20 @@ mod common {
     }
 }
 
+use prql_ast::expr::Expr;
+
+fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
+    let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
+        errs.into_iter()
+            .map(|err| convert_lexer_error(source, err, 0))
+            .collect::<Vec<_>>()
+    })?;
+
+    let stream = prepare_stream(tokens, source, 0);
+    Parser::parse(&expr::expr_call().then_ignore(end()), stream)
+        .map_err(|errs| errs.into_iter().map(convert_parser_error).collect())
+}
+
 #[cfg(test)]
 mod test {
 

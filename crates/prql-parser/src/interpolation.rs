@@ -27,6 +27,50 @@ fn parse_interpolate() {
     let span_base = ParserSpan::new(0, 0..0);
 
     assert_debug_snapshot!(
+        parse("{foo - 5}".to_string(), span_base).unwrap(), 
+    @r###"
+    [
+        Expr {
+            expr: Expr {
+                kind: Binary(
+                    BinaryExpr {
+                        left: Expr {
+                            kind: Ident(
+                                Ident {
+                                    path: [],
+                                    name: "foo",
+                                },
+                            ),
+                            span: Some(
+                                0:0-3,
+                            ),
+                            alias: None,
+                        },
+                        op: Sub,
+                        right: Expr {
+                            kind: Literal(
+                                Integer(
+                                    5,
+                                ),
+                            ),
+                            span: Some(
+                                0:6-7,
+                            ),
+                            alias: None,
+                        },
+                    },
+                ),
+                span: Some(
+                    0:0-7,
+                ),
+                alias: None,
+            },
+            format: None,
+        },
+    ]
+    "###);
+
+    assert_debug_snapshot!(
         parse("concat({a})".to_string(), span_base).unwrap(), 
     @r###"
     [
@@ -42,7 +86,7 @@ fn parse_interpolate() {
                     },
                 ),
                 span: Some(
-                    0:7-10,
+                    0:0-1,
                 ),
                 alias: None,
             },
@@ -90,7 +134,7 @@ fn parse_interpolate() {
                     },
                 ),
                 span: Some(
-                    0:13-16,
+                    0:0-1,
                 ),
                 alias: None,
             },
@@ -104,19 +148,20 @@ fn parse_interpolate() {
 }
 
 fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
-    let expr = ident_part()
-        .separated_by(just('.'))
-        .at_least(1)
+    let expr = none_of(":}")
+        .repeated()
         .then(
             just(':')
                 .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
                 .or_not(),
         )
         .delimited_by(just('{'), just('}'))
-        .map_with_span(move |(ident, format), s| {
-            let ident = ExprKind::Ident(Ident::from_path(ident));
-            let expr = into_expr(ident, offset_span(span_base, s));
-            let expr = Box::new(expr);
+        .map_with_span(move |(source, format), s| {
+            let src = source.into_iter().collect::<String>();
+
+            // FIXME: obviously can't do this in reality — but how to parse an
+            // expression from here?
+            let expr = Box::new(crate::parse_expr(&src).unwrap());
 
             InterpolateItem::Expr { expr, format }
         });
