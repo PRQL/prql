@@ -76,22 +76,11 @@ the same number.
 
 ```prql
 from artists
-select x = "\"hello world\""
-```
-
-```prql
-from artists
-select x = '"hello world"'
-```
-
-```prql
-from artists
-select x = """I said "hello world"!"""
-```
-
-```prql
-from artists
-select x = """""I said """hello world"""!"""""
+select {
+  escaped = "\"hello world\"",
+  other   = '"hello world"',
+  triple  = """I said "hello world"!""",
+}
 ```
 
 See also:
