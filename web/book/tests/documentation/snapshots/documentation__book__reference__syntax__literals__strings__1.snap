@@ -1,9 +1,12 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from my_table\nselect x = 'hello world'\n"
+expression: "from artists\nderive escapes = \"\\t\\tline ends here\\n \\\\ \"\nderive world = \"\\u0048\\u0065\\u006C\\u006C\\u006F\"\n"
 ---
 SELECT
-  'hello world' AS x
+  *,
+  '		line ends here
+ \ ' AS escapes,
+  'Hello' AS world
 FROM
-  my_table
+  artists
 

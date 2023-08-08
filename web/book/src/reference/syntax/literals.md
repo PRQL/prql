@@ -29,42 +29,58 @@ select {
 
 ## Strings
 
-String literals can use either single or double quotes:
+String literals can use any matching odd number of either single or double
+quotes:
 
 ```prql
-from my_table
-select x = "hello world"
+from artists
+derive {
+  single        =   'hello world',
+  double        =   "hello world",
+  double_triple = """hello world""",
+}
 ```
 
-```prql
-from my_table
-select x = 'hello world'
-```
-
-To quote a string containing quotes, either use the "other" type of quote, or
-use 3, 4, 5 or 6 quotes, and close with the same number.
-
-```prql
-from my_table
-select x = '"hello world"'
-```
-
-```prql
-from my_table
-select x = """I said "hello world"!"""
-```
-
-```prql
-from my_table
-select x = """""I said """hello world"""!"""""
-```
-
-Strings can also contain any escape defined by
+Strings can contain any escapes defined by
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
 ```prql
-from my_table
-select x = "\t\tline ends here\n \\ "
+from artists
+derive escapes = "\t\tline ends here\n \\ "
+derive world = "\u0048\u0065\u006C\u006C\u006F"
+```
+
+### R-strings
+
+To handle escapes as raw characters, use an r-string:
+
+```prql
+from artists
+derive normal_string =  "\\\t"
+derive raw_string    = r"\\\t"
+```
+
+```admonish note
+These escape rules specify how PRQL interprets escape characters when compiling
+strings to SQL, not necessarily how the database will interpret the string.
+Dialects interpret escape characters differently, and PRQL doesn't yet account for
+these differences. Please open issues with any difficulties in the current
+implementation.
+```
+
+### Quoting quotations
+
+To quote a string containing quotes, escape the quotes, use the "other" type of
+quote, or an odd number{{footnote: currently up to 7}} of quotes, and close with
+the same number.
+
+```prql
+from artists
+select {
+  escaped = "\"hello world\"",
+  other   = '"hello world"',
+  triple  = """I said "hello world"!""",
+}
 ```
 
 See also:
