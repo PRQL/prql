@@ -10,14 +10,23 @@
 
 - `prolc` no longer displays a prompt when piping a query into its stdin
   (@max-sixty, #3248).
+- S-strings within double braces now parse correctly (@max-sixty, #3265)
 
 **Documentation**:
 
+- New docs for strings (@max-sixty, #3281)
+
 **Web**:
+
+- Improve syntax highlighting for numbers in the book & website (@max-sixty,
+  #3261)
+- Add ClickHouse integration to docs (@max-sixty, #3251)
 
 **Integrations**:
 
 **Internal changes**:
+
+- Auto-merge PRs for backports or pre-commit updates (@max-sixty, #3246)
 
 **New Contributors**:
 
