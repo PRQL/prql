@@ -145,9 +145,7 @@ change!
   - be explicit on its current state, so others can continue the progress.
 - That said, there are a few instances when we need to ensure we have some
   consensus before merging code — for example non-trivial changes to the
-  language, or large refactorings to the library. {{footnote: PRs or Issues are
-  both fine for these. Discord is OK for an initial discussion, but GitHub is
-  the only discussion of record.}}
+  language, or large refactorings to the library.
 - If you have merge permissions, and are reasonably confident that a PR is
   suitable to merge (whether or not you're the author), feel free to merge.
   - If you don't have merge permissions and have authored a few PRs, ask and ye
