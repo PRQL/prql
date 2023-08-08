@@ -305,7 +305,6 @@ fn quoted_string_of_quote(
     quote: &char,
     escaping: bool,
 ) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
-    // An odd number of quote characters: 1, and then any number of pairs.
     let opening = just(*quote).repeated().at_least(1);
 
     opening.then_with(move |opening| {
@@ -318,10 +317,10 @@ fn quoted_string_of_quote(
         let inner = if escaping {
             choice((
                 // If we're escaping, don't allow consuming a backslash
-                // We seem to need the `.chain(any())` to satisfy the type checker
-                (delimiter.or(just('\\').chain(any()))).not(),
+                // We need the `vec` to satisfy the type checker
+                (delimiter.or(just(vec!['\\']))).not(),
                 escaped_character(),
-                // Or escape the quote of the current string
+                // Or escape the quote char of the current string
                 just('\\').ignore_then(just(*quote)),
             ))
             .boxed()
