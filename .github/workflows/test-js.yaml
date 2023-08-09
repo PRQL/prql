@@ -21,8 +21,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # os: ${{ fromJSON(inputs.oss) }}
-        os: ["ubuntu-latest"]
+        os: ${{ fromJSON(inputs.oss) }}
+        # os: ["ubuntu-latest"]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
