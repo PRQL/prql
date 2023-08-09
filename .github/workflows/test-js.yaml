@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -36,7 +36,5 @@ jobs:
         with:
           crate: wasm-pack
 
-      - run: echo ${{inputs.oss}}
       - run: npm cit
-        if: ${{ contains(inputs.oss, matrix.os) }}
         working-directory: bindings/prql-js
