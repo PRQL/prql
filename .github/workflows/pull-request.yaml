@@ -322,7 +322,7 @@ jobs:
       RUSTFLAGS: "-C debuginfo=0"
 
   create-issue-on-nightly-failure:
-    runs-on: ubuntu
+    runs-on: ubuntu-latest
     needs:
       - rules
       - check-ok-to-merge
