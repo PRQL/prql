@@ -2,15 +2,7 @@ name: test-dotnet
 
 on:
   workflow_call:
-    inputs:
-      run-if:
-        type: boolean
-        default: true
   workflow_dispatch:
-    inputs:
-      run-if:
-        type: boolean
-        default: true
 
 concurrency:
   # See notes in `pull-request.yaml`
