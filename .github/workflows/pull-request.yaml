@@ -157,8 +157,7 @@ jobs:
   test-js:
     needs: rules
     if:
-      ${{ needs.rules.outputs.js == 'true' || needs.rules.outputs.test-all ==
-      'true' }}
+      needs.rules.outputs.js == 'true' || needs.rules.outputs.test-all == 'true'
     uses: ./.github/workflows/test-js.yaml
     with:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
