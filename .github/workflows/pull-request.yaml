@@ -248,7 +248,7 @@ jobs:
       - check-links-book
       - check-links-markdown
       - lint-megalinter
-      # Not confident how reliable this is, can add in if we see ex-post failures.
+      # Not confident how reliable this is, can add in if we see post-merge failures.
       # - nightly
       - publish-web
       - test-all
@@ -308,3 +308,23 @@ jobs:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
       RUSTFLAGS: "-C debuginfo=0"
+
+  create-issue-on-nightly-failure:
+    runs-on: ubuntu-latest
+    needs:
+      - rules
+      - check-ok-to-merge
+      - nightly
+    if:
+      # We care that it's on a schedule as well as it running on nightly — we
+      # don't want to trigger just on a `pr-nightly` label
+      always() && github.event.schedule && needs.rules.outputs.nightly &&
+      contains(needs.*.result, 'failure')
+    steps:
+      - uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          filename: .github/nightly-failure.yaml
+          update_existing: true
+          search_existing: open
