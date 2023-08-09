@@ -9,13 +9,12 @@ on:
     # Add `labeled`, so we can trigger a new run by adding a `pr-test-all`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
-  schedule:
-    # While this & nightly both exist, we run both on schedule
-    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
-    - cron: "49 10 * * *"
   push:
     branches:
       - main
+  schedule:
+    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
+    - cron: "49 10 * * *"
   workflow_dispatch:
     inputs:
       test-all:
@@ -185,17 +184,6 @@ jobs:
     uses: ./.github/workflows/publish-web.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
-  # TODO: resolve how nightly should work in the new world:
-  # - All one workflow? But then there is a lot of stuff that only runs on
-  #   nightly here, and each thing needs an `if` flag. This is separate enough
-  #   that it would be simpler in its own worklow.
-  # - Nightly calls pull-request? But then how does pull-request run nightly on
-  #   a lable?
-  # - Pull-request calls nightly? But then nigthly doesn't run anything on
-  #   pull-request, and there are some jobs that we really need to do that for —
-  #   such as running standard tests on more targets.
-  #   - I guess we could have pull-request run on schedule, and then have a
-  #     separate nightly workflow? But then less cohesive.
   nightly:
     needs: rules
     uses: ./.github/workflows/nightly.yaml

@@ -9,16 +9,14 @@ name: test-all
 #
 # To run these on a PR, label with `pr-test-all`.
 #
-# There are also tests in `test-nightly.yaml` which aren't here.
-
+# There are also tests in `nightly.yaml` which aren't here.
+#
 # Possibly we could instead group tests by:
 # - `test-fast` — on pull requests
-# - `test-most` — on merges; with all platforms, bindings, etc (currently this file)
+# - `test` — on merges; with bindings, etc (currently this file)
 # - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
 #   everything — benchmarks, compilation timing, audits, etc. (currently this
-#   file + `test-nightly.yaml`)
-#
-# Also see pull-request.yaml#check-ok-to-merge for other thoughts
+#   file + `nightly.yaml`)
 
 on:
   # Called by `pull-request.yaml`
