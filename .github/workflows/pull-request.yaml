@@ -260,8 +260,8 @@ jobs:
       - check-links-book
       - check-links-markdown
       - lint-megalinter
-      # Not confident how reliable this is, can add in if we see ex-post failures.
-      - nightly
+      # Not confident how reliable this is, can add in if we see post-merge failures.
+      # - nightly
       - publish-web
       - test-all
       - test-js
@@ -326,10 +326,11 @@ jobs:
     needs:
       - rules
       - check-ok-to-merge
+      - nightly
     if:
       # We care that it's on a schedule as well as it running on nightly — we
-      # don't want to trigger just on a nightly label
-      github.event.schedule && needs.rules.outputs.nightly  &&
+      # don't want to trigger just on a `pr-nightly` label
+      always() && github.event.schedule && needs.rules.outputs.nightly &&
       contains(needs.*.result, 'failure')
     steps:
       - uses: JasonEtco/create-an-issue@v2
