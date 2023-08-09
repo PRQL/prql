@@ -134,29 +134,18 @@ jobs:
       # times
       features: ""
 
-  # test-python:
-  #   needs: rules
-  #   if:
-  #     needs.rules.outputs.python == 'true' || needs.rules.outputs.test-all ==
-  #     'true'
-  #   uses: ./.github/workflows/test-python.yaml
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - os: ubuntu-latest
-  #           run-if: true
-  #         - os: windows-latest
-  #           # Exclude non-ubuntu targets unless we're running nightly.
-  #           run-if:
-  #             ${{needs.rules.outputs.python == 'true' ||
-  #             needs.rules.outputs.nightly == 'true'}}
-  #         - os: macos-latest
-  #           run-if:
-  #             ${{needs.rules.outputs.python == 'true' ||
-  #             needs.rules.outputs.nightly == 'true'}}
-  #   with:
-  #     os: ${{ matrix.os }}
-  #     run-if: ${{ matrix.run-if }}
+  test-python:
+    needs: rules
+    if:
+      needs.rules.outputs.python == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-python.yaml
+    with:
+      # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
+      oss:
+        ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
+        == 'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
 
   test-js:
     needs: rules
@@ -165,7 +154,7 @@ jobs:
       'true' }}
     uses: ./.github/workflows/test-js.yaml
     with:
-      # Only run on ubuntu unless there's a JS change or we're running nightly.
+      # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
         'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
