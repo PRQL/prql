@@ -168,7 +168,7 @@ jobs:
       # Only run on ubuntu unless there's a JS change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '[ubuntu-latest, macos-latest, windows-latest'] ||
+        'true') && '[ubuntu-latest, macos-latest, windows-latest]' ||
         '[ubuntu-latest]' }}
 
   test-dotnet:
