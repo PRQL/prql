@@ -322,6 +322,7 @@ jobs:
       RUSTFLAGS: "-C debuginfo=0"
 
   create-issue-on-nightly-failure:
+    runs-on: ubuntu
     needs:
       - rules
       - check-ok-to-merge
@@ -330,7 +331,6 @@ jobs:
       # don't want to trigger just on a nightly label
       github.event.schedule && needs.rules.outputs.nightly  &&
       contains(needs.*.result, 'failure')
-
     steps:
       - uses: JasonEtco/create-an-issue@v2
         env:
