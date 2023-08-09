@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-python-wheels:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -30,16 +30,6 @@ jobs:
         uses: ./.github/actions/build-prql-python
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
-
-      # test:
-      #   needs: [build-python-wheels]
-      #   runs-on: ${{ matrix.os }}
-      #   strategy:
-      #     matrix:
-      #       os: ${{ fromJSON(inputs.oss) }}
-      #   steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: wheels
