@@ -1,4 +1,7 @@
-# Jobs that run on every pull-request, regardless of its contents.
+# Jobs that run on every pull-request, regardless of its contents. This file is
+# gradually transitioning to run almost everything, with rules defined in this
+# file rather than across lots of workflow files. If that effort is successful,
+# we can rename it to `tests.yaml` or something similarly general at some point.
 name: pull-request
 
 on:
@@ -6,12 +9,29 @@ on:
     # Add `labeled`, so we can trigger a new run by adding a `pr-test-all`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
-  # While most of these tests are covered by `test-all`, we need to build the
-  # cache on `main`, so we run them there too.
+  schedule:
+    # While this & nightly both exist, we run both on schedule
+    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
+    - cron: "49 10 * * *"
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      test-all:
+        type: boolean
+        default: false
+      run-nightly:
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      test-all:
+        type: boolean
+        default: false
+      run-nightly:
+        type: boolean
+        default: false
 
 concurrency:
   # This seems to require a custom suffix; I _think_ because this calls
@@ -32,39 +52,76 @@ env:
 
 jobs:
   # This assesses whether we need to run jobs. It's currently only implemented
-  # for a couple jobs, but we could expand it to other jobs, bringing the
-  # jobs into this workflow.
-  changes:
+  # for a few jobs, but we're expanding it to other jobs, bringing the jobs
+  # into this workflow. Some of them are defined only by the changes in PR,
+  # others also define a set of other criteria, such as whether a label has been
+  # added, or we're on `main` branch.
+  rules:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     outputs:
-      book: ${{ steps.filter.outputs.book }}
-      rust: ${{ steps.filter.outputs.rust }}
-      test-all: ${{ steps.filter.outputs.test-all }}
+      book: ${{ steps.changes.outputs.book }}
+      dotnet: ${{ steps.changes.outputs.dotnet }}
+      js: ${{ steps.changes.outputs.js }}
+      # Really run all tests
+      nightly: ${{ steps.nightly.outputs.run }}
+      python: ${{ steps.changes.outputs.python }}
+      rust: ${{ steps.changes.outputs.rust }}
+      # Run most test (`all` is a misnomer!)
+      test-all: ${{ steps.all.outputs.run }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
-        id: filter
+        id: changes
         with:
           filters: |
-            book:
-              - '.github/workflows/check-links-book.yaml'
-              - 'web/book/**'
-            rust:
-              - '**/*.rs'
-              - 'crates/**'
-              - 'web/book/**'
-            test-all:
-              # We can expand this in the future / consolidate with
-              # `test-all.yaml`. For the moment, using this to ensure that we
-              # can't merge a dependency change without running `test-all`,
-              # given this the job here blocks PRs, whereas `test-all.yaml` doesn't.
+            all:
+              # We're expanding to consolidate with `test-all.yaml`.
               - Cargo.lock
+              - "**/Cargo.*"
+              - .github/workflows/**
+            book:
+              - .github/workflows/check-links-book.yaml
+              - web/book/**
+            dotnet:
+              - bindings/prql-dotnet/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-dotnet.yaml
+            js:
+              - bindings/prql-js/**
+              - .github/workflows/test-js.yaml
+            python:
+              - bindings/prql-python/**
+              - .github/workflows/test-python.yaml
+            rust:
+              - "**/*.rs"
+              - crates/**
+              - web/book/**
+            nightly:
+              - .github/workflows/nightly.yaml
+      - id: nightly
+        run:
+          echo "run=${{ steps.changes.outputs.nightly == 'true' ||
+          inputs.run-nightly ||
+          contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
+          github.event.schedule }}" >> "$GITHUB_OUTPUT"
+
+      - id: all
+        # TODO: actionlint annoyingly blocks this — try and find a way of getting
+        # it back without too much trouble...
+        # contains(github.event.pull_request.title, '!') ||
+        run:
+          echo "run=${{ steps.changes.outputs.all == 'true' || inputs.test-all
+          || github.ref == 'refs/heads/main' ||
+          contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
+          steps.nightly.outputs.run == 'true'  }}" >> "$GITHUB_OUTPUT"
 
   test-rust:
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    needs: rules
+    if:
+      needs.rules.outputs.rust == 'true' || needs.rules.outputs.test-all ==
+      'true'
     uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
@@ -79,28 +136,71 @@ jobs:
       # times
       features: ""
 
+  test-python:
+    needs: rules
+    if:
+      needs.rules.outputs.python == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-python.yaml
+    with:
+      # Only run on ubuntu unless there's a lang-specific change or we're
+      # running nightly.
+      #
+      # An alternative to these somewhat horrible expressions would be
+      # `test-python` & `test-python-more` workflows; though it would use up our
+      # 20 workflow limit.
+      oss:
+        ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
+        == 'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
+
+  test-js:
+    needs: rules
+    if:
+      ${{ needs.rules.outputs.js == 'true' || needs.rules.outputs.test-all ==
+      'true' }}
+    uses: ./.github/workflows/test-js.yaml
+    with:
+      # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
+      oss:
+        ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
+        'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
+
+  test-dotnet:
+    needs: rules
+    if:
+      needs.rules.outputs.dotnet == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-dotnet.yaml
+
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
-  # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
-  # (meaning a breaking change) in the PR title. (We also run on other
-  # conditions defined in `test-all.yaml`; we could move those in here now that
-  # we have the `changes` job.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    needs: changes
-    if:
-      contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
-      contains(github.event.pull_request.title, '!') ||
-      needs.changes.outputs.test-all == 'true'
+    needs: rules
+    if: needs.rules.outputs.test-all == 'true'
 
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
+  # TODO: resolve how nightly should work in the new world:
+  # - All one workflow? But then there is a lot of stuff that only runs on
+  #   nightly here, and each thing needs an `if` flag. This is separate enough
+  #   that it would be simpler in its own worklow.
+  # - Nightly calls pull-request? But then how does pull-request run nightly on
+  #   a lable?
+  # - Pull-request calls nightly? But then nigthly doesn't run anything on
+  #   pull-request, and there are some jobs that we really need to do that for —
+  #   such as running standard tests on more targets.
+  #   - I guess we could have pull-request run on schedule, and then have a
+  #     separate nightly workflow? But then less cohesive.
   nightly:
+    needs: rules
     uses: ./.github/workflows/nightly.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'pr-nightly')
+    if: needs.rules.outputs.nightly == 'true'
 
   check-links-markdown:
     # Another option is https://github.com/lycheeverse/lychee, but it was
@@ -120,8 +220,8 @@ jobs:
     # We also have a check-links-markdown job, however it will not spot mdbook
     # mistakes such as forgetting to list an .md file in SUMMARY.md.
     # Running a link checker on the generated HTML is more reliable.
-    needs: changes
-    if: needs.changes.outputs.book == 'true'
+    needs: rules
+    if: needs.rules.outputs.book == 'true'
 
     runs-on: ubuntu-latest
 
@@ -153,32 +253,19 @@ jobs:
     # everything in this workflow has passed and, unlike including each task in
     # the branch's GitHub required tests, will pass when a task is skipped.
     #
-    # Note that this _doesn't_ cover other workflows, such as `test-js.yaml`.
-    # (and is strictly inferior to a GitHub feature that would just say "don't
-    # allow merging on any failing test"). We could change that by moving the
-    # triggers for those into this workflow, and using an external action to
-    # assess whether the paths have changed, such as
-    # https://github.com/dorny/paths-filter/tree/v2.
-
-    # If we wanted to start this, we could move `test-all.yaml` in, by removing
-    # that workflow's triggers, adding the triggers to the call to it from this
-    # workflow.
-
-    # That would move us closer to a world where all tasks are defined in a
-    # single workflow, and we use job-level criteria to decide what to run. But
-    # it's quite a change, I (@max-sixty) have probably done too much devops
-    # already, and it's possible that GitHub releases something to enable path
-    # triggers within workflows natively.
-    #
-    # Check out `test-all.yaml` for more ideas on organizing these.
+    # We're gradually increasing this to cover other workflows, such as
+    # `test-js` by moving the triggers for those into this workflow, and using
+    # an external action to assess whether the paths have changed.
     if: always()
     needs:
-      - check-links-markdown
       - check-links-book
+      - check-links-markdown
       - lint-megalinter
-      - nightly
+      # Not confident how reliable this is, can add in if we see ex-post failures.
+      # - nightly
       - publish-web
       - test-all
+      - test-js
       - test-rust
     runs-on: ubuntu-latest
     steps:
@@ -190,13 +277,13 @@ jobs:
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
           allowed-skips:
-            test-all, publish-web, nightly, check-links-book, test-rust
+            check-links-book, publish-web, test-all, test-js, test-rust
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    needs: rules
+    if: needs.rules.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -227,8 +314,6 @@ jobs:
           target: ${{ matrix.target }}
           profile: dev
           features: ${{ matrix.features }}
-    # TODO: can we remove this now we have them at the job level?
-    #
     # These are the same env variables as in `test-rust.yaml`. Custom actions
     # don't allow setting env variables for the whole job, so we do it here. (We
     # could change the `build-prqlc` action to a workflow...).
@@ -238,10 +323,8 @@ jobs:
       RUSTFLAGS: "-C debuginfo=0"
 
   automerge:
-    # This would arguably fit more naturally in `pull-request-target`, but the
-    # action is designed to merge after a build-task, rather than just
-    # auto-merge.
-    # https://github.com/fastify/github-action-merge-dependabot/issues/355.
+    # This would arguably fit more naturally in `pull-request-target`, but we're
+    # only ever automerging branches from within this repo.
     runs-on: ubuntu-latest
 
     if: github.event_name == 'pull_request'
