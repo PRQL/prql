@@ -5,12 +5,12 @@ on:
     inputs:
       oss:
         type: string
-        default: "ubuntu-latest"
+        default: "[ubuntu-latest]"
   workflow_dispatch:
     inputs:
       oss:
         type: string
-        default: "ubuntu-latest"
+        default: "[ubuntu-latest]"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
@@ -21,7 +21,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ${{ fromJSON(inputs.oss) }}
+        # os: ${{ fromJSON(inputs.oss) }}
+        os: ["ubuntu-latest"]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
