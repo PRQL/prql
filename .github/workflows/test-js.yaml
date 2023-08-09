@@ -22,7 +22,6 @@ jobs:
     strategy:
       matrix:
         os: ${{ fromJSON(inputs.oss) }}
-        # os: ["ubuntu-latest"]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3

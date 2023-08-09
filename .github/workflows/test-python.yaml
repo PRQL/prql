@@ -3,41 +3,41 @@ name: test-python
 on:
   workflow_call:
     inputs:
-      run-if:
-        type: boolean
-        default: true
-      os:
+      oss:
         type: string
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
     inputs:
-      run-if:
-        type: boolean
-        default: true
-      os:
+      oss:
         type: string
+        default: '["ubuntu-latest"]'
 
 concurrency:
   # See notes in `pull-request.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.os }}-python
+  group: ${{ github.workflow }}-${{ github.ref }}-python
   cancel-in-progress: true
 
 jobs:
   build-python-wheels:
-    runs-on: ${{ inputs.os }}
-    if: ${{ inputs.run-if == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: Build wheel
         uses: ./.github/actions/build-prql-python
         with:
-          target: ${{ inputs.os == 'ubuntu-latest' && 'x86_64' || '' }}
+          target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
 
-  test:
-    needs: [build-python-wheels]
-    runs-on: ${{ inputs.os }}
-    if: ${{ inputs.run-if == 'true' }}
-    steps:
+      # test:
+      #   needs: [build-python-wheels]
+      #   runs-on: ${{ matrix.os }}
+      #   strategy:
+      #     matrix:
+      #       os: ${{ fromJSON(inputs.oss) }}
+      #   steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
