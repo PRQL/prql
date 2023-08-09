@@ -5,12 +5,12 @@ on:
     inputs:
       oss:
         type: string
-        default: "[ubuntu-latest]"
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
     inputs:
       oss:
         type: string
-        default: "[ubuntu-latest]"
+        default: '["ubuntu-latest"]'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
