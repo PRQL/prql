@@ -1,5 +1,8 @@
 name: test-all
 
+# NOTE: we're consolidating this into pull-request.yaml, as part of #3290. Some
+# comments here are out of date.
+
 # The quasi-full suite of tests. These can take up to 20 minutes, so are only
 # run on merges or where we're more concerned about a break outside the core
 # libraries.
@@ -18,14 +21,7 @@ name: test-all
 # Also see pull-request.yaml#check-ok-to-merge for other thoughts
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "**/Cargo.*"
-      - ".github/workflows/**"
-  # Called by `pull-request.yaml` when specifically requested
+  # Called by `pull-request.yaml`
   workflow_call:
   workflow_dispatch:
 
@@ -81,20 +77,11 @@ jobs:
   test-php:
     uses: ./.github/workflows/test-php.yaml
 
-  test-python:
-    uses: ./.github/workflows/test-python.yaml
-
   test-java:
     uses: ./.github/workflows/test-java.yaml
 
-  test-js:
-    uses: ./.github/workflows/test-js.yaml
-
   test-elixir:
     uses: ./.github/workflows/test-elixir.yaml
-
-  test-dotnet:
-    uses: ./.github/workflows/test-dotnet.yaml
 
   test-lib:
     uses: ./.github/workflows/test-lib.yaml

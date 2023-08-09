@@ -45,6 +45,10 @@ repos:
     rev: v1.4.1
     hooks:
       - id: mypy
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.6.25
+    hooks:
+      - id: actionlint
   - repo: https://github.com/tcort/markdown-link-check
     rev: v3.11.2
     hooks:

@@ -1,12 +1,16 @@
 name: test-js
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-js/**"
-      - ".github/workflows/test-js.yaml"
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: "ubuntu-latest"
   workflow_dispatch:
+    inputs:
+      oss:
+        type: string
+        default: "ubuntu-latest"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
@@ -18,7 +22,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -33,5 +36,7 @@ jobs:
         with:
           crate: wasm-pack
 
+      - run: echo ${{inputs.oss}}
       - run: npm cit
+        if: ${{ contains(inputs.oss, matrix.os) }}
         working-directory: bindings/prql-js

@@ -1,13 +1,16 @@
 name: test-dotnet
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-dotnet/**"
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-dotnet.yaml"
   workflow_call:
+    inputs:
+      run-if:
+        type: boolean
+        default: true
   workflow_dispatch:
+    inputs:
+      run-if:
+        type: boolean
+        default: true
 
 concurrency:
   # See notes in `pull-request.yaml`
