@@ -65,3 +65,35 @@ jobs:
           # We only use `web` atm
           label_pattern: "^pr-backport-(?<base>([^ ]+))$"
           title_template: "chore: Backport #<%= number%> to `web`"
+
+  automerge:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      # Get number of commits in the PR
+      - id: commit-count
+        run: >
+          echo "commit-count=$(curl -s -H 'Authorization: token ${{ github.token
+          }}' https://api.github.com/repos/prql/prql/pulls/${{
+          github.event.pull_request.number }}/commits | jq 'length')" >>
+          "$GITHUB_OUTPUT"
+      - if:
+          # - It's dependabot
+          # - or it's an backport to the web branch
+          # - or it's a pre-commit-ci update and there's only 1 commit — so it hasn't
+          #   made any changes to files
+          # - and it's not coming from a fork — which shouldn't be necessary but
+          #   just in case someone spoofed an `actor` name.
+          github.actor == 'dependabot[bot]' || (github.base_ref == 'web' &&
+          github.actor == 'prql-bot') || (github.actor == 'pre-commit-ci[bot]'
+          && steps.commit-count.outputs.commit-count == '1') &&
+          !github.event.pull_request.head.repo.fork
+        run:
+          gh pr merge --auto --squash --delete-branch ${{
+          github.event.pull_request.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
