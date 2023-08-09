@@ -8,6 +8,13 @@ from table_reference
 
 Table names containing schemas, keywords, or special characters
 [need to be contained within backticks](../../syntax/keywords.md#quoting).
+`default_db.tablename` can be used if the table name matches a function from the
+standard library.
+
+```prql
+default_db.group
+take 1
+```
 
 ## Examples
 
