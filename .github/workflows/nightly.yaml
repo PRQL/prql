@@ -1,12 +1,9 @@
+# A workflow containing jobs we run only on nightly. This is called by
+# `pull-request` on a schedule and on request with `pr-nightly`.
+
 name: nightly
 
 on:
-  schedule:
-    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
-    - cron: "49 10 * * *"
-  pull_request:
-    paths:
-      - ".github/workflows/nightly.yaml"
   workflow_call:
   workflow_dispatch:
 
