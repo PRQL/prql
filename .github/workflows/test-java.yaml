@@ -2,7 +2,15 @@ name: test-java
 
 on:
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-java
@@ -10,10 +18,10 @@ concurrency:
 
 jobs:
   test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{matrix.os}}
+        os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3

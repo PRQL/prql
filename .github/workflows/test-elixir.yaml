@@ -2,7 +2,15 @@ name: test-elixir
 
 on:
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-elixir

@@ -204,6 +204,12 @@ jobs:
       needs.rules.outputs.java == 'true' || needs.rules.outputs.test-all ==
       'true'
     uses: ./.github/workflows/test-java.yaml
+    with:
+      # Currently we never run windows
+      oss:
+        ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
+        == 'true') && '["ubuntu-latest", "macos-latest"]' || '["ubuntu-latest"]'
+        }}
 
   test-elixir:
     needs: rules
@@ -211,6 +217,12 @@ jobs:
       needs.rules.outputs.elixir == 'true' || needs.rules.outputs.test-all ==
       'true'
     uses: ./.github/workflows/test-elixir.yaml
+    with:
+      # Currently we never run Mac, see prql-elixir docs for details
+      oss:
+        ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
+        == 'true') && '["ubuntu-latest", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
 
   test-lib:
     needs: rules
