@@ -1,12 +1,8 @@
 name: build-web
 
 on:
-  pull_request:
-    paths:
-      - "web/**"
-      - ".github/workflows/build-web.yaml"
-      - "**.md"
   workflow_call:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always

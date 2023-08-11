@@ -1,12 +1,16 @@
 name: test-elixir
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-elixir/**"
-      - ".github/workflows/test-elixir.yaml"
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-elixir

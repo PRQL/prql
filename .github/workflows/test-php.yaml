@@ -1,11 +1,6 @@
 name: test-php
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-php/**"
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-php.yaml"
   workflow_call:
   workflow_dispatch:
 
@@ -26,5 +21,12 @@ jobs:
       - uses: arduino/setup-task@v1
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
+      - run: ./.github/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: lib
       - run: task build-php
       - run: task test-php

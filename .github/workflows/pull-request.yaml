@@ -66,9 +66,14 @@ jobs:
       # Really run all tests
       nightly: ${{ steps.nightly.outputs.run }}
       python: ${{ steps.changes.outputs.python }}
+      lib: ${{ steps.changes.outputs.lib }}
+      java: ${{ steps.changes.outputs.java }}
+      elixir: ${{ steps.changes.outputs.elixir }}
+      php: ${{ steps.changes.outputs.php }}
       rust: ${{ steps.changes.outputs.rust }}
       # Run most test (`all` is a misnomer!)
       test-all: ${{ steps.all.outputs.run }}
+      web: ${{ steps.changes.outputs.web }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -83,6 +88,21 @@ jobs:
             book:
               - .github/workflows/check-links-book.yaml
               - web/book/**
+            lib:
+              - bindings/prql-lib/**
+              - .github/workflows/test-lib.yaml
+            php:
+              - bindings/prql-php/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-php.yaml
+            java:
+              - bindings/prql-java/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-java.yaml
+            elixir:
+              - bindings/prql-elixir/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-elixir.yaml
             dotnet:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
@@ -99,6 +119,10 @@ jobs:
               - web/book/**
             nightly:
               - .github/workflows/nightly.yaml
+            web:
+              - "web/**"
+              - ".github/workflows/build-web.yaml"
+              - "**.md"
       - id: nightly
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
@@ -173,6 +197,53 @@ jobs:
       'true'
     uses: ./.github/workflows/test-dotnet.yaml
 
+  test-php:
+    needs: rules
+    if:
+      needs.rules.outputs.php == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-php.yaml
+
+  test-java:
+    needs: rules
+    if:
+      needs.rules.outputs.java == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-java.yaml
+    with:
+      # Currently we never run windows
+      oss:
+        ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
+        == 'true') && '["ubuntu-latest", "macos-latest"]' || '["ubuntu-latest"]'
+        }}
+
+  test-elixir:
+    needs: rules
+    if:
+      needs.rules.outputs.elixir == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-elixir.yaml
+    with:
+      # Currently we never run Mac, see prql-elixir docs for details
+      oss:
+        ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
+        == 'true') && '["ubuntu-latest", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
+
+  test-lib:
+    needs: rules
+    if:
+      needs.rules.outputs.lib == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-lib.yaml
+
+  build-web:
+    needs: rules
+    if:
+      needs.rules.outputs.web == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/build-web.yaml
+
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
@@ -246,14 +317,18 @@ jobs:
     # an external action to assess whether the paths have changed.
     if: always()
     needs:
+      - build-web
       - check-links-book
       - check-links-markdown
       - lint-megalinter
-      # Not confident how reliable this is, can add in if we see post-merge failures.
-      # - nightly
+      - nightly
       - publish-web
       - test-all
       - test-js
+      - test-elixir
+      - test-dotnet
+      - test-java
+      - test-lib
       - test-rust
     runs-on: ubuntu-latest
     steps:
@@ -263,9 +338,13 @@ jobs:
           # We don't include `check-links-markdown`, since occasionally we'll want to merge
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
-          allowed-failures: check-links-markdown
-          allowed-skips:
-            check-links-book, publish-web, test-all, test-js, test-rust
+          #
+          # We're currently including `nightly` because I'm not sure whether
+          # it's always reliable; e.g. `cargo-audit`
+          allowed-failures: check-links-markdown, nightly
+          # Easier than writing out every job — and it's our own rules deciding
+          # whether jobs are skipped or not.
+          allowed-skips: ${{ toJSON(needs) }}
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
