@@ -326,9 +326,6 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   OSs, all our language bindings, our `task` tasks, a measure of test code
   coverage, and some performance benchmarks.
 
-  We can run these tests before a merge by adding a label `pr-test-all` to the
-  PR.
-
   If these tests fail after merging, we revert the merged commit before fixing
   the test and then re-reverting.
 
@@ -339,8 +336,9 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
 - **[GitHub Actions nightly](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml)**
-  — we run tests that take a long time or are unrelated to code changes, such as
-  security checks, or expensive timing benchmarks, every night.
+  — we run tests that take a long time, are less likely to fail, or are
+  unrelated to code changes — such as security checks, bindings' tests on
+  multiple OSs, or expensive timing benchmarks, every night.
 
   We can run these tests before a merge by adding a label `pr-nightly` to the
   PR.
