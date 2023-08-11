@@ -357,11 +357,12 @@ automatically built and released on any push to the `web` branch.
 
 The `web` branch points to the latest release plus any website-specific fixes.
 That way, the compiler behavior in the playground matches the latest release
-while allowing us to fix mistakes with a tighter loop than every release.
+while allowing us to fix mistakes in the docs with a tighter loop than every
+release.
 
 Fixes to the playground, book, or website should have a `pr-backport-web` label
-added to their PR — a bot will then open another PR onto the `web` branch once
-the initial branch merges.
+added to their PR — a bot will then open & merge another PR onto the `web`
+branch once the initial branch merges.
 
 The website components will run locally with:
 
