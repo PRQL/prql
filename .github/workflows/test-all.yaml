@@ -69,34 +69,6 @@ jobs:
       target: ${{ matrix.target }}
       features: ${{ matrix.features }}
 
-  measure-code-cov:
-    runs-on: ubuntu-latest
-    # TODO: see whether we can add this job to the pull-request workflow,
-    # possibly waiting for https://github.com/PRQL/prql/issues/2870
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: baptiste0928/cargo-install@v2
-        with:
-          crate: cargo-tarpaulin
-      - run: ./.github/set_version.sh
-        shell: bash
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: ${{ env.version }}
-      - run:
-          cargo tarpaulin --skip-clean --all-targets --features=test-dbs
-          --out=Xml
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
-      - name: Upload code coverage results
-        uses: actions/upload-artifact@v3
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
-
   time-compilation:
     runs-on: ubuntu-latest
     steps:
