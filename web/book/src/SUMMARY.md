@@ -37,13 +37,13 @@
     - [From](./reference/stdlib/transforms/from.md)
     - [Group](./reference/stdlib/transforms/group.md)
     - [Join](./reference/stdlib/transforms/join.md)
+    - [Loop](./reference/stdlib/transforms/loop.md)
     - [Select](./reference/stdlib/transforms/select.md)
     - [Sort](./reference/stdlib/transforms/sort.md)
     - [Take](./reference/stdlib/transforms/take.md)
     - [Window](./reference/stdlib/transforms/window.md)
 
   - [Aggregation functions]()
-  - [Loop](./reference/stdlib/loop.md)
 
 - [Specification](./reference/spec/README.md)
 
