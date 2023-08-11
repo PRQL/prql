@@ -62,18 +62,19 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
+      elixir: ${{ steps.changes.outputs.elixir }}
+      java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
+      lib: ${{ steps.changes.outputs.lib }}
       # Really run all tests
       nightly: ${{ steps.nightly.outputs.run }}
-      python: ${{ steps.changes.outputs.python }}
-      lib: ${{ steps.changes.outputs.lib }}
-      java: ${{ steps.changes.outputs.java }}
-      elixir: ${{ steps.changes.outputs.elixir }}
       php: ${{ steps.changes.outputs.php }}
+      python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
       # Run most test (`all` is a misnomer!)
       test-all: ${{ steps.all.outputs.run }}
       web: ${{ steps.changes.outputs.web }}
+
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -88,28 +89,30 @@ jobs:
             book:
               - .github/workflows/check-links-book.yaml
               - web/book/**
-            lib:
-              - bindings/prql-lib/**
-              - .github/workflows/test-lib.yaml
-            php:
-              - bindings/prql-php/**
-              - bindings/prql-lib/**
-              - .github/workflows/test-php.yaml
-            java:
-              - bindings/prql-java/**
-              - bindings/prql-lib/**
-              - .github/workflows/test-java.yaml
-            elixir:
-              - bindings/prql-elixir/**
-              - bindings/prql-lib/**
-              - .github/workflows/test-elixir.yaml
             dotnet:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
+            elixir:
+              - bindings/prql-elixir/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-elixir.yaml
+            java:
+              - bindings/prql-java/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-java.yaml
             js:
               - bindings/prql-js/**
               - .github/workflows/test-js.yaml
+            lib:
+              - bindings/prql-lib/**
+              - .github/workflows/test-lib.yaml
+            nightly:
+              - .github/workflows/nightly.yaml
+            php:
+              - bindings/prql-php/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-php.yaml
             python:
               - bindings/prql-python/**
               - .github/workflows/test-python.yaml
@@ -117,12 +120,11 @@ jobs:
               - "**/*.rs"
               - crates/**
               - web/book/**
-            nightly:
-              - .github/workflows/nightly.yaml
             web:
               - "web/**"
               - ".github/workflows/build-web.yaml"
               - "**.md"
+
       - id: nightly
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
@@ -226,7 +228,7 @@ jobs:
     with:
       # Currently we never run Mac, see prql-elixir docs for details
       oss:
-        ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
+        ${{ (needs.rules.outputs.elixir == 'true' || needs.rules.outputs.nightly
         == 'true') && '["ubuntu-latest", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
@@ -280,7 +282,9 @@ jobs:
     # mistakes such as forgetting to list an .md file in SUMMARY.md.
     # Running a link checker on the generated HTML is more reliable.
     needs: rules
-    if: needs.rules.outputs.book == 'true'
+    if:
+      needs.rules.outputs.book == 'true' || needs.rules.outputs.nightly ==
+      'true'
 
     runs-on: ubuntu-latest
 
@@ -302,10 +306,42 @@ jobs:
           shared-key: web
           # Created by `build-web`
           save-if: false
+      # Only build the book — rather than `build-web` which also builds the playground
       - name: Build the mdbook
         run: mdbook build web/book/
       - name: Check links
         run: hyperlink web/book/book/
+
+  measure-code-cov:
+    runs-on: ubuntu-latest
+    needs: rules
+    # TODO: Would be great to have this running on every PR, but
+    # waiting on https://github.com/PRQL/prql/issues/2870. We could enable it
+    # but not wait for it?
+    if: needs.rules.outputs.test-all == 'true'
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-tarpaulin
+      - run: ./.github/set_version.sh
+        shell: bash
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          prefix-key: ${{ env.version }}
+      - run:
+          cargo tarpaulin --skip-clean --all-targets --features=test-dbs
+          --out=Xml
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v3
+      - name: Upload code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
 
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
