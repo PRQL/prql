@@ -6,6 +6,11 @@
 
 **Features**:
 
+- Strings can be delimited with any odd number of quote characters. The logic
+  for lexing quotes is now simpler and slightly faster. Escapes in
+  single-quote-delimited strings escape single-quotes rather than double-quotes.
+  (@max-sixty, @3274)
+
 **Fixes**:
 
 - `prqlc` no longer displays a prompt when piping a query into its stdin

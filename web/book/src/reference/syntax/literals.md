@@ -71,8 +71,7 @@ implementation.
 ### Quoting quotations
 
 To quote a string containing quotes, escape the quotes, use the "other" type of
-quote, or an odd number{{footnote: currently up to 7}} of quotes, and close with
-the same number.
+quote, or use more quotes.
 
 ```prql
 from artists
