@@ -316,6 +316,7 @@ jobs:
     # an external action to assess whether the paths have changed.
     if: always()
     needs:
+      - build-web
       - check-links-book
       - check-links-markdown
       - lint-megalinter
@@ -339,8 +340,9 @@ jobs:
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
           allowed-skips:
-            check-links-book, publish-web, test-all, test-js, test-rust,
-            test-dotnet, test-elixir, test-java, test-lib, test-php, test-elixir
+            build-web, check-links-book, publish-web, test-all, test-js,
+            test-rust, test-dotnet, test-elixir, test-java, test-lib, test-php,
+            test-elixir
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
