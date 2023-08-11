@@ -312,10 +312,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
-  — we run tests relevant to a PR's changes in CI. The vast majority of changes
-  trigger tests which run in less than five minutes, and we should be
-  reassessing their scope if they take longer than that. Once these pass, a pull
-  request can be merged.
+  — we run tests relevant to a PR's changes in CI — for example changes to docs
+  will attempt to build docs, changes to a binding will run that binding's
+  tests. The vast majority of changes trigger tests which run in less than five
+  minutes, and we should be reassessing their scope if they take longer than
+  that. Once these pass, a pull request can be merged.
 
 - **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
   — we run a wider set tests on every merge to main. This includes testing
