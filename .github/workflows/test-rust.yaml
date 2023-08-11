@@ -13,6 +13,10 @@ on:
       features:
         type: string
         required: true
+      nightly:
+        description: "Whether to run extra tests (this is not nightly rust)"
+        type: boolean
+        default: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -71,13 +75,17 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # Here, we also add:
-          # - Unreferenced snapshots - `--unreferenced=auto` when testing on
-          #   linux & with `test-dbs` feature.
+          # Now replaced with whether `nightly` is true, because we only run
+          # these on merges, which was making post-merge failures more frequent.
+          #
+          # # Here, we also add:
+          # # - Unreferenced snapshots - `--unreferenced=auto` when testing on
+          # #   linux & with `test-dbs` feature.
+          # ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
+          # 'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
           args: >
             test --target=${{ inputs.target }} --features=${{ inputs.features }}
-            ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
-            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+            ${{ inputs.nightly == 'true' && '--unreferenced=auto' || '' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
         with:

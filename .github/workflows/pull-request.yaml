@@ -134,6 +134,7 @@ jobs:
       # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile
       # times
       features: ""
+      nightly: ${{ needs.rules.outputs.nightly == 'true' }}
 
   test-python:
     needs: rules
