@@ -23,4 +23,4 @@ These are the currently available transforms:
 | `group`     | [Partition rows into groups and applies a pipeline to each of them](./group.md) | `GROUP BY`, `PARTITION BY`  |
 | `aggregate` | [Summarize many rows into one row](./aggregate.md)                              | `SELECT foo(...)`           |
 | `window`    | [Apply a pipeline to overlapping segments of rows](./window.md)                 | `OVER`, `ROWS`, `RANGE`     |
-| `loop`      | [Iteratively apply a function to a relation until its empty](./loop.md)         | `WITH RECURSIVE ...`        |
+| `loop`      | [Iteratively apply a function to a relation until it's empty](./loop.md)        | `WITH RECURSIVE ...`        |
