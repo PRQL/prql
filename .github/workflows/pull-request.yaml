@@ -339,10 +339,9 @@ jobs:
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
-          allowed-skips:
-            build-web, check-links-book, publish-web, test-all, test-js,
-            test-rust, test-dotnet, test-elixir, test-java, test-lib, test-php,
-            test-elixir
+          # Easier than writing out every job — and it's our own rules deciding
+          # whether jobs are skipped or not.
+          allowed-skips: ${{ toJSON(needs) }}
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
