@@ -118,6 +118,7 @@ jobs:
               - "**/*.rs"
               - crates/**
               - web/book/**
+              - .github/workflows/test-rust.yaml
             web:
               - "web/**"
               - ".github/workflows/build-web.yaml"
