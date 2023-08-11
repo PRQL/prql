@@ -66,6 +66,10 @@ jobs:
       # Really run all tests
       nightly: ${{ steps.nightly.outputs.run }}
       python: ${{ steps.changes.outputs.python }}
+      lib: ${{ steps.changes.outputs.lib }}
+      java: ${{ steps.changes.outputs.java }}
+      elixir: ${{ steps.changes.outputs.elixir }}
+      php: ${{ steps.changes.outputs.php }}
       rust: ${{ steps.changes.outputs.rust }}
       # Run most test (`all` is a misnomer!)
       test-all: ${{ steps.all.outputs.run }}
