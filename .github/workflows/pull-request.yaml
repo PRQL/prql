@@ -15,15 +15,7 @@ on:
     # Pick a random time, something that others won't pick, to reduce GH's demand variance.
     - cron: "49 10 * * *"
   workflow_dispatch:
-    inputs:
-      main:
-        type: boolean
-        default: false
   workflow_call:
-    inputs:
-      main:
-        type: boolean
-        default: false
 
 concurrency:
   # This used to require a custom suffix; I think that can now be removed.
@@ -131,9 +123,9 @@ jobs:
 
       - id: main
         run:
-          echo "run=${{ steps.changes.outputs.main == 'true' || inputs.main ||
-          github.ref == 'refs/heads/main' || steps.nightly.outputs.run ==
-          'true'  }}" >> "$GITHUB_OUTPUT"
+          echo "run=${{ steps.changes.outputs.main == 'true' || github.ref ==
+          'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
+          "$GITHUB_OUTPUT"
 
   test-rust:
     needs: rules
