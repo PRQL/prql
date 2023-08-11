@@ -73,6 +73,7 @@ jobs:
       rust: ${{ steps.changes.outputs.rust }}
       # Run most test (`all` is a misnomer!)
       test-all: ${{ steps.all.outputs.run }}
+      web: ${{ steps.changes.outputs.web }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -118,6 +119,10 @@ jobs:
               - web/book/**
             nightly:
               - .github/workflows/nightly.yaml
+            web:
+              - "web/**"
+              - ".github/workflows/build-web.yaml"
+              - "**.md"
       - id: nightly
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
@@ -230,6 +235,13 @@ jobs:
       needs.rules.outputs.lib == 'true' || needs.rules.outputs.test-all ==
       'true'
     uses: ./.github/workflows/test-lib.yaml
+
+  build-web:
+    needs: rules
+    if:
+      needs.rules.outputs.web == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/build-web.yaml
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml

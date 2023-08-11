@@ -34,9 +34,6 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
-  build-web:
-    uses: ./.github/workflows/build-web.yaml
-
   test-rust:
     strategy:
       matrix:
