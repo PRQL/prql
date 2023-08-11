@@ -31,7 +31,18 @@
 
 **Internal changes**:
 
+- Overhaul our CI to run a cohesive set of tests depending on the specific
+  changes in the PR, and elide all others. This cuts CI latency to less than
+  three minutes for most changes, and enables GitHub's auto-merge to wait for
+  all relevant tests. It also reduces the CI time on merging to main, by moving
+  some tests to only run on specific path changes or on our nightly run.
+
+  We now have one label we can add to PRs to run more tests — `pr-nightly`.
+  (@max-sixty, #3317 & others).
+
 - Auto-merge PRs for backports or pre-commit updates (@max-sixty, #3246)
+- Add a workflow to create an issue when the scheduled nightly workflow fails
+  (@max-sixty, #3304)
 
 **New Contributors**:
 

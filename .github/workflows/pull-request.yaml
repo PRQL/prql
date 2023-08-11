@@ -1,13 +1,12 @@
-# Jobs that run on every pull-request, regardless of its contents. This file is
-# gradually transitioning to run almost everything, with rules defined in this
-# file rather than across lots of workflow files. If that effort is successful,
-# we can rename it to `tests.yaml` or something similarly general at some point.
+# This file has transitioning to run almost everything, with rules defined in
+# this file rather than across lots of workflow files. We can rename it to
+# `tests.yaml` or something similarly general at some point.
 name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `pr-test-all`
-    # label, which we then use to trigger a `test-all` run.
+    # Add `labeled`, so we can trigger a new run by adding a `pr-nightly`
+    # label, which we then use to trigger a `nightly` run.
     types: [opened, reopened, synchronize, labeled]
   push:
     branches:
@@ -16,31 +15,20 @@ on:
     # Pick a random time, something that others won't pick, to reduce GH's demand variance.
     - cron: "49 10 * * *"
   workflow_dispatch:
-    inputs:
-      test-all:
-        type: boolean
-        default: false
-      run-nightly:
-        type: boolean
-        default: false
   workflow_call:
-    inputs:
-      test-all:
-        type: boolean
-        default: false
-      run-nightly:
-        type: boolean
-        default: false
 
 concurrency:
-  # This seems to require a custom suffix; I _think_ because this calls
-  # `test-all`, which calls `test-python`, and if `test-python` runs too, then
-  # we have two workflows with the same concurrency group, which GitHub calls a
-  # deadlock. Here's an example:
-  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
-  # `-pull-request` here, the job that runs under `test-all` (called from here)
-  # will have the suffix, and so won't deadlock. But I'm not certain, and it
-  # doesn't seem possible to inspect these values to understand the true cause.
+  # This used to require a custom suffix; I think that can now be removed.
+  # Previous comment:
+  #
+  # # I _think_ because this calls
+  # # `test-all`, which calls `test-python`, and if `test-python` runs too, then
+  # # we have two workflows with the same concurrency group, which GitHub calls a
+  # # deadlock. Here's an example:
+  # # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
+  # # `-pull-request` here, the job that runs under `test-all` (called from here)
+  # # will have the suffix, and so won't deadlock. But I'm not certain, and it
+  # # doesn't seem possible to inspect these values to understand the true cause.
   group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
@@ -50,11 +38,9 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
-  # This assesses whether we need to run jobs. It's currently only implemented
-  # for a few jobs, but we're expanding it to other jobs, bringing the jobs
-  # into this workflow. Some of them are defined only by the changes in PR,
-  # others also define a set of other criteria, such as whether a label has been
-  # added, or we're on `main` branch.
+  # This assesses whether we need to run jobs. Some of them are defined only by
+  # the changes in PR, others also define a set of other criteria, such as
+  # whether a label has been added, or we're on `main` branch.
   rules:
     runs-on: ubuntu-latest
     permissions:
@@ -72,7 +58,7 @@ jobs:
       python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
       # Run most test (`all` is a misnomer!)
-      test-all: ${{ steps.all.outputs.run }}
+      main: ${{ steps.main.outputs.run }}
       web: ${{ steps.changes.outputs.web }}
 
     steps:
@@ -82,9 +68,7 @@ jobs:
         id: changes
         with:
           filters: |
-            all:
-              # We're expanding to consolidate with `test-all.yaml`.
-              - Cargo.lock
+            main:
               - "**/Cargo.*"
               - .github/workflows/**
             book:
@@ -110,6 +94,7 @@ jobs:
               - .github/workflows/test-lib.yaml
             nightly:
               - .github/workflows/nightly.yaml
+              - Cargo.lock
             php:
               - bindings/prql-php/**
               - bindings/prql-lib/**
@@ -121,33 +106,30 @@ jobs:
               - "**/*.rs"
               - crates/**
               - web/book/**
+              - .github/workflows/test-rust.yaml
             web:
               - "web/**"
               - ".github/workflows/build-web.yaml"
               - "**.md"
 
       - id: nightly
-        run:
-          echo "run=${{ steps.changes.outputs.nightly == 'true' ||
-          inputs.run-nightly ||
-          contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
-          github.event.schedule }}" >> "$GITHUB_OUTPUT"
-
-      - id: all
         # TODO: actionlint annoyingly blocks this — try and find a way of getting
         # it back without too much trouble...
         # contains(github.event.pull_request.title, '!') ||
         run:
-          echo "run=${{ steps.changes.outputs.all == 'true' || inputs.test-all
-          || github.ref == 'refs/heads/main' ||
-          contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
-          steps.nightly.outputs.run == 'true'  }}" >> "$GITHUB_OUTPUT"
+          echo "run=${{ steps.changes.outputs.nightly == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
+          github.event.schedule }}" >> "$GITHUB_OUTPUT"
+
+      - id: main
+        run:
+          echo "run=${{ steps.changes.outputs.main == 'true' || github.ref ==
+          'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
+          "$GITHUB_OUTPUT"
 
   test-rust:
     needs: rules
-    if:
-      needs.rules.outputs.rust == 'true' || needs.rules.outputs.test-all ==
-      'true'
+    if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-rust.yaml
     strategy:
       matrix:
@@ -166,8 +148,7 @@ jobs:
   test-python:
     needs: rules
     if:
-      needs.rules.outputs.python == 'true' || needs.rules.outputs.test-all ==
-      'true'
+      needs.rules.outputs.python == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-python.yaml
     with:
       # Only run on ubuntu unless there's a lang-specific change or we're
@@ -183,8 +164,7 @@ jobs:
 
   test-js:
     needs: rules
-    if:
-      needs.rules.outputs.js == 'true' || needs.rules.outputs.test-all == 'true'
+    if: needs.rules.outputs.js == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-js.yaml
     with:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
@@ -196,22 +176,17 @@ jobs:
   test-dotnet:
     needs: rules
     if:
-      needs.rules.outputs.dotnet == 'true' || needs.rules.outputs.test-all ==
-      'true'
+      needs.rules.outputs.dotnet == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-dotnet.yaml
 
   test-php:
     needs: rules
-    if:
-      needs.rules.outputs.php == 'true' || needs.rules.outputs.test-all ==
-      'true'
+    if: needs.rules.outputs.php == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-php.yaml
 
   test-java:
     needs: rules
-    if:
-      needs.rules.outputs.java == 'true' || needs.rules.outputs.test-all ==
-      'true'
+    if: needs.rules.outputs.java == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-java.yaml
     with:
       # Currently we never run windows
@@ -223,8 +198,7 @@ jobs:
   test-elixir:
     needs: rules
     if:
-      needs.rules.outputs.elixir == 'true' || needs.rules.outputs.test-all ==
-      'true'
+      needs.rules.outputs.elixir == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-elixir.yaml
     with:
       # Currently we never run Mac, see prql-elixir docs for details
@@ -235,25 +209,59 @@ jobs:
 
   test-lib:
     needs: rules
-    if:
-      needs.rules.outputs.lib == 'true' || needs.rules.outputs.test-all ==
-      'true'
+    if: needs.rules.outputs.lib == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/test-lib.yaml
+
+  test-rust-main:
+    needs: rules
+    if: needs.rules.outputs.main == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            features: test-dbs-external
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            features: test-dbs
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
+            features: ""
+          # Only run wasm on ubuntu, given it's the same rust target. (There is a
+          # possibility of having a failure on just one platform, but it's quite
+          # unlikely. If we do observe this, we can expand, or introduce a
+          # `test-actually-all.yaml` which accounts for these corner cases without
+          # using runners & cache space)
+          - os: ubuntu-latest
+            target: wasm32-unknown-unknown
+            features: ""
+
+          # TODO: potentially enable these
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-musl
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
+
+    uses: ./.github/workflows/test-rust.yaml
+    with:
+      os: ${{ matrix.os }}
+      target: ${{ matrix.target }}
+      features: ${{ matrix.features }}
 
   build-web:
     needs: rules
-    if:
-      needs.rules.outputs.web == 'true' || needs.rules.outputs.test-all ==
-      'true'
+    if: needs.rules.outputs.web == 'true' || needs.rules.outputs.main == 'true'
     uses: ./.github/workflows/build-web.yaml
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
-  test-all:
+  # This is going away soon, to be consolidated into here.
+  main:
     uses: ./.github/workflows/test-all.yaml
     needs: rules
-    if: needs.rules.outputs.test-all == 'true'
+    if: needs.rules.outputs.main == 'true'
 
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
@@ -319,8 +327,8 @@ jobs:
     needs: rules
     # TODO: Would be great to have this running on every PR, but
     # waiting on https://github.com/PRQL/prql/issues/2870. We could enable it
-    # but not wait for it?
-    if: needs.rules.outputs.test-all == 'true'
+    # but not block merging on it?
+    if: needs.rules.outputs.main == 'true'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -345,6 +353,38 @@ jobs:
           name: code-coverage-report
           path: cobertura.xml
 
+  time-compilation:
+    runs-on: ubuntu-latest
+    needs: rules
+    if: needs.rules.outputs.nightly == 'true'
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/time-compilation
+        with:
+          use_cache: true
+
+  test-min-rust-version:
+    runs-on: ubuntu-latest
+    needs: rules
+    if: needs.rules.outputs.nightly == 'true'
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-msrv
+        # Note this currently uses a manually maintained key in
+        # `prql-compiler/Cargo.toml` (and `prqlc/Cargo.toml` below), because of
+        # https://github.com/foresterre/cargo-msrv/issues/590
+      - name: Verify minimum rust version — prql-compiler
+        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
+        working-directory: crates/prql-compiler
+        run: cargo msrv verify
+      - name: Verify minimum rust version — prqlc
+        working-directory: crates/prqlc
+        run: cargo msrv verify
+
   check-ok-to-merge:
     # This doesn't run anything, but offers a task for us to tell GitHub
     # everything in this workflow has passed and, unlike including each task in
@@ -361,13 +401,14 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
-      - test-all
+      - main
       - test-js
       - test-elixir
       - test-dotnet
       - test-java
       - test-lib
       - test-rust
+      - test-rust-main
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed

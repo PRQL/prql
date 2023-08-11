@@ -305,31 +305,25 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   in-process tests can be run locally with `cargo test --features=test-dbs`;
   more details are in the Readme.
 
-- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
-  — we run the tests described up to this point on every commit to a pull
-  request. These are designed to run in under five minutes, and we should be
-  reassessing their scope if they grow beyond that. Once these pass, a pull
-  request can be merged.
-
   These can be run locally with:
 
   ```sh
   task test-rust
   ```
 
-- **[GitHub Actions on specific changes](https://github.com/PRQL/prql/blob/main/.github/workflows/)**
-  — we run additional tests on pull requests when we identify changes to some
-  paths, such as bindings to other languages.
+- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
+  — we run tests relevant to a PR's changes in CI — for example changes to docs
+  will attempt to build docs, changes to a binding will run that binding's
+  tests. The vast majority of changes trigger tests which run in less than five
+  minutes, and we should be reassessing their scope if they take longer than
+  that. Once these pass, a pull request can be merged.
 
-- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/main/.github/workflows/test-all.yaml)**
-  — we run many more tests on every merge to main. This includes testing across
-  OSs, all our language bindings, our `task` tasks, a measure of test code
-  coverage, and some performance benchmarks.
+- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
+  — we run a wider set tests on every merge to main. This includes testing
+  across OSs, all our language bindings, our `task` tasks, a measure of test
+  code coverage, and some performance benchmarks.
 
-  We can run these tests before a merge by adding a label `pr-test-all` to the
-  PR.
-
-  If these tests fail after merging, we revert the merged commit before fixing
+  If these tests fail after merging, we should revert the commit before fixing
   the test and then re-reverting.
 
   Most of these will run locally with:
@@ -339,8 +333,9 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
 - **[GitHub Actions nightly](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml)**
-  — we run tests that take a long time or are unrelated to code changes, such as
-  security checks, or expensive timing benchmarks, every night.
+  — every night, we run tests that take longer, are less likely to fail, or are
+  unrelated to code changes — such as security checks, bindings' tests on
+  multiple OSs, or expensive timing benchmarks.
 
   We can run these tests before a merge by adding a label `pr-nightly` to the
   PR.
@@ -359,11 +354,12 @@ automatically built and released on any push to the `web` branch.
 
 The `web` branch points to the latest release plus any website-specific fixes.
 That way, the compiler behavior in the playground matches the latest release
-while allowing us to fix mistakes with a tighter loop than every release.
+while allowing us to fix mistakes in the docs with a tighter loop than every
+release.
 
 Fixes to the playground, book, or website should have a `pr-backport-web` label
-added to their PR — a bot will then open another PR onto the `web` branch once
-the initial branch merges.
+added to their PR — a bot will then open & merge another PR onto the `web`
+branch once the initial branch merges.
 
 The website components will run locally with:
 
