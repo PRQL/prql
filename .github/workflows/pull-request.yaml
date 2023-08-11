@@ -271,8 +271,9 @@ jobs:
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
+  # This is going away soon, to be consolidated into here.
   main:
-    uses: ./.github/workflows/main.yaml
+    uses: ./.github/workflows/test-all.yaml
     needs: rules
     if: needs.rules.outputs.main == 'true'
 
@@ -368,6 +369,7 @@ jobs:
 
   time-compilation:
     runs-on: ubuntu-latest
+    needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
@@ -378,6 +380,7 @@ jobs:
 
   test-min-rust-version:
     runs-on: ubuntu-latest
+    needs: rules
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
