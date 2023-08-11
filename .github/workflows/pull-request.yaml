@@ -73,6 +73,7 @@ jobs:
       rust: ${{ steps.changes.outputs.rust }}
       # Run most test (`all` is a misnomer!)
       test-all: ${{ steps.all.outputs.run }}
+      web: ${{ steps.changes.outputs.web }}
 
     steps:
       - uses: actions/checkout@v3
