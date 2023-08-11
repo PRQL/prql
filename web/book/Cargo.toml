@@ -22,13 +22,10 @@ itertools = "0.11.0"
 mdbook = {version = "0.4.21", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
-pulldown-cmark = "0.9.3"
+pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.0"
-
-# Not a direct dependency, but earlier versions fail
-getopts = "0.2.21"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
