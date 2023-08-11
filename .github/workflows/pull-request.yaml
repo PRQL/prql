@@ -76,7 +76,8 @@ jobs:
       web: ${{ steps.changes.outputs.web }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -269,7 +270,8 @@ jobs:
     # rate-limited by GH because of it scanning node_modules.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           config-file: .config/.markdown-link-check-local.json
@@ -289,7 +291,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: baptiste0928/cargo-install@v2
         with:
@@ -437,6 +439,8 @@ jobs:
       always() && github.event.schedule && needs.rules.outputs.nightly &&
       contains(needs.*.result, 'failure')
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
       - uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
