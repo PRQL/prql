@@ -2,10 +2,6 @@ name: test-lib
 
 on:
   pull_request:
-    paths:
-      # We also run the tests for the libraries that depend on this, from their workflow files.
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-lib.yaml"
   workflow_call:
   workflow_dispatch:
 
@@ -26,6 +22,7 @@ jobs:
         with:
           prefix-key: ${{ env.version }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: lib
       - name: Build
         uses: richb-hanover/cargo@v1.1.0
         with:

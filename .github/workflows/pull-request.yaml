@@ -83,6 +83,21 @@ jobs:
             book:
               - .github/workflows/check-links-book.yaml
               - web/book/**
+            lib:
+              - bindings/prql-lib/**
+              - .github/workflows/test-lib.yaml
+            php:
+              - bindings/prql-php/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-php.yaml
+            java:
+              - bindings/prql-java/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-java.yaml
+            elixir:
+              - bindings/prql-elixir/**
+              - bindings/prql-lib/**
+              - .github/workflows/test-elixir.yaml
             dotnet:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
@@ -172,6 +187,34 @@ jobs:
       'true'
     uses: ./.github/workflows/test-dotnet.yaml
 
+  test-php:
+    needs: rules
+    if:
+      needs.rules.outputs.php == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-php.yaml
+
+  test-java:
+    needs: rules
+    if:
+      needs.rules.outputs.java == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-java.yaml
+
+  test-elixir:
+    needs: rules
+    if:
+      needs.rules.outputs.elixir == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-elixir.yaml
+
+  test-lib:
+    needs: rules
+    if:
+      needs.rules.outputs.lib == 'true' || needs.rules.outputs.test-all ==
+      'true'
+    uses: ./.github/workflows/test-lib.yaml
+
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
@@ -253,6 +296,10 @@ jobs:
       - publish-web
       - test-all
       - test-js
+      - test-elixir
+      - test-dotnet
+      - test-java
+      - test-lib
       - test-rust
     runs-on: ubuntu-latest
     steps:
@@ -264,7 +311,8 @@ jobs:
           # location of a file in this repo which is linked to.
           allowed-failures: check-links-markdown
           allowed-skips:
-            check-links-book, publish-web, test-all, test-js, test-rust
+            check-links-book, publish-web, test-all, test-js, test-rust,
+            test-dotnet, test-elixir, test-java, test-lib, test-php, test-elixir
           jobs: ${{ toJSON(needs) }}
 
   build-prqlc:

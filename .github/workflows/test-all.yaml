@@ -72,18 +72,6 @@ jobs:
       target: ${{ matrix.target }}
       features: ${{ matrix.features }}
 
-  test-php:
-    uses: ./.github/workflows/test-php.yaml
-
-  test-java:
-    uses: ./.github/workflows/test-java.yaml
-
-  test-elixir:
-    uses: ./.github/workflows/test-elixir.yaml
-
-  test-lib:
-    uses: ./.github/workflows/test-lib.yaml
-
   measure-code-cov:
     runs-on: ubuntu-latest
     # TODO: see whether we can add this job to the pull-request workflow,

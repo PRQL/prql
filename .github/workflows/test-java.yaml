@@ -2,10 +2,6 @@ name: test-java
 
 on:
   pull_request:
-    paths:
-      - "bindings/prql-java/**"
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-java.yaml"
   workflow_call:
   workflow_dispatch:
 
@@ -22,6 +18,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - run: ./.github/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: lib
       - name: Maven test
         working-directory: bindings/prql-java/java/
         run: ./mvnw test
