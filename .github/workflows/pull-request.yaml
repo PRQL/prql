@@ -107,6 +107,7 @@ jobs:
               - .github/workflows/test-lib.yaml
             nightly:
               - .github/workflows/nightly.yaml
+              - Cargo.lock
             php:
               - bindings/prql-php/**
               - bindings/prql-lib/**
