@@ -1,11 +1,12 @@
 # This file has transitioning to run almost everything, with rules defined in
-# this file rather than across lots of workflow files.
+# this file rather than across lots of workflow files. We can rename it to
+# `tests.yaml` or something similarly general at some point.
 name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `pr-main`
-    # label, which we then use to trigger a `main` run.
+    # Add `labeled`, so we can trigger a new run by adding a `pr-nightly`
+    # label, which we then use to trigger a `nightly` run.
     types: [opened, reopened, synchronize, labeled]
   push:
     branches:
@@ -18,15 +19,9 @@ on:
       main:
         type: boolean
         default: false
-      run-nightly:
-        type: boolean
-        default: false
   workflow_call:
     inputs:
       main:
-        type: boolean
-        default: false
-      run-nightly:
         type: boolean
         default: false
 
@@ -126,16 +121,15 @@ jobs:
               - "**.md"
 
       - id: nightly
+        # TODO: actionlint annoyingly blocks this — try and find a way of getting
+        # it back without too much trouble...
+        # contains(github.event.pull_request.title, '!') ||
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
-          inputs.run-nightly ||
           contains(github.event.pull_request.labels.*.name, 'pr-run-nightly') ||
           github.event.schedule }}" >> "$GITHUB_OUTPUT"
 
       - id: main
-        # TODO: actionlint annoyingly blocks this — try and find a way of getting
-        # it back without too much trouble...
-        # contains(github.event.pull_request.title, '!') ||
         run:
           echo "run=${{ steps.changes.outputs.main == 'true' || inputs.main ||
           github.ref == 'refs/heads/main' || steps.nightly.outputs.run ==

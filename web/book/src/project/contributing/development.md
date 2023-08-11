@@ -336,9 +336,9 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
 - **[GitHub Actions nightly](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml)**
-  — we run tests that take a long time, are less likely to fail, or are
-  unrelated to code changes — such as security checks, bindings' tests on
-  multiple OSs, or expensive timing benchmarks, every night.
+  — every night, we run tests that take a long time, are less likely to fail, or
+  are unrelated to code changes — such as security checks, bindings' tests on
+  multiple OSs, or expensive timing benchmarks.
 
   We can run these tests before a merge by adding a label `pr-nightly` to the
   PR.
