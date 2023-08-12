@@ -480,6 +480,9 @@ jobs:
     #   # don't want to trigger just on a `pr-nightly` label
     #   always() && github.event.schedule && needs.rules.outputs.nightly &&
     #   contains(needs.*.result, 'failure')
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
