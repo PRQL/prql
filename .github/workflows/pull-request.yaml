@@ -70,7 +70,7 @@ jobs:
           filters: |
             main:
               - "**/Cargo.*"
-              - .github/workflows/**
+              - .github/**
             book:
               - .github/workflows/check-links-book.yaml
               - web/book/**
