@@ -119,7 +119,7 @@ jobs:
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
           contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
-          github.event.schedule }}" >> "$GITHUB_OUTPUT"
+          github.event.schedule }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
