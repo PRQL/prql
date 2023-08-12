@@ -48,6 +48,7 @@ jobs:
         shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
+        id: cache
         with:
           prefix-key: ${{ env.version }}
           shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
@@ -101,3 +102,16 @@ jobs:
         with:
           command: fmt
           args: --all --check
+        # As part of https://github.com/PRQL/prql/issues/3145, I'm seeing
+        # whether having this means that prqlc builds much faster, without
+        # adding much time here, given it has the cache.
+      - name: Build
+        if:
+          ${{ github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit
+          == 'false' }}
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: build
+          args:
+            --all-targets --target=${{ inputs.target }} --features=${{
+            inputs.features }}
