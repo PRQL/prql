@@ -475,11 +475,11 @@ jobs:
       - rules
       - check-ok-to-merge
       - nightly
-    if:
-      # We care that it's on a schedule as well as it running on nightly — we
-      # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.schedule && needs.rules.outputs.nightly &&
-      contains(needs.*.result, 'failure')
+    # if:
+    #   # We care that it's on a schedule as well as it running on nightly — we
+    #   # don't want to trigger just on a `pr-nightly` label
+    #   always() && github.event.schedule && needs.rules.outputs.nightly &&
+    #   contains(needs.*.result, 'failure')
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
