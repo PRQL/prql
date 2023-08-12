@@ -480,13 +480,19 @@ jobs:
       # don't want to trigger just on a `pr-nightly` label
       always() && github.event.schedule && needs.rules.outputs.nightly &&
       contains(needs.*.result, 'failure')
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINK:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
+            github.run_id }}
         with:
-          filename: .github/nightly-failure.yaml
+          filename: .github/nightly-failure.md
           update_existing: true
           search_existing: open
