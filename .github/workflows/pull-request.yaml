@@ -490,6 +490,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          filename: .github/nightly-failure.yaml
+          filename: .github/nightly-failure.md
           update_existing: true
           search_existing: open
