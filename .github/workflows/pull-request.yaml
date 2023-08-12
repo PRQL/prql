@@ -401,12 +401,13 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
-      - main
-      - test-js
-      - test-elixir
       - test-dotnet
+      - test-elixir
       - test-java
+      - test-js
       - test-lib
+      - test-php
+      - test-python
       - test-rust
       - test-rust-main
     runs-on: ubuntu-latest
