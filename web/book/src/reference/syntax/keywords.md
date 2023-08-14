@@ -93,7 +93,8 @@ PRQL uses following keywords:
 - **`into`** - variable definition [_more..._](../declarations/variables.md)
 - **`case`** - flow control [_more..._](../syntax/case.md)
 - **`type`** - type declaration
-- **`func`** - explicit function declaration [_more..._](../declarations/functions.md)
+- **`func`** - explicit function declaration
+  [_more..._](../declarations/functions.md)
 - **`module`** - used internally
 - **`internal`** - used internally
 - **`true`** - boolean [_more..._](./literals.md#booleans)
