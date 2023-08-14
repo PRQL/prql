@@ -397,7 +397,6 @@ jobs:
           path: cobertura.xml
 
   build-devcontainer:
-    runs-on: ubuntu-latest
     needs: rules
     if:
       # We only run on nightly scheduled, since this is very expensive and we
