@@ -48,9 +48,10 @@ jobs:
         id: cache
         with:
           prefix-key: ${{ env.version }}
-          # `web` is the closest rust cache key. Not sure it's _that_ useful since
-          # this will build much more, but it's better than nothing, and we
-          # can't use a separate one given we're out of cache space.
+          # `web` is the closest rust cache key. It's useful on ubuntu (last
+          # checked, roughly halved the time, to 4 min), but not on other OSs
+          # given we don't have those caches. We can't use a separate one given
+          # we're out of cache space.
           shared-key: web
           save-if: false
 
