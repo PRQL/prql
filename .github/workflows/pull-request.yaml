@@ -405,8 +405,7 @@ jobs:
       needs.rules.outputs.devcontainer == 'true' || (needs.rules.outputs.nightly
       == 'true' && github.event.schedule)
     timeout-minutes: 3600
-    steps:
-      - uses: ./.github/workflows/build-devcontainer.yaml
+    uses: ./.github/workflows/build-devcontainer.yaml
 
   time-compilation:
     runs-on: ubuntu-latest
