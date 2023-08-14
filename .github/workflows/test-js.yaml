@@ -36,5 +36,18 @@ jobs:
         with:
           crate: wasm-pack
 
+      - run: ./.github/set_version.sh
+
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        id: cache
+        with:
+          prefix-key: ${{ env.version }}
+          # `web` is the closest rust cache key. Not sure it's _that_ useful since
+          # this will build much more, but it's better than nothing, and we
+          # can't use a separate one given we're out of cache space.
+          shared-key: web
+          save-if: false
+
       - run: npm cit
         working-directory: bindings/prql-js
