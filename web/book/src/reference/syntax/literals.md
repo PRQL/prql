@@ -46,26 +46,8 @@ Strings can contain any escapes defined by
 
 ```prql
 from artists
-derive escapes = "\t\tline ends here\n \\ "
-derive world = "\u0048\u0065\u006C\u006C\u006F"
-```
-
-### R-strings
-
-To handle escapes as raw characters, use an r-string:
-
-```prql
-from artists
-derive normal_string =  "\\\t"
-derive raw_string    = r"\\\t"
-```
-
-```admonish note
-These escape rules specify how PRQL interprets escape characters when compiling
-strings to SQL, not necessarily how the database will interpret the string.
-Dialects interpret escape characters differently, and PRQL doesn't yet account for
-these differences. Please open issues with any difficulties in the current
-implementation.
+derive escapes = "\tXYZ\n \\ "                  # tab (\t), "XYZ", newline (\n), " ", \, " "
+derive world = "\u0048\u0065\u006C\u006C\u006F" # "Hello"
 ```
 
 ### Quoting quotations
@@ -82,13 +64,16 @@ select {
 }
 ```
 
-See also:
+### Other string formats
 
-- [F-strings](./f-strings.md) - Build up a new string from a set of columns or
-  values
+- [**F-strings**](./f-strings.md) - Build up a new string from a set of columns
+  or values.
 
-- [S-strings](./s-strings.md) - Insert SQL statements directly into the query.
-  Use when PRQL doesn't have an equivalent facility.
+- [**S-strings**](./s-strings.md) - Insert SQL statements directly into the
+  query. Use when PRQL doesn't have an equivalent facility.
+
+- [**R-strings**](#r-strings) - Include the raw characters of the string without
+  any form of escaping.
 
 ```admonish warning
 Currently PRQL allows multiline strings with either a single character or
@@ -96,13 +81,33 @@ multiple character quotes. This may change for strings using a single character
 quote in future versions.
 ```
 
-## Bool
+### R-strings
+
+To handle escapes as raw characters, use an r-string:
+
+```prql
+from artists
+derive normal_string =  "\\\t"   #  two characters - \ and tab (\t)
+derive raw_string    = r"\\\t"   # four characters - \, \, \, and t
+```
+
+```admonish note
+These escape rules specify how PRQL interprets escape characters when compiling
+strings to SQL, not necessarily how the database will interpret the string.
+Dialects interpret escape characters differently,
+and PRQL doesn't currently account for
+these differences. Please open issues with any difficulties in the current
+implementation.
+```
+
+## Booleans
 
 Boolean values can be expressed with `true` or `false` keyword.
 
 ## Null
 
-The null value can be expressed with `null` keyword.
+The null value can be expressed with `null` keyword. See also the discussion of
+how [PRQL handles nulls](../spec/null.html).
 
 ## Date and time
 
@@ -110,9 +115,9 @@ Date and time literals are expressed with character `@`, followed by a string
 that encodes the date & time.
 
 ```admonish note
-Comparing to SQL, this notation is less verbose than
+PRQL's notation is designed to be less verbose than SQL's
 `TIMESTAMP '2004-10-19 10:23:54'` and more explicit than SQL's implicit option
-of just using a string `'2004-10-19 10:23:54'`.
+that just uses a string `'2004-10-19 10:23:54'`.
 ```
 
 ### Dates
@@ -167,7 +172,7 @@ derive first_check_in = start + 10days
 
 ### Examples
 
-Here's a fuller list of date and time examples:
+Here's a larger list of date and time examples:
 
 - `@20221231` is invalid — it must contain full punctuation (`-` and `:`),
 - `@2022-12-31` is a date

@@ -7,6 +7,8 @@
 - [Syntax](./reference/syntax/README.md)
 
   - [Literals](./reference/syntax/literals.md)
+    - [F-strings](./reference/syntax/f-strings.md)
+    - [S-strings](./reference/syntax/s-strings.md)
   - [Tuples](./reference/syntax/tuples.md)
   - [Arrays](./reference/syntax/arrays.md)
   - [Identifiers & keywords](./reference/syntax/keywords.md)
@@ -15,8 +17,6 @@
   - [Operations](./reference/syntax/operators.md)
   - [Case](./reference/syntax/case.md)
   - [Ranges](./reference/syntax/ranges.md)
-  - [F-strings](./reference/syntax/f-strings.md)
-  - [S-strings](./reference/syntax/s-strings.md)
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
 
