@@ -12,6 +12,11 @@ on:
         type: string
         default: '["ubuntu-latest"]'
 
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
   cancel-in-progress: true
