@@ -1,18 +1,6 @@
 name: build-devcontainer
 
 on:
-  pull_request:
-    paths:
-      - .devcontainer/**
-      - .github/workflows/build-devcontainer.yaml
-      - Taskfile.yml
-  push:
-    branches:
-      - main
-    paths:
-      - .devcontainer/**
-      - .github/workflows/build-devcontainer.yaml
-      - Taskfile.yml
   workflow_call:
   workflow_dispatch:
 
