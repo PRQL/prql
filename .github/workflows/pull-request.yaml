@@ -48,6 +48,7 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
+      devcontainer: ${{ steps.changes.outputs.devcontainer }}
       elixir: ${{ steps.changes.outputs.elixir }}
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
@@ -79,6 +80,10 @@ jobs:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
+            devcontainer:
+              - .devcontainer/**
+              - .github/workflows/build-devcontainer.yaml
+              - Taskfile.yml
             elixir:
               - bindings/prql-elixir/**
               - bindings/prql-lib/**
@@ -390,6 +395,53 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
+
+  build-devcontainer:
+    runs-on: ubuntu-latest
+    if:
+      # We only run on nightly scheduled, since this is very expensive and we
+      # don't want to have to run it on, for example, every dependency change.
+      needs.rules.outputs.devcontainer == 'true' || (needs.rules.outputs.nightly
+      == 'true' && github.event.schedule)
+    timeout-minutes: 3600
+    steps:
+      - uses: docker/metadata-action@v4
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/prql-devcontainer-base
+          # We could use explicit tags (but mostly we just want the most recent version).
+          tags: |
+            type=raw,latest
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build
+        uses: docker/build-push-action@v4
+        timeout-minutes: 3600
+        with:
+          file: .devcontainer/base-image/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
+          push:
+            ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
+            'refs/tags/') }}
+          cache-from: |
+            ${{ steps.meta.outputs.tags }}
+            type=gha
+          cache-to: |
+            type=inline
+            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
 
   time-compilation:
     runs-on: ubuntu-latest
