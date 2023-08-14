@@ -107,7 +107,7 @@ Boolean values can be expressed with `true` or `false` keyword.
 ## Null
 
 The null value can be expressed with `null` keyword. See also the discussion of
-how [PRQL handles nulls](../spec/null.html).
+how [PRQL handles nulls](../spec/null.md).
 
 ## Date and time
 
