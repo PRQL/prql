@@ -404,7 +404,6 @@ jobs:
       # don't want to have to run it on, for example, every dependency change.
       needs.rules.outputs.devcontainer == 'true' || (needs.rules.outputs.nightly
       == 'true' && github.event.schedule)
-    timeout-minutes: 3600
     uses: ./.github/workflows/build-devcontainer.yaml
 
   time-compilation:
