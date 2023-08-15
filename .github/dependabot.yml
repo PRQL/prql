@@ -2,8 +2,6 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directory: "/"
-    labels:
-      - pr-test-all
     schedule:
       interval: daily
     ignore:

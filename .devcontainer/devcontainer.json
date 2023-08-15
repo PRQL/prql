@@ -31,7 +31,7 @@
     }
   ],
   "postCreateCommand": {
-    "install-maturin": "task install-maturin",
+    "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
     "install-npm-dependencies": "task install-npm-dependencies"
   }
 }
