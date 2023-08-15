@@ -81,7 +81,7 @@ jobs:
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
             devcontainer:
-              - .devcontainer/**
+              - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
             elixir:
