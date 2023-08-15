@@ -12,6 +12,11 @@ on:
         type: string
         default: '["ubuntu-latest"]'
 
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
   cancel-in-progress: true
@@ -35,6 +40,20 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-pack
+
+      - run: ./.github/set_version.sh
+
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        id: cache
+        with:
+          prefix-key: ${{ env.version }}
+          # `web` is the closest rust cache key. It's useful on ubuntu (last
+          # checked, roughly halved the time, to 4 min), but not on other OSs
+          # given we don't have those caches. We can't use a separate one given
+          # we're out of cache space.
+          shared-key: web
+          save-if: false
 
       - run: npm cit
         working-directory: bindings/prql-js
