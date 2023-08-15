@@ -28,9 +28,9 @@ vars:
     wasm-pack
   brew_dependencies: |
     brew
-    hugo 
+    hugo
     npm
-    python3 
+    python3
     elixir
 
 tasks:
