@@ -108,7 +108,8 @@ tasks:
           https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
           | bash || cargo install --locked binstall
         platforms: [linux, darwin]
-      - 'cargo binstall -y --locked {{.cargo_crates | splitLines | join " " }}'
+      - 'PATH=$PATH:~/.cargo/bin cargo binstall -y --locked {{.cargo_crates |
+        splitLines | join " " }}'
 
   install-maturin:
     desc: Install maturin.
