@@ -26,6 +26,12 @@ vars:
     bacon cargo-audit cargo-insta cargo-release default-target mdbook
     mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
     wasm-pack
+  brew_dependencies: |
+    brew
+    hugo 
+    npm
+    python3 
+    elixir
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -46,13 +52,13 @@ tasks:
     desc: Install tools for PRQL development.
     cmds:
       - task: install-cargo-tools
+      # We only suggest, rather than install; we don't want to intrude (maybe
+      # we're being too conservative?).
+      - task: suggest-vscode-extensions
       - task: install-brew-dependencies
       - task: install-maturin
       - task: install-pre-commit
       - task: install-npm-dependencies
-      # We only suggest, rather than install; we don't want to intrude (maybe
-      # we're being too conservative?).
-      - task: suggest-vscode-extensions
       - pre-commit install-hooks
       - cmd: |
           echo "
@@ -144,14 +150,31 @@ tasks:
     cmds:
       - python3 -m pip install -U pre-commit
 
+  check-brew-dependencies:
+    status:
+      - |
+        {{ range $dep := (.brew_dependencies | trim | splitLines) -}}
+          [ -n "$(which {{ $dep }})" ]
+        {{ end -}}
+      - "[ $(npm -v | cut -d. -f1) -ge 9 ]"
+    cmds:
+      - cmd: |
+          echo "
+          🟡 It looks like at least one brew dependency is missing from:
+
+          {{ .brew_dependencies }}
+
+          These aren't required for initial PRQL development, but they are required for some of the tests.
+
+          Install them with:
+
+            task install-brew-dependencies
+            "
+        silent: true
+
   install-brew-dependencies:
     status:
-      - which hugo
-      - which npm
-      # Check for a recent npm version
-      - "[ $(npm -v | cut -d. -f1) -ge 9 ]"
-      - which python3
-      - which elixir
+      - task check-brew-dependencies
     preconditions:
       - sh: which brew
         msg: |
