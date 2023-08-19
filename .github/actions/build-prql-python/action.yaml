@@ -12,7 +12,7 @@ runs:
   steps:
     - run: ./.github/set_version.sh
       shell: bash
-    - uses: NobodyXu/rust-cache/action.yml@dep-toml
+    - uses: NobodyXu/rust-cache@dep-toml
       with:
         save-if: ${{ github.ref == 'refs/heads/main' }}
         prefix-key: ${{ env.version }}
