@@ -251,6 +251,10 @@ jobs:
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
       - run: brew install bash
       - run: task install-brew-dependencies
+      # For debugging
+      - run: task check-brew-dependencies
+      - run: which hugo
+
       - run: task setup-dev
       # This also encompasses `build-all`
       - run: task test-all
