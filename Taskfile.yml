@@ -192,9 +192,9 @@ tasks:
         msg: |
 
 
-          🔴 Can't find `brew`, which we use to install {{ .brew_dependencies | trim | splitLines | join " & " }}. 
+          🔴 Can't find `brew`, which we use to install {{ .brew_dependencies | trim | splitLines | join " & " }}.
 
-          Either install brew & re-run this, or install the dependencies with a different approach, or use PRQL without them. 
+          Either install brew & re-run this, or install the dependencies with a different approach, or use PRQL without them.
           Brew installation instructions at:
 
             https://brew.sh/
