@@ -106,9 +106,10 @@ tasks:
     cmds:
       # Currently pinning 1.1.2 because of https://github.com/cargo-bins/cargo-binstall/issues/1292
       - cmd:
-          curl -L --proto '=https' --tlsv1.2 -sSf
-          https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
-          | bash || cargo install --locked binstall --version=1.1.2
+          # curl -L --proto '=https' --tlsv1.2 -sSf
+          # https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
+          # | bash ||
+          cargo install --locked binstall --version=1.1.2
         platforms: [linux, darwin]
       - 'cargo binstall -y --locked {{.cargo_crates | splitLines | join " " }}'
 
