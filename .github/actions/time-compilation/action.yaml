@@ -13,7 +13,7 @@ runs:
       shell: bash
     - name: 💰 Cache
       id: cache
-      uses: Swatinem/rust-cache@v2
+      uses: NobodyXu/rust-cache/action.yml@dep-toml
       with:
         save-if: ${{ github.ref == 'refs/heads/main' }}
         prefix-key: ${{ env.version }}

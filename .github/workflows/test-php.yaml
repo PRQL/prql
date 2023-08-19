@@ -23,7 +23,7 @@ jobs:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - run: ./.github/set_version.sh
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: NobodyXu/rust-cache/action.yml@dep-toml
         with:
           prefix-key: ${{ env.version }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
