@@ -10,6 +10,9 @@ concurrency:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
     runs-on: ubuntu-latest
     timeout-minutes: 3600
     steps:
@@ -40,7 +43,7 @@ jobs:
         with:
           file: .devcontainer/base-image/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push:
             ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
             'refs/tags/') }}
