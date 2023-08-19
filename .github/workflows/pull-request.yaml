@@ -250,6 +250,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
       - run: brew install bash
+      - run: task install-brew-dependencies
       - run: task setup-dev
       # This also encompasses `build-all`
       - run: task test-all
