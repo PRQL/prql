@@ -295,21 +295,26 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       snapshot file, etc. -->
 
 - **[Documentation](https://github.com/PRQL/prql/tree/main/web/book/tests/documentation)**
-  — we compile all examples from our documentation in the Website, README, and
+  — we compile all examples from our documentation in the Website, README, and
   PRQL Book, to test that they produce the SQL we expect, and that changes to
-  our code don't cause any unexpected regressions.
+  our code don't cause any unexpected regressions. These are included in:
+
+  ```sh
+  cargo insta test --accept
+  ```
 
 - **[Integration tests](https://github.com/PRQL/prql/blob/main/crates/prql-compiler/tests/integration)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
-  in-process tests can be run locally with `cargo test --features=test-dbs`;
-  more details are in the Readme.
-
-  These can be run locally with:
+  in-process tests can be run locally with:
 
   ```sh
   task test-rust
+  # or
+  cargo insta test --accept --features=test-dbs
   ```
+
+  More details on running with external databases are in the Readme.
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs
