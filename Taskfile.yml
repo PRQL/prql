@@ -188,7 +188,7 @@ tasks:
     status:
       - task check-brew-dependencies
     preconditions:
-      - sh: which brewA
+      - sh: which brew
         msg: |
 
 
