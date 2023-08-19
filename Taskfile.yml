@@ -109,7 +109,7 @@ tasks:
           # curl -L --proto '=https' --tlsv1.2 -sSf
           # https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
           # | bash ||
-          cargo install --locked binstall --version=1.1.2
+          cargo install --locked cargo-binstall --version=1.1.2
         platforms: [linux, darwin]
       - 'cargo binstall -y --locked {{.cargo_crates | splitLines | join " " }}'
 
