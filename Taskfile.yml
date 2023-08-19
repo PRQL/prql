@@ -48,6 +48,8 @@ tasks:
     preconditions:
       - sh: which clang
         msg: |
+
+
           🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
 
           Please install it. On MacOS, that's
@@ -169,6 +171,7 @@ tasks:
     cmds:
       - cmd: |
           echo "
+
           🟡 It looks like at least one brew dependency is missing from:
 
           {{ .brew_dependencies }}
@@ -185,13 +188,16 @@ tasks:
     status:
       - task check-brew-dependencies
     preconditions:
-      - sh: which brew
+      - sh: which brewA
         msg: |
 
 
-          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
-          - https://gohugo.io/getting-started/installing/
-          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+          🔴 Can't find `brew`, which we use to install {{ .brew_dependencies | trim | splitLines | join " & " }}. 
+
+          Either install brew & re-run this, or install the dependencies with a different approach, or use PRQL without them. 
+          Brew installation instructions at:
+
+            https://brew.sh/
     cmds:
       - brew install {{.brew_dependencies | trim | splitLines | join " " }}
 
