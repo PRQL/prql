@@ -185,7 +185,7 @@ tasks:
 
           Install them with:
 
-            task install-brew-eependencies
+            task install-brew-dependencies
             "
       - exit 1
 
