@@ -35,7 +35,7 @@ vars:
     wasm-bindgen-cli
     wasm-opt
     wasm-pack
-  # Excluding `elixir` atm given it's not enabled on Mac and not yes supported
+  # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     brew
     hugo
