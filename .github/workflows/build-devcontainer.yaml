@@ -12,9 +12,8 @@ jobs:
   build:
     strategy:
       matrix:
-        # FIXME
-        # platform: [linux/amd64, linux/arm64]
-        platform: [linux/amd64]
+        platform: [linux/amd64, linux/arm64]
+        # platform: [linux/amd64]
     runs-on: ubuntu-latest
     timeout-minutes: 3600
     steps:
