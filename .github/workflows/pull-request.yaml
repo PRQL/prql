@@ -233,7 +233,7 @@ jobs:
         uses: actions/checkout@v3
       - run: ./.github/set_version.sh
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: NobodyXu/rust-cache/action.yml@dep-toml
         with:
           prefix-key: ${{ env.version }}
           # The mac rust cache key. It's not _that_ useful since this will build
@@ -353,7 +353,7 @@ jobs:
           crate: hyperlink
       - run: ./.github/set_version.sh
       - name: Cache
-        uses: Swatinem/rust-cache@v2
+        uses: NobodyXu/rust-cache/action.yml@dep-toml
         with:
           prefix-key: ${{ env.version }}
           shared-key: web
@@ -381,7 +381,7 @@ jobs:
       - run: ./.github/set_version.sh
         shell: bash
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
+        uses: NobodyXu/rust-cache/action.yml@dep-toml
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}

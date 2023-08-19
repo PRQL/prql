@@ -25,7 +25,7 @@ runs:
     - run: ./.github/set_version.sh
       shell: bash
 
-    - uses: Swatinem/rust-cache@v2
+    - uses: NobodyXu/rust-cache/action.yml@dep-toml
       with:
         # Share cache with `test-rust`, except for `musl` targets.
         save-if:
