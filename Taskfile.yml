@@ -37,7 +37,6 @@ vars:
     wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
-    brew
     hugo
     npm
     python3
@@ -186,7 +185,7 @@ tasks:
 
           Install them with:
 
-            task install-brew-dependencies
+            task install-brew-eependencies
             "
       - exit 1
 
