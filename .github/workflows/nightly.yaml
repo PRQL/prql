@@ -39,7 +39,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Maybe add to test-all?
   cargo-bench:
     runs-on: ubuntu-latest
     steps:

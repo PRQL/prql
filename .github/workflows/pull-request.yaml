@@ -19,16 +19,6 @@ on:
 
 concurrency:
   # This used to require a custom suffix; I think that can now be removed.
-  # Previous comment:
-  #
-  # # I _think_ because this calls
-  # # `test-all`, which calls `test-python`, and if `test-python` runs too, then
-  # # we have two workflows with the same concurrency group, which GitHub calls a
-  # # deadlock. Here's an example:
-  # # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
-  # # `-pull-request` here, the job that runs under `test-all` (called from here)
-  # # will have the suffix, and so won't deadlock. But I'm not certain, and it
-  # # doesn't seem possible to inspect these values to understand the true cause.
   group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
@@ -300,12 +290,6 @@ jobs:
 
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
-
-  # This is going away soon, to be consolidated into here.
-  main:
-    uses: ./.github/workflows/test-all.yaml
-    needs: rules
-    if: needs.rules.outputs.main == 'true'
 
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
