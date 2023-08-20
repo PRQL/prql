@@ -74,13 +74,15 @@ derive {
 }
 ```
 
-## Precedence
+## Precedence within s-strings
 
-Variables in s-strings are inserted into the SQL source as-it, which means we
-may get surprising behavior when the variable is has multiple terms and the
+Variables in s-strings are inserted into the SQL source as-is, which means we
+may get surprising behavior when the variable has multiple terms and the
 s-string isn't parenthesized.
 
-In this toy example, the `salary + benefits / 365` gets precedence wrong:
+In this toy example, the expression `salary + benefits / 365` gets precedence
+wrong. The generated SQL code is as if we had written
+`salary + (benefits / 365)`.
 
 ```prql
 from employees
@@ -90,7 +92,7 @@ derive {
 }
 ```
 
-Instead, the denominator `{gross_salary}` must be encased in parentheses:
+Instead, the numerator `{gross_salary}` must be encased in parentheses:
 
 ```prql
 from employees
