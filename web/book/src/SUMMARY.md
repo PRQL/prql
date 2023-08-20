@@ -7,7 +7,9 @@
 - [Syntax](./reference/syntax/README.md)
 
   - [Literals](./reference/syntax/literals.md)
+  - [Strings](./reference/syntax/strings.md)
     - [F-strings](./reference/syntax/f-strings.md)
+    - [R-strings](./reference/syntax/r-strings.md)
     - [S-strings](./reference/syntax/s-strings.md)
   - [Tuples](./reference/syntax/tuples.md)
   - [Arrays](./reference/syntax/arrays.md)
