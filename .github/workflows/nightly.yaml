@@ -191,5 +191,3 @@ jobs:
   nightly-release:
     # Test release workflow
     uses: ./.github/workflows/release.yaml
-    with:
-      dry-run: false
