@@ -39,7 +39,7 @@ derive world = "\u0048\u0065\u006C\u006C\u006F" # "Hello"
 
 - [**F-strings**](./f-strings.md) - Build up a new string from a set of columns
   or values.
-- [**R-strings**](./r-strings) - Include the raw characters of the string
+- [**R-strings**](./r-strings.md) - Include the raw characters of the string
   without any form of escaping.
 - [**S-strings**](./s-strings.md) - Insert SQL statements directly into the
   query. Use when PRQL doesn't have an equivalent facility.
