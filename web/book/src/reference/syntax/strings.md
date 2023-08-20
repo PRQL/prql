@@ -11,10 +11,11 @@ derive {
   double_triple = """hello world""",
 }
 ```
+
 **Quoting and escape characters**
 
-To quote a string containing quote characters, use the "other" type of
-quote, or use the escape character ("\"), or use more quotes.
+To quote a string containing quote characters, use the "other" type of quote, or
+use the escape character ("\"), or use more quotes.
 
 ```prql
 from artists
@@ -24,6 +25,7 @@ select {
   triple  = """I said "hello world"!""",
 }
 ```
+
 Strings can contain any escape character sequences defined by the
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
@@ -37,8 +39,8 @@ derive world = "\u0048\u0065\u006C\u006C\u006F" # "Hello"
 
 - [**F-strings**](./f-strings.md) - Build up a new string from a set of columns
   or values.
-- [**R-strings**](./r-strings) - Include the raw characters of the string without
-  any form of escaping.
+- [**R-strings**](./r-strings) - Include the raw characters of the string
+  without any form of escaping.
 - [**S-strings**](./s-strings.md) - Insert SQL statements directly into the
   query. Use when PRQL doesn't have an equivalent facility.
 
