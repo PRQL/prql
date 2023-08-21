@@ -27,6 +27,11 @@ select {
 }
 ```
 
+## Strings
+
+PRQL supports string literals and several other formats of strings. See the
+[Strings](./strings.md) page for more information.
+
 ## Booleans
 
 Boolean values can be expressed with `true` or `false` keyword.

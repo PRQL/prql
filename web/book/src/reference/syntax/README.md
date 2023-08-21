@@ -18,7 +18,7 @@ A summary of PRQL syntax:
 | `! && == +`            | [Operations](./operators.md)                                                   | <code>filter a == b + c \|\| d >= e</code>              |
 | `()`                   | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `123`,`5e10`,`100_000` | [Numbers](./literals.md#numbers)                                               | `derive { huge = 5e10 }`                                |
-| `''`, `""`             | [Strings](./literals.md#strings)                                               | `derive name = 'Mary'`                                  |
+| `''`, `""`             | [Strings](./strings.md)                                                        | `derive name = 'Mary'`                                  |
 | `true`, `false`        | [Booleans](./literals.md#booleans)                                             | `derive { Col1 = true }`                                |
 | `null`                 | [Null](./literals.md#null)                                                     | `filter ( name != null )`                               |
 | `@`                    | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
