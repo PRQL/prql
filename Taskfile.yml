@@ -324,6 +324,11 @@ tasks:
       - mix compile
       - mix test
 
+  test-lint:
+    desc: Run pre-commit
+    cmds:
+      - pre-commit run -a
+
   run-website:
     desc: Build & serve the static website.
     dir: web/website
