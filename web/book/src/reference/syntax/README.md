@@ -15,11 +15,11 @@ A summary of PRQL syntax:
 | `:`                    | [Named args & parameters](../declarations/functions.md)                        | `interp low:0 1600 sat_score`                           |
 | `{}`                   | [Tuples](./tuples.md)                                                          | `{id, false, total = 3}`                                |
 | `[]`                   | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
-| `! && == +`            | [Operations](./operators.md)                                                   | <code>filter a == b + c \|\| d >= e</code>              |
+| `!`,`&&`,`==`,`+`      | [Operations](./operators.md)                                                   | <code>filter a == b + c \|\| d >= e</code>              |
 | `()`                   | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fahrenheit - 32) / 1.8`              |
-| `123`,`5e10`,`100_000` | [Numbers](./literals.md#numbers)                                               | `derive { huge = 5e10 }`                                |
-| `''`, `""`             | [Strings](./strings.md)                                                        | `derive name = 'Mary'`                                  |
-| `true`, `false`        | [Booleans](./literals.md#booleans)                                             | `derive { Col1 = true }`                                |
+| `123`,`100_000`,`5e10` | [Numbers](./literals.md#numbers)                                               | `derive { huge = 5e10 * 10_000 }`                       |
+| `''`,`""`              | [Strings](./literals.md#strings)                                               | `derive name = 'Mary'`                                  |
+| `true`,`false`         | [Booleans](./literals.md#booleans)                                             | `derive { Col1 = true }`                                |
 | `null`                 | [Null](./literals.md#null)                                                     | `filter ( name != null )`                               |
 | `@`                    | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
 | `` ` ` ``              | [Quoted identifiers](./keywords.md#quoting)                                    | ``select `first name` ``                                |
@@ -27,13 +27,7 @@ A summary of PRQL syntax:
 | `==`                   | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                   | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
 | `=>`                   | [Case statement](./case.md)                                                    | `case {a==1 => c, a==2 => d }`                          |
-| `+`/`-`                | [Sort order](../stdlib/transforms/sort.md)                                     | `sort {-amount, +date}`                                 |
+| `+`,`-`                | [Sort order](../stdlib/transforms/sort.md)                                     | `sort {-amount, +date}`                                 |
 | `??`                   | [Coalesce](./operators.md#coalesce)                                            | `amount ?? 0`                                           |
-
-<!-- TODO: Arrays -->
-
-<!--
-| `<type>`        | Annotations                                           |  `@2021-01-01<datetime>`                                |
--->
 
 <!-- markdownlint-enable MD033 -->
