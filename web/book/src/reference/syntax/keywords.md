@@ -88,23 +88,25 @@ definitions: `tracks`, `public.tracks`, `my_database.public.tracks`.
 
 PRQL uses following keywords:
 
-- `prql` - query header
-- `let` - variable definition
-- `into` - variable definition
-- `case` - flow control
-- `type` - type declaration
-- `func` - explicit function declaration
-- `module` - used internally
-- `internal` - used internally
-- `true` - [literal](./literals.md)
-- `false` - [literal](./literals.md)
-- `null` - [literal](./literals.md)
+- **`prql`** - query header [_more..._](../../project/target.md)
+- **`let`** - variable definition [_more..._](../declarations/variables.md)
+- **`into`** - variable definition [_more..._](../declarations/variables.md)
+- **`case`** - flow control [_more..._](../syntax/case.md)
+- **`type`** - type declaration
+- **`func`** - explicit function declaration
+  [_more..._](../declarations/functions.md)
+- **`module`** - used internally
+- **`internal`** - used internally
+- **`true`** - boolean [_more..._](./literals.md#booleans)
+- **`false`** - boolean [_more..._](./literals.md#booleans)
+- **`null`** - NULL [_more..._](./literals.md#null)
 
 Keywords can be used as identifiers (of columns or variables) when encased in
 backticks: `` `case` ``.
 
-It may seem that transforms are also keywords, but they are normal functions
-within std namespace:
+Transforms are normal functions within the `std` namespace, not keywords. That
+is, `std.from` is the same function as `from`. In the example below, the
+resulting query is the same as without the `std.` namespace:
 
 ```prql
 std.from my_table
