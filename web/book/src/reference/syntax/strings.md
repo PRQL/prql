@@ -12,10 +12,10 @@ derive {
 }
 ```
 
-**Quoting and escape characters**
+## Quoting and escape characters
 
 To quote a string containing quote characters, use the "other" type of quote, or
-use the escape character ("\\"), or use more quotes.
+use the escape character `\`, or use more quotes.
 
 ```prql
 from artists
