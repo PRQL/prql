@@ -57,6 +57,6 @@ jobs:
       - name: 🧪 Build and test Zig example
         working-directory: bindings/prql-lib/examples/minimal-zig
         run: |
-          cp ../../libprql_lib.h.* c/
+          cp ../../libprql_lib.h c/
           cp ../target/debug/libprql_lib.* c/
           zig build test
