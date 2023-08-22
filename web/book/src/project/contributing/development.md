@@ -327,8 +327,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 
 - **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
   — we run a wider set tests on every merge to main. This includes testing
-  across OSs, all our language bindings, our `task` tasks, a measure of test
-  code coverage, and some performance benchmarks.
+  across OSs, all our language bindings, a measure of test code coverage, and
+  some performance benchmarks.
 
   If these tests fail after merging, we should revert the commit before fixing
   the test and then re-reverting.
