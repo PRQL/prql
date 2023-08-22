@@ -10,9 +10,6 @@ concurrency:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
     runs-on: ubuntu-latest
     timeout-minutes: 3600
     steps:
@@ -32,7 +29,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
-        if: matrix.platform == 'linux/arm64'
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
@@ -44,7 +40,7 @@ jobs:
         with:
           file: .devcontainer/base-image/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64, linux/arm64
           push:
             # If it's a push to main, or a tag, or explicitly called, push the image to the registry.
             # Don't if it's on a schedule.
