@@ -64,6 +64,11 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    unit_tests.addIncludePath(.{ .path = "src" });
+    unit_tests.addLibraryPath(.{ .path = "c" });
+    unit_tests.installHeader("c/libprql_lib.h", "libprql_lib.h");
+    unit_tests.linkSystemLibraryName("prql_lib");
+    unit_tests.linkLibC();
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
 
