@@ -314,6 +314,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
 
   check-links-markdown:
+    needs: rules
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
