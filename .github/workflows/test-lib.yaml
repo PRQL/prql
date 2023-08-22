@@ -34,6 +34,9 @@ jobs:
       - name: Run basic C++ example
         working-directory: bindings/prql-lib/examples/minimal-cpp
         run: make run
+  test-zig:
+    runs-on: ubuntu-latest
+    steps:
       - name: 🔧 Setup Zig
         uses: goto-bus-stop/setup-zig@v2
       - name: 🧪 Build and test Zig example
