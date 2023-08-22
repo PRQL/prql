@@ -21,3 +21,10 @@ pub fn main() !void {
     std.debug.print("Compiled with {d} errors\n", .{result.messages_len});
     std.debug.print("Output:\n\n{s}\n", .{result.output});
 }
+
+test "simple test" {
+    const prql_query = "from albums | select {album_id, title} | take 3";
+    const result = prql.compile(prql_query, null);
+    defer prql.result_destroy(result);
+    try std.testing.expect(result.messages_len == 0);
+}
