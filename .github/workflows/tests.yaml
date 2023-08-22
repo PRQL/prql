@@ -314,6 +314,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
 
   check-links-markdown:
+    needs: rules
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
@@ -323,10 +324,14 @@ jobs:
         uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: .config/.markdown-link-check-local.json
+          # Run on all files in nightly, but only our own changed files in PRs
+          config-file:
+            ${{ needs.rules.outputs.nightly == 'true' &&
+            '.config/.markdown-link-check-all.json' ||
+            '.config/.markdown-link-check-local.json' }}
           base-branch: main
-          # We also run without this in the nightly workflow
-          check-modified-files-only: "yes"
+          check-modified-files-only:
+            ${{ needs.rules.outputs.nightly == 'true' && 'no' || 'yes' }}
 
   check-links-book:
     # We also have a check-links-markdown job, however it will not spot mdbook
@@ -465,6 +470,7 @@ jobs:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
+          jobs: ${{ toJSON(needs) }}
           # We don't include `check-links-markdown`, since occasionally we'll want to merge
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
@@ -475,7 +481,6 @@ jobs:
           # Easier than writing out every job — and it's our own rules deciding
           # whether jobs are skipped or not.
           allowed-skips: ${{ toJSON(needs) }}
-          jobs: ${{ toJSON(needs) }}
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
