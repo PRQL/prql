@@ -53,8 +53,10 @@ jobs:
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
       lib: ${{ steps.changes.outputs.lib }}
-      # Really run all tests
+      # Run all tests
       nightly: ${{ steps.nightly.outputs.run }}
+      # Really run all tests (e.g. taskfile & devcontainer)
+      nightly-schedule: ${{ steps.nightly-schedule.outputs.run }}
       php: ${{ steps.changes.outputs.php }}
       python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
@@ -128,6 +130,11 @@ jobs:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
           contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
           github.event.schedule }}" >>"$GITHUB_OUTPUT"
+
+      - id: nightly-schedule
+        run:
+          echo "run=${{ steps.changes.outputs.nightly == 'true' &&
+          github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -225,8 +232,8 @@ jobs:
     if:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.taskfile == 'true' || (needs.rules.outputs.nightly ==
-      'true' && github.event.schedule)
+      needs.rules.outputs.taskfile == 'true' ||
+      needs.rules.outputs.nightly-schedule == 'true'
     runs-on: macos-latest
     steps:
       - name: 📂 Checkout code
@@ -255,6 +262,7 @@ jobs:
       # This also encompasses `build-all`
       - run: task test-all
       - run: task test-rust-fast
+      - run: task test-lint
 
   test-rust-main:
     needs: rules
@@ -402,8 +410,8 @@ jobs:
     if:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.devcontainer == 'true' || (needs.rules.outputs.nightly
-      == 'true' && github.event.schedule)
+      needs.rules.outputs.devcontainer == 'true' ||
+      needs.rules.outputs.nightly-schedule == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
 
   time-compilation:
@@ -515,8 +523,7 @@ jobs:
           profile: dev
           features: ${{ matrix.features }}
     # These are the same env variables as in `test-rust.yaml`. Custom actions
-    # don't allow setting env variables for the whole job, so we do it here. (We
-    # could change the `build-prqlc` action to a workflow...).
+    # don't allow setting env variables for the whole job, so we do it here.
     env:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
@@ -525,14 +532,15 @@ jobs:
   create-issue-on-nightly-failure:
     runs-on: ubuntu-latest
     needs:
-      - rules
       - check-ok-to-merge
-      - nightly
+      # The jobs which the check doesn't run on
+      - build-devcontainer
+      - test-taskfile
     if:
       # We care that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.schedule && needs.rules.outputs.nightly &&
-      contains(needs.*.result, 'failure')
+      always() && github.event.nightly-schedule && contains(needs.*.result,
+      'failure')
     permissions:
       contents: read
       issues: write
