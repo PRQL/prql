@@ -1,5 +1,5 @@
 # A workflow containing jobs we run only on nightly. This is called by
-# `pull-request` on a schedule and on request with `pr-nightly`.
+# `tests.yaml` on a schedule and on request with a `pr-nightly` label.
 
 name: nightly
 

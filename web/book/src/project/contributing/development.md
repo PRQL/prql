@@ -318,7 +318,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 
   More details on running with external databases are in the Readme.
 
-- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
+- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs
   will attempt to build docs, changes to a binding will run that binding's
   tests. The vast majority of changes trigger tests which run in less than five
