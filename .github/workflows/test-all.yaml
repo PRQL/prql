@@ -4,12 +4,12 @@ name: test-all
 # to nightly, but I wanted to check with @eitsupi before doing it.
 
 on:
-  # Called by `pull-request.yaml`
+  # Called by `tests.yaml`
   workflow_call:
   workflow_dispatch:
 
 concurrency:
-  # See notes in `pull-request.yaml`
+  # See notes in `tests.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-all
   cancel-in-progress: true
 

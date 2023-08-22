@@ -1,5 +1,5 @@
 # A workflow containing jobs we run only on nightly. This is called by
-# `pull-request` on a schedule and on request with `pr-nightly`.
+# `tests.yaml` on a schedule and on request with a `pr-nightly` label.
 
 name: nightly
 
@@ -49,7 +49,7 @@ jobs:
           command: bench
           args: --timings --all-targets
 
-  check-links-markdown:
+  check-links-markdown-all:
     # We run only on modified files and only on our resources in PRs; here we
     # run on all links and all files.
     runs-on: ubuntu-latest

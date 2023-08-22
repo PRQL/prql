@@ -1,7 +1,6 @@
 # This file has transitioning to run almost everything, with rules defined in
-# this file rather than across lots of workflow files. We can rename it to
-# `tests.yaml` or something similarly general at some point.
-name: pull-request
+# this file rather than across lots of workflow files.
+name: tests
 
 on:
   pull_request:
@@ -18,18 +17,8 @@ on:
   workflow_call:
 
 concurrency:
-  # This used to require a custom suffix; I think that can now be removed.
-  # Previous comment:
-  #
-  # # I _think_ because this calls
-  # # `test-all`, which calls `test-python`, and if `test-python` runs too, then
-  # # we have two workflows with the same concurrency group, which GitHub calls a
-  # # deadlock. Here's an example:
-  # # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
-  # # `-pull-request` here, the job that runs under `test-all` (called from here)
-  # # will have the suffix, and so won't deadlock. But I'm not certain, and it
-  # # doesn't seem possible to inspect these values to understand the true cause.
-  group: ${{ github.workflow }}-${{ github.ref }}-pull-request
+  # This used to require a custom suffix; I think the can now be removed...
+  group: ${{ github.workflow }}-${{ github.ref }}-tests
   cancel-in-progress: true
 
 env:
