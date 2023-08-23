@@ -37,7 +37,6 @@ vars:
     wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
-    brew
     hugo
     npm
     python3
@@ -64,8 +63,10 @@ tasks:
       - task: install-cargo-tools
       # We only suggest, rather than install; we don't want to intrude (maybe
       # we're being too conservative?).
-      - task: suggest-vscode-extensions
-      - task: install-brew-dependencies
+      - cmd: task check-vscode-extensions
+        ignore_error: true
+      - cmd: task check-brew-dependencies
+        ignore_error: true
       - task: install-maturin
       - task: install-pre-commit
       - task: install-npm-dependencies
@@ -104,10 +105,13 @@ tasks:
 
   install-cargo-tools-binstall:
     cmds:
+      # Currently pinning 1.1.2 because of https://github.com/cargo-bins/cargo-binstall/issues/1292, and using `+stable` because it's not supported by 1.68.2.
       - cmd:
-          curl -L --proto '=https' --tlsv1.2 -sSf
-          https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
-          | bash || cargo install --locked binstall
+          # curl -L --proto '=https' --tlsv1.2 -sSf
+          # https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
+          # | bash ||
+          rustup toolchain add stable && cargo +stable install --locked
+          cargo-binstall --version=1.1.2
         platforms: [linux, darwin]
       - 'cargo binstall -y --locked {{.cargo_crates | splitLines | join " " }}'
 
@@ -116,7 +120,7 @@ tasks:
     cmds:
       - python3 -m pip install -U maturin
 
-  suggest-vscode-extensions:
+  check-vscode-extensions:
     desc: Check and suggest VS Code extensions.
     vars:
       extensions:
@@ -143,6 +147,7 @@ tasks:
 
           task install-vscode-extensions
           "
+      - exit 1
 
   install-vscode-extensions:
     desc: Install recommended VS Code extensions.
@@ -167,6 +172,7 @@ tasks:
           [ -n "$(which {{ $dep }})" ]
         {{ end -}}
       - "[ $(npm -v | cut -d. -f1) -ge 9 ]"
+    silent: true
     cmds:
       - cmd: |
           echo "
@@ -181,11 +187,9 @@ tasks:
 
             task install-brew-dependencies
             "
-        silent: true
+      - exit 1
 
   install-brew-dependencies:
-    status:
-      - task check-brew-dependencies
     preconditions:
       - sh: which brew
         msg: |
@@ -197,6 +201,8 @@ tasks:
           Brew installation instructions at:
 
             https://brew.sh/
+    status:
+      - task check-brew-dependencies
     cmds:
       - brew install {{.brew_dependencies | trim | splitLines | join " " }}
 
@@ -317,6 +323,11 @@ tasks:
       - mix deps.get --force
       - mix compile
       - mix test
+
+  test-lint:
+    desc: Run pre-commit
+    cmds:
+      - pre-commit run -a
 
   run-website:
     desc: Build & serve the static website.

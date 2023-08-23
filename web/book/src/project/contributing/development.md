@@ -234,6 +234,8 @@ Our tests, from the bottom of the pyramid to the top:
   using [pre-commit](https://pre-commit.com). They can be run locally with
 
   ```sh
+  task test-lint
+  # or
   pre-commit run -a
   ```
 
@@ -295,23 +297,28 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       snapshot file, etc. -->
 
 - **[Documentation](https://github.com/PRQL/prql/tree/main/web/book/tests/documentation)**
-  — we compile all examples from our documentation in the Website, README, and
+  — we compile all examples from our documentation in the Website, README, and
   PRQL Book, to test that they produce the SQL we expect, and that changes to
-  our code don't cause any unexpected regressions.
+  our code don't cause any unexpected regressions. These are included in:
+
+  ```sh
+  cargo insta test --accept
+  ```
 
 - **[Integration tests](https://github.com/PRQL/prql/blob/main/crates/prql-compiler/tests/integration)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
-  in-process tests can be run locally with `cargo test --features=test-dbs`;
-  more details are in the Readme.
-
-  These can be run locally with:
+  in-process tests can be run locally with:
 
   ```sh
   task test-rust
+  # or
+  cargo insta test --accept --features=test-dbs
   ```
 
-- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
+  More details on running with external databases are in the Readme.
+
+- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs
   will attempt to build docs, changes to a binding will run that binding's
   tests. The vast majority of changes trigger tests which run in less than five
@@ -320,8 +327,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 
 - **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
   — we run a wider set tests on every merge to main. This includes testing
-  across OSs, all our language bindings, our `task` tasks, a measure of test
-  code coverage, and some performance benchmarks.
+  across OSs, all our language bindings, a measure of test code coverage, and
+  some performance benchmarks.
 
   If these tests fail after merging, we should revert the commit before fixing
   the test and then re-reverting.

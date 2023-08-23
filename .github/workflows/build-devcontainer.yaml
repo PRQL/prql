@@ -40,10 +40,13 @@ jobs:
         with:
           file: .devcontainer/base-image/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64, linux/arm64
           push:
-            ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
-            'refs/tags/') }}
+            # If it's a push to main, or a tag, or explicitly called, push the image to the registry.
+            # Don't if it's on a schedule.
+            ${{ (github.ref == 'refs/heads/main' && github.event_name == 'push')
+            || startsWith(github.ref, 'refs/tags/') || github.event_name ==
+            'workflow_dispatch' }}
           cache-from: |
             ${{ steps.meta.outputs.tags }}
             type=gha

@@ -57,9 +57,10 @@ join s = s"SELECT * FROM salaries" (==id)
 ```
 
 ```admonish note
-S-strings in user code are intended as an escape-hatch for an unimplemented
+S-strings in user code are intended as an escape hatch for an unimplemented
 feature. If we often need s-strings to express something, that's a sign we
-should implement it in PRQL or PRQL's stdlib.
+should implement it in PRQL or PRQL's stdlib. If you often require an s-string,
+[submit an issue with your use case](https://github.com/PRQL/prql/issues/new/choose).
 ```
 
 ## Braces
@@ -73,13 +74,15 @@ derive {
 }
 ```
 
-## Precedence
+## Precedence within s-strings
 
-Variables in s-strings are inserted into the SQL source as-it, which means we
-may get surprising behavior when the variable is has multiple terms and the
+Variables in s-strings are inserted into the SQL source as-is, which means we
+may get surprising behavior when the variable has multiple terms and the
 s-string isn't parenthesized.
 
-In this toy example, the `salary + benefits / 365` gets precedence wrong:
+In this toy example, the expression `salary + benefits / 365` gets precedence
+wrong. The generated SQL code is as if we had written
+`salary + (benefits / 365)`.
 
 ```prql
 from employees
@@ -89,7 +92,7 @@ derive {
 }
 ```
 
-Instead, the denominator `{gross_salary}` must be encased in parentheses:
+Instead, the numerator `{gross_salary}` must be encased in parentheses:
 
 ```prql
 from employees

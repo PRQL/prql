@@ -1,6 +1,6 @@
 # Sort
 
-Orders rows based on the values of one or more expressions (generally columns).
+Order rows based on the values of one or more expressions (generally columns).
 
 ```prql no-eval
 sort {(+|-) column}
@@ -8,11 +8,11 @@ sort {(+|-) column}
 
 ## Parameters
 
-- One expression or a list of expression to sort by
+- One expression or a tuple of expressions to sort by
 - Each expression can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
-- When using prefixes, even a single expression needs to be in a list or
+- When using prefixes, even a single expression needs to be in a tuple or
   parentheses. (Otherwise, `sort -foo` is parsed as a subtraction between `sort`
   and `foo`.)
 

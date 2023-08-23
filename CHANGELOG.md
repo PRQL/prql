@@ -29,6 +29,8 @@
 
 **Integrations**:
 
+- Add a minimal example for use with Zig (@vanillajonathan, #3372)
+
 **Internal changes**:
 
 - Overhaul our CI to run a cohesive set of tests depending on the specific
