@@ -10,9 +10,9 @@
 
 # How do I
 
-- [Read files?](./tutorial/how-do-i/read-files.md)
-- [Remove duplicates?](./tutorial/how-do-i/distinct.md)
-- [Create ad-hoc relations?](./tutorial/how-do-i/relation-literals.md)
+- [Read files?](./how-do-i/read-files.md)
+- [Remove duplicates?](./how-do-i/distinct.md)
+- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
 
 # Reference
 

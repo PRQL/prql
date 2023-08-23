@@ -11,26 +11,18 @@ group employees.* (
 )
 ```
 
-This also works without a linebreak:
-
-```prql
-from employees
-select department
-group department (take 1)
-```
-
-Or without specifying all of the columns:
+This also works with a wildcard:
 
 ```prql
 from employees
 group employees.* (take 1)
 ```
 
-## Remove duplicates from each group
+## Remove duplicates from each group?
 
-We are be able to
+To
 [select a single row from each group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
-by combining `group` and `sort`:
+`group` can be combined with `sort` and `take`:
 
 ```prql
 # youngest employee from each department
@@ -49,10 +41,9 @@ from employees
 group {first_name, last_name} (take 1)
 ```
 
-## Distinct on
-
-When compiling to Postgres or DuckDB dialect, `DISTINCT ON` is used to take one
-row for each group:
+When compiling to Postgres or DuckDB dialect, such queries will be compiled to
+`DISTINCT ON`, which is
+[the most performant option](https://stackoverflow.com/a/7630564).
 
 ```prql
 prql target:sql.postgres

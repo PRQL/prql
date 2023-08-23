@@ -40,58 +40,45 @@ accepts a few formats:
 
 - `format:csv` parses CSV (default),
 
-  ```prql
-  from_text """
-  a,b,c
-  1,2,3
-  4,5,6
-  """
-  derive {
-      d = b + c,
-      answer = 20 * 2 + 2,
-  }
-  ```
-
-  An example of adding a small lookup table:
-
-  ```prql
-  let temp_format_lookup = from_text format:csv """
-  country_code,format
-  uk,C
-  us,F
-  lr,F
-  de,C
-  """
-
-  from temperatures
-  join temp_format_lookup (==country_code)
-  ```
-
 - `format:json` parses either:
 
   - an array of objects each of which represents a row, or
 
-    ```prql
-    from_text format:json """{
-        "columns": ["a", "b", "c"],
-        "data": [
-            [1, "x", false],
-            [4, "y", null]
-        ]
-    }"""
-    ```
-
   - an object with fields `columns` & `data`, where `columns` take an array of
     column names and `data` takes an array of arrays.
 
-    ```prql
-    from_text format:json """
-        [
-            {"a": 1, "m": "5"},
-            {"a": 4, "n": "6"}
-        ]
-    """
-    ```
+```prql
+from_text """
+a,b,c
+1,2,3
+4,5,6
+"""
+derive {
+    d = b + c,
+    answer = 20 * 2 + 2,
+}
+```
+
+```prql
+from_text format:json """
+[
+    {"a": 1, "m": "5"},
+    {"a": 4, "n": "6"}
+]
+"""
+```
+
+```prql
+from_text format:json """
+{
+    "columns": ["a", "b", "c"],
+    "data": [
+        [1, "x", false],
+        [4, "y", null]
+    ]
+}
+"""
+```
 
 ## See also
 

@@ -1,4 +1,4 @@
-# How do I: read files
+# How do I: read files?
 
 There are a couple of functions designed for DuckDB:
 
