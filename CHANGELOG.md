@@ -51,8 +51,8 @@ This release has 110 commits from 9 contributors. Selected changes:
 
 **New Contributors**:
 
-- @FinnRG made their first contribution in #3292
-- @sitiom made their first contribution in #3353
+- @FinnRG, with #3292
+- @sitiom, with #3353
 
 ## 0.9.3 — 2023-08-02
 
