@@ -1,8 +1,6 @@
 # PRQL Changelog
 
-## [unreleased]
-
-**Language**:
+## 0.9.4 — 2023-08-24
 
 **Features**:
 
@@ -13,8 +11,6 @@
 
 **Fixes**:
 
-- `prqlc` no longer displays a prompt when piping a query into its stdin
-  (@max-sixty, #3248).
 - S-strings within double braces now parse correctly (@max-sixty, #3265)
 
 **Documentation**:
@@ -29,7 +25,9 @@
 
 **Integrations**:
 
-- Add a minimal example for use with Zig (@vanillajonathan, #3372)
+- `prqlc` no longer displays a prompt when piping a query into its stdin
+  (@max-sixty, #3248).
+- Add a minimal example for use `prql-lib` with Zig (@vanillajonathan, #3372)
 
 **Internal changes**:
 
@@ -47,6 +45,9 @@
   (@max-sixty, #3304)
 
 **New Contributors**:
+
+* @FinnRG made their first contribution in #3292
+* @sitiom made their first contribution in #3353
 
 ## 0.9.3 — 2023-08-02
 
