@@ -55,15 +55,15 @@ typedef struct Message {
   /**
    * Machine-readable identifier of the error
    */
-  const int8_t *const *code;
+  const char *const *code;
   /**
    * Plain text of the error
    */
-  const int8_t *reason;
+  const char *reason;
   /**
    * A list of suggestions of how to fix the error
    */
-  const int8_t *const *hint;
+  const char *const *hint;
   /**
    * Character offset of error origin within a source file
    */
@@ -71,7 +71,7 @@ typedef struct Message {
   /**
    * Annotated code, containing cause and hints.
    */
-  const int8_t *const *display;
+  const char *const *display;
   /**
    * Line and column number of error origin within a source file
    */
@@ -82,7 +82,7 @@ typedef struct Message {
  * Result of compilation.
  */
 typedef struct CompileResult {
-  const int8_t *output;
+  const char *output;
   const struct Message *messages;
   size_t messages_len;
 } CompileResult;
@@ -131,7 +131,7 @@ struct CompileResult compile(const char *prql_query, const struct Options *optio
 
 /**
  * Build PL AST from a PRQL string. PL in documented in the
- * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast/pl).
+ * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/pl).
  *
  * Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
  *
@@ -164,7 +164,7 @@ struct CompileResult pl_to_rq(const char *pl_json);
 
 /**
  * Convert RQ AST into an SQL string. RQ is documented in the
- * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast/rq).
+ * [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/rq).
  *
  * Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
  *

@@ -60,8 +60,41 @@ jobs:
       - uses: tibdex/backport@v2
         with:
           # This is a personal access token from the @prql-bot
-          github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          github_token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           # Docs are at https://github.com/tibdex/backport/blob/main/action.yml
-          # We only use `website` atm
+          # We only use `web` atm
           label_pattern: "^pr-backport-(?<base>([^ ]+))$"
           title_template: "chore: Backport #<%= number%> to `web`"
+
+  automerge:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    # Check it's not coming from a fork — both to save running and
+    # in case someone spoofed an `actor` name.
+    if: "!github.event.pull_request.head.repo.fork"
+
+    steps:
+      # Get number of commits in the PR
+      - id: commit-count
+        run: >
+          echo "commit-count=$(curl -s -H 'Authorization: token ${{ github.token
+          }}' https://api.github.com/repos/prql/prql/pulls/${{
+          github.event.pull_request.number }}/commits | jq 'length')" >>
+          "$GITHUB_OUTPUT"
+      - if:
+          # - It's dependabot
+          # - or it's an backport to the web branch
+          # - or it's a pre-commit-ci update and there's only 1 commit — so it hasn't
+          #   made any changes to files
+          github.actor == 'dependabot[bot]' || (github.base_ref == 'web' &&
+          github.actor == 'prql-bot') || (github.actor == 'pre-commit-ci[bot]'
+          && steps.commit-count.outputs.commit-count == '1')
+        run:
+          gh pr merge --auto --squash --delete-branch ${{
+          github.event.pull_request.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}

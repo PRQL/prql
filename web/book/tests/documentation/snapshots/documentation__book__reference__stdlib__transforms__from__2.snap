@@ -1,9 +1,9 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\n"
+expression: "from `artist tracks`\n"
 ---
 SELECT
   *
 FROM
-  employees
+  "artist tracks"
 

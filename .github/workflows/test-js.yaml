@@ -1,12 +1,21 @@
 name: test-js
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-js/**"
-      - ".github/workflows/test-js.yaml"
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
+
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-js
@@ -17,8 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
+        os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -32,6 +40,20 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-pack
+
+      - run: ./.github/set_version.sh
+
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        id: cache
+        with:
+          prefix-key: ${{ env.version }}
+          # `web` is the closest rust cache key. It's useful on ubuntu (last
+          # checked, roughly halved the time, to 4 min), but not on other OSs
+          # given we don't have those caches. We can't use a separate one given
+          # we're out of cache space.
+          shared-key: web
+          save-if: false
 
       - run: npm cit
         working-directory: bindings/prql-js

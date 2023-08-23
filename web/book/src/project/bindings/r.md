@@ -17,20 +17,3 @@ Check out <https://eitsupi.github.io/prqlr/> for more context.
 ```r
 install.packages("prqlr")
 ```
-
-## Usage
-
-```r
-library(prqlr)
-
-"
-from employees
-join salaries [emp_id]
-group [dept_id, gender] (
-  aggregate {
-    avg_salary = average salary
-  }
-)
-" |>
-  prql_compile()
-```

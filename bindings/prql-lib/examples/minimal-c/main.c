@@ -23,13 +23,14 @@ void print_result(CompileResult res) {
 
 int main() {
     char *prql_query;
-    prql_query = "from albums | select [album_id, title] | take 3";
+    prql_query = "from albums | select {album_id, title} | take 3";
     CompileResult res;
     CompileResult res2;
 
     // default compile option
     res = compile(prql_query, NULL);
     print_result(res);
+    if(res.messages_len != 0) return 1;
     result_destroy(res);
 
     // custom compile options
@@ -39,16 +40,20 @@ int main() {
     opts.target = "sql.mssql";
     res = compile(prql_query, &opts);
     print_result(res);
+    if(res.messages_len != 0) return 1;
     result_destroy(res);
 
+
     // error handling
-    res = compile("from album | select [album_id] | select [title]", NULL);
+    res = compile("from album | select {album_id} | select {title}", NULL);
     print_result(res);
+    if (res.messages_len == 0) return 1;
     result_destroy(res);
 
     // error handling
     res = compile("let a = (from album)", NULL);
     print_result(res);
+    if (res.messages_len == 0) return 1;
     result_destroy(res);
 
     // intermediate results

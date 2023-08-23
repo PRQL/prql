@@ -1,5 +1,5 @@
 {{ if .enable }}
-  <section class="content-section comments-section">
+  <section class="content-section testimonials-section">
     <div class="container">
       <div class="row">
         <div class="section-title">
@@ -61,7 +61,7 @@
                     {{ with resources.GetRemote .profile_image_url_https }}
                       {{ $imageSrc = (resources.Copy $localImgPath .).RelPermalink }}
                     {{ else }}
-                      {{ warnf "[section-comments.html] couldn't fetch remote image %v" .profile_image_url_https }}
+                      {{ warnf "[section-testimonials.html] couldn't fetch remote image %v" .profile_image_url_https }}
                     {{ end }}
                     <img class="tweet-author-image" src="{{ $imageSrc }}" />
                     <div class="tweet-author-info">

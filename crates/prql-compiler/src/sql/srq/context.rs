@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use crate::ir::pl::Ident;
 use crate::ir::rq::{
-    fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
+    fold_table, CId, Compute, Relation, RelationColumn, RelationKind, RelationalQuery, RqFold, TId,
     TableDecl, TableRef, Transform,
 };
 
@@ -122,7 +122,7 @@ pub enum ColumnDecl {
 impl AnchorContext {
     /// Returns a new AnchorContext object based on a Query object. This method
     /// generates new IDs and names for tables and columns as needed.
-    pub fn of(query: Query) -> (Self, Relation) {
+    pub fn of(query: RelationalQuery) -> (Self, Relation) {
         let (cid, tid, query) = IdGenerator::load(query);
 
         let context = AnchorContext {
@@ -277,7 +277,7 @@ struct QueryLoader {
 }
 
 impl QueryLoader {
-    fn load(context: AnchorContext, query: Query) -> (AnchorContext, Relation) {
+    fn load(context: AnchorContext, query: RelationalQuery) -> (AnchorContext, Relation) {
         let mut loader = QueryLoader { context };
 
         for t in query.tables {

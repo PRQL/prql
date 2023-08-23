@@ -29,65 +29,17 @@ select {
 
 ## Strings
 
-String literals can use either single or double quotes:
+PRQL supports string literals and several other formats of strings. See the
+[Strings](./strings.md) page for more information.
 
-```prql
-from my_table
-select x = "hello world"
-```
-
-```prql
-from my_table
-select x = 'hello world'
-```
-
-To quote a string containing quotes, either use the "other" type of quote, or
-use 3, 4, 5 or 6 quotes, and close with the same number.
-
-```prql
-from my_table
-select x = '"hello world"'
-```
-
-```prql
-from my_table
-select x = """I said "hello world"!"""
-```
-
-```prql
-from my_table
-select x = """""I said """hello world"""!"""""
-```
-
-Strings can also contain any escape defined by
-[JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
-
-```prql
-from my_table
-select x = "\t\tline ends here\n \\ "
-```
-
-See also:
-
-- [F-strings](./f-strings.md) - Build up a new string from a set of columns or
-  values
-
-- [S-strings](./s-strings.md) - Insert SQL statements directly into the query.
-  Use when PRQL doesn't have an equivalent facility.
-
-```admonish warning
-Currently PRQL allows multiline strings with either a single character or
-multiple character quotes. This may change for strings using a single character
-quote in future versions.
-```
-
-## Bool
+## Booleans
 
 Boolean values can be expressed with `true` or `false` keyword.
 
 ## Null
 
-The null value can be expressed with `null` keyword.
+The null value can be expressed with `null` keyword. See also the discussion of
+how [PRQL handles nulls](../spec/null.md).
 
 ## Date and time
 
@@ -95,9 +47,9 @@ Date and time literals are expressed with character `@`, followed by a string
 that encodes the date & time.
 
 ```admonish note
-Comparing to SQL, this notation is less verbose than
+PRQL's notation is designed to be less verbose than SQL's
 `TIMESTAMP '2004-10-19 10:23:54'` and more explicit than SQL's implicit option
-of just using a string `'2004-10-19 10:23:54'`.
+that just uses a string `'2004-10-19 10:23:54'`.
 ```
 
 ### Dates
@@ -152,7 +104,7 @@ derive first_check_in = start + 10days
 
 ### Examples
 
-Here's a fuller list of date and time examples:
+Here's a larger list of date and time examples:
 
 - `@20221231` is invalid — it must contain full punctuation (`-` and `:`),
 - `@2022-12-31` is a date

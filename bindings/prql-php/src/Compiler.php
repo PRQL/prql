@@ -196,7 +196,8 @@ final class Compiler
         $res = new Result();
 
         // convert string
-        $res->output = $this->convertString($ffi_res->output);
+        $res->output = $ffi_res->output;
+
 
         $res->messages = [];
         for ($i = 0; $i < $ffi_res->messages_len; ++$i) {
@@ -223,7 +224,7 @@ final class Compiler
         }
 
         $msg->code = $this->convertNullableString($ffi_msg->code);
-        $msg->reason = $this->convertString($ffi_msg->reason);
+        $msg->reason = $ffi_msg->reason;
         $msg->span = $this->convertSpan($ffi_msg->span);
         $msg->hint = $this->convertNullableString($ffi_msg->hint);
 
@@ -266,12 +267,6 @@ final class Compiler
         if (is_null($ffi_ptr) || \FFI::isNull($ffi_ptr)) {
             return null;
         }
-        // dereference
-        return $this->convertString($ffi_ptr[0]);
-    }
-
-    private function convertString($ffi_ptr): string
-    {
-        return \FFI::string(\FFI::cast(\FFI::type('char*'), $ffi_ptr));
+        return $ffi_ptr[0];
     }
 }

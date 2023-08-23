@@ -7,7 +7,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ir::pl::Ident;
-use crate::ir::rq::{Query, RelationKind, RqFold, Transform};
+use crate::ir::rq::{RelationKind, RelationalQuery, RqFold, Transform};
 use crate::utils::BreakUp;
 use crate::Target;
 
@@ -22,7 +22,7 @@ use super::super::{Context, Dialect};
 use super::{postprocess, preprocess};
 
 pub(in super::super) fn compile_query(
-    query: Query,
+    query: RelationalQuery,
     dialect: Option<Dialect>,
 ) -> Result<(SqlQuery, Context)> {
     let dialect = if let Some(dialect) = dialect {

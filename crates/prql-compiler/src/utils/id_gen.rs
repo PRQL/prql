@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use anyhow::Result;
 
-use crate::ir::rq::{fold_table, CId, Query, RqFold, TId, TableDecl};
+use crate::ir::rq::{fold_table, CId, RelationalQuery, RqFold, TId, TableDecl};
 
 #[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
@@ -37,7 +37,7 @@ impl<T: From<usize>> Default for IdGenerator<T> {
 
 impl IdGenerator<usize> {
     /// Returns a new id generators capable of generating new ids for given query.
-    pub fn load(query: Query) -> (IdGenerator<CId>, IdGenerator<TId>, Query) {
+    pub fn load(query: RelationalQuery) -> (IdGenerator<CId>, IdGenerator<TId>, RelationalQuery) {
         let mut loader = IdLoader {
             cid: IdGenerator::<CId>::default(),
             tid: IdGenerator::<TId>::default(),

@@ -1,6 +1,6 @@
 # Sort
 
-Orders rows based on the values of one or more expressions (generally columns).
+Order rows based on the values of one or more expressions (generally columns).
 
 ```prql no-eval
 sort {(+|-) column}
@@ -8,11 +8,11 @@ sort {(+|-) column}
 
 ## Parameters
 
-- One expression or a list of expression to sort by
+- One expression or a tuple of expressions to sort by
 - Each expression can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
-- When using prefixes, even a single expression needs to be in a list or
+- When using prefixes, even a single expression needs to be in a tuple or
   parentheses. (Otherwise, `sort -foo` is parsed as a subtraction between `sort`
   and `foo`.)
 
@@ -88,7 +88,9 @@ JOIN artists USING (artist_id)
 standard doesn't guarantee an order, although most implementations will respect
 it).
 
-## Nulls
+<!-- We rolling this back. Waiting on the outcome of https://github.com/PRQL/prql/issues/2622 -->
+
+<!-- ## Nulls
 
 PRQL defaults to `NULLS LAST` when compiling to SQL. Because databases have
 different defaults, the compiler emits this for all targets for which it's not a

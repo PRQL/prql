@@ -1,7 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
-use std::collections::BTreeMap;
 use std::{env, fs};
 
 use anyhow::Context;
@@ -9,7 +8,6 @@ use insta::{assert_snapshot, glob};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use similar_asserts::assert_eq;
 use strum::IntoEnumIterator;
 use tokio::runtime::Runtime;
 
@@ -320,7 +318,8 @@ fn test_rdbms() {
 
         let prql = fs::read_to_string(path).unwrap();
 
-        let mut results = BTreeMap::new();
+        // for each of the dialects
+        insta::allow_duplicates! {
         for con in &mut connections {
             if !con.dialect.should_run_query(&prql) {
                 continue;
@@ -332,7 +331,7 @@ fn test_rdbms() {
                 .context(format!("Executing {test_name} for {dialect}"))
                 .unwrap();
 
-            // TODO: I think these could possibility be delegated to the DBConnection impls
+            // TODO: I think these could possibly be moved to the DbConnection impls
             replace_booleans(&mut rows);
             remove_trailing_zeros(&mut rows);
 
@@ -342,23 +341,14 @@ fn test_rdbms() {
                 .map(|r| r.iter().join(","))
                 .join("\n");
 
-            results.insert(dialect.to_string(), result);
+            // Add message so we know which dialect fails.
+            insta::with_settings!({
+                description=>format!("# Running on dialect `{}`\n\n# Query:\n---\n{}", &con.dialect, &prql)
+            }, {
+                assert_snapshot!("results", &result);
+            })
         }
-
-        let (first_dialect, first_result) =
-            results.pop_first().expect("No results for {test_name}");
-
-        // Check the first result against the snapshot
-        assert_snapshot!("results", first_result, &prql);
-
-        // Then check every other result against the first result
-        results.iter().for_each(|(dialect, result)| {
-            assert_eq!(
-                *first_result, *result,
-                "{} == {}: {test_name}",
-                first_dialect, dialect
-            );
-        })
+        }
     })
 }
 

@@ -1,36 +1,15 @@
 name: test-all
 
-# The quasi-full suite of tests. These can take up to 20 minutes, so are only
-# run on merges or where we're more concerned about a break outside the core
-# libraries.
-#
-# To run these on a PR, label with `pr-test-all`.
-#
-# There are also tests in `test-nightly.yaml` which aren't here.
-
-# Possibly we could instead group tests by:
-# - `test-fast` — on pull requests
-# - `test-most` — on merges; with all platforms, bindings, etc (currently this file)
-# - `test-all` — nightly + on request (the equivalent of `pr-test-all`), with
-#   everything — benchmarks, compilation timing, audits, etc. (currently this
-#   file + `test-nightly.yaml`)
-#
-# Also see pull-request.yaml#check-ok-to-merge for other thoughts
+# This only contains the `test-release-dry-run` job, which we're going to move
+# to nightly, but I wanted to check with @eitsupi before doing it.
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "**/Cargo.*"
-      - ".github/workflows/**"
-  # Called by `pull-request.yaml` when specifically requested
+  # Called by `tests.yaml`
   workflow_call:
   workflow_dispatch:
 
 concurrency:
-  # See notes in `pull-request.yaml`
+  # See notes in `tests.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-all
   cancel-in-progress: true
 
@@ -40,109 +19,33 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
 
 jobs:
-  build-web:
-    uses: ./.github/workflows/build-web.yaml
-
-  test-rust:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          # TODO: potentially enable these
-          # - os: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
-          # - os: macos-latest
-          #   target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-          # Only run wasm on ubuntu, given it's the same rust target. (There is a
-          # possibility of having a failure on just one platform, but it's quite
-          # unlikely. If we do observe this, we can expand, or introduce a
-          # `test-actually-all.yaml` which accounts for these corner cases without
-          # using runners & cache space)
-          - os: ubuntu-latest
-            target: wasm32-unknown-unknown
-
-    uses: ./.github/workflows/test-rust.yaml
-    with:
-      os: ${{ matrix.os }}
-      target: ${{ matrix.target }}
-
-  test-php:
-    uses: ./.github/workflows/test-php.yaml
-
-  test-python:
-    uses: ./.github/workflows/test-python.yaml
-
-  test-java:
-    uses: ./.github/workflows/test-java.yaml
-
-  test-js:
-    uses: ./.github/workflows/test-js.yaml
-
-  test-elixir:
-    uses: ./.github/workflows/test-elixir.yaml
-
-  test-dotnet:
-    uses: ./.github/workflows/test-dotnet.yaml
-
-  test-lib:
-    uses: ./.github/workflows/test-lib.yaml
-
-  measure-code-cov:
+  # One possible alternative to having this workflow is to automatically
+  # bump the version after a commit, auto-merge the PR, and then there
+  # should be no time where the version in the repo has been
+  # published.
+  check-published:
     runs-on: ubuntu-latest
-    # TODO: see whether we can add this job to the pull-request workflow,
-    # possibly waiting for https://github.com/PRQL/prql/issues/2870
+    outputs:
+      published: ${{ steps.check-version.outputs.published }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: baptiste0928/cargo-install@v2
-        with:
-          crate: cargo-tarpaulin
       - run: ./.github/set_version.sh
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-          prefix-key: ${{ env.version }}
-      - run:
-          cargo tarpaulin --skip-clean --all-targets --features=test-dbs
-          --out=Xml
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
-      - name: Upload code coverage results
-        uses: actions/upload-artifact@v3
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
+      - id: check-version
+        run: |
+          published_version=$(curl -sL https://crates.io/api/v1/crates/prql-compiler/versions | jq -r '.versions[].num' | sort -V | tail -n 1)
+          echo "published_version=${published_version}" >>"$GITHUB_ENV"
+          if [[ "$published_version" == "$version" ]]; then
+            export published=true
+          else
+            export published=false
+          fi
+          echo "published=${published}" >>"$GITHUB_OUTPUT"
+          echo "${published}"
 
-  time-compilation:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/time-compilation
-        with:
-          use_cache: true
-
-  test-min-rust-version:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: baptiste0928/cargo-install@v2
-        with:
-          crate: cargo-msrv
-        # Note this currently uses a manually maintained key in
-        # `prql-compiler/Cargo.toml` (and `prqlc/Cargo.toml` below), because of
-        # https://github.com/foresterre/cargo-msrv/issues/590
-      - name: Verify minimum rust version — prql-compiler
-        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: crates/prql-compiler
-        run: cargo msrv verify
-      - name: Verify minimum rust version — prqlc
-        working-directory: crates/prqlc
-        run: cargo msrv verify
+  test-release-dry-run:
+    needs: check-published
+    if: needs.check-published.outputs.published != 'true'
+    uses: ./.github/workflows/release.yaml
+    with:
+      dry-run: true
