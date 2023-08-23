@@ -46,8 +46,8 @@
 
 **New Contributors**:
 
-* @FinnRG made their first contribution in #3292
-* @sitiom made their first contribution in #3353
+- @FinnRG made their first contribution in #3292
+- @sitiom made their first contribution in #3353
 
 ## 0.9.3 — 2023-08-02
 
