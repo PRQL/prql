@@ -49,16 +49,6 @@ jobs:
           command: bench
           args: --timings --all-targets
 
-  check-links-markdown-all:
-    # We run only on modified files and only on our resources in PRs; here we
-    # run on all links and all files.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          config-file: .config/.markdown-link-check-all.json
-
   time-compilation:
     runs-on: ubuntu-latest
     strategy:

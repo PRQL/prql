@@ -34,3 +34,30 @@ jobs:
       - name: Run basic C++ example
         working-directory: bindings/prql-lib/examples/minimal-cpp
         run: make run
+  test-zig:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - run: ./.github/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: lib
+      - name: Build
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: build
+          # Currently requires a release build; would be useful to allow a debug build.
+          args: --release -p prql-lib
+      - name: 🔧 Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+      - name: 🧪 Build and test Zig example
+        working-directory: bindings/prql-lib/examples/minimal-zig
+        run: |
+          mkdir c
+          cp ../../libprql_lib.h c/
+          cp ../../../../target/*/libprql_lib.* c/
+          zig build test
