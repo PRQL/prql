@@ -1,29 +1,28 @@
-# Distinct
+# How do I: remove duplicates?
 
-PRQL doesn't have a specific `distinct` keyword. Instead, use `group` and
-`take 1`:
+PRQL doesn't have a specific `distinct` keyword. Instead duplicate tuples in a
+relation can be removed by using `group` and `take 1`:
 
 ```prql
 from employees
 select department
-group department (
+group employees.* (
   take 1
 )
 ```
 
-This also works without a linebreak:
+This also works with a wildcard:
 
 ```prql
 from employees
-select department
-group department (take 1)
+group employees.* (take 1)
 ```
 
-## Selecting from each group
+## Remove duplicates from each group?
 
-We are be able to
+To
 [select a single row from each group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
-by combining `group` and `sort`:
+`group` can be combined with `sort` and `take`:
 
 ```prql
 # youngest employee from each department
@@ -42,10 +41,9 @@ from employees
 group {first_name, last_name} (take 1)
 ```
 
-## Distinct on
-
-When compiling to Postgres or DuckDB dialect, `DISTINCT ON` is used to take one
-row for each group:
+When compiling to Postgres or DuckDB dialect, such queries will be compiled to
+`DISTINCT ON`, which is
+[the most performant option](https://stackoverflow.com/a/7630564).
 
 ```prql
 prql target:sql.postgres

@@ -8,17 +8,11 @@
 - [Filtering](./tutorial/filtering.md)
 - [Aggregation](./tutorial/aggregation.md)
 
-- [TODO: Examples](./tutorial/examples/README.md)
+# How do I?
 
-  - [TODO: Variables](./tutorial/examples/variables.md)
-  - [TODO: List equivalence](./tutorial/examples/list-equivalence.md)
-  - [TODO: CTE (intermediate tables)](./tutorial/examples/cte.md)
-  - [TODO: Employees](./tutorial/examples/employees.md)
-
-- [TODO: How do I]():
-  - [Reading files](./tutorial/how-do-i/reading-files.md)
-  - [Distinct](./tutorial/how-do-i/distinct.md)
-  - [Relation literals](./tutorial/how-do-i/relation-literals.md)
+- [Read files?](./how-do-i/read-files.md)
+- [Remove duplicates?](./how-do-i/distinct.md)
+- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
 
 # Reference
 

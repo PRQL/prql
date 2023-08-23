@@ -62,19 +62,3 @@ We have the freedom to stack transforms on top of each other, without worrying
 about interactions of a new transform with the previous query. When PRQL
 compiles these two statements/transforms (`take 11..20` and `take 3`) to SQL, it
 produces the same result as `take 11..13`.
-
-### Move to Reference?
-
-_The following items might be better moved to the Reference section_
-
-> Side note: each of the transform functions has at least some invariant:
-> `select` and `derive` will not change the number of rows, `filter` and `take`
-> will not change the number of columns. We call this separation of effects
-> "transform orthogonality". Its goal is to keep transform functions composable
-> by minimizing interference of their effects.
->
-> In SQL, we can see this lack of invariant when an aggregation function is used
-> in the `SELECT` clause. Before, the number of rows was kept constant, but
-> introduction of an aggregation function caused the whole statement to produce
-> only one row (per group). _I don't understand the importance of this paragraph
-> -richb-hanover_

@@ -81,13 +81,3 @@ group billing_city (
 ```
 
 This code collects the first two rows for each city's `group`.
-
-### Move to Reference?
-
-_The following items might be better moved to the Reference section_
-
-The SQL needed to replicate this behavior might include window functions and
-sub-queries. PRQL handles all the complexity. Some dialects (PostgreSQL, DuckDB,
-Google BigQuery) have a special syntax to improve performance and reduce the
-query complexity (for example ,`DISTINCT ON` if the query uses `take 1`). But
-it's not a general solution for the case of `take 2`.

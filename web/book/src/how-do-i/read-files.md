@@ -1,7 +1,6 @@
-# Reading files
+# How do I: read files?
 
-We have a couple of functions named `read_*`, which ask the DB to read files,
-designed for DuckDB:
+There are a couple of functions designed for DuckDB:
 
 ```prql
 from (read_parquet 'artists.parquet')
@@ -19,4 +18,4 @@ We may be able to reduce the boilerplate `WITH table_x AS SELECT * FROM...` in f
 
 ## See also
 
-- [Relation literals](../relation-literals.md)
+- [How do I: create ad-hoc relations?](../relation-literals.md)
