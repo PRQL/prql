@@ -1,12 +1,12 @@
-# Distinct
+# How do I: remove duplicates?
 
-PRQL doesn't have a specific `distinct` keyword. Instead, use `group` and
-`take 1`:
+PRQL doesn't have a specific `distinct` keyword. Instead duplicate tuples in a
+relation can be removed by using `group` and `take 1`:
 
 ```prql
 from employees
 select department
-group department (
+group employees.* (
   take 1
 )
 ```
@@ -19,7 +19,14 @@ select department
 group department (take 1)
 ```
 
-## Selecting from each group
+Or without specifying all of the columns:
+
+```prql
+from employees
+group employees.* (take 1)
+```
+
+## Remove duplicates from each group
 
 We are be able to
 [select a single row from each group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
