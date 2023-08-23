@@ -16,7 +16,7 @@ not required.
 In-depth information about the PRQL language. Includes justifications for
 language design decisions and formal specifications for parts of the language.
 
-## [How do I?](./how-do-i/distinct.html)
+## [How do I?](./how-do-i/distinct.md)
 
 Frequently asked questions and small guides on how to use the language.
 
