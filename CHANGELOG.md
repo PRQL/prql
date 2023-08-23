@@ -2,6 +2,9 @@
 
 ## 0.9.4 — 2023-08-24
 
+0.9.4 is a small release with some improvements and bug fixes in the compiler and `prqlc`.
+And, the documentation and CI are continually being improved.
+
 **Features**:
 
 - Strings can be delimited with any odd number of quote characters. The logic
