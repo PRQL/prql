@@ -8,7 +8,7 @@
 - [Filtering](./tutorial/filtering.md)
 - [Aggregation](./tutorial/aggregation.md)
 
-# How do I
+# How do I?
 
 - [Read files?](./how-do-i/read-files.md)
 - [Remove duplicates?](./how-do-i/distinct.md)

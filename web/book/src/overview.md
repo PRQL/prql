@@ -16,6 +16,10 @@ not required.
 In-depth information about the PRQL language. Includes justifications for
 language design decisions and formal specifications for parts of the language.
 
+## [How do I?](./how-do-i/distinct.html)
+
+Frequently asked questions and small guides on how to use the language.
+
 ## [Project](./project/changelog.md)
 
 General information about the project, tooling and development.
