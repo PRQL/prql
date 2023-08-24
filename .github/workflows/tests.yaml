@@ -42,6 +42,10 @@ jobs:
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
       lib: ${{ steps.changes.outputs.lib }}
+      # Run tests such as rust tests for all-OSs, and bindings tests on ubuntu.
+      # Somewhat a tradeoff between coverage and ensuring our CI queues stay
+      # short.
+      main: ${{ steps.main.outputs.run }}
       # Run all tests
       nightly: ${{ steps.nightly.outputs.run }}
       # Really run all tests (e.g. taskfile & devcontainer)
@@ -49,8 +53,6 @@ jobs:
       php: ${{ steps.changes.outputs.php }}
       python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
-      # Run most test (`all` is a misnomer!)
-      main: ${{ steps.main.outputs.run }}
       taskfile: ${{ steps.changes.outputs.taskfile }}
       web: ${{ steps.changes.outputs.web }}
 
@@ -61,9 +63,6 @@ jobs:
         id: changes
         with:
           filters: |
-            main:
-              - "**/Cargo.*"
-              - .github/**
             book:
               - .github/workflows/check-links-book.yaml
               - web/book/**
@@ -89,8 +88,12 @@ jobs:
             lib:
               - bindings/prql-lib/**
               - .github/workflows/test-lib.yaml
+            main:
+              - "**/Cargo.*"
+              - .github/**
             nightly:
               - .github/workflows/nightly.yaml
+              - .github/workflows/release.yaml
               - Cargo.lock
             php:
               - bindings/prql-php/**
