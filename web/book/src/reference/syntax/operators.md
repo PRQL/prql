@@ -34,8 +34,6 @@ operations and for function calls (see the discussion below.)
 |             or | <code>\|\|</code>           |     9      | left-to-right |
 |  function call |                             |     10     |               |
 
-<!-- TODO: do we need to list all of the operators and describe them? -->
-
 ## Coalesce
 
 We can coalesce values with an `??` operator. Coalescing takes either the first
