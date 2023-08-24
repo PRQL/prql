@@ -47,9 +47,10 @@ jobs:
             ${{ (github.ref == 'refs/heads/main' && github.event_name == 'push')
             || startsWith(github.ref, 'refs/tags/') || github.event_name ==
             'workflow_dispatch' }}
+          # Disabling GHA cache due to Https://github.com/docker/build-push-action/issues/939
+          # type=gha
           cache-from: |
             ${{ steps.meta.outputs.tags }}
-            type=gha
           cache-to: |
             type=inline
             ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
