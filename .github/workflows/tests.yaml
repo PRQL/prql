@@ -447,7 +447,10 @@ jobs:
       - check-links-book
       - check-links-markdown
       - lint-megalinter
-      - nightly
+      # Excluding until https://github.com/re-actors/alls-green/issues/23 is
+      # fixed. This is annoying, since dependabot will merge things that break
+      # non-ubuntu deps. Hopefully will be fixed soon.
+      # - nightly
       - publish-web
       - test-dotnet
       - test-elixir
