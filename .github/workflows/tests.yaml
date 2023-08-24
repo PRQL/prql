@@ -478,7 +478,7 @@ jobs:
           # it's always reliable; e.g. `cargo-audit`
           allowed-failures: |
             [
-              "check-links-markdown", 
+              "check-links-markdown",
               "nightly"
             ]
           # We skip jobs deliberately, so we are OK if any are skipped.
