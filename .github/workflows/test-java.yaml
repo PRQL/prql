@@ -1,13 +1,16 @@
 name: test-java
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-java/**"
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-java.yaml"
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
   workflow_dispatch:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-latest"]'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-java
@@ -15,13 +18,20 @@ concurrency:
 
 jobs:
   test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{matrix.os}}
+        os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - run: ./.github/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.version }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: lib
       - name: Maven test
         working-directory: bindings/prql-java/java/
         run: ./mvnw test

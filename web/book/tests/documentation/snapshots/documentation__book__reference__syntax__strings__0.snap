@@ -1,0 +1,12 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from artists\nderive {\n  single        =   'hello world',\n  double        =   \"hello world\",\n  double_triple = \"\"\"hello world\"\"\",\n}\n"
+---
+SELECT
+  *,
+  'hello world' AS single,
+  'hello world' AS double,
+  'hello world' AS double_triple
+FROM
+  artists
+

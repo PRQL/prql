@@ -8,6 +8,9 @@ inputs:
   profile:
     description: Build profile option; `dev` or `release`.
     required: true
+  features:
+    description: Features to enable
+    default: ""
 outputs:
   artifact-name:
     description: The name of the artifact
@@ -19,18 +22,28 @@ runs:
     - run: rustup target add ${{ inputs.target }}
       shell: bash
 
+    - run: ./.github/set_version.sh
+      shell: bash
+
     - uses: Swatinem/rust-cache@v2
       with:
-        # Share cache with `test-rust`
-        save-if: false
-        shared-key: rust-${{ inputs.target }}
-        prefix-key: 0.8.1
+        # Share cache with `test-rust`, except for `musl` targets.
+        save-if:
+          ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
+          'musl') }}
+        shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
+        prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y musl-tools
+
+    - if: runner.os == 'Windows' && inputs.profile == 'release'
+      shell: bash
+      run: |
+        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
@@ -44,9 +57,16 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
+        # We previously had `--package=prqlc` for all, but this caches much
+        # worse than just building the whole workspace.
+        # https://github.com/PRQL/prql/issues/3098, so we just build the whole
+        # workspace — except for the `musl` target, which can't build the whole
+        # workspace. (This is overly complicated and would be great to simplify,
+        # even at the cost of slighly less efficiency.)
         args:
-          --package=prqlc --profile=${{ inputs.profile }} --locked --target=${{
-          inputs.target }}
+          --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
+          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
+          && '--package=prqlc' || '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash

@@ -147,7 +147,7 @@ tools_section:
         "Online in-browser playground that compiles PRQL to SQL as you type."
 
     - link: https://pyprql.readthedocs.io/
-      label: "PyPrql"
+      label: "pyprql"
       text: |
         Provides Jupyter/IPython cell magic and Pandas accessor.
 
@@ -162,6 +162,8 @@ tools_section:
 
         `brew install prqlc`
 
+        `winget install prqlc`
+
 integrations_section:
   enable: true
   title: "Integrations"
@@ -169,16 +171,23 @@ integrations_section:
     - label: "Jupyter/IPython"
       link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
       text:
-        "PyPrql contains a Jupyter extension, which executes a PRQL cell against
+        "pyprql contains a Jupyter extension, which executes a PRQL cell against
         a database. It can also set up an in-memory DuckDB instance, populated
         with a pandas DataFrame."
 
+    - label: "ClickHouse"
+      link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
+      text: |
+        ClickHouse natively supports PRQL with
+
+        `SET dialect = 'prql'`
+
     - label: Visual Studio Code
       link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
-      text: Extension with syntax highlighting and an upcoming language server.
+      text: Extension with syntax highlighting and live SQL compilation.
 
     - label: "Prefect"
-      link: https://prql-lang.org/book/integrations/prefect.html
+      link: https://prql-lang.org/book/project/integrations/prefect.html
       text: Add PRQL models to your Prefect workflows with a single function.
 
     - label: "DuckDB"
@@ -205,9 +214,14 @@ bindings_section:
     - link: "https://crates.io/crates/prql-compiler"
       label: "prql-compiler"
       text: |
-        Reference compiler implementation, written in Rust. Transpile, format and annotate PRQL queries.
+        Compiler implementation, written in Rust. Compile, format & annotate PRQL queries.
 
-comments_section:
+    - link: https://prql-lang.org/book/project/bindings/index.html
+      label: Others
+      text: |
+        Java, C, C++, Elixir, .NET, and PHP have unsupported or nascent bindings.
+
+testimonials_section:
   enable: true
   title: "What people are saying"
   # The testimonials are in data/testimonials.yaml.

@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/prqlc/tests/test.rs
+source: crates/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -7,9 +7,9 @@ info:
     - shell-completion
     - zsh
   env:
+    RUST_BACKTRACE: ""
     RUST_LOG: ""
     CLICOLOR_FORCE: ""
-    RUST_BACKTRACE: ""
 ---
 success: true
 exit_code: 0
@@ -194,6 +194,7 @@ _arguments "${_arguments_options[@]}" \
 '--target=[Target to compile to]:TARGET: ' \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '--hide-signature-comment[Exclude the signature comment containing the PRQL version]' \
+'--no-format[Emit unformatted, dense SQL]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '::input:_files' \

@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/prqlc/tests/test.rs
+source: crates/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -7,8 +7,8 @@ info:
     - shell-completion
     - fish
   env:
-    RUST_LOG: ""
     CLICOLOR_FORCE: ""
+    RUST_LOG: ""
     RUST_BACKTRACE: ""
 ---
 success: true
@@ -64,6 +64,7 @@ complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s h -l help -d 'P
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -d 'Target to compile to' -r
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -l hide-signature-comment -d 'Exclude the signature comment containing the PRQL version'
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l no-format -d 'Emit unformatted, dense SQL'
 complete -c prqlc -n "__fish_seen_subcommand_from compile" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c prqlc -n "__fish_seen_subcommand_from watch" -l color -d 'Controls when to use color' -r -f -a "{auto	,always	,never	}"
 complete -c prqlc -n "__fish_seen_subcommand_from watch" -l no-format

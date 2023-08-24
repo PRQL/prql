@@ -11,7 +11,7 @@
 <!-- [![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge)](https://twitter.com/prql_lang) -->
 <!-- Dev badges on second line -->
 
-[![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/PRQL/prql/pull-request.yaml?branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atest-all)
+[![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/prql/prql/tests.yaml?event=push&branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atests)
 [![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
 
@@ -62,25 +62,34 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - April 2023
+## Current Status - August 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
 using one of our supported language bindings.
 
-PRQL still has some minor bugs and some missing features, and probably is only
-ready to be rolled out to non-technical teams for fairly simple queries.
+PRQL still has some bugs and some missing features, and is probably only ready
+to be rolled out to non-technical teams for fairly simple queries.
 
-Here's our current [Roadmap](https://prql-lang.org/roadmap/) and our
-[Milestones.](https://github.com/PRQL/prql/milestones)
+We recently release [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0),
+our biggest release ever. Here's our current
+[Roadmap](https://prql-lang.org/roadmap/).
+
+<!-- TODO: add back when we get them
+and our
+[Milestones](https://github.com/PRQL/prql/milestones). -->
 
 Our immediate focus for the code is on:
 
-- Building out the next few big features, including
-  [types](https://github.com/PRQL/prql/pull/1964) and
-  [modules](https://github.com/PRQL/prql/pull/2129).
 - Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
+  As more folks have started using PRQL, we've had more bug reports — good news,
+  but also gives us more to work on.
+- Filling remaining feature gaps, so that PRQL is possible to use for almost all
+  standard SQL queries; for example
+  [date to string functions](https://github.com/PRQL/prql/issues/366).
+- Expanding our set of supported features — we've recently added experimental
+  support for modules / multi-file projects, and for auto-formatting.
 
 We're also spending time thinking about:
 
@@ -89,10 +98,13 @@ We're also spending time thinking about:
   extension & Jupyter integration. If there are tools you're familiar with that
   you think would be open to integrating with PRQL, please let us know in an
   issue.
+- Whether all our initial decisions were correct — for example
+  [how we handle window functions outside of a `window` transform](https://github.com/PRQL/prql/issues/2723).
 - Making it easier to contribute to the compiler. We have a wide group of
   contributors to the project, but contributions to the compiler itself are
   quite concentrated. We're keen to expand this;
-  [#1840](https://github.com/PRQL/prql/issues/1840) for feedback.
+  [#1840](https://github.com/PRQL/prql/issues/1840) for feedback, some
+  suggestions on starter issues are below.
 
 ## Get involved
 
@@ -107,6 +119,10 @@ To stay in touch with PRQL:
 - See the [development][development] documentation for PRQL. It's easy to get
   started — the project can be built in a couple of commands, and we're a really
   friendly community!
+- For those who might be interested in contributing to the code now, check out
+  issues with the
+  [good first issue](https://github.com/PRQL/prql/labels/good%20first%20issue)
+  label. Always feel free to ask questions or open a draft PR.
 
 ## Explore
 
@@ -126,7 +142,7 @@ To stay in touch with PRQL:
 
 This repo is composed of:
 
-- **[prql-compiler](./crates/prql_compiler/)** — the compiler, written in rust,
+- **[prql-compiler](./crates/prql-compiler/)** — the compiler, written in rust,
   whose main role is to compile PRQL into SQL. It also includes
   [prqlc](./crates/prqlc/), the CLI.
 - **[web](./web/)** — our web content: the [Book][prql book],
@@ -145,7 +161,7 @@ Many thanks to those who've made our progress possible:
 
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org
-[contributing]: https://prql-lang.org/book/contributing/index.html
-[development]: https://prql-lang.org/book/contributing/development.html
+[contributing]: https://prql-lang.org/book/project/contributing/
+[development]: https://prql-lang.org/book/project/contributing/development.html
 [prql playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql

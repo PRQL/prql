@@ -4,7 +4,9 @@
   font-weight: 800;
   font-style: normal;
   font-display: swap;
-  src: local(""), url("../fonts/inter-extra-bold.woff2") format("woff2"),
+  src:
+    local(""),
+    url("../fonts/inter-extra-bold.woff2") format("woff2"),
     url("../fonts/inter-extra-bold.woff") format("woff");
 }
 
@@ -522,9 +524,9 @@ section {
 }
 
 /*--------------------------------------------------------------
-# comments-section
+# testimonials-section
 --------------------------------------------------------------*/
-.comments-section {
+.testimonials-section {
   background: repeating-linear-gradient(
       45deg,
       transparent,

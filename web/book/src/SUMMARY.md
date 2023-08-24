@@ -1,98 +1,100 @@
-# Summary
-
 <!-- markdownlint-disable MD042 — some pages aren't finished yet (though the graying out of top level pages is not ideal — it's either that, or links to pages that are blank. Or maybe we try and write a useful page for each heading?) -->
 
-- [Introduction](./introduction.md)
+[Overview](./overview.md)
 
-- [Queries](./queries/README.md)
+# Tutorial
 
-  - [Pipelines](./queries/pipelines.md)
-  - [Functions](./queries/functions.md)
-  - [Variables](./queries/variables.md)
+- [Relations](./tutorial/relations.md)
+- [Filtering](./tutorial/filtering.md)
+- [Aggregation](./tutorial/aggregation.md)
 
-- [Transforms](./transforms/README.md)
+# How do I?
 
-  - [Aggregate](./transforms/aggregate.md)
-  - [Append](./transforms/append.md)
-  - [Derive](./transforms/derive.md)
-  - [Filter](./transforms/filter.md)
-  - [From](./transforms/from.md)
-  - [Group](./transforms/group.md)
-  - [Join](./transforms/join.md)
-  - [Select](./transforms/select.md)
-  - [Sort](./transforms/sort.md)
-  - [Take](./transforms/take.md)
-  - [Window](./transforms/window.md)
+- [Read files?](./how-do-i/read-files.md)
+- [Remove duplicates?](./how-do-i/distinct.md)
+- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
 
-- [Syntax](./syntax/README.md)
+# Reference
 
-  - [Pipes](./syntax/pipes.md)
-  - [Tuples](./syntax/tuples.md)
-  - [Expressions & Operators](./syntax/expressions-and-operators.md)
-  - [Inner Transforms](./syntax/inner-transforms.md)
-  - [Comments](./syntax/comments.md)
-  - [Quoted Identifiers](./syntax/quoted-identifiers.md)
-  - [Parameters](./syntax/parameters.md)
-  - [Numbers](./syntax/numbers.md)
-  - [Keywords](./syntax/keywords.md)
+- [Syntax](./reference/syntax/README.md)
 
-- [Language features](./language-features/README.md)
+  - [Literals](./reference/syntax/literals.md)
+  - [Strings](./reference/syntax/strings.md)
+    - [F-strings](./reference/syntax/f-strings.md)
+    - [R-strings](./reference/syntax/r-strings.md)
+    - [S-strings](./reference/syntax/s-strings.md)
+  - [Tuples](./reference/syntax/tuples.md)
+  - [Arrays](./reference/syntax/arrays.md)
+  - [Identifiers & keywords](./reference/syntax/keywords.md)
+  - [Function calls](./reference/syntax/function-calls.md)
+  - [Pipes](./reference/syntax/pipes.md)
+  - [Operators](./reference/syntax/operators.md)
+  - [Case](./reference/syntax/case.md)
+  - [Ranges](./reference/syntax/ranges.md)
+  - [Comments](./reference/syntax/comments.md)
+  - [Parameters](./reference/syntax/parameters.md)
 
-  - [Case](./language-features/case.md)
-  - [Coalesce](./language-features/coalesce.md)
-    <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
-  - [Dates & times](./language-features/dates-and-times.md)
-  - [Distinct](./language-features/distinct.md)
-  - [Relation literals](./language-features/relation-literals.md)
-  - [Null handling](./language-features/null.md)
-  - [Ranges](./language-features/ranges.md)
-  - [Regex](./language-features/regex.md)
-  - [Standard library](./language-features/standard-library/README.md)
-    - [Loop](./language-features/standard-library/loop.md)
-    - [Reading files](./language-features/standard-library/reading-files.md)
-  - [Strings](./language-features/strings.md)
-  - [S-strings](./language-features/s-strings.md)
-  - [F-strings](./language-features/f-strings.md)
-  - [Target & Version](./language-features/target.md)
+- [Declarations]()
+  <!-- I don't know what to call this section. -->
 
-- [Bindings](./bindings/README.md)
+  - [Variables](./reference/declarations/variables.md)
+  - [Functions](./reference/declarations/functions.md)
 
-  - [.NET](./bindings/dotnet.md)
-  - [Elixir](./bindings/elixir.md)
-  - [Java](./bindings/java.md)
-  - [JavaScript](./bindings/javascript.md)
-  - [PHP](./bindings/php.md)
-  - [Python](./bindings/python.md)
-  - [R](./bindings/r.md)
-  - [Rust](./bindings/rust.md)
+- [Standard library](./reference/stdlib/README.md)
 
-- [Integrations](./integrations/README.md)
+  - [Transforms](./reference/stdlib/transforms/README.md)
 
-  - [`prqlc CLI`](./integrations/prqlc-cli.md)
-  - [Jupyter](./integrations/jupyter.md)
-  - [DuckDB](./integrations/duckdb.md)
-  - [Prefect](./integrations/prefect.md)
-  - [VS Code](./integrations/vscode.md)
-  - [Rill](./integrations/rill.md)
+    - [Aggregate](./reference/stdlib/transforms/aggregate.md)
+    - [Append](./reference/stdlib/transforms/append.md)
+    - [Derive](./reference/stdlib/transforms/derive.md)
+    - [Filter](./reference/stdlib/transforms/filter.md)
+    - [From](./reference/stdlib/transforms/from.md)
+    - [Group](./reference/stdlib/transforms/group.md)
+    - [Join](./reference/stdlib/transforms/join.md)
+    - [Loop](./reference/stdlib/transforms/loop.md)
+    - [Select](./reference/stdlib/transforms/select.md)
+    - [Sort](./reference/stdlib/transforms/sort.md)
+    - [Take](./reference/stdlib/transforms/take.md)
+    - [Window](./reference/stdlib/transforms/window.md)
 
-- [Examples](./examples/README.md)
+  - [Aggregation functions]()
 
-  - [Variables](./examples/variables.md)
-  - [List equivalence](./examples/list-equivalence.md)
-  - [CTE (intermediate tables)](./examples/cte.md)
-  - [Employees](./examples/employees.md)
+- [Specification](./reference/spec/README.md)
 
-- [Compiler](./compiler/README.md)
+  - [Null handling](./reference/spec/null.md)
+  - [Name resolution](./reference/spec/name-resolution.md)
+  - [Modules](./reference/spec/modules.md)
+  - [Type system](./reference/spec/type-system.md)
 
-  - [`prql-compiler`](./compiler/prql-compiler.md)
-  - [Internals](./compiler/internals/README.md)
-    - [Compiler architecture](./compiler/internals/compiler-architecture.md)
-    - [Name resolving](./compiler/internals/name-resolving.md)
-    - [Functions](./compiler/internals/functional-lang.md)
-    - [Syntax highlighting](./compiler/internals/syntax-highlighting.md)
+# Project
 
-- [Contributing to PRQL](./contributing/README.md)
+- [Changelog](./project/changelog.md)
 
-  - [Development](./contributing/development.md)
+- [Target & version](./project/target.md)
 
-- [Changelog](./changelog.md)
+- [Bindings](./project/bindings/README.md)
+
+  - [.NET](./project/bindings/dotnet.md)
+  - [Elixir](./project/bindings/elixir.md)
+  - [Java](./project/bindings/java.md)
+  - [JavaScript](./project/bindings/javascript.md)
+  - [PHP](./project/bindings/php.md)
+  - [Python](./project/bindings/python.md)
+  - [R](./project/bindings/r.md)
+  - [Rust](./project/bindings/rust.md)
+
+- [Integrations](./project/integrations/README.md)
+
+  - [`prqlc CLI`](./project/integrations/prqlc-cli.md)
+  - [ClickHouse](./project/integrations/clickhouse.md)
+  - [Jupyter](./project/integrations/jupyter.md)
+  - [DuckDB](./project/integrations/duckdb.md)
+  - [Prefect](./project/integrations/prefect.md)
+  - [VS Code](./project/integrations/vscode.md)
+  - [Rill](./project/integrations/rill.md)
+  - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
+
+- [Contributing to PRQL](./project/contributing/README.md)
+
+  - [Development](./project/contributing/development.md)
+  - [Language design](./project/contributing/language-design.md)

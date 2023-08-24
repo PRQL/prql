@@ -2,16 +2,29 @@ name: release
 on:
   release:
     types: [released]
+  workflow_call:
+    inputs:
+      dry-run:
+        description: "Whether to do a dry run"
+        default: true
+        type: boolean
   workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Whether to do a dry run"
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && !inputs.dry-run
     steps:
       - uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.HOMEBREW_PRQL_TOKEN }}
+          github-token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'prql',
@@ -26,6 +39,7 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
+    if: ${{ !inputs.dry-run }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,15 +63,31 @@ jobs:
           target: ${{ matrix.target }}
           profile: release
       - name: Upload release artifact
+        if: github.ref_type == 'tag' && !inputs.dry-run
         uses: softprops/action-gh-release@v1
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
+  winget-release:
+    runs-on: ubuntu-latest
+    needs: build-prqlc
+    if: github.ref_type == 'tag' && !inputs.dry-run
+    steps:
+      - name: publish
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: PRQL.prqlc
+          version: ${{ github.ref }}
+          installers-regex: '^prqlc-.*-windows-.*\.zip$'
+          token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
+          fork-user: prql-bot
+
   build-deb-package:
     # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
     # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
+    if: ${{ !inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -85,6 +115,7 @@ jobs:
   build-rpm-package:
     # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
     runs-on: ubuntu-latest
+    if: ${{ !inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -114,10 +145,7 @@ jobs:
 
   build-and-publish-snap:
     runs-on: ubuntu-latest
-
-    # Skip running workflow on forks
-    if: github.repository_owner == 'prql'
-
+    if: ${{ !inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -127,6 +155,7 @@ jobs:
         id: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
+        if: github.ref_type == 'tag' && !inputs.dry-run
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS:
@@ -137,6 +166,7 @@ jobs:
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
+    if: ${{ !inputs.dry-run }}
     strategy:
       fail-fast: true
       matrix:
@@ -158,6 +188,7 @@ jobs:
   publish-prql-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
+    if: github.ref_type == 'tag' && !inputs.dry-run
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -185,8 +216,9 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Publish package on npm
-        run: npm publish
+      - run:
+          npm publish ${{ (github.ref_type != 'tag' || inputs.dry-run) &&
+          '--dry-run' || '' }}
         working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -199,10 +231,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-release
-      - uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: release
-          args: publish --no-confirm -x
+      # Currently, we can only check prql-ast which is not dependent other local crates with --dry-run.
+      # https://github.com/crate-ci/cargo-release/issues/691
+      # --no-verify is required to prevent build.
+      - run:
+          cargo release publish --no-confirm ${{ github.ref_type == 'tag' &&
+          !inputs.dry-run && '--execute' || '--no-verify --package prql-ast'}}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -227,10 +261,12 @@ jobs:
 
   push-web-branch:
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && !inputs.dry-run
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
 
   push-devcontainer-base-image:
+    if: github.ref_type == 'tag' && !inputs.dry-run
     uses: ./.github/workflows/build-devcontainer.yaml

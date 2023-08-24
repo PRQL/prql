@@ -36,23 +36,35 @@ fn test_prql_examples_compile() -> Result<()> {
             (true, Err(e)) => errs.push(format!(
                 "
 ---- {name} ---- ERROR
-  Use `prql error` as the language label to assert an error compiling the PRQL.
-  -- Original PRQL --
+Use `prql error` as the language label to assert an error compiling the PRQL.
+
+-- Original PRQL --
+```
 {prql}
-  -- Error --
+```
+
+-- Error --
+```
 {e}
+```
 "
             )),
 
             (false, Ok(output)) => errs.push(format!(
                 "
 ---- {name} ---- UNEXPECTED SUCCESS
-  Succeeded compiling, but example was marked as `error`.
-  Remove `error` as a language label to assert successfully compiling.
-  -- Original PRQL --
+Succeeded compiling, but example was marked as `error`.
+Remove `error` as a language label to assert successfully compiling.
+
+-- Original PRQL --
+```
 {prql}
-  -- Result --
+```
+
+-- Result --
+```
 {output}
+```
 "
             )),
             (_, result) => {
@@ -76,8 +88,8 @@ fn test_prql_examples_rq_serialize() -> Result<(), ErrorMessages> {
             continue;
         }
         let rq = prql_to_pl(&prql).map(pl_to_rq)?;
-        // Serialize to YAML
-        assert!(serde_yaml::to_string(&rq).is_ok());
+        // Serialize
+        serde_json::to_string(&rq).unwrap();
     }
 
     Ok(())
@@ -98,33 +110,44 @@ fn test_prql_examples_display_then_compile() -> Result<()> {
 
     let mut errs = Vec::new();
     for Example { name, tags, prql } in examples {
-        let formatted = prql_to_pl(&prql).and_then(pl_to_prql).unwrap();
+        let result = prql_to_pl(&prql)
+            .and_then(pl_to_prql)
+            .and_then(|x| compile(&x));
 
-        let result = compile(&formatted);
         let should_succeed = !tags.contains(&LangTag::NoFmt);
 
         match (should_succeed, result) {
             (true, Err(e)) => errs.push(format!(
                 "
----- {name} ---- ERROR after formatting
-  Use `prql no-fmt` as the language label to assert an error from compiling the formatted result.
-  -- Original PRQL --
+---- {name} ---- ERROR formatting & compiling
+Use `prql no-fmt` as the language label to assert an error from formatting & compiling.
+
+-- Original PRQL --
+
+```
 {prql}
-  -- Formatted PRQL --
-{formatted}
-  -- Error --
-{e}"
+```
+-- Error --
+```
+{e}
+```
+"
             )),
 
             (false, Ok(output)) => errs.push(format!(
                 "
 ---- {name} ---- UNEXPECTED SUCCESS after formatting
-  Succeeded at compiling the formatted result, but example was marked as `no-fmt`.
-  Remove `no-fmt` as a language label to assert successfully compiling the formatted result.
-  -- Original PRQL --
+Succeeded at formatting and then compiling the prql, but example was marked as `no-fmt`.
+Remove `no-fmt` as a language label to assert successfully compiling the formatted result.
+
+-- Original PRQL --
+```
 {prql}
-  -- Result --
+```
+-- Result --
+```
 {output}
+```
 "
             )),
             _ => {}
@@ -165,7 +188,7 @@ fn collect_book_examples() -> Result<Vec<Example>> {
             // section they're in. This makes them easier to find and means
             // adding one example at the top of the book doesn't cause a huge
             // diff in the snapshots of that file's examples..
-            let mut latest_heading = "";
+            let mut latest_heading = "".to_string();
             let file_name = &dir_entry
                 .path()
                 .strip_prefix("./src/")?
@@ -179,7 +202,12 @@ fn collect_book_examples() -> Result<Vec<Example>> {
                     if let Some(Event::Text(pulldown_cmark::CowStr::Borrowed(heading))) =
                         parser.next()
                     {
-                        latest_heading = heading;
+                        // We clear and then push because just setting
+                        // `latest_heading` leads to lifetime issues.
+                        latest_heading = heading
+                            .chars()
+                            .filter(|&c| c.is_ascii_alphanumeric() || c == '-' || c == ' ')
+                            .collect();
                     }
                 }
                 let Some(tags) = code_block_lang_tags(&event) else {

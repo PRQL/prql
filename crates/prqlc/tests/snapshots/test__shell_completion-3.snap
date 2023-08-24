@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/prqlc/tests/test.rs
+source: crates/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -7,9 +7,9 @@ info:
     - shell-completion
     - powershell
   env:
-    RUST_BACKTRACE: ""
-    CLICOLOR_FORCE: ""
     RUST_LOG: ""
+    CLICOLOR_FORCE: ""
+    RUST_BACKTRACE: ""
 ---
 success: true
 exit_code: 0
@@ -151,6 +151,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('--target', 'target', [CompletionResultType]::ParameterName, 'Target to compile to')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'Exclude the signature comment containing the PRQL version')
+            [CompletionResult]::new('--no-format', 'no-format', [CompletionResultType]::ParameterName, 'Emit unformatted, dense SQL')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break

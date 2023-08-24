@@ -1,18 +1,16 @@
 name: build-web
 
 on:
-  pull_request:
-    paths:
-      - "web/**"
-      - ".github/workflows/build-web.yaml"
-      - "**.md"
   workflow_call:
+  workflow_dispatch:
 
 env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
   RUSTFLAGS: "-C debuginfo=0"
 
 concurrency:
-  # See notes in `pull-request.yaml`
+  # See notes in `tests.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-web
   cancel-in-progress: true
 
@@ -52,11 +50,16 @@ jobs:
         with:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - run: ./.github/set_version.sh
 
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 0.8.1
+          prefix-key: ${{ env.version }}
+          shared-key: web
           save-if:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}

@@ -6,23 +6,24 @@ use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
-use prql_compiler::ast::pl::StmtKind;
+use prql_ast::stmt::StmtKind;
 use std::collections::HashMap;
 use std::env;
 use std::io::Read;
 use std::io::Write;
 use std::ops::Range;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
-use prql_compiler::semantic::{
-    self,
-    reporting::{collect_frames, label_references},
-};
-use prql_compiler::{ast::pl::Lineage, pl_to_prql};
+use prql_compiler::semantic;
+use prql_compiler::semantic::reporting::{collect_frames, label_references};
 use prql_compiler::{downcast, Options, Target};
-use prql_compiler::{pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree, Span};
+use prql_compiler::{ir::pl::Lineage, ir::Span};
+use prql_compiler::{
+    pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree,
+};
 
 use crate::watch;
 
@@ -118,8 +119,12 @@ enum Command {
         io_args: IoArgs,
 
         /// Exclude the signature comment containing the PRQL version
-        #[arg(long, action = clap::ArgAction::SetFalse)]
-        hide_signature_comment: bool,
+        #[arg(long = "hide-signature-comment", action = clap::ArgAction::SetFalse)]
+        signature_comment: bool,
+
+        /// Emit unformatted, dense SQL
+        #[arg(long = "no-format", action = clap::ArgAction::SetFalse)]
+        format: bool,
 
         /// Target to compile to
         #[arg(short, long, default_value = "sql.any", env = "PRQLC_TARGET")]
@@ -214,7 +219,7 @@ impl Command {
                 Ok(())
             }
             Command::Debug(DebugCommand::Ast) => {
-                prql_compiler::ast::pl::print_mem_sizes();
+                prql_compiler::ir::pl::print_mem_sizes();
                 Ok(())
             }
             _ => self.run_io_command(),
@@ -314,12 +319,12 @@ impl Command {
 
                     for stmt in stmts {
                         if let StmtKind::VarDef(def) = stmt.kind {
-                            res += &format!("## {}\n", def.name.as_deref().unwrap_or("(main)"));
+                            res += &format!("## {}\n", def.name);
 
                             let val = semantic::eval(*def.value)
                                 .map_err(downcast)
                                 .map_err(|e| e.composed(sources))?;
-                            res += &val.to_string();
+                            res += &semantic::write_pl(val);
                             res += "\n\n";
                         }
                     }
@@ -339,7 +344,8 @@ impl Command {
                 }
             }
             Command::SQLCompile {
-                hide_signature_comment,
+                signature_comment,
+                format,
                 target,
                 ..
             } => {
@@ -347,7 +353,8 @@ impl Command {
 
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
-                    .with_signature_comment(*hide_signature_comment);
+                    .with_signature_comment(*signature_comment)
+                    .with_format(*format);
 
                 prql_to_pl_tree(sources)
                     .and_then(|pl| pl_to_rq_tree(pl, &main_path))
@@ -411,7 +418,11 @@ impl Command {
         // Don't wait without a prompt when running `prqlc compile` —
         // it's confusing whether it's waiting for input or not. This
         // offers the prompt.
-        if input.is_tty() {
+        //
+        // See https://github.com/PRQL/prql/issues/3228 for details on us not
+        // yet using `input.is_tty()`.
+        // if input.is_tty() {
+        if input.path() == Path::new("-") && atty::is(atty::Stream::Stdin) {
             #[cfg(unix)]
             eprintln!("Enter PRQL, then press ctrl-d to compile:\n");
             #[cfg(windows)]
@@ -524,52 +535,16 @@ sort full
         "###);
     }
 
-    #[ignore = "Need to write a fmt test with the full CLI when insta_cmd is fixed"]
-    #[test]
-    fn format() {
-        // This is the previous previous approach with the Format command; which
-        // now doesn't run through `execute`; instead through `run`.
-        let output = Command::execute(
-            &Command::Format {
-                input: clio::ClioPath::default(),
-            },
-            &mut r#"
-from table.subdivision
- derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
-group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 1 c_column} )
-        "#
-            .into(),
-            "",
-        )
-        .unwrap();
-
-        // this test is here just to document behavior - the result is far from being correct:
-        // - indentation does not stack
-        // - operator precedence is not considered (parenthesis are not inserted for numerical
-        //   operations but are always inserted for function calls)
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(),
-        @r###"
-        from table.subdivision
-        derive `želva_means_turtle` = (`column with spaces` + 1) * 3
-        group a_column (
-          take 10
-          sort b_column
-          derive {the_number = rank, last = lag 1 c_column}
-        )
-        "###);
-    }
-
     /// Check we get an error on a bad input
     #[test]
     fn compile() {
-        // Disable colors (would be better if this were a proper CLI test and
-        // passed in `--color=never`)
         anstream::ColorChoice::Never.write_global();
 
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
-                hide_signature_comment: true,
+                signature_comment: false,
+                format: true,
                 target: "sql.any".to_string(),
             },
             &mut "asdf".into(),
@@ -592,7 +567,8 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         let result = Command::execute(
             &Command::SQLCompile {
                 io_args: IoArgs::default(),
-                hide_signature_comment: true,
+                signature_comment: false,
+                format: true,
                 target: "sql.any".to_string(),
             },
             &mut SourceTree::new([
@@ -617,8 +593,6 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
           y
         FROM
           x
-
-        -- Generated by PRQL compiler version:0.8.1 (https://prql-lang.org)
         "###);
     }
 
@@ -637,27 +611,23 @@ group a_column (take 10 | sort b_column | derive {the_number = rank, last = lag 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         sources:
           '':
-          - VarDef:
-              name: null
-              value:
-                Pipeline:
-                  exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                        - from
-                      args:
-                      - Ident:
-                        - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                        - select
-                      args:
-                      - Ident:
-                        - y
-              ty_expr: null
-              kind: Main
+          - Main:
+              Pipeline:
+                exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                      - from
+                    args:
+                    - Ident:
+                      - x
+                - FuncCall:
+                    name:
+                      Ident:
+                      - select
+                    args:
+                    - Ident:
+                      - y
             annotations: []
         source_ids:
           1: ''

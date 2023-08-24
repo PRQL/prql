@@ -1,16 +1,11 @@
 name: test-php
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-php/**"
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-php.yaml"
   workflow_call:
   workflow_dispatch:
 
 concurrency:
-  # See notes in `pull-request.yaml`
+  # See notes in `tests.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-php
   cancel-in-progress: true
 
@@ -23,16 +18,15 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: arduino/setup-task@v1
         with:
-          toolchain: stable
-      - run: sh build.sh
-        working-directory: bindings/prql-php
-      - name: 📦 Install dependencies using Composer
-        uses: php-actions/composer@v6
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+      - run: ./.github/set_version.sh
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
         with:
-          args: --working-dir=bindings/prql-php
-          php_extensions: FFI
-      - name: 🧪 Run tests using PHPUnit
-        run: vendor/bin/phpunit tests
-        working-directory: bindings/prql-php
+          prefix-key: ${{ env.version }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: lib
+      - run: task build-php
+      - run: task test-php

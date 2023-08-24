@@ -9,7 +9,7 @@ an index.
 
 - [Lezer](https://lezer.codemirror.net/) — used by CodeMirror editors. The PRQL
   file is at
-  [`grammars/prql-lezer/README.me`](https://github.com/PRQL/prql/tree/main/grammars/prql-lezer/README.md).
+  [`grammars/prql-lezer/README.md`](https://github.com/PRQL/prql/tree/main/grammars/prql-lezer/README.md).
 
 - [Handlebars](https://handlebarsjs.com/) — currently duplicated:
 

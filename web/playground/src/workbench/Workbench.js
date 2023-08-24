@@ -40,7 +40,9 @@ class Workbench extends React.Component {
   componentDidMount() {
     this.props.setCallables({ loadFile: (f, c) => this.loadFile(f, c) });
 
-    this.duckdb = duckdb.init();
+    if (!this.duckdb) {
+      this.duckdb = duckdb.init();
+    }
   }
 
   beforeEditorMount(monaco) {
@@ -79,7 +81,7 @@ class Workbench extends React.Component {
       this.monaco.editor.setModelMarkers(
         this.editor.getModel(),
         "prql",
-        monacoErrors
+        monacoErrors,
       );
       return;
     }
