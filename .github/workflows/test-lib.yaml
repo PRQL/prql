@@ -54,6 +54,8 @@ jobs:
           args: --release -p prql-lib
       - name: 🔧 Setup Zig
         uses: goto-bus-stop/setup-zig@v2
+        with:
+          cache: false
       - name: 🧪 Build and test Zig example
         working-directory: bindings/prql-lib/examples/minimal-zig
         run: |
