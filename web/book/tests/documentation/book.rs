@@ -188,7 +188,7 @@ fn collect_book_examples() -> Result<Vec<Example>> {
             // section they're in. This makes them easier to find and means
             // adding one example at the top of the book doesn't cause a huge
             // diff in the snapshots of that file's examples..
-            let mut latest_heading = "";
+            let mut latest_heading = "".to_string();
             let file_name = &dir_entry
                 .path()
                 .strip_prefix("./src/")?
@@ -202,7 +202,12 @@ fn collect_book_examples() -> Result<Vec<Example>> {
                     if let Some(Event::Text(pulldown_cmark::CowStr::Borrowed(heading))) =
                         parser.next()
                     {
-                        latest_heading = heading;
+                        // We clear and then push because just setting
+                        // `latest_heading` leads to lifetime issues.
+                        latest_heading = heading
+                            .chars()
+                            .filter(|&c| c.is_ascii_alphanumeric() || c == '-' || c == ' ')
+                            .collect();
                     }
                 }
                 let Some(tags) = code_block_lang_tags(&event) else {
