@@ -2,6 +2,18 @@
 
 [Overview](./overview.md)
 
+# Tutorial
+
+- [Relations](./tutorial/relations.md)
+- [Filtering](./tutorial/filtering.md)
+- [Aggregation](./tutorial/aggregation.md)
+
+# How do I?
+
+- [Read files?](./how-do-i/read-files.md)
+- [Remove duplicates?](./how-do-i/distinct.md)
+- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
+
 # Reference
 
 - [Syntax](./reference/syntax/README.md)
