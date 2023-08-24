@@ -122,8 +122,7 @@ jobs:
 
       - id: nightly-schedule
         run:
-          echo "run=${{ steps.changes.outputs.nightly == 'true' &&
-          github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
+          echo "run=${{ github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -553,8 +552,7 @@ jobs:
     if:
       # We care that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.nightly-schedule && contains(needs.*.result,
-      'failure')
+      always() && github.event.schedule && contains(needs.*.result, 'failure')
     permissions:
       contents: read
       issues: write
