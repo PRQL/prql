@@ -78,7 +78,7 @@ jobs:
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: PRQL.prqlc
-          version: ${{ github.ref }}
+          version: ${{ github.ref_name }}
           installers-regex: '^prqlc-.*-windows-.*\.zip$'
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           fork-user: prql-bot
