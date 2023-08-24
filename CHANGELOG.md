@@ -12,7 +12,7 @@ This release has 110 commits from 9 contributors. Selected changes:
 - Strings can be delimited with any odd number of quote characters. The logic
   for lexing quotes is now simpler and slightly faster. Escapes in
   single-quote-delimited strings escape single-quotes rather than double-quotes.
-  (@max-sixty, @3274)
+  (@max-sixty, #3274)
 
 **Fixes**:
 
