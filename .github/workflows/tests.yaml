@@ -1,7 +1,6 @@
 # This file has transitioning to run almost everything, with rules defined in
-# this file rather than across lots of workflow files. We can rename it to
-# `tests.yaml` or something similarly general at some point.
-name: pull-request
+# this file rather than across lots of workflow files.
+name: tests
 
 on:
   pull_request:
@@ -18,8 +17,8 @@ on:
   workflow_call:
 
 concurrency:
-  # This used to require a custom suffix; I think that can now be removed.
-  group: ${{ github.workflow }}-${{ github.ref }}-pull-request
+  # This used to require a custom suffix; I think that can now be removed...
+  group: ${{ github.workflow }}-${{ github.ref }}-tests
   cancel-in-progress: true
 
 env:
@@ -43,8 +42,10 @@ jobs:
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
       lib: ${{ steps.changes.outputs.lib }}
-      # Really run all tests
+      # Run all tests
       nightly: ${{ steps.nightly.outputs.run }}
+      # Really run all tests (e.g. taskfile & devcontainer)
+      nightly-schedule: ${{ steps.nightly-schedule.outputs.run }}
       php: ${{ steps.changes.outputs.php }}
       python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
@@ -118,6 +119,10 @@ jobs:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
           contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
           github.event.schedule }}" >>"$GITHUB_OUTPUT"
+
+      - id: nightly-schedule
+        run:
+          echo "run=${{ github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -215,8 +220,8 @@ jobs:
     if:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.taskfile == 'true' || (needs.rules.outputs.nightly ==
-      'true' && github.event.schedule)
+      needs.rules.outputs.taskfile == 'true' ||
+      needs.rules.outputs.nightly-schedule == 'true'
     runs-on: macos-latest
     steps:
       - name: 📂 Checkout code
@@ -245,6 +250,7 @@ jobs:
       # This also encompasses `build-all`
       - run: task test-all
       - run: task test-rust-fast
+      - run: task test-lint
 
   test-rust-main:
     needs: rules
@@ -301,6 +307,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
 
   check-links-markdown:
+    needs: rules
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
     # rate-limited by GH because of it scanning node_modules.
@@ -310,10 +317,14 @@ jobs:
         uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: .config/.markdown-link-check-local.json
+          # Run on all files in nightly, but only our own changed files in PRs
+          config-file:
+            ${{ needs.rules.outputs.nightly == 'true' &&
+            '.config/.markdown-link-check-all.json' ||
+            '.config/.markdown-link-check-local.json' }}
           base-branch: main
-          # We also run without this in the nightly workflow
-          check-modified-files-only: "yes"
+          check-modified-files-only:
+            ${{ needs.rules.outputs.nightly == 'true' && 'no' || 'yes' }}
 
   check-links-book:
     # We also have a check-links-markdown job, however it will not spot mdbook
@@ -386,8 +397,8 @@ jobs:
     if:
       # We only run on nightly scheduled, since this is very expensive and we
       # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.devcontainer == 'true' || (needs.rules.outputs.nightly
-      == 'true' && github.event.schedule)
+      needs.rules.outputs.devcontainer == 'true' ||
+      needs.rules.outputs.nightly-schedule == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
 
   time-compilation:
@@ -452,6 +463,7 @@ jobs:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
+          jobs: ${{ toJSON(needs) }}
           # We don't include `check-links-markdown`, since occasionally we'll want to merge
           # something which temporarily fails that, such as if we're changing the
           # location of a file in this repo which is linked to.
@@ -459,10 +471,29 @@ jobs:
           # We're currently including `nightly` because I'm not sure whether
           # it's always reliable; e.g. `cargo-audit`
           allowed-failures: check-links-markdown, nightly
-          # Easier than writing out every job — and it's our own rules deciding
-          # whether jobs are skipped or not.
-          allowed-skips: ${{ toJSON(needs) }}
-          jobs: ${{ toJSON(needs) }}
+          # We skip jobs deliberately, so we are OK if any are skipped.
+          #
+          # Copy-pasted from `needs`, since it needs to be a json list, so `${{
+          # toJSON(needs) }}` (which is a map) doesn't work.
+          # https://github.com/re-actors/alls-green/issues/23
+          allowed-skips: |
+            [
+              "build-web",
+              "check-links-book",
+              "check-links-markdown",
+              "lint-megalinter",
+              "nightly",
+              "publish-web",
+              "test-dotnet",
+              "test-elixir",
+              "test-java",
+              "test-js",
+              "test-lib",
+              "test-php",
+              "test-python",
+              "test-rust",
+              "test-rust-main"
+            ]
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
@@ -499,8 +530,7 @@ jobs:
           profile: dev
           features: ${{ matrix.features }}
     # These are the same env variables as in `test-rust.yaml`. Custom actions
-    # don't allow setting env variables for the whole job, so we do it here. (We
-    # could change the `build-prqlc` action to a workflow...).
+    # don't allow setting env variables for the whole job, so we do it here.
     env:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
@@ -509,14 +539,14 @@ jobs:
   create-issue-on-nightly-failure:
     runs-on: ubuntu-latest
     needs:
-      - rules
       - check-ok-to-merge
-      - nightly
+      # The jobs which the check doesn't run on
+      - build-devcontainer
+      - test-taskfile
     if:
       # We care that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.schedule && needs.rules.outputs.nightly &&
-      contains(needs.*.result, 'failure')
+      always() && github.event.schedule && contains(needs.*.result, 'failure')
     permissions:
       contents: read
       issues: write

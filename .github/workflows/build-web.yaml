@@ -10,7 +10,7 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
 
 concurrency:
-  # See notes in `pull-request.yaml`
+  # See notes in `tests.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-web
   cancel-in-progress: true
 

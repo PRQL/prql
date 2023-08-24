@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # See notes in `pull-request.yaml`
+  # See notes in `tests.yaml`
   group: ${{ github.workflow }}-${{ github.ref }}-php
   cancel-in-progress: true
 

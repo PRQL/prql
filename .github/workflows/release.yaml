@@ -61,7 +61,7 @@ jobs:
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   winget-release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: build-prqlc
     if: github.ref_type == 'tag'
     steps:
