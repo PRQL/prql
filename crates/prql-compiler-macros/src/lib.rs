@@ -33,5 +33,5 @@ pub fn prql_to_sql(input: TokenStream) -> TokenStream {
         }
     };
 
-    TokenStream::from_iter(vec![TokenTree::Literal(Literal::string(&sql_string))].into_iter())
+    TokenStream::from_iter(vec![TokenTree::Literal(Literal::string(&sql_string))])
 }
