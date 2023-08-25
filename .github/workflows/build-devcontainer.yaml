@@ -57,4 +57,3 @@ jobs:
             type=inline
           # Disabling GHA cache due to Https://github.com/docker/build-push-action/issues/939
           # ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
-          # type=inline
