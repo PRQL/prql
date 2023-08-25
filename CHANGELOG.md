@@ -6,15 +6,34 @@
 
 **Features**:
 
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.9.4 — 2023-08-24
+
+0.9.4 is a small release with some improvements and bug fixes in the compiler
+and `prqlc`. And, the documentation and CI are continually being improved.
+
+This release has 110 commits from 9 contributors. Selected changes:
+
+**Features**:
+
 - Strings can be delimited with any odd number of quote characters. The logic
   for lexing quotes is now simpler and slightly faster. Escapes in
   single-quote-delimited strings escape single-quotes rather than double-quotes.
-  (@max-sixty, @3274)
+  (@max-sixty, #3274)
 
 **Fixes**:
 
-- `prqlc` no longer displays a prompt when piping a query into its stdin
-  (@max-sixty, #3248).
 - S-strings within double braces now parse correctly (@max-sixty, #3265)
 
 **Documentation**:
@@ -29,7 +48,9 @@
 
 **Integrations**:
 
-- Add a minimal example for use with Zig (@vanillajonathan, #3372)
+- `prqlc` no longer displays a prompt when piping a query into its stdin
+  (@max-sixty, #3248).
+- Add a minimal example for use `prql-lib` with Zig (@vanillajonathan, #3372)
 
 **Internal changes**:
 
@@ -47,6 +68,9 @@
   (@max-sixty, #3304)
 
 **New Contributors**:
+
+- @FinnRG, with #3292
+- @sitiom, with #3353
 
 ## 0.9.3 — 2023-08-02
 

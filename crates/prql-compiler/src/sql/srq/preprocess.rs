@@ -333,8 +333,17 @@ pub(in crate::sql) fn except(
         if res.len() < 2 {
             continue;
         }
-        let SqlTransform::Join { side: JoinSide::Left, filter: join_cond, with } = &res[res.len() - 2] else { continue };
-        let Super(Transform::Filter(filter)) = &res[res.len() - 1] else { continue };
+        let SqlTransform::Join {
+            side: JoinSide::Left,
+            filter: join_cond,
+            with,
+        } = &res[res.len() - 2]
+        else {
+            continue;
+        };
+        let Super(Transform::Filter(filter)) = &res[res.len() - 1] else {
+            continue;
+        };
 
         let with = ctx.anchor.relation_instances.get(with).unwrap();
 
@@ -419,7 +428,14 @@ pub(in crate::sql) fn intersect(
         if res.is_empty() {
             continue;
         }
-        let Join { side: JoinSide::Inner, filter: join_cond, with } = &res[res.len() - 1] else { continue };
+        let Join {
+            side: JoinSide::Inner,
+            filter: join_cond,
+            with,
+        } = &res[res.len() - 1]
+        else {
+            continue;
+        };
         let with = ctx.anchor.relation_instances.get_mut(with).unwrap();
 
         let bottom = with.table_ref.columns.iter().map(|(_, c)| *c).collect_vec();

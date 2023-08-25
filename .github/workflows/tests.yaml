@@ -17,7 +17,7 @@ on:
   workflow_call:
 
 concurrency:
-  # This used to require a custom suffix; I think the can now be removed...
+  # This used to require a custom suffix; I think that can now be removed...
   group: ${{ github.workflow }}-${{ github.ref }}-tests
   cancel-in-progress: true
 
@@ -42,6 +42,10 @@ jobs:
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
       lib: ${{ steps.changes.outputs.lib }}
+      # Run tests such as rust tests for all-OSs, and bindings tests on ubuntu.
+      # Somewhat a tradeoff between coverage and ensuring our CI queues stay
+      # short.
+      main: ${{ steps.main.outputs.run }}
       # Run all tests
       nightly: ${{ steps.nightly.outputs.run }}
       # Really run all tests (e.g. taskfile & devcontainer)
@@ -49,8 +53,6 @@ jobs:
       php: ${{ steps.changes.outputs.php }}
       python: ${{ steps.changes.outputs.python }}
       rust: ${{ steps.changes.outputs.rust }}
-      # Run most test (`all` is a misnomer!)
-      main: ${{ steps.main.outputs.run }}
       taskfile: ${{ steps.changes.outputs.taskfile }}
       web: ${{ steps.changes.outputs.web }}
 
@@ -61,9 +63,6 @@ jobs:
         id: changes
         with:
           filters: |
-            main:
-              - "**/Cargo.*"
-              - .github/**
             book:
               - .github/workflows/check-links-book.yaml
               - web/book/**
@@ -89,9 +88,15 @@ jobs:
             lib:
               - bindings/prql-lib/**
               - .github/workflows/test-lib.yaml
+            main:
+              - "**/Cargo.*"
+              - .github/**
             nightly:
               - .github/workflows/nightly.yaml
+              - .github/workflows/release.yaml
               - Cargo.lock
+              - rust-toolchain.toml
+              - .cargo/**
             php:
               - bindings/prql-php/**
               - bindings/prql-lib/**
@@ -122,8 +127,7 @@ jobs:
 
       - id: nightly-schedule
         run:
-          echo "run=${{ steps.changes.outputs.nightly == 'true' &&
-          github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
+          echo "run=${{ github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -298,12 +302,6 @@ jobs:
   lint-megalinter:
     uses: ./.github/workflows/lint-megalinter.yaml
 
-  # This is going away soon, to be consolidated into here.
-  main:
-    uses: ./.github/workflows/test-all.yaml
-    needs: rules
-    if: needs.rules.outputs.main == 'true'
-
   publish-web:
     uses: ./.github/workflows/publish-web.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
@@ -454,7 +452,10 @@ jobs:
       - check-links-book
       - check-links-markdown
       - lint-megalinter
-      - nightly
+      # Excluding until https://github.com/re-actors/alls-green/issues/23 is
+      # fixed. This is annoying, since dependabot will merge things that break
+      # non-ubuntu deps. Hopefully will be fixed soon.
+      # - nightly
       - publish-web
       - test-dotnet
       - test-elixir
@@ -477,7 +478,11 @@ jobs:
           #
           # We're currently including `nightly` because I'm not sure whether
           # it's always reliable; e.g. `cargo-audit`
-          allowed-failures: check-links-markdown, nightly
+          allowed-failures: |
+            [
+              "check-links-markdown",
+              "nightly"
+            ]
           # We skip jobs deliberately, so we are OK if any are skipped.
           #
           # Copy-pasted from `needs`, since it needs to be a json list, so `${{
@@ -553,8 +558,7 @@ jobs:
     if:
       # We care that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.nightly-schedule && contains(needs.*.result,
-      'failure')
+      always() && github.event.schedule && contains(needs.*.result, 'failure')
     permissions:
       contents: read
       issues: write
