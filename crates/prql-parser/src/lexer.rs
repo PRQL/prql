@@ -91,9 +91,10 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let range = (whitespace().or_not())
+    let whitespace = whitespace();
+    let range = (whitespace.clone().or_not())
         .then_ignore(just(".."))
-        .then(whitespace().or_not())
+        .then(whitespace.or_not())
         .map(|(left, right)| Token::Range {
             bind_left: left.is_none(),
             bind_right: right.is_none(),
@@ -131,7 +132,7 @@ fn new_line() -> impl Parser<char, Token, Error = Cheap<char>> {
     just('\n').to(Token::NewLine)
 }
 
-fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
+fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> + Clone {
     one_of("\t \r").repeated().at_least(1).ignored()
 }
 
