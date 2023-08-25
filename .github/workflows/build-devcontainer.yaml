@@ -50,6 +50,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64, linux/arm64
           push: ${{ inputs.push == 'true' }}
+          # `type=gha` not active, see below
           cache-from: |
             ${{ steps.meta.outputs.tags }}
             type=gha
