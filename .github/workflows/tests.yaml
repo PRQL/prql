@@ -37,7 +37,7 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
-      devcontainer-publish: ${{ steps.changes.outputs.devcontainer-publish }}
+      devcontainer-push: ${{ steps.changes.outputs.devcontainer-push }}
       devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
       elixir: ${{ steps.changes.outputs.elixir }}
       java: ${{ steps.changes.outputs.java }}
@@ -71,7 +71,7 @@ jobs:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
-            devcontainer-publish:
+            devcontainer-push:
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
             devcontainer-test:
@@ -399,12 +399,12 @@ jobs:
           name: code-coverage-report
           path: cobertura.xml
 
-  publish-devcontainer:
+  push-devcontainer:
     needs: rules
-    if: needs.rules.outputs.devcontainer-publish == 'true'
+    if: needs.rules.outputs.devcontainer-push == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      publish: true
+      push: true
 
   test-devcontainer:
     needs: rules
@@ -413,7 +413,7 @@ jobs:
       needs.rules.outputs.nightly-schedule == 'true' }}
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      publish: false
+      push: false
 
   time-compilation:
     runs-on: ubuntu-latest
