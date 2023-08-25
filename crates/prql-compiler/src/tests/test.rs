@@ -692,12 +692,12 @@ fn test_sorts() {
       num_of_articles
     "###);
 
-    assert_display_snapshot!((compile(r###"
+    assert_display_snapshot!((compile(r#"
     from x
     derive somefield = "something"
     sort {somefield}
     select {renamed = somefield}
-    "###
+    "#
     ).unwrap()), @r###"
     WITH table_0 AS (
       SELECT
@@ -829,7 +829,7 @@ fn test_window_functions_00() {
 
 #[test]
 fn test_window_functions_02() {
-    let query = r###"
+    let query = r#"
     from co=cust_order
     join ol=order_line (==order_id)
     derive {
@@ -851,7 +851,7 @@ fn test_window_functions_02() {
     )
     sort order_day
     derive {num_books_last_week = lag 7 num_books}
-    "###;
+    "#;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     WITH table_0 AS (
@@ -1142,7 +1142,7 @@ fn test_name_resolving() {
 
 #[test]
 fn test_strings() {
-    let query = r###"
+    let query = r#"
     from empty_table_to_do
     select {
         x = "two households'",
@@ -1150,7 +1150,7 @@ fn test_strings() {
         z = f"a {x} b' {y} c",
         v = f'a {x} b" {y} c',
     }
-    "###;
+    "#;
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       'two households''' AS x,
@@ -1673,14 +1673,14 @@ select {mng_name, managers.gender, salary_avg, salary_sd}"#;
 
 #[test]
 fn test_f_string() {
-    let query = r###"
+    let query = r#"
     from employees
     derive age = year_born - s'now()'
     select {
         f"Hello my name is {prefix}{first_name} {last_name}",
         f"and I am {age} years old."
     }
-    "###;
+    "#;
 
     assert_display_snapshot!(
       compile(query).unwrap(),
@@ -1719,7 +1719,7 @@ fn test_f_string() {
 
 #[test]
 fn test_sql_of_ast_1() {
-    let query = r###"
+    let query = r#"
     from employees
     filter country == "USA"
     group {title, country} (
@@ -1727,7 +1727,7 @@ fn test_sql_of_ast_1() {
     )
     sort title
     take 20
-    "###;
+    "#;
 
     let sql = compile(query).unwrap();
     assert_display_snapshot!(sql,
@@ -1754,7 +1754,7 @@ fn test_sql_of_ast_1() {
 #[test]
 // Confirm that a bare s-string in a table definition works as expected.
 fn test_bare_s_string() {
-    let query = r###"
+    let query = r#"
     let grouping = s"""
         SELECT SUM(a)
         FROM tbl
@@ -1763,7 +1763,7 @@ fn test_bare_s_string() {
           ((b, c, d), (d), (b, d))
       """
     from grouping
-    "###;
+    "#;
 
     let sql = compile(query).unwrap();
     assert_display_snapshot!(sql,
@@ -1784,10 +1784,10 @@ fn test_bare_s_string() {
     );
 
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
-    let query = r###"
+    let query = r#"
     let a = s"select insensitive from rude"
     from a
-    "###;
+    "#;
 
     let sql = compile(query).unwrap();
     assert_display_snapshot!(sql,
@@ -1806,10 +1806,10 @@ fn test_bare_s_string() {
     );
 
     // Check a mixture of cases for good measure.
-    let query = r###"
+    let query = r#"
     let a = s"sElEcT insensitive from rude"
     from a
-    "###;
+    "#;
 
     let sql = compile(query).unwrap();
     assert_display_snapshot!(sql,
@@ -1828,7 +1828,7 @@ fn test_bare_s_string() {
     );
 
     // Check SELECT\n.
-    let query = r###"
+    let query = r#"
     let a = s"
     SELECT
       foo
@@ -1836,7 +1836,7 @@ fn test_bare_s_string() {
       bar"
 
     from a
-    "###;
+    "#;
 
     let sql = compile(query).unwrap();
     assert_display_snapshot!(sql,
@@ -1853,9 +1853,9 @@ fn test_bare_s_string() {
       table_0
     "###);
 
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from s"SELECTfoo"
-    "###).unwrap_err(), @r###"
+    "#).unwrap_err(), @r###"
     Error: s-strings representing a table must start with `SELECT `
     ↳ Hint: this is a limitation by current compiler implementation
     "###);
@@ -1890,11 +1890,11 @@ fn test_table_definition_with_expr_call() {
 
 #[test]
 fn test_sql_of_ast_2() {
-    let query = r###"
+    let query = r#"
     from employees
     aggregate sum_salary = s"sum({salary})"
     filter sum_salary > 100
-    "###;
+    "#;
     let sql = compile(query).unwrap();
     assert_snapshot!(sql, @r###"
     SELECT
@@ -2069,7 +2069,7 @@ fn test_prql_to_sql_table() {
 #[test]
 fn test_nonatomic() {
     // A take, then two aggregates
-    let query = r###"
+    let query = r#"
         from employees
         take 20
         filter country == "USA"
@@ -2084,7 +2084,7 @@ fn test_nonatomic() {
             }
         )
         sort sum_gross_cost
-    "###;
+    "#;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     WITH table_1 AS (
@@ -2155,7 +2155,7 @@ fn test_nonatomic() {
 /// Confirm a nonatomic table works.
 fn test_nonatomic_table() {
     // A take, then two aggregates
-    let query = r###"
+    let query = r#"
     let a = (
         from employees
         take 50
@@ -2164,7 +2164,7 @@ fn test_nonatomic_table() {
     from a
     join b (==country)
     select {name, salary, average_country_salary}
-"###;
+"#;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     WITH table_0 AS (
@@ -2274,11 +2274,11 @@ fn test_table_alias() {
       e.emp_no
     "###);
 
-    assert_display_snapshot!((compile(r###"
+    assert_display_snapshot!((compile(r#"
     from e=employees
     select e.first_name
     filter e.first_name == "Fred"
-    "###).unwrap()), @r###"
+    "#).unwrap()), @r###"
     SELECT
       first_name
     FROM
@@ -2364,10 +2364,10 @@ fn test_target_clickhouse() {
 #[test]
 fn test_ident_escaping() {
     // Generic
-    let query = r###"
+    let query = r#"
     from `anim"ls`
     derive {`čebela` = BeeName, medved = `bear's_name`}
-    "###;
+    "#;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
@@ -2379,12 +2379,12 @@ fn test_ident_escaping() {
     "###);
 
     // MySQL
-    let query = r###"
+    let query = r#"
     prql target:sql.mysql
 
     from `anim"ls`
     derive {`čebela` = BeeName, medved = `bear's_name`}
-    "###;
+    "#;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
@@ -2618,11 +2618,11 @@ fn test_filter_and_select_changed_alias() {
     );
 
     // #1207
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from x
     filter name != "Bob"
     select name = name ?? "Default"
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     SELECT
       COALESCE(name, 'Default') AS name
@@ -2655,9 +2655,9 @@ fn test_unused_alias() {
 
 #[test]
 fn test_table_s_string() {
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     let main <relation> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2675,12 +2675,12 @@ fn test_table_s_string() {
     "###
     );
 
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from s"""
         SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC
     """
     join s = s"SELECT * FROM salaries" (==id)
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2707,10 +2707,10 @@ fn test_table_s_string() {
     "###
     );
 
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from s"""SELECT * FROM employees"""
     filter country == "USA"
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2727,10 +2727,10 @@ fn test_table_s_string() {
     "###
     );
 
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from e=s"""SELECT * FROM employees"""
     filter e.country == "USA"
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2747,12 +2747,12 @@ fn test_table_s_string() {
     "###
     );
 
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     let weeks_between = start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
     let current_week = -> s"date(date_trunc('week', current_date))"
 
     weeks_between @2022-06-03 (current_week + 4)
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2769,9 +2769,9 @@ fn test_table_s_string() {
     "###
     );
 
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     s"SELECT * FROM {default_db.x}"
-    "###).unwrap(),
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2790,10 +2790,10 @@ fn test_table_s_string() {
 #[test]
 fn test_direct_table_references() {
     assert_display_snapshot!(compile(
-        r###"
+        r#"
     from x
     select s"{x}.field"
-    "###,
+    "#,
     )
     .unwrap_err(), @r###"
     Error:
@@ -2888,11 +2888,11 @@ fn test_group_all() {
 fn test_output_column_deduplication() {
     // #1249
     assert_display_snapshot!(compile(
-        r###"
+        r#"
     from report
     derive r = s"RANK() OVER ()"
     filter r == 1
-        "###).unwrap(),
+        "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -3038,7 +3038,7 @@ fn test_static_analysis() {
 #[test]
 fn test_closures_and_pipelines() {
     assert_display_snapshot!(compile(
-        r###"
+        r#"
     let addthree = a b c -> s"{a} || {b} || {c}"
     let arg = myarg myfunc <func> -> ( myfunc myarg )
 
@@ -3048,7 +3048,7 @@ fn test_closures_and_pipelines() {
         arg "bananas"
         arg "citrus"
     )
-        "###).unwrap(),
+        "#).unwrap(),
         @r###"
     SELECT
       'apples' || 'bananas' || 'citrus' AS x
@@ -4035,7 +4035,7 @@ fn test_returning_constants_only() {
 fn test_conflicting_names_at_split() {
     // issue #2697
     assert_display_snapshot!(compile(
-        r###"
+        r#"
     from s = workflow_steps
     join wp=workflow_phases (s.phase_id == wp.id)
     filter wp.name == "CREATE_OUTLET"
@@ -4044,7 +4044,7 @@ fn test_conflicting_names_at_split() {
         step_id = s.id,
         phase_id = wp.id,
     }
-    "###,
+    "#,
     )
     .unwrap(), @r###"
     WITH table_0 AS (

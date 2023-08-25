@@ -38,12 +38,12 @@ fn test_bad_error_messages() {
     "###);
 
     // This should suggest parentheses (this might not be an easy one to solve)
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     let f = country -> country == "Canada"
 
     from employees
     filter f location
-    "###).unwrap_err(), @r###"
+    "#).unwrap_err(), @r###"
     Error:
        ╭─[:5:14]
        │
@@ -99,10 +99,10 @@ fn array_instead_of_tuple() {
 
 #[test]
 fn empty_interpolations() {
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from x
     select f"{}"
-    "###).unwrap_err(), @r###"
+    "#).unwrap_err(), @r###"
     Error:
        ╭─[:3:14]
        │
@@ -116,10 +116,10 @@ fn empty_interpolations() {
 #[test]
 fn select_with_extra_fstr() {
     // Should complain in the same way as `select lower "mooo"`
-    assert_display_snapshot!(compile(r###"
+    assert_display_snapshot!(compile(r#"
     from foo
     select lower f"{x}/{y}"
-    "###).unwrap_err(), @r###"
+    "#).unwrap_err(), @r###"
     Error:
        ╭─[:3:20]
        │

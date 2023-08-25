@@ -413,7 +413,7 @@ fn quotes() {
 
     // Escape each inner quote depending on the outer quote
     assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
-    assert_snapshot!(quoted_string(true).parse(r#"'\'hello\''"#).unwrap(), @"'hello'");
+    assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
 
     assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
 

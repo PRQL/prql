@@ -319,7 +319,7 @@ this is an error
 #[test]
 fn test_table() -> Result<()> {
     use insta::assert_display_snapshot;
-    let table = r###"
+    let table = r"
 # Syntax
 
 | a |
@@ -331,7 +331,7 @@ fn test_table() -> Result<()> {
 |-----|
 | \|  |
 
-"###;
+";
 
     assert_display_snapshot!(replace_examples(table)?, @r###"
     # Syntax
