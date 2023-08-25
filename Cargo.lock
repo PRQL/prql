@@ -852,7 +852,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
 ]
@@ -2178,7 +2178,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "ansi-to-html",
  "anstream",
@@ -2271,7 +2271,7 @@ dependencies = [
 
 [[package]]
 name = "misc"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "insta",
  "regex",
@@ -2875,7 +2875,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
  "rustler",
@@ -2883,7 +2883,7 @@ dependencies = [
 
 [[package]]
 name = "prql-ast"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "enum-as-inner",
  "semver",
@@ -2893,7 +2893,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "anstream",
  "anyhow",
@@ -2931,7 +2931,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
  "syn 2.0.17",
@@ -2939,7 +2939,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2947,7 +2947,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2957,7 +2957,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2966,7 +2966,7 @@ dependencies = [
 
 [[package]]
 name = "prql-parser"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "chumsky",
  "insta",
@@ -2977,7 +2977,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "insta",
  "prql-compiler",
@@ -2987,7 +2987,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "anstream",
  "anyhow",
