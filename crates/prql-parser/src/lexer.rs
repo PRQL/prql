@@ -74,13 +74,12 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .collect::<String>()
         .map(Token::Param);
 
-    // s-string and f-strings
     let interpolation = one_of("sf")
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
     let token = choice((
-        new_line(),
+        just('\n').to(Token::NewLine),
         control_multi,
         interpolation,
         param,
@@ -91,26 +90,42 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let whitespace = whitespace();
+    let whitespace = one_of("\t \r").repeated().at_least(1).ignored().clone();
+    let comment = just('#')
+        .then(none_of('\n').repeated())
+        .separated_by(just('\n').then(whitespace.clone().or_not()))
+        .at_least(1)
+        .ignored();
+
     let range = (whitespace.clone().or_not())
         .then_ignore(just(".."))
-        .then(whitespace.or_not())
+        .then(whitespace.clone().or_not())
         .map(|(left, right)| Token::Range {
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
         .map_with_span(|tok, span| (tok, span));
 
-    // range needs to consume leading whitespace,
-    // so whitespace following a token must not be consumed
-    comment()
+    let ignored = comment
+        .clone()
+        .or(whitespace.clone())
+        .or(just('\n')
+            .then(whitespace.repeated().or_not())
+            .then(just('\\'))
+            .ignored())
+        .repeated()
+        .ignored();
+
+    comment
         .or_not()
         .ignore_then(choice((
             range,
-            ignored().ignore_then(token.map_with_span(|tok, span| (tok, span))),
+            ignored
+                .clone()
+                .ignore_then(token.map_with_span(|tok, span| (tok, span))),
         )))
         .repeated()
-        .then_ignore(ignored())
+        .then_ignore(ignored)
         .then_ignore(end())
 }
 
@@ -126,38 +141,6 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
         .collect::<String>();
 
     plain.or(backticks)
-}
-
-fn new_line() -> impl Parser<char, Token, Error = Cheap<char>> {
-    just('\n').to(Token::NewLine)
-}
-
-fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> + Clone {
-    one_of("\t \r").repeated().at_least(1).ignored()
-}
-
-fn comment() -> impl Parser<char, (), Error = Cheap<char>> {
-    let comment = just('#').then(none_of('\n').repeated());
-
-    comment
-        .separated_by(new_line().then(whitespace().or_not()))
-        .at_least(1)
-        .ignored()
-}
-
-fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
-    comment()
-        .or(whitespace())
-        .or(line_continuation())
-        .repeated()
-        .ignored()
-}
-
-fn line_continuation() -> impl Parser<char, (), Error = Cheap<char>> {
-    just('\n')
-        .then(whitespace().repeated().or_not())
-        .then(just('\\'))
-        .ignored()
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
@@ -416,22 +399,6 @@ impl std::cmp::Eq for Token {}
 #[test]
 fn test_line_continuation() {
     use insta::assert_debug_snapshot;
-
-    line_continuation()
-        .then_ignore(end())
-        .parse(
-            r#"
-\"#,
-        )
-        .unwrap();
-
-    line_continuation()
-        .then_ignore(end())
-        .parse(
-            r#"
-    \"#,
-        )
-        .unwrap();
 
     // (TODO: is there a terser way of writing our lexer output?)
     assert_debug_snapshot!(lexer().parse(r#"5 +
