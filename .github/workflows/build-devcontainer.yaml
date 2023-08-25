@@ -49,8 +49,9 @@ jobs:
             'workflow_dispatch' }}
           cache-from: |
             ${{ steps.meta.outputs.tags }}
+            type=gha
+          cache-to: |
+            type=inline
           # Disabling GHA cache due to Https://github.com/docker/build-push-action/issues/939
-          # type=gha
-          # cache-to: |
           # ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
           # type=inline
