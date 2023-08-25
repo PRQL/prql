@@ -95,6 +95,8 @@ jobs:
               - .github/workflows/nightly.yaml
               - .github/workflows/release.yaml
               - Cargo.lock
+              - rust-toolchain.toml
+              - .cargo/**
             php:
               - bindings/prql-php/**
               - bindings/prql-lib/**
