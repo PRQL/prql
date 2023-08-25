@@ -101,7 +101,7 @@ where
 
     fn any_true(self) -> Option<bool> {
         self.cloned()
-            .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a && b))
+            .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a || b))
     }
 }
 
