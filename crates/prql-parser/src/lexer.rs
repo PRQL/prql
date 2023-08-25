@@ -416,7 +416,6 @@ impl std::cmp::Eq for Token {}
 fn test_line_continuation() {
     use insta::assert_debug_snapshot;
 
-    // All these are valid & equal.
     line_continuation()
         .then_ignore(end())
         .parse(

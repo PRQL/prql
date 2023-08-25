@@ -1,0 +1,20 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from tracks\n# This would be a really long line without being able to split it\nderive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)\n\\ * length_seconds\n\\ / 60 / 60 / 24 / 365\n#   min  hour day  year\n"
+---
+SELECT
+  *,
+  (
+    (
+      (
+        (
+          (
+            spotify_plays + apple_music_plays + pandora_plays
+          ) * length_seconds / 60
+        ) / 60
+      ) / 24
+    ) / 365
+  ) AS listening_time_years
+FROM
+  tracks
+
