@@ -45,5 +45,5 @@
     "start": "react-scripts start",
     "test": "react-scripts test"
   },
-  "version": "0.9.4"
+  "version": "0.9.5"
 }
