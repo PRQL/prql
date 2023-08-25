@@ -71,10 +71,11 @@ jobs:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
-            devcontainer:
+            devcontainer-publish:
               - .devcontainer/**/*Dockerfile
-              - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
+            devcontainer-test:
+              - .github/workflows/build-devcontainer.yaml
             elixir:
               - bindings/prql-elixir/**
               - bindings/prql-lib/**
@@ -398,14 +399,21 @@ jobs:
           name: code-coverage-report
           path: cobertura.xml
 
-  build-devcontainer:
+  publish-devcontainer:
+    needs: rules
+    if: needs.rules.outputs.publish-devcontainer == 'true'
+    uses: ./.github/workflows/build-devcontainer.yaml
+    with:
+      publish: true
+
+  test-devcontainer:
     needs: rules
     if:
-      # We only run on nightly scheduled, since this is very expensive and we
-      # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.devcontainer == 'true' ||
-      needs.rules.outputs.nightly-schedule == 'true'
+      ${{ needs.rules.outputs.test-devcontainer == 'true' ||
+      needs.rules.outputs.nightly-schedule == 'true' }}
     uses: ./.github/workflows/build-devcontainer.yaml
+    with:
+      publish: false
 
   time-compilation:
     runs-on: ubuntu-latest

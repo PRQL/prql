@@ -269,6 +269,8 @@ jobs:
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
 
-  push-devcontainer-base-image:
+  publish-devcontainer:
     if: github.ref_type == 'tag' && !inputs.dry-run
     uses: ./.github/workflows/build-devcontainer.yaml
+    with:
+      publish: true
