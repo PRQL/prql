@@ -106,13 +106,15 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         })
         .map_with_span(|tok, span| (tok, span));
 
+    let line_continuation = just('\n')
+        .then(whitespace.clone().repeated().or_not())
+        .then(just('\\'))
+        .ignored();
+
     let ignored = comment
         .clone()
         .or(whitespace.clone())
-        .or(just('\n')
-            .then(whitespace.repeated().or_not())
-            .then(just('\\'))
-            .ignored())
+        .or(line_continuation)
         .repeated()
         .ignored();
 
