@@ -1972,9 +1972,9 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_multiline_string() {
-        assert_yaml_snapshot!(parse_single(r###"
+        assert_yaml_snapshot!(parse_single(r##"
         derive x = r#"r-string test"#
-        "###).unwrap(), @r###"
+        "##).unwrap(), @r###"
         ---
         - Main:
             FuncCall:

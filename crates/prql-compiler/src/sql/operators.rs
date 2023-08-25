@@ -55,7 +55,7 @@ pub(super) fn translate_operator(
         .chain(func_def.params.iter())
         .map(|x| x.name.split('.').last().unwrap_or(x.name.as_str()));
 
-    let args: HashMap<&str, _> = zip(params, args.into_iter()).collect();
+    let args: HashMap<&str, _> = zip(params, args).collect();
 
     // body can only be an s-string
     let body = match &func_def.body.kind {
