@@ -138,9 +138,7 @@ jobs:
 
   build-and-publish-snap:
     runs-on: ubuntu-latest
-    # This is failing at the moment https://github.com/PRQL/prql/issues/3386
-    # if: ${{ github.ref_type == 'tag' }}
-    if: ${{ false }}
+    if: ${{ github.ref_type == 'tag' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3

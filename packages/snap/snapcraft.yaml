@@ -20,6 +20,7 @@ parts:
   prqlc:
     plugin: rust
     source: .
+    build-packages: [cargo]
     rust-path: [crates/prqlc]
 
 apps:
