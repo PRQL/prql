@@ -297,7 +297,7 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
-        let Some(expected_fields) = find_potential_tuple_fields(expected) else{
+        let Some(expected_fields) = find_potential_tuple_fields(expected) else {
             return Ok(false);
         };
 

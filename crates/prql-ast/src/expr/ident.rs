@@ -44,7 +44,7 @@ impl Ident {
     }
 
     pub fn prepend(self, mut parts: Vec<String>) -> Ident {
-        parts.extend(self.into_iter());
+        parts.extend(self);
         Ident::from_path(parts)
     }
 
