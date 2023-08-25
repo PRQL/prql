@@ -469,7 +469,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+        # https://github.com/re-actors/alls-green/issues/23
+        uses: re-actors/alls-green@release/cf9edfcf932a0ed6b431433fa183829c68b30e3f
         with:
           jobs: ${{ toJSON(needs) }}
           # We don't include `check-links-markdown`, since occasionally we'll want to merge
