@@ -34,9 +34,6 @@ pub enum Token {
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
-    let new_line = just('\n').to(Token::NewLine);
-    let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
-
     let control_multi = choice((
         just("->").to(Token::ArrowThin),
         just("=>").to(Token::ArrowFat),
@@ -83,7 +80,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .map(|(c, s)| Token::Interpolation(c, s));
 
     let token = choice((
-        new_line.clone(),
+        new_line(),
         control_multi,
         interpolation,
         param,
@@ -94,15 +91,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let comment = just('#').then(none_of('\n').repeated());
-    let comments = comment
-        .separated_by(new_line.then(whitespace.clone().or_not()))
-        .at_least(1)
-        .ignored();
-
-    let range = (whitespace.clone().or_not())
+    let range = (whitespace().or_not())
         .then_ignore(just(".."))
-        .then(whitespace.clone().or_not())
+        .then(whitespace().or_not())
         .map(|(left, right)| Token::Range {
             bind_left: left.is_none(),
             bind_right: right.is_none(),
@@ -111,18 +102,14 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     // range needs to consume leading whitespace,
     // so whitespace following a token must not be consumed
-    let ignored = comments.clone().or(whitespace).repeated();
-
-    comments
+    comment()
         .or_not()
         .ignore_then(choice((
             range,
-            ignored
-                .clone()
-                .ignore_then(token.map_with_span(|tok, span| (tok, span))),
+            ignored().ignore_then(token.map_with_span(|tok, span| (tok, span))),
         )))
         .repeated()
-        .then_ignore(ignored)
+        .then_ignore(ignored())
         .then_ignore(end())
 }
 
@@ -138,6 +125,38 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
         .collect::<String>();
 
     plain.or(backticks)
+}
+
+fn new_line() -> impl Parser<char, Token, Error = Cheap<char>> {
+    just('\n').to(Token::NewLine)
+}
+
+fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
+    one_of("\t \r").repeated().at_least(1).ignored()
+}
+
+fn comment() -> impl Parser<char, (), Error = Cheap<char>> {
+    let comment = just('#').then(none_of('\n').repeated());
+
+    comment
+        .separated_by(new_line().then(whitespace().or_not()))
+        .at_least(1)
+        .ignored()
+}
+
+fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
+    comment()
+        .or(whitespace())
+        .or(line_continuation())
+        .repeated()
+        .ignored()
+}
+
+fn line_continuation() -> impl Parser<char, (), Error = Cheap<char>> {
+    just('\n')
+        .then(whitespace().repeated().or_not())
+        .then(just('\\'))
+        .ignored()
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
@@ -392,6 +411,93 @@ impl std::hash::Hash for Token {
 }
 
 impl std::cmp::Eq for Token {}
+
+#[test]
+fn test_line_continuation() {
+    use insta::assert_debug_snapshot;
+
+    // All these are valid & equal.
+    line_continuation()
+        .then_ignore(end())
+        .parse(
+            r#"
+\"#,
+        )
+        .unwrap();
+
+    line_continuation()
+        .then_ignore(end())
+        .parse(
+            r#"
+    \"#,
+        )
+        .unwrap();
+
+    // (TODO: is there a terser way of writing our lexer output?)
+    assert_debug_snapshot!(lexer().parse(r#"5 +
+    \ 3 "#
+        ).unwrap(), @r###"
+    [
+        (
+            Literal(
+                Integer(
+                    5,
+                ),
+            ),
+            0..1,
+        ),
+        (
+            Control(
+                '+',
+            ),
+            2..3,
+        ),
+        (
+            Literal(
+                Integer(
+                    3,
+                ),
+            ),
+            10..11,
+        ),
+    ]
+    "###);
+
+    // TODO: this is how a comment appears — with a newline
+    assert_debug_snapshot!(lexer().parse(r#"5 +
+    # comment
+    \ 3 "#
+        ).unwrap(), @r###"
+    [
+        (
+            Literal(
+                Integer(
+                    5,
+                ),
+            ),
+            0..1,
+        ),
+        (
+            Control(
+                '+',
+            ),
+            2..3,
+        ),
+        (
+            NewLine,
+            3..4,
+        ),
+        (
+            Literal(
+                Integer(
+                    3,
+                ),
+            ),
+            24..25,
+        ),
+    ]
+    "###);
+}
 
 #[test]
 fn quotes() {

@@ -167,3 +167,38 @@ We're continuing to think whether these rules can be more intuitive.
 We're also planning to make the error messages much better,
 so the compiler can help out.
 ```
+
+## Line continuation
+
+Line breaks in PRQL have semantic meaning, so to continue a line, we can use `\`
+at the beginning of the next line:
+
+```prql
+from tracks
+# This would be a really long line without being able to split it
+derive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
+\ * length_seconds
+\ / 60 / 60 / 24 / 365
+#   min  hour day  year
+```
+
+```admonish note
+Note that most languages use a `\` at the _end_ of a line. We're exploring being
+able to comment out a line mid-way through a number of lines containing line-continuations,
+which this would facilitate.
+```
+
+<!-- Because PRQL aims to
+be friendly for data exploration, we want to make it easy to comment out a line,
+which requires the character at the start of the line:
+
+```prql
+from tracks
+# This would be a really long line without being able to split it
+derive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
+\ # * length_seconds
+\ # Or is it `length_s`?
+\ * length
+\ / 60 / 60 / 24 / 365
+#   min  hour day  year
+``` -->
