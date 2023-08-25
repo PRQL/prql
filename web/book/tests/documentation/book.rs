@@ -211,7 +211,7 @@ fn collect_book_examples() -> Result<Vec<Example>> {
                     }
                 }
                 let Some(tags) = code_block_lang_tags(&event) else {
-                    continue
+                    continue;
                 };
 
                 if tags.contains(&LangTag::Prql) && !tags.contains(&LangTag::NoEval) {
