@@ -16,19 +16,19 @@ looks like this:
 | 5          | 23          | Boston       |       ...       | 13.86 |
 | 6          | 37          | Frankfurt    |       ...       | 0.99  |
 
-A relation is composed of rows, each of which is a tuple containing the same set
-of columns. Each column has an unique name and a designated data type. The table
-above has `invoice_id`, `customer_id`, and `artist_id` columns with a data type
-of "integer number", a `billing_city` column with a data type of "text", a
-number of other columns, and and a `total` column that contains floating-point
-numbers.
+A relation is composed of rows. Each row in a relation contains a value for each
+of the relation's columns. Each column in a relation has an unique name and a
+designated data type. The table above is a relation, and has columns named
+`invoice_id`and `customer_id` each with a data type of "integer number", a
+`billing_city` column with a data type of "text", several other columns, and a
+`total` column that contains floating-point numbers.
 
 ## Queries
 
-Main purpose of PRQL is to build queries that combine and transform data from
-relations such as the `invoices` table above. Here is the most basic query:
+The main purpose of PRQL is to build queries that combine and transform data
+from relations such as the `invoices` table above. Here is the most basic query:
 
-```
+```prql no-eval
 from invoices
 ```
 
@@ -48,11 +48,11 @@ The `select` function picks the columns to pass through based on a list and
 discards all others. Formally, that list is a _tuple_ of comma-separated
 expressions wrapped in `{ ... }`.
 
-Suppose we only need the `order_id`, `total` columns. Use `select` to choose the
-columns to pass through. _(Try it in the
+Suppose we only need the `order_id` and `total` columns. Use `select` to choose
+the columns to pass through. _(Try it in the
 [Playground.](https://prql-lang.org/playground/))_
 
-```
+```prql no-eval
 from invoices
 select { order_id, total }
 ```
@@ -61,7 +61,7 @@ We can write the items in the tuple on one or several lines: trailing commas are
 ignored. In addition, we can assign any of the expressions to a _variable_ that
 becomes the name of the resulting column in the SQL output.
 
-```
+```prql no-eval
 from invoices
 select {
   OrderID = invoice_id,
@@ -80,7 +80,7 @@ those columns named in the tuple.
 To add columns to a relation, we can use `derive` function. Let's define a new
 column for Value Added Tax, set at 19% of the invoice total.
 
-```
+```prql no-eval
 from invoices
 derive { VAT = total * 0.19 }
 ```
@@ -97,7 +97,7 @@ The `join` transform also adds columns to the relation by combining the rows
 from two relations "side by side". To determine which rows from each relation
 should be joined, `join` has match criteria, written in `( ... )`.
 
-```
+```prql no-eval
 from invoices
 join customers ( ==customer_id )
 ```
@@ -109,7 +109,7 @@ with the information from the `invoices` relation, using identical values of the
 It is frequently useful to assign an alias to both relations being joined
 together so that each relation's columns can be referred to uniquely.
 
-```
+```prql no-eval
 from inv=invoices
 join cust=customers ( ==customer_id )
 ```
@@ -130,7 +130,7 @@ pipeline_ - the fundamental basis of PRQL. We simply add new lines (transforms)
 at the end of the query. Each transform modifies the relation produced by the
 statement above to produce the desired result.
 
-```
+```prql no-eval
 from inv=invoices
 join cust=customers (==customer_id)
 derive { VAT = inv.total * 0.19 }
@@ -141,15 +141,5 @@ select {
   VAT,
 }
 ```
-
-### Move to Reference?
-
-_The following items might be better moved to the Reference section_
-
-[^1]:
-    Chinook is sample database with (fake) data in tables and interesting
-    relations between them. There are many versions of the Chinook database on
-    the web, for example,
-    [https://github.com/lerocha/chinook-database](https://github.com/lerocha/chinook-database).
 
 <!-- PRQL uses the data from... _Where does our data come from? Do we use some canonical version?_ -->
