@@ -440,9 +440,10 @@ fn test_line_continuation() {
     ]
     "###);
 
-    // TODO: this is how a comment appears — with a newline
+    // Commments get skipped over
     assert_debug_snapshot!(lexer().parse(r#"5 +
 # comment
+   # comment with whitespace
   \ 3 "#
         ).unwrap(), @r###"
     [
@@ -466,7 +467,7 @@ fn test_line_continuation() {
                     3,
                 ),
             ),
-            18..19,
+            47..48,
         ),
     ]
     "###);
