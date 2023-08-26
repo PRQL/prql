@@ -440,7 +440,7 @@ fn test_line_continuation() {
     ]
     "###);
 
-    // Commments get skipped over
+    // Comments get skipped over
     assert_debug_snapshot!(lexer().parse(r#"5 +
 # comment
    # comment with whitespace
