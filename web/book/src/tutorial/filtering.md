@@ -3,7 +3,7 @@
 In the previous page we learned how `select`, `derive`, and `join` change the
 columns of a table.
 
-Now we will look into how to manipulate the rows of a table using `filter` and
+Now we will explore how to manipulate the rows of a table using `filter` and
 `take`.
 
 ### `filter` transform
