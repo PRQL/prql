@@ -1,4 +1,4 @@
-use chumsky::{error::Cheap, prelude::*};
+use chumsky::{error::Cheap, prelude::*, text::newline};
 use prql_ast::expr::*;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -78,8 +78,12 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
+    // I think declaring this and then cloning will be more performant than
+    // calling the function on each invocation.
+    let newline = newline();
+
     let token = choice((
-        just('\n').to(Token::NewLine),
+        newline.to(Token::NewLine),
         control_multi,
         interpolation,
         param,
@@ -90,7 +94,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let whitespace = one_of("\t \r").repeated().at_least(1).ignored().clone();
+    let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
     let comment = just('#')
         .then(none_of('\n').repeated())
         .separated_by(just('\n').then(whitespace.clone().or_not()))
@@ -106,32 +110,35 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         })
         .map_with_span(|tok, span| (tok, span));
 
-    let line_continuation = just('\n')
-        .then(whitespace.clone().repeated().or_not())
+    let line_continuation = newline
+        .then(
+            // We can optionally have an empty line, or a line with a comment,
+            // between the initial line and the continued line
+            whitespace
+                .clone()
+                .or_not()
+                .then(comment.clone().or_not())
+                .then(newline)
+                .repeated(),
+        )
+        .then(whitespace.clone().repeated())
         .then(just('\\'))
         .ignored();
 
-    let ignored = comment
-        .clone()
-        .or(whitespace.clone())
-        .or(line_continuation)
-        .repeated()
-        .ignored();
+    let ignored = choice((comment.clone(), whitespace.clone(), line_continuation)).repeated();
 
-    comment
-        .or_not()
-        .ignore_then(choice((
-            range,
-            ignored
-                .clone()
-                .ignore_then(token.map_with_span(|tok, span| (tok, span))),
-        )))
-        .repeated()
-        .then_ignore(ignored)
-        .then_ignore(end())
+    choice((
+        range,
+        ignored
+            .clone()
+            .ignore_then(token.map_with_span(|tok, span| (tok, span))),
+    ))
+    .repeated()
+    .then_ignore(ignored)
+    .then_ignore(end())
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
+pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .map(Some)
         .chain::<char, Vec<_>, _>(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
@@ -370,6 +377,7 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
 fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     choice((
         end(),
+        // TODO: use chumsky newline parser for line endings
         one_of(",)]}\r\n\t >").ignored(),
         just("..").ignored(),
     ))
@@ -434,8 +442,8 @@ fn test_line_continuation() {
 
     // TODO: this is how a comment appears — with a newline
     assert_debug_snapshot!(lexer().parse(r#"5 +
-    # comment
-    \ 3 "#
+# comment
+  \ 3 "#
         ).unwrap(), @r###"
     [
         (
@@ -453,16 +461,12 @@ fn test_line_continuation() {
             2..3,
         ),
         (
-            NewLine,
-            3..4,
-        ),
-        (
             Literal(
                 Integer(
                     3,
                 ),
             ),
-            24..25,
+            18..19,
         ),
     ]
     "###);

@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from tracks\n# This would be a really long line without being able to split it\nderive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)\n\\ * length_seconds\n\\ / 60 / 60 / 24 / 365\n#   min  hour day  year\n"
+expression: "from tracks\n# This would be a really long line without being able to split it:\nderive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)\n# * length_seconds\n# Or is it `length_s`?\n\\ * length_s\n#   min  hour day  year\n\\ / 60 / 60 / 24 / 365\n"
 ---
 SELECT
   *,
@@ -10,7 +10,7 @@ SELECT
         (
           (
             spotify_plays + apple_music_plays + pandora_plays
-          ) * length_seconds / 60
+          ) * length_s / 60
         ) / 60
       ) / 24
     ) / 365

@@ -168,37 +168,35 @@ We're also planning to make the error messages much better,
 so the compiler can help out.
 ```
 
-## Line continuation
+## Line continuations
 
 Line breaks in PRQL have semantic meaning, so to continue a line, we can use `\`
 at the beginning of the next line:
 
 ```prql
-from tracks
-# This would be a really long line without being able to split it
-derive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
-\ * length_seconds
-\ / 60 / 60 / 24 / 365
-#   min  hour day  year
+from artists
+select is_europe =
+\ country == "DE"
+\ || country == "FR"
+\ || country == "ES"
 ```
 
-```admonish note
-Note that most languages use a `\` at the _end_ of a line. We're exploring being
-able to comment out a line mid-way through a number of lines containing line-continuations,
-which this would facilitate.
-```
-
-<!-- Because PRQL aims to
-be friendly for data exploration, we want to make it easy to comment out a line,
-which requires the character at the start of the line:
+Line continuations will "jump over" empty lines or lines with comments. For
+example, the `select` here is only one logical line:
 
 ```prql
 from tracks
-# This would be a really long line without being able to split it
-derive listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
-\ # * length_seconds
-\ # Or is it `length_s`?
-\ * length
-\ / 60 / 60 / 24 / 365
+# This would be a really long line without being able to split it:
+select listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
+# * length_seconds
+# Actually it's `length_s` I think:
+\ * length_s
 #   min  hour day  year
-``` -->
+\ / 60 / 60 / 24 / 365
+```
+
+```admonish info
+Note that most languages use a `\` at the _end_ of the preceding line. Because PRQL aims to
+be friendly for data exploration, we want to make it easy to comment out a line,
+which requires the character at the start of the following line.
+```
