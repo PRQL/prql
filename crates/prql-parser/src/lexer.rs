@@ -377,8 +377,8 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
 fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     choice((
         end(),
-        // TODO: use chumsky newline parser for line endings
-        one_of(",)]}\r\n\t >").ignored(),
+        one_of(",)]}\t >").ignored(),
+        newline(),
         just("..").ignored(),
     ))
     .rewind()
