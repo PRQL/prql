@@ -16,8 +16,9 @@ looks like this:
 | 5          | 23          | Boston       |       ...       | 13.86 |
 | 6          | 37          | Frankfurt    |       ...       | 0.99  |
 
-A relation is composed of rows, each of which is a tuple (a list) that contains
-similar columns. Each column has an unique name and a designated data type. The
+A relation is composed of rows. Each row in a relation contains
+a value for each of the relation's columns. Each column in a relation has an unique name 
+and a designated data type. The
 table above has columns named `invoice_id`and `customer_id` each with a data
 type of "integer number", a `billing_city` column with a data type of "text",
 several other columns, and a `total` column that contains floating-point
