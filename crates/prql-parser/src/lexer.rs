@@ -80,6 +80,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     // I think declaring this and then cloning will be more performant than
     // calling the function on each invocation.
+    // https://github.com/zesterer/chumsky/issues/501 would allow us to avoid
+    // this, and let us split up this giant function without sacrificing
+    // performance.
     let newline = newline();
 
     let token = choice((
@@ -96,8 +99,8 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
     let comment = just('#')
-        .then(none_of('\n').repeated())
-        .separated_by(just('\n').then(whitespace.clone().or_not()))
+        .then(newline.not().repeated())
+        .separated_by(newline.then(whitespace.clone().or_not()))
         .at_least(1)
         .ignored();
 
