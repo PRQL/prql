@@ -1,0 +1,11 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from artists\nselect is_europe =\n\\ country == \"DE\"\n\\ || country == \"FR\"\n\\ || country == \"ES\"\n"
+---
+SELECT
+  country = 'DE'
+  OR country = 'FR'
+  OR country = 'ES' AS is_europe
+FROM
+  artists
+
