@@ -54,11 +54,13 @@ take 3
 ```
 
 We did something a bit odd at the end: first we took rows `11..20` and then took
-the first 3 rows from that result. This could have been done in a single
-transform `take 11..13`
+the first 3 rows from that result.
 
-However, this is a nice example of how PRQL allows fast data exploration by
-"stacking" transforms in the pipeline. PRQL eliminates the worry about
-interactions of a new transform with the previous query. When PRQL compiles
-these two statements/transforms (`take 11..20` and `take 3`) to SQL, it produces
-the same result as `take 11..13`.
+```admonish note
+Note that this a single
+transform `take 11..13` would have produced the same SQL. The example 
+serves an example of how PRQL allows fast data exploration by
+"stacking" transforms in the pipeline, reducing the cognitive burden of how
+a new transform with the previous query.
+```
+
