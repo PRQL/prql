@@ -322,9 +322,10 @@ jobs:
         uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          # Run on all files in nightly, but only our own changed files in PRs
+          # Run on all files in nightly schedule, but only on local files
+          # otherwise (and only changed files in PRs)
           config-file:
-            ${{ needs.rules.outputs.nightly == 'true' &&
+            ${{ needs.rules.outputs.nightly-schedule == 'true' &&
             '.config/.markdown-link-check-all.json' ||
             '.config/.markdown-link-check-local.json' }}
           base-branch: main
@@ -452,10 +453,7 @@ jobs:
       - check-links-book
       - check-links-markdown
       - lint-megalinter
-      # Excluding until https://github.com/re-actors/alls-green/issues/23 is
-      # fixed. This is annoying, since dependabot will merge things that break
-      # non-ubuntu deps. Hopefully will be fixed soon.
-      # - nightly
+      - nightly
       - publish-web
       - test-dotnet
       - test-elixir
@@ -469,7 +467,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+        # https://github.com/re-actors/alls-green/issues/23
+        uses: re-actors/alls-green@cf9edfcf932a0ed6b431433fa183829c68b30e3f
         with:
           jobs: ${{ toJSON(needs) }}
           # We don't include `check-links-markdown`, since occasionally we'll want to merge
