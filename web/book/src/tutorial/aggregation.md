@@ -2,14 +2,14 @@
 
 A key feature of analytics is reducing many values down to some summary. This
 act is called "aggregation" and always includes a function &mdash; for example,
-`average` or `sum` &mdash; that reduces the table to a single row.
+`average` or `sum` &mdash; that reduces values in the table to a single row.
 
 ### `aggregate` transform
 
 The `aggregate` transform takes a tuple to create one or more new columns that
 "distill down" data from all the rows.
 
-```
+```prql no-eval
 from invoices
 aggregate { sum_of_orders = sum total }
 ```
@@ -21,7 +21,7 @@ The query above computes the sum of the `total` column of all rows of the
 expressions are contained in a tuple. `aggregate` discards all columns that are
 not present in the tuple.
 
-```
+```prql no-eval
 from invoices
 aggregate {
     num_orders = count this,
@@ -38,7 +38,7 @@ function adds up the values of the `total` column of all rows.
 Suppose we want to produce summaries of invoices _for each city_ in the table.
 We could create a query for each city, and aggregate its rows:
 
-```
+```prql no-eval
 from albums
 filter billing_city == "Oslo"
 aggregate { sum_of_orders = sum total }
@@ -55,7 +55,7 @@ The `group` transform separates the table into groups (say, those having the
 same city) using information that's already in the table. It then applies a
 transform to each group, and combines the results back together:
 
-```
+```prql no-eval
 from invoices
 group billing_city (
     aggregate {
@@ -66,14 +66,13 @@ group billing_city (
 ```
 
 Those familiar with SQL have probably noticed that we just decoupled aggregation
-from grouping. These connected operations (in SQL) benefit from each being a
-standalone function.
+from grouping.
 
-Firstly, each can have invariants that the query engine can leverage to produce
-more efficient queries. Additionally, they can be used with other transform
-functions, such as:
+Although these operations are connected in SQL, PRQL makes it straightforward to
+use `group` and `aggregate` separate from each other, while combining with other
+transform functions, such as:
 
-```
+```prql no-eval
 from invoices
 group billing_city (
     take 2
