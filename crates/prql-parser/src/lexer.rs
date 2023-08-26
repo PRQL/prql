@@ -113,17 +113,15 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     // so whitespace following a token must not be consumed
     let ignored = comments.clone().or(whitespace).repeated();
 
-    comments
-        .or_not()
-        .ignore_then(choice((
-            range,
-            ignored
-                .clone()
-                .ignore_then(token.map_with_span(|tok, span| (tok, span))),
-        )))
-        .repeated()
-        .then_ignore(ignored)
-        .then_ignore(end())
+    choice((
+        range,
+        ignored
+            .clone()
+            .ignore_then(token.map_with_span(|tok, span| (tok, span))),
+    ))
+    .repeated()
+    .then_ignore(ignored)
+    .then_ignore(end())
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
