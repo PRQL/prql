@@ -149,25 +149,15 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
-        .map(Some)
-        .chain::<char, Vec<_>, _>(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
-        .collect();
+        .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 
-    let backticks = just('`')
-        .ignore_then(none_of('`').repeated())
-        .then_ignore(just('`'))
-        .collect::<String>();
+    let backticks = none_of('`').repeated().delimited_by(just('`'), just('`'));
 
-    plain.or(backticks)
+    plain.or(backticks).collect()
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
-    let exp = just('e').or(just('E')).chain(
-        just('+')
-            .or(just('-'))
-            .or_not()
-            .chain::<char, _, _>(text::digits(10)),
-    );
+    let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
     let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
         .chain::<_, Vec<char>, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated())
@@ -177,8 +167,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit()))
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated());
 
-    let number = just('+')
-        .or(just('-'))
+    let number = one_of("+-")
         .or_not()
         .chain::<char, _, _>(integer)
         .chain::<char, _, _>(frac.or_not().flatten())
