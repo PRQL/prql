@@ -2,7 +2,15 @@ name: build-devcontainer
 
 on:
   workflow_call:
+    inputs:
+      push:
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      push:
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -41,12 +49,8 @@ jobs:
           file: .devcontainer/base-image/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64, linux/arm64
-          push:
-            # If it's a push to main, or a tag, or explicitly called, push the image to the registry.
-            # Don't if it's on a schedule.
-            ${{ (github.ref == 'refs/heads/main' && github.event_name == 'push')
-            || startsWith(github.ref, 'refs/tags/') || github.event_name ==
-            'workflow_dispatch' }}
+          push: ${{ inputs.push == 'true' }}
+          # `type=gha` not active, see below
           cache-from: |
             ${{ steps.meta.outputs.tags }}
             type=gha
@@ -54,4 +58,3 @@ jobs:
             type=inline
           # Disabling GHA cache due to Https://github.com/docker/build-push-action/issues/939
           # ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
-          # type=inline

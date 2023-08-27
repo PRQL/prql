@@ -37,7 +37,8 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
-      devcontainer: ${{ steps.changes.outputs.devcontainer }}
+      devcontainer-push: ${{ steps.changes.outputs.devcontainer-push }}
+      devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
       elixir: ${{ steps.changes.outputs.elixir }}
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
@@ -70,10 +71,11 @@ jobs:
               - bindings/prql-dotnet/**
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
-            devcontainer:
+            devcontainer-push:
               - .devcontainer/**/*Dockerfile
-              - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
+            devcontainer-test:
+              - .github/workflows/build-devcontainer.yaml
             elixir:
               - bindings/prql-elixir/**
               - bindings/prql-lib/**
@@ -398,14 +400,21 @@ jobs:
           name: code-coverage-report
           path: cobertura.xml
 
-  build-devcontainer:
+  push-devcontainer:
+    needs: rules
+    if: needs.rules.outputs.devcontainer-push == 'true'
+    uses: ./.github/workflows/build-devcontainer.yaml
+    with:
+      push: true
+
+  test-devcontainer:
     needs: rules
     if:
-      # We only run on nightly scheduled, since this is very expensive and we
-      # don't want to have to run it on, for example, every dependency change.
-      needs.rules.outputs.devcontainer == 'true' ||
-      needs.rules.outputs.nightly-schedule == 'true'
+      ${{ needs.rules.outputs.devcontainer-test == 'true' ||
+      needs.rules.outputs.nightly-schedule == 'true' }}
     uses: ./.github/workflows/build-devcontainer.yaml
+    with:
+      push: false
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -440,13 +449,9 @@ jobs:
         run: cargo msrv verify
 
   check-ok-to-merge:
-    # This doesn't run anything, but offers a task for us to tell GitHub
-    # everything in this workflow has passed and, unlike including each task in
-    # the branch's GitHub required tests, will pass when a task is skipped.
-    #
-    # We're gradually increasing this to cover other workflows, such as
-    # `test-js` by moving the triggers for those into this workflow, and using
-    # an external action to assess whether the paths have changed.
+    # This indicates to GitHub whether everything in this workflow has passed
+    # and (unlike if we included each task in the branch's GitHub required
+    # tests) will pass when a task is skipped.
     if: always()
     needs:
       - build-web
@@ -455,6 +460,7 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
+      - test-devcontainer
       - test-dotnet
       - test-elixir
       - test-java
@@ -464,6 +470,7 @@ jobs:
       - test-python
       - test-rust
       - test-rust-main
+      - test-taskfile
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
@@ -495,6 +502,7 @@ jobs:
               "lint-megalinter",
               "nightly",
               "publish-web",
+              "test-devcontainer",
               "test-dotnet",
               "test-elixir",
               "test-java",
@@ -503,7 +511,8 @@ jobs:
               "test-php",
               "test-python",
               "test-rust",
-              "test-rust-main"
+              "test-rust-main",
+              "test-taskfile"
             ]
 
   build-prqlc:
@@ -551,9 +560,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - check-ok-to-merge
-      # The jobs which the check doesn't run on
-      - build-devcontainer
-      - test-taskfile
     if:
       # We care that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
