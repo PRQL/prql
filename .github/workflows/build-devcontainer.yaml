@@ -39,7 +39,7 @@ jobs:
 
       - name: Prep args
         run: |
-          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yml | sed -e 's/ /\\\\ /g')" >>"$GITHUB_ENV"
+          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yml | sed -e 's/ /\\ /g')" >>"$GITHUB_ENV"
 
       - name: Build
         uses: docker/build-push-action@v4
