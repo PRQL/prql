@@ -68,7 +68,7 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: 🕷️ Build website
+      - name: 🕷️ Build web
         run: task build-web
 
       - uses: actions/upload-pages-artifact@v2.0.0
