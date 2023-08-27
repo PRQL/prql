@@ -17,8 +17,7 @@ on:
   workflow_call:
 
 concurrency:
-  # This used to require a custom suffix; I think that can now be removed...
-  group: ${{ github.workflow }}-${{ github.ref }}-tests
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
