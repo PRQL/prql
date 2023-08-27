@@ -113,7 +113,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         })
         .map_with_span(|tok, span| (tok, span));
 
-    let line_continuation = newline
+    let line_wrap = newline
         .then(
             // We can optionally have an empty line, or a line with a comment,
             // between the initial line and the continued line
@@ -128,7 +128,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then(just('\\'))
         .ignored();
 
-    let ignored = choice((comment.clone(), whitespace.clone(), line_continuation)).repeated();
+    let ignored = choice((comment.clone(), whitespace.clone(), line_wrap)).repeated();
 
     choice((
         range,
@@ -410,7 +410,7 @@ impl std::hash::Hash for Token {
 impl std::cmp::Eq for Token {}
 
 #[test]
-fn test_line_continuation() {
+fn test_line_wrap() {
     use insta::assert_debug_snapshot;
 
     // (TODO: is there a terser way of writing our lexer output?)

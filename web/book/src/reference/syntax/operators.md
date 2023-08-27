@@ -168,10 +168,11 @@ We're also planning to make the error messages much better,
 so the compiler can help out.
 ```
 
-## Line continuations
+## Wrapping lines
 
-Line breaks in PRQL have semantic meaning, so to continue a line, we can use `\`
-at the beginning of the next line:
+Line breaks in PRQL have semantic meaning, so to wrap a single logical line into
+multiple physical lines, we can use `\` at the beginning of subsequent physical
+lines:
 
 ```prql
 from artists
@@ -181,8 +182,8 @@ select is_europe =
 \ || country == "ES"
 ```
 
-Line continuations will "jump over" empty lines or lines with comments. For
-example, the `select` here is only one logical line:
+Wrapping will "jump over" empty lines or lines with comments. For example, the
+`select` here is only one logical line:
 
 ```prql
 from tracks
@@ -200,3 +201,5 @@ Note that most languages use a `\` at the _end_ of the preceding line. Because P
 be friendly for data exploration, we want to make it easy to comment out a line,
 which requires the character at the start of the following line.
 ```
+
+See [Pipes](./pipes.md) for more details on line breaks.

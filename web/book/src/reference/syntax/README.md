@@ -17,13 +17,13 @@ A summary of PRQL syntax:
 | `[]`                 | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
 | `!`,`&&`,`==`,`+`    | [Operators](./operators.md)                                                    | <code>filter a == b + c \|\| d >= e</code>              |
 | `()`                 | [Parentheses](./operators.md#parentheses)                                      | `derive celsius = (fht - 32) / 1.8`                     |
-| `\`                  | [Line continuation](./operators.md#line-continuation)                          | <code>1 + 2 + 3 +</code><br><code>\ 4 + 5</code>        |
+| `\`                  | [Line wrap](./operators.md#wrapping-lines)                                     | <code>1 + 2 + 3 +</code><br><code>\ 4 + 5</code>        |
 | `1`,`100_000`,`5e10` | [Numbers](./literals.md#numbers)                                               | `derive { huge = 5e10 * 10_000 }`                       |
 | `''`,`""`            | [Strings](./literals.md#strings)                                               | `derive name = 'Mary'`                                  |
 | `true`,`false`       | [Booleans](./literals.md#booleans)                                             | `derive { Col1 = true }`                                |
 | `null`               | [Null](./literals.md#null)                                                     | `filter ( name != null )`                               |
 | `@`                  | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
-| `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | ``select `first name` ``                                |
+| `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | `` select `first name`  ``                              |
 | `#`                  | [Comments](./comments.md)                                                      | `# A comment`                                           |
 | `==`                 | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                 | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
