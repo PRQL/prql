@@ -9,7 +9,7 @@ ARG cargo_crates
 
 RUN <<"EOF"
 curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-cargo binstall -y --locked --targets "$(uname -m)-unknown-linux-musl" ${cargo_crates}
+cargo binstall -y --locked ${cargo_crates}
 EOF
 
 USER root
