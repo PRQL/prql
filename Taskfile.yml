@@ -22,6 +22,7 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
+  # These are required to build & test the repo
   cargo_crates: |
     cargo-insta
     mdbook
@@ -31,7 +32,7 @@ vars:
     wasm-bindgen-cli
     wasm-opt
     wasm-pack
-  # Crates for administering the repo
+  # Crates for administering the repo, or nice-to-haves.
   cargo_crates_admin: |
     bacon
     cargo-audit
