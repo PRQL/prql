@@ -1,4 +1,9 @@
-use chumsky::{error::Cheap, prelude::*, text::newline};
+use chumsky::{
+    error::Cheap,
+    prelude::*,
+    text::{newline, Character},
+};
+
 use prql_ast::expr::*;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -34,6 +39,11 @@ pub enum Token {
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
+    let whitespace = filter(|x: &char| x.is_inline_whitespace())
+        .repeated()
+        .at_least(1)
+        .ignored();
+
     let control_multi = choice((
         just("->").to(Token::ArrowThin),
         just("=>").to(Token::ArrowFat),
@@ -97,16 +107,18 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
+    // let comments = comment
+    //     .separated_by(new_line.then(whitespace.or_not()))
+
     let comment = just('#')
         .then(newline.not().repeated())
-        .separated_by(newline.then(whitespace.clone().or_not()))
+        .separated_by(newline.then(whitespace.or_not()))
         .at_least(1)
         .ignored();
 
-    let range = (whitespace.clone().or_not())
+    let range = (whitespace.or_not())
         .then_ignore(just(".."))
-        .then(whitespace.clone().or_not())
+        .then(whitespace.or_not())
         .map(|(left, right)| Token::Range {
             bind_left: left.is_none(),
             bind_right: right.is_none(),
@@ -118,23 +130,20 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
             // We can optionally have an empty line, or a line with a comment,
             // between the initial line and the continued line
             whitespace
-                .clone()
                 .or_not()
-                .then(comment.clone().or_not())
+                .then(comment.or_not())
                 .then(newline)
                 .repeated(),
         )
-        .then(whitespace.clone().repeated())
+        .then(whitespace.repeated())
         .then(just('\\'))
         .ignored();
 
-    let ignored = choice((comment.clone(), whitespace.clone(), line_wrap)).repeated();
+    let ignored = choice((comment, whitespace, line_wrap)).repeated();
 
     choice((
         range,
-        ignored
-            .clone()
-            .ignore_then(token.map_with_span(|tok, span| (tok, span))),
+        ignored.ignore_then(token.map_with_span(|tok, span| (tok, span))),
     ))
     .repeated()
     .then_ignore(ignored)
@@ -255,15 +264,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(
             one_of("-+")
                 .chain(
-                    // TODO: This is repeated without the `:`~ with an `or`
-                    // because using `.or_not` triggers a request for
-                    // type hints, which seems difficult to provide... Is there
-                    // an easier way?
-                    //
-                    //   (digits(2).chain(just(':').or_not()).chain(digits(2)))
-                    //
-                    (digits(2).chain(just(':')).chain(digits(2)))
-                        .or(digits(2).chain(digits(2)))
+                    (digits(2).then_ignore(just(':').or_not()).chain(digits(2)))
                         .or(just('Z').map(|x| vec![x])),
                 )
                 .or_not()
