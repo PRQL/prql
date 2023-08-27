@@ -21,6 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3600
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+
       - uses: docker/metadata-action@v4
         id: meta
         with:
@@ -42,11 +45,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Prep args
+        run: |
+          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yml)" >>"$GITHUB_ENV"
+
       - name: Build
         uses: docker/build-push-action@v4
         timeout-minutes: 3600
         with:
-          file: .devcontainer/base-image/Dockerfile
+          context: .devcontainer/base-image
+          build-args: |
+            cargo_crates=${{ env.cargo_crates }}
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64, linux/arm64
           push: ${{ inputs.push == 'true' }}
