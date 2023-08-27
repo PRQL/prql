@@ -2,11 +2,6 @@
 
 FROM mcr.microsoft.com/devcontainers/rust:1-1-bullseye
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    cmake \
-    && rm -rf /var/lib/apt/lists/*
-
 # ========= Install cargo-tools for non-root user (vscode) =========
 USER vscode
 
