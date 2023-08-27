@@ -37,7 +37,7 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
-      devcontainer-push: ${{ steps.changes.outputs.devcontainer-push }}
+      devcontainer-push: ${{ steps.devcontainer-push.outputs.run }}
       devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
       elixir: ${{ steps.changes.outputs.elixir }}
       java: ${{ steps.changes.outputs.java }}
@@ -75,7 +75,9 @@ jobs:
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
             devcontainer-test:
+              - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
+              - Taskfile.yml
             elixir:
               - bindings/prql-elixir/**
               - bindings/prql-lib/**
@@ -135,6 +137,14 @@ jobs:
         run:
           echo "run=${{ steps.changes.outputs.main == 'true' || github.ref ==
           'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
+          "$GITHUB_OUTPUT"
+
+      - id: devcontainer-push
+        # We push the devcontainer if the files have changed, and we've merged
+        # to main.
+        run:
+          echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
+          github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
           "$GITHUB_OUTPUT"
 
   test-rust:
