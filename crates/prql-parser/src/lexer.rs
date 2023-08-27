@@ -414,8 +414,8 @@ fn test_line_wrap() {
     use insta::assert_debug_snapshot;
 
     // (TODO: is there a terser way of writing our lexer output?)
-    assert_debug_snapshot!(lexer().parse(r#"5 +
-    \ 3 "#
+    assert_debug_snapshot!(lexer().parse(r"5 +
+    \ 3 "
         ).unwrap(), @r###"
     [
         (
@@ -444,10 +444,10 @@ fn test_line_wrap() {
     "###);
 
     // Comments get skipped over
-    assert_debug_snapshot!(lexer().parse(r#"5 +
+    assert_debug_snapshot!(lexer().parse(r"5 +
 # comment
    # comment with whitespace
-  \ 3 "#
+  \ 3 "
         ).unwrap(), @r###"
     [
         (
