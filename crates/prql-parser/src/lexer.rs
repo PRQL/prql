@@ -107,9 +107,6 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    // let comments = comment
-    //     .separated_by(new_line.then(whitespace.or_not()))
-
     let comment = just('#')
         .then(newline.not().repeated())
         .separated_by(newline.then(whitespace.or_not()))
