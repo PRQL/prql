@@ -16,7 +16,7 @@ derive {                             # "derive" adds columns to the result
   transaction_fee = 0.8,             # "=" sets a column name
   income = total - transaction_fee   # Calculations can use other column names
 }
-# starts a comment; commenting out a line leaves a valid query
+# This is a comment; commenting out a line leaves a valid query
 filter income > 5                    # "filter" replaces both of SQL's WHERE & HAVING
 filter invoice_date >= @2010-01-16   # Clear date syntax
 group customer_id (                  # "group" performs the pipeline in (...) on each group
