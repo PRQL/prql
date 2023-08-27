@@ -61,7 +61,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("type"),
         just("module"),
         just("internal"),
-        just("func"),
+        // just("func"),
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())
