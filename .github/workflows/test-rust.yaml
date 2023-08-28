@@ -106,7 +106,7 @@ jobs:
         # As part of https://github.com/PRQL/prql/issues/3145, I'm seeing
         # whether having this means that prqlc builds much faster, without
         # adding much time here, given it has the cache.
-      - name: Build
+      - name: Build cache
         if:
           ${{ github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit
           == 'false' }}
@@ -119,4 +119,5 @@ jobs:
       - name: 🗒️ Docs
         uses: richb-hanover/cargo@v1.1.0
         with:
-          command: doc
+          command:
+            doc --target=${{ inputs.target }} --features=${{ inputs.features }}
