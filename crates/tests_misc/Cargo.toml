@@ -8,5 +8,5 @@ publish = false
 
 [dev-dependencies]
 insta = {version = "1.31", features = ["colors", "glob", "yaml"]}
-regex = "1.9.1"
+regex = "1.9.4"
 similar = {version = "2.2.1"}
