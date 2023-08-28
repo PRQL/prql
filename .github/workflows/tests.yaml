@@ -436,7 +436,7 @@ jobs:
         with:
           use_cache: true
 
-  test-min-rust-version:
+  test-msrv:
     runs-on: ubuntu-latest
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
@@ -469,6 +469,7 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
+      - test-msrv
       - test-devcontainer
       - test-dotnet
       - test-elixir
@@ -511,6 +512,7 @@ jobs:
               "lint-megalinter",
               "nightly",
               "publish-web",
+              "test-msrv"
               "test-devcontainer",
               "test-dotnet",
               "test-elixir",
