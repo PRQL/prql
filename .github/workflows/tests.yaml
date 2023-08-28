@@ -154,6 +154,11 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
+          # Only run wasm on ubuntu, given it's the same rust target. (There is a
+          # possibility of having a failure on just one platform, but it's quite
+          # unlikely. If we do observe this, we can expand, or introduce a
+          # `test-actually-all.yaml` which accounts for these corner cases without
+          # using runners & cache space)
           - target: wasm32-unknown-unknown
     with:
       os: ubuntu-latest
@@ -284,14 +289,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
             features: ""
-          # Only run wasm on ubuntu, given it's the same rust target. (There is a
-          # possibility of having a failure on just one platform, but it's quite
-          # unlikely. If we do observe this, we can expand, or introduce a
-          # `test-actually-all.yaml` which accounts for these corner cases without
-          # using runners & cache space)
-          - os: ubuntu-latest
-            target: wasm32-unknown-unknown
-            features: ""
+          # Note that we run wasm in the standard `test-rust` job.
 
           # TODO: potentially enable these
           # - os: ubuntu-latest
