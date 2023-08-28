@@ -25,6 +25,7 @@ env:
   # effective as it once was, as explained in
   # https://github.com/PRQL/prql/pull/2797
   RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   test-rust:
@@ -115,3 +116,7 @@ jobs:
           args:
             --all-targets --target=${{ inputs.target }} --features=${{
             inputs.features }}
+      - name: 🗒️ Docs
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: doc

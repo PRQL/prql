@@ -24,6 +24,7 @@ env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
   RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   # This assesses whether we need to run jobs. Some of them are defined only by
@@ -564,6 +565,7 @@ jobs:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
       RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
 
   create-issue-on-nightly-failure:
     runs-on: ubuntu-latest
