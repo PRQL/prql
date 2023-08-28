@@ -119,5 +119,4 @@ jobs:
         if: inputs.target != 'wasm32-unknown-unknown'
         uses: richb-hanover/cargo@v1.1.0
         with:
-          command:
-            doc --target=${{ inputs.target }} --features=${{ inputs.features }}
+          command: doc  --features=${{ inputs.features }}
