@@ -127,6 +127,103 @@ fn compile_help() {
 }
 
 #[test]
+fn long_query() {
+    // This was causing a stack overflow in Windows at one point (#2908)
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["compile", "--hide-signature-comment"])
+        .pass_stdin(r#"
+let long_query = (
+  from employees
+  filter gross_cost > 0
+  group {title} (
+      aggregate {
+          ct = count this,
+      }
+  )
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+)
+from long_query
+  "#), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    WITH table_2 AS (
+      SELECT
+        title,
+        COUNT(*) AS ct
+      FROM
+        employees
+      WHERE
+        gross_cost > 0
+      GROUP BY
+        title
+      HAVING
+        COUNT(*) > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), table_1 AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_2
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), table_0 AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_1
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), long_query AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_0
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    )
+    SELECT
+      title,
+      ct
+    FROM
+      long_query
+    ORDER BY
+      ct
+
+    ----- stderr -----
+    "###);
+}
+
+#[test]
 fn compile_project() {
     let mut cmd = prqlc_command();
     cmd.args([
