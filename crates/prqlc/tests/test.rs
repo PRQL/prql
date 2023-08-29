@@ -132,26 +132,26 @@ fn long_query() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["compile", "--hide-signature-comment"])
         .pass_stdin(r#"
-  let long_query = (
-    from employees
-    filter gross_cost > 0
-    group {title} (
-        aggregate {
-            ct = count s"*",
-        }
-    )
-    sort ct
-    filter ct > 200
-    take 20
-    sort ct
-    filter ct > 200
-    take 20
-    sort ct
-    filter ct > 200
-    take 20
-    sort ct
-    filter ct > 200
-    take 20
+let long_query = (
+  from employees
+  filter gross_cost > 0
+  group {title} (
+      aggregate {
+          ct = count this,
+      }
+  )
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
 )
 from long_query
   "#), @r###"
