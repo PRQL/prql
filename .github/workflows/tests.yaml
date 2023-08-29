@@ -510,7 +510,7 @@ jobs:
               "lint-megalinter",
               "nightly",
               "publish-web",
-              "test-msrv"
+              "test-msrv",
               "test-devcontainer",
               "test-dotnet",
               "test-elixir",
