@@ -28,7 +28,7 @@ strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.0"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-anstream = {version = "0.5.0"}
+anstream = {version = "0.3.2"}
 globset = "0.4.8"
 insta = {version = "1.31", features = ["colors", "glob"]}
 log = "0.4.17"
