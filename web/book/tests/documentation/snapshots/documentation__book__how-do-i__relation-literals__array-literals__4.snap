@@ -1,0 +1,23 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from_text format:json \"\"\"\n{\n    \"columns\": [\"a\", \"b\", \"c\"],\n    \"data\": [\n        [1, \"x\", false],\n        [4, \"y\", null]\n    ]\n}\n\"\"\"\n"
+---
+WITH table_0 AS (
+  SELECT
+    1 AS a,
+    'x' AS b,
+    false AS c
+  UNION
+  ALL
+  SELECT
+    4 AS a,
+    'y' AS b,
+    NULL AS c
+)
+SELECT
+  a,
+  b,
+  c
+FROM
+  table_0
+

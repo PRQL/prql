@@ -8,6 +8,9 @@ inputs:
   profile:
     description: Build profile option; `dev` or `release`.
     required: true
+  features:
+    description: Features to enable
+    default: ""
 outputs:
   artifact-name:
     description: The name of the artifact
@@ -28,7 +31,7 @@ runs:
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
           'musl') }}
-        shared-key: rust-${{ inputs.target }}
+        shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
         prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
@@ -62,7 +65,8 @@ runs:
         # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          ${{ contains(inputs.target, 'musl') && '--package=prqlc' || '' }}
+          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
+          && '--package=prqlc' || '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash

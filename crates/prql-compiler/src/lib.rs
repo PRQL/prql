@@ -69,7 +69,7 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`ast::rq::ExprKind::Literal`]
+//! * `serde_yaml`: adapts the `Serialize` implementation for [`prql_ast::expr::ExprKind::Literal`]
 //!   to `serde_yaml`, which doesn't support the serialization of nested enums
 
 #![forbid(unsafe_code)]
@@ -282,7 +282,7 @@ pub fn prql_to_pl_tree(
 }
 
 /// Perform semantic analysis and convert PL to RQ.
-pub fn pl_to_rq(pl: Vec<prql_ast::stmt::Stmt>) -> Result<ir::rq::Query, ErrorMessages> {
+pub fn pl_to_rq(pl: Vec<prql_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     let source_tree = SourceTree::single(PathBuf::new(), pl);
     semantic::resolve_and_lower(source_tree, &[]).map_err(error::downcast)
 }
@@ -291,12 +291,12 @@ pub fn pl_to_rq(pl: Vec<prql_ast::stmt::Stmt>) -> Result<ir::rq::Query, ErrorMes
 pub fn pl_to_rq_tree(
     pl: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     main_path: &[String],
-) -> Result<ir::rq::Query, ErrorMessages> {
+) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.
-pub fn rq_to_sql(rq: ir::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
+pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<String, ErrorMessages> {
     sql::compile(rq, options).map_err(error::downcast)
 }
 
@@ -320,12 +320,12 @@ pub mod json {
     }
 
     /// JSON serialization
-    pub fn from_rq(rq: ir::rq::Query) -> Result<String, ErrorMessages> {
+    pub fn from_rq(rq: ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
         serde_json::to_string(&rq).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_rq(json: &str) -> Result<ir::rq::Query, ErrorMessages> {
+    pub fn to_rq(json: &str) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 }

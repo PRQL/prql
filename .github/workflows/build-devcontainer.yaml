@@ -1,20 +1,16 @@
 name: build-devcontainer
 
 on:
-  pull_request:
-    paths:
-      - .devcontainer/**
-      - .github/workflows/build-devcontainer.yaml
-      - Taskfile.yml
-  push:
-    branches:
-      - main
-    paths:
-      - .devcontainer/**
-      - .github/workflows/build-devcontainer.yaml
-      - Taskfile.yml
   workflow_call:
+    inputs:
+      push:
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      push:
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,6 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3600
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+
       - uses: docker/metadata-action@v4
         id: meta
         with:
@@ -46,19 +45,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Prep args
+        run: |
+          echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yml)" >>"$GITHUB_ENV"
+
       - name: Build
         uses: docker/build-push-action@v4
         timeout-minutes: 3600
         with:
-          file: .devcontainer/base-image/Dockerfile
+          context: .devcontainer/base-image
+          build-args: |
+            cargo_crates=${{ env.cargo_crates }}
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64
-          push:
-            ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
-            'refs/tags/') }}
+          platforms: linux/amd64, linux/arm64
+          push: ${{ inputs.push == 'true' }}
+          # `type=gha` not active, see below
           cache-from: |
             ${{ steps.meta.outputs.tags }}
             type=gha
           cache-to: |
             type=inline
-            ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}
+          # Disabling GHA cache due to Https://github.com/docker/build-push-action/issues/939
+          # ${{ github.ref_name == 'main' && 'type=gha,mode=max' || '' }}

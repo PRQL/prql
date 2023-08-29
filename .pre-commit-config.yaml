@@ -10,13 +10,13 @@ repos:
         # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
         exclude: '.*\.rs$'
   - repo: https://github.com/crate-ci/typos
-    rev: v1.16.1
+    rev: v1.16.8
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0
+    rev: v3.0.2
     hooks:
       - id: prettier
         additional_dependencies:
@@ -25,7 +25,7 @@ repos:
           # https://github.com/PRQL/prql/issues/3078
           - prettier-plugin-go-template
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.280
+    rev: v0.0.286
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
@@ -36,11 +36,19 @@ repos:
     rev: v1.0.1
     hooks:
       - id: fmt
+  - repo: https://github.com/r0x0d/pre-commit-rust
+    rev: v1.0.1
+    hooks:
       - id: clippy
+        stages: [manual]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.4.1
+    rev: v1.5.1
     hooks:
       - id: mypy
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.6.25
+    hooks:
+      - id: actionlint
   - repo: https://github.com/tcort/markdown-link-check
     rev: v3.11.2
     hooks:
@@ -84,7 +92,8 @@ repos:
   #       args: ["--fix"]
   #       additional_dependencies:
   #         - markdown-it-footnote
+
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, clippy, markdown-link-check]
+  skip: [fmt, markdown-link-check]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"

@@ -1,6 +1,6 @@
-name: prqlc # you probably want to 'snapcraft register <name>'
+name: prqlc
 title: PRQL Compiler
-base: core20 # the base snap is the execution environment for this snap
+base: core22
 version: git
 summary: CLI for PRQL, a modern language for transforming data
 description: |
@@ -20,6 +20,7 @@ parts:
   prqlc:
     plugin: rust
     source: .
+    build-packages: [cargo]
     rust-path: [crates/prqlc]
 
 apps:

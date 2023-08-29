@@ -1,12 +1,9 @@
+# A workflow containing jobs we run only on nightly. This is called by
+# `tests.yaml` on a schedule and on request with a `pr-nightly` label.
+
 name: nightly
 
 on:
-  schedule:
-    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
-    - cron: "49 10 * * *"
-  pull_request:
-    paths:
-      - ".github/workflows/nightly.yaml"
   workflow_call:
   workflow_dispatch:
 
@@ -14,9 +11,21 @@ jobs:
   cargo-audit:
     runs-on: ubuntu-latest
     # We can't read PRQL repo security events on forks, which causes this to
-    # incorrectly fail. So we disable. If we wanted to run checks on PRs, we
-    # could move this to `pull-request-target`.
-    if: ${{ !github.event.pull_request.head.repo.fork }}
+    # incorrectly fail (
+    # https://github.com/PRQL/prql/actions/runs/5718693342/job/15495030808?pr=3195#step:3:28
+    # ). So we disable. If we wanted to run checks on PRs, we could move this to
+    # `pull-request-target`. And note that it does suggest that it can run on
+    # forks at https://github.com/rustsec/audit-check#limitations
+    #
+    # We also disable on dependabot, since that seems to fail (
+    # https://github.com/PRQL/prql/actions/runs/5858855686/job/15883652166?pr=3337
+    # )— possibly the
+    # existing model for how this works doesn't handle dependabot, which is on
+    # the repo but maybe has different permissions. Would be better if we had
+    # something more general than a specific exclusion.
+    if:
+      ${{ !github.event.pull_request.head.repo.fork && !github.actor ==
+      'dependabot[bot]' }}
     permissions:
       actions: read
       contents: read
@@ -26,11 +35,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/audit-check@v1
+      - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Maybe add to test-all?
   cargo-bench:
     runs-on: ubuntu-latest
     steps:
@@ -39,16 +47,6 @@ jobs:
         with:
           command: bench
           args: --timings --all-targets
-
-  check-links-markdown:
-    # We run only on modified files and only on our resources in PRs; here we
-    # run on all links and all files.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          config-file: .config/.markdown-link-check-all.json
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -100,11 +98,6 @@ jobs:
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: udeps
-
-  # This is expensive and very rarely finds an issue so, in addition to running
-  # on any change to the file, we run it in nightly rather than test-all.
-  test-taskfile:
-    uses: ./.github/workflows/test-taskfile.yaml
 
   # We now use the devcontainer. TODO: is it possible to have a similar test for
   # that? Or that would require VSCode to install the dependencies?
@@ -185,47 +178,6 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
 
-  build-prqlc:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/build-prqlc
-        with:
-          target: ${{ matrix.target }}
-          profile: release
-
-  build-python-wheels:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            target: x86_64
-          - os: ubuntu-latest
-            target: aarch64
-          - os: ubuntu-latest
-            target: source
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - name: Build wheel
-        uses: ./.github/actions/build-prql-python
-        with:
-          target: ${{ matrix.target }}
+  nightly-release:
+    # Test release workflow
+    uses: ./.github/workflows/release.yaml

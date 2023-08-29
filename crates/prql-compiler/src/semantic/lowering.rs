@@ -10,21 +10,26 @@ use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, WindowFrame};
 use crate::ir::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
-use crate::ir::rq::{self, CId, Query, RelationColumn, RelationLiteral, TId, TableDecl, Transform};
-use crate::semantic::context::TableExpr;
+use crate::ir::rq::{
+    self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
+};
+use crate::semantic::decl::TableExpr;
 use crate::semantic::module::Module;
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 
-use super::context::{self, Context, DeclKind};
-use super::NS_DEFAULT_DB;
+use super::decl::{self, DeclKind};
+use super::{RootModule, NS_DEFAULT_DB};
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
-pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Context)> {
+pub fn lower_to_ir(
+    context: RootModule,
+    main_path: &[String],
+) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
     let (_, main_ident) = context.find_main_rel(main_path).map_err(|hint| {
@@ -58,7 +63,7 @@ pub fn lower_to_ir(context: Context, main_path: &[String]) -> Result<(Query, Con
         }
     }
 
-    let query = Query {
+    let query = RelationalQuery {
         def,
         tables: l.table_buffer,
         relation: main_relation.unwrap(),
@@ -112,7 +117,7 @@ struct Lowerer {
     cid: IdGenerator<CId>,
     tid: IdGenerator<TId>,
 
-    context: Context,
+    context: RootModule,
 
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
@@ -141,7 +146,7 @@ enum LoweredTarget {
 }
 
 impl Lowerer {
-    fn new(context: Context) -> Self {
+    fn new(context: RootModule) -> Self {
         Lowerer {
             context,
 
@@ -157,8 +162,8 @@ impl Lowerer {
         }
     }
 
-    fn lower_table_decl(&mut self, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
-        let context::TableDecl { ty, expr } = table;
+    fn lower_table_decl(&mut self, table: decl::TableDecl, fq_ident: Ident) -> Result<()> {
+        let decl::TableDecl { ty, expr } = table;
 
         // TODO: can this panic?
         let columns = ty.unwrap().into_relation().unwrap();
@@ -942,12 +947,12 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
 struct TableExtractor {
     path: Vec<String>,
 
-    tables: Vec<(Ident, context::TableDecl)>,
+    tables: Vec<(Ident, decl::TableDecl)>,
 }
 
 impl TableExtractor {
     /// Finds table declarations in a module, recursively.
-    fn extract(root_module: &Module) -> Vec<(Ident, context::TableDecl)> {
+    fn extract(root_module: &Module) -> Vec<(Ident, decl::TableDecl)> {
         let mut te = TableExtractor::default();
         te.extract_from_module(root_module);
         te.tables
@@ -977,9 +982,9 @@ impl TableExtractor {
 /// are not needed for the main pipeline. To do this, it needs to collect references
 /// between pipelines.
 fn toposort_tables(
-    tables: Vec<(Ident, context::TableDecl)>,
+    tables: Vec<(Ident, decl::TableDecl)>,
     main_table: &Ident,
-) -> Vec<(Ident, context::TableDecl)> {
+) -> Vec<(Ident, decl::TableDecl)> {
     let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
 
     let mut dependencies: Vec<(Ident, Vec<Ident>)> = Vec::new();

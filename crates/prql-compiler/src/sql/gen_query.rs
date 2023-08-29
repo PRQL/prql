@@ -13,7 +13,7 @@ use sqlparser::ast::{
 use crate::error::WithErrorInfo;
 use crate::ir::generic::InterpolateItem;
 use crate::ir::pl::{JoinSide, Literal};
-use crate::ir::rq::{CId, Expr, ExprKind, Query, RelationLiteral};
+use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::Error;
 
@@ -26,7 +26,7 @@ use super::{Context, Dialect};
 
 type Transform = SqlTransform<RelationExpr, ()>;
 
-pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
+pub fn translate_query(query: RelationalQuery, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
     // compile from RQ to SRQ
     let (srq_query, mut ctx) = super::srq::compile_query(query, dialect)?;
 
@@ -292,6 +292,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 },
                 args: None,
                 with_hints: vec![],
+                version: None,
             }
         }
         RelationExprKind::SubQuery(query) => {

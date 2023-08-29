@@ -671,7 +671,7 @@ pub(super) fn translate_ident(
     let mut parts = Vec::with_capacity(4);
     if !ctx.query.omit_ident_prefix || column.is_none() {
         if let Some(table) = table_ident {
-            parts.extend(table.into_iter());
+            parts.extend(table);
         }
     }
 

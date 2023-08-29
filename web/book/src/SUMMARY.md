@@ -2,21 +2,35 @@
 
 [Overview](./overview.md)
 
+# Tutorial
+
+- [Relations](./tutorial/relations.md)
+- [Filtering](./tutorial/filtering.md)
+- [Aggregation](./tutorial/aggregation.md)
+
+# How do I?
+
+- [Read files?](./how-do-i/read-files.md)
+- [Remove duplicates?](./how-do-i/distinct.md)
+- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
+
 # Reference
 
 - [Syntax](./reference/syntax/README.md)
 
   - [Literals](./reference/syntax/literals.md)
+  - [Strings](./reference/syntax/strings.md)
+    - [F-strings](./reference/syntax/f-strings.md)
+    - [R-strings](./reference/syntax/r-strings.md)
+    - [S-strings](./reference/syntax/s-strings.md)
   - [Tuples](./reference/syntax/tuples.md)
   - [Arrays](./reference/syntax/arrays.md)
   - [Identifiers & keywords](./reference/syntax/keywords.md)
   - [Function calls](./reference/syntax/function-calls.md)
   - [Pipes](./reference/syntax/pipes.md)
-  - [Operations](./reference/syntax/operators.md)
+  - [Operators](./reference/syntax/operators.md)
   - [Case](./reference/syntax/case.md)
   - [Ranges](./reference/syntax/ranges.md)
-  - [F-strings](./reference/syntax/f-strings.md)
-  - [S-strings](./reference/syntax/s-strings.md)
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
 
@@ -37,13 +51,13 @@
     - [From](./reference/stdlib/transforms/from.md)
     - [Group](./reference/stdlib/transforms/group.md)
     - [Join](./reference/stdlib/transforms/join.md)
+    - [Loop](./reference/stdlib/transforms/loop.md)
     - [Select](./reference/stdlib/transforms/select.md)
     - [Sort](./reference/stdlib/transforms/sort.md)
     - [Take](./reference/stdlib/transforms/take.md)
     - [Window](./reference/stdlib/transforms/window.md)
 
   - [Aggregation functions]()
-  - [Loop](./reference/stdlib/loop.md)
 
 - [Specification](./reference/spec/README.md)
 
@@ -72,6 +86,7 @@
 - [Integrations](./project/integrations/README.md)
 
   - [`prqlc CLI`](./project/integrations/prqlc-cli.md)
+  - [ClickHouse](./project/integrations/clickhouse.md)
   - [Jupyter](./project/integrations/jupyter.md)
   - [DuckDB](./project/integrations/duckdb.md)
   - [Prefect](./project/integrations/prefect.md)

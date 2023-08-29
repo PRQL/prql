@@ -190,7 +190,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     Ok(Some(Ty { kind, name: None }))
 }
 
-impl Resolver {
+impl Resolver<'_> {
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
@@ -297,7 +297,7 @@ impl Resolver {
     where
         F: Fn() -> Option<String>,
     {
-        let Some(expected_fields) = find_potential_tuple_fields(expected) else{
+        let Some(expected_fields) = find_potential_tuple_fields(expected) else {
             return Ok(false);
         };
 

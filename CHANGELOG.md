@@ -18,6 +18,74 @@
 
 **New Contributors**:
 
+## 0.9.4 — 2023-08-24
+
+0.9.4 is a small release with some improvements and bug fixes in the compiler
+and `prqlc`. And, the documentation and CI are continually being improved.
+
+This release has 110 commits from 9 contributors. Selected changes:
+
+**Features**:
+
+- Strings can be delimited with any odd number of quote characters. The logic
+  for lexing quotes is now simpler and slightly faster. Escapes in
+  single-quote-delimited strings escape single-quotes rather than double-quotes.
+  (@max-sixty, #3274)
+
+**Fixes**:
+
+- S-strings within double braces now parse correctly (@max-sixty, #3265)
+
+**Documentation**:
+
+- New docs for strings (@max-sixty, #3281)
+
+**Web**:
+
+- Improve syntax highlighting for numbers in the book & website (@max-sixty,
+  #3261)
+- Add ClickHouse integration to docs (@max-sixty, #3251)
+
+**Integrations**:
+
+- `prqlc` no longer displays a prompt when piping a query into its stdin
+  (@max-sixty, #3248).
+- Add a minimal example for use `prql-lib` with Zig (@vanillajonathan, #3372)
+
+**Internal changes**:
+
+- Overhaul our CI to run a cohesive set of tests depending on the specific
+  changes in the PR, and elide all others. This cuts CI latency to less than
+  three minutes for most changes, and enables GitHub's auto-merge to wait for
+  all relevant tests. It also reduces the CI time on merging to main, by moving
+  some tests to only run on specific path changes or on our nightly run.
+
+  We now have one label we can add to PRs to run more tests — `pr-nightly`.
+  (@max-sixty, #3317 & others).
+
+- Auto-merge PRs for backports or pre-commit updates (@max-sixty, #3246)
+- Add a workflow to create an issue when the scheduled nightly workflow fails
+  (@max-sixty, #3304)
+
+**New Contributors**:
+
+- @FinnRG, with #3292
+- @sitiom, with #3353
+
+## 0.9.3 — 2023-08-02
+
+0.9.3 is a small release, with mostly documentation, internal, and CI changes.
+
+This release has 85 commits from 10 contributors.
+
+We'd like to welcome @not-my-profile as someone who has helped with lots of
+internal refactoring in the past couple of weeks.
+
+**New Contributors**:
+
+- @vthriller, with #3171
+- @postmeback, with #3216
+
 ## 0.9.2 — 2023-07-25
 
 0.9.2 is a hotfix release to fix an issue in the 0.9.0 & 0.9.1 release
@@ -1165,7 +1233,7 @@ I especially want to give [Aljaž Mur Eržen](https://github.com/aljazerzen)
 (@aljazerzen) the credit he deserves, who has contributed the majority of the
 difficult work of building out the compiler. Much credit also goes to
 [Charlie Sanders](https://github.com/charlie-sanders) (@charlie-sanders), one of
-PRQL's earliest supporters and the author of PyPrql, and
+PRQL's earliest supporters and the author of pyprql, and
 [Ryan Patterson-Cross](https://github.com/rbpatt2019) (@rbpatt2019), who built
 the Jupyter integration among other Python contributions.
 

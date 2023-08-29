@@ -1,0 +1,12 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from artists\nderive escapes = \"\\tXYZ\\n \\\\ \"                  # tab (\\t), \"XYZ\", newline (\\n), \" \", \\, \" \"\nderive world = \"\\u0048\\u0065\\u006C\\u006C\\u006F\" # \"Hello\"\n"
+---
+SELECT
+  *,
+  '	XYZ
+ \ ' AS escapes,
+  'Hello' AS world
+FROM
+  artists
+

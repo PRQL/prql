@@ -100,7 +100,7 @@ pub struct CompileOptions {
     /// GitHub issue.
     ///
     /// If `None` is used, the `target` argument from the query header is used.
-    /// If it does not exist, [Dialect::Generic] is used.
+    /// If it does not exist, [`prql_compiler::sql::Dialect::Generic`] is used.
     pub target: Atom,
 
     /// Emits the compiler signature as a comment after generated SQL

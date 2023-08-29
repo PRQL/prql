@@ -42,36 +42,36 @@ mod test {
     #[test]
     fn test_ctes_of_pipeline() {
         // One aggregate, take at the end
-        let prql: &str = r###"
+        let prql: &str = r#"
         from employees
         filter country == "USA"
         aggregate {sal = average salary}
         sort sal
         take 20
-        "###;
+        "#;
 
         assert!(count_atomics(prql).unwrap() == 1);
 
         // One aggregate, but take at the top
-        let prql: &str = r###"
+        let prql: &str = r#"
         from employees
         take 20
         filter country == "USA"
         aggregate {sal = average salary}
         sort sal
-        "###;
+        "#;
 
         assert!(count_atomics(prql).unwrap() == 2);
 
         // A take, then two aggregates
-        let prql: &str = r###"
+        let prql: &str = r#"
         from employees
         take 20
         filter country == "USA"
         aggregate {sal = average salary}
         aggregate {sal2 = average sal}
         sort sal2
-        "###;
+        "#;
 
         assert!(count_atomics(prql).unwrap() == 3);
 

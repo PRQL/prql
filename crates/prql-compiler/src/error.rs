@@ -264,7 +264,7 @@ impl ErrorMessages {
             };
 
             let Ok(source) = cache.fetch(source_path) else {
-                continue
+                continue;
             };
             e.location = e.compose_location(source);
 

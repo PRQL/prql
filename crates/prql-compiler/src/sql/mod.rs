@@ -12,14 +12,14 @@ pub use dialect::{Dialect, SupportLevel};
 
 use anyhow::Result;
 
-use crate::{ir::rq::Query, Options, COMPILER_VERSION};
+use crate::{ir::rq::RelationalQuery, Options, COMPILER_VERSION};
 
 use self::dialect::DialectHandler;
 use self::srq::ast::Cte;
 use self::srq::context::AnchorContext;
 
 /// Translate a PRQL AST into a SQL string.
-pub fn compile(query: Query, options: &Options) -> Result<String> {
+pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
     let crate::Target::Sql(dialect) = options.target;
     let sql_ast = gen_query::translate_query(query, dialect)?;
 
@@ -60,11 +60,11 @@ pub fn compile(query: Query, options: &Options) -> Result<String> {
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
     use super::*;
-    use crate::ir::rq::{Query, Transform};
+    use crate::ir::rq::{RelationalQuery, Transform};
 
     pub use super::srq::ast::SqlTransform;
 
-    fn init(query: Query) -> Result<(Vec<Transform>, Context)> {
+    fn init(query: RelationalQuery) -> Result<(Vec<Transform>, Context)> {
         let (ctx, relation) = AnchorContext::of(query);
         let ctx = Context::new(dialect::Dialect::Generic, ctx);
 
@@ -74,14 +74,14 @@ pub mod internal {
     }
 
     /// Applies preprocessing to the main relation in RQ. Meant for debugging purposes.
-    pub fn preprocess(query: Query) -> Result<Vec<SqlTransform>> {
+    pub fn preprocess(query: RelationalQuery) -> Result<Vec<SqlTransform>> {
         let (pipeline, mut ctx) = init(query)?;
 
         srq::preprocess::preprocess(pipeline, &mut ctx)
     }
 
     /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: Query) -> Result<srq::ast::SqlQuery> {
+    pub fn anchor(query: RelationalQuery) -> Result<srq::ast::SqlQuery> {
         let (query, _ctx) = srq::compile_query(query, Some(dialect::Dialect::Generic))?;
         Ok(query)
     }

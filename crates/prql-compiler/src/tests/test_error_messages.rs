@@ -189,6 +189,27 @@ fn test_basic_type_checking() {
     "###);
 }
 
+// See also test_bad_error_messages::misplaced_type_error
+// Note that the ``` Help: Type `bool` expands to `bool` ``` is not that useful
+#[test]
+fn test_type_error_placement() {
+    assert_display_snapshot!(compile(r###"
+    let foo = x -> (x | as integer)
+    from t
+    select (true && (foo y))
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:22]
+       │
+     4 │     select (true && (foo y))
+       │                      ──┬──
+       │                        ╰──── function std.and, param `right` expected type `bool`, but found type `scalar`
+       │
+       │ Help: Type `bool` expands to `bool`
+    ───╯
+    "###);
+}
+
 #[test]
 fn test_ambiguous() {
     assert_display_snapshot!(compile(r#"

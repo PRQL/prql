@@ -95,13 +95,11 @@ where
     I: Iterator<Item = &'a Option<bool>>,
 {
     fn all_true(self) -> Option<bool> {
-        self.cloned()
-            .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a && b))
+        self.cloned().try_fold(true, |a, x| Some(a & x?))
     }
 
     fn any_true(self) -> Option<bool> {
-        self.cloned()
-            .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a && b))
+        self.cloned().try_fold(true, |a, x| Some(a & x?))
     }
 }
 

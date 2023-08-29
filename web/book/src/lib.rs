@@ -42,9 +42,14 @@ impl Preprocessor for ComparisonPreprocessor {
 #[strum(serialize_all = "kebab_case")]
 pub enum LangTag {
     Prql,
+    // The query either can't be formatted or, after being formatted, it can't
+    // be compiled.
     NoFmt,
+    // Ignore it, as though it's not PRQL.
     NoEval,
+    // The query can't be compiled.
     Error,
+    // Don't test the query.
     NoTest,
     #[strum(default)]
     Other(String),
@@ -314,7 +319,7 @@ this is an error
 #[test]
 fn test_table() -> Result<()> {
     use insta::assert_display_snapshot;
-    let table = r###"
+    let table = r"
 # Syntax
 
 | a |
@@ -326,7 +331,7 @@ fn test_table() -> Result<()> {
 |-----|
 | \|  |
 
-"###;
+";
 
     assert_display_snapshot!(replace_examples(table)?, @r###"
     # Syntax

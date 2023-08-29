@@ -93,9 +93,23 @@ dependencies = [
  "anstyle",
  "anstyle-parse",
  "anstyle-query",
- "anstyle-wincon",
+ "anstyle-wincon 1.0.1",
  "colorchoice",
  "is-terminal",
+ "utf8parse",
+]
+
+[[package]]
+name = "anstream"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f58811cfac344940f1a400b6e6231ce35171f614f26439e80f8c1465c5cc0c"
+dependencies = [
+ "anstyle",
+ "anstyle-parse",
+ "anstyle-query",
+ "anstyle-wincon 2.1.0",
+ "colorchoice",
  "utf8parse",
 ]
 
@@ -128,6 +142,16 @@ name = "anstyle-wincon"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
+dependencies = [
+ "anstyle",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "anstyle-wincon"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58f54d10c6dfa51283a066ceab3ec1ab78d13fae00aa49243a45e4571fb79dfd"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -283,7 +307,7 @@ version = "41.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b71d8d68d0bc2e648e4e395896dc518be8b90c5f0f763c59083187c3d46184b"
 dependencies = [
- "bitflags 2.3.1",
+ "bitflags 2.3.3",
 ]
 
 [[package]]
@@ -428,9 +452,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.3.1"
+version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6776fc96284a0bb647b615056fc496d1fe1644a7ab01829818a6d91cae888b84"
+checksum = "630be753d4e58660abd17930c71b647fe46c27ea6b63cc59e1e3851406972e42"
 
 [[package]]
 name = "bitvec"
@@ -694,7 +718,7 @@ version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f423e341edefb78c9caba2d9c7f7687d0e72e89df3ce3394554754393ac3990"
 dependencies = [
- "anstream",
+ "anstream 0.3.2",
  "anstyle",
  "bitflags 1.3.2",
  "clap_lex",
@@ -764,13 +788,13 @@ checksum = "2da6da31387c7e4ef160ffab6d5e7f00c42626fe39aea70a7b0f1773f7dd6c1b"
 
 [[package]]
 name = "clio"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20a7c15685caad17ac973fde985e95c8a0b7a4206de22f6b5fb58a70f430b2cc"
+checksum = "746ce4269bee03af43b3349f37f420cf5957f8431c531c08dea0441b298b10e0"
 dependencies = [
- "atty",
  "cfg-if",
  "clap 4.3.0",
+ "is-terminal",
  "libc",
  "tempfile",
  "walkdir",
@@ -852,7 +876,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
 ]
@@ -1338,13 +1362,13 @@ dependencies = [
 
 [[package]]
 name = "filetime"
-version = "0.2.21"
+version = "0.2.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cbc844cecaee9d4443931972e1289c8ff485cb4cc2767cb03ca139ed6885153"
+checksum = "d4029edd3e734da6fe05b6cd7bd2960760a616bd2ddd0d59a0124746d6272af0"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall 0.2.16",
+ "redox_syscall 0.3.5",
  "windows-sys 0.48.0",
 ]
 
@@ -1797,9 +1821,9 @@ dependencies = [
 
 [[package]]
 name = "insta-cmd"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48dee4ceca7bb4634484c679a445b96d1cf1e454b956540ce18dba18e922d8d0"
+checksum = "809d3023d1d6e8d5c2206f199251f75cb26180e41f18cb0f22dd119161cb5127"
 dependencies = [
  "insta",
  "serde",
@@ -1838,13 +1862,12 @@ dependencies = [
 
 [[package]]
 name = "is-terminal"
-version = "0.4.7"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adcf93614601c8129ddf72e2d5633df827ba6551541c6d8c59520a371475be1f"
+checksum = "cb0889898416213fab133e1d33a0e5858a48177452750691bde3666d0fdbaf8b"
 dependencies = [
  "hermit-abi 0.3.1",
- "io-lifetimes",
- "rustix",
+ "rustix 0.38.6",
  "windows-sys 0.48.0",
 ]
 
@@ -2090,6 +2113,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef53942eb7bf7ff43a617b3e2c1c4a5ecf5944a7c1bc12d7ee39bbb15e5c1519"
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57bcfdad1b858c2db7c38303a6d2ad4dfaf5eb53dfeb0910128b2c26d6158503"
+
+[[package]]
 name = "lock_api"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2173,10 +2202,10 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "ansi-to-html",
- "anstream",
+ "anstream 0.5.0",
  "anyhow",
  "globset",
  "insta",
@@ -2188,7 +2217,6 @@ dependencies = [
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "regex",
- "semver",
  "serde_json",
  "serde_yaml",
  "strum 0.25.0",
@@ -2267,7 +2295,7 @@ dependencies = [
 
 [[package]]
 name = "misc"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "insta",
  "regex",
@@ -2295,7 +2323,7 @@ dependencies = [
  "percent-encoding",
  "serde",
  "serde_json",
- "socket2 0.5.3",
+ "socket2",
  "twox-hash",
  "url",
 ]
@@ -2327,7 +2355,7 @@ dependencies = [
  "base64",
  "bigdecimal",
  "bindgen",
- "bitflags 2.3.1",
+ "bitflags 2.3.3",
  "bitvec",
  "byteorder",
  "bytes",
@@ -2395,20 +2423,21 @@ dependencies = [
 
 [[package]]
 name = "notify"
-version = "6.0.0"
+version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d9ba6c734de18ca27c8cef5cd7058aa4ac9f63596131e4c7e41e579319032a2"
+checksum = "3dbf4f3b058c29e9642cf53217e0531cbfc78bc24e0a212a9837b7415b9d9007"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.3.3",
  "crossbeam-channel",
  "filetime",
  "fsevent-sys",
  "inotify",
  "kqueue",
  "libc",
+ "log",
  "mio",
  "walkdir",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -2701,9 +2730,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.9"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0a7ae3ac2f1173085d398531c705756c94a4c56843785df85a60c1a0afac116"
+checksum = "12cc1b0bf1727a77a54b6654e7b5f1af8604923edc8b81885f8ec92f9e3f0a05"
 
 [[package]]
 name = "pin-utils"
@@ -2870,7 +2899,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
  "rustler",
@@ -2878,7 +2907,7 @@ dependencies = [
 
 [[package]]
 name = "prql-ast"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "enum-as-inner",
  "semver",
@@ -2888,9 +2917,9 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
- "anstream",
+ "anstream 0.5.0",
  "anyhow",
  "ariadne",
  "cfg-if",
@@ -2926,7 +2955,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
  "syn 2.0.17",
@@ -2934,7 +2963,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2942,7 +2971,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2952,7 +2981,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2961,7 +2990,7 @@ dependencies = [
 
 [[package]]
 name = "prql-parser"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "chumsky",
  "insta",
@@ -2972,7 +3001,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
  "insta",
  "prql-compiler",
@@ -2982,11 +3011,12 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.9.2"
+version = "0.9.5"
 dependencies = [
- "anstream",
+ "anstream 0.5.0",
  "anyhow",
  "ariadne",
+ "atty",
  "clap 4.3.0",
  "clap_complete_command",
  "clio",
@@ -3050,9 +3080,9 @@ dependencies = [
 
 [[package]]
 name = "pulldown-cmark-to-cmark"
-version = "10.0.4"
+version = "11.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0194e6e1966c23cc5fd988714f85b18d548d773e81965413555d96569931833d"
+checksum = "f3118a235a72ced8a51669699d9febd97c0d6e23b3bd3a1d9d0fdaa995082099"
 dependencies = [
  "pulldown-cmark",
 ]
@@ -3321,7 +3351,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "549b9d036d571d42e6e85d1c1425e2ac83491075078ca9a15be021c56b1641f2"
 dependencies = [
- "bitflags 2.3.1",
+ "bitflags 2.3.3",
  "csv",
  "fallible-iterator 0.2.0",
  "fallible-streaming-iterator",
@@ -3370,7 +3400,20 @@ dependencies = [
  "errno",
  "io-lifetimes",
  "libc",
- "linux-raw-sys",
+ "linux-raw-sys 0.3.8",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "rustix"
+version = "0.38.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ee020b1716f0a80e2ace9b03441a749e402e86712f15f16fe8a8f75afac732f"
+dependencies = [
+ "bitflags 2.3.3",
+ "errno",
+ "libc",
+ "linux-raw-sys 0.4.5",
  "windows-sys 0.48.0",
 ]
 
@@ -3601,9 +3644,9 @@ dependencies = [
 
 [[package]]
 name = "similar-asserts"
-version = "1.4.2"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbf644ad016b75129f01a34a355dcb8d66a5bc803e417c7a77cc5d5ee9fa0f18"
+checksum = "e041bb827d1bfca18f213411d51b665309f1afb37a04a5d1464530e13779fc0f"
 dependencies = [
  "console",
  "similar",
@@ -3632,16 +3675,6 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
 name = "socket2"
-version = "0.4.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64a4a911eed85daf18834cfaa86a79b7d266ff93ff5ba14005426219480ed662"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
-name = "socket2"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2538b18701741680e0322a2302176d3253a35388e2e62f172f64f4f16605f877"
@@ -3663,9 +3696,9 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f20da3167d59ddf22c226d7fb34f8e56419a4cbc14df554f499e23d2dafc329f"
+checksum = "37ae05a8250b968a3f7db93155a84d68b2e6cea1583949af5ca5b5170c76c075"
 dependencies = [
  "log",
  "serde",
@@ -3820,7 +3853,7 @@ dependencies = [
  "cfg-if",
  "fastrand",
  "redox_syscall 0.3.5",
- "rustix",
+ "rustix 0.37.19",
  "windows-sys 0.45.0",
 ]
 
@@ -3839,7 +3872,7 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e6bf6f19e9f8ed8d4048dc22981458ebcf406d67e94cd422e5ecd73d63b3237"
 dependencies = [
- "rustix",
+ "rustix 0.37.19",
  "windows-sys 0.48.0",
 ]
 
@@ -3984,11 +4017,10 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.29.0"
+version = "1.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "374442f06ee49c3a28a8fc9f01a2596fed7559c6b99b31279c3261778e77d84f"
+checksum = "17ed6077ed6cd6c74735e21f37eb16dc3935f96878b1fe961074089cc80893f9"
 dependencies = [
- "autocfg",
  "backtrace",
  "bytes",
  "libc",
@@ -3997,7 +4029,7 @@ dependencies = [
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
- "socket2 0.4.9",
+ "socket2",
  "tokio-macros",
  "windows-sys 0.48.0",
 ]
@@ -4032,7 +4064,7 @@ dependencies = [
  "pin-project-lite",
  "postgres-protocol",
  "postgres-types",
- "socket2 0.5.3",
+ "socket2",
  "tokio",
  "tokio-util",
 ]

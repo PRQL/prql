@@ -2,16 +2,17 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directory: "/"
-    labels:
-      - pr-test-all
     schedule:
-      interval: daily
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-patch
+      # Running daily means the GHA cache will be cycling much faster, and we're
+      # not in a great rush. So trying weekly, and we can iterate.
+      interval: weekly
     commit-message:
       prefix: "chore: "
+    # Bump all patch versions of rust dependencies as a single PR
+    groups:
+      patch:
+        update-types:
+          - patch
 
   - package-ecosystem: github-actions
     directory: "/"

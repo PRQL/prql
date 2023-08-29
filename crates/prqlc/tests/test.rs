@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 
+use insta_cmd::assert_cmd_snapshot;
 use insta_cmd::get_cargo_bin;
-use insta_cmd::{assert_cmd_snapshot, StdinCommand};
 use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::Command;
@@ -62,11 +62,9 @@ fn get_targets() {
 
 #[test]
 fn compile() {
-    let mut cmd = StdinCommand::new(get_cargo_bin("prqlc"), "from tracks");
-    normalize_prqlc(&mut cmd);
-    cmd.args(["compile", "--hide-signature-comment"]);
-
-    assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["compile", "--hide-signature-comment"])
+        .pass_stdin("from tracks"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -82,10 +80,7 @@ fn compile() {
 #[cfg(not(windows))] // Windows has slightly different output (e.g. `prqlc.exe`), so we exclude.
 #[test]
 fn compile_help() {
-    let mut cmd = prqlc_command();
-    cmd.args(["compile", "--help"]);
-
-    assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "--help"]), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -186,16 +181,14 @@ fn compile_project() {
     ----- stderr -----
     "###);
 
-    let mut cmd = prqlc_command();
-    cmd.args([
+    assert_cmd_snapshot!(prqlc_command()
+      .args([
         "compile",
         "--hide-signature-comment",
         project_path().to_str().unwrap(),
         "-",
         "favorite_artists",
-    ]);
-
-    assert_cmd_snapshot!(cmd, @r###"
+    ]), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -221,10 +214,7 @@ fn compile_project() {
 
 #[test]
 fn format() {
-    let mut cmd = StdinCommand::new(get_cargo_bin("prqlc"), "from tracks | take 20");
-    normalize_prqlc(&mut cmd);
-    cmd.args(["fmt"]);
-    assert_cmd_snapshot!(cmd, @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -258,13 +248,13 @@ fn prqlc_command() -> Command {
 }
 
 fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
-    // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
-    // output color for our snapshot tests. And it seems to override the
-    // `--color=never` flag.
-    cmd.env_remove("CLICOLOR_FORCE");
-    // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
-    cmd.env_remove("RUST_BACKTRACE");
-    cmd.env_remove("RUST_LOG");
-    cmd.args(["--color=never"]);
     cmd
+        // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
+        // output color for our snapshot tests. And it seems to override the
+        // `--color=never` flag.
+        .env_remove("CLICOLOR_FORCE")
+        .args(["--color=never"])
+        // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
+        .env_remove("RUST_BACKTRACE")
+        .env_remove("RUST_LOG")
 }

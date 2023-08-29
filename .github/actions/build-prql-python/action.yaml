@@ -16,6 +16,7 @@ runs:
       with:
         save-if: ${{ github.ref == 'refs/heads/main' }}
         prefix-key: ${{ env.version }}
+        shared-key: python
     - uses: messense/maturin-action@v1
       if: inputs.target == 'source'
       with:

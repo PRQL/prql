@@ -3,6 +3,7 @@
 dist
 target*/
 *.out
+*.log
 
 lcov.info
 

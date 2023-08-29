@@ -19,7 +19,7 @@ mod utils;
 use crate::generic::{SortDirection, WindowKind};
 use crate::ir::rq::TableRef;
 use crate::*;
-use crate::{ir::rq::Query, sql::internal::SqlTransform, SourceTree, Span};
+use crate::{ir::rq::RelationalQuery, sql::internal::SqlTransform, SourceTree, Span};
 
 pub use self::expr::*;
 pub use self::extra::expr::*;
@@ -52,9 +52,9 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "LineageInput", size_of::<LineageInput>());
     println!("{:16}= {}", "ModuleDef", size_of::<ModuleDef>());
     println!("{:16}= {}", "PrimitiveSet", size_of::<PrimitiveSet>());
-    println!("{:16}= {}", "Query", size_of::<Query>());
     println!("{:16}= {}", "QueryDef", size_of::<QueryDef>());
     println!("{:16}= {}", "Range", size_of::<Range>());
+    println!("{:16}= {}", "RelationalQuery", size_of::<RelationalQuery>());
     println!("{:16}= {}", "SortDirection", size_of::<SortDirection>());
     println!("{:16}= {}", "SourceTree", size_of::<SourceTree>());
     println!("{:16}= {}", "Span", size_of::<Span>());

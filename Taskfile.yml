@@ -22,10 +22,15 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
-  cargo_crates:
+  cargo_crates: >
     bacon cargo-audit cargo-insta cargo-release default-target mdbook
     mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
     wasm-pack
+  # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
+  brew_dependencies: |
+    hugo
+    npm
+    python3
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -33,6 +38,7 @@ tasks:
     preconditions:
       - sh: which clang
         msg: |
+
           🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
 
           Please install it. On MacOS, that's
@@ -46,13 +52,15 @@ tasks:
     desc: Install tools for PRQL development.
     cmds:
       - task: install-cargo-tools
-      - task: install-brew-dependencies
+      # We only suggest, rather than install; we don't want to intrude (maybe
+      # we're being too conservative?).
+      - cmd: task check-vscode-extensions
+        ignore_error: true
+      - cmd: task check-brew-dependencies
+        ignore_error: true
       - task: install-maturin
       - task: install-pre-commit
       - task: install-npm-dependencies
-      # We only suggest, rather than install; we don't want to intrude (maybe
-      # we're being too conservative?).
-      - task: suggest-vscode-extensions
       - pre-commit install-hooks
       - cmd: |
           echo "
@@ -69,8 +77,6 @@ tasks:
       # CI atm. If the warnings were less alarming, we could use for all
       # installs.
       #
-      # `--locked` installs from the underlying lock files (which is not the
-      # default...)
       - |
         {{ if .CI }}
           task install-cargo-tools-binstall
@@ -79,28 +85,33 @@ tasks:
         {{ end }}
 
       - cmd: |
-          [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
+          [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at `~/.cargo/bin`) on the \$PATH?"
         silent: true
 
   install-cargo-tools-source:
     cmds:
-      - cargo install --locked {{.cargo_crates}}
+      # `--locked` installs from the underlying lock files (which is not the
+      # default...)
+      - "cargo install --locked {{.cargo_crates}}"
 
   install-cargo-tools-binstall:
     cmds:
+      # Currently pinning 1.1.2 because of https://github.com/cargo-bins/cargo-binstall/issues/1292, and using `+stable` because it's not supported by 1.68.2.
       - cmd:
-          curl -L --proto '=https' --tlsv1.2 -sSf
-          https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
-          | bash
+          # curl -L --proto '=https' --tlsv1.2 -sSf
+          # https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
+          # | bash ||
+          rustup toolchain add stable && cargo +stable install --locked
+          cargo-binstall --version=1.1.2
         platforms: [linux, darwin]
-      - cargo binstall -y --locked {{.cargo_crates}}
+      - "cargo binstall -y --locked {{.cargo_crates}}"
 
   install-maturin:
     desc: Install maturin.
     cmds:
       - python3 -m pip install -U maturin
 
-  suggest-vscode-extensions:
+  check-vscode-extensions:
     desc: Check and suggest VS Code extensions.
     vars:
       extensions:
@@ -127,6 +138,7 @@ tasks:
 
           task install-vscode-extensions
           "
+      - exit 1
 
   install-vscode-extensions:
     desc: Install recommended VS Code extensions.
@@ -144,24 +156,46 @@ tasks:
     cmds:
       - python3 -m pip install -U pre-commit
 
-  install-brew-dependencies:
+  check-brew-dependencies:
     status:
-      - which hugo
-      - which npm
-      # Check for a recent npm version
+      - |
+        {{ range $dep := (.brew_dependencies | trim | splitLines) -}}
+          [ -n "$(which {{ $dep }})" ]
+        {{ end -}}
       - "[ $(npm -v | cut -d. -f1) -ge 9 ]"
-      - which python3
-      - which elixir
+    silent: true
+    cmds:
+      - cmd: |
+          echo "
+
+          🟡 It looks like at least one brew dependency is missing from:
+
+          {{ .brew_dependencies }}
+
+          These aren't required for initial PRQL development, but they are required for some of the tests.
+
+          Install them with:
+
+            task install-brew-dependencies
+            "
+      - exit 1
+
+  install-brew-dependencies:
     preconditions:
       - sh: which brew
         msg: |
 
 
-          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
-          - https://gohugo.io/getting-started/installing/
-          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+          🔴 Can't find `brew`, which we use to install {{ .brew_dependencies | trim | splitLines | join " & " }}.
+
+          Either install brew & re-run this, or install the dependencies with a different approach, or use PRQL without them.
+          Brew installation instructions at:
+
+            https://brew.sh/
+    status:
+      - task check-brew-dependencies
     cmds:
-      - brew install hugo npm python3 elixir
+      - brew install {{.brew_dependencies | trim | splitLines | join " " }}
 
   install-npm-dependencies:
     cmds:
@@ -184,6 +218,10 @@ tasks:
     cmds:
       - cargo build --all-targets --all-features
       - cargo build --all-targets --all-features --target=wasm32-unknown-unknown
+      # Build without features, as the dependencies have slightly different
+      # features themselves and so require recompiling. This is only useful for
+      # caching.
+      - cargo build --all-targets
       - task: build-web
 
   test-all:
@@ -194,8 +232,11 @@ tasks:
       Running this isn't required when developing; it's for caching or as a reference.
 
     cmds:
-      # TODO: this doesn't run the python tests. We should add them in here.
-      # They are run in `test-all.yaml` on GHA.
+      # TODO:
+      # - Add `prql-python` tests.
+      # - We could add `prql-lib` here.
+      # - We deliberately don't test some other bindings, such as `prql-php`,
+      #   given they require more dependencies and aren't yet supported.
       - task: test-rust
       - task: build-all
       - task: test-js
@@ -274,6 +315,11 @@ tasks:
       - mix compile
       - mix test
 
+  test-lint:
+    desc: Run pre-commit
+    cmds:
+      - pre-commit run -a
+
   run-website:
     desc: Build & serve the static website.
     dir: web/website
@@ -333,6 +379,18 @@ tasks:
       - package.json
     generates:
       - node_modules/*
+
+  build-php:
+    - cargo build -p prql-lib --release
+    - mkdir -p bindings/prql-php/lib/
+    - cp target/release/libprql_lib.* bindings/prql-lib/libprql_lib.h
+      bindings/prql-php/lib/
+    - cd bindings/prql-php && composer install
+
+  test-php:
+    dir: bindings/prql-php
+    cmds:
+      - vendor/bin/phpunit tests
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly

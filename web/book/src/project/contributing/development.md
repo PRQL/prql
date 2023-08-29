@@ -49,8 +49,8 @@ website, we have two options:
 ### Option 1: Use the project's `task`
 
 ```admonish note
-This is tested on MacOS, should work on Linux, but won't work on Windows.
-Because of using the `brew` command inside of `Taskfile.yml`.
+This is tested on macOS, should work on amd64 Linux, but won't work on others (include Windows),
+since it relies on `brew`.
 ```
 
 - [Install Task](https://taskfile.dev/installation/).
@@ -145,9 +145,7 @@ change!
   - be explicit on its current state, so others can continue the progress.
 - That said, there are a few instances when we need to ensure we have some
   consensus before merging code — for example non-trivial changes to the
-  language, or large refactorings to the library. {{footnote: PRs or Issues are
-  both fine for these. Discord is OK for an initial discussion, but GitHub is
-  the only discussion of record.}}
+  language, or large refactorings to the library.
 - If you have merge permissions, and are reasonably confident that a PR is
   suitable to merge (whether or not you're the author), feel free to merge.
   - If you don't have merge permissions and have authored a few PRs, ask and ye
@@ -236,6 +234,8 @@ Our tests, from the bottom of the pyramid to the top:
   using [pre-commit](https://pre-commit.com). They can be run locally with
 
   ```sh
+  task test-lint
+  # or
   pre-commit run -a
   ```
 
@@ -297,41 +297,40 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       snapshot file, etc. -->
 
 - **[Documentation](https://github.com/PRQL/prql/tree/main/web/book/tests/documentation)**
-  — we compile all examples from our documentation in the Website, README, and
+  — we compile all examples from our documentation in the Website, README, and
   PRQL Book, to test that they produce the SQL we expect, and that changes to
-  our code don't cause any unexpected regressions.
+  our code don't cause any unexpected regressions. These are included in:
+
+  ```sh
+  cargo insta test --accept
+  ```
 
 - **[Integration tests](https://github.com/PRQL/prql/blob/main/crates/prql-compiler/tests/integration)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
-  in-process tests can be run locally with `cargo test --features=test-dbs`;
-  more details are in the Readme.
-
-- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
-  — we run the tests described up to this point on every commit to a pull
-  request. These are designed to run in under five minutes, and we should be
-  reassessing their scope if they grow beyond that. Once these pass, a pull
-  request can be merged.
-
-  These can be run locally with:
+  in-process tests can be run locally with:
 
   ```sh
   task test-rust
+  # or
+  cargo insta test --accept --features=test-dbs
   ```
 
-- **[GitHub Actions on specific changes](https://github.com/PRQL/prql/blob/main/.github/workflows/)**
-  — we run additional tests on pull requests when we identify changes to some
-  paths, such as bindings to other languages.
+  More details on running with external databases are in the Readme.
 
-- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/main/.github/workflows/test-all.yaml)**
-  — we run many more tests on every merge to main. This includes testing across
-  OSs, all our language bindings, our `task` tasks, a measure of test code
-  coverage, and some performance benchmarks.
+- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
+  — we run tests relevant to a PR's changes in CI — for example changes to docs
+  will attempt to build docs, changes to a binding will run that binding's
+  tests. The vast majority of changes trigger tests which run in less than five
+  minutes, and we should be reassessing their scope if they take longer than
+  that. Once these pass, a pull request can be merged.
 
-  We can run these tests before a merge by adding a label `pr-test-all` to the
-  PR.
+- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/c042eef48709e2c1af577161554fd09f14e67e0f/.github/workflows/pull-request.yaml#L124)**
+  — we run a wider set tests on every merge to main. This includes testing
+  across OSs, all our language bindings, a measure of test code coverage, and
+  some performance benchmarks.
 
-  If these tests fail after merging, we revert the merged commit before fixing
+  If these tests fail after merging, we should revert the commit before fixing
   the test and then re-reverting.
 
   Most of these will run locally with:
@@ -341,8 +340,9 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
 - **[GitHub Actions nightly](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml)**
-  — we run tests that take a long time or are unrelated to code changes, such as
-  security checks, or expensive timing benchmarks, every night.
+  — every night, we run tests that take longer, are less likely to fail, or are
+  unrelated to code changes — such as security checks, bindings' tests on
+  multiple OSs, or expensive timing benchmarks.
 
   We can run these tests before a merge by adding a label `pr-nightly` to the
   PR.
@@ -361,11 +361,12 @@ automatically built and released on any push to the `web` branch.
 
 The `web` branch points to the latest release plus any website-specific fixes.
 That way, the compiler behavior in the playground matches the latest release
-while allowing us to fix mistakes with a tighter loop than every release.
+while allowing us to fix mistakes in the docs with a tighter loop than every
+release.
 
 Fixes to the playground, book, or website should have a `pr-backport-web` label
-added to their PR — a bot will then open another PR onto the `web` branch once
-the initial branch merges.
+added to their PR — a bot will then open & merge another PR onto the `web`
+branch once the initial branch merges.
 
 The website components will run locally with:
 
@@ -395,8 +396,11 @@ Currently we release in a semi-automated way:
    echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
-2. Run `cargo release version patch -x && cargo release replace -x` to bump the
-   versions, then PR the resulting commit.
+2. If the current version is correct, then skip ahead. But if the version needs
+   to be changed — for example, we had planned on a patch release, but instead
+   require a minor release — then run
+   `cargo release version $version -x && cargo release replace -x` to bump the
+   version and PR the resulting commit.
 3. After merging, go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
    maintainers have access to this page.}}, copy the changelog entry into the release
@@ -407,28 +411,10 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Add in the sections for a new Changelog:
-
-   ```md
-   ## [unreleased]
-
-   **Language**:
-
-   **Features**:
-
-   **Fixes**:
-
-   **Documentation**:
-
-   **Web**:
-
-   **Integrations**:
-
-   **Internal changes**:
-
-   **New Contributors**:
-   ```
-
+5. Run
+   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
+   to bump the versions and add a new Changelog section; then PR the resulting
+   commit.
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
 
