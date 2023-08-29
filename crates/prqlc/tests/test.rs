@@ -153,15 +153,73 @@ fn long_query() {
     filter ct > 200
     take 20
 )
+from long_query
   "#), @r###"
-    success: false
-    exit_code: 1
+    success: true
+    exit_code: 0
     ----- stdout -----
+    WITH table_2 AS (
+      SELECT
+        title,
+        COUNT(*) AS ct
+      FROM
+        employees
+      WHERE
+        gross_cost > 0
+      GROUP BY
+        title
+      HAVING
+        COUNT(*) > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), table_1 AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_2
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), table_0 AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_1
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), long_query AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_0
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    )
+    SELECT
+      title,
+      ct
+    FROM
+      long_query
+    ORDER BY
+      ct
 
     ----- stderr -----
-    [E0001] Error: Missing main pipeline
-    ↳ Hint: Expected a declaration at main
-
     "###);
 }
 
