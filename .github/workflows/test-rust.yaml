@@ -103,6 +103,12 @@ jobs:
         with:
           command: fmt
           args: --all --check
+      - name: 🗒️ Doc
+        if: inputs.target != 'wasm32-unknown-unknown'
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: doc
+          args: --target=${{ inputs.target }} --features=${{ inputs.features }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
@@ -115,9 +121,3 @@ jobs:
           args:
             --all-targets --target=${{ inputs.target }} --features=${{
             inputs.features }}
-      - name: 🗒️ Docs
-        if: inputs.target != 'wasm32-unknown-unknown'
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: doc
-          args: --target=${{ inputs.target }} --features=${{ inputs.features }}
