@@ -6,9 +6,12 @@
     "ghcr.io/devcontainers/features/python:1": {},
     "ghcr.io/devcontainers/features/node:1": {},
     "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
+    "ghcr.io/eitsupi/devcontainer-features/jq-likes:1": {
+      "yqVersion": "latest"
+    },
     "ghcr.io/eitsupi/devcontainer-features/duckdb-cli:1": {},
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": "sqlite3"
+      "packages": "cmake,sqlite3"
     }
   },
   "customizations": {

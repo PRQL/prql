@@ -2473,4 +2473,42 @@ join s=salaries (==id)
         );
         assert!(parse_single(&stmt).is_err());
     }
+
+    #[test]
+    fn test_target() {
+        assert_yaml_snapshot!(parse_single(
+            r#"
+          prql target:sql.sqlite
+
+          from film
+          remove film2
+        "#,
+        )
+        .unwrap(), @r###"
+        ---
+        - QueryDef:
+            version: ~
+            other:
+              target: sql.sqlite
+          annotations: []
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - film
+                - FuncCall:
+                    name:
+                      Ident:
+                        - remove
+                    args:
+                      - Ident:
+                          - film2
+          annotations: []
+        "###);
+    }
 }

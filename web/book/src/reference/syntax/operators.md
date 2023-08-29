@@ -167,3 +167,39 @@ We're continuing to think whether these rules can be more intuitive.
 We're also planning to make the error messages much better,
 so the compiler can help out.
 ```
+
+## Wrapping lines
+
+Line breaks in PRQL have semantic meaning, so to wrap a single logical line into
+multiple physical lines, we can use `\` at the beginning of subsequent physical
+lines:
+
+```prql
+from artists
+select is_europe =
+\ country == "DE"
+\ || country == "FR"
+\ || country == "ES"
+```
+
+Wrapping will "jump over" empty lines or lines with comments. For example, the
+`select` here is only one logical line:
+
+```prql
+from tracks
+# This would be a really long line without being able to split it:
+select listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
+# * length_seconds
+# Actually it's `length_s` I think:
+\ * length_s
+#   min  hour day  year
+\ / 60 / 60 / 24 / 365
+```
+
+```admonish info
+Note that most languages use a `\` at the _end_ of the preceding line. Because PRQL aims to
+be friendly for data exploration, we want to make it easy to comment out a line,
+which requires the character at the start of the following line.
+```
+
+See [Pipes](./pipes.md) for more details on line breaks.
