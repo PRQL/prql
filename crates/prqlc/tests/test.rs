@@ -127,6 +127,45 @@ fn compile_help() {
 }
 
 #[test]
+fn long_query() {
+    // This was causing a stack overflow in Windows at one point (#2908)
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["compile", "--hide-signature-comment"])
+        .pass_stdin(r#"
+  let long_query = (
+    from employees
+    filter gross_cost > 0
+    group {title} (
+        aggregate {
+            ct = count s"*",
+        }
+    )
+    sort ct
+    filter ct > 200
+    take 20
+    sort ct
+    filter ct > 200
+    take 20
+    sort ct
+    filter ct > 200
+    take 20
+    sort ct
+    filter ct > 200
+    take 20
+)
+  "#), @r###"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    [E0001] Error: Missing main pipeline
+    ↳ Hint: Expected a declaration at main
+
+    "###);
+}
+
+#[test]
 fn compile_project() {
     let mut cmd = prqlc_command();
     cmd.args([
@@ -169,70 +208,14 @@ fn compile_project() {
         *
       FROM
         table_0
-    ),
-    table_4 AS (
-      SELECT
-        title,
-        COUNT(*) AS ct
-      FROM
-        employees
-      WHERE
-        gross_cost > 0
-      GROUP BY
-        title
-      HAVING
-        COUNT(*) > 200
-      ORDER BY
-        ct
-      LIMIT
-        20
-    ), table_3 AS (
-      SELECT
-        title,
-        ct
-      FROM
-        table_4
-      WHERE
-        ct > 200
-      ORDER BY
-        ct
-      LIMIT
-        20
-    ), table_2 AS (
-      SELECT
-        title,
-        ct
-      FROM
-        table_3
-      WHERE
-        ct > 200
-      ORDER BY
-        ct
-      LIMIT
-        20
-    ), long_query AS (
-      SELECT
-        title,
-        ct
-      FROM
-        table_2
-      WHERE
-        ct > 200
-      ORDER BY
-        ct
-      LIMIT
-        20
     )
     SELECT
       favorite_artists.artist_id,
       favorite_artists.last_listen,
-      input.*,
-      long_query.title,
-      long_query.ct
+      input.*
     FROM
       favorite_artists
       LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
-      LEFT JOIN long_query ON input.title = long_query.title
 
     ----- stderr -----
     "###);
