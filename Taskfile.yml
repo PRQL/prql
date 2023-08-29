@@ -22,18 +22,9 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
-  cargo_crates: |
-    bacon
-    cargo-audit
-    cargo-insta
-    cargo-release
-    default-target
-    mdbook
-    mdbook-admonish
-    mdbook-footnote
-    mdbook-toc
-    wasm-bindgen-cli
-    wasm-opt
+  cargo_crates: >
+    bacon cargo-audit cargo-insta cargo-release default-target mdbook
+    mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
     wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
@@ -101,7 +92,7 @@ tasks:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
-      - 'cargo install --locked {{.cargo_crates | splitLines | join " " }}'
+      - "cargo install --locked {{.cargo_crates}}"
 
   install-cargo-tools-binstall:
     cmds:
@@ -113,7 +104,7 @@ tasks:
           rustup toolchain add stable && cargo +stable install --locked
           cargo-binstall --version=1.1.2
         platforms: [linux, darwin]
-      - 'cargo binstall -y --locked {{.cargo_crates | splitLines | join " " }}'
+      - "cargo binstall -y --locked {{.cargo_crates}}"
 
   install-maturin:
     desc: Install maturin.

@@ -48,7 +48,7 @@ Yes, probably. We're standing on the shoulders of giants:
   writes insightful pieces, and it's worth sponsoring him for his updates.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl) demonstrate how effective
-  point-free pipelines can be, and how line-breaks can work as pipes.
+  point-free pipelines can be, and how line breaks can work as pipes.
 - [OCaml](https://ocaml.org/)'s elegant and simple syntax serves as inspiration.
 
 And there are many projects similar to PRQL:

@@ -1,26 +1,22 @@
+# This workflow runs on tags / releases. It also runs on nightly builds without
+# publishing anything, in order to test as much of the build works as possible.
+#
+# We indicate whether it should publish, vs. just build, by checking if we're on
+# a tag. (An alternative would be to have an input which is passed in by the
+# calling workflow.)
+
 name: release
 on:
   release:
     types: [released]
   workflow_call:
-    inputs:
-      dry-run:
-        description: "Whether to do a dry run"
-        default: true
-        type: boolean
   workflow_dispatch:
-    inputs:
-      dry-run:
-        description: "Whether to do a dry run"
-        required: true
-        default: true
-        type: boolean
 
 jobs:
   brew-dispatcher:
     name: Release on homebrew-prql
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' && !inputs.dry-run
+    if: github.event_name == 'release'
     steps:
       - uses: actions/github-script@v6
         with:
@@ -39,7 +35,6 @@ jobs:
 
   build-prqlc:
     runs-on: ${{ matrix.os }}
-    if: ${{ !inputs.dry-run }}
     strategy:
       fail-fast: false
       matrix:
@@ -63,7 +58,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: release
       - name: Upload release artifact
-        if: github.ref_type == 'tag' && !inputs.dry-run
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
           append_body: true
@@ -72,13 +67,13 @@ jobs:
   winget-release:
     runs-on: ubuntu-latest
     needs: build-prqlc
-    if: github.ref_type == 'tag' && !inputs.dry-run
+    if: github.event_name == 'release'
     steps:
       - name: publish
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: PRQL.prqlc
-          version: ${{ github.ref }}
+          version: ${{ github.ref_name }}
           installers-regex: '^prqlc-.*-windows-.*\.zip$'
           token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           fork-user: prql-bot
@@ -87,7 +82,6 @@ jobs:
     # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
     # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
-    if: ${{ !inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -104,7 +98,7 @@ jobs:
           package: prqlc
           package_root: .debpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref_type == 'tag' && github.ref_name || 0 }}
+          version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
@@ -115,7 +109,6 @@ jobs:
   build-rpm-package:
     # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
     runs-on: ubuntu-latest
-    if: ${{ !inputs.dry-run }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -134,7 +127,7 @@ jobs:
           package_root: .rpmpkg
           maintainer: The PRQL Project
           vendor: The PRQL Project
-          version: ${{ github.ref_type == 'tag' && github.ref_name || 0 }}
+          version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
@@ -145,7 +138,7 @@ jobs:
 
   build-and-publish-snap:
     runs-on: ubuntu-latest
-    if: ${{ !inputs.dry-run }}
+    if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -155,7 +148,7 @@ jobs:
         id: build
         uses: snapcore/action-build@v1
       - name: 🆙 Publish Snap
-        if: github.ref_type == 'tag' && !inputs.dry-run
+        if: github.event_name == 'release'
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS:
@@ -166,7 +159,6 @@ jobs:
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
-    if: ${{ !inputs.dry-run }}
     strategy:
       fail-fast: true
       matrix:
@@ -188,7 +180,7 @@ jobs:
   publish-prql-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
-    if: github.ref_type == 'tag' && !inputs.dry-run
+    if: github.event_name == 'release'
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -217,8 +209,8 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - run:
-          npm publish ${{ (github.ref_type != 'tag' || inputs.dry-run) &&
-          '--dry-run' || '' }}
+          npm publish ${{ (github.event_name != 'release') && '--dry-run' || ''
+          }}
         working-directory: bindings/prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -235,8 +227,8 @@ jobs:
       # https://github.com/crate-ci/cargo-release/issues/691
       # --no-verify is required to prevent build.
       - run:
-          cargo release publish --no-confirm ${{ github.ref_type == 'tag' &&
-          !inputs.dry-run && '--execute' || '--no-verify --package prql-ast'}}
+          cargo release publish --no-confirm ${{ github.event_name == 'release'
+          && '--execute' || '--no-verify --package prql-ast'}}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -261,12 +253,14 @@ jobs:
 
   push-web-branch:
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' && !inputs.dry-run
+    if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - run: git push origin HEAD:web --force
 
-  push-devcontainer-base-image:
-    if: github.ref_type == 'tag' && !inputs.dry-run
+  push-devcontainer:
+    if: github.event_name == 'release'
     uses: ./.github/workflows/build-devcontainer.yaml
+    with:
+      push: true

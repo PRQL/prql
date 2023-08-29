@@ -1972,9 +1972,9 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn test_multiline_string() {
-        assert_yaml_snapshot!(parse_single(r###"
+        assert_yaml_snapshot!(parse_single(r##"
         derive x = r#"r-string test"#
-        "###).unwrap(), @r###"
+        "##).unwrap(), @r###"
         ---
         - Main:
             FuncCall:
@@ -2472,5 +2472,43 @@ join s=salaries (==id)
             env!("CARGO_PKG_VERSION_MAJOR").parse::<usize>().unwrap() + 1
         );
         assert!(parse_single(&stmt).is_err());
+    }
+
+    #[test]
+    fn test_target() {
+        assert_yaml_snapshot!(parse_single(
+            r#"
+          prql target:sql.sqlite
+
+          from film
+          remove film2
+        "#,
+        )
+        .unwrap(), @r###"
+        ---
+        - QueryDef:
+            version: ~
+            other:
+              target: sql.sqlite
+          annotations: []
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - film
+                - FuncCall:
+                    name:
+                      Ident:
+                        - remove
+                    args:
+                      - Ident:
+                          - film2
+          annotations: []
+        "###);
     }
 }

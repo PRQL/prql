@@ -282,11 +282,11 @@ pub mod test {
 
     #[test]
     fn test_header() {
-        assert_yaml_snapshot!(parse_resolve_and_lower(r###"
+        assert_yaml_snapshot!(parse_resolve_and_lower(r#"
         prql target:sql.mssql version:"0"
 
         from employees
-        "###).unwrap(), @r###"
+        "#).unwrap(), @r###"
         ---
         def:
           version: ^0
@@ -325,10 +325,10 @@ pub mod test {
         .is_err());
 
         assert!(parse_resolve_and_lower(
-            r###"
+            r#"
         prql target:sql.bigquery version:"25"
         from employees
-        "###,
+        "#,
         )
         .is_err());
 

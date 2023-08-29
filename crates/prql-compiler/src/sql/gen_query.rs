@@ -292,6 +292,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 },
                 args: None,
                 with_hints: vec![],
+                version: None,
             }
         }
         RelationExprKind::SubQuery(query) => {

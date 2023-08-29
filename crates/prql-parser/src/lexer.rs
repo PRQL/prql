@@ -1,4 +1,4 @@
-use chumsky::{error::Cheap, prelude::*};
+use chumsky::{error::Cheap, prelude::*, text::newline};
 use prql_ast::expr::*;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -34,9 +34,6 @@ pub enum Token {
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
-    let new_line = just('\n').to(Token::NewLine);
-    let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
-
     let control_multi = choice((
         just("->").to(Token::ArrowThin),
         just("=>").to(Token::ArrowFat),
@@ -77,13 +74,19 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .collect::<String>()
         .map(Token::Param);
 
-    // s-string and f-strings
     let interpolation = one_of("sf")
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
+    // I think declaring this and then cloning will be more performant than
+    // calling the function on each invocation.
+    // https://github.com/zesterer/chumsky/issues/501 would allow us to avoid
+    // this, and let us split up this giant function without sacrificing
+    // performance.
+    let newline = newline();
+
     let token = choice((
-        new_line.clone(),
+        newline.to(Token::NewLine),
         control_multi,
         interpolation,
         param,
@@ -94,9 +97,10 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let comment = just('#').then(none_of('\n').repeated());
-    let comments = comment
-        .separated_by(new_line.then(whitespace.clone().or_not()))
+    let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
+    let comment = just('#')
+        .then(newline.not().repeated())
+        .separated_by(newline.then(whitespace.clone().or_not()))
         .at_least(1)
         .ignored();
 
@@ -109,24 +113,35 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         })
         .map_with_span(|tok, span| (tok, span));
 
-    // range needs to consume leading whitespace,
-    // so whitespace following a token must not be consumed
-    let ignored = comments.clone().or(whitespace).repeated();
-
-    comments
-        .or_not()
-        .ignore_then(choice((
-            range,
-            ignored
+    let line_wrap = newline
+        .then(
+            // We can optionally have an empty line, or a line with a comment,
+            // between the initial line and the continued line
+            whitespace
                 .clone()
-                .ignore_then(token.map_with_span(|tok, span| (tok, span))),
-        )))
-        .repeated()
-        .then_ignore(ignored)
-        .then_ignore(end())
+                .or_not()
+                .then(comment.clone().or_not())
+                .then(newline)
+                .repeated(),
+        )
+        .then(whitespace.clone().repeated())
+        .then(just('\\'))
+        .ignored();
+
+    let ignored = choice((comment.clone(), whitespace.clone(), line_wrap)).repeated();
+
+    choice((
+        range,
+        ignored
+            .clone()
+            .ignore_then(token.map_with_span(|tok, span| (tok, span))),
+    ))
+    .repeated()
+    .then_ignore(ignored)
+    .then_ignore(end())
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
+pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .map(Some)
         .chain::<char, Vec<_>, _>(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
@@ -365,7 +380,8 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
 fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     choice((
         end(),
-        one_of(",)]}\r\n\t >").ignored(),
+        one_of(",)]}\t >").ignored(),
+        newline(),
         just("..").ignored(),
     ))
     .rewind()
@@ -394,6 +410,73 @@ impl std::hash::Hash for Token {
 impl std::cmp::Eq for Token {}
 
 #[test]
+fn test_line_wrap() {
+    use insta::assert_debug_snapshot;
+
+    // (TODO: is there a terser way of writing our lexer output?)
+    assert_debug_snapshot!(lexer().parse(r"5 +
+    \ 3 "
+        ).unwrap(), @r###"
+    [
+        (
+            Literal(
+                Integer(
+                    5,
+                ),
+            ),
+            0..1,
+        ),
+        (
+            Control(
+                '+',
+            ),
+            2..3,
+        ),
+        (
+            Literal(
+                Integer(
+                    3,
+                ),
+            ),
+            10..11,
+        ),
+    ]
+    "###);
+
+    // Comments get skipped over
+    assert_debug_snapshot!(lexer().parse(r"5 +
+# comment
+   # comment with whitespace
+  \ 3 "
+        ).unwrap(), @r###"
+    [
+        (
+            Literal(
+                Integer(
+                    5,
+                ),
+            ),
+            0..1,
+        ),
+        (
+            Control(
+                '+',
+            ),
+            2..3,
+        ),
+        (
+            Literal(
+                Integer(
+                    3,
+                ),
+            ),
+            47..48,
+        ),
+    ]
+    "###);
+}
+
+#[test]
 fn quotes() {
     use insta::assert_snapshot;
 
@@ -413,7 +496,7 @@ fn quotes() {
 
     // Escape each inner quote depending on the outer quote
     assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
-    assert_snapshot!(quoted_string(true).parse(r#"'\'hello\''"#).unwrap(), @"'hello'");
+    assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
 
     assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
 

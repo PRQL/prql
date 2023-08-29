@@ -93,9 +93,23 @@ dependencies = [
  "anstyle",
  "anstyle-parse",
  "anstyle-query",
- "anstyle-wincon",
+ "anstyle-wincon 1.0.1",
  "colorchoice",
  "is-terminal",
+ "utf8parse",
+]
+
+[[package]]
+name = "anstream"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f58811cfac344940f1a400b6e6231ce35171f614f26439e80f8c1465c5cc0c"
+dependencies = [
+ "anstyle",
+ "anstyle-parse",
+ "anstyle-query",
+ "anstyle-wincon 2.1.0",
+ "colorchoice",
  "utf8parse",
 ]
 
@@ -128,6 +142,16 @@ name = "anstyle-wincon"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
+dependencies = [
+ "anstyle",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "anstyle-wincon"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58f54d10c6dfa51283a066ceab3ec1ab78d13fae00aa49243a45e4571fb79dfd"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -694,7 +718,7 @@ version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f423e341edefb78c9caba2d9c7f7687d0e72e89df3ce3394554754393ac3990"
 dependencies = [
- "anstream",
+ "anstream 0.3.2",
  "anstyle",
  "bitflags 1.3.2",
  "clap_lex",
@@ -852,7 +876,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
 ]
@@ -1797,9 +1821,9 @@ dependencies = [
 
 [[package]]
 name = "insta-cmd"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48dee4ceca7bb4634484c679a445b96d1cf1e454b956540ce18dba18e922d8d0"
+checksum = "809d3023d1d6e8d5c2206f199251f75cb26180e41f18cb0f22dd119161cb5127"
 dependencies = [
  "insta",
  "serde",
@@ -2178,10 +2202,10 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "ansi-to-html",
- "anstream",
+ "anstream 0.5.0",
  "anyhow",
  "globset",
  "insta",
@@ -2271,7 +2295,7 @@ dependencies = [
 
 [[package]]
 name = "misc"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "insta",
  "regex",
@@ -2875,7 +2899,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
  "rustler",
@@ -2883,7 +2907,7 @@ dependencies = [
 
 [[package]]
 name = "prql-ast"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "enum-as-inner",
  "semver",
@@ -2893,9 +2917,9 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
- "anstream",
+ "anstream 0.5.0",
  "anyhow",
  "ariadne",
  "cfg-if",
@@ -2931,7 +2955,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "prql-compiler",
  "syn 2.0.17",
@@ -2939,7 +2963,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2947,7 +2971,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2957,7 +2981,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2966,7 +2990,7 @@ dependencies = [
 
 [[package]]
 name = "prql-parser"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "chumsky",
  "insta",
@@ -2977,7 +3001,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "insta",
  "prql-compiler",
@@ -2987,9 +3011,9 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
- "anstream",
+ "anstream 0.5.0",
  "anyhow",
  "ariadne",
  "atty",
@@ -3672,9 +3696,9 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f20da3167d59ddf22c226d7fb34f8e56419a4cbc14df554f499e23d2dafc329f"
+checksum = "37ae05a8250b968a3f7db93155a84d68b2e6cea1583949af5ca5b5170c76c075"
 dependencies = [
  "log",
  "serde",
