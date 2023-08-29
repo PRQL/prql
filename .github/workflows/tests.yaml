@@ -17,14 +17,14 @@ on:
   workflow_call:
 
 concurrency:
-  # This used to require a custom suffix; I think that can now be removed...
-  group: ${{ github.workflow }}-${{ github.ref }}-tests
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
   CLICOLOR_FORCE: 1
   RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   # This assesses whether we need to run jobs. Some of them are defined only by
@@ -37,7 +37,7 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
-      devcontainer-push: ${{ steps.changes.outputs.devcontainer-push }}
+      devcontainer-push: ${{ steps.devcontainer-push.outputs.run }}
       devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
       elixir: ${{ steps.changes.outputs.elixir }}
       java: ${{ steps.changes.outputs.java }}
@@ -75,7 +75,9 @@ jobs:
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
             devcontainer-test:
+              - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
+              - Taskfile.yml
             elixir:
               - bindings/prql-elixir/**
               - bindings/prql-lib/**
@@ -137,6 +139,14 @@ jobs:
           'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
           "$GITHUB_OUTPUT"
 
+      - id: devcontainer-push
+        # We push the devcontainer if the files have changed, and we've merged
+        # to main.
+        run:
+          echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
+          github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
+          "$GITHUB_OUTPUT"
+
   test-rust:
     needs: rules
     if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
@@ -145,6 +155,11 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
+          # Only run wasm on ubuntu, given it's the same rust target. (There is a
+          # possibility of having a failure on just one platform, but it's quite
+          # unlikely. If we do observe this, we can expand, or introduce a
+          # `test-actually-all.yaml` which accounts for these corner cases without
+          # using runners & cache space)
           - target: wasm32-unknown-unknown
     with:
       os: ubuntu-latest
@@ -275,14 +290,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
             features: ""
-          # Only run wasm on ubuntu, given it's the same rust target. (There is a
-          # possibility of having a failure on just one platform, but it's quite
-          # unlikely. If we do observe this, we can expand, or introduce a
-          # `test-actually-all.yaml` which accounts for these corner cases without
-          # using runners & cache space)
-          - os: ubuntu-latest
-            target: wasm32-unknown-unknown
-            features: ""
+          # Note that we run wasm in the standard `test-rust` job.
 
           # TODO: potentially enable these
           # - os: ubuntu-latest
@@ -427,7 +435,7 @@ jobs:
         with:
           use_cache: true
 
-  test-min-rust-version:
+  test-msrv:
     runs-on: ubuntu-latest
     needs: rules
     if: needs.rules.outputs.nightly == 'true'
@@ -460,6 +468,7 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
+      - test-msrv
       - test-devcontainer
       - test-dotnet
       - test-elixir
@@ -502,6 +511,7 @@ jobs:
               "lint-megalinter",
               "nightly",
               "publish-web",
+              "test-msrv",
               "test-devcontainer",
               "test-dotnet",
               "test-elixir",
@@ -555,6 +565,7 @@ jobs:
       CARGO_TERM_COLOR: always
       CLICOLOR_FORCE: 1
       RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
 
   create-issue-on-nightly-failure:
     runs-on: ubuntu-latest

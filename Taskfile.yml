@@ -22,21 +22,10 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
-  cargo_crates: |
-    cargo-insta
-    mdbook
-    mdbook-admonish
-    mdbook-footnote
-    mdbook-toc
-    wasm-bindgen-cli
-    wasm-opt
+  cargo_crates: >
+    bacon cargo-audit cargo-insta cargo-release default-target mdbook
+    mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
     wasm-pack
-  # Crates for administering the repo
-  cargo_crates_admin: |
-    bacon
-    cargo-audit
-    cargo-release
-
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -78,12 +67,6 @@ tasks:
           🟢 Setup complete! ✅🚀"
         silent: true
 
-  setup-dev-admin:
-    desc: Install tools for PRQL development & admin.
-    cmds:
-      - task: setup-dev
-      - task: install-cargo-tools-admin
-
   install-cargo-tools:
     desc: Install cargo tools for PRQL development.
     cmds:
@@ -105,16 +88,11 @@ tasks:
           [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at `~/.cargo/bin`) on the \$PATH?"
         silent: true
 
-  install-cargo-tools-admin:
-    desc: Install cargo tools for PRQL development & admin.
-    cmds:
-      - cargo install --locked {{.cargo_crates_admin | splitLines | join " " }}
-
   install-cargo-tools-source:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
       # default...)
-      - 'cargo install --locked {{.cargo_crates | splitLines | join " " }}'
+      - "cargo install --locked {{.cargo_crates}}"
 
   install-cargo-tools-binstall:
     cmds:
@@ -126,7 +104,7 @@ tasks:
           rustup toolchain add stable && cargo +stable install --locked
           cargo-binstall --version=1.1.2
         platforms: [linux, darwin]
-      - 'cargo binstall -y --locked {{.cargo_crates | splitLines | join " " }}'
+      - "cargo binstall -y --locked {{.cargo_crates}}"
 
   install-maturin:
     desc: Install maturin.

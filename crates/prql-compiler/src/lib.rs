@@ -69,7 +69,7 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`ast::rq::ExprKind::Literal`]
+//! * `serde_yaml`: adapts the `Serialize` implementation for [`prql_ast::expr::ExprKind::Literal`]
 //!   to `serde_yaml`, which doesn't support the serialization of nested enums
 
 #![forbid(unsafe_code)]
