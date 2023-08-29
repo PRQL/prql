@@ -5,7 +5,7 @@ use super::super::pl::Literal;
 use super::CId;
 use crate::error::Span;
 
-/// Analogous to [crate::ast::pl::Expr], but with less kinds.
+/// Analogous to [crate::ir::pl::Expr], but with fewer kinds.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Expr {
     pub kind: ExprKind,

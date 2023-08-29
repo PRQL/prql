@@ -168,7 +168,7 @@ impl TyKind {
         }
     }
 
-    /// Analogous to [crate::ast::pl::Lineage::rename()]
+    /// Analogous to [crate::ir::pl::Lineage::rename()]
     pub fn rename_relation(&mut self, alias: String) {
         if let TyKind::Array(items_ty) = self {
             items_ty.kind.rename_tuples(alias);

@@ -25,6 +25,7 @@ env:
   # effective as it once was, as explained in
   # https://github.com/PRQL/prql/pull/2797
   RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   test-rust:
@@ -102,10 +103,15 @@ jobs:
         with:
           command: fmt
           args: --all --check
-        # As part of https://github.com/PRQL/prql/issues/3145, I'm seeing
-        # whether having this means that prqlc builds much faster, without
-        # adding much time here, given it has the cache.
-      - name: Build
+      - name: 🗒️ Doc
+        if: inputs.target != 'wasm32-unknown-unknown'
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: doc
+          args: --target=${{ inputs.target }} --features=${{ inputs.features }}
+      - name: Build extra targets for cache
+        # When building the cache, we also run with `--all-targets` so that
+        # prqlc builds can use the same cache.
         if:
           ${{ github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit
           == 'false' }}
