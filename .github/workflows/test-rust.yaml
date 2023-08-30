@@ -77,17 +77,13 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # Now replaced with whether `nightly` is true, because we only run
-          # these on merges, which was making post-merge failures more frequent.
-          #
-          # # Here, we also add:
-          # # - Unreferenced snapshots - `--unreferenced=auto` when testing on
-          # #   linux & with `test-dbs` feature.
-          # ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
-          # 'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+          # Here, we also add:
+          # - Unreferenced snapshots - `--unreferenced=auto` when testing on
+          #   linux & with `test-dbs` feature.
           args: >
             test --target=${{ inputs.target }} --features=${{ inputs.features }}
-            ${{ inputs.nightly == 'true' && '--unreferenced=auto' || '' }}
+            ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
+            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
         with:
