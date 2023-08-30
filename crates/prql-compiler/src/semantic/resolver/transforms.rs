@@ -524,8 +524,7 @@ impl TransformCall {
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-
-                let mut frame = body.lineage.clone().unwrap();
+                let mut frame = ty_frame_or_default(body)?;
 
                 log::debug!(
                     "inferring type of group with pipeline: {}",
@@ -553,7 +552,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                body.lineage.clone().unwrap()
+                ty_frame_or_default(body)?
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
@@ -1067,5 +1066,28 @@ mod tests {
             - Single: num_of_articles
             - Wildcard
         "###);
+    }
+
+    #[test]
+    fn test_invalid_lineage_in_transform() {
+        let result = parse_resolve_and_lower(
+            "
+        from tbl
+        group id (
+            sort -val
+        )
+        ",
+        );
+        assert!(result.is_err());
+
+        let result = parse_resolve_and_lower(
+            "
+        from tbl
+        window rows:-3..3 (
+            sort -val
+        )
+        ",
+        );
+        assert!(result.is_err());
     }
 }
