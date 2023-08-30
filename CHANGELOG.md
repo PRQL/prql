@@ -12,6 +12,8 @@
 
 **Web**:
 
+- Any panics in the compiler are now printed to the console (@max-sixty, #3446)
+
 **Integrations**:
 
 **Internal changes**:
