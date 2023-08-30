@@ -108,7 +108,11 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: doc
-          args: --target=${{ inputs.target }} --features=${{ inputs.features }}
+          # Only run with deps on nightly, since it's much slower, and so far™
+          # we haven't seen any errors.
+          args:
+            --target=${{ inputs.target }} --features=${{ inputs.features }} ${{
+            inputs.nightly != 'true' && '--no-deps' || '' }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
