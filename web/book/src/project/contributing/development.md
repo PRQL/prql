@@ -71,24 +71,15 @@ since it relies on `brew`.
   cargo install cargo-insta
   ```
 
-- We'll need a couple of additional components, which most systems will have
-  already. The easiest way to check whether they're installed is to try running
-  the full tests:
+- We'll need Python, which most systems will have already. The easiest way to
+  check is to try running the full tests:
 
   ```sh
   cargo test
   ```
 
-  ...and if that doesn't complete successfully, check we have:
-
-  - A clang compiler, to compile the DuckDB integration tests, since we use
-    [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
-
-    - On macOS, install xcode with `xcode-select --install`
-    - On Debian Linux, `apt-get update && apt-get install clang`
-    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
-
-  - Python >= 3.7, to compile `prql-python`.
+  ...and if that doesn't complete successfully, ensure we have Python >= 3.7, to
+  compile `prql-python`.
 
 - For more involved contributions, such as building the website, playground,
   book, or some release artifacts, we'll need some additional tools. But we
@@ -316,7 +307,18 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept --features=test-dbs
   ```
 
-  More details on running with external databases are in the Readme.
+  More details on running with external databases are in the
+  [Readme](https://github.com/PRQL/prql/tree/main/crates/prql-compiler/tests/integration).
+
+  ```admonish note
+  Integration tests use DuckDB, and so require a clang compiler to compile
+  [`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
+  systems will have one, but if this command fails, install it with:
+
+    - On macOS, install xcode with `xcode-select --install`
+    - On Debian Linux, `apt-get update && apt-get install clang`
+    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
+  ```
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs
