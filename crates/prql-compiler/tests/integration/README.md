@@ -2,6 +2,33 @@
 
 Test PRQL queries against various SQL RDBMS.
 
+## In-process DBs
+
+To run tests against DuckDB & SQLite, no additional setup is required; simply
+run:
+
+```sh
+cargo test --features=test-dbs
+```
+
+## External DBs
+
+To run tests against external databases — currently Postgres, MySQL, SQL Server
+and ClickHouse are tested — we use `docker-compose`:
+
+1. Run `docker compose up` (may take a while on the first time):
+
+   ```sh
+   cd prql-compiler/tests/integration
+   docker compose up
+   ```
+
+2. Run the tests:
+
+   ```sh
+   cargo test --features=test-dbs-external
+   ```
+
 ## Data
 
 Columns are renamed to `snake_case`, so Postgres and DuckDb don't struggle with
@@ -29,45 +56,6 @@ Use a query including `sort`:
 from albums
 sort album_id
 ```
-
-## RDMBS
-
-### SQLite
-
-Can be run as part of `cargo test`. Uses bundled sqlite, compiled as part of
-cargo build.
-
-### DuckDb
-
-Can be run as part of `cargo test`. Uses bundled DuckDb, compiled as part of
-cargo build.
-
-### External DBs
-
-These will not run as a part of `cargo test`. Use
-`cargo test --features=test-dbs-external` instead. Make sure to start docker
-compose before (see below).
-
-Currently Postgres, MySQL, SQL Server and ClickHouse are tested.
-
-## Docker compose
-
-To test the external databases, docker needs to be installed.
-
-Steps to run the tests:
-
-1. Run docker compose (may take a while on the first time):
-
-   ```sh
-   cd prql-compiler/tests/integration
-   docker compose up
-   ```
-
-2. Run the tests:
-
-   ```sh
-   cargo test --features=test-dbs-external
-   ```
 
 ## Test organization
 
