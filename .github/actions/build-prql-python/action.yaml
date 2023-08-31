@@ -1,6 +1,6 @@
 name: build-wheel
 description:
-  "Use maturin to build python dists of prql-python. Conditional if checks
+  "Use maturin to build python dists of prql-python. Conditional `if` checks
   ensure only the correct OS build is called."
 inputs:
   target:
@@ -10,13 +10,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: ./.github/set_version.sh
-      shell: bash
-    - uses: Swatinem/rust-cache@v2
-      with:
-        save-if: ${{ github.ref == 'refs/heads/main' }}
-        prefix-key: ${{ env.version }}
-        shared-key: python
+    # There's no point caching here, because the maturin action uses a container.
     - uses: messense/maturin-action@v1
       if: inputs.target == 'source'
       with:
