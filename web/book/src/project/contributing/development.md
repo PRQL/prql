@@ -313,7 +313,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```admonish note
   Integration tests use DuckDB, and so require a clang compiler to compile
   [`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
-  systems will have one, but if this command fails, install it with:
+  systems will have one, but the test command fails, install it with:
 
     - On macOS, install xcode with `xcode-select --install`
     - On Debian Linux, `apt-get update && apt-get install clang`

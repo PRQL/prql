@@ -7,7 +7,7 @@ Test PRQL queries against various SQL RDBMS.
 To run tests against DuckDB & SQLite, no additional setup is required; simply
 run:
 
-```
+```sh
 cargo test --features=test-dbs
 ```
 
