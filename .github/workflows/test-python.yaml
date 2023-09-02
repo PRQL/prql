@@ -12,11 +12,6 @@ on:
         type: string
         default: '["ubuntu-latest"]'
 
-concurrency:
-  # See notes in `tests.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-python
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}

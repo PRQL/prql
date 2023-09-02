@@ -18,10 +18,6 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
   RUSTDOCFLAGS: "-Dwarnings"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-js
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}
