@@ -12,10 +12,6 @@ on:
         type: string
         default: '["ubuntu-latest"]'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-java
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}
