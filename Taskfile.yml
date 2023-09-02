@@ -162,7 +162,8 @@ tasks:
         {{ range $dep := (.brew_dependencies | trim | splitLines) -}}
           [ -n "$(which {{ $dep }})" ]
         {{ end -}}
-      - "[ $(npm -v | cut -d. -f1) -ge 9 ]"
+      - |
+        [ "$(npm -v | awk -F. '{print ($1 > 9 || ($1 == 9 && $2 > 4)) ? 0 : 1}')" -eq 0 ]
     silent: true
     cmds:
       - cmd: |
@@ -172,7 +173,9 @@ tasks:
 
           {{ .brew_dependencies }}
 
-          These aren't required for initial PRQL development, but they are required for some of the tests.
+          ...or alternatively that npm < 9.4
+
+          These aren't required for initial PRQL development, but they are required for some of the extras.
 
           Install them with:
 
@@ -292,7 +295,7 @@ tasks:
       # Must set `install-links=false` in the playground's `npm install` to
       # install prql-js as the regular dependency, instead of creating a
       # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
-      - cd playground && npm install --install-links=false
+      - cd playground && npm install
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
@@ -347,7 +350,7 @@ tasks:
     desc: Build & serve the playground.
     dir: web/playground
     cmds:
-      - npm install --install-links=false
+      - npm install
       - npm start
 
   run-playground-cached:
@@ -362,13 +365,10 @@ tasks:
     # Use task's sources/generates to see if checksums of
     # node_modules directory have changed since package.json was updated
 
-    # Use `npm install --install-links=false` to install prql-js
-    # as the regular dependency, instead of creating a
-    # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Check to see if package.json has changed since we ran npm install
     dir: web/playground
     cmds:
-      - npm install --install-links=false
+      - npm install
     sources:
       - package.json
     generates:
