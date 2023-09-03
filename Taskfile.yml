@@ -338,25 +338,28 @@ tasks:
 
   install-playground-dependencies:
     # Check if npm dependencies for the playground need to be updated
-    # Use task's sources/generates to see if checksums of
-    # node_modules directory have changed since package.json was updated
-    desc: Install dep's if package.json changed recently
+    # Use task's sources/generates to see if package.json,
+    # or anything in crates or bindings was updated after the
+    # node_modules was rebuilt
+    desc: Install dep's if something important changed recently
     dir: web/playground
     cmds:
       - task install-playground-dependencies-all
     sources:
       - package.json
+      - ../../crates/**/*.rs
+      - ../../bindings/**/*.rs
     generates:
       - node_modules/*
 
   install-playground-dependencies-all:
-    # Use `npm install --install-links=false` to install prql-js
+    # NO LONGER USE `npm install --install-links=false` to install prql-js
     # as the regular dependency, instead of creating a
     # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Force npm install for all playground packages
     dir: web/playground
     cmds:
-      - npm install --install-links=false
+      - npm install
 
   build-php:
     - cargo build -p prql-lib --release
