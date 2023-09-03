@@ -162,7 +162,8 @@ tasks:
         {{ range $dep := (.brew_dependencies | trim | splitLines) -}}
           [ -n "$(which {{ $dep }})" ]
         {{ end -}}
-      - "[ $(npm -v | cut -d. -f1) -ge 9 ]"
+      - |
+        [ "$(npm -v | awk -F. '{print ($1 > 9 || ($1 == 9 && $2 > 4)) ? 0 : 1}')" -eq 0 ]
     silent: true
     cmds:
       - cmd: |
@@ -172,7 +173,9 @@ tasks:
 
           {{ .brew_dependencies }}
 
-          These aren't required for initial PRQL development, but they are required for some of the tests.
+          ...or alternatively that npm < 9.4
+
+          These aren't required for initial PRQL development, but they are required for some of the extras.
 
           Install them with:
 
@@ -198,7 +201,7 @@ tasks:
       - brew install {{.brew_dependencies | trim | splitLines | join " " }}
 
   install-npm-dependencies:
-    # Use npm to install desirable dependencies
+    # Use npm to install important tools
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
       - cmd:
@@ -281,7 +284,7 @@ tasks:
       - cargo insta test --accept -p prql-compiler --lib -- --quiet
 
   build-web:
-    desc: Build the Website, Book, and Playground.
+    desc: Build the web products for distribution: Website, Book, and Playground.
     dir: web
     cmds:
       - cd website && hugo --minify
@@ -289,7 +292,7 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && task install-playground-dependencies
+      - cd playground && task update-playground-dependencies
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
@@ -318,25 +321,25 @@ tasks:
       - pre-commit run -a
 
   run-website:
-    desc: Build & serve the static website.
+    desc: Build & serve the static website for interactive development.
     dir: web/website
     cmds:
       - hugo server
 
   run-book:
-    desc: Build & serve the book.
+    desc: Build & serve the book for interactive development.
     dir: web/book
     cmds:
       - mdbook serve --port=3000
 
   run-playground:
-    desc: Build & serve the playground.
+    desc: Build & serve the playground for interactive development.
     dir: web/playground
     cmds:
-      - task install-playground-dependencies
+      - task update-playground-dependencies
       - npm start
 
-  install-playground-dependencies:
+  update-playground-dependencies:
     # Check if npm dependencies for the playground need to be updated
     # Use task's sources/generates to see if package.json,
     # or anything in crates or bindings was updated after the
@@ -353,7 +356,8 @@ tasks:
       - node_modules/*
 
   install-playground-dependencies-all:
-    # NO LONGER USE `npm install --install-links=false` to install prql-js
+    # `npm install --install-links=false` no longer necessary
+    # Formerly it was used to install prql-js
     # as the regular dependency, instead of creating a
     # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Force npm install for all playground packages
