@@ -8,13 +8,20 @@
 
 **Fixes**:
 
+- Fix stack overflow on very long queries in Windows debug builds (@max-sixty,
+  #2908)
+
 **Documentation**:
 
 **Web**:
 
+- Any panics in the compiler are now printed to the console (@max-sixty, #3446)
+
 **Integrations**:
 
 **Internal changes**:
+
+- Simplify & speed up lexer (@max-sixty, #3426, #3418)
 
 **New Contributors**:
 

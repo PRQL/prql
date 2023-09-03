@@ -4,11 +4,6 @@ on:
   workflow_call:
   workflow_dispatch:
 
-concurrency:
-  # See notes in `tests.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-dotnet
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ubuntu-latest

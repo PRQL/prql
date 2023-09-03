@@ -10,11 +10,6 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
   RUSTDOCFLAGS: "-Dwarnings"
 
-concurrency:
-  # See notes in `tests.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-web
-  cancel-in-progress: true
-
 jobs:
   build-web:
     runs-on: ubuntu-latest

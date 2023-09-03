@@ -1,7 +1,5 @@
 #![cfg(target_family = "wasm")]
 
-mod utils;
-
 use std::str::FromStr;
 
 use prql_compiler::Target;
@@ -117,6 +115,13 @@ impl From<CompileOptions> for prql_compiler::Options {
 }
 
 fn return_or_throw(result: Result<String, prql_compiler::ErrorMessages>) -> Option<String> {
+    // When the `console_error_panic_hook` feature is enabled, we can call the
+    // `set_panic_hook` function at least once during initialization, and then
+    // we will get better error messages if our code ever panics. See
+    // `Cargo.toml` for notes.
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+
     match result {
         Ok(sql) => Some(sql),
         Err(e) => wasm_bindgen::throw_str(&e.to_json()),
