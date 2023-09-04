@@ -293,7 +293,7 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && task update-playground-dependencies
+      - cd playground && task install-playground-dependencies
       - cd playground && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
@@ -337,10 +337,10 @@ tasks:
     desc: Build & serve the playground for interactive development.
     dir: web/playground
     cmds:
-      - task update-playground-dependencies
+      - task install-playground-dependencies
       - npm start
 
-  update-playground-dependencies:
+  install-playground-dependencies:
     # Check if npm dependencies for the playground need to be updated
     # Use task's sources/generates to see if package.json,
     # or anything in crates or bindings was updated after the
@@ -351,16 +351,12 @@ tasks:
       - task install-playground-dependencies-all
     sources:
       - package.json
+      - package-lock.json
       - ../../crates/**/*.rs
       - ../../bindings/**/*.rs
-    generates:
-      - node_modules/*
 
   install-playground-dependencies-all:
     # `npm install --install-links=false` no longer necessary
-    # Formerly it was used to install prql-js
-    # as the regular dependency, instead of creating a
-    # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
     desc: Force npm install for all playground packages
     dir: web/playground
     cmds:
