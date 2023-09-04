@@ -345,7 +345,7 @@ tasks:
     # Use task's sources/generates to see if package.json,
     # or anything in crates or bindings was updated after the
     # node_modules was rebuilt
-    desc: Install dep's if something important changed recently
+    desc: Install deps, checking whether a dependency recently changed
     dir: web/playground
     cmds:
       - task install-playground-dependencies-all
