@@ -337,7 +337,7 @@ tasks:
     desc: Build & serve the playground for interactive development.
     dir: web/playground
     cmds:
-      - task install-playground-dependencies
+      - task: install-playground-dependencies
       - npm start
 
   install-playground-dependencies:
@@ -348,7 +348,7 @@ tasks:
     desc: Install deps, checking whether a dependency recently changed
     dir: web/playground
     cmds:
-      - task install-playground-dependencies-all
+      - task: install-playground-dependencies-all
     sources:
       - package.json
       - package-lock.json
