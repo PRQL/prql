@@ -51,7 +51,7 @@ jobs:
             target: x86_64-pc-windows-msvc
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: ./.github/actions/build-prqlc
         id: build-artifact
         with:
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 👷 Build prql-compiler
         run: cargo build --release
       - name: Copy files into .deb package
@@ -111,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 👷 Build prqlc
         run: cargo build --bin prqlc --release
       - name: Copy files into .rpm package
@@ -141,7 +141,7 @@ jobs:
     if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Move Snap to project root directory
         run: cp -r packages/snap/ .
       - name: 📦 Build Snap
@@ -172,7 +172,7 @@ jobs:
             target: source
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: ./.github/actions/build-prql-python
         with:
           target: ${{ matrix.target }}
@@ -197,7 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: wasm-pack
@@ -219,7 +219,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-release
@@ -237,7 +237,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - name: Checkout code
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
   #     - name: Install Java and Maven
   #       uses: actions/setup-java@v3
   #       with:
@@ -256,7 +256,7 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: git push origin HEAD:web --force
 
   push-devcontainer:

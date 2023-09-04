@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -250,7 +250,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -329,7 +329,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           # Run on all files in nightly schedule, but only on local files
@@ -355,7 +355,7 @@ jobs:
 
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: mdbook
@@ -386,7 +386,7 @@ jobs:
     if: needs.rules.outputs.main == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-tarpaulin
@@ -430,7 +430,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: ./.github/actions/time-compilation
         with:
           use_cache: true
@@ -441,7 +441,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-msrv
@@ -553,7 +553,7 @@ jobs:
             features: ""
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: ./.github/actions/build-prqlc
         with:
           target: ${{ matrix.target }}
@@ -580,7 +580,7 @@ jobs:
       issues: write
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
