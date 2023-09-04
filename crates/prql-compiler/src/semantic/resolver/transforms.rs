@@ -1071,27 +1071,4 @@ mod tests {
             - Wildcard
         "###);
     }
-
-    // #[test]
-    // fn test_invalid_lineage_in_transform() {
-    //     let result = parse_resolve_and_lower(
-    //         "
-    //     from tbl
-    //     group id (
-    //         sort -val
-    //     )
-    //     ",
-    //     );
-    //     assert!(result.is_err());
-
-    //     let result = parse_resolve_and_lower(
-    //         "
-    //     from tbl
-    //     window rows:-3..3 (
-    //         sort -val
-    //     )
-    //     ",
-    //     );
-    //     assert!(result.is_err());
-    // }
 }
