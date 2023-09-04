@@ -34,7 +34,7 @@ jobs:
       checks: write
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -42,7 +42,7 @@ jobs:
   cargo-bench:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: bench
@@ -55,7 +55,7 @@ jobs:
         use_cache: [true, false]
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: ./.github/actions/time-compilation
         with:
           use_cache: ${{ matrix.use_cache }}
@@ -72,7 +72,7 @@ jobs:
     # default to run on. The minimum is defined by Cargo.toml's metadata.msrv.
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: a-kenji/update-rust-toolchain@main
         with:
           # Discussion in #1561
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: rustup override set nightly-2023-04-22
       - uses: baptiste0928/cargo-install@v2
         with:
@@ -107,7 +107,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - name: 📂 Checkout code
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
 
   #     - uses: docker/setup-buildx-action@v2
 
@@ -146,7 +146,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

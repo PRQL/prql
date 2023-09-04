@@ -20,7 +20,7 @@ jobs:
         os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build wheel
         uses: ./.github/actions/build-prql-python
         with:

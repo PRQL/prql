@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: ./.github/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
