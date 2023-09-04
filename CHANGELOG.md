@@ -11,6 +11,8 @@
 - Fix stack overflow on very long queries in Windows debug builds (@max-sixty,
   #2908)
 
+- Fix panic when unresolved lineage appears in group or window (@davidot, #3266)
+
 **Documentation**:
 
 **Web**:
