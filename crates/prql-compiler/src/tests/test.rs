@@ -65,7 +65,7 @@ fn test_precedence() {
     from numbers
     derive {
       sum_1 = a + b, 
-      sum_2 = add a b
+      sum_2 = add a b,
       g = -a
     }
     select {
@@ -74,7 +74,8 @@ fn test_precedence() {
     }
     "###).unwrap()), @r###"
     SELECT
-      c * (a + b) + a + b AS result
+      c * (a + b) + a + b AS result,
+      a * - a
     FROM
       numbers
     "###);
@@ -94,6 +95,10 @@ fn test_precedence() {
     }
     "###).unwrap()), @r###"
     SELECT
+      a > 0 AS gtz,
+      NOT a > 0 AS ltz,
+      NOT a > 0
+      AND NOT NOT a > 0 AS zero,
       NOT a = b AS is_not_equal,
       NOT a > b AS is_not_gt,
       (NOT a) IS NULL AS negated_is_null_1,
@@ -101,7 +106,7 @@ fn test_precedence() {
       NOT a IS NULL AS is_not_null,
       a + b IS NULL
     FROM
-      numbers
+      comparisons
     "###);
 
     assert_display_snapshot!(compile(
