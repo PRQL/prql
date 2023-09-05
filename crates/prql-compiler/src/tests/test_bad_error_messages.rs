@@ -151,3 +151,15 @@ fn misplaced_type_error() {
     ───╯
     "###);
 }
+
+#[test]
+fn invalid_lineage_in_transform() {
+    assert_display_snapshot!(compile(r###"
+  from tbl
+  group id (
+    sort -val
+  )
+  "###).unwrap_err(), @r###"
+  Error: "Invalid lineage in group, verify the contents of the group call"
+  "###);
+}

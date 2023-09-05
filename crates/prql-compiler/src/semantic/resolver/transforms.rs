@@ -524,8 +524,9 @@ impl TransformCall {
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-
-                let mut frame = body.lineage.clone().unwrap();
+                let mut frame = ty_frame_or_default(body).map_err(|_| {
+                    anyhow!("Invalid lineage in group, verify the contents of the group call")
+                })?;
 
                 log::debug!(
                     "inferring type of group with pipeline: {}",
@@ -553,7 +554,9 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                body.lineage.clone().unwrap()
+                ty_frame_or_default(body).map_err(|_| {
+                    anyhow!("Invalid lineage in window, verify the contents of the window call")
+                })?
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
