@@ -722,30 +722,31 @@ pub(super) fn translate_operand(
 /// For an operation represented as `a child b` with a surrounding parent
 /// operation (e.g., `(a child b) parent c` or `a parent (b child c)`):
 ///
-/// 1. **When the child operator has higher precedence than the parent**:
+/// 1. When the child operator has higher precedence than the parent:
 ///    - Parentheses are not required.
 ///
-/// 2. **When the child operator has lower precedence than the parent**:
+/// 2. When the child operator has lower precedence than the parent:
 ///    - Parentheses are required.
 ///
-/// 3. **When the child and parent operators have the same precedence**,
-///    parentheses are not required if:
+/// 3. When the child and parent operators have the same precedence, parentheses
+///    are not required if:
 ///
-///    a. The parent is Both associative — e.g. `a + (b - c)`, but not `a - (b + c)`
+///    a. The parent is "Both" associative — e.g. `a + (b - c)`, but not `a - (b
+///    - c)`,
 ///
 ///    b. or the child is on the (left,right) and the child is (left,right)
 ///    associative — e.g. `(a - b) - c` — but not `a - (b - c)`
-///
+//
 // This function has a lot of inputs, and maybe there is a better way of doing
 // this. But it does require a lot of information to make the correct decision,
 // so I don't think there's an easy way of stripping the number of inputs (For
 // example, even if we passed a reference to the parent, that still wouldn't
 // tell us whether the child were on the left or the right...)
 //
-// Note that this is super-verbose, and could instead be a neat little single
-// expression. But it was quite difficult to work through, so please do not make
-// the code terser without being quite confident that it's easier to understand
-// for people reading it.
+// Note that the code is deliberately verbose. While it could instead be a neat
+// little single expression, it was quite difficult to work through, so please
+// do not make the code terser without being quite confident that it's easier to
+// understand for people reading it.
 fn needs_parentheses(
     expr: &ExprOrSource,
     is_left: bool,
