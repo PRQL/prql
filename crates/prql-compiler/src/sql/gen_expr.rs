@@ -703,6 +703,22 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
     }
 }
 
+pub(super) fn translate_operand(
+    expr: Expr,
+    is_left: bool,
+    parent_strength: i32,
+    parent_associativity: Associativity,
+    context: &mut Context,
+) -> Result<ExprOrSource> {
+    let expr = translate_expr(expr, context)?;
+
+    if needs_parentheses(&expr, is_left, parent_strength, parent_associativity) {
+        Ok(expr.wrap_in_parenthesis())
+    } else {
+        Ok(expr)
+    }
+}
+
 /// For an operation represented as `a child b` with a surrounding parent
 /// operation (e.g., `(a child b) parent c` or `a parent (b child c)`):
 ///
@@ -722,18 +738,20 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 ///
 // This function has a lot of inputs, and maybe there is a better way of doing
 // this. But it does require a lot of information to make the correct decision,
-// so I don't think there's an easy way of stripping the number of inputs (For example,
-// even if we passed a reference to the parent, that still wouldn't tell us
-// whether the child were on the left or the right...)
-pub(super) fn translate_operand(
-    expr: Expr,
+// so I don't think there's an easy way of stripping the number of inputs (For
+// example, even if we passed a reference to the parent, that still wouldn't
+// tell us whether the child were on the left or the right...)
+//
+// Note that this is super-verbose, and could instead be a neat little single
+// expression. But it was quite difficult to work through, so please do not make
+// the code terser without being quite confident that it's easier to understand
+// for people reading it.
+fn needs_parentheses(
+    expr: &ExprOrSource,
     is_left: bool,
     parent_strength: i32,
     parent_associativity: Associativity,
-    context: &mut Context,
-) -> Result<ExprOrSource> {
-    let expr = translate_expr(expr, context)?;
-
+) -> bool {
     let strength = expr.binding_strength();
 
     let rule_1 = strength > parent_strength;
@@ -743,21 +761,15 @@ pub(super) fn translate_operand(
     let rule_3b_left = is_left || expr.left_associative();
     let rule_3b_right = !is_left || expr.right_associative();
 
-    let needs_parentheses = if rule_1 {
+    if rule_1 {
         false
     } else if rule_2 {
         true
     } else if rule_3 {
-        !(rule_3a || { rule_3b_left && rule_3b_right })
+        !(rule_3a || (rule_3b_left && rule_3b_right))
     } else {
         unreachable!()
-    };
-
-    Ok(if needs_parentheses {
-        expr.wrap_in_parenthesis()
-    } else {
-        expr
-    })
+    }
 }
 
 /// Associativity of an expression's operator.
