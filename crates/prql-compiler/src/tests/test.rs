@@ -127,12 +127,12 @@ fn test_precedence() {
     "###
     ).unwrap(), @r###"
     SELECT
-      c - (a + b),
+      c - a + b,
       c + a - b,
       c + a - b,
       c + a + b,
       c + a - b,
-      c - d - (a - b),
+      c - d - a - b,
       c + d + a - b,
       y - z AS x,
       -(y - z)
