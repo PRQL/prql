@@ -724,7 +724,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 ///    - Parentheses are required.
 ///
 /// 3. **When the child and parent operators have the same precedence**,
-///    parenthese are not required if
+///    parentheses are not required if
 ///    a. Both are ${left}-associative,
 ///    b. and either:
 ///      i.  The expression is on the ${left} — e.g. `(a - b) - c` — but not `a - (b - c)`
