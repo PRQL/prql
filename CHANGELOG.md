@@ -13,6 +13,9 @@
 
 - Fix panic when unresolved lineage appears in group or window (@davidot, #3266)
 
+- Fix a corner-case in handling precedence, and remove unneeded parentheses in
+  some outputs (@max-sixty, #3472)
+
 **Documentation**:
 
 **Web**:
