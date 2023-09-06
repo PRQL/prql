@@ -98,7 +98,7 @@ fn test_precedence() {
       a > 0 AS gtz,
       NOT a > 0 AS ltz,
       NOT a > 0
-      AND NOT (NOT a > 0) AS zero,
+      AND NOT NOT a > 0 AS zero,
       NOT a = b AS is_not_equal,
       NOT a > b AS is_not_gt,
       (NOT a) IS NULL AS negated_is_null_1,
@@ -148,7 +148,7 @@ fn test_precedence() {
     "###
     ).unwrap(), @r###"
     SELECT
-      a / (b * 0.7)
+      a / b * 0.7
     FROM
       foo
     "###
@@ -159,14 +159,17 @@ fn test_precedence() {
 fn test_precedence2() {
     assert_display_snapshot!(compile(
     r###"
-    from tracks
-    select listening_time_years = (pandora_plays)  / 60 / 61
+    from weather
+    derive temp_f = temp_c * 9/5 
+    derive temp_g = temp_c + 9-5 
     "###
     ).unwrap(), @r###"
     SELECT
-      (pandora_plays / 60) / 61 AS listening_time_years
+      *,
+      temp_c * 9 / 5 AS temp_f,
+      temp_c + 9 - 5 AS temp_g
     FROM
-      tracks
+      weather
     "###
     );
 }

@@ -729,7 +729,11 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 ///    b. and either:
 ///      i.  The expression is on the ${left} — e.g. `(a - b) - c` — but not `a - (b - c)`
 ///      ii. or parent is commutative — e.g. `a + (b + c)` — but not `a - (b + c)`
-
+// This function has a lot of inputs, and maybe there is a better way of doing
+// this. But it does require a lot of information to make the correct decision,
+// so I don't think there's an easy way of stripping the number of inputs (For example,
+// even if we passed a reference to the parent, that still wouldn't tell us
+// whether the child were on the left or the right...)
 pub(super) fn translate_operand(
     expr: Expr,
     parent_strength: i32,
@@ -746,7 +750,7 @@ pub(super) fn translate_operand(
     let rule_2 = strength < parent_strength;
     let rule_3 = strength == parent_strength;
     let rule_3a_left = parent_left_associative && expr.left_associative();
-    let rule_3a_right = !parent_left_associative && !expr.left_associative();
+    let rule_3a_right = !parent_left_associative && expr.right_associative();
     let rule_3b_left = is_left || parent_is_commutative;
     let rule_3b_right = !is_left || parent_is_commutative;
 
