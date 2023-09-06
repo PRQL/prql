@@ -53,10 +53,17 @@ fn json_of_test() {
 fn test_precedence() {
     assert_display_snapshot!((compile(r###"
     from x
-    select temp_c = (temp - 32) / 1.8
+    derive {
+      temp_c = (temp_f - 32) / 1.8,
+      temp_f = temp_c * 9/5,
+      temp_z = temp_x + 9 - 5,
+    }
     "###).unwrap()), @r###"
     SELECT
-      ("temp" - 32) / 1.8 AS temp_c
+      *,
+      (temp_f - 32) / 1.8 AS temp_c,
+      (temp_f - 32) / 1.8 * 9 / 5 AS temp_f,
+      temp_x + 9 - 5 AS temp_z
     FROM
       x
     "###);
@@ -121,6 +128,7 @@ fn test_precedence() {
       (c + a) - b,
       ((c - d) - (a - b)),
       ((c + d) + (a - b)),
+      a / (b * c),
       +x,
       -x,
     }
@@ -134,42 +142,11 @@ fn test_precedence() {
       c + a - b,
       c - d - a - b,
       c + d + a - b,
+      a / b * c,
       y - z AS x,
       -(y - z)
     FROM
       numbers
-    "###
-    );
-
-    assert_display_snapshot!(compile(
-    r###"
-    from foo
-    select a / (b * 0.7)
-    "###
-    ).unwrap(), @r###"
-    SELECT
-      a / b * 0.7
-    FROM
-      foo
-    "###
-    );
-}
-
-#[test]
-fn test_precedence2() {
-    assert_display_snapshot!(compile(
-    r###"
-    from weather
-    derive temp_f = temp_c * 9/5 
-    derive temp_g = temp_c + 9-5 
-    "###
-    ).unwrap(), @r###"
-    SELECT
-      *,
-      temp_c * 9 / 5 AS temp_f,
-      temp_c + 9 - 5 AS temp_g
-    FROM
-      weather
     "###
     );
 }
