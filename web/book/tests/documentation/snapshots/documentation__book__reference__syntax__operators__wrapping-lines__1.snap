@@ -9,11 +9,11 @@ SELECT
         (
           (
             spotify_plays + apple_music_plays + pandora_plays
-          ) * length_s / 60
+          ) * length_s
         ) / 60
-      ) / 24
-    ) / 365
-  ) AS listening_time_years
+      ) / 60
+    ) / 24
+  ) / 365 AS listening_time_years
 FROM
   tracks
 

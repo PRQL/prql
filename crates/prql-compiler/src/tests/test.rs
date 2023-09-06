@@ -56,7 +56,7 @@ fn test_precedence() {
     select temp_c = (temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
-      (("temp" - 32) / 1.8) AS temp_c
+      ("temp" - 32) / 1.8 AS temp_c
     FROM
       x
     "###);
@@ -98,7 +98,7 @@ fn test_precedence() {
       a > 0 AS gtz,
       NOT a > 0 AS ltz,
       NOT a > 0
-      AND NOT NOT a > 0 AS zero,
+      AND NOT (NOT a > 0) AS zero,
       NOT a = b AS is_not_equal,
       NOT a > b AS is_not_gt,
       (NOT a) IS NULL AS negated_is_null_1,
@@ -138,6 +138,35 @@ fn test_precedence() {
       -(y - z)
     FROM
       numbers
+    "###
+    );
+
+    assert_display_snapshot!(compile(
+    r###"
+    from foo
+    select a / (b * 0.7)
+    "###
+    ).unwrap(), @r###"
+    SELECT
+      a / (b * 0.7)
+    FROM
+      foo
+    "###
+    );
+}
+
+#[test]
+fn test_precedence2() {
+    assert_display_snapshot!(compile(
+    r###"
+    from tracks
+    select listening_time_years = (pandora_plays)  / 60 / 61
+    "###
+    ).unwrap(), @r###"
+    SELECT
+      (pandora_plays / 60) / 61 AS listening_time_years
+    FROM
+      tracks
     "###
     );
 }
@@ -2493,7 +2522,7 @@ fn test_casting() {
         @r###"
     SELECT
       a,
-      (CAST(a AS int) / 10) AS c
+      CAST(a AS int) / 10 AS c
     FROM
       x
     "###
