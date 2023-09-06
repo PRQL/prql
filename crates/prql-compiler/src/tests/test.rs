@@ -53,10 +53,6 @@ fn json_of_test() {
 fn test_precedence() {
     assert_display_snapshot!((compile(r###"
     from x
-    derive {
-        n = a + b,
-        r = a/n,
-    }
     select temp_c = (temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
@@ -67,29 +63,29 @@ fn test_precedence() {
 
     assert_display_snapshot!((compile(r###"
     from numbers
-    derive {sum_1 = a + b, sum_2 = add a b}
-    select {result = c * sum_1 + sum_2}
+    derive {
+      sum_1 = a + b, 
+      sum_2 = add a b,
+      g = -a
+    }
+    select {
+      result = c * sum_1 + sum_2,
+      a * g
+    }
     "###).unwrap()), @r###"
     SELECT
-      c * (a + b) + a + b AS result
-    FROM
-      numbers
-    "###);
-
-    assert_display_snapshot!((compile(r###"
-    from numbers
-    derive {g = -a}
-    select a * g
-    "###).unwrap()), @r###"
-    SELECT
+      c * (a + b) + a + b AS result,
       a * - a
     FROM
       numbers
     "###);
 
     assert_display_snapshot!((compile(r###"
-    from numbers
+    from comparisons
     select {
+      gtz = a > 0,
+      ltz = !(a > 0),
+      zero = !gtz && !ltz,
       is_not_equal = !(a==b),
       is_not_gt = !(a>b),
       negated_is_null_1 = !a == null,
@@ -99,6 +95,10 @@ fn test_precedence() {
     }
     "###).unwrap()), @r###"
     SELECT
+      a > 0 AS gtz,
+      NOT a > 0 AS ltz,
+      NOT a > 0
+      AND NOT NOT a > 0 AS zero,
       NOT a = b AS is_not_equal,
       NOT a > b AS is_not_gt,
       (NOT a) IS NULL AS negated_is_null_1,
@@ -106,24 +106,7 @@ fn test_precedence() {
       NOT a IS NULL AS is_not_null,
       a + b IS NULL
     FROM
-      numbers
-    "###);
-
-    assert_display_snapshot!((compile(r###"
-    from numbers
-    select {
-      gtz = a > 0,
-      ltz = !(a > 0),
-      zero = !gtz && !ltz
-    }
-    "###).unwrap()), @r###"
-    SELECT
-      a > 0 AS gtz,
-      NOT a > 0 AS ltz,
-      NOT a > 0
-      AND NOT NOT a > 0 AS zero
-    FROM
-      numbers
+      comparisons
     "###);
 
     assert_display_snapshot!(compile(
@@ -131,15 +114,15 @@ fn test_precedence() {
     from numbers
     derive x = (y - z)
     select {
-    c - (a + b),
-    c + (a - b),
-    c + a - b,
-    c + a + b,
-    (c + a) - b,
-    ((c - d) - (a - b)),
-    ((c + d) + (a - b)),
-    +x,
-    -x,
+      c - (a + b),
+      c + (a - b),
+      c + a - b,
+      c + a + b,
+      (c + a) - b,
+      ((c - d) - (a - b)),
+      ((c + d) + (a - b)),
+      +x,
+      -x,
     }
     "###
     ).unwrap(), @r###"

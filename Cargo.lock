@@ -2195,6 +2195,7 @@ dependencies = [
  "regex",
  "serde_json",
  "serde_yaml",
+ "similar-asserts",
  "strum 0.25.0",
  "strum_macros 0.25.0",
  "walkdir",

@@ -1,3 +1,4 @@
+use similar_asserts::assert_eq;
 use std::fs::read_dir;
 
 use regex::Regex;
