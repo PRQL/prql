@@ -11,9 +11,8 @@ sql: |
   SELECT
     *,
     started + unfinished AS finished,
-    ((started + unfinished) / started) AS fin_share,
-    (
-      ((started + unfinished) / started) / (1 - ((started + unfinished) / started))
-    ) AS fin_ratio
+    (started + unfinished) / started AS fin_share,
+    (started + unfinished) / started / (1 - (started + unfinished) / started)
+     AS fin_ratio
   FROM
     track_plays

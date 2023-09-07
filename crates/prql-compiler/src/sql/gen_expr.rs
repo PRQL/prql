@@ -7,6 +7,7 @@ use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
+use std::cmp::Ordering;
 
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
@@ -131,13 +132,13 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
     if name == "std.eq" {
         let strength =
             sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
-        let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
         let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNull(expr))
     } else if name == "std.ne" {
         let strength = sql_ast::Expr::IsNotNull(Box::new(sql_ast::Expr::Value(Value::Null)))
             .binding_strength();
-        let expr = translate_operand(operand.clone(), strength, false, ctx)?;
+        let expr = translate_operand(operand.clone(), true, strength, Associativity::Both, ctx)?;
         let expr = Box::new(expr.into_ast());
         Ok(sql_ast::Expr::IsNotNull(expr))
     } else {
@@ -192,8 +193,9 @@ fn translate_binary_operator(
     ctx: &mut Context,
 ) -> Result<sql_ast::Expr> {
     let strength = op.binding_strength();
-    let left = translate_operand(left.clone(), strength, !op.associates_left(), ctx)?;
-    let right = translate_operand(right.clone(), strength, !op.associates_right(), ctx)?;
+
+    let left = translate_operand(left.clone(), true, strength, op.associativity(), ctx)?;
+    let right = translate_operand(right.clone(), false, strength, op.associativity(), ctx)?;
 
     let left = Box::new(left.into_ast());
     let right = Box::new(right.into_ast());
@@ -234,10 +236,19 @@ fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Exp
                     // > 3 and x < 5
                     if a_l == b_l {
                         return Ok(Some(sql_ast::Expr::Between {
-                            expr: Box::new(translate_operand(a_l, 0, false, ctx)?.into_ast()),
+                            expr: Box::new(
+                                translate_operand(a_l, true, 0, Associativity::Both, ctx)?
+                                    .into_ast(),
+                            ),
                             negated: false,
-                            low: Box::new(translate_operand(a_r, 0, false, ctx)?.into_ast()),
-                            high: Box::new(translate_operand(b_r, 0, false, ctx)?.into_ast()),
+                            low: Box::new(
+                                translate_operand(a_r, true, 0, Associativity::Both, ctx)?
+                                    .into_ast(),
+                            ),
+                            high: Box::new(
+                                translate_operand(b_r, true, 0, Associativity::Both, ctx)?
+                                    .into_ast(),
+                            ),
                         }));
                     }
                 }
@@ -693,27 +704,67 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
     }
 }
 
-/// Wraps into parenthesis if binding strength would be less than min_strength
 pub(super) fn translate_operand(
     expr: Expr,
+    is_left: bool,
     parent_strength: i32,
-    fix_associativity: bool,
+    parent_associativity: Associativity,
     context: &mut Context,
 ) -> Result<ExprOrSource> {
     let expr = translate_expr(expr, context)?;
 
-    let strength = expr.binding_strength();
-
-    // Either the binding strength is less than its parent, or it's equal and we
-    // need to correct for the associativity of the operator (e.g. `a - (b - c)`)
-    let needs_parenthesis =
-        strength < parent_strength || (strength == parent_strength && fix_associativity);
-
-    Ok(if needs_parenthesis {
-        expr.wrap_in_parenthesis()
+    if needs_parentheses(&expr, is_left, parent_strength, parent_associativity) {
+        Ok(expr.wrap_in_parenthesis())
     } else {
-        expr
-    })
+        Ok(expr)
+    }
+}
+
+/// For an operation represented as `a child b` with a surrounding parent
+/// operation (e.g., `(a child b) parent c` or `a parent (b child c)`):
+///
+/// 1. When the child operator has higher precedence than the parent:
+///    - Parentheses are not required.
+///
+/// 2. When the child operator has lower precedence than the parent:
+///    - Parentheses are required.
+///
+/// 3. When the child and parent operators have the same precedence, parentheses
+///    are not required if:
+///
+///    a. The parent is "Both" associative — e.g. `a + (b - c)`, but not `a - (b
+///    - c)`,
+///
+///    b. or the child is on the (left,right) and the child is (left,right)
+///    associative — e.g. `(a - b) - c` — but not `a - (b - c)`
+//
+// If it were possible to evaluate this with less context that would be
+// preferable, but it's not clear how to do that. (For example, even if we
+// passed a reference to the parent, that still wouldn't tell us whether the
+// child were on the left or the right, which is required...)
+//
+// Note that the code is deliberately somewhat verbose. While it could instead
+// be a neat single expression, it was quite difficult to work through, so
+// please do not make the code terser without being confident that it's easier
+// to understand.
+fn needs_parentheses(
+    expr: &ExprOrSource,
+    is_left: bool,
+    parent_strength: i32,
+    parent_associativity: Associativity,
+) -> bool {
+    let rule_3a = matches!(parent_associativity, Associativity::Both);
+    let rule_3b_left = is_left && expr.left_associative();
+    let rule_3b_right = !is_left && expr.right_associative();
+
+    match expr.binding_strength().cmp(&parent_strength) {
+        // Rule 1
+        Ordering::Greater => false,
+        // Rule 2
+        Ordering::Less => true,
+        // Rule 3
+        Ordering::Equal => !(rule_3a || rule_3b_left || rule_3b_right),
+    }
 }
 
 /// Associativity of an expression's operator.
@@ -722,6 +773,7 @@ pub(super) fn translate_operand(
 #[allow(dead_code)]
 pub enum Associativity {
     Left,
+    /// `Both` means mathematically associative, like `+` or `*`
     Both,
     Right,
 }
@@ -737,7 +789,7 @@ trait SQLExpression {
     }
 
     /// Returns true iff `a + b + c = (a + b) + c`
-    fn associates_left(&self) -> bool {
+    fn left_associative(&self) -> bool {
         matches!(
             self.associativity(),
             Associativity::Left | Associativity::Both
@@ -745,13 +797,14 @@ trait SQLExpression {
     }
 
     /// Returns true iff `a + b + c = a + (b + c)`
-    fn associates_right(&self) -> bool {
+    fn right_associative(&self) -> bool {
         matches!(
             self.associativity(),
             Associativity::Right | Associativity::Both
         )
     }
 }
+
 impl SQLExpression for sql_ast::Expr {
     fn binding_strength(&self) -> i32 {
         // Strength of an expression depends only on the top-level operator, because all
@@ -777,6 +830,7 @@ impl SQLExpression for sql_ast::Expr {
         }
     }
 }
+
 impl SQLExpression for BinaryOperator {
     fn binding_strength(&self) -> i32 {
         use BinaryOperator::*;
@@ -811,11 +865,13 @@ impl SQLExpression for UnaryOperator {
 }
 
 /// A wrapper around sql_ast::Expr, that may have already been converted to source.
+#[derive(Debug, Clone)]
 pub enum ExprOrSource {
     Expr(sql_ast::Expr),
     Source(SourceExpr),
 }
 
+#[derive(Debug, Clone)]
 pub struct SourceExpr {
     pub text: String,
     pub binding_strength: i32,
