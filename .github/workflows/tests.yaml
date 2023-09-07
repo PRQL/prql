@@ -168,7 +168,7 @@ jobs:
     with:
       os: ubuntu-latest
       target: ${{ matrix.target }}
-      features: ${{ matrix.target }}
+      features: ${{ matrix.features }}
       nightly: ${{ needs.rules.outputs.nightly == 'true' }}
 
   test-python:
