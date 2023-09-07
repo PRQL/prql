@@ -164,13 +164,11 @@ jobs:
           # using runners & cache space)
           - target: wasm32-unknown-unknown
             os: ubuntu-latest
+            features: ""
     with:
       os: ubuntu-latest
       target: ${{ matrix.target }}
-      # We previously ran with integration tests, but removing until
-      # https://github.com/duckdb/duckdb-rs/issues/178 is fixed given compile
-      # times
-      features: ""
+      features: ${{ matrix.target }}
       nightly: ${{ needs.rules.outputs.nightly == 'true' }}
 
   test-python:
