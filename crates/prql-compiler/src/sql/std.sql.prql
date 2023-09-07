@@ -80,7 +80,7 @@ let div_i = l r -> s"FLOOR(ABS({l:11} / {r:11})) * SIGN({l:0}) * SIGN({r:0})"
 
 # We have a simple float division by default, but it can be overridden by dialects.
 @{binding_strength=11}
-let div_f = l r -> s"({l} / {r})"
+let div_f = l r -> s"{l} / {r}"
 
 @{binding_strength=11}
 let mod = l r -> s"{l} % {r}"

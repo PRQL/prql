@@ -4,16 +4,8 @@ expression: "from tracks\n# This would be a really long line without being able 
 ---
 SELECT
   (
-    (
-      (
-        (
-          (
-            spotify_plays + apple_music_plays + pandora_plays
-          ) * length_s / 60
-        ) / 60
-      ) / 24
-    ) / 365
-  ) AS listening_time_years
+    spotify_plays + apple_music_plays + pandora_plays
+  ) * length_s / 60 / 60 / 24 / 365 AS listening_time_years
 FROM
   tracks
 

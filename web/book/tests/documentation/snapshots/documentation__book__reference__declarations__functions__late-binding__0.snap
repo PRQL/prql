@@ -7,9 +7,9 @@ SELECT
   labor,
   overhead,
   cost_total,
-  (materials / cost_total) AS materials_share,
-  (labor / cost_total) AS labor_share,
-  (overhead / cost_total) AS overhead_share
+  materials / cost_total AS materials_share,
+  labor / cost_total AS labor_share,
+  overhead / cost_total AS overhead_share
 FROM
   costs
 

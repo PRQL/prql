@@ -89,7 +89,13 @@ pub(super) fn translate_operator(
                     .unwrap_or(parent_binding_strength);
 
                 // translate args
-                let arg = translate_operand(arg, required_strength, false, ctx)?;
+                let arg = translate_operand(
+                    arg,
+                    false,
+                    required_strength,
+                    super::gen_expr::Associativity::Both,
+                    ctx,
+                )?;
 
                 text += &arg.into_source();
             }
