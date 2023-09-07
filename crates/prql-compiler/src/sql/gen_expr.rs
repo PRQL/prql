@@ -7,6 +7,7 @@ use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
     ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
+use std::cmp::Ordering;
 
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
@@ -737,39 +738,32 @@ pub(super) fn translate_operand(
 ///    b. or the child is on the (left,right) and the child is (left,right)
 ///    associative — e.g. `(a - b) - c` — but not `a - (b - c)`
 //
-// This function has a lot of inputs, and maybe there is a better way of doing
-// this. But it does require a lot of information to make the correct decision,
-// so I don't think there's an easy way of stripping the number of inputs (For
-// example, even if we passed a reference to the parent, that still wouldn't
-// tell us whether the child were on the left or the right...)
+// If it were possible to evaluate this with less context that would be
+// preferable, but it's not clear how to do that. (For example, even if we
+// passed a reference to the parent, that still wouldn't tell us whether the
+// child were on the left or the right, which is required...)
 //
-// Note that the code is deliberately verbose. While it could instead be a neat
-// little single expression, it was quite difficult to work through, so please
-// do not make the code terser without being quite confident that it's easier to
-// understand for people reading it.
+// Note that the code is deliberately somewhat verbose. While it could instead
+// be a neat single expression, it was quite difficult to work through, so
+// please do not make the code terser without being confident that it's easier
+// to understand.
 fn needs_parentheses(
     expr: &ExprOrSource,
     is_left: bool,
     parent_strength: i32,
     parent_associativity: Associativity,
 ) -> bool {
-    let strength = expr.binding_strength();
-
-    let rule_1 = strength > parent_strength;
-    let rule_2 = strength < parent_strength;
-    let rule_3 = strength == parent_strength;
     let rule_3a = matches!(parent_associativity, Associativity::Both);
-    let rule_3b_left = is_left || expr.left_associative();
-    let rule_3b_right = !is_left || expr.right_associative();
+    let rule_3b_left = is_left && expr.left_associative();
+    let rule_3b_right = !is_left && expr.right_associative();
 
-    if rule_1 {
-        false
-    } else if rule_2 {
-        true
-    } else if rule_3 {
-        !(rule_3a || (rule_3b_left && rule_3b_right))
-    } else {
-        unreachable!()
+    match expr.binding_strength().cmp(&parent_strength) {
+        // Rule 1
+        Ordering::Greater => false,
+        // Rule 2
+        Ordering::Less => true,
+        // Rule 3
+        Ordering::Equal => !(rule_3a || rule_3b_left || rule_3b_right),
     }
 }
 
