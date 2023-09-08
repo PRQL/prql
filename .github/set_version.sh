@@ -6,4 +6,4 @@
 
 version=$(cargo metadata --format-version=1 --no-deps | jq --raw-output '.packages[] | select(.name == "prql-compiler") | .version')
 # Setting `2` on 2023-09-07 because of bloated cache can revert on next version
-echo "version=${version}2" >>"$GITHUB_ENV"
+echo "version=${version}.2" >>"$GITHUB_ENV"
