@@ -7,8 +7,8 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_BACKTRACE: ""
     RUST_LOG: ""
+    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
 ---
 success: true
@@ -743,7 +743,7 @@ _prqlc() {
     esac
 }
 
-complete -F _prqlc -o nosort -o bashdefault -o default prqlc
+complete -F _prqlc -o bashdefault -o default prqlc
 
 ----- stderr -----
 
