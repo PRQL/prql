@@ -18,8 +18,8 @@ test-dbs = ["duckdb", "rusqlite", "tokio"]
 test-dbs-external = ["chrono", "duckdb", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
-prql-ast = {path = "../prql-ast", version = "0.9.5" }
-prql-parser = {path = "../prql-parser", version = "0.9.5" }
+prql-ast = {path = "../prql-ast", version = "0.9.5"}
+prql-parser = {path = "../prql-parser", version = "0.9.5"}
 
 anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.57", features = ["backtrace"]}
@@ -31,10 +31,10 @@ log = "0.4.17"
 once_cell = "1.18.0"
 regex = "1.9.0"
 semver = {version = "1.0.14", features = ["serde"]}
-# We could put `serde` behind a feature if needed.
+# We could put `serde` behind a feature if we wanted to reduce the size of prql-compiler.
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
-sqlformat = "0.2.1"
+sqlformat = "0.2.2"
 sqlparser = {version = "0.37.0", features = ["serde"]}
 strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.0"
@@ -66,8 +66,9 @@ criterion = {version = "0.5.1"}
 harness = false
 name = "bench"
 
-# Putting this in the workspace root causes it to refer to the path relative
-# to `prql-compiler`, so we choose this crate out of default.
+# Putting these pre-release replacements in the workspace root causes it to
+# refer to the path relative to `prql-compiler`, so we choose this crate out of
+# default.
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1

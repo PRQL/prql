@@ -100,7 +100,12 @@ jobs:
           command: fmt
           args: --all --check
       - name: 🗒️ Doc
-        if: inputs.target != 'wasm32-unknown-unknown'
+        # Only running on nightly, because of
+        # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
+        # if: inputs.target == 'nightly' && inputs.target != 'wasm32-unknown-unknown'
+        if:
+          inputs.target == 'nightly' && inputs.target !=
+          'wasm32-unknown-unknown'
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: doc
