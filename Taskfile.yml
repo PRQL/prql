@@ -31,6 +31,7 @@ vars:
     hugo
     npm
     python3
+    jq
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -159,8 +160,8 @@ tasks:
   check-brew-dependencies:
     status:
       - |
-        {{ range $dep := (.brew_dependencies | trim | splitLines) -}}
-          [ -n "$(which {{ $dep }})" ]
+        {{ range  (.brew_dependencies | trim | splitLines) -}}
+          [ -n "$(which {{ . }})" ]
         {{ end -}}
       - |
         [ "$(npm -v | awk -F. '{print ($1 > 9 || ($1 == 9 && $2 > 4)) ? 0 : 1}')" -eq 0 ]
@@ -226,6 +227,26 @@ tasks:
       # caching.
       - cargo build --all-targets
       - task: build-web
+      - task: build-each-crate
+
+  build-each-crate:
+    summary: |
+      Builds each crates individually. This is helpful for caching, since often
+      we'll want to run `cargo build -p prql-compiler`, and the dependencies can have
+      different features for that relative to `cargo build`.
+    vars:
+      PACKAGES:
+        sh:
+          cargo metadata --format-version=1 | jq -r '.workspace_members[] |
+          split(" ")[0]'
+    preconditions:
+      - sh: command -v jq
+        msg: "jq is not available. Please install it to continue."
+    cmds:
+      - |
+        {{ range ( .PACKAGES | splitLines ) -}}
+        cargo build --all-targets -p {{ . }}
+        {{ end -}}
 
   test-all:
     desc: Test everything, accepting snapshots.
@@ -240,10 +261,11 @@ tasks:
       # - We could add `prql-lib` here.
       # - We deliberately don't test some other bindings, such as `prql-php`,
       #   given they require more dependencies and aren't yet supported.
+      - task: test-lint
       - task: test-rust
-      - task: build-all
       - task: test-js
-      - pre-commit run -a
+      - cargo insta test --accept --target=wasm32-unknown-unknown
+      - task: build-all
 
   test-rust:
     desc: Test all rust code, accepting snapshots.
@@ -257,15 +279,12 @@ tasks:
     #   - "**/*.lock"
     #   - "**/*.snap"
     cmds:
-      # Only delete unreferenced snapshots on the default target — lots are
-      # excluded under wasm.
       - cargo insta test --accept --features=test-dbs --unreferenced=auto
-      - cargo insta test --accept --target=wasm32-unknown-unknown
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
     summary: |
-      Test prql-compiler's unit tests, including accepting snapshots.
+      Test only unit tests, including accepting snapshots.
 
       This can be useful as an inner loop when developing, by running this on any file change.
       Use `-w` to get that behavior:
@@ -278,10 +297,10 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      - "prql-compiler/**/*.rs"
-      - "prql-compiler/**/*.snap"
+      - "crates/**/*.rs"
+      - "crates/**/*.snap"
     cmds:
-      - cargo insta test --accept -p prql-compiler --lib -- --quiet
+      - cargo insta test --accept --lib -- --quiet
 
   build-web:
     desc:
