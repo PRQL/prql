@@ -5,4 +5,5 @@
 # ref https://github.com/PRQL/prql/pull/2407
 
 version=$(cargo metadata --format-version=1 --no-deps | jq --raw-output '.packages[] | select(.name == "prql-compiler") | .version')
-echo "version=${version}" >>"$GITHUB_ENV"
+# Setting `2` on 2023-09-07 because of bloated cache can revert on next version
+echo "version=${version}.2" >>"$GITHUB_ENV"

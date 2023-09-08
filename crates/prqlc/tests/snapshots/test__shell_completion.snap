@@ -7,9 +7,9 @@ info:
     - shell-completion
     - bash
   env:
-    CLICOLOR_FORCE: ""
     RUST_LOG: ""
     RUST_BACKTRACE: ""
+    CLICOLOR_FORCE: ""
 ---
 success: true
 exit_code: 0

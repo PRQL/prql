@@ -7,9 +7,9 @@ info:
     - shell-completion
     - powershell
   env:
-    RUST_LOG: ""
-    CLICOLOR_FORCE: ""
     RUST_BACKTRACE: ""
+    CLICOLOR_FORCE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
