@@ -10,7 +10,7 @@ binary that compiles PRQL into SQL.
 This command works as a filter that compiles a PRQL string into an SQL string.
 
 ```sh
-$ echo "from employees | filter has_dog | select salary" | prqlc compile
+$ echo 'from employees | filter has_dog | select salary' | prqlc compile
 
 SELECT
   salary
@@ -24,8 +24,8 @@ A PRQL query can be executed with CLI tools compatible with SQL,, such as
 [DuckDB CLI](https://duckdb.org/docs/api/cli.html).
 
 ```sh
-$ curl -sL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
-$ echo "from `albums.csv` | take 3" | prqlc compile | duckdb
+$ curl -fsL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
+$ echo 'from `albums.csv` | take 3' | prqlc compile | duckdb
 ┌──────────┬───────────────────────────────────────┬───────────┐
 │ album_id │                 title                 │ artist_id │
 │  int64   │                varchar                │   int64   │
