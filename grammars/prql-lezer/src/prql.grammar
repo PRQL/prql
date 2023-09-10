@@ -4,7 +4,7 @@
 // - A few small TODOs included below
 
 @top Query { Statements }
-@skip { space | Comment }
+@skip { space | Comment | wrapped_line }
 
 Statements { newline* Query_def? (Def)* Pipeline_stmt? end }
 
@@ -28,10 +28,9 @@ expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | Tuple | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range | Array | Case }
+term { !term Ident | Number | Tuple | Date | Nested_pipeline | op_unary term | String | S_string | F_string | Range | Array | Case }
 
-// Not quite sure why `!term` is required here
-Expr { !term term (( Op_bin) term)* }
+Expr { term (( Op_bin ) term )* }
 
 Named_arg { ident_part ":" Expr }
 Assign { ident_part "=" Expr }
@@ -51,7 +50,7 @@ Ident { ident_part ( "." ident_part)* }
 
 // I don't think it's possible to have `Op_bin` & `Op_unary` as tokens — that
 // would mean `-` can't be both unary & bin.
-Op_bin { Op_bin_only | Op_unary }
+Op_bin { op_bin_only | !term op_unary }
 
 @tokens {
   // We can't seem to set the number of digits, so this will allow any
@@ -66,9 +65,11 @@ Op_bin { Op_bin_only | Op_unary }
   Number { number_part "."? number_part? }
   space { " "+ }
   Comment { "#" ![\n]* }
-  Op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
-  Op_unary { "-" | "+" | "==" }
+  op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
+  op_unary { "-" | "+" | "==" }
   end { @eof }
+  line_wrap { "\\" }
+  wrapped_line { newline+ (Comment newline+)* line_wrap }
   newline { "\n" }
   Range { ".." }
   // Couldn't managed to do these & the interpolated as a template; couldn't
@@ -102,3 +103,4 @@ Lambda { Lambda_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
 Type_term { ident_part Type_def? }
 Lambda_param { ident_part Type_def? (":" Expr)? }
+
