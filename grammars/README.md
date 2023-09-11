@@ -7,6 +7,8 @@ supports. Please raise any shortcomings in a GitHub issue.
 The definitions are somewhat scattered around the codebase; this page serves as
 an index.
 
+- [Ace](https://ace.c9.io/) — supported. The grammar is upstream.
+
 - [Lezer](https://lezer.codemirror.net/) — used by CodeMirror editors. The PRQL
   file is at
   [`grammars/prql-lezer/README.md`](https://github.com/PRQL/prql/tree/main/grammars/prql-lezer/README.md).
