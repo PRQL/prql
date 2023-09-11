@@ -24,6 +24,9 @@
 
 **Integrations**:
 
+- [Ace](https://ace.c9.io/), the JavaScript code editor now has syntax
+  highlighting for PRQL. (@vanillajonathan, #3493)
+
 **Internal changes**:
 
 - Simplify & speed up lexer (@max-sixty, #3426, #3418)
