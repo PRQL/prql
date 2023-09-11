@@ -6,6 +6,33 @@
 
 **Features**:
 
+- A new line-wrapping character, for lines that are long and we want to break up
+  into multiple physical lines. This is slightly different from from many
+  languages — it's on the subsequent line:
+
+  ```prql no-eval
+  from artists
+  select is_europe =
+  \ country == "DE"
+  \ || country == "FR"
+  \ || country == "ES"
+  ```
+
+  This allows for easily commenting out physical lines while maintaining a
+  correct logical line; for example:
+
+  ```diff
+  from artists
+  select is_europe =
+  \ country == "DE"
+  \ || country == "FR"
+  \ || country == "FR"
+  -\ || country == "ES"
+  +#\ || country == "ES"
+  ```
+
+  (@max-sixty, #3408)
+
 **Fixes**:
 
 - Fix stack overflow on very long queries in Windows debug builds (@max-sixty,
