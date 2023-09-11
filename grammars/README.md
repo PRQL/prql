@@ -7,7 +7,8 @@ supports. Please raise any shortcomings in a GitHub issue.
 The definitions are somewhat scattered around the codebase; this page serves as
 an index.
 
-- [Ace](https://ace.c9.io/) — supported. The grammar is upstream ([prql_highlight_rules.js](https://github.com/ajaxorg/ace/blob/master/src/mode/prql_highlight_rules.js)).
+- [Ace](https://ace.c9.io/) — supported. The grammar is upstream
+  ([prql_highlight_rules.js](https://github.com/ajaxorg/ace/blob/master/src/mode/prql_highlight_rules.js)).
 
 - [Lezer](https://lezer.codemirror.net/) — used by CodeMirror editors. The PRQL
   file is at
