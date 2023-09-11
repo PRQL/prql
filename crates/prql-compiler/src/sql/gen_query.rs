@@ -416,7 +416,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
                 .map(|(col, value)| -> Result<_> {
                     Ok(SelectItem::ExprWithAlias {
                         expr: translate_literal(value, ctx)?,
-                        alias: sql_ast::Ident::new(col),
+                        alias: translate_ident_part(col, ctx),
                     })
                 })
                 .try_collect()?,
