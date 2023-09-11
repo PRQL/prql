@@ -25,7 +25,7 @@
 **Integrations**:
 
 - [Ace](https://ace.c9.io/), the JavaScript code editor now has syntax
-  highlightning for PRQL. (@vanillajonathan, #3493)
+  highlighting for PRQL. (@vanillajonathan, #3493)
 
 **Internal changes**:
 
