@@ -4066,3 +4066,28 @@ fn test_conflicting_names_at_split() {
       JOIN workflow AS w ON table_0.workflow_id = w.id
     "###);
 }
+
+#[test]
+fn test_relation_literal_quoting() {
+    // issue #3484
+    assert_display_snapshot!(compile(
+        r###"
+    from [
+        {`small number`=1e-10, `large number`=1e10},
+    ]
+    select {`small number`, `large number`}
+    "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        1e-10 AS "small number",
+        10000000000.0 AS "large number"
+    )
+    SELECT
+      "small number",
+      "large number"
+    FROM
+      table_0
+    "###);
+}
