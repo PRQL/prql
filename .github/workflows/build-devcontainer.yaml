@@ -46,7 +46,7 @@ jobs:
           echo "cargo_crates=$(yq -r '.vars.cargo_crates' Taskfile.yml)" >>"$GITHUB_ENV"
 
       - name: Build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         timeout-minutes: 3600
         with:
           context: .devcontainer/base-image
