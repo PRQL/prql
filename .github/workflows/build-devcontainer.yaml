@@ -20,7 +20,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
 
-      - uses: docker/metadata-action@v4
+      - uses: docker/metadata-action@v5
         id: meta
         with:
           images: ghcr.io/${{ github.repository_owner }}/prql-devcontainer-base
