@@ -1,10 +1,14 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.9.5 — 2023-09-12
+
+0.9.5 adds a line-wrapping character, fixes a few bugs, and improves our CI. The
+release has 77 commits from 8 contributors. Selected changes are below.
+
+Look out for some conference talks coming up over the next few weeks, including
+[QCon SF on Oct 2](https://qconsf.com/presentation/oct2023/prql-simple-powerful-pipelined-sql-replacement).
 
 **Language**:
-
-**Features**:
 
 - A new line-wrapping character, for lines that are long and we want to break up
   into multiple physical lines. This is slightly different from from many
@@ -43,8 +47,6 @@
 - Fix a corner-case in handling precedence, and remove unneeded parentheses in
   some outputs (@max-sixty, #3472)
 
-**Documentation**:
-
 **Web**:
 
 - Any panics in the compiler are now printed to the console (@max-sixty, #3446)
@@ -59,6 +61,8 @@
 - Simplify & speed up lexer (@max-sixty, #3426, #3418)
 
 **New Contributors**:
+
+- @davidot, with #3450
 
 ## 0.9.4 — 2023-08-24
 
