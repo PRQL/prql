@@ -399,7 +399,7 @@ jobs:
           cargo tarpaulin --skip-clean --all-targets --features=test-dbs
           --out=Xml
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
       - name: Upload code coverage results
         uses: actions/upload-artifact@v3
         with:
