@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ace with PRQL</title>
+<style>
+    #editor {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+</style>
+</head>
+<body>
+
+<div id="editor"># https://ace.c9.io/
+from invoices
+filter invoice_date >= @1970-01-16
+derive {
+  transaction_fees = 0.8,
+  income = total - transaction_fees
+}
+filter income > 1
+group customer_id (
+  aggregate {
+    average total,
+    sum_income = sum income,
+    ct = count total,
+  }
+)
+sort {-sum_income}
+take 10
+join c=customers (==customer_id)
+derive name = f"{c.last_name}, {c.first_name}"
+select {
+  c.customer_id, name, sum_income
+}
+derive db_version = s"version()"</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.26.0/ace.js" integrity="sha512-GtLSS/81SGsl963BDJCrQN4VK7/BQhyomb2OkTBtEvPuyu/44O6fKJzfBIUWi4xsCCOatCxu11cxnnfOutL3bA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/prql");
+</script>
+</body>
+</html>
