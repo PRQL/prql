@@ -9,7 +9,8 @@ an index.
 
 - [Ace](https://ace.c9.io/) — supported. The grammar is upstream
   ([prql_highlight_rules.js](https://github.com/ajaxorg/ace/blob/master/src/mode/prql_highlight_rules.js)).
-  See the [demo](https://htmlpreview.github.io/?https://github.com/PRQL/prql/blob/main/grammars/ace-demo.html).
+  See the
+  [demo](https://htmlpreview.github.io/?https://github.com/PRQL/prql/blob/main/grammars/ace-demo.html).
 
 - [Lezer](https://lezer.codemirror.net/) — used by CodeMirror editors. The PRQL
   file is at
