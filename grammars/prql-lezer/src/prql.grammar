@@ -58,7 +58,8 @@ Op_bin { op_bin_only | !term op_unary }
   // TODO: does excluding spaces here work? It seems to make a difference, but
   // then I think the `Number` rule doesn't allow spaces...
   Date { "@" ![ ] (( @digit | "-" ) ![ ] )+ }
-  ident_part { @asciiLetter (@asciiLetter | "_" | @digit )* }
+  identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
+  ident_part { identifier_char (@asciiLetter | "_" | @digit )* }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
   number_part { @digit ( @digit | "_" )* }
