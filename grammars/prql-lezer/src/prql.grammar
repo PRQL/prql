@@ -28,7 +28,7 @@ expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | Tuple | Date | Nested_pipeline | op_unary term | String | S_string | F_string | Range | Array | Case }
+term { !term Ident | Number | Tuple | Date | Nested_pipeline | op_unary term | String | R_string | S_string | F_string | Range | Array | Case }
 
 Expr { term (( Op_bin ) term )* }
 
@@ -88,13 +88,14 @@ Op_bin { op_bin_only | !term op_unary }
 
   Interpolated_string<prefix> { prefix ( String_interpolated_double | String_interpolated_single ) }
 
+  R_string {Interpolated_string<'r'>}
   S_string {Interpolated_string<'s'>}
   F_string {Interpolated_string<'f'>}
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
   // S & F strings have precedence over idents beginning with s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
-  @precedence { S_string, F_string, Op_bin_only, ident_part }
+  @precedence { R_string, S_string, F_string, Op_bin_only, ident_part }
 }
 
 Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }
