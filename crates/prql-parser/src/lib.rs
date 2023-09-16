@@ -2241,10 +2241,10 @@ join s=salaries (==id)
 
     #[test]
     fn test_case() {
-        assert_yaml_snapshot!(parse_expr(r#"case {
+        assert_yaml_snapshot!(parse_expr(r#"case [
             nickname != null => nickname,
             true => null
-        }"#).unwrap(), @r###"
+        ]"#).unwrap(), @r###"
         ---
         Case:
           - condition:

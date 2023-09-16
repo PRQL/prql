@@ -4,6 +4,11 @@
 
 **Language**:
 
+- _Breaking:_ Case syntax now uses brackets `[]` rather than braces `{}`.
+
+  To convert previous PRQL queries to this new syntax simply change
+  `case { ... }` to `case [ ... ]`.
+
 **Features**:
 
 **Fixes**:

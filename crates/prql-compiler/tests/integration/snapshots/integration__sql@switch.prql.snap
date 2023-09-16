@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "from tracks\nsort milliseconds\nselect display = case {\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n}\ntake 10\n"
+expression: "from tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
 input_file: prql-compiler/tests/integration/queries/switch.prql
 ---
 WITH table_0 AS (

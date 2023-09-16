@@ -27,7 +27,7 @@ A summary of PRQL syntax:
 | `#`                  | [Comments](./comments.md)                                                      | `# A comment`                                           |
 | `==`                 | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                 | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
-| `=>`                 | [Case statement](./case.md)                                                    | `case {a==1 => c, a==2 => d }`                          |
+| `=>`                 | [Case statement](./case.md)                                                    | `case [a==1 => c, a==2 => d]`                           |
 | `+`,`-`              | [Sort order](../stdlib/transforms/sort.md)                                     | `sort {-amount, +date}`                                 |
 | `??`                 | [Coalesce](./operators.md#coalesce)                                            | `amount ?? 0`                                           |
 

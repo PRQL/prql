@@ -111,7 +111,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
                     .separated_by(ctrl(','))
                     .allow_trailing()
                     .then_ignore(new_line().repeated())
-                    .delimited_by(ctrl('{'), ctrl('}')),
+                    .delimited_by(ctrl('['), ctrl(']')),
             )
             .map(ExprKind::Case);
 
