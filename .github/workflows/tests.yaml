@@ -40,6 +40,7 @@ jobs:
       devcontainer-push: ${{ steps.devcontainer-push.outputs.run }}
       devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
       elixir: ${{ steps.changes.outputs.elixir }}
+      grammars: ${{ steps.changes.outputs.grammars }}
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
       lib: ${{ steps.changes.outputs.lib }}
@@ -78,6 +79,8 @@ jobs:
               - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
+            grammars:
+              - grammars/**
             elixir:
               - bindings/prql-elixir/**
               - bindings/prql-lib/**
@@ -405,6 +408,31 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
+
+  test-grammars:
+    # Currently tests lezer grammars. We could split that out into a separate
+    # job if we want when we add more.
+    runs-on: ubuntu-latest
+    needs: rules
+    if:
+      needs.rules.outputs.grammars == 'true' || needs.rules.outputs.main ==
+      'true'
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 🧅 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        working-directory: grammars/prql-lezer/
+        run: bun install
+      - name: Build grammar
+        working-directory: grammars/prql-lezer/
+        run: bun run build
+      - name: Test grammar
+        working-directory: grammars/prql-lezer/
+        run: bun run test
 
   push-devcontainer:
     needs: rules
