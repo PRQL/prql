@@ -400,7 +400,7 @@ jobs:
           prefix-key: ${{ env.version }}
       - run:
           cargo tarpaulin --skip-clean --all-targets --features=test-dbs
-          --out=Xml
+          --out=xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
       - name: Upload code coverage results
