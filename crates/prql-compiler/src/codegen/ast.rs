@@ -171,7 +171,7 @@ impl WriteSource for ExprKind {
                     inline: ", ",
                     line_end: ",",
                 }
-                .write_between("{", "}", opt)?;
+                .write_between("[", "]", opt)?;
                 Some(r)
             }
             Param(id) => Some(format!("${id}")),

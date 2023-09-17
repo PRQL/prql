@@ -2908,10 +2908,10 @@ fn test_case() {
     assert_display_snapshot!(compile(
         r###"
     from employees
-    derive display_name = case {
+    derive display_name = case [
         nickname != null => nickname,
         true => f'{first_name} {last_name}'
-    }
+    ]
         "###).unwrap(),
         @r###"
     SELECT
@@ -2928,10 +2928,10 @@ fn test_case() {
     assert_display_snapshot!(compile(
         r###"
     from employees
-    derive display_name = case {
+    derive display_name = case [
         nickname != null => nickname,
         first_name != null => f'{first_name} {last_name}'
-    }
+    ]
         "###).unwrap(),
         @r###"
     SELECT
@@ -2949,9 +2949,9 @@ fn test_case() {
     assert_display_snapshot!(compile(
         r###"
     from tracks
-    select category = case {
+    select category = case [
         length > avg_length => 'long'
-    }
+    ]
     group category (aggregate {count this})
         "###).unwrap(),
         @r###"
@@ -3002,14 +3002,14 @@ fn test_static_analysis() {
         b = !(!(!(!(!(true))))),
         a3 = null ?? y,
 
-        a3 = case {
+        a3 = case [
             false == true => 1,
             7 == 3 => 2,
             7 == y => 3,
             7.3 == 7.3 => 4,
             z => 5,
             true => 6
-        },
+        ],
     }
         "###).unwrap(),
         @r###"
