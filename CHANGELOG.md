@@ -12,6 +12,9 @@
 
 **Web**:
 
+- Allow cmd-/ (Mac) or ctrl-/ (Windows) to toggle comments in the playground
+  editor (@AaronMoat, #3522)
+
 **Integrations**:
 
 **Internal changes**:
