@@ -1,0 +1,23 @@
+# Basic identifier
+
+filter foo
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Func_call(Ident,Expr(Ident))))))
+
+# Identifier with underscore and digit
+
+filter foo_123
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Func_call(Ident,Expr(Ident))))))
+
+# Unicode identifier
+
+filter räksmörgås
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Func_call(Ident,Expr(Ident))))))

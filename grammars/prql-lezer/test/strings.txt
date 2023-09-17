@@ -1,0 +1,47 @@
+# Single-quoted string
+
+'Hello'
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(String)))))
+
+# Double-quoted string
+
+"Hello"
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(String)))))
+
+# Single-quoted f-string
+
+f'Hello {name}!'
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(F_string)))))
+
+# Double-quoted f-string
+
+f"Hello {name}!"
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(F_string)))))
+
+# Single-quoted s-string
+
+s'version()'
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(S_string)))))
+
+# Double-quoted s-string
+
+s"version()"
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(S_string)))))

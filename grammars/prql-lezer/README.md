@@ -19,3 +19,17 @@ Given there aren't yet tests, we've been developing this by:
 - Pasting the current grammar
 - Fixing any issues in the grammar
 - Copying the grammar back into the repo
+
+## Instructions
+
+Install dependencies:
+
+    npm install
+
+Build:
+
+    npm run build
+
+Test:
+
+    npm run test
