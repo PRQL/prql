@@ -6,7 +6,9 @@
 release has 77 commits from 8 contributors. Selected changes are below.
 
 Look out for some conference talks coming up over the next few weeks, including
-[QCon SF on Oct 2](https://qconsf.com/presentation/oct2023/prql-simple-powerful-pipelined-sql-replacement).
+[QCon SF on Oct 2](https://qconsf.com/presentation/oct2023/prql-simple-powerful-pipelined-sql-replacement)
+and
+[date2day on Oct 12](https://www.data2day.de/veranstaltung-21353-0-prql-a-modern-language-for-data-transformation.html).
 
 **Language**:
 
