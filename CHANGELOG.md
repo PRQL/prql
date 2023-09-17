@@ -1,6 +1,24 @@
 # PRQL Changelog
 
-## 0.9.5 — 2023-09-12
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.9.5 — 2023-09-16
 
 0.9.5 adds a line-wrapping character, fixes a few bugs, and improves our CI. The
 release has 77 commits from 8 contributors. Selected changes are below.
@@ -51,7 +69,7 @@ and
 
 **Web**:
 
-- Any panics in the compiler are now printed to the console (@max-sixty, #3446)
+- Compiler panics are now printed to the console (@max-sixty, #3446)
 
 **Integrations**:
 
