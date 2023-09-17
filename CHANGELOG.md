@@ -15,6 +15,9 @@
 - Allow cmd-/ (Mac) or ctrl-/ (Windows) to toggle comments in the playground
   editor (@AaronMoat, #3522)
 
+- Limit maximum height of the playground editor's error panel to avoid taking
+  over whole screen (@AaronMoat, #3524)
+
 **Integrations**:
 
 **Internal changes**:
