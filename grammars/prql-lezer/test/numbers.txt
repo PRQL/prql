@@ -1,0 +1,31 @@
+# Integer
+
+123
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+
+# Integer with underscore
+
+123_456
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+
+# Integer with underscores
+
+123_456_789
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+
+# Decimal
+
+123.45
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))

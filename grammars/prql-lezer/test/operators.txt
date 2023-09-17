@@ -1,0 +1,55 @@
+# == Equals
+
+foo == bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_unary),Ident)))))
+
+# != Not equals
+
+foo != bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_bin_only),Ident)))))
+
+# >= Greater than
+
+foo >= bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_bin_only),Ident)))))
+
+# <= Less than
+
+foo <= bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_bin_only),Ident)))))
+
+# ~= Regex match
+
+foo ~= bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_bin_only),Ident)))))
+
+# && And
+
+foo && bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_bin_only),Ident)))))
+
+# || Or
+
+foo || bar
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin(Op_bin_only),Ident)))))
