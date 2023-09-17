@@ -23,8 +23,11 @@ jobs:
         with:
           bun-version: latest
       - name: Install dependencies
+        working-directory: grammars/prql-lezer/
         run: bun install
       - name: Build grammar
+        working-directory: grammars/prql-lezer/
         run: bun run build
       - name: Test grammar
+        working-directory: grammars/prql-lezer/
         run: bun test
