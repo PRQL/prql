@@ -24,6 +24,8 @@
 
 **Integrations**:
 
+- Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
+
 **Internal changes**:
 
 **New Contributors**:

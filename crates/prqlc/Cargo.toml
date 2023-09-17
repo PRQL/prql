@@ -5,10 +5,8 @@ name = "prqlc"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version.workspace = true
+rust-version = "1.70.0"
 version.workspace = true
-
-metadata.msrv = "1.65.0"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anstream = {version = "0.3.2", features = ["auto"]}
