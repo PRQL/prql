@@ -49,6 +49,11 @@ class Workbench extends React.Component {
     this.monaco = monaco;
     monaco.editor.defineTheme("blackboard", monacoTheme);
     monaco.languages.register({ id: "prql", extensions: ["prql"] });
+    monaco.languages.setLanguageConfiguration("prql", {
+      comments: {
+        lineComment: "#",
+      },
+    });
     monaco.languages.setMonarchTokensProvider("prql", prqlSyntax);
   }
 
