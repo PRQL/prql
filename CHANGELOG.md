@@ -10,6 +10,8 @@
 
 **Features**:
 
+- Add special funtion to return PRQL version (@hulxv, #3533)
+
 **Fixes**:
 
 **Documentation**:
@@ -29,6 +31,8 @@
 **Internal changes**:
 
 **New Contributors**:
+
+- @hulxv, with #3533
 
 ## 0.9.5 — 2023-09-16
 
