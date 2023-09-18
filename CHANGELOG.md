@@ -10,7 +10,7 @@
 
 **Features**:
 
-- Add special funtion to return PRQL version (@hulxv, #3533)
+- Add special function to return PRQL version (@hulxv, #3533)
 
 **Fixes**:
 
