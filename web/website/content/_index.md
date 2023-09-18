@@ -34,9 +34,9 @@ why_prql_section:
           error messages _(in progress)_
     - title: For tools
       content:
-        - PRQL is a stable foundation to build on; we're open-source and will
+        - PRQL's vision is a foundation to build on; we're open-source and will
           never have a commercial product
-        - PRQL is a single secular standard which tools can target
+        - PRQL is growing into a single secular standard which tools can target
         - PRQL is easy for machines to read & write
     - title: For HackerNews enthusiasts
       content:
