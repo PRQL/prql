@@ -10,6 +10,7 @@ use crate::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
+use crate::COMPILER_VERSION;
 
 use super::super::decl::{Decl, DeclKind};
 use super::super::module::Module;
@@ -364,6 +365,12 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
                 ..res
             };
             return Ok(res);
+        }
+
+        "prql_version" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+            let ver = COMPILER_VERSION.to_string();
+            return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
         }
 
         _ => {

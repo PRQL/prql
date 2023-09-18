@@ -3403,6 +3403,20 @@ fn test_header_target_error() {
 }
 
 #[test]
+fn prql_version() {
+    assert_display_snapshot!(compile(r#"
+    from x
+    derive y = std.prql_version
+    "#).unwrap(),@r###"
+    SELECT
+      *,
+      '0.10.0' AS y
+    FROM
+      x
+    "###);
+}
+
+#[test]
 fn test_loop() {
     assert_display_snapshot!(compile(r#"
     from [{n = 1}]

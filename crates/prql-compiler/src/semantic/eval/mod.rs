@@ -3,10 +3,9 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
+use super::ast_expand;
 use crate::error::{Error, Span, WithErrorInfo};
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
-
-use super::ast_expand;
 
 pub fn eval(expr: prql_ast::expr::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
@@ -105,7 +104,6 @@ fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if name == "std" {
         return Ok(std_module());
     }
-
     Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)).into())
 }
 
