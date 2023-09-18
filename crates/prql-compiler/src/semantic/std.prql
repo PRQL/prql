@@ -195,3 +195,8 @@ let upper = column -> <text> internal std.upper
 ## File-reading functions, primarily for DuckDB
 let read_parquet = source<text> -> <relation> internal std.read_parquet
 let read_csv = source<text> -> <relation> internal std.read_csv
+
+
+## PRQL compiler functions 
+
+let prql_version = -> <string> internal std.prql_version
