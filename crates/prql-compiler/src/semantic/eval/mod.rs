@@ -277,11 +277,6 @@ impl Evaluator {
                 ExprKind::Array(array)
             }
 
-            "std.prql_version" => {
-                let ver = COMPILER_VERSION.to_string();
-                ExprKind::Literal(String(ver))
-            }
-
             _ => {
                 return Err(Error::new_simple(format!("unknown function {func_name}"))
                     .with_span(span)
@@ -404,7 +399,6 @@ fn std_module() -> Expr {
             new_func("columnar", &["closure", "relation"]),
             new_func("sum", &["x"]),
             new_func("lag", &["x"]),
-            new_func("prql_version", &[]),
         ]
         .to_vec(),
     ))
@@ -542,21 +536,6 @@ mod test {
             std.columnar {g = std.lag b}
         ").unwrap(),
             @"[{g = null}, {g = 4}, {g = 5}]"
-        );
-    }
-
-    #[test]
-    fn prql_version() {
-        println!("{:?}", eval("std.prql_version"));
-        println!(
-            "{:?}",
-            crate::compile(
-                r"
-            from updates
-            filter version = prql_version
-        ",
-                &crate::Options::default()
-            )
         );
     }
 }

@@ -199,4 +199,4 @@ let read_csv = source<text> -> <relation> internal std.read_csv
 
 ## PRQL compiler functions
 
-let prql_version = -> <string> internal std.prql_version
+let prql_version = -> <text> internal std.prql_version
