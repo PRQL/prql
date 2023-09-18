@@ -1078,18 +1078,4 @@ mod tests {
             - Wildcard
         "###);
     }
-
-    #[test]
-    fn test_prql_version() {
-        println!(
-            "{:?}",
-            crate::compile(
-                r"
-        from updates
-        derive version = prql_version
-    ",
-                &crate::Options::default()
-            )
-        )
-    }
 }
