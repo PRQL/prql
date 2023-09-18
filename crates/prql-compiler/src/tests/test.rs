@@ -3408,7 +3408,11 @@ fn prql_version() {
     from x
     derive y = std.prql_version
     "#).unwrap(),@r###"
-    Error: Unknown name
+    SELECT
+      *,
+      '0.10.0' AS y
+    FROM
+      x
     "###);
 }
 
