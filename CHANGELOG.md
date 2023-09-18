@@ -10,7 +10,7 @@
 
 **Features**:
 
-- Add special function to return PRQL version (@hulxv, #3533)
+- Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 
 **Fixes**:
 
