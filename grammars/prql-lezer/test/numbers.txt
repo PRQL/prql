@@ -29,3 +29,11 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 ==>
 
 Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+
+# Scientific notation
+
+123e10
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
