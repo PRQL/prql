@@ -23,9 +23,9 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(
 [
 
   foo,
-  
+
   bar,
-  
+
   baz
 
 ]
