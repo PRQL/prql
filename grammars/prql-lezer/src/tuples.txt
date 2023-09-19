@@ -1,0 +1,43 @@
+# Tuple on one line
+
+{foo, bar, baz}
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+
+# Tuple on multiple lines
+
+{
+  foo,
+  bar,
+  baz
+}
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+
+# Tuple on multiple lines with blank lines
+
+{
+
+  foo,
+  
+  bar,
+  
+  baz
+
+}
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+
+# Tuple with key and value
+
+{foo=bar}
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Assign_call(Expr(Ident))))))))
