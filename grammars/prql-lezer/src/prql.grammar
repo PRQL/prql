@@ -54,12 +54,12 @@ Op_bin { op_bin_only | !term op_unary }
 
 @tokens {
   Date { @digit+ "-" @digit+ "-" @digit+ }
-  Time { @digit+ ":" @digit+ ":" @digit+ ( "." @digit+ )? }
+  Time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
   // TODO: does excluding spaces here work? It seems to make a difference, but
   // then I think the `Number` rule doesn't allow spaces...
-  DateTime { "@" ![ ] ( Date | Time | Date "T" Time ) }
+  DateTime { "@" ![ ] ( Date | Time | Date "T" Time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
   identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   ident_part { identifier_char (identifier_char | "_" | @digit )* }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
