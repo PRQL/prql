@@ -16,7 +16,7 @@ Pipeline { expr_call (pipe+ expr_call)* }
 
 pipe { "|" | ~ambig_newline newline }
 
-Tuple { "{" newline? tuple_item (("," newline? ) tuple_item)* ","? newline? "}" }
+Tuple { "{" newline* tuple_item (("," newline* ) tuple_item)* ","? newline* "}" }
 
 tuple_item { Assign_call | expr_call | Case_branch }
 
@@ -36,7 +36,7 @@ Named_arg { ident_part ":" Expr }
 Assign { ident_part "=" Expr }
 Assign_call { ident_part "=" expr_call }
 Case_branch { Expr "=>" Expr }
-Array { "[" newline? Expr (("," newline? ) Expr)* ","? newline? "]" }
+Array { "[" newline* Expr (("," newline* ) Expr)* ","? newline* "]" }
 // Possibly we could only accept case branches inside the Tuple?
 Case {  @specialize<ident_part, "case"> Tuple }
 
@@ -46,7 +46,7 @@ Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
 
 // Because this is outside tokens, we can't disallow whitespace.
 // It's outside tokens because otherwise it conflicts with Ident
-Ident { ident_part ( "." ident_part)* }
+Ident { ident_part ( "." (ident_part | "*"))* }
 
 // I don't think it's possible to have `Op_bin` & `Op_unary` as tokens — that
 // would mean `-` can't be both unary & bin.
@@ -96,7 +96,7 @@ Op_bin { op_bin_only | !term op_unary }
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
   // S & F strings have precedence over idents beginning with s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
-  @precedence { R_string, S_string, F_string, Op_bin_only, ident_part }
+  @precedence { R_string, S_string, F_string, op_bin_only, ident_part }
 }
 
 Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }

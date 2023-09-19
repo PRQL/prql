@@ -1,0 +1,35 @@
+# Array on one line
+
+[foo, bar, baz]
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+
+# Array on multiple lines
+
+[
+  foo,
+  bar,
+  baz
+]
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+
+# Array on multiple lines with blank lines
+
+[
+
+  foo,
+
+  bar,
+
+  baz
+
+]
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(Ident)))))))
