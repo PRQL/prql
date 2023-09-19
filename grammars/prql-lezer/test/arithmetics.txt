@@ -1,0 +1,39 @@
+# Plus
+
+10 + 10
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+
+# Minus
+
+10 - 10
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+
+# Multiply
+
+10 * 10
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+
+# Divide
+
+10 / 10
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+
+# Multiple ops
+
+10 + 10 + 10
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number,Op_bin,Number)))))
