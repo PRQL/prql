@@ -74,6 +74,8 @@ Op_bin { op_bin_only | !term op_unary }
   line_wrap { "\\" }
   wrapped_line { newline+ (Comment newline+)* line_wrap }
   newline { "\n" }
+  // TODO: Because this can also be used to compile to BETWEEN, ranges should
+  // allow any literal, and arguably any expression. And if possible it shouldn't allow for spaces.
   Range { @digit+ ".." @digit+ }
   // Couldn't managed to do these & the interpolated as a template; couldn't
   // find how to negate a variable template
