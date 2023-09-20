@@ -99,7 +99,7 @@ Op_bin { op_bin_only | !term op_unary }
   // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
   @precedence { R_string, S_string, F_string, op_bin_only, ident_part }
-  
+
   @precedence { Range, Number }
 }
 
