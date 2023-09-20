@@ -72,7 +72,7 @@ formatting = function (hljs) {
   const CHAR_ESCAPE = {
     scope: "char.escape",
     match: /\\\\|\\([bfnrt]|u\d{4})/,
-  }
+  };
 
   return {
     name: "PRQL",
@@ -226,7 +226,7 @@ formatting = function (hljs) {
             end: "'",
           },
         ],
-        contains: [ CHAR_ESCAPE ],
+        contains: [CHAR_ESCAPE],
       },
       { scope: "punctuation", match: /[\[\]{}(),]/ },
       {
