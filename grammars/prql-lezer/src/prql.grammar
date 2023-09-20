@@ -38,7 +38,7 @@ Assign_call { ident_part "=" expr_call }
 Case_branch { Expr "=>" Expr }
 Array { "[" newline* Expr (("," newline* ) Expr)* ","? newline* "]" }
 // Possibly we could only accept case branches inside the Tuple?
-Case {  @specialize<ident_part, "case"> Tuple }
+Case { @specialize<ident_part, "case"> Tuple }
 
 Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
 
@@ -53,13 +53,13 @@ Ident { ident_part ( "." (ident_part | "*"))* }
 Op_bin { op_bin_only | !term op_unary }
 
 @tokens {
-  Date { @digit+ "-" @digit+ "-" @digit+ }
-  Time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
+  date { @digit+ "-" @digit+ "-" @digit+ }
+  time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
   // TODO: does excluding spaces here work? It seems to make a difference, but
   // then I think the `Number` rule doesn't allow spaces...
-  DateTime { "@" ![ ] ( Date | Time | Date "T" Time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
+  DateTime { "@" ![ ] ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
   identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   ident_part { identifier_char (identifier_char | "_" | @digit )* }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
@@ -74,7 +74,7 @@ Op_bin { op_bin_only | !term op_unary }
   line_wrap { "\\" }
   wrapped_line { newline+ (Comment newline+)* line_wrap }
   newline { "\n" }
-  Range { ".." }
+  Range { @digit+ ".." @digit+ }
   // Couldn't managed to do these & the interpolated as a template; couldn't
   // find how to negate a variable template
   String { $["] !["]* $["] | $['] ![']* $['] }
@@ -96,9 +96,11 @@ Op_bin { op_bin_only | !term op_unary }
   F_string {Interpolated_string<'f'>}
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
-  // S & F strings have precedence over idents beginning with s / f (we could
+  // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
   @precedence { R_string, S_string, F_string, op_bin_only, ident_part }
+  
+  @precedence { Range, Number }
 }
 
 Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }

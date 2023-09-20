@@ -1,0 +1,7 @@
+# 10..20
+
+10..20
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Range)))))
