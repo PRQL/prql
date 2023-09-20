@@ -40,15 +40,15 @@ formatting = function (hljs) {
   ];
 
   const DATATYPES = [
-    'bool',
-    'float', 
-    'int',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'text',
-    'timestamp'
+    "bool",
+    "float",
+    "int",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "text",
+    "timestamp",
   ];
 
   const TRANSFORMS = [
@@ -84,7 +84,7 @@ formatting = function (hljs) {
         begin: "#!",
         end: "$",
         subLanguage: "markdown",
-        relevance: 0
+        relevance: 0,
       },
       hljs.COMMENT("#", "$"),
       {
@@ -117,7 +117,8 @@ formatting = function (hljs) {
         // interval
         scope: "string",
         // Add more as needed
-        match: /\d+(years|months|weeks|days|hours|minutes|seconds|milliseconds|microseconds)/,
+        match:
+          /\d+(years|months|weeks|days|hours|minutes|seconds|milliseconds|microseconds)/,
         relevance: 10,
       },
       {
@@ -132,7 +133,7 @@ formatting = function (hljs) {
             begin: 'r"',
             end: '"',
           },
-        ]
+        ],
       },
       {
         // interpolation strings: s-strings are variables and f-strings are
@@ -224,7 +225,7 @@ formatting = function (hljs) {
             scope: "char.escape",
             match: /\\([bfnrt]|u\d{4})/,
           },
-         ]
+        ],
       },
       { scope: "punctuation", match: /[\[\]{}(),]/ },
       {
