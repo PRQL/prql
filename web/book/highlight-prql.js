@@ -69,6 +69,11 @@ formatting = function (hljs) {
 
   const KEYWORDS = ["let", "prql", "into", "case", "in", "as", "module"];
 
+  const CHAR_ESCAPE = {
+    scope: "char.escape",
+    match: /\\\\|\\([bfnrt]|u\d{4})/,
+  }
+
   return {
     name: "PRQL",
     case_insensitive: true,
@@ -177,6 +182,7 @@ formatting = function (hljs) {
           },
         ],
         contains: [
+          CHAR_ESCAPE,
           {
             scope: "variable",
             begin: "f",
@@ -220,12 +226,7 @@ formatting = function (hljs) {
             end: "'",
           },
         ],
-        contains: [
-          {
-            scope: "char.escape",
-            match: /\\([bfnrt]|u\d{4})/,
-          },
-        ],
+        contains: [ CHAR_ESCAPE ],
       },
       { scope: "punctuation", match: /[\[\]{}(),]/ },
       {
