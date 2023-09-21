@@ -500,7 +500,7 @@ jobs:
       - test-elixir
       - test-java
       - test-js
-      - test-lezer
+      - test-grammars
       - test-lib
       - test-php
       - test-python
@@ -545,7 +545,7 @@ jobs:
               "test-java",
               "test-js",
               "test-lib",
-              "test-lezer",
+              "test-grammars",
               "test-php",
               "test-python",
               "test-rust",
