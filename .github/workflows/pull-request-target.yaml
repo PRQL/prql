@@ -74,7 +74,7 @@ jobs:
 
     # Check it's not coming from a fork — both to save running and
     # in case someone spoofed an `actor` name.
-    if: !github.event.pull_request.head.repo.fork
+    if: "!github.event.pull_request.head.repo.fork"
 
     steps:
       # Get number of commits in the PR
