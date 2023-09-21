@@ -57,9 +57,7 @@ Op_bin { op_bin_only | !term op_unary }
   time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
-  // TODO: does excluding spaces here work? It seems to make a difference, but
-  // then I think the `Number` rule doesn't allow spaces...
-  DateTime { "@" ![ ] ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
+  DateTime { "@" ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
   identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   ident_part { identifier_char (identifier_char | "_" | @digit )* }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
@@ -75,9 +73,9 @@ Op_bin { op_bin_only | !term op_unary }
   wrapped_line { newline+ (Comment newline+)* line_wrap }
   newline { "\n" }
   // TODO: Because this can also be used to compile to BETWEEN, ranges should
-  // allow any literal, and arguably any expression. And if possible it shouldn't allow for spaces.
+  // allow any literal, and arguably any expression.
   Range { @digit+ ".." @digit+ }
-  // Couldn't managed to do these & the interpolated as a template; couldn't
+  // Couldn't manage to do these & the interpolated as a template; couldn't
   // find how to negate a variable template
   String { $["] !["]* $["] | $['] ![']* $['] }
 
