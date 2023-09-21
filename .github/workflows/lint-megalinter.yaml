@@ -16,7 +16,7 @@ env: # Comment env block if you do not want to apply fixes
   APPLY_FIXES_MODE: commit # If APPLY_FIXES is used, defines if the fixes are directly committed (commit) or posted in a PR (pull_request)
 
 concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.run_number }}
   cancel-in-progress: true
 
 jobs:
