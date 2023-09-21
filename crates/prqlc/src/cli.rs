@@ -557,7 +557,7 @@ sort full
            │
          1 │ asdf
            │ ──┬─
-           │   ╰─── Unknown name
+           │   ╰─── Unknown name `asdf`
         ───╯
         "###);
     }

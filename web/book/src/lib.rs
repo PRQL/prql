@@ -304,7 +304,7 @@ this is an error
        <span style='color:#949494'>│</span>
      <span style='color:#949494'>1 │</span> this<span style='color:#b2b2b2'> is an error</span>
      <span style='color:#585858'>  │</span> ──┬─
-     <span style='color:#585858'>  │</span>   ╰─── Unknown name
+     <span style='color:#585858'>  │</span>   ╰─── Unknown name `this`
     <span style='color:#949494'>───╯</span>
     </code></pre>
 
