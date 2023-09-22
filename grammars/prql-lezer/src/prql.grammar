@@ -58,12 +58,13 @@ Op_bin { op_bin_only | !term op_unary }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
   DateTime { "@" ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
+  time_unit { "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds" | "microseconds" }
   identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   ident_part { identifier_char (identifier_char | "_" | @digit )* }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
   number_part { @digit ( @digit | "_" )* }
-  Number { number_part "."? number_part? ("e" number_part)? }
+  Number { number_part "."? number_part? ("e" number_part)? time_unit? }
   space { " "+ }
   Comment { "#" ![\n]* }
   op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }

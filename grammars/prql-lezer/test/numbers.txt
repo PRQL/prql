@@ -37,3 +37,11 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 ==>
 
 Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+
+# Number with time unit
+
+5years
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
