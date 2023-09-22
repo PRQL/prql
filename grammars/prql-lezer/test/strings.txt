@@ -30,6 +30,22 @@ f"Hello {name}!"
 
 Query(Statements(Pipeline_stmt(Pipeline(Expr(F_string)))))
 
+# Single-quoted r-string
+
+r'version()'
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(R_string)))))
+
+# Double-quoted r-string
+
+r"version()"
+
+==>
+
+Query(Statements(Pipeline_stmt(Pipeline(Expr(R_string)))))
+
 # Single-quoted s-string
 
 s'version()'
