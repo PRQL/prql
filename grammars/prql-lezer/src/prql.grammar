@@ -110,3 +110,5 @@ Lambda { Lambda_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
 Type_term { ident_part Type_def? }
 Lambda_param { ident_part Type_def? (":" Expr)? }
+
+@external propSource prqlHighlight from "./highlight"
