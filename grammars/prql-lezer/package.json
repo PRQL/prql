@@ -9,6 +9,7 @@
     "require": "./dist/index.cjs"
   },
   "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "PRQL Project",
   "license": "MIT",
   "directories": {
