@@ -2,6 +2,7 @@
 Language: PRQL
 Description: PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
 Category: common, database
+Requires: markdown.js
 Website: https://prql-lang.org/
 */
 
