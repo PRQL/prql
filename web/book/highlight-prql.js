@@ -1,3 +1,10 @@
+/*
+Language: PRQL
+Description: PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
+Category: common, database
+Website: https://prql-lang.org/
+*/
+
 // Syntax highlighting for PRQL.
 
 // Keep consistent with
@@ -20,6 +27,30 @@
 // - Can we represent the inner s & f string items?
 
 formatting = function (hljs) {
+  const BUILTIN_FUNCTIONS = [
+    "any",
+    "average",
+    "concat_array",
+    "count",
+    "every",
+    "max",
+    "min",
+    "stddev",
+    "sum",
+  ];
+
+  const DATATYPES = [
+    "bool",
+    "float",
+    "int",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "text",
+    "timestamp",
+  ];
+
   const TRANSFORMS = [
     "aggregate",
     "append",
@@ -35,16 +66,31 @@ formatting = function (hljs) {
     "union",
     "window",
   ];
-  const BUILTIN_FUNCTIONS = ["case", "in", "as"];
-  const KEYWORDS = ["let", "prql", "into"];
+
+  const KEYWORDS = ["let", "prql", "into", "case", "in", "as", "module"];
+
+  const CHAR_ESCAPE = {
+    scope: "char.escape",
+    match: /\\\\|\\([bfnrt]|u\d{4})/,
+  };
+
   return {
     name: "PRQL",
     case_insensitive: true,
     keywords: {
+      built_in: BUILTIN_FUNCTIONS,
       keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS],
-      literal: "false true null ",
+      literal: "false true null",
+      type: DATATYPES,
     },
     contains: [
+      {
+        // docblock
+        begin: "#!",
+        end: "$",
+        subLanguage: "markdown",
+        relevance: 0,
+      },
       hljs.COMMENT("#", "$"),
       {
         // named arg
@@ -52,6 +98,11 @@ formatting = function (hljs) {
         begin: /\w+\s*:/,
         end: "",
         relevance: 10,
+      },
+      {
+        // meta prql for target and version
+        scope: "meta",
+        match: /^prql/,
       },
       // This seems much too strong at the moment, so disabling. I think ideally
       // we'd have it for aliases but not assigns.
@@ -64,15 +115,30 @@ formatting = function (hljs) {
       {
         // date
         scope: "string",
-        match: /@(\d*|-|\.\d|:)+/,
+        match: /@(\d*|-|\.\d|:|T)+Z?/,
         relevance: 10,
       },
       {
         // interval
         scope: "string",
         // Add more as needed
-        match: /\d+(days|hours|minutes|seconds|milliseconds)/,
+        match:
+          /\d+(years|months|weeks|days|hours|minutes|seconds|milliseconds|microseconds)/,
         relevance: 10,
+      },
+      {
+        scope: "string",
+        relevance: 10,
+        variants: [
+          {
+            begin: 'r"""',
+            end: '"""',
+          },
+          {
+            begin: 'r"',
+            end: '"',
+          },
+        ],
       },
       {
         // interpolation strings: s-strings are variables and f-strings are
@@ -82,11 +148,11 @@ formatting = function (hljs) {
         relevance: 10,
         variants: [
           {
-            begin: '(s)"""',
+            begin: 's"""',
             end: '"""',
           },
           {
-            begin: '(s)"',
+            begin: 's"',
             end: '"',
           },
         ],
@@ -107,15 +173,16 @@ formatting = function (hljs) {
         relevance: 10,
         variants: [
           {
-            begin: '(f)"""',
+            begin: 'f"""',
             end: '"""',
           },
           {
-            begin: '(f)"',
+            begin: 'f"',
             end: '"',
           },
         ],
         contains: [
+          CHAR_ESCAPE,
           {
             scope: "variable",
             begin: "f",
@@ -159,12 +226,12 @@ formatting = function (hljs) {
             end: "'",
           },
         ],
+        contains: [CHAR_ESCAPE],
       },
       { scope: "punctuation", match: /[\[\]{}(),]/ },
       {
         scope: "operator",
-        match:
-          /(>)|(<)|(==)|(\+)|(\-)|(\/)|(\*)|(!=)|(->)|(=>)|(<=)|(>=)|(&&)|(\|\|)/,
+        match: /==|~=|\+|\-|\/|\*|!=|->|=>|<=|>=|&&|\|\||<|>/,
         relevance: 10,
       },
       {

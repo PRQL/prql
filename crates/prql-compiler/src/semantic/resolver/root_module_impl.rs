@@ -107,14 +107,17 @@ impl RootModule {
             ident.clone()
         };
 
-        // fallback case: try to match with NS_INFER and infer the declaration from the original ident.
-        match self.resolve_ident_fallback(ident, NS_INFER) {
+        // fallback case: try to match with NS_INFER and infer the declaration
+        // from the original ident.
+        match self.resolve_ident_fallback(&ident, NS_INFER) {
             // The declaration and all needed parent modules were created
             // -> just return the fq ident
             Ok(inferred_ident) => Ok(inferred_ident),
 
             // Was not able to infer.
-            Err(None) => Err(Error::new_simple("Unknown name".to_string())),
+            Err(None) => Err(Error::new_simple(
+                format!("Unknown name `{}`", &ident).to_string(),
+            )),
             Err(Some(msg)) => Err(msg),
         }
     }
@@ -122,7 +125,7 @@ impl RootModule {
     /// Try lookup of the ident with name replaced. If unsuccessful, recursively retry parent ident.
     fn resolve_ident_fallback(
         &mut self,
-        ident: Ident,
+        ident: &Ident,
         name_replacement: &'static str,
     ) -> Result<Ident, Option<Error>> {
         let infer_ident = ident.clone().with_name(name_replacement);
@@ -133,7 +136,7 @@ impl RootModule {
         if decls.is_empty() {
             if let Some(parent) = infer_ident.clone().pop() {
                 // try to infer parent
-                let _ = self.resolve_ident_fallback(parent, NS_INFER_MODULE)?;
+                let _ = self.resolve_ident_fallback(&parent, NS_INFER_MODULE)?;
 
                 // module was successfully inferred, retry the lookup
                 decls = self.root_mod.lookup(&infer_ident)
@@ -144,7 +147,7 @@ impl RootModule {
             1 => {
                 // single match, great!
                 let infer_ident = decls.into_iter().next().unwrap();
-                self.infer_decl(infer_ident, &ident)
+                self.infer_decl(infer_ident, ident)
                     .map_err(|x| Some(Error::new_simple(x)))
             }
             0 => Err(None),

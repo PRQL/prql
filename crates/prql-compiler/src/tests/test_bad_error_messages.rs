@@ -49,7 +49,7 @@ fn test_bad_error_messages() {
        │
      5 │     filter f location
        │              ────┬───
-       │                  ╰───── Unknown name
+       │                  ╰───── Unknown name `location`
     ───╯
     "###);
 
@@ -125,7 +125,7 @@ fn select_with_extra_fstr() {
        │
      3 │     select lower f"{x}/{y}"
        │                    ─┬─
-       │                     ╰─── Unknown name
+       │                     ╰─── Unknown name `x`
     ───╯
     "###);
 }

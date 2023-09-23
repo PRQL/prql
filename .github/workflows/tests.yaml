@@ -17,7 +17,7 @@ on:
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  group: ${{ github.workflow }}-${{ github.run_number }}
   cancel-in-progress: true
 
 env:
@@ -500,6 +500,7 @@ jobs:
       - test-elixir
       - test-java
       - test-js
+      - test-grammars
       - test-lib
       - test-php
       - test-python
@@ -544,6 +545,7 @@ jobs:
               "test-java",
               "test-js",
               "test-lib",
+              "test-grammars",
               "test-php",
               "test-python",
               "test-rust",

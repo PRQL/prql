@@ -62,7 +62,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - August 2023
+## Current Status - October 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
@@ -71,8 +71,8 @@ using one of our supported language bindings.
 PRQL still has some bugs and some missing features, and is probably only ready
 to be rolled out to non-technical teams for fairly simple queries.
 
-We recently release [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0),
-our biggest release ever. Here's our current
+We released [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0), in July,
+our biggest ever release. Here's our current
 [Roadmap](https://prql-lang.org/roadmap/).
 
 <!-- TODO: add back when we get them

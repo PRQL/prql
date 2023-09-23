@@ -7,6 +7,6 @@ Error:
    │
  2 │ derive total_distance = sum distance
    │                             ────┬───
-   │                                 ╰───── Unknown name
+   │                                 ╰───── Unknown name `distance`
 ───╯
 

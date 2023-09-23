@@ -15,10 +15,6 @@ env: # Comment env block if you do not want to apply fixes
   APPLY_FIXES_EVENT: pull_request # Decide which event triggers application of fixes in a commit or a PR (pull_request, push, all)
   APPLY_FIXES_MODE: commit # If APPLY_FIXES is used, defines if the fixes are directly committed (commit) or posted in a PR (pull_request)
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: lint-megalinter
@@ -33,7 +29,7 @@ jobs:
         id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter@v7.3.0
+        uses: oxsecurity/megalinter@v7.4.0
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/

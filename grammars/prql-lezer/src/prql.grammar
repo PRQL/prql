@@ -28,7 +28,7 @@ expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | Tuple | Date | Nested_pipeline | op_unary term | String | R_string | S_string | F_string | Range | Array | Case }
+term { !term Ident | Number | Tuple | DateTime | Nested_pipeline | op_unary term | String | R_string | S_string | F_string | Range | Array | Case }
 
 Expr { term (( Op_bin ) term )* }
 
@@ -38,7 +38,7 @@ Assign_call { ident_part "=" expr_call }
 Case_branch { Expr "=>" Expr }
 Array { "[" newline* Expr (("," newline* ) Expr)* ","? newline* "]" }
 // Possibly we could only accept case branches inside the Tuple?
-Case {  @specialize<ident_part, "case"> Tuple }
+Case { @specialize<ident_part, "case"> Tuple }
 
 Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
 
@@ -53,17 +53,18 @@ Ident { ident_part ( "." (ident_part | "*"))* }
 Op_bin { op_bin_only | !term op_unary }
 
 @tokens {
+  date { @digit+ "-" @digit+ "-" @digit+ }
+  time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
-  // TODO: does excluding spaces here work? It seems to make a difference, but
-  // then I think the `Number` rule doesn't allow spaces...
-  Date { "@" ![ ] (( @digit | "-" ) ![ ] )+ }
+  DateTime { "@" ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
+  time_unit { "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds" | "microseconds" }
   identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   ident_part { identifier_char (identifier_char | "_" | @digit )* }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
   number_part { @digit ( @digit | "_" )* }
-  Number { number_part "."? number_part? ("e" number_part)? }
+  Number { number_part "."? number_part? ("e" number_part)? time_unit? }
   space { " "+ }
   Comment { "#" ![\n]* }
   op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
@@ -72,8 +73,10 @@ Op_bin { op_bin_only | !term op_unary }
   line_wrap { "\\" }
   wrapped_line { newline+ (Comment newline+)* line_wrap }
   newline { "\n" }
-  Range { ".." }
-  // Couldn't managed to do these & the interpolated as a template; couldn't
+  // TODO: Because this can also be used to compile to BETWEEN, ranges should
+  // allow any literal, and arguably any expression.
+  Range { @digit+ ".." @digit+ }
+  // Couldn't manage to do these & the interpolated as a template; couldn't
   // find how to negate a variable template
   String { $["] !["]* $["] | $['] ![']* $['] }
 
@@ -94,9 +97,11 @@ Op_bin { op_bin_only | !term op_unary }
   F_string {Interpolated_string<'f'>}
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
-  // S & F strings have precedence over idents beginning with s / f (we could
+  // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
   @precedence { R_string, S_string, F_string, op_bin_only, ident_part }
+
+  @precedence { Range, Number }
 }
 
 Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }
@@ -105,3 +110,5 @@ Lambda { Lambda_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
 Type_term { ident_part Type_def? }
 Lambda_param { ident_part Type_def? (":" Expr)? }
+
+@external propSource prqlHighlight from "./highlight"

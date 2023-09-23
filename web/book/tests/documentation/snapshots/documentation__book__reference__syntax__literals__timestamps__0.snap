@@ -1,10 +1,11 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from commits\nderive first_prql_commit = @2020-01-01T13:19:55-08:00\n"
+expression: "from commits\nderive first_prql_commit = @2020-01-01T13:19:55-08:00\nderive first_prql_commit_utc = @2020-01-02T21:19:55Z\n"
 ---
 SELECT
   *,
-  TIMESTAMP '2020-01-01T13:19:55-0800' AS first_prql_commit
+  TIMESTAMP '2020-01-01T13:19:55-0800' AS first_prql_commit,
+  TIMESTAMP '2020-01-02T21:19:55Z' AS first_prql_commit_utc
 FROM
   commits
 

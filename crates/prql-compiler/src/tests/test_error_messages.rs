@@ -48,7 +48,7 @@ fn test_errors() {
        │
      4 │     select b
        │            ┬
-       │            ╰── Unknown name
+       │            ╰── Unknown name `b`
     ───╯
     "###);
 

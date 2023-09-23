@@ -248,13 +248,17 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         )
         // timezone offset
         .chain::<char, _, _>(
-            one_of("-+")
-                .chain(
-                    (digits(2).then_ignore(just(':').or_not()).chain(digits(2)))
-                        .or(just('Z').map(|x| vec![x])),
-                )
-                .or_not()
-                .flatten(),
+            choice((
+                // Either just `Z`
+                just('Z').map(|x| vec![x]),
+                // Or an offset, such as `-05:00` or `-0500`
+                one_of("-+").chain(
+                    digits(2)
+                        .then_ignore(just(':').or_not())
+                        .chain::<char, _, _>(digits(2)),
+                ),
+            ))
+            .or_not(),
         )
         .boxed();
 
