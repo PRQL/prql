@@ -30,7 +30,11 @@ an index.
   the Monaco editor, which we use for the Playground. The grammar is at
   [`playground/src/workbench/prql-syntax.js`](https://github.com/PRQL/prql/blob/main/web/playground/src/workbench/prql-syntax.js).
 
-- [Pygments](https://pygments.org/) — Python library used by Wikipedia, Bitbucket, Sphinx and [more](https://pygments.org/faq/#who-uses-pygments). The grammar is upstream ([prql.py](https://github.com/pygments/pygments/blob/master/pygments/lexers/prql.py)). See the [demo](https://pygments.org/demo/).
+- [Pygments](https://pygments.org/) — Python library used by Wikipedia,
+  Bitbucket, Sphinx and [more](https://pygments.org/faq/#who-uses-pygments). The
+  grammar is upstream
+  ([prql.py](https://github.com/pygments/pygments/blob/master/pygments/lexers/prql.py)).
+  See the [demo](https://pygments.org/demo/).
 
 - [Tree-Sitter](https://tree-sitter.github.io/tree-sitter) — used by the neovim
   and helix. The grammar can be found at
