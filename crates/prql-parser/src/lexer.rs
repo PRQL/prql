@@ -359,6 +359,18 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
                     })
                 }),
         )),
+        (just("U00").ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .exactly(6)
+                .collect::<String>()
+                .validate(|digits, span, emit| {
+                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
+                        emit(Cheap::expected_input_found(span, None, None));
+                        '\u{FFFD}'
+                    })
+                }),
+        )),
         (just('x').ignore_then(
             filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
@@ -511,4 +523,7 @@ fn quotes() {
 
     // Hex escape
     assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
+
+    // Unicode escape
+    assert_snapshot!(quoted_string(true).parse(r"'\U0001F422'").unwrap(), @"🐢");
 }

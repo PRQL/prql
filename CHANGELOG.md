@@ -12,6 +12,7 @@
 
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. (@vanillajonathan, #3568)
+- Add support for long Unicode escape sequences. (@vanillajonathan, #3569)
 
 **Fixes**:
 
