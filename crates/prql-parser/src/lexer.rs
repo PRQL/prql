@@ -510,5 +510,5 @@ fn quotes() {
     assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
 
     // Hex escape
-    assert_snapshot!(quoted_string(true).parse(r#"'\x61\x62\x63'"#).unwrap(), @"abc");
+    assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
 }
