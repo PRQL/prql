@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer)))))
 
 # Integer with underscore
 
@@ -12,7 +12,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer)))))
 
 # Integer with underscores
 
@@ -20,7 +20,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer)))))
 
 # Decimal
 
@@ -28,7 +28,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Float)))))
 
 # Scientific notation
 
@@ -36,7 +36,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer)))))
 
 # Number with time unit
 
@@ -44,4 +44,4 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer)))))

@@ -1,10 +1,10 @@
 # Plus
 
-10 + 10
+10 + 10.5
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Float)))))
 
 # Minus
 
@@ -12,7 +12,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
 
 # Multiply
 
@@ -20,7 +20,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
 
 # Divide
 
@@ -28,7 +28,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
 
 # Multiple ops
 
@@ -36,4 +36,4 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Number,Op_bin,Number,Op_bin,Number)))))
+Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer,Op_bin,Integer)))))
