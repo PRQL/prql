@@ -359,6 +359,18 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
                     })
                 }),
         )),
+        (just('x').ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .exactly(2)
+                .collect::<String>()
+                .validate(|digits, span, emit| {
+                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
+                        emit(Cheap::expected_input_found(span, None, None));
+                        '\u{FFFD}'
+                    })
+                }),
+        )),
     )))
 }
 

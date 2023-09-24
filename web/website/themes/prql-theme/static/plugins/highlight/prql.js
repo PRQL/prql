@@ -60,7 +60,7 @@ formatting = function (hljs) {
 
   const CHAR_ESCAPE = {
     scope: "char.escape",
-    match: /\\\\|\\([bfnrt]|u\d{4})/,
+    match: /\\\\|\\([bfnrt]|u\d{4})|x[0-9A-Fa-f]{2}/,
   };
 
   return {
