@@ -28,7 +28,7 @@ expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | Tuple | DateTime | Nested_pipeline | op_unary term | String | R_string | S_string | F_string | Range | Array | Case }
+term { !term Ident | number | Tuple | DateTime | Nested_pipeline | op_unary term | String | R_string | S_string | F_string | Range | Array | Case }
 
 Expr { term (( Op_bin ) term )* }
 
@@ -52,6 +52,8 @@ Ident { ident_part ( "." (ident_part | "*"))* }
 // would mean `-` can't be both unary & bin.
 Op_bin { op_bin_only | !term op_unary }
 
+number { Integer time_unit? | Float }
+
 @tokens {
   date { @digit+ "-" @digit+ "-" @digit+ }
   time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
@@ -61,10 +63,10 @@ Op_bin { op_bin_only | !term op_unary }
   time_unit { "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds" | "microseconds" }
   identifier_char { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   ident_part { identifier_char (identifier_char | "_" | @digit )* }
+  Integer { @digit ( @digit | "_" )* ("e" Integer)? }
+  Float { @digit ( @digit | "_" )* "." @digit ( @digit | "_" )* ("e" Integer)? }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
-  number_part { @digit ( @digit | "_" )* }
-  Number { number_part "."? number_part? ("e" number_part)? time_unit? }
   space { " "+ }
   Comment { "#" ![\n]* }
   op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
@@ -101,7 +103,7 @@ Op_bin { op_bin_only | !term op_unary }
   // use specialize but I think means we need to redefine `String` for each)
   @precedence { R_string, S_string, F_string, op_bin_only, ident_part }
 
-  @precedence { Range, Number }
+  @precedence { Range, Float, Integer, time_unit, ident_part }
 }
 
 Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }
