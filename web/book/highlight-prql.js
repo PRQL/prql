@@ -29,6 +29,7 @@ Website: https://prql-lang.org/
 
 formatting = function (hljs) {
   const BUILTIN_FUNCTIONS = [
+    // Aggregate functions
     "any",
     "average",
     "concat_array",
@@ -38,6 +39,28 @@ formatting = function (hljs) {
     "min",
     "stddev",
     "sum",
+    // File reading functions
+    "read_csv",
+    "read_parquet",
+    // List functions
+    "all",
+    "map",
+    "zip",
+    "_eq",
+    "_is_null",
+    // Misc functions
+    "from_text",
+    // String functions
+    "lower",
+    "upper",
+    // Window functions
+    "lag",
+    "lead",
+    "first",
+    "last",
+    "rank",
+    "rank_dense",
+    "row_number",
   ];
 
   const DATATYPES = [
@@ -57,7 +80,6 @@ formatting = function (hljs) {
     "append",
     "derive",
     "filter",
-    "from_text",
     "from",
     "group",
     "join",
@@ -72,7 +94,7 @@ formatting = function (hljs) {
 
   const CHAR_ESCAPE = {
     scope: "char.escape",
-    match: /\\\\|\\([bfnrt]|u\d{4})|U00[0-9A-Fa-f]{6}|x[0-9A-Fa-f]{2}/,
+    match: /\\\\|\\([bfnrt]|U00[0-9A-Fa-f]{6}|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2})/,
   };
 
   return {
