@@ -33,6 +33,8 @@ Strings can contain any escape character sequences defined by the
 from artists
 derive escapes = "\tXYZ\n \\ "                  # tab (\t), "XYZ", newline (\n), " ", \, " "
 derive world = "\u0048\u0065\u006C\u006C\u006F" # "Hello"
+derive hex = "\x48\x65\x6C\x6C\x6F"             # "Hello"
+derive turtle = "\U0001F422"                    # "🐢"
 ```
 
 ## Other string formats
