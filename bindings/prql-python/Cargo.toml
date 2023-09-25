@@ -20,7 +20,7 @@ pyo3 = {version = "0.19.2", features = ["abi3-py37"]}
 prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
 
 [dev-dependencies]
-insta = {version = "1.31", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.32", features = ["colors", "glob", "yaml"]}
 
 [build-dependencies]
 pyo3-build-config = "0.19.2"

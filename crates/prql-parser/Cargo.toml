@@ -25,4 +25,4 @@ chumsky = "0.9.2"
 chumsky = {version = "0.9.2", features = ["ahash", "std"], default-features = false}
 
 [dev-dependencies]
-insta = {version = "1.31", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.32", features = ["colors", "glob", "yaml"]}
