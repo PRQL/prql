@@ -154,7 +154,7 @@ fn translate_select_pipeline(
     let aggregate = after_agg.pluck(|t| t.into_aggregate()).into_iter().next();
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
     ctx.query.allow_stars = ctx.dialect.stars_in_group();
-    let group_by = try_into_exprs(group_by, ctx, None)?;
+    let group_by = sql_ast::GroupByExpr::Expressions(try_into_exprs(group_by, ctx, None)?);
     ctx.query.allow_stars = true;
 
     ctx.query.pre_projection = false;
@@ -293,6 +293,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
                 args: None,
                 with_hints: vec![],
                 version: None,
+                partitions: vec![],
             }
         }
         RelationExprKind::SubQuery(query) => {
@@ -534,7 +535,7 @@ fn default_select() -> Select {
         from: Vec::new(),
         lateral_views: Vec::new(),
         selection: None,
-        group_by: Vec::new(),
+        group_by: sql_ast::GroupByExpr::Expressions(vec![]),
         cluster_by: Vec::new(),
         distribute_by: Vec::new(),
         sort_by: Vec::new(),
