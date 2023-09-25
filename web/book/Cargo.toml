@@ -30,7 +30,7 @@ strum_macros = "0.25.2"
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
 globset = "0.4.13"
-insta = {version = "1.31", features = ["colors", "glob"]}
+insta = {version = "1.32", features = ["colors", "glob"]}
 log = "0.4.20"
 regex = "1.9.5"
 serde_json = "1.0.107"
