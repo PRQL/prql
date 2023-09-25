@@ -14,7 +14,7 @@ doctest = false
 [dependencies]
 itertools = "0.11.0"
 prql-ast = {path = "../prql-ast", version = "0.10.0" }
-semver = {version = "1.0.18"}
+semver = {version = "1.0.19"}
 
 # Chumsky's default features have issues when running in wasm (though we only
 # see it when compiling on MacOS), so we only include features when running
