@@ -5,7 +5,8 @@ on:
     types: [opened, edited, synchronize, labeled, closed]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.run_number }}
+  # Generally we use `github.ref`, but in pull_request_target, that's always `main`.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
