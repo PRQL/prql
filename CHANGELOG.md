@@ -11,8 +11,10 @@
 **Features**:
 
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
-- Add support for hex escape sequences in strings. (@vanillajonathan, #3568)
-- Add support for long Unicode escape sequences. (@vanillajonathan, #3569)
+- Add support for hex escape sequences in strings.
+  Example `"Hello \x51"`. (@vanillajonathan, #3568)
+- Add support for long Unicode escape sequences.
+  Example `"Hello \U0001F422"`. (@vanillajonathan, #3569)
 
 **Fixes**:
 
