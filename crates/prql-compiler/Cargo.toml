@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+# Doesn't inherit from workspace because of `cargo msrv` support
 metadata.msrv = "1.70.0"
 
 [features]
