@@ -8,7 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
-metadata.msrv = "1.65.0"
+metadata.msrv = "1.70.0"
 
 [features]
 default = []
@@ -18,8 +18,8 @@ test-dbs = ["duckdb", "rusqlite", "tokio"]
 test-dbs-external = ["chrono", "duckdb", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
-prql-ast = {path = "../prql-ast", version = "0.10.0" }
-prql-parser = {path = "../prql-parser", version = "0.10.0" }
+prql-ast = {path = "../prql-ast", version = "0.10.0"}
+prql-parser = {path = "../prql-parser", version = "0.10.0"}
 
 anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.75", features = ["backtrace"]}
