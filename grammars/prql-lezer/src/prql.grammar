@@ -48,9 +48,7 @@ NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 commaSep<expr> { newline* expr ("," newline* expr newline*)* ","? }
 LogicOp<expr> { expr }
 
-test {
- testInner
-}
+test { testInner }
 
 testInner { binaryTest | unaryTest | expression }
 
