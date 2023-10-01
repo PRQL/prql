@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+Query(Statements(PipelineStatement(Pipeline(TupleExpression(Ident,Ident,Ident)))))
 
 # Tuple on multiple lines
 
@@ -16,7 +16,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+Query(Statements(PipelineStatement(Pipeline(TupleExpression(Ident,Ident,Ident)))))
 
 # Tuple on multiple lines with blank lines
 
@@ -32,7 +32,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+Query(Statements(PipelineStatement(Pipeline(TupleExpression(Ident,Ident,Ident)))))
 
 # Tuple with key and value
 
@@ -40,4 +40,4 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Expr(Ident),Expr(Ident),Expr(
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Tuple(Assign_call(Expr(Ident))))))))
+Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Ident))))))

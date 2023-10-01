@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Ident,Ident,Ident)))))
 
 # Array on multiple lines
 
@@ -16,7 +16,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Ident,Ident,Ident)))))
 
 # Array on multiple lines with blank lines
 
@@ -32,4 +32,20 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Array(Expr(Ident),Expr(Ident),Expr(Ident)))))))
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Ident,Ident,Ident)))))
+
+# Array on integers
+
+[1, 2, 3]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Integer,Integer,Integer)))))
+
+# Array on floats
+
+[1.1, 2.2, 3.3]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Float,Float,Float)))))

@@ -4,7 +4,7 @@ foo == bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,CompareOp,Ident)))))
 
 # != Not equals
 
@@ -12,7 +12,7 @@ foo != bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,CompareOp,Ident)))))
 
 # >= Greater than
 
@@ -20,7 +20,7 @@ foo >= bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,CompareOp,Ident)))))
 
 # <= Less than
 
@@ -28,7 +28,7 @@ foo <= bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,CompareOp,Ident)))))
 
 # ~= Regex match
 
@@ -36,7 +36,7 @@ foo ~= bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,CompareOp,Ident)))))
 
 # && And
 
@@ -44,7 +44,7 @@ foo && bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,LogicOp,Ident)))))
 
 # || Or
 
@@ -52,4 +52,12 @@ foo || bar
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Ident,Op_bin,Ident)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,LogicOp,Ident)))))
+
+# ?? Coalesce
+
+foo ?? bar
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Ident,LogicOp,Ident)))))
