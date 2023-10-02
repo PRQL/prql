@@ -7,6 +7,6 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-insta = {version = "1.33", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.32", features = ["colors", "glob", "yaml"]}
 regex = "1.9.5"
 similar = {version = "2.2.1"}
