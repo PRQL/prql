@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
 
 # Time HH:MM
 
@@ -12,7 +12,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
 
 # Time HH:MM:SS
 
@@ -20,7 +20,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
 
 # Time HH:MM:SS.xxx
 
@@ -28,7 +28,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
 
 # Date and time
 
@@ -36,7 +36,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
 
 # Date and time with timezone
 
@@ -44,7 +44,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
 
 # Date and time in UTC
 
@@ -52,4 +52,4 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(DateTime)))))
+Query(Statements(PipelineStatement(Pipeline(DateTime))))

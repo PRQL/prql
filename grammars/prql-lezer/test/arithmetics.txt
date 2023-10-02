@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Float)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Integer,ArithOp,Float)))))
 
 # Minus
 
@@ -12,7 +12,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Float)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Integer,ArithOp,Integer)))))
 
 # Multiply
 
@@ -20,7 +20,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Integer,ArithOp,Integer)))))
 
 # Divide
 
@@ -28,7 +28,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Integer,ArithOp,Integer)))))
 
 # Multiple ops
 
@@ -36,4 +36,4 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(Integer,Op_bin,Integer,Op_bin,Integer)))))
+Query(Statements(PipelineStatement(Pipeline(BinaryExpression(BinaryExpression(Integer,ArithOp,Integer),ArithOp,Integer)))))
