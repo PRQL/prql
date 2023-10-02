@@ -35,5 +35,5 @@ walkdir = "2.4.0"
 minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-insta = {version = "1.32", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.33", features = ["colors", "glob", "yaml"]}
 insta-cmd = "0.4.0"
