@@ -48,6 +48,7 @@ NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 commaSep<expr> { newline* expr ("," newline* expr newline*)* ","? }
 LogicOp<expr> { expr }
 
+// The name "test" here means equality testing. It is name used in the Python grammar.
 test { testInner }
 
 testInner { binaryTest | unaryTest | expression }
@@ -124,7 +125,8 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   RangeExpression { @digit+ ".." @digit+ }
   // Couldn't manage to do these & the interpolated as a template; couldn't
   // find how to negate a variable template
-  String { '"""' ![Z]* '"""' | "'''" ![Z]* "'''" | $["] !["]* $["] | $['] ![']* $['] }
+  // Matches any character except hamburger. This is a workaround.
+  String { '"""' ![🍔]* '"""' | "'''" ![🍔]* "'''" | $["] !["]* $["] | $['] ![']* $['] }
 
   // TODO: not getting the interpolations highlighted; it just shows the whole
   // string as a string, because these are all within the `@tokens` block. But
