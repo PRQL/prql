@@ -11,7 +11,9 @@ an index.
   ([prql_highlight_rules.js](https://github.com/ajaxorg/ace/blob/master/src/mode/prql_highlight_rules.js)).
   See the [demo](https://prql-lang.org/demos/ace-demo).
 
-- [chroma](https://github.com/alecthomas/chroma) — Go library used by the static website generator Hugo. The grammar is upstream ([prql.xml](https://github.com/alecthomas/chroma/blob/master/lexers/embedded/prql.xml)).
+- [chroma](https://github.com/alecthomas/chroma) — Go library used by the static
+  website generator Hugo. The grammar is upstream
+  ([prql.xml](https://github.com/alecthomas/chroma/blob/master/lexers/embedded/prql.xml)).
   See the [demo](https://swapoff.org/chroma/playground/).
 
 - [Lezer](https://lezer.codemirror.net/) — used by CodeMirror editors. The PRQL
