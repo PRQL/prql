@@ -36,7 +36,7 @@ operations and for function calls (see the discussion below.)
 
 ## Division and integer division
 
-The `/` operator performs division that always returns a floot value, while the
+The `/` operator performs division that always returns a float value, while the
 `//` operator does integer division (truncated division) that always returns an
 integer value.
 
