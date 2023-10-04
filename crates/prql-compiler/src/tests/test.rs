@@ -3477,7 +3477,7 @@ fn test_loop_2() {
       SELECT
         *
       FROM
-        read_csv_auto('employees.csv')
+        read_csv('employees.csv')
     ),
     table_0 AS (
       SELECT
