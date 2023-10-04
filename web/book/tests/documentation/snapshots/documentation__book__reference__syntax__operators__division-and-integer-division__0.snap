@@ -1,0 +1,20 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.sqlite\n\nfrom [\n  {a = 5, b = 2},\n  {a = 5, b = -2},\n]\nselect {\n  div_out = a / b,\n  int_div_out = a // b,\n}\n"
+---
+WITH table_0 AS (
+  SELECT
+    5 AS a,
+    2 AS b
+  UNION
+  ALL
+  SELECT
+    5 AS a,
+    -2 AS b
+)
+SELECT
+  (a * 1.0 / b) AS div_out,
+  ROUND(ABS(a / b) - 0.5) * SIGN(a) * SIGN(b) AS int_div_out
+FROM
+  table_0
+
