@@ -34,6 +34,24 @@ operations and for function calls (see the discussion below.)
 |             or | <code>\|\|</code>           |     9      | left-to-right |
 |  function call |                             |     10     |               |
 
+## Division and integer division
+
+The `/` operator performs division that always returns a floot value,
+while the `//` operator does integer division (truncated division) that always returns an integer value.
+
+```prql
+prql target:sql.sqlite
+
+from [
+  {a = 5, b = 2},
+  {a = 5, b = -2},
+]
+select {
+  div_out = a / b,
+  int_div_out = a // b,
+}
+```
+
 ## Coalesce
 
 We can coalesce values with an `??` operator. Coalescing takes either the first
