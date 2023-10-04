@@ -31,11 +31,13 @@
 **Integrations**:
 
 - Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
-- [Pygments](https://pygments.org/), the generic syntax highlighting library now
-  has syntax highlighting for PRQL. (@vanillajonathan, #3564)
+- [Pygments](https://pygments.org/), a syntax highlighting library now has
+  syntax highlighting for PRQL. (@vanillajonathan, #3564)
 - [chroma](https://github.com/alecthomas/chroma), a syntax highlighting library
   written in Go and used by the static website generator
   [Hugo](https://gohugo.io/). (@vanillajonathan, #3597)
+- [scc](https://github.com/boyter/scc), a source lines of code counter now has
+  support for `.prql` files.
 
 **Internal changes**:
 
