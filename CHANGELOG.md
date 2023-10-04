@@ -10,6 +10,8 @@
 
 **Features**:
 
+- _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv`
+  by default. Please set the target `sql.duckdb` to use the DuckDB's `read_csv_auto` function as previously. (@eitsupi, #3599)
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
@@ -229,7 +231,7 @@ A small selection of the changes:
 - New arithmetic operators. These compile to different function or operator
   depending on the target.
 
-  - _Breaking:_ Operator `/` now always performs floating division (@aljazerzen,
+  - _Breaking_: Operator `/` now always performs floating division (@aljazerzen,
     #2684). _TODO: add link to division operator docs_
 
   - Truncated integer division operator `//` (@aljazerzen, #2684).
