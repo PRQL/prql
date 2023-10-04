@@ -36,8 +36,9 @@ operations and for function calls (see the discussion below.)
 
 ## Division and integer division
 
-The `/` operator performs division that always returns a floot value,
-while the `//` operator does integer division (truncated division) that always returns an integer value.
+The `/` operator performs division that always returns a floot value, while the
+`//` operator does integer division (truncated division) that always returns an
+integer value.
 
 ```prql
 prql target:sql.sqlite
