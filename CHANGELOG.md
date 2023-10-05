@@ -235,9 +235,13 @@ A small selection of the changes:
   depending on the target.
 
   - _Breaking_: Operator `/` now always performs floating division (@aljazerzen,
-    #2684). _TODO: add link to division operator docs_
+    #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
-  - Truncated integer division operator `//` (@aljazerzen, #2684).
+  - Truncated integer division operator `//` (@aljazerzen, #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
 
