@@ -1,9 +1,9 @@
-import './style.css'
-import { EditorView, basicSetup } from './codemirror.ts'
-import { prql } from './lang-prql/prql.ts'
-import { oneDark } from '@codemirror/theme-one-dark'
+import "./style.css";
+import { EditorView, basicSetup } from "./codemirror.ts";
+import { prql } from "./lang-prql/prql.ts";
+import { oneDark } from "@codemirror/theme-one-dark";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
     <h1>PRQL CodeMirror demo</h1>
     <p>
@@ -11,7 +11,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </p>
     <div id="editor"></div>
   </div>
-`
+`;
 
 let doc = `from invoices
 filter invoice_date >= @1970-01-16
@@ -35,10 +35,10 @@ select {
   c.customer_id, name, sum_income
 }
 derive db_version = s"version()"
-`
+`;
 
 new EditorView({
   doc,
   extensions: [basicSetup, oneDark, prql()],
-  parent: document.getElementById('editor')!
-})
+  parent: document.getElementById("editor")!,
+});
