@@ -28,7 +28,10 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "npm-watch": "^0.11.0"
+    "@vitejs/plugin-react": "^4.1.0",
+    "npm-watch": "^0.11.0",
+    "vite": "^4.4.11",
+    "vite-plugin-wasm": "^3.2.2"
   },
   "eslintConfig": {
     "extends": [
@@ -38,12 +41,13 @@
   },
   "homepage": "https://prql-lang.org/playground/playground/",
   "name": "prql-playground",
+  "type": "module",
   "private": true,
   "scripts": {
-    "build": "react-scripts build",
+    "dev": "vite",
+    "build": "vite build",
     "prepare": "rsync -ai --checksum --delete ../../crates/prql-compiler/tests/integration/data/ public/data/ && node generateBook.js",
-    "start": "react-scripts start",
-    "test": "react-scripts test"
+    "preview": "vite preview"
   },
   "version": "0.10.0"
 }
