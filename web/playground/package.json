@@ -22,7 +22,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-syntax-highlighter": "^15.5.0",
-    "wasm-react-scripts": "5.0.4",
     "web-vitals": "^3.5.0",
     "yaml": "^2.3.0"
   },
