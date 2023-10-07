@@ -63,13 +63,12 @@ jobs:
   update-rust-toolchain:
     runs-on: ubuntu-latest
     # Don't run on forks; will attempt to create a PR into the fork...
-    # if: ${{ !github.event.pull_request.head.repo.fork }}
-
-    # Disable until 1.72.0 is released, see https://github.com/rust-lang/rust/pull/112154
-    if: false
+    if: ${{ !github.event.pull_request.head.repo.fork }}
 
     # Note that this doesn't change the minimum supported version, only the
-    # default to run on. The minimum is defined by Cargo.toml's metadata.msrv.
+    # default to run on. The minimum is defined by Cargo.toml's metadata.msrv
+    # and is updated manually based on when build environments such as debian &
+    # winget are updated.
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -79,6 +78,8 @@ jobs:
           minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
