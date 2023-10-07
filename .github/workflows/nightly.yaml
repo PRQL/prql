@@ -78,6 +78,8 @@ jobs:
           minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
 
   check-unused-dependencies:
     runs-on: ubuntu-latest
