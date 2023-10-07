@@ -1,3 +1,4 @@
+// This file a copy of https://github.com/codemirror/basic-setup/blob/main/src/codemirror.ts
 import {
   keymap,
   highlightSpecialChars,
