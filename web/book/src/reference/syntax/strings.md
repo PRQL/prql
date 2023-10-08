@@ -29,9 +29,7 @@ select {
 Strings can contain any escape character sequences defined by the
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
-<!-- TODO: https://github.com/PRQL/prql/pull/3571 for why we currently need `no-fmt` here -->
-
-```prql no-fmt
+```prql
 from artists
 derive escapes = "\tXYZ\n \\ "                            # tab (\t), "XYZ", newline (\n), " ", \, " "
 derive world = "\u{0048}\u{0065}\u{006C}\u{006C}\u{006F}" # "Hello"
