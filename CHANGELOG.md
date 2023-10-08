@@ -41,6 +41,10 @@
   [Hugo](https://gohugo.io/). (@vanillajonathan, #3597)
 - [scc](https://github.com/boyter/scc), a source lines of code counter now has
   support for `.prql` files.
+- [gcloc](https://github.com/JoaoDanielRufino/gcloc) a source lines of code
+  counter now has support for `.prql` files. (@vanillajonathan)
+- [cloc](https://github.com/AlDanial/cloc) a source lines of code counter now
+  has support for `.prql` files. (@AlDanial)
 
 **Internal changes**:
 
