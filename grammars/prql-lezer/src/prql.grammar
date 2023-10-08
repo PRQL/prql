@@ -30,11 +30,11 @@ TupleExpression { "{" newline* tupleItem (("," newline* ) tupleItem)* ","? newli
 tupleItem { AssignCall | exprCall | CaseBranch }
 
 exprCall { expression | CallExpression }
-// Ideally we would force a space after `Ident` to prevent an invalid s-string
+// Ideally we would force a space after `Identifier` to prevent an invalid s-string
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-CallExpression { Ident ( (NamedArg | Assign | expression))+ }
+CallExpression { Identifier ( (NamedArg | Assign | expression))+ }
 
 NamedArg { identPart ":" expression }
 Assign { identPart "=" expression }
@@ -68,9 +68,9 @@ expression[@isGroup=Expression] {
   CaseExpression |
   DateTime |
   RangeExpression |
-  Ident |
+  Identifier |
   number |
-  String | F_string | R_string | S_string |
+  String | FormatString | RawString | ServerString |
   TimeUnit
 }
 
@@ -82,14 +82,15 @@ BinaryExpression {
 }
 
 // Because this is outside tokens, we can't disallow whitespace.
-// It's outside tokens because otherwise it conflicts with Ident
-Ident { identPart ( "." (identPart | "*"))* }
+// It's outside tokens because otherwise it conflicts with Identifier
+Identifier { identPart ( "." (identPart | "*"))* }
+VariableName { identPart }
 
 number { Integer | Float }
 
 kw<term> { @specialize[@name={term}]<identifier, term> }
 
-VariableDeclaration { @specialize<identPart, "let"> identPart "=" (NestedPipeline (newline+ | end) | Lambda) }
+VariableDeclaration { @specialize<identPart, "let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
 
 Lambda { LambdaParam* "->" exprCall ( newline+ | end ) }
 TypeDefinition { "<" TypeTerm ( "|" TypeTerm)* ">" }
@@ -140,14 +141,14 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 
   interpolatedString<prefix> { prefix ( stringInterpolatedDouble | stringInterpolatedSingle ) }
 
-  R_string { interpolatedString<'r'> }
-  S_string { interpolatedString<'s'> }
-  F_string { interpolatedString<'f'> }
+  FormatString { interpolatedString<'f'> }
+  RawString { interpolatedString<'r'> }
+  ServerString { interpolatedString<'s'> }
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
   // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
-  @precedence { RangeExpression, R_string, S_string, F_string, Float, TimeUnit, Integer, identPart, identifier, Docblock, Comment }
+  @precedence { RangeExpression, FormatString, RawString, ServerString, Float, TimeUnit, Integer, identPart, identifier, Docblock, Comment }
 }
 
 @external propSource prqlHighlight from "./highlight"
