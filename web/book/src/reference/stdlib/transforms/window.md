@@ -66,7 +66,7 @@ group {order_month} (
 
 Rows vs Range:
 
-```prql no-eval
+```prql
 from [
   {time_id=1, value=15},
   {time_id=2, value=11},
