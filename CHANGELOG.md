@@ -16,7 +16,7 @@
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
-- Add support for long Unicode escape sequences. Example `"Hello \U0001F422"`.
+- Add support for long Unicode escape sequences. Example `"Hello \u{01F422}"`.
   (@vanillajonathan, #3569)
 
 **Fixes**:
@@ -40,7 +40,7 @@
   written in Go and used by the static website generator
   [Hugo](https://gohugo.io/). (@vanillajonathan, #3597)
 - [scc](https://github.com/boyter/scc), a source lines of code counter now has
-  support for `.prql` files. (@vanillajonathan)
+  support for `.prql` files.
 - [gcloc](https://github.com/JoaoDanielRufino/gcloc) a source lines of code
   counter now has support for `.prql` files. (@vanillajonathan)
 - [cloc](https://github.com/AlDanial/cloc) a source lines of code counter now

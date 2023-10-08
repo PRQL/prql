@@ -29,14 +29,12 @@ select {
 Strings can contain any escape character sequences defined by the
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
-<!-- TODO: https://github.com/PRQL/prql/pull/3571 for why we currently need `no-fmt` here -->
-
-```prql no-fmt
+```prql
 from artists
-derive escapes = "\tXYZ\n \\ "                  # tab (\t), "XYZ", newline (\n), " ", \, " "
-derive world = "\u0048\u0065\u006C\u006C\u006F" # "Hello"
-derive hex = "\x48\x65\x6C\x6C\x6F"             # "Hello"
-derive turtle = "\U0001F422"                    # "🐢"
+derive escapes = "\tXYZ\n \\ "                            # tab (\t), "XYZ", newline (\n), " ", \, " "
+derive world = "\u{0048}\u{0065}\u{006C}\u{006C}\u{006F}" # "Hello"
+derive hex = "\x48\x65\x6C\x6C\x6F"                       # "Hello"
+derive turtle = "\u{01F422}"                              # "🐢"
 ```
 
 ## Other string formats
