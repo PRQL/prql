@@ -94,17 +94,21 @@ window range:-2..0 (
 | 7       | 20    | 15       | 20        |
 | 8       | 22    | 17       | 21        |
 
-We can see that rows having `time_id` of 5 and 6 are missing in example data; we can say there are gaps in our data time series data.
+We can see that rows having `time_id` of 5 and 6 are missing in example data; we
+can say there are gaps in our data time series data.
 
 When computing SMA3 for the fifth row (`time_id==7`) then:
+
 - "rows" will compute average on 3 rows (`time_id` in `3, 4, 7`)
-- "range" will compute average on single row only (`time_id==7`)
-Then when computing SMA3 for the sixth row (`time_id==8`) then:
+- "range" will compute average on single row only (`time_id==7`) Then when
+  computing SMA3 for the sixth row (`time_id==8`) then:
 - "rows" will compute average on 3 rows (`time_id` in `4, 7, 8`)
 - "range" will compute average on 2 rows (`time_id` in `7, 8`)
 
-We can observe that "rows" ignores the content of the `time_id`, only uses its order; we can say its window operates on physical rows.
-On the other hand "range" looks at the content of the `time_id` and based on the content decides how many rows fits into window; we can say window operates on logical rows.
+We can observe that "rows" ignores the content of the `time_id`, only uses its
+order; we can say its window operates on physical rows. On the other hand
+"range" looks at the content of the `time_id` and based on the content decides
+how many rows fits into window; we can say window operates on logical rows.
 
 ## Windowing by default
 
