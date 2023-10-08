@@ -42,7 +42,7 @@ select {e.first_name, e.last_name}
 We can use `!` to exclude a list of columns. This can operate in two ways:
 
 - We use `SELECT * EXCLUDE` / `SELECT * EXCEPT` for the columns supplied to
-  `select ![]` in dialects which support it.
+  `select !{}` in dialects which support it.
 - Otherwise, the columns must have been defined prior in the query (unless all
   of a table's columns are excluded); for example in another `select` or a
   `group` transform. In this case, we evaluate and specify the columns that
@@ -53,7 +53,7 @@ Some examples:
 ```prql
 prql target:sql.bigquery
 from tracks
-select !{milliseconds,bytes}
+select !{milliseconds, bytes}
 ```
 
 ```prql
