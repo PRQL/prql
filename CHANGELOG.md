@@ -210,10 +210,14 @@ A small selection of the changes:
 - New arithmetic operators. These compile to different function or operator
   depending on the target.
 
-  - _Breaking:_ Operator `/` now always performs floating division (@aljazerzen,
-    #2684). _TODO: add link to division operator docs_
+  - _Breaking_: Operator `/` now always performs floating division (@aljazerzen,
+    #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
-  - Truncated integer division operator `//` (@aljazerzen, #2684).
+  - Truncated integer division operator `//` (@aljazerzen, #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
 
