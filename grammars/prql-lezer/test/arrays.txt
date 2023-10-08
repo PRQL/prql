@@ -56,4 +56,4 @@ Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Float,Float,Float)))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(String,FormatString,RawString,ServerString)))))
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(String,FString,RString,SString)))))

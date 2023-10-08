@@ -70,7 +70,7 @@ expression[@isGroup=Expression] {
   RangeExpression |
   Identifier |
   number |
-  String | FormatString | RawString | ServerString |
+  String | FString | RString | SString |
   TimeUnit
 }
 
@@ -141,14 +141,14 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 
   interpolatedString<prefix> { prefix ( stringInterpolatedDouble | stringInterpolatedSingle ) }
 
-  FormatString { interpolatedString<'f'> }
-  RawString { interpolatedString<'r'> }
-  ServerString { interpolatedString<'s'> }
+  FString { interpolatedString<'f'> }
+  RString { interpolatedString<'r'> }
+  SString { interpolatedString<'s'> }
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
   // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
-  @precedence { RangeExpression, FormatString, RawString, ServerString, Float, TimeUnit, Integer, identPart, identifier, Docblock, Comment }
+  @precedence { RangeExpression, FString, RString, SString, Float, TimeUnit, Integer, identPart, identifier, Docblock, Comment }
 }
 
 @external propSource prqlHighlight from "./highlight"
