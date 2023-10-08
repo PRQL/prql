@@ -17,13 +17,11 @@ one of:
 The bounds of the range are inclusive. If a bound is omitted, the segment will
 extend until the edge of the table or group.
 
-<!-- TODO: rows vs range example, with visualization -->
-
 For ease of use, there are two flags that override `rows` or `range`:
 
 - `expanding:true` is an alias for `rows:..0`. A sum using this window is also
   known as "cumulative sum".
-- `rolling:n` is an alias for `row:(-n+1)..0`, where `n` is an integer. This
+- `rolling:n` is an alias for `rows:(-n+1)..0`, where `n` is an integer. This
   will include `n` last values, including current row. An average using this
   window is also knows as a Simple Moving Average.
 
@@ -65,6 +63,54 @@ group {order_month} (
   )
 )
 ```
+
+Rows vs Range:
+
+```prql
+from [
+  {time_id=1, value=15},
+  {time_id=2, value=11},
+  {time_id=3, value=16},
+  {time_id=4, value=9},
+  {time_id=7, value=20},
+  {time_id=8, value=22},
+]
+window rows:-2..0 (
+  sort time_id
+  derive {sma3rows = average value}
+)
+window range:-2..0 (
+  sort time_id
+  derive {sma3range = average value}
+)
+```
+
+| time_id | value | sma3rows | sma3range |
+| ------- | ----- | -------- | --------- |
+| 1       | 15    | 15       | 15        |
+| 2       | 11    | 13       | 13        |
+| 3       | 16    | 14       | 14        |
+| 4       | 9     | 12       | 12        |
+| 7       | 20    | 15       | 20        |
+| 8       | 22    | 17       | 21        |
+
+We can see that rows having `time_id` of 5 and 6 are missing in example data; we
+can say there are gaps in our time series data.
+
+When computing SMA 3 for the fifth row (`time_id==7`) then:
+
+- "rows" will compute average on 3 rows (`time_id` in `3, 4, 7`)
+- "range" will compute average on single row only (`time_id==7`)
+
+When computing SMA 3 for the sixth row (`time_id==8`) then:
+
+- "rows" will compute average on 3 rows (`time_id` in `4, 7, 8`)
+- "range" will compute average on 2 rows (`time_id` in `7, 8`)
+
+We can observe that "rows" ignores the content of the `time_id`, only uses its
+order; we can say its window operates on physical rows. On the other hand
+"range" looks at the content of the `time_id` and based on the content decides
+how many rows fits into window; we can say window operates on logical rows.
 
 ## Windowing by default
 
