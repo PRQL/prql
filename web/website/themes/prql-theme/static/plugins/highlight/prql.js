@@ -162,19 +162,21 @@ formatting = function (hljs) {
         // 2. `(\d[_\d]*(e|E)\d[_\d]*)`: This is the first alternative in the main group and matches numbers in scientific notation:
         //     - `\d`: matches a digit (0-9).
         //     - `[_\d]*`: matches zero or more underscores or digits, representing the numbers before the `e` in scientific notation.
-        //     - `e`: matches the letter 'e' for scientific notation.
+        //     - `(e|E)`: matches the letter 'e' or 'E' for scientific notation.
         //     - `\d`: matches a digit (0-9), the beginning of the exponent.
         //     - `[_\d]*`: matches zero or more underscores or digits, representing the numbers after the `e` in scientific notation.
-        // 3. `(\d[_\d]*\.?[\d_]*\d)`: This is the second alternative in the main group and matches standard numbers without the scientific notation:
-        //     - `\d`: matches a digit (0-9), representing the first digit of the number.
-        //     - `[_\d]*`: matches zero or more underscores or digits, for the sequence before a potential decimal point.
-        //     - `\.?`: matches an optional decimal point.
-        //     - `[\d_]*`: matches zero or more digits or underscores, representing the sequence after the decimal point if it exists.
-        //     - `\d`: ensures the sequence ends in a digit, so there's no trailing underscore.
+        // 3. `(\d[_\d]*|(\d\.[\d_]*\d))`: This is the second alternative in the main group and matches standard numbers without the scientific notation:
+        //     - `\d[_\d]*`: matches a sequence starting with a digit and followed by zero or more digits or underscores.
+        //     - `|`: OR
+        //     - `(\d\.[\d_]*\d)`: matches numbers with a decimal point:
+        //         - `\d`: matches the digit(s) before the decimal point.
+        //         - `\.`: matches the decimal point.
+        //         - `[\d_]*\d`: matches digits after the decimal point, ensuring the sequence ends in a digit and not a trailing underscore.
         // 4. `(\.[\d_]+)`: This is the third alternative in the main group:
         //     - `\.`: matches a literal dot, so this alternative captures numbers that begin with a decimal point.
         //     - `[\d_]+`: matches one or more digits or underscores, for the sequence after the initial dot.
-        match: /\b((\d[_\d]*(e|E)\d[_\d]*)|(\d[_\d]*\.?[\d_]*\d)|(\.[\d_]+))/,
+        match:
+          /\b((\d[_\d]*(e|E)\d[_\d]*)|(\d[_\d]*|(\d\.[\d_]*\d))|(\.[\d_]+))/,
         relevance: 10,
       },
       {
