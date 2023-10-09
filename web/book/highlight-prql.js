@@ -311,5 +311,5 @@ hljs.registerLanguage("prql", formatting);
 // invocation, which tags unknown-language blocks with CSS classes but doesn't
 // highlight them.
 Array.from(document.querySelectorAll("code.language-prql")).forEach((a) =>
-  hljs.highlightElement(a)
+  hljs.highlightElement(a),
 );
