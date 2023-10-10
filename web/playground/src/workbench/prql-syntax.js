@@ -20,23 +20,23 @@ const LITERALS = ["null", "true", "false"];
 const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
   // defaultToken: 'invalid',
-  tokenPostfix: '.prql',
+  tokenPostfix: ".prql",
 
   keywords: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS, ...LITERALS],
 
   typeKeywords: [
-    'bool',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'int128',
-    'int',
-    'float',
-    'text',
-    'set'
+    "bool",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "int128",
+    "int",
+    "float",
+    "text",
+    "set",
   ],
-  
+
   operators: [
     "-",
     "*",
@@ -72,13 +72,12 @@ const def = {
       [
         /[a-z_$][\w$]*/,
         {
-          cases:
-          {
-            '@typeKeywords': 'keyword.type',
+          cases: {
+            "@typeKeywords": "keyword.type",
             "@keywords": "keyword",
-            '@constants': 'keyword',
-            "@default": "identifier"
-          }
+            "@constants": "keyword",
+            "@default": "identifier",
+          },
         },
       ],
 
