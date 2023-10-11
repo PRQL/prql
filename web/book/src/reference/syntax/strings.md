@@ -69,7 +69,6 @@ recognized escape sequences are:
 
 | Escape Sequence    | Meaning                       |
 | ------------------ | ----------------------------- |
-| `\`&lt;newline&gt; | Backslash and newline ignored |
 | `\\`               | Backslash (\)                 |
 | `\'`               | Single quote (')              |
 | `\"`               | Double quote (")              |
