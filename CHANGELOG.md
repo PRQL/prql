@@ -18,6 +18,8 @@
   (@vanillajonathan, #3568)
 - Add support for long Unicode escape sequences. Example `"Hello \u{01F422}"`.
   (@vanillajonathan, #3569)
+- Add support for binary numerical notation. Example
+  `filter status == 0b1111000011110000`. (@vanillajonathan, #3661)
 - Add support for hexadecimal numerical notation. Example
   `filter status == 0xff`. (@vanillajonathan, #3654)
 
