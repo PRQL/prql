@@ -496,6 +496,12 @@ fn test_line_wrap() {
 }
 
 #[test]
+fn numbers() {
+    // Hexadecimal notation
+    assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
+}
+
+#[test]
 fn quotes() {
     use insta::assert_snapshot;
 
