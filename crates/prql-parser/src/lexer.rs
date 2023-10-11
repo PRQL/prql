@@ -514,12 +514,21 @@ fn test_line_wrap() {
 #[test]
 fn numbers() {
     // Binary notation
-    assert_eq!(literal().parse("0b1111000011110000").unwrap(), Literal::Integer(61680));
-    assert_eq!(literal().parse("0b_1111000011110000").unwrap(), Literal::Integer(61680));
+    assert_eq!(
+        literal().parse("0b1111000011110000").unwrap(),
+        Literal::Integer(61680)
+    );
+    assert_eq!(
+        literal().parse("0b_1111000011110000").unwrap(),
+        Literal::Integer(61680)
+    );
 
     // Hexadecimal notation
     assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
-    assert_eq!(literal().parse("0x_deadbeef").unwrap(), Literal::Integer(3735928559));
+    assert_eq!(
+        literal().parse("0x_deadbeef").unwrap(),
+        Literal::Integer(3735928559)
+    );
 }
 
 #[test]
