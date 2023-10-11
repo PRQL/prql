@@ -63,7 +63,7 @@ implementation.
 
 ## Escape sequences
 
-Unless an `'r'` prefix is present, escape sequences in string literals are
+Unless an `r` prefix is present, escape sequences in string literals are
 interpreted according to rules similar to those used by Standard C. The
 recognized escape sequences are:
 
