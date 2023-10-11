@@ -157,14 +157,18 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
-    let hex_notation = just("0x").ignore_then(
-        filter(|c: &char| c.is_ascii_hexdigit())
-            .repeated()
-            .at_least(1)
-            .at_most(12)
-            .collect::<String>()
-            .try_map(|digits, _| Ok(Literal::Integer(i64::from_str_radix(&digits, 16).unwrap()))),
-    ).labelled("number");
+    let hex_notation = just("0x")
+        .ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 16).unwrap()))
+                }),
+        )
+        .labelled("number");
 
     let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
