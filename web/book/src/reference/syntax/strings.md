@@ -67,15 +67,15 @@ Unless an `r` prefix is present, escape sequences in string literals are
 interpreted according to rules similar to those used by Standard C. The
 recognized escape sequences are:
 
-| Escape Sequence    | Meaning                       |
-| ------------------ | ----------------------------- |
-| `\\`               | Backslash (\)                 |
-| `\'`               | Single quote (')              |
-| `\"`               | Double quote (")              |
-| `\b`               | Backspace                     |
-| `\f`               | Formfeed                      |
-| `\n`               | ASCII Linefeed (LF)           |
-| `\r`               | ASCII Carriage Return (CR)    |
-| `\t`               | ASCII Horizontal Tab (TAB)    |
-| `\xhh`             | Character with hex value hh   |
-| `\u{xxxx}`         | Character with hex value xxxx |
+| Escape Sequence | Meaning                       |
+| --------------- | ----------------------------- |
+| `\\`            | Backslash (\)                 |
+| `\'`            | Single quote (')              |
+| `\"`            | Double quote (")              |
+| `\b`            | Backspace                     |
+| `\f`            | Formfeed                      |
+| `\n`            | ASCII Linefeed (LF)           |
+| `\r`            | ASCII Carriage Return (CR)    |
+| `\t`            | ASCII Horizontal Tab (TAB)    |
+| `\xhh`          | Character with hex value hh   |
+| `\u{xxxx}`      | Character with hex value xxxx |
