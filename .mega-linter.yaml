@@ -35,7 +35,8 @@ DISABLE_ERRORS_LINTERS:
   - MAKEFILE_CHECKMAKE
   - MARKDOWN_MARKDOWN_LINK_CHECK
   - SPELL_MISSPELL
-  # Turning this off in order to merge #3608. Happy for someone more informed to turn it back on. (@max-sixty is not well-informed about this at all...)
+  # Turning this off in order to merge #3608. Happy for someone more informed to
+  # turn it back on. (@max-sixty is not well-informed about this at all...)
   - TYPESCRIPT_STANDARD
 PHP_PHPCS_ARGUMENTS:
   - --standard=PSR12
