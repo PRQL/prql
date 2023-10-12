@@ -3417,6 +3417,21 @@ fn prql_version() {
 }
 
 #[test]
+
+fn shortest_prql_version() {
+    assert_display_snapshot!(compile(r#"[{version = prql_version}]"#).unwrap(),@r###"
+  WITH table_0 AS (
+    SELECT
+      '0.10.0' AS version
+  )
+  SELECT
+    version
+  FROM
+    table_0
+  "###);
+}
+
+#[test]
 fn test_loop() {
     assert_display_snapshot!(compile(r#"
     from [{n = 1}]
