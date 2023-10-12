@@ -93,3 +93,14 @@ This has two roles, one of which is implemented:
   language to evolve without breaking existing queries, or forcing multiple
   installations of the compiler. This isn't yet implemented, but is a gating
   feature for PRQL 1.0.
+
+The version of the compiler currently in use can be called using the special
+function `std.prql_version` in PRQL.
+
+```prql
+[{version = prql_version}]
+```
+
+```admonish note
+This function `std.prql_version` may be replaced in the future by something like `prql.version`.
+```
