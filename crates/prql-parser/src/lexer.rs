@@ -157,6 +157,34 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
+    let binary_notation = just("0b")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|c: &char| *c == '0' || *c == '1')
+                .repeated()
+                .at_least(1)
+                .at_most(32)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 2).unwrap()))
+                }),
+        )
+        .labelled("number");
+
+    let hexadecimal_notation = just("0x")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 16).unwrap()))
+                }),
+        )
+        .labelled("number");
+
     let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
     let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
@@ -286,6 +314,8 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .map(Literal::Timestamp);
 
     choice((
+        binary_notation,
+        hexadecimal_notation,
         string,
         raw_string,
         value_and_unit,
@@ -347,29 +377,19 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
         just('n').to('\n'),
         just('r').to('\r'),
         just('t').to('\t'),
-        (just('u').ignore_then(
+        (just("u{").ignore_then(
             filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
-                .exactly(4)
+                .at_least(1)
+                .at_most(6)
                 .collect::<String>()
                 .validate(|digits, span, emit| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
                         emit(Cheap::expected_input_found(span, None, None));
-                        '\u{FFFD}' // unicode replacement character
+                        '\u{FFFD}' // Unicode replacement character
                     })
-                }),
-        )),
-        (just("U00").ignore_then(
-            filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .exactly(6)
-                .collect::<String>()
-                .validate(|digits, span, emit| {
-                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
-                        emit(Cheap::expected_input_found(span, None, None));
-                        '\u{FFFD}'
-                    })
-                }),
+                })
+                .then_ignore(just('}')),
         )),
         (just('x').ignore_then(
             filter(|c: &char| c.is_ascii_hexdigit())
@@ -492,6 +512,26 @@ fn test_line_wrap() {
 }
 
 #[test]
+fn numbers() {
+    // Binary notation
+    assert_eq!(
+        literal().parse("0b1111000011110000").unwrap(),
+        Literal::Integer(61680)
+    );
+    assert_eq!(
+        literal().parse("0b_1111000011110000").unwrap(),
+        Literal::Integer(61680)
+    );
+
+    // Hexadecimal notation
+    assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
+    assert_eq!(
+        literal().parse("0x_deadbeef").unwrap(),
+        Literal::Integer(3735928559)
+    );
+}
+
+#[test]
 fn quotes() {
     use insta::assert_snapshot;
 
@@ -525,5 +565,5 @@ fn quotes() {
     assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
 
     // Unicode escape
-    assert_snapshot!(quoted_string(true).parse(r"'\U0001F422'").unwrap(), @"🐢");
+    assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
 }

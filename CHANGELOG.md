@@ -16,8 +16,12 @@
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
-- Add support for long Unicode escape sequences. Example `"Hello \U0001F422"`.
+- Add support for long Unicode escape sequences. Example `"Hello \u{01F422}"`.
   (@vanillajonathan, #3569)
+- Add support for binary numerical notation. Example
+  `filter status == 0b1111000011110000`. (@vanillajonathan, #3661)
+- Add support for hexadecimal numerical notation. Example
+  `filter status == 0xff`. (@vanillajonathan, #3654)
 
 **Fixes**:
 
@@ -45,6 +49,8 @@
   counter now has support for `.prql` files. (@vanillajonathan)
 - [cloc](https://github.com/AlDanial/cloc) a source lines of code counter now
   has support for `.prql` files. (@AlDanial)
+- [gocloc](https://github.com/hhatto/gocloc) a source lines of code counter now
+  has support for `.prql` files. (@vanillajonathan)
 
 **Internal changes**:
 

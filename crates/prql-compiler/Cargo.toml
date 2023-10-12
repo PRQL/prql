@@ -24,7 +24,7 @@ prql-parser = {path = "../prql-parser", version = "0.10.0" }
 anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.75", features = ["backtrace"]}
 ariadne = "0.3.0"
-csv = "1.2.2"
+csv = "1.3.0"
 enum-as-inner = "0.6.0"
 itertools = "0.11.0"
 log = "0.4.20"
