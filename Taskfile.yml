@@ -23,10 +23,10 @@ vars:
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
   cargo_crates: >
-    bacon cargo-audit cargo-insta cargo-release default-target mdbook
-    mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
-    wasm-pack
+    cargo-audit cargo-insta cargo-release default-target mdbook mdbook-admonish
+    mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
+  # Excluding `bacon` atm as it doesn't seem to work with `cargo-binstall`: https://github.com/PRQL/prql/issues/3527
   brew_dependencies: |
     hugo
     npm
