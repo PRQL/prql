@@ -59,7 +59,7 @@ jobs:
 
   update-rust-toolchain:
     runs-on: ubuntu-latest
-    # Don't run on forks; will attempt to create a PR into the fork...
+    # See notes in `cargo-audit` for why we disable on forks and dependabot.
     if:
       ${{ !github.event.pull_request.head.repo.fork && !github.actor ==
       'dependabot[bot]' }}
