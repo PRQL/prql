@@ -67,9 +67,3 @@ services:
       dockerfile: glaredb.Dockerfile
     ports:
       - "6543:6543"
-  nginx:
-    image: nginx:alpine-slim
-    expose:
-      - 80
-    volumes:
-      - ./data/chinook:/usr/share/nginx/html:ro
