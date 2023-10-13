@@ -216,9 +216,11 @@ select listening_time_years = (spotify_plays + apple_music_plays + pandora_plays
 ```
 
 ```admonish info
-Note that most languages use a `\` at the _end_ of the preceding line. Because PRQL aims to
-be friendly for data exploration, we want to make it easy to comment out a line,
-which requires the character at the start of the following line.
+Note that PRQL differs from most languages, which use a `\` at the _end_ of the
+preceding line. Because PRQL aims to be friendly for data exploration, we want
+to make it possible to comment out any line, including the final line, without
+breaking the query. This requires all lines after the first to be structured similarly,
+and for the character to be at the start of each following line.
 ```
 
 See [Pipes](./pipes.md) for more details on line breaks.
