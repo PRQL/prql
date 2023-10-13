@@ -67,3 +67,4 @@ services:
       dockerfile: glaredb.Dockerfile
     ports:
       - "6543:6543"
+    volumes: *vol
