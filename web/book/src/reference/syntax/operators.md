@@ -208,8 +208,8 @@ Wrapping will "jump over" empty lines or lines with comments. For example, the
 from tracks
 # This would be a really long line without being able to split it:
 select listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
-# * length_seconds
-# Actually it's `length_s` I think:
+# We can toggle between lines when developing:
+# \ * length_seconds
 \ * length_s
 #   min  hour day  year
 \ / 60 / 60 / 24 / 365
