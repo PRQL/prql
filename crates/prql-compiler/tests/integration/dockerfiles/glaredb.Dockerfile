@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 # TODO: switch to `curlimages/curl`
 # glaredb binary releases are not compatible with alpine
 # So we can't use here now
