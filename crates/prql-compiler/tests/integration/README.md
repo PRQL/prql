@@ -14,7 +14,7 @@ cargo test --features=test-dbs
 ## External DBs
 
 To run tests against external databases — currently Postgres, MySQL, SQL Server
-and ClickHouse are tested — we use `docker-compose`:
+and ClickHouse are tested — we use `docker compose`:
 
 1. Run `docker compose up` (may take a while on the first time):
 
@@ -27,6 +27,12 @@ and ClickHouse are tested — we use `docker-compose`:
 
    ```sh
    cargo test --features=test-dbs-external
+   ```
+
+3. After you're done, stop the containers and remove local images:
+
+   ```sh
+   docker compose down --rmi local
    ```
 
 ## Data
