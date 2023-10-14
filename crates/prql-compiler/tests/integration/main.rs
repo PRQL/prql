@@ -266,6 +266,7 @@ impl IntegrationTest for Dialect {
         match self {
             Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
+            Dialect::GlareDb => sql.replace("REAL", "DOUBLE PRECISION"),
             Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
             Dialect::ClickHouse => {
                 let re = Regex::new(r"(?s)\)$").unwrap();
