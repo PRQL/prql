@@ -139,7 +139,7 @@ impl IntegrationTest for Dialect {
                 use tokio_util::compat::TokioAsyncWriteCompatExt;
 
                 let mut config = Config::new();
-                config.host("127.0.0.1");
+                config.host("localhost");
                 config.port(1433);
                 config.trust_cert();
                 config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
