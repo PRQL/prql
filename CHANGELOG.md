@@ -23,7 +23,8 @@
 - Add support for hexadecimal numerical notation. Example
   `filter status == 0xff`. (@vanillajonathan, #3654)
 - New compile target `sql.glaredb` for [GlareDB](https://docs.glaredb.com/) and
-  integration tests for it. (@universalmind303, @scsmithr, @eitsupi, #3669)
+  integration tests for it (However, there is a bug in the test and it is
+  currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
 
 **Fixes**:
 
