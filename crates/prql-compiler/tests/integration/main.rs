@@ -108,6 +108,17 @@ impl IntegrationTest for Dialect {
                 ),
             }),
             #[cfg(feature = "test-dbs-external")]
+            Dialect::GlareDb => Some(DbConnection {
+                dialect: Dialect::GlareDb,
+                protocol: Box::new(
+                    postgres::Client::connect(
+                        "host=localhost user=glaredb dbname=glaredb port=6543",
+                        postgres::NoTls,
+                    )
+                    .unwrap(),
+                ),
+            }),
+            #[cfg(feature = "test-dbs-external")]
             Dialect::MySql => Some(DbConnection {
                 dialect: Dialect::MySql,
                 protocol: Box::new(
@@ -128,7 +139,7 @@ impl IntegrationTest for Dialect {
                 use tokio_util::compat::TokioAsyncWriteCompatExt;
 
                 let mut config = Config::new();
-                config.host("127.0.0.1");
+                config.host("localhost");
                 config.port(1433);
                 config.trust_cert();
                 config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
@@ -209,6 +220,16 @@ impl IntegrationTest for Dialect {
                 )
                 .unwrap();
             }
+            Dialect::GlareDb => {
+                protocol
+                    .run_query(
+                        &format!(
+                            "INSERT INTO {csv_name} SELECT * FROM '/tmp/chinook/{csv_name}.csv'"
+                        ),
+                        runtime,
+                    )
+                    .unwrap();
+            }
             Dialect::MySql => {
                 // hacky hack for MySQL
                 // MySQL needs a special character in csv that means NULL (https://stackoverflow.com/a/2675493)
@@ -245,6 +266,7 @@ impl IntegrationTest for Dialect {
         match self {
             Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
             Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
+            Dialect::GlareDb => sql.replace("REAL", "DOUBLE PRECISION"),
             Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
             Dialect::ClickHouse => {
                 let re = Regex::new(r"(?s)\)$").unwrap();
