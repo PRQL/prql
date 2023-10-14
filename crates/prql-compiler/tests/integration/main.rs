@@ -108,6 +108,17 @@ impl IntegrationTest for Dialect {
                 ),
             }),
             #[cfg(feature = "test-dbs-external")]
+            Dialect::GlareDb => Some(DbConnection {
+                dialect: Dialect::GlareDb,
+                protocol: Box::new(
+                    postgres::Client::connect(
+                        "host=localhost user=glaredb dbname=glaredb port=6543",
+                        postgres::NoTls,
+                    )
+                    .unwrap(),
+                ),
+            }),
+            #[cfg(feature = "test-dbs-external")]
             Dialect::MySql => Some(DbConnection {
                 dialect: Dialect::MySql,
                 protocol: Box::new(
@@ -208,6 +219,16 @@ impl IntegrationTest for Dialect {
                     runtime,
                 )
                 .unwrap();
+            }
+            Dialect::GlareDb => {
+                protocol
+                    .run_query(
+                        &format!(
+                            "INSERT INTO {csv_name} SELECT * FROM '/tmp/chinook/{csv_name}.csv'"
+                        ),
+                        runtime,
+                    )
+                    .unwrap();
             }
             Dialect::MySql => {
                 // hacky hack for MySQL
