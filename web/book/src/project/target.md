@@ -30,12 +30,13 @@ take 10
 Supported dialects support all PRQL language features where possible, are tested
 on every commit, and we'll endeavor to fix bugs.
 
-- `sql.duckdb`
-- `sql.mysql`
-- `sql.postgres`
 - `sql.clickhouse`
+- `sql.duckdb`
 - `sql.generic`
   {{footnote: while there's no "generic" DB to test `sql.generic` against, we still count it as supported.}}
+- `sql.glaredb`
+- `sql.mysql`
+- `sql.postgres`
 - `sql.sqlite`
 
 ### Unsupported
