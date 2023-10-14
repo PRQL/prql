@@ -29,10 +29,10 @@ and ClickHouse are tested — we use `docker compose`:
    cargo test --features=test-dbs-external
    ```
 
-3. After you're done, stop the containers and remove local images:
+3. After you're done, stop the containers and remove local images and volumes:
 
    ```sh
-   docker compose down --rmi local
+   docker compose down -v --rmi local
    ```
 
 ## Data
