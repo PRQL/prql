@@ -35,5 +35,10 @@ DISABLE_ERRORS_LINTERS:
   - MAKEFILE_CHECKMAKE
   - MARKDOWN_MARKDOWN_LINK_CHECK
   - SPELL_MISSPELL
+  # Disabled for now, as @max-sixty didn't know whether "Unable to locate the
+  # project file. A project file (tsconfig.json or tsconfig.eslint.json) is
+  # required in order to use ts-standard." was worth fixing, from #3608. Happy for someone more informed to
+  # turn it back on.
+  - TYPESCRIPT_STANDARD
 PHP_PHPCS_ARGUMENTS:
   - --standard=PSR12
