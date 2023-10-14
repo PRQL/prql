@@ -195,9 +195,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit()))
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated());
 
-    let number = one_of("+-")
-        .or_not()
-        .chain::<char, _, _>(integer)
+    let number = integer
         .chain::<char, _, _>(frac.or_not().flatten())
         .chain::<char, _, _>(exp.or_not().flatten())
         .try_map(|chars, span| {
