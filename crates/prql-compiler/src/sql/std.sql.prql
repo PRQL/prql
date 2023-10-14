@@ -195,6 +195,20 @@ module postgres {
   let regex_search = text pattern -> s"{text} ~ {pattern}"
 }
 
+module glaredb {
+  @{binding_strength=11}
+  let div_f = l r -> s"({l} * 1.0 / {r})"
+
+  @{binding_strength=100}
+  let div_i = l r -> s"TRUNC({l:11} / {r:11})"
+
+  @{binding_strength=100}
+  let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+
+  @{binding_strength=9}
+  let regex_search = text pattern -> s"{text} ~ {pattern}"
+}
+
 module sqlite {
   @{window_frame=true, coalesce="TRUE", binding_strength=6}
   let every = column -> s"MIN({column:0}) > 0"
