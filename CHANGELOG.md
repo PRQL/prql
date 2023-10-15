@@ -40,6 +40,8 @@
 - Limit maximum height of the playground editor's error panel to avoid taking
   over whole screen (@AaronMoat, #3524)
 
+- The playground now uses [Vite](https://vitejs.dev/) (@vanillajonathan).
+
 **Integrations**:
 
 - Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
