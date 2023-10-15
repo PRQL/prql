@@ -143,7 +143,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: Move Snap to project root directory
-        run: cp -r packages/snap/ .
+        run: cp -r prqlc/packages/snap/ .
       - name: 📦 Build Snap
         id: build
         uses: snapcore/action-build@v1
