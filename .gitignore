@@ -35,3 +35,4 @@ _*.sql
 *.my.csv
 
 cobertura.xml
+.envrc

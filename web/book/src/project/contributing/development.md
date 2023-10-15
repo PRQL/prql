@@ -108,6 +108,54 @@ To use a Dev Container on a local computer with VS Code, install the
 [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 and its system requirements. Then refer to the links above to get started.
 
+### Option 4: Use nix development environment
+
+A [nix](https://nixos.org/) flake `flake.nix` provides 3 development
+environments:
+
+- **default**, for building the compiler
+- **web**, for the compiler and the website,
+- **full**, for the compiler, the website and the compiler bindings.
+
+To load the shell:
+
+1. [Install nix (the package manager)](https://nixos.org/download). (only first
+   time)
+
+2. Enable flakes, which are a (pretty stable) experimental feature of nix. (only
+   first time)
+
+   For non-NixOS users:
+
+   ```
+   mkdir -p ~/.config/nix/
+   tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+   ```
+
+   For NixOs users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
+
+3. Run:
+
+   ```
+   nix develop
+   ```
+
+   If you want "web" or "full" shell, run:
+
+   ```
+   nix develop .#web
+   ```
+
+Optionally, you can install [direnv](https://direnv.net/), to automatically load
+the shell when you enter this repo. The easiest way is to also install
+[direnv-nix](https://github.com/nix-community/nix-direnv) and configure your
+`.envrc` with:
+
+```
+# .envrc
+use flake .#full
+```
+
 ---
 
 ## Contribution workflow
