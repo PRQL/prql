@@ -357,7 +357,7 @@ tasks:
     dir: web/playground
     cmds:
       - task: build-playground-dependencies
-      - npm start
+      - npm run dev
 
   build-playground-dependencies:
     # Check if npm dependencies for the playground need to be updated
