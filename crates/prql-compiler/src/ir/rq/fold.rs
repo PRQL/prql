@@ -4,7 +4,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::generic::{ColumnSort, WindowFrame};
+use crate::ir::generic::{ColumnSort, WindowFrame};
 
 use super::*;
 

@@ -457,6 +457,52 @@ impl std::hash::Hash for Token {
 
 impl std::cmp::Eq for Token {}
 
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::NewLine => write!(f, "new line"),
+            Token::Ident(arg0) => {
+                if arg0.is_empty() {
+                    write!(f, "an identifier")
+                } else {
+                    write!(f, "`{arg0}`")
+                }
+            }
+            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
+            Token::Literal(arg0) => write!(f, "{}", arg0),
+            Token::Control(arg0) => write!(f, "{arg0}"),
+
+            Token::ArrowThin => f.write_str("->"),
+            Token::ArrowFat => f.write_str("=>"),
+            Token::Eq => f.write_str("=="),
+            Token::Ne => f.write_str("!="),
+            Token::Gte => f.write_str(">="),
+            Token::Lte => f.write_str("<="),
+            Token::RegexSearch => f.write_str("~="),
+            Token::And => f.write_str("&&"),
+            Token::Or => f.write_str("||"),
+            Token::Coalesce => f.write_str("??"),
+            Token::DivInt => f.write_str("//"),
+            Token::Annotate => f.write_str("@{"),
+
+            Token::Param(id) => write!(f, "${id}"),
+
+            Token::Range {
+                bind_left,
+                bind_right,
+            } => write!(
+                f,
+                "'{}..{}'",
+                if *bind_left { "" } else { " " },
+                if *bind_right { "" } else { " " }
+            ),
+            Token::Interpolation(c, s) => {
+                write!(f, "{c}\"{}\"", s)
+            }
+        }
+    }
+}
+
 #[test]
 fn test_line_wrap() {
     use insta::assert_debug_snapshot;

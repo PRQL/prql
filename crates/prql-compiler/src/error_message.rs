@@ -11,95 +11,9 @@ use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
 use crate::SourceTree;
+use prql_ast::error::*;
 
 pub use crate::ir::Span;
-
-#[derive(Debug, Clone)]
-pub struct Error {
-    /// Message kind. Currently only Error is implemented.
-    pub kind: MessageKind,
-    pub span: Option<Span>,
-    pub reason: Reason,
-    pub hints: Vec<String>,
-    pub code: Option<&'static str>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Errors(pub Vec<Error>);
-
-/// Location within the source file.
-/// Tuples contain:
-/// - line number (0-based),
-/// - column number within that line (0-based),
-#[derive(Debug, Clone, Serialize)]
-pub struct SourceLocation {
-    pub start: (usize, usize),
-
-    pub end: (usize, usize),
-}
-
-/// Compile message kind. Currently only Error is implemented.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub enum MessageKind {
-    Error,
-    Warning,
-    Lint,
-}
-
-#[derive(Debug, Clone)]
-pub enum Reason {
-    Simple(String),
-    Expected {
-        who: Option<String>,
-        expected: String,
-        found: String,
-    },
-    Unexpected {
-        found: String,
-    },
-    NotFound {
-        name: String,
-        namespace: String,
-    },
-}
-
-impl Error {
-    pub fn new(reason: Reason) -> Self {
-        Error {
-            kind: MessageKind::Error,
-            span: None,
-            reason,
-            hints: Vec::new(),
-            code: None,
-        }
-    }
-
-    pub fn new_simple<S: ToString>(reason: S) -> Self {
-        Error::new(Reason::Simple(reason.to_string()))
-    }
-
-    pub fn with_code(mut self, code: &'static str) -> Self {
-        self.code = Some(code);
-        self
-    }
-}
-
-impl WithErrorInfo for crate::Error {
-    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
-        self.hints = hints.into_iter().map(|x| x.into()).collect();
-        self
-    }
-
-    fn with_span(mut self, span: Option<Span>) -> Self {
-        self.span = span;
-        self
-    }
-
-    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
-        self.hints.push(hint.into());
-        self
-    }
-}
 
 #[derive(Clone, Serialize)]
 pub struct ErrorMessage {
@@ -117,6 +31,17 @@ pub struct ErrorMessage {
     pub display: Option<String>,
     /// Line and column number of error origin within a source file
     pub location: Option<SourceLocation>,
+}
+
+/// Location within the source file.
+/// Tuples contain:
+/// - line number (0-based),
+/// - column number within that line (0-based),
+#[derive(Debug, Clone, Serialize)]
+pub struct SourceLocation {
+    pub start: (usize, usize),
+
+    pub end: (usize, usize),
 }
 
 impl Display for ErrorMessage {
@@ -147,26 +72,6 @@ impl Display for ErrorMessage {
 impl Debug for ErrorMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self, f)
-    }
-}
-
-// Needed for anyhow
-impl StdError for Error {}
-
-// Needed for anyhow
-impl StdError for Errors {}
-
-// Needed for StdError
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self, f)
-    }
-}
-
-// Needed for StdError
-impl Display for Errors {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self, f)
     }
 }
 
@@ -372,32 +277,29 @@ impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
     }
 }
 
-impl Display for Reason {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Reason::Simple(text) => f.write_str(text),
-            Reason::Expected {
-                who,
-                expected,
-                found,
-            } => {
-                if let Some(who) = who {
-                    write!(f, "{who} ")?;
-                }
-                write!(f, "expected {expected}, but found {found}")
-            }
-            Reason::Unexpected { found } => write!(f, "unexpected {found}"),
-            Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
-        }
-    }
-}
-
 pub trait WithErrorInfo: Sized {
     fn push_hint<S: Into<String>>(self, hint: S) -> Self;
 
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
+}
+
+impl WithErrorInfo for crate::Error {
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
+        self.hints = hints.into_iter().map(|x| x.into()).collect();
+        self
+    }
+
+    fn with_span(mut self, span: Option<Span>) -> Self {
+        self.span = span;
+        self
+    }
+
+    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
+        self.hints.push(hint.into());
+        self
+    }
 }
 
 impl WithErrorInfo for anyhow::Error {
