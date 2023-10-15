@@ -5,21 +5,8 @@ A fast-feedback compiler from PRQL to SQL, hosted at
 
 To run locally,
 [set up a development environment](https://prql-lang.org/book/project/contributing/development.html),
-and then run[^1]:
+and then run:
 
 ```sh
 task run-playground
 ```
-
-[^1]: ...which is equivalent to:
-
-    ```sh
-    cd playground
-    npm install
-    npm start
-    ```
-
-## Notes
-
-This currently uses `wasm-react-scripts` instead of `react-scripts`, until
-<https://github.com/facebook/create-react-app/pull/8303> is merged.
