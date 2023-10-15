@@ -185,6 +185,20 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         )
         .labelled("number");
 
+    let octal_notation = just("0o")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|&c| ('0'..='7').contains(&c))
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))
+                }),
+        )
+        .labelled("number");
+
     let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
     let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
@@ -316,6 +330,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     choice((
         binary_notation,
         hexadecimal_notation,
+        octal_notation,
         string,
         raw_string,
         value_and_unit,
@@ -529,6 +544,9 @@ fn numbers() {
         literal().parse("0x_deadbeef").unwrap(),
         Literal::Integer(3735928559)
     );
+
+    // Octal notation
+    assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
 }
 
 #[test]
