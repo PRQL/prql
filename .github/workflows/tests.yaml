@@ -74,7 +74,7 @@ jobs:
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
               # FIXME — just for testing atm.
-              - **/*.yaml
+              - .github/**/*yaml
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
             devcontainer-test:
