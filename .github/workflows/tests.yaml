@@ -454,7 +454,7 @@ jobs:
 
   build-devcontainer:
     needs: rules
-    if: ${{ needs.rules.outputs.devcontainer-build == 'true' ||
+    if: needs.rules.outputs.devcontainer-build == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
       push: ${{ needs.rules.outputs.devcontainer-push }}
