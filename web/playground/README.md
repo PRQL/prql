@@ -10,3 +10,6 @@ and then run:
 ```sh
 task run-playground
 ```
+
+...or use the commands which that command calls from
+[our Taskfile](../../Taskfile.yml).
