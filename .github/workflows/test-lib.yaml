@@ -24,10 +24,10 @@ jobs:
           # Currently requires a release build; would be useful to allow a debug build.
           args: --release -p prql-lib
       - name: Run basic C example
-        working-directory: bindings/prql-lib/examples/minimal-c
+        working-directory: prqlc/bindings/prql-lib/examples/minimal-c
         run: make run
       - name: Run basic C++ example
-        working-directory: bindings/prql-lib/examples/minimal-cpp
+        working-directory: prqlc/bindings/prql-lib/examples/minimal-cpp
         run: make run
   test-zig:
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
         with:
           cache: false
       - name: 🧪 Build and test Zig example
-        working-directory: bindings/prql-lib/examples/minimal-zig
+        working-directory: prqlc/bindings/prql-lib/examples/minimal-zig
         run: |
           mkdir c
           cp ../../libprql_lib.h c/

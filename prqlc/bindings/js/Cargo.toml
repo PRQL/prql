@@ -76,5 +76,5 @@ exactly = 1
 file = "../../web/playground/package-lock.json"
 replace = '$1"{{version}}"'
 search = '''
-(".*/bindings/prql-js": \{
+(".*/prqlc/bindings/prql-js": \{
 \s+"version": )"[\d\.]+"'''
