@@ -188,15 +188,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     let octal_notation = just("0o")
         .then_ignore(just("_").or_not())
         .ignore_then(
-            filter(|c: &char| {
-                *c == '0'
-                    || *c == '1'
-                    || *c == '2'
-                    || *c == '3'
-                    || *c == '4'
-                    || *c == '5'
-                    || *c == '6'
-                    || *c == '7'
+            filter(|&c| ('0'..='7').contains(&c))
             })
             .repeated()
             .at_least(1)
