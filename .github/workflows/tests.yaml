@@ -113,7 +113,7 @@ jobs:
               - .github/workflows/test-python.yaml
             rust:
               - "**/*.rs"
-              - crates/**
+              - prqlc/crates/**
               - web/book/**
               - .github/workflows/test-rust.yaml
             taskfile:
@@ -468,14 +468,14 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prql-compiler/Cargo.toml` (and `prqlc/Cargo.toml` below), because of
+        # `prqlc/crates/compiler/Cargo.toml` (and `prqlc/crates/cli/Cargo.toml` below), because of
         # https://github.com/foresterre/cargo-msrv/issues/590
-      - name: Verify minimum rust version — prql-compiler
-        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: crates/prql-compiler
-        run: cargo msrv verify
       - name: Verify minimum rust version — prqlc
-        working-directory: crates/prqlc
+        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
+        working-directory: prqlc/crates/compiler
+        run: cargo msrv verify
+      - name: Verify minimum rust version — prqlc CLI
+        working-directory: prqlc/crates/cli
         run: cargo msrv verify
 
   check-ok-to-merge:

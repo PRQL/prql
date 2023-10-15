@@ -15,7 +15,7 @@ test = false
 
 [dependencies]
 jni = "0.21.1"
-prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
+prql-compiler = {path = "../../crates/compiler", default-features = false}
 
 [package.metadata.release]
 tag-name = "{{version}}"

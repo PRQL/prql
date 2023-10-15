@@ -22,7 +22,7 @@ Compile a PRQL string to a SQLite dialect string.
 **src/main.rs**
 
 ```rust
-use prqlc_main::{compile, Options, Target, sql::Dialect};
+use prql_compiler::{compile, Options, Target, sql::Dialect};
 
 let prql = "from employees | select {name, age}";
 let opts = &Options {

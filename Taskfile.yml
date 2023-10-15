@@ -296,8 +296,8 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      - "crates/**/*.rs"
-      - "crates/**/*.snap"
+      - "prqlc/crates/**/*.rs"
+      - "prqlc/crates/**/*.snap"
     cmds:
       - cargo insta test --accept --lib -- --quiet
 
@@ -372,8 +372,8 @@ tasks:
     sources:
       - package.json
       - package-lock.json
-      - ../../crates/**/*.rs
-      - ../../bindings/**/*.rs
+      - ../../prqlc/crates/**/*.rs
+      - ../../prqlc/bindings/**/*.rs
 
   build-php:
     - cargo build -p prql-lib --release

@@ -86,7 +86,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: 👷 Build prql-compiler
-        run: cargo build --release
+        run: cargo build --release -p prqlc
       - name: Copy files into .deb package
         run: |
           mkdir -p .debpkg/usr/bin
