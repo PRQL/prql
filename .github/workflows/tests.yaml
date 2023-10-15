@@ -73,8 +73,8 @@ jobs:
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
-              # FIXME
-              - **
+              # FIXME — just for testing atm.
+              - **/*.yaml
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
             devcontainer-test:
