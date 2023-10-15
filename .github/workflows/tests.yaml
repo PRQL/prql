@@ -123,6 +123,9 @@ jobs:
               - ".github/workflows/build-web.yaml"
               - "**.md"
 
+      # We put a few of the more complex rules as steps here, rather than having
+      # them inline. There's no strict delineation between logic here vs. inline.
+
       - id: nightly
         # TODO: actionlint annoyingly blocks this — try and find a way of getting
         # it back without too much trouble...
@@ -139,7 +142,7 @@ jobs:
       - id: main
         run:
           echo "run=${{ steps.changes.outputs.main == 'true' || github.ref ==
-          'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
+          'refs/heads/main' || steps.nightly.outputs.run == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
       - id: devcontainer-push
