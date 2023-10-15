@@ -481,6 +481,7 @@ jobs:
     # tests) will pass when a task is skipped.
     if: always()
     needs:
+      - build-devcontainer
       - build-web
       - check-links-book
       - check-links-markdown
@@ -488,7 +489,6 @@ jobs:
       - nightly
       - publish-web
       - test-msrv
-      - test-devcontainer
       - test-dotnet
       - test-elixir
       - test-java
@@ -525,6 +525,7 @@ jobs:
           # https://github.com/re-actors/alls-green/issues/23
           allowed-skips: |
             [
+              "build-devcontainer",
               "build-web",
               "check-links-book",
               "check-links-markdown",
@@ -532,7 +533,6 @@ jobs:
               "nightly",
               "publish-web",
               "test-msrv",
-              "test-devcontainer",
               "test-dotnet",
               "test-elixir",
               "test-java",
