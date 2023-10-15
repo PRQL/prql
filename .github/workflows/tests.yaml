@@ -145,14 +145,10 @@ jobs:
       - id: devcontainer-push
         # We push the devcontainer if the files have changed, and we've merged
         # to main.
-        # FIXME: just to test the PR
-        # echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
-        # github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
-        # "$GITHUB_OUTPUT"
         run:
           echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
-          github.ref == 'refs/heads/main' && github.event_name == 'push' ||
-          'true' }}" >> "$GITHUB_OUTPUT"
+          github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
+          "$GITHUB_OUTPUT"
 
   test-rust:
     needs: rules
@@ -438,21 +434,14 @@ jobs:
         working-directory: grammars/prql-lezer/
         run: bun run test
 
-  push-devcontainer:
-    needs: rules
-    if: needs.rules.outputs.devcontainer-push == 'true'
-    uses: ./.github/workflows/build-devcontainer.yaml
-    with:
-      push: true
-
-  test-devcontainer:
+  build-devcontainer:
     needs: rules
     if:
       ${{ needs.rules.outputs.devcontainer-test == 'true' ||
       needs.rules.outputs.nightly-schedule == 'true' }}
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      push: false
+      push: ${{ needs.rules.outputs.devcontainer-push }}
 
   time-compilation:
     runs-on: ubuntu-latest
