@@ -30,7 +30,7 @@
           ripgrep
           nodePackages.prettier
           #nodePackages.prettier-plugin-go-template
-          nixpkgs-fmt
+          #nixpkgs-fmt
           rsync
         ];
 
