@@ -1,11 +1,16 @@
 [workspace]
 members = [
-  "crates/*",
-  "bindings/prql-elixir/native/prql",
-  "bindings/prql-java",
-  "bindings/prql-js",
-  "bindings/prql-lib",
-  "bindings/prql-python",
+  "prqlc/crates/ast",
+  "prqlc/crates/compiler",
+  "prqlc/crates/compiler-macros",
+  "prqlc/crates/parser",
+  "prqlc/crates/cli",
+  "prqlc/crates/tests_misc",
+  "prqlc/bindings/elixir/native/prql",
+  "prqlc/bindings/java",
+  "prqlc/bindings/js",
+  "prqlc/bindings/lib",
+  "prqlc/bindings/python",
   "web/book", # The book / docs
   "crates/prql-compiler/examples/compile-files", # An example
 ]
