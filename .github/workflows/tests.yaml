@@ -145,10 +145,13 @@ jobs:
       - id: devcontainer-push
         # We push the devcontainer if the files have changed, and we've merged
         # to main.
+        # echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
+        # github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
+        # "$GITHUB_OUTPUT"
         run:
           echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
-          github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
-          "$GITHUB_OUTPUT"
+          github.ref == 'refs/heads/main' && github.event_name == 'push' ||
+          'true' }}" >> "$GITHUB_OUTPUT"
 
   test-rust:
     needs: rules
