@@ -189,12 +189,13 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .then_ignore(just("_").or_not())
         .ignore_then(
             filter(|&c| ('0'..='7').contains(&c))
-            })
-            .repeated()
-            .at_least(1)
-            .at_most(12)
-            .collect::<String>()
-            .try_map(|digits, _| Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))),
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))
+                }),
         )
         .labelled("number");
 
