@@ -54,6 +54,10 @@
   has support for `.prql` files. (@AlDanial)
 - [gocloc](https://github.com/hhatto/gocloc) a source lines of code counter now
   has support for `.prql` files. (@vanillajonathan)
+- [The Quarto VS Code extension](https://marketplace.visualstudio.com/items?itemName=quarto.quarto)
+  supports editing PRQL code blocks
+  ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
+  render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
 **Internal changes**:
 
