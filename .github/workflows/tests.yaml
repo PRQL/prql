@@ -457,7 +457,7 @@ jobs:
     if: needs.rules.outputs.devcontainer-build == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      push: ${{ needs.rules.outputs.devcontainer-push }}
+      push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
   time-compilation:
     runs-on: ubuntu-latest
