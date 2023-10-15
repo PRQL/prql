@@ -145,6 +145,7 @@ jobs:
       - id: devcontainer-push
         # We push the devcontainer if the files have changed, and we've merged
         # to main.
+        # FIXME: just to test the PR
         # echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
         # github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
         # "$GITHUB_OUTPUT"
