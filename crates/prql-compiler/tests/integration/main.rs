@@ -35,7 +35,13 @@ trait IntegrationTest {
     fn get_connection(&self) -> Option<DbConnection>;
     // We sometimes want to modify the SQL `INSERT` query (we don't modify the
     // SQL `SELECT` query)
-    fn import_csv(&mut self, protocol: &mut dyn DbProtocol, csv_name: &str, runtime: &Runtime);
+    fn import_csv(
+        &mut self,
+        protocol: &mut dyn DbProtocol,
+        csv_dir: &str,
+        csv_name: &str,
+        runtime: &Runtime,
+    );
     fn modify_sql(&self, sql: String) -> String;
 }
 
@@ -65,7 +71,8 @@ impl DbConnection {
             "invoice_items",
         ];
         for table in tables {
-            self.dialect.import_csv(&mut *self.protocol, table, runtime);
+            self.dialect
+                .import_csv(&mut *self.protocol, &self.data_file_root, table, runtime);
         }
     }
 }
@@ -86,14 +93,19 @@ impl IntegrationTest for Dialect {
     }
 
     fn get_connection(&self) -> Option<DbConnection> {
+        let local_chinook_dir = "tests/integration/data/chinook".to_string();
+        #[cfg(feature = "test-dbs-external")]
+        let external_db_default_chinook_dir = "/tmp/chinook".to_string();
         match self {
             Dialect::DuckDb => Some(DbConnection {
                 dialect: Dialect::DuckDb,
                 protocol: Box::new(duckdb::Connection::open_in_memory().unwrap()),
+                data_file_root: local_chinook_dir,
             }),
             Dialect::SQLite => Some(DbConnection {
                 dialect: Dialect::SQLite,
                 protocol: Box::new(rusqlite::Connection::open_in_memory().unwrap()),
+                data_file_root: local_chinook_dir,
             }),
 
             #[cfg(feature = "test-dbs-external")]
@@ -106,6 +118,7 @@ impl IntegrationTest for Dialect {
                     )
                     .unwrap(),
                 ),
+                data_file_root: external_db_default_chinook_dir,
             }),
             #[cfg(feature = "test-dbs-external")]
             Dialect::GlareDb => Some(DbConnection {
@@ -117,6 +130,7 @@ impl IntegrationTest for Dialect {
                     )
                     .unwrap(),
                 ),
+                data_file_root: external_db_default_chinook_dir,
             }),
             #[cfg(feature = "test-dbs-external")]
             Dialect::MySql => Some(DbConnection {
@@ -124,6 +138,7 @@ impl IntegrationTest for Dialect {
                 protocol: Box::new(
                     mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
                 ),
+                data_file_root: external_db_default_chinook_dir,
             }),
             #[cfg(feature = "test-dbs-external")]
             Dialect::ClickHouse => Some(DbConnection {
@@ -131,6 +146,7 @@ impl IntegrationTest for Dialect {
                 protocol: Box::new(
                     mysql::Pool::new("mysql://default:@localhost:9004/dummy").unwrap(),
                 ),
+                data_file_root: "chinook".to_string(),
             }),
             #[cfg(feature = "test-dbs-external")]
             Dialect::MsSql => {
@@ -155,36 +171,32 @@ impl IntegrationTest for Dialect {
                             })
                             .unwrap(),
                     ),
+                    data_file_root: external_db_default_chinook_dir,
                 })
             }
             _ => None,
         }
     }
-    fn import_csv(&mut self, protocol: &mut dyn DbProtocol, csv_name: &str, runtime: &Runtime) {
-        fn get_path_for_table(csv_name: &str) -> std::path::PathBuf {
-            let mut path = env::current_dir().unwrap();
-            path.extend([
-                "tests",
-                "integration",
-                "data",
-                "chinook",
-                format!("{csv_name}.csv").as_str(),
-            ]);
-            path
-        }
+    fn import_csv(
+        &mut self,
+        protocol: &mut dyn DbProtocol,
+        csv_dir: &str,
+        csv_name: &str,
+        runtime: &Runtime,
+    ) {
         match self {
             Dialect::DuckDb => {
-                let path = get_path_for_table(csv_name);
-                let path = path.display().to_string().replace('"', "");
                 protocol
                     .run_query(
-                        &format!("COPY {csv_name} FROM '{path}' (AUTO_DETECT TRUE);"),
+                        &format!(
+                            "COPY {csv_name} FROM '{csv_dir}/{csv_name}.csv' (AUTO_DETECT TRUE);"
+                        ),
                         runtime,
                     )
                     .unwrap();
             }
             Dialect::SQLite => {
-                let path = get_path_for_table(csv_name);
+                let path = format!("{csv_dir}/{csv_name}.csv");
                 let mut reader = csv::ReaderBuilder::new()
                     .has_headers(true)
                     .from_path(path)
@@ -212,20 +224,19 @@ impl IntegrationTest for Dialect {
                 }
             }
             Dialect::Postgres => {
-                protocol.run_query(
-                    &format!(
-                        "COPY {csv_name} FROM '/tmp/chinook/{csv_name}.csv' DELIMITER ',' CSV HEADER;"
+                protocol
+                    .run_query(
+                        &format!(
+                        "COPY {csv_name} FROM '{csv_dir}/{csv_name}.csv' DELIMITER ',' CSV HEADER;"
                     ),
-                    runtime,
-                )
-                .unwrap();
+                        runtime,
+                    )
+                    .unwrap();
             }
             Dialect::GlareDb => {
                 protocol
                     .run_query(
-                        &format!(
-                            "INSERT INTO {csv_name} SELECT * FROM '/tmp/chinook/{csv_name}.csv'"
-                        ),
+                        &format!("INSERT INTO {csv_name} SELECT * FROM '{csv_dir}/{csv_name}.csv'"),
                         runtime,
                     )
                     .unwrap();
@@ -236,28 +247,31 @@ impl IntegrationTest for Dialect {
                 // 1. read the csv
                 // 2. create a copy with the special character
                 // 3. import the data and remove the copy
-                let old_path = get_path_for_table(csv_name);
+                let old_path = std::path::PathBuf::from(
+                    format!("tests/integration/data/chinook/{csv_name}.csv").as_str(),
+                );
                 let mut new_path = old_path.clone();
                 new_path.pop();
                 new_path.push(format!("{csv_name}.my.csv").as_str());
                 let mut file_content = fs::read_to_string(old_path).unwrap();
                 file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
                 fs::write(&new_path, file_content).unwrap();
-                let query_result = protocol.run_query(&format!("LOAD DATA INFILE '/tmp/chinook/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
+                let query_result = protocol.run_query(&format!("LOAD DATA INFILE '{csv_dir}/{csv_name}.my.csv' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"), runtime);
                 fs::remove_file(&new_path).unwrap();
                 query_result.unwrap();
             }
             Dialect::ClickHouse => {
-                protocol.run_query(
-                    &format!(
-                        "INSERT INTO {csv_name} SELECT * FROM file('/var/lib/clickhouse/user_files/chinook/{csv_name}.csv')"
-                    ),
-                    runtime,
-                )
-                .unwrap();
+                protocol
+                    .run_query(
+                        &format!(
+                            "INSERT INTO {csv_name} SELECT * FROM file('{csv_dir}/{csv_name}.csv')"
+                        ),
+                        runtime,
+                    )
+                    .unwrap();
             }
             Dialect::MsSql => {
-                protocol.run_query(&format!("BULK INSERT {csv_name} FROM '/tmp/chinook/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
+                protocol.run_query(&format!("BULK INSERT {csv_name} FROM '{csv_dir}/{csv_name}.csv' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
             }
             _ => unreachable!(),
         }
