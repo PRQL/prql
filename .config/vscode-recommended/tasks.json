@@ -1,20 +1,16 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "prqlc-build",
-            "type": "cargo",
-            "command": "build",
-            "args": [
-                "--package=prqlc"
-            ],
-            "presentation": {
-                "reveal": "silent",
-                "clear": true
-            },
-            "problemMatcher": [
-                "$rustc"
-            ],
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "prqlc-build",
+      "type": "cargo",
+      "command": "build",
+      "args": ["--package=prqlc"],
+      "presentation": {
+        "reveal": "silent",
+        "clear": true
+      },
+      "problemMatcher": ["$rustc"]
+    }
+  ]
 }
