@@ -52,7 +52,7 @@ fn quote_string(s: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let s = escape_all_except_quotes(s);
 
     if !s.contains('"') {
-        return write!(f, "\"{s}\"");
+        return write!(f, r#""{s}""#);
     }
 
     if !s.contains('\'') {
@@ -61,7 +61,7 @@ fn quote_string(s: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 
     // when string contains both single and double quotes
     // find minimum number of double quotes
-    let mut quotes = "\"\"\"".to_string();
+    let mut quotes = r#""""""#".to_string();
     while s.contains(&quotes) {
         quotes += "\"";
     }
