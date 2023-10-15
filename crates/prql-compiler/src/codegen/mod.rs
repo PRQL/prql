@@ -198,7 +198,7 @@ mod test {
 
         assert_snapshot!(
             write_expr(&mk_str(r#"he said "what's up""#)),
-            @r###""""he said "what's up"""""###
+            @r###"""he said "what's up""""###
         );
 
         assert_snapshot!(
