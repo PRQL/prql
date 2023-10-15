@@ -49,8 +49,7 @@ jobs:
         uses: docker/build-push-action@v5
         timeout-minutes: 3600
         with:
-          # context: .devcontainer/base-image
-          context: foo
+          context: .devcontainer/base-image
           build-args: |
             cargo_crates=${{ env.cargo_crates }}
           tags: ${{ steps.meta.outputs.tags }}

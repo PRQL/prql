@@ -73,13 +73,9 @@ jobs:
               - bindings/prql-lib/**
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
-              # FIXME — just for testing atm.
-              - .github/**/*yaml
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
-            devcontainer-test:
-              # FIXME — just for testing atm.
-              - .github/**/*yaml
+            devcontainer-build:
               - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
@@ -152,19 +148,15 @@ jobs:
       - id: devcontainer-push
         # We push the devcontainer if the files have changed, and we've merged
         # to main.
-        # FIXME: just for testing
-        # echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
-        # github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
-        # "$GITHUB_OUTPUT"
         run:
           echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
-          github.ref == 'refs/heads/main' && github.event_name == 'push' ||
-          'true' }}" >> "$GITHUB_OUTPUT"
+          github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
+          "$GITHUB_OUTPUT"
 
       - id: devcontainer-build
         run:
           echo "run=${{ steps.devcontainer-push.outputs.run == 'true' ||
-          steps.changes.outputs.devcontainer-test == 'true' ||
+          steps.changes.outputs.devcontainer-build == 'true' ||
           steps.changes.outputs.nightly-schedule == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
@@ -457,6 +449,7 @@ jobs:
     if: needs.rules.outputs.devcontainer-build == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
+      # This needs to compare to the string `'true'`, because of GHA awkwardness
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
   time-compilation:
