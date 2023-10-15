@@ -202,9 +202,8 @@ tasks:
       - brew install {{.brew_dependencies | trim | splitLines | join " " }}
 
   install-npm-dependencies:
-    # Use npm to install important tools
     cmds:
-      - npm install --location=global prettier prettier-plugin-go-template
+      - npm install --global prettier prettier-plugin-go-template
       - cmd:
           echo "In order to get nice auto-formatting of web code in VS Code, VS
           Code requires configuration to use the system-wide install of

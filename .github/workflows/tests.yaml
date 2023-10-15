@@ -123,6 +123,9 @@ jobs:
               - ".github/workflows/build-web.yaml"
               - "**.md"
 
+      # We put a few of the more complex rules as steps here, rather than having
+      # them inline. There's no strict delineation between logic here vs. inline.
+
       - id: nightly
         # TODO: actionlint annoyingly blocks this — try and find a way of getting
         # it back without too much trouble...
@@ -139,7 +142,7 @@ jobs:
       - id: main
         run:
           echo "run=${{ steps.changes.outputs.main == 'true' || github.ref ==
-          'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
+          'refs/heads/main' || steps.nightly.outputs.run == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
       - id: devcontainer-push
@@ -434,21 +437,14 @@ jobs:
         working-directory: grammars/prql-lezer/
         run: bun run test
 
-  push-devcontainer:
-    needs: rules
-    if: needs.rules.outputs.devcontainer-push == 'true'
-    uses: ./.github/workflows/build-devcontainer.yaml
-    with:
-      push: true
-
-  test-devcontainer:
+  build-devcontainer:
     needs: rules
     if:
       ${{ needs.rules.outputs.devcontainer-test == 'true' ||
       needs.rules.outputs.nightly-schedule == 'true' }}
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
-      push: false
+      push: ${{ needs.rules.outputs.devcontainer-push }}
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -488,6 +484,7 @@ jobs:
     # tests) will pass when a task is skipped.
     if: always()
     needs:
+      - build-devcontainer
       - build-web
       - check-links-book
       - check-links-markdown
@@ -495,7 +492,6 @@ jobs:
       - nightly
       - publish-web
       - test-msrv
-      - test-devcontainer
       - test-dotnet
       - test-elixir
       - test-java
@@ -532,6 +528,7 @@ jobs:
           # https://github.com/re-actors/alls-green/issues/23
           allowed-skips: |
             [
+              "build-devcontainer",
               "build-web",
               "check-links-book",
               "check-links-markdown",
@@ -539,7 +536,6 @@ jobs:
               "nightly",
               "publish-web",
               "test-msrv",
-              "test-devcontainer",
               "test-dotnet",
               "test-elixir",
               "test-java",
