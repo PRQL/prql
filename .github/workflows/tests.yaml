@@ -37,8 +37,8 @@ jobs:
     outputs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
-      devcontainer-push: ${{ steps.devcontainer-push.outputs.run }}
-      devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
+      devcontainer-push: ${{ steps.outputs.devcontainer-push.run }}
+      devcontainer-build: ${{ steps.outputs.devcontainer-test.run }}
       elixir: ${{ steps.changes.outputs.elixir }}
       grammars: ${{ steps.changes.outputs.grammars }}
       java: ${{ steps.changes.outputs.java }}
@@ -163,8 +163,8 @@ jobs:
 
       - id: devcontainer-build
         run:
-          echo "run=${{ steps.changes.outputs.devcontainer-test == 'true' ||
-          steps.devcontainer-push.outputs.run == 'true' ||
+          echo "run=${{ steps.devcontainer-push.outputs.run == 'true' ||
+          steps.changes.outputs.devcontainer-test == 'true' ||
           steps.changes.outputs.nightly-schedule == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
