@@ -78,6 +78,8 @@ jobs:
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
             devcontainer-test:
+              # FIXME — just for testing atm.
+              - .github/**/*yaml
               - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
