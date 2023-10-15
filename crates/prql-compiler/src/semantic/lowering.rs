@@ -6,7 +6,6 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, WindowFrame};
 use crate::ir::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
@@ -18,6 +17,7 @@ use crate::semantic::module::Module;
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 use super::decl::{self, DeclKind};
 use super::{RootModule, NS_DEFAULT_DB};

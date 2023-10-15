@@ -5,12 +5,13 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use crate::error::{Error, Reason, WithErrorInfo};
+use prql_ast::error::{Error, Reason};
+
 use crate::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
-use crate::COMPILER_VERSION;
+use crate::{WithErrorInfo, COMPILER_VERSION};
 
 use super::super::decl::{Decl, DeclKind};
 use super::super::module::Module;

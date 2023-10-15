@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::super::pl::Literal;
 use super::CId;
-use crate::error::Span;
+use crate::Span;
 
 /// Analogous to [crate::ir::pl::Expr], but with fewer kinds.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

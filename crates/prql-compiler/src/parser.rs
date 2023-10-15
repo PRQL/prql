@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use anyhow::Result;
 use prql_ast::stmt::Stmt;
 
-use crate::error::{Errors, WithErrorInfo};
 use crate::utils::IdGenerator;
-use crate::{Error, Reason, SourceTree};
+use crate::SourceTree;
+use crate::{Error, Errors, Reason, WithErrorInfo};
 
 pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     let mut res = SourceTree::default();

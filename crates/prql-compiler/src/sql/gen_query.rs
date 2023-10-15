@@ -10,12 +10,12 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
-use crate::error::WithErrorInfo;
 use crate::ir::generic::InterpolateItem;
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::Error;
+use crate::WithErrorInfo;
 
 use super::gen_expr::*;
 use super::gen_projection::*;

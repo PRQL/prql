@@ -9,13 +9,13 @@ use sqlparser::ast::{
 };
 use std::cmp::Ordering;
 
-use crate::error::{Error, Span, WithErrorInfo};
 use crate::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::generic::{InterpolateItem, Range};
 use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
+use crate::{Error, Span, WithErrorInfo};
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
