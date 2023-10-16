@@ -3004,7 +3004,7 @@ dependencies = [
  "insta",
  "prql-compiler",
  "pyo3",
- "pyo3-build-config",
+ "pyo3-build-config 0.20.0",
 ]
 
 [[package]]
@@ -3096,7 +3096,7 @@ dependencies = [
  "libc",
  "memoffset 0.9.0",
  "parking_lot",
- "pyo3-build-config",
+ "pyo3-build-config 0.19.2",
  "pyo3-ffi",
  "pyo3-macros",
  "unindent",
@@ -3113,13 +3113,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyo3-build-config"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a96fe70b176a89cff78f2fa7b3c930081e163d5379b4dcdf993e3ae29ca662e5"
+dependencies = [
+ "once_cell",
+ "target-lexicon",
+]
+
+[[package]]
 name = "pyo3-ffi"
 version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e53cee42e77ebe256066ba8aa77eff722b3bb91f3419177cf4cd0f304d3284d9"
 dependencies = [
  "libc",
- "pyo3-build-config",
+ "pyo3-build-config 0.19.2",
 ]
 
 [[package]]
