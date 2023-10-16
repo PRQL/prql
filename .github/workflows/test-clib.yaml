@@ -1,11 +1,11 @@
-name: test-lib
+name: test-clib
 
 on:
   workflow_call:
   workflow_dispatch:
 
 jobs:
-  test-lib:
+  test-clib:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code

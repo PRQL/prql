@@ -92,9 +92,9 @@ jobs:
             js:
               - prqlc/bindings/js/**
               - .github/workflows/test-js.yaml
-            lib:
+            clib:
               - prqlc/bindings/clib/**
-              - .github/workflows/test-lib.yaml
+              - .github/workflows/test-clib.yaml
             main:
               - "**/Cargo.*"
               - .github/**
@@ -239,10 +239,10 @@ jobs:
         == 'true') && '["ubuntu-latest", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
-  test-lib:
+  test-clib:
     needs: rules
     if: needs.rules.outputs.lib == 'true' || needs.rules.outputs.main == 'true'
-    uses: ./.github/workflows/test-lib.yaml
+    uses: ./.github/workflows/test-clib.yaml
 
   test-taskfile:
     needs: rules
@@ -497,7 +497,7 @@ jobs:
       - test-java
       - test-js
       - test-grammars
-      - test-lib
+      - test-clib
       - test-php
       - test-python
       - test-rust
@@ -540,7 +540,7 @@ jobs:
               "test-elixir",
               "test-java",
               "test-js",
-              "test-lib",
+              "test-clib",
               "test-grammars",
               "test-php",
               "test-python",
