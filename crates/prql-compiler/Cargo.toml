@@ -14,8 +14,8 @@ metadata.msrv = "1.65.0"
 default = []
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
-test-dbs = ["duckdb", "rusqlite", "tokio"]
-test-dbs-external = ["chrono", "duckdb", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
+test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
+test-dbs-external = ["chrono", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
 prql-ast = {path = "../prql-ast", version = "0.10.0" }
@@ -46,6 +46,7 @@ serde_yaml = {version = "0.9", optional = true}
 # dev-dependencies, because dev-dependencies can't be optional.
 chrono = {version = "0.4", optional = true, features = [], default-features = false}
 duckdb = {version = "0.9.0", optional = true, features = ["bundled", "chrono"]}
+glob = {version = "0.3.1", optional = true}
 mysql = {version = "24", optional = true}
 pg_bigdecimal = {version = "0.1", optional = true}
 postgres = {version = "0.19", optional = true}
