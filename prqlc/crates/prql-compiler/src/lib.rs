@@ -56,7 +56,7 @@
 //!
 //!     For compiling whole files (`.prql` to `.sql`), call `prql-compiler`
 //!     from `build.rs`.
-//!     See [this example project](https://github.com/PRQL/prql/tree/main/prqlc/crates/compiler/examples/compile-files).
+//!     See [this example project](https://github.com/PRQL/prql/tree/main/prqlc/crates/prql-compiler/examples/compile-files).
 //!
 //! - Compile, format & debug PRQL from command line.
 //!

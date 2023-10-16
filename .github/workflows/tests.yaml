@@ -468,11 +468,11 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prqlc/crates/compiler/Cargo.toml` (and `prqlc/crates/cli/Cargo.toml` below), because of
+        # `prqlc/crates/prql-compiler/Cargo.toml` (and `prqlc/crates/cli/Cargo.toml` below), because of
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prqlc
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: prqlc/crates/compiler
+        working-directory: prqlc/crates/prql-compiler
         run: cargo msrv verify
       - name: Verify minimum rust version — prqlc CLI
         working-directory: prqlc/crates/cli

@@ -8,15 +8,15 @@ standard library. If we find ourselves using them for something frequently,
 raise an issue and we'll add it to the stdlib.
 
 Here's the source of the current
-[PRQL `std`](https://github.com/PRQL/prql/blob/main/prqlc/crates/compiler/src/semantic/std.prql):
+[PRQL `std`](https://github.com/PRQL/prql/blob/main/prqlc/crates/prql-compiler/src/semantic/std.prql):
 
 ```admonish note
 PRQL 0.9.0 has started supporting different DB implementations for standard library functions.
-The source is the [`std.sql`](https://github.com/PRQL/prql/blob/main/prqlc/crates/compiler/src/sql/std.sql.prql).
+The source is the [`std.sql`](https://github.com/PRQL/prql/blob/main/prqlc/crates/prql-compiler/src/sql/std.sql.prql).
 ```
 
 ```prql no-eval
-{{#include ../../../../../prqlc/crates/compiler/src/semantic/std.prql}}
+{{#include ../../../../../prqlc/crates/prql-compiler/src/semantic/std.prql}}
 ```
 
 And a couple of examples:

@@ -1,8 +1,8 @@
 [workspace]
 members = [
   "prqlc/crates/ast",
-  "prqlc/crates/compiler",
-  "prqlc/crates/compiler-macros",
+  "prqlc/crates/prql-compiler",
+  "prqlc/crates/prql-compiler-macros",
   "prqlc/crates/parser",
   "prqlc/crates/cli",
   "prqlc/crates/tests_misc",
@@ -12,7 +12,7 @@ members = [
   "prqlc/bindings/clib",
   "prqlc/bindings/python",
   "web/book", # The book / docs
-  "prqlc/crates/compiler/examples/compile-files", # An example
+  "prqlc/crates/prql-compiler/examples/compile-files", # An example
 ]
 resolver = "2"
 

@@ -81,7 +81,7 @@ index 7194ca4f..9c7240ff 100644
 --- a/prqlc/bindings/elixir/native/prql/Cargo.toml
 +++ b/prqlc/bindings/elixir/native/prql/Cargo.toml
 @@ -19,5 +19,5 @@ path = "src/lib.rs"
- prql-compiler = {path = "../../../../crates/compiler", default-features = false, version = "0.6.1"}
+ prql-compiler = {path = "../../../../crates/prql-compiler", default-features = false, version = "0.6.1"}
 
  # See Readme for details on Mac
 -[target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
