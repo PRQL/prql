@@ -56,5 +56,5 @@ jobs:
         run: |
           mkdir c
           cp ../../libprqlc.h c/
-          cp ../../../../target/*/libprqlc.* c/
+          cp ../../../../../target/*/libprqlc.* c/
           zig build test
