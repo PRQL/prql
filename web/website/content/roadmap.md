@@ -30,7 +30,7 @@ will be tools that engineers use to build data pipelines, like
 #### Standard library
 
 Currently, the standard library is
-[quite limited](https://github.com/PRQL/prql/blob/main/prqlc/crates/prql-compiler/src/semantic/std.prql).
+[quite limited](https://github.com/PRQL/prql/blob/main/prqlc/prql-compiler/src/semantic/std.prql).
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks
 functions for string manipulation, date handling and many math functions. We're
 looking to gradually introduce these as needed, and reduce the need for

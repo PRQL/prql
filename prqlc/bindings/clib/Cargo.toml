@@ -15,7 +15,7 @@ test = false
 
 [dependencies]
 libc = "0.2"
-prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
+prql-compiler = {path = "../../prql-compiler", default-features = false}
 serde_json = "1.0"
 
 [package.metadata.release]

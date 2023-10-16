@@ -19,5 +19,5 @@ test = false
 
 # See Readme for details on Mac
 [target.'cfg(not(any(target_family="wasm", target_os = "macos", tarpaulin)))'.dependencies]
-prql-compiler = {path = "../../../../crates/prql-compiler", default-features = false, version = "0.10.0" }
+prql-compiler = {path = "../../../../prql-compiler", default-features = false, version = "0.10.0" }
 rustler = "0.29.1"

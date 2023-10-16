@@ -1,1 +1,1 @@
-{{#include ../../../../../prqlc/crates/cli/README.md}}
+{{#include ../../../../../prqlc/cli/README.md}}

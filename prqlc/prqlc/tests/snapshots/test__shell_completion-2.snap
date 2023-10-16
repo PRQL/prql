@@ -1,0 +1,94 @@
+---
+source: prqlc/tests/test.rs
+info:
+  program: prqlc
+  args:
+    - "--color=never"
+    - shell-completion
+    - fish
+  env:
+    RUST_LOG: ""
+    RUST_BACKTRACE: ""
+    CLICOLOR_FORCE: ""
+---
+success: true
+exit_code: 0
+----- stdout -----
+complete -c prqlc -n "__fish_use_subcommand" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_use_subcommand" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_use_subcommand" -s V -l version -d 'Print version'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "parse" -d 'Parse into PL AST'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "fmt" -d 'Parse & generate PRQL code back'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "debug" -d 'Commands for meant for debugging, prone to change'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "resolve" -d 'Parse, resolve & lower into RQ'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "sql:preprocess" -d 'Parse, resolve, lower into RQ & preprocess SRQ'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "sql:anchor" -d 'Parse, resolve, lower into RQ & preprocess & anchor SRQ'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "compile" -d 'Parse, resolve, lower into RQ & compile to SQL'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "watch" -d 'Watch a directory and compile .prql files to .sql files'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "list-targets" -d 'Show available compile target names'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "shell-completion" -d 'Print a shell completion for supported shells'
+complete -c prqlc -n "__fish_use_subcommand" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from parse" -l format -r -f -a "{json	'',yaml	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from parse" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from parse" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from fmt" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from fmt" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "semantics" -d 'Parse & resolve, but don\'t lower into RQ'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "eval" -d 'Parse & evaluate expression down to a value'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "annotate" -d 'Parse, resolve & combine source with comments annotating relation type'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "ast" -d 'Print info about the AST data structure'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from semantics" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from semantics" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from eval" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from eval" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from annotate" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from annotate" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from ast" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from ast" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "semantics" -d 'Parse & resolve, but don\'t lower into RQ'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "eval" -d 'Parse & evaluate expression down to a value'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "annotate" -d 'Parse, resolve & combine source with comments annotating relation type'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "ast" -d 'Print info about the AST data structure'
+complete -c prqlc -n "__fish_seen_subcommand_from debug; and __fish_seen_subcommand_from help; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from resolve" -l format -r -f -a "{json	'',yaml	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from resolve" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from resolve" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from sql:preprocess" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from sql:preprocess" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -l format -r -f -a "{json	'',yaml	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from sql:anchor" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -s t -l target -d 'Target to compile to' -r
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l hide-signature-comment -d 'Exclude the signature comment containing the PRQL version'
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -l no-format -d 'Emit unformatted, dense SQL'
+complete -c prqlc -n "__fish_seen_subcommand_from compile" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c prqlc -n "__fish_seen_subcommand_from watch" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from watch" -l no-format
+complete -c prqlc -n "__fish_seen_subcommand_from watch" -l no-signature
+complete -c prqlc -n "__fish_seen_subcommand_from watch" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from list-targets" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from list-targets" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from shell-completion" -l color -d 'Controls when to use color' -r -f -a "{auto	'',always	'',never	''}"
+complete -c prqlc -n "__fish_seen_subcommand_from shell-completion" -s h -l help -d 'Print help'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "parse" -d 'Parse into PL AST'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "fmt" -d 'Parse & generate PRQL code back'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "debug" -d 'Commands for meant for debugging, prone to change'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "resolve" -d 'Parse, resolve & lower into RQ'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "sql:preprocess" -d 'Parse, resolve, lower into RQ & preprocess SRQ'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "sql:anchor" -d 'Parse, resolve, lower into RQ & preprocess & anchor SRQ'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "compile" -d 'Parse, resolve, lower into RQ & compile to SQL'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "watch" -d 'Watch a directory and compile .prql files to .sql files'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "list-targets" -d 'Show available compile target names'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "shell-completion" -d 'Print a shell completion for supported shells'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and not __fish_seen_subcommand_from parse; and not __fish_seen_subcommand_from fmt; and not __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from resolve; and not __fish_seen_subcommand_from sql:preprocess; and not __fish_seen_subcommand_from sql:anchor; and not __fish_seen_subcommand_from compile; and not __fish_seen_subcommand_from watch; and not __fish_seen_subcommand_from list-targets; and not __fish_seen_subcommand_from shell-completion; and not __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast" -f -a "semantics" -d 'Parse & resolve, but don\'t lower into RQ'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast" -f -a "eval" -d 'Parse & evaluate expression down to a value'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast" -f -a "annotate" -d 'Parse, resolve & combine source with comments annotating relation type'
+complete -c prqlc -n "__fish_seen_subcommand_from help; and __fish_seen_subcommand_from debug; and not __fish_seen_subcommand_from semantics; and not __fish_seen_subcommand_from eval; and not __fish_seen_subcommand_from annotate; and not __fish_seen_subcommand_from ast" -f -a "ast" -d 'Print info about the AST data structure'
+
+----- stderr -----
+

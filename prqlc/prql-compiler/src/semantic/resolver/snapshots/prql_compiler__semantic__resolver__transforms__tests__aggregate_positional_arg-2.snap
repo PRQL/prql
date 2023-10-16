@@ -1,0 +1,200 @@
+---
+source: prql-compiler/src/semantic/resolver/transforms.rs
+expression: expr
+---
+TransformCall:
+  input:
+    Ident:
+      - default_db
+      - c_invoice
+    ty:
+      kind:
+        Array:
+          kind:
+            Tuple:
+              - Wildcard: ~
+          name: ~
+      name: ~
+    lineage:
+      columns:
+        - All:
+            input_name: c_invoice
+            except: []
+      inputs:
+        - id: 195
+          name: c_invoice
+          table:
+            - default_db
+            - c_invoice
+  kind:
+    Aggregate:
+      assigns:
+        - RqOperator:
+            name: std.average
+            args:
+              - Ident:
+                  - this
+                  - c_invoice
+                  - amount
+                ty:
+                  kind:
+                    Array:
+                      kind:
+                        Singleton: "Null"
+                      name: ~
+                  name: array
+          ty:
+            kind:
+              Union:
+                - - float
+                  - kind:
+                      Primitive: Float
+                    name: float
+                - - ~
+                  - kind:
+                      Singleton: "Null"
+                    name: ~
+            name: ~
+  partition:
+    - Ident:
+        - this
+        - c_invoice
+        - issued_at
+      ty:
+        kind:
+          Union:
+            - - int
+              - kind:
+                  Primitive: Int
+                name: int
+            - - float
+              - kind:
+                  Primitive: Float
+                name: float
+            - - bool
+              - kind:
+                  Primitive: Bool
+                name: bool
+            - - text
+              - kind:
+                  Primitive: Text
+                name: text
+            - - date
+              - kind:
+                  Primitive: Date
+                name: date
+            - - time
+              - kind:
+                  Primitive: Time
+                name: time
+            - - timestamp
+              - kind:
+                  Primitive: Timestamp
+                name: timestamp
+            - - ~
+              - kind:
+                  Singleton: "Null"
+                name: ~
+            - - tuple_of_scalars
+              - kind:
+                  Tuple:
+                    - Wildcard:
+                        kind:
+                          Union:
+                            - - int
+                              - kind:
+                                  Primitive: Int
+                                name: int
+                            - - float
+                              - kind:
+                                  Primitive: Float
+                                name: float
+                            - - bool
+                              - kind:
+                                  Primitive: Bool
+                                name: bool
+                            - - text
+                              - kind:
+                                  Primitive: Text
+                                name: text
+                            - - date
+                              - kind:
+                                  Primitive: Date
+                                name: date
+                            - - time
+                              - kind:
+                                  Primitive: Time
+                                name: time
+                            - - timestamp
+                              - kind:
+                                  Primitive: Timestamp
+                                name: timestamp
+                            - - ~
+                              - kind:
+                                  Singleton: "Null"
+                                name: ~
+                        name: scalar
+                name: tuple_of_scalars
+        name: ~
+ty:
+  kind:
+    Array:
+      kind:
+        Tuple:
+          - Wildcard:
+              kind:
+                Union:
+                  - - int
+                    - kind:
+                        Primitive: Int
+                      name: int
+                  - - float
+                    - kind:
+                        Primitive: Float
+                      name: float
+                  - - bool
+                    - kind:
+                        Primitive: Bool
+                      name: bool
+                  - - text
+                    - kind:
+                        Primitive: Text
+                      name: text
+                  - - date
+                    - kind:
+                        Primitive: Date
+                      name: date
+                  - - time
+                    - kind:
+                        Primitive: Time
+                      name: time
+                  - - timestamp
+                    - kind:
+                        Primitive: Timestamp
+                      name: timestamp
+                  - - ~
+                    - kind:
+                        Singleton: "Null"
+                      name: ~
+              name: scalar
+      name: tuple_of_scalars
+  name: relation
+lineage:
+  columns:
+    - Single:
+        name:
+          - c_invoice
+          - issued_at
+        target_id: 196
+        target_name: ~
+    - Single:
+        name: ~
+        target_id: 219
+        target_name: ~
+  inputs:
+    - id: 195
+      name: c_invoice
+      table:
+        - default_db
+        - c_invoice
+
