@@ -52,7 +52,7 @@ jobs:
         with:
           cache: false
       - name: 🧪 Build and test Zig example
-        working-directory: prqlc/bindings/clib/examples/minimal-zig
+         working-directory: prqlc/bindings/clib/examples/minimal-zig
         run: |
           mkdir c
           cp ../../libprql_lib.h c/

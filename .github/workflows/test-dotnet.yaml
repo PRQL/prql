@@ -18,9 +18,9 @@ jobs:
         with:
           dotnet-version: 7
       - name: 🧪 Build and test
-        working-directory: bindings
+        working-directory: prqlc/bindings
         run: |
-          dotnet build prql-dotnet
-          cp ../target/debug/libprql_lib.* prql-dotnet/PrqlCompiler/bin/Debug/net*/
-          cp ../target/debug/libprql_lib.* prql-dotnet/PrqlCompiler.Tests/bin/Debug/net*/
-          dotnet test prql-dotnet
+          dotnet build dotnet
+          cp ../target/debug/libprql_lib.* dotnet/PrqlCompiler/bin/Debug/net*/
+          cp ../target/debug/libprql_lib.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+          dotnet test dotnet

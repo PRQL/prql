@@ -86,7 +86,7 @@ jobs:
               - prqlc/bindings/clib/**
               - .github/workflows/test-elixir.yaml
             java:
-              - prqlc/bindings/prql-java/**
+              - prqlc/bindings/java/**
               - prqlc/bindings/clib/**
               - .github/workflows/test-java.yaml
             js:
