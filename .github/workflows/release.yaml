@@ -263,4 +263,6 @@ jobs:
     if: github.event_name == 'release'
     uses: ./.github/workflows/build-devcontainer.yaml
     with:
+      # TOOD: I think having this as a bool is OK, but check a recent release
+      # from 0.10.0 and confirm that it is indeed pushing the image.
       push: true

@@ -185,6 +185,20 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         )
         .labelled("number");
 
+    let octal_notation = just("0o")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|&c| ('0'..='7').contains(&c))
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))
+                }),
+        )
+        .labelled("number");
+
     let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
     let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
@@ -195,9 +209,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit()))
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated());
 
-    let number = one_of("+-")
-        .or_not()
-        .chain::<char, _, _>(integer)
+    let number = integer
         .chain::<char, _, _>(frac.or_not().flatten())
         .chain::<char, _, _>(exp.or_not().flatten())
         .try_map(|chars, span| {
@@ -316,6 +328,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     choice((
         binary_notation,
         hexadecimal_notation,
+        octal_notation,
         string,
         raw_string,
         value_and_unit,
@@ -444,6 +457,52 @@ impl std::hash::Hash for Token {
 
 impl std::cmp::Eq for Token {}
 
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::NewLine => write!(f, "new line"),
+            Token::Ident(arg0) => {
+                if arg0.is_empty() {
+                    write!(f, "an identifier")
+                } else {
+                    write!(f, "`{arg0}`")
+                }
+            }
+            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
+            Token::Literal(arg0) => write!(f, "{}", arg0),
+            Token::Control(arg0) => write!(f, "{arg0}"),
+
+            Token::ArrowThin => f.write_str("->"),
+            Token::ArrowFat => f.write_str("=>"),
+            Token::Eq => f.write_str("=="),
+            Token::Ne => f.write_str("!="),
+            Token::Gte => f.write_str(">="),
+            Token::Lte => f.write_str("<="),
+            Token::RegexSearch => f.write_str("~="),
+            Token::And => f.write_str("&&"),
+            Token::Or => f.write_str("||"),
+            Token::Coalesce => f.write_str("??"),
+            Token::DivInt => f.write_str("//"),
+            Token::Annotate => f.write_str("@{"),
+
+            Token::Param(id) => write!(f, "${id}"),
+
+            Token::Range {
+                bind_left,
+                bind_right,
+            } => write!(
+                f,
+                "'{}..{}'",
+                if *bind_left { "" } else { " " },
+                if *bind_right { "" } else { " " }
+            ),
+            Token::Interpolation(c, s) => {
+                write!(f, "{c}\"{}\"", s)
+            }
+        }
+    }
+}
+
 #[test]
 fn test_line_wrap() {
     use insta::assert_debug_snapshot;
@@ -529,6 +588,9 @@ fn numbers() {
         literal().parse("0x_deadbeef").unwrap(),
         Literal::Integer(3735928559)
     );
+
+    // Octal notation
+    assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
 }
 
 #[test]

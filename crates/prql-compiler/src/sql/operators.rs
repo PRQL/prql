@@ -9,11 +9,10 @@ use once_cell::sync::Lazy;
 use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
 
-use crate::error::WithErrorInfo;
 use crate::ir::{pl, rq};
 use crate::semantic;
 use crate::utils::Pluck;
-use crate::Error;
+use crate::{Error, WithErrorInfo};
 
 static STD: Lazy<semantic::Module> = Lazy::new(load_std_sql);
 

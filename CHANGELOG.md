@@ -22,6 +22,8 @@
   `filter status == 0b1111000011110000`. (@vanillajonathan, #3661)
 - Add support for hexadecimal numerical notation. Example
   `filter status == 0xff`. (@vanillajonathan, #3654)
+- Add support for octal numerical notation. Example `filter status == 0o777`.
+  (@vanillajonathan, #3672)
 - New compile target `sql.glaredb` for [GlareDB](https://docs.glaredb.com/) and
   integration tests for it (However, there is a bug in the test and it is
   currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
@@ -37,6 +39,8 @@
 
 - Limit maximum height of the playground editor's error panel to avoid taking
   over whole screen (@AaronMoat, #3524)
+
+- The playground now uses [Vite](https://vitejs.dev/) (@vanillajonathan).
 
 **Integrations**:
 
@@ -54,6 +58,10 @@
   has support for `.prql` files. (@AlDanial)
 - [gocloc](https://github.com/hhatto/gocloc) a source lines of code counter now
   has support for `.prql` files. (@vanillajonathan)
+- [The Quarto VS Code extension](https://marketplace.visualstudio.com/items?itemName=quarto.quarto)
+  supports editing PRQL code blocks
+  ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
+  render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
 **Internal changes**:
 

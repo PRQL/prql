@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::super::pl::Literal;
 use super::CId;
-use crate::error::Span;
+use crate::Span;
 
 /// Analogous to [crate::ir::pl::Expr], but with fewer kinds.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -12,9 +12,9 @@ pub struct Expr {
     pub span: Option<Span>,
 }
 
-pub(super) type Range = crate::ir::generic::Range<Expr>;
-pub(super) type InterpolateItem = crate::ir::generic::InterpolateItem<Expr>;
-pub(super) type SwitchCase = crate::ir::generic::SwitchCase<Expr>;
+pub(super) type Range = prql_ast::expr::generic::Range<Expr>;
+pub(super) type InterpolateItem = prql_ast::expr::generic::InterpolateItem<Expr>;
+pub(super) type SwitchCase = prql_ast::expr::generic::SwitchCase<Expr>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {

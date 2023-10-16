@@ -81,8 +81,7 @@
 #![allow(clippy::result_large_err)]
 
 mod codegen;
-mod error;
-mod generic;
+mod error_message;
 pub mod ir;
 mod parser;
 pub mod semantic;
@@ -91,10 +90,9 @@ pub mod sql;
 mod tests;
 mod utils;
 
-pub use error::{
-    downcast, Error, ErrorMessage, ErrorMessages, MessageKind, Reason, SourceLocation,
-};
+pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
 pub use ir::Span;
+pub use prql_ast::error::{Error, Errors, MessageKind, Reason};
 
 use once_cell::sync::Lazy;
 use semver::Version;
@@ -139,7 +137,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     parser::parse(&sources)
         .and_then(|ast| semantic::resolve_and_lower(ast, &[]))
         .and_then(|rq| sql::compile(rq, options))
-        .map_err(error::downcast)
+        .map_err(error_message::downcast)
         .map_err(|e| e.composed(&prql.into()))
 }
 
@@ -268,7 +266,7 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<prql_ast::stmt::Stmt>, ErrorMessages
 
     parser::parse(&sources)
         .map(|x| x.sources.into_values().next().unwrap())
-        .map_err(error::downcast)
+        .map_err(error_message::downcast)
         .map_err(|e| e.composed(&prql.into()))
 }
 
@@ -277,14 +275,14 @@ pub fn prql_to_pl_tree(
     prql: &SourceTree,
 ) -> Result<SourceTree<Vec<prql_ast::stmt::Stmt>>, ErrorMessages> {
     parser::parse(prql)
-        .map_err(error::downcast)
+        .map_err(error_message::downcast)
         .map_err(|e| e.composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<prql_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     let source_tree = SourceTree::single(PathBuf::new(), pl);
-    semantic::resolve_and_lower(source_tree, &[]).map_err(error::downcast)
+    semantic::resolve_and_lower(source_tree, &[]).map_err(error_message::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
@@ -292,12 +290,12 @@ pub fn pl_to_rq_tree(
     pl: SourceTree<Vec<prql_ast::stmt::Stmt>>,
     main_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    semantic::resolve_and_lower(pl, main_path).map_err(error::downcast)
+    semantic::resolve_and_lower(pl, main_path).map_err(error_message::downcast)
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(error::downcast)
+    sql::compile(rq, options).map_err(error_message::downcast)
 }
 
 /// Generate PRQL code from PL AST
