@@ -330,7 +330,6 @@ fn test_rdbms() {
 
     // Each connection has a different data_file_root, so we need to replace.
     let re = regex::Regex::new("data_file_root").unwrap();
-    let mut is_contains_re = false;
 
     // for each of the queries
     glob!("queries/**/*.prql", |path| {
@@ -341,9 +340,7 @@ fn test_rdbms() {
 
         let mut prql = fs::read_to_string(path).unwrap();
 
-        if re.is_match(&prql) {
-            is_contains_re = true;
-        }
+        let is_contains_data_root = re.is_match(&prql);
 
         // for each of the dialects
         insta::allow_duplicates! {
@@ -353,7 +350,7 @@ fn test_rdbms() {
             }
             let dialect = con.dialect;
             let options = Options::default().with_target(Sql(Some(dialect)));
-            if is_contains_re {
+            if is_contains_data_root {
                 prql = re.replace_all(&prql, &con.data_file_root).to_string();
             }
             let mut rows = prql_compiler::compile(&prql, &options)
