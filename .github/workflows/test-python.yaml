@@ -28,7 +28,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
-          path: dist
+          path: target/python
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"

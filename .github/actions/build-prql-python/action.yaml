@@ -15,24 +15,24 @@ runs:
       if: inputs.target == 'source'
       with:
         command: sdist
-        args: -o dist -m prqlc/bindings/python/Cargo.toml
+        args: -o target/python -m prqlc/bindings/python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux' && inputs.target != 'source'
       with:
         target: ${{ inputs.target }}
         manylinux: auto
         command: build
-        args: --release -o dist -m prqlc/bindings/python/Cargo.toml
+        args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
-        args: --release -o dist -m prqlc/bindings/python/Cargo.toml
+        args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
-        args: --release -o dist --universal2 -m prqlc/bindings/python/Cargo.toml
+        args: --release -o target/python --universal2 -m prqlc/bindings/python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:

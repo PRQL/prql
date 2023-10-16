@@ -17,7 +17,7 @@ nox.options.reuse_existing_virtualenvs = False
 
 def _install_prql_python(session: Session) -> None:
     session.install(
-        "-v", "--no-index", f"--find-links={Path('..', '..', 'dist')}", "prql_python"
+        "-v", "--no-index", f"--find-links={Path('..', '..', '..', 'target', 'python')}", "prql_python"
     )
 
 
