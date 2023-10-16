@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(.{ .path = "src" });
     exe.addLibraryPath(.{ .path = "c" });
     exe.installHeader("c/libprqlc.h", "libprqlc.h");
-    exe.linkSystemLibraryName("prql_lib");
+    exe.linkSystemLibraryName("prqlc");
     exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) void {
     unit_tests.addIncludePath(.{ .path = "src" });
     unit_tests.addLibraryPath(.{ .path = "c" });
     unit_tests.installHeader("c/libprqlc.h", "libprqlc.h");
-    unit_tests.linkSystemLibraryName("prql_lib");
+    unit_tests.linkSystemLibraryName("prqlc");
     unit_tests.linkLibC();
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
