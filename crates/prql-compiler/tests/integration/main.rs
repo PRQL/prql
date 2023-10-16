@@ -345,7 +345,10 @@ fn test_rdbms() {
             }
             let dialect = con.dialect;
             let options = Options::default().with_target(Sql(Some(dialect)));
-            let mut rows = prql_compiler::compile(&prql, &options)
+            let replaced_prql = regex::Regex::new("data_file_root")
+                .unwrap()
+                .replace_all(&prql, &con.data_file_root);
+            let mut rows = prql_compiler::compile(&replaced_prql, &options)
                 .and_then(|sql| Ok(con.protocol.run_query(sql.as_str(), runtime)?))
                 .context(format!("Executing {test_name} for {dialect}"))
                 .unwrap();
