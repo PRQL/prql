@@ -211,7 +211,7 @@ jobs:
       - run:
           npm publish ${{ (github.event_name != 'release') && '--dry-run' || ''
           }}
-        working-directory: prqlc/bindings/prql-js/
+        working-directory: prqlc/bindings/js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -70,7 +70,7 @@ jobs:
               - web/book/**
             dotnet:
               - prqlc/bindings/prql-dotnet/**
-              - prqlc/bindings/prql-lib/**
+              - prqlc/bindings/clib/**
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
               - .devcontainer/**/*Dockerfile
@@ -82,18 +82,18 @@ jobs:
             grammars:
               - grammars/**
             elixir:
-              - prqlc/bindings/prql-elixir/**
-              - prqlc/bindings/prql-lib/**
+              - prqlc/bindings/elixir/**
+              - prqlc/bindings/clib/**
               - .github/workflows/test-elixir.yaml
             java:
               - prqlc/bindings/prql-java/**
-              - prqlc/bindings/prql-lib/**
+              - prqlc/bindings/clib/**
               - .github/workflows/test-java.yaml
             js:
-              - prqlc/bindings/prql-js/**
+              - prqlc/bindings/js/**
               - .github/workflows/test-js.yaml
             lib:
-              - prqlc/bindings/prql-lib/**
+              - prqlc/bindings/clib/**
               - .github/workflows/test-lib.yaml
             main:
               - "**/Cargo.*"
@@ -105,11 +105,11 @@ jobs:
               - rust-toolchain.toml
               - .cargo/**
             php:
-              - prqlc/bindings/prql-php/**
-              - prqlc/bindings/prql-lib/**
+              - prqlc/bindings/php/**
+              - prqlc/bindings/clib/**
               - .github/workflows/test-php.yaml
             python:
-              - prqlc/bindings/prql-python/**
+              - prqlc/bindings/python/**
               - .github/workflows/test-python.yaml
             rust:
               - "**/*.rs"

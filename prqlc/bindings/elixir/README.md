@@ -76,10 +76,10 @@ a Mac locally — apply a diff like this, and then run `cargo build` from the
 could also make a feature like `elixir-mac` which enabled building on Mac).
 
 ```diff
-diff --git a/prqlc/bindings/prql-elixir/native/prql/Cargo.toml b/prqlc/bindings/prql-elixir/native/prql/Cargo.toml
+diff --git a/prqlc/bindings/elixir/native/prql/Cargo.toml b/prqlc/bindings/elixir/native/prql/Cargo.toml
 index 7194ca4f..9c7240ff 100644
---- a/prqlc/bindings/prql-elixir/native/prql/Cargo.toml
-+++ b/prqlc/bindings/prql-elixir/native/prql/Cargo.toml
+--- a/prqlc/bindings/elixir/native/prql/Cargo.toml
++++ b/prqlc/bindings/elixir/native/prql/Cargo.toml
 @@ -19,5 +19,5 @@ path = "src/lib.rs"
  prql-compiler = {path = "../../../../crates/compiler", default-features = false, version = "0.6.1"}
 
@@ -87,10 +87,10 @@ index 7194ca4f..9c7240ff 100644
 -[target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
 +# [target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
  rustler = "0.27.0"
-diff --git a/prqlc/bindings/prql-elixir/native/prql/src/lib.rs b/prqlc/bindings/prql-elixir/native/prql/src/lib.rs
+diff --git a/prqlc/bindings/elixir/native/prql/src/lib.rs b/prqlc/bindings/elixir/native/prql/src/lib.rs
 index 2c5c8f27..68e77217 100644
---- a/prqlc/bindings/prql-elixir/native/prql/src/lib.rs
-+++ b/prqlc/bindings/prql-elixir/native/prql/src/lib.rs
+--- a/prqlc/bindings/elixir/native/prql/src/lib.rs
++++ b/prqlc/bindings/elixir/native/prql/src/lib.rs
 @@ -1,5 +1,5 @@
  // See Readme for more information on Mac compiling
 -#![cfg(not(target_os = "macos"))]
@@ -102,4 +102,4 @@ index 2c5c8f27..68e77217 100644
 ```
 
 [`.cargo/config.toml`]:
-  https://github.com/PRQL/prql/blob/main/prqlc/bindings/prql-elixir/native/prql/.cargo/config.toml
+  https://github.com/PRQL/prql/blob/main/prqlc/bindings/elixir/native/prql/.cargo/config.toml

@@ -1,1 +1,1 @@
-{{#include ../../../../../prqlc/bindings/prql-js/README.md}}
+{{#include ../../../../../prqlc/bindings/js/README.md}}

@@ -320,13 +320,13 @@ tasks:
         website/public/playground/playground/
 
   test-js:
-    dir: prqlc/bindings/prql-js
+    dir: prqlc/bindings/js
     cmds:
       - npm cit
 
   # Currently disabled; see prql-elixir/README.md for details
   test-elixir:
-    dir: prqlc/bindings/prql-elixir
+    dir: prqlc/bindings/elixir
     cmds:
       # We could move this line into an `install` task
       - mix local.hex --force
@@ -377,13 +377,13 @@ tasks:
 
   build-php:
     - cargo build -p prql-lib --release
-    - mkdir -p prqlc/bindings/prql-php/lib/
-    - cp target/release/libprql_lib.* prqlc/bindings/prql-lib/libprql_lib.h
-      prqlc/bindings/prql-php/lib/
-    - cd prqlc/bindings/prql-php && composer install
+    - mkdir -p prqlc/bindings/php/lib/
+    - cp target/release/libprql_lib.* prqlc/bindings/clib/libprql_lib.h
+      prqlc/bindings/php/lib/
+    - cd prqlc/bindings/php && composer install
 
   test-php:
-    dir: prqlc/bindings/prql-php
+    dir: prqlc/bindings/php
     cmds:
       - vendor/bin/phpunit tests
 # The next three tasks are not used for either:
