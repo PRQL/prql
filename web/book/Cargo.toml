@@ -25,7 +25,7 @@ prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
 pulldown-cmark = "0.9.3"
 pulldown-cmark-to-cmark = "11.0.0"
 strum = {version = "0.25.0", features = ["std", "derive"]}
-strum_macros = "0.25.2"
+strum_macros = "0.25.3"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
