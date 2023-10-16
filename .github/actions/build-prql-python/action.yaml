@@ -32,7 +32,9 @@ runs:
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
-        args: --release -o target/python --universal2 -m prqlc/bindings/python/Cargo.toml
+        args:
+          --release -o target/python --universal2 -m
+          prqlc/bindings/python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
