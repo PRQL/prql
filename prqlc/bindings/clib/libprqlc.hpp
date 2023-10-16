@@ -14,7 +14,7 @@
 #include <new>
 #define FFI_SCOPE "PRQL"
 
-namespace prql {
+namespace prqlc {
 
 /// Compile message kind. Currently only Error is implemented.
 enum class MessageKind {
@@ -153,4 +153,4 @@ void result_destroy(CompileResult res);
 
 } // extern "C"
 
-} // namespace prql
+} // namespace prqlc

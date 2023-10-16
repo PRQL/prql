@@ -12,7 +12,7 @@ See [examples/minimal-c/Makefile](examples/minimal-c/Makefile).
 Copy the `.a` and `.so` files in a convenient place and add the following
 compile flags to Go (cgo):
 
-`CGO_LDFLAGS="-L/path/to/libprqlc.a -lprql_lib -pthread -ldl" go build`
+`CGO_LDFLAGS="-L/path/to/libprqlc.a -lprqlc -pthread -ldl" go build`
 
 ## Examples
 

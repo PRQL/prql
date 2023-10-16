@@ -184,6 +184,6 @@ struct CompileResult rq_to_sql(const char *rq_json, const struct Options *option
  * # Safety
  *
  * This function expects to be called exactly once after the call of any the functions
- * that return CompileResult. No fields should be freed manually.
+ * that return `CompileResult`. No fields should be freed manually.
  */
 void result_destroy(struct CompileResult res);

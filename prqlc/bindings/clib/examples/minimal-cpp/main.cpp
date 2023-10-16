@@ -3,7 +3,7 @@
 
 #include "libprqlc.hpp"
 
-using namespace prql;
+using namespace prqlc;
 
 void print_result(CompileResult res) {
     if (strcmp(res.output, "") == 0) {

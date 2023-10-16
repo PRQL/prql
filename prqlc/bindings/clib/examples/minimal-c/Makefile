@@ -1,4 +1,7 @@
-PRQL_PROJECT=../../../..
+PRQL_PROJECT=../../../../..
+
+run: build
+	./main.out
 
 build-prql:
 	cargo build -p prqlc-clib --release
@@ -10,9 +13,6 @@ build: main.c build-prql
 		-L${PRQL_PROJECT}/target/release \
 		${PRQL_PROJECT}/target/release/libprqlc.a \
 		-pthread -ldl -lm
-
-run: build
-	./main.out
 
 valgrind: build
 	valgrind ./main.out
