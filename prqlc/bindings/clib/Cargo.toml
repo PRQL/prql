@@ -1,5 +1,5 @@
 [package]
-name = "prql-lib"
+name = "prqlc-clib"
 publish = false
 
 edition.workspace = true

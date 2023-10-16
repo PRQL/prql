@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include <libprql_lib.h>
+#include <libprqlc.h>
 
 void print_result(CompileResult res) {
     printf("---- [ Compiled with %ld errors ]----\n", res.messages_len);

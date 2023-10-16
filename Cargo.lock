@@ -2968,15 +2968,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prql-lib"
-version = "0.10.0"
-dependencies = [
- "libc",
- "prql-compiler",
- "serde_json",
-]
-
-[[package]]
 name = "prql-python"
 version = "0.10.0"
 dependencies = [
@@ -3022,6 +3013,15 @@ dependencies = [
  "semver",
  "serde",
  "strum 0.25.0",
+]
+
+[[package]]
+name = "prqlc-clib"
+version = "0.10.0"
+dependencies = [
+ "libc",
+ "prql-compiler",
+ "serde_json",
 ]
 
 [[package]]

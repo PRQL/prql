@@ -10,12 +10,12 @@ welcome.
 
 ## Installation
 
-Make sure that `libprql_lib.so` (Linux), `libprql_lib.dylib` (macOS) or
-`libprql_lib.dll` (Windows) is in your project's `bin` directory together with
+Make sure that `libprqlc.so` (Linux), `libprqlc.dylib` (macOS) or
+`libprqlc.dll` (Windows) is in your project's `bin` directory together with
 `PrqlCompiler.dll` and the rest of your project's compiled files. I.e.
 `{your_project}/bin/Debug/net7.0/`.
 
-The `libprql_lib` library gets dynamically imported at runtime.
+The `libprqlc` library gets dynamically imported at runtime.
 
 ## Usage
 

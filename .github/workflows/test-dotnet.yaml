@@ -21,6 +21,6 @@ jobs:
         working-directory: prqlc/bindings
         run: |
           dotnet build dotnet
-          cp ../target/debug/libprql_lib.* dotnet/PrqlCompiler/bin/Debug/net*/
-          cp ../target/debug/libprql_lib.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+          cp ../target/debug/libprqlc.* dotnet/PrqlCompiler/bin/Debug/net*/
+          cp ../target/debug/libprqlc.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
           dotnet test dotnet

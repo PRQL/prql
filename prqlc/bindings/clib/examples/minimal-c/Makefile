@@ -8,7 +8,7 @@ build: main.c build-prql
 	gcc main.c -o main.out \
 		-I${PRQL_PROJECT}/prqlc/bindings/clib \
 		-L${PRQL_PROJECT}/target/release \
-		${PRQL_PROJECT}/target/release/libprql_lib.a \
+		${PRQL_PROJECT}/target/release/libprqlc.a \
 		-pthread -ldl -lm
 
 run: build

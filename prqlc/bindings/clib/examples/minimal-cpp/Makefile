@@ -8,7 +8,7 @@ build: main.cpp build-prql
 	g++ main.cpp -o main.out \
 		-I${PRQL_PROJECT}/prqlc/bindings/clib \
 		-L${PRQL_PROJECT}/target/release \
-		${PRQL_PROJECT}/target/release/libprql_lib.a
+		${PRQL_PROJECT}/target/release/libprqlc.a
 
 run: build
 	./main.out

@@ -55,6 +55,6 @@ jobs:
         working-directory: prqlc/bindings/clib/examples/minimal-zig
         run: |
           mkdir c
-          cp ../../libprql_lib.h c/
-          cp ../../../../target/*/libprql_lib.* c/
+          cp ../../libprqlc.h c/
+          cp ../../../../target/*/libprqlc.* c/
           zig build test

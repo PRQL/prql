@@ -4,7 +4,7 @@
  * PRQL compiler bindings.
  *
  * This library requires the PHP FFI extension.
- * It also requires the libprql_lib library.
+ * It also requires the libprqlc library.
  *
  * PHP version 8.0
  *
