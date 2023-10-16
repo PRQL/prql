@@ -1,6 +1,6 @@
 # Basic C++ example
 
-A minimal example for using prql-lib with `gcc` and `make`.
+A minimal example for using prqlc-clib with `gcc` and `make`.
 
 ## How to run
 

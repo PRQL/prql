@@ -1,7 +1,7 @@
 PRQL_PROJECT=../../../..
 
 build-prql:
-	cargo build -p prql-lib --release
+	cargo build -p prqlc-clib --release
 
 # TODO: would be helpful to allow running with a debug build too.
 build: main.c build-prql

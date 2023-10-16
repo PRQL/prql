@@ -376,7 +376,7 @@ tasks:
       - ../../prqlc/bindings/**/*.rs
 
   build-php:
-    - cargo build -p prql-lib --release
+    - cargo build -p prqlc-clib --release
     - mkdir -p prqlc/bindings/php/lib/
     - cp target/release/libprqlc.* prqlc/bindings/clib/libprqlc.h
       prqlc/bindings/php/lib/

@@ -38,7 +38,7 @@ nascent.
 
 - [Java](./java.md)
 - [Elixir](./elixir.md)
-- `prql-lib`, the C bindings
+- `prqlc-clib`, the C bindings
 
 ## Nascent
 
