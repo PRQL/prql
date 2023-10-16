@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use prql_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident};
-use prql_ast::stmt::{Annotation, Stmt, StmtKind, VarDefKind};
+use prqlc_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident};
+use prqlc_ast::stmt::{Annotation, Stmt, StmtKind, VarDefKind};
 
 use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
@@ -84,16 +84,16 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
     })
 }
 
-fn expand_exprs(exprs: Vec<prql_ast::expr::Expr>) -> Result<Vec<pl::Expr>> {
+fn expand_exprs(exprs: Vec<prqlc_ast::expr::Expr>) -> Result<Vec<pl::Expr>> {
     exprs.into_iter().map(expand_expr).collect()
 }
 
 #[allow(clippy::boxed_local)]
-fn expand_expr_box(expr: Box<prql_ast::expr::Expr>) -> Result<Box<pl::Expr>> {
+fn expand_expr_box(expr: Box<prqlc_ast::expr::Expr>) -> Result<Box<pl::Expr>> {
     Ok(Box::new(expand_expr(*expr)?))
 }
 
-fn desugar_pipeline(mut pipeline: prql_ast::expr::Pipeline) -> Result<pl::Expr> {
+fn desugar_pipeline(mut pipeline: prqlc_ast::expr::Pipeline) -> Result<pl::Expr> {
     let value = pipeline.exprs.remove(0);
     let mut value = expand_expr(value)?;
 
@@ -113,9 +113,9 @@ fn desugar_pipeline(mut pipeline: prql_ast::expr::Pipeline) -> Result<pl::Expr> 
 
 /// Desugar unary operators into function calls.
 fn expand_unary(
-    prql_ast::expr::UnaryExpr { op, expr }: prql_ast::expr::UnaryExpr,
+    prqlc_ast::expr::UnaryExpr { op, expr }: prqlc_ast::expr::UnaryExpr,
 ) -> Result<pl::ExprKind> {
-    use prql_ast::expr::UnOp::*;
+    use prqlc_ast::expr::UnOp::*;
 
     let expr = expand_expr(*expr)?;
 
@@ -181,7 +181,7 @@ fn expand_binary(BinaryExpr { op, left, right }: BinaryExpr) -> Result<pl::ExprK
     Ok(new_binop(left, &func_name, right).kind)
 }
 
-fn expand_func_param(value: prql_ast::expr::FuncParam) -> Result<pl::FuncParam> {
+fn expand_func_param(value: prqlc_ast::expr::FuncParam) -> Result<pl::FuncParam> {
     Ok(pl::FuncParam {
         name: value.name,
         ty: value.ty.map(expand_ty_or_expr).transpose()?,
@@ -189,12 +189,12 @@ fn expand_func_param(value: prql_ast::expr::FuncParam) -> Result<pl::FuncParam> 
     })
 }
 
-fn expand_func_params(value: Vec<prql_ast::expr::FuncParam>) -> Result<Vec<pl::FuncParam>> {
+fn expand_func_params(value: Vec<prqlc_ast::expr::FuncParam>) -> Result<Vec<pl::FuncParam>> {
     value.into_iter().map(expand_func_param).collect()
 }
 
 #[allow(clippy::boxed_local)]
-fn expand_ty_or_expr(value: Box<prql_ast::expr::Expr>) -> Result<pl::TyOrExpr> {
+fn expand_ty_or_expr(value: Box<prqlc_ast::expr::Expr>) -> Result<pl::TyOrExpr> {
     Ok(pl::TyOrExpr::Expr(Box::new(expand_expr(*value)?)))
 }
 
@@ -264,7 +264,7 @@ pub fn restrict_expr(expr: pl::Expr) -> Expr {
 }
 
 #[allow(clippy::boxed_local)]
-fn restrict_expr_box(expr: Box<pl::Expr>) -> Box<prql_ast::expr::Expr> {
+fn restrict_expr_box(expr: Box<pl::Expr>) -> Box<prqlc_ast::expr::Expr> {
     Box::new(restrict_expr(*expr))
 }
 
@@ -279,7 +279,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
         pl::ExprKind::Range(v) => ExprKind::Range(v.map(restrict_expr_box)),
-        pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(prql_ast::expr::FuncCall {
+        pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(prqlc_ast::expr::FuncCall {
             name: restrict_expr_box(v.name),
             args: restrict_exprs(v.args),
             named_args: v
@@ -289,7 +289,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
                 .collect(),
         }),
         pl::ExprKind::Func(v) => ExprKind::Func(
-            prql_ast::expr::Func {
+            prqlc_ast::expr::Func {
                 return_ty: v.return_ty.map(restrict_ty_or_expr).map(Box::new),
                 body: restrict_expr_box(v.body),
                 params: restrict_func_params(v.params),
@@ -305,7 +305,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         }
         pl::ExprKind::Case(v) => ExprKind::Case(
             v.into_iter()
-                .map(|case| prql_ast::expr::SwitchCase {
+                .map(|case| prqlc_ast::expr::SwitchCase {
                     condition: restrict_expr_box(case.condition),
                     value: restrict_expr_box(case.value),
                 })
@@ -327,26 +327,26 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
     }
 }
 
-fn restrict_func_params(value: Vec<pl::FuncParam>) -> Vec<prql_ast::expr::FuncParam> {
+fn restrict_func_params(value: Vec<pl::FuncParam>) -> Vec<prqlc_ast::expr::FuncParam> {
     value.into_iter().map(restrict_func_param).collect()
 }
 
-fn restrict_func_param(value: pl::FuncParam) -> prql_ast::expr::FuncParam {
-    prql_ast::expr::FuncParam {
+fn restrict_func_param(value: pl::FuncParam) -> prqlc_ast::expr::FuncParam {
+    prqlc_ast::expr::FuncParam {
         name: value.name,
         ty: value.ty.map(restrict_ty_or_expr).map(Box::new),
         default_value: value.default_value.map(restrict_expr_box),
     }
 }
 
-fn restrict_ty_or_expr(value: pl::TyOrExpr) -> prql_ast::expr::Expr {
+fn restrict_ty_or_expr(value: pl::TyOrExpr) -> prqlc_ast::expr::Expr {
     match value {
         pl::TyOrExpr::Ty(ty) => restrict_ty(ty),
         pl::TyOrExpr::Expr(expr) => restrict_expr(*expr),
     }
 }
 
-fn restrict_ty(value: pl::Ty) -> prql_ast::expr::Expr {
+fn restrict_ty(value: pl::Ty) -> prqlc_ast::expr::Expr {
     let expr_kind = match value.kind {
         pl::TyKind::Primitive(prim) => {
             ExprKind::Ident(Ident::from_path(vec!["std".to_string(), prim.to_string()]))

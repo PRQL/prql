@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use chumsky::{error::SimpleReason, Span as ChumskySpan};
-use prql_ast::Span;
+use prqlc_ast::Span;
 
 use crate::{lexer::Token, PError};
 

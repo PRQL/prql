@@ -4,7 +4,7 @@ use chumsky::{
     text::{newline, Character},
 };
 
-use prql_ast::expr::*;
+use prqlc_ast::expr::*;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {

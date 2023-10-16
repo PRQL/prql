@@ -173,7 +173,7 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
 mod test {
     use super::*;
     use insta::assert_snapshot;
-    use prql_ast::expr::{Expr, ExprKind, Literal};
+    use prqlc_ast::expr::{Expr, ExprKind, Literal};
 
     #[test]
     fn test_string_quoting() {

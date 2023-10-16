@@ -1,4 +1,4 @@
-use prql_ast::expr::Ident;
+use prqlc_ast::expr::Ident;
 
 use super::{Expr, ExprKind, FuncCall};
 

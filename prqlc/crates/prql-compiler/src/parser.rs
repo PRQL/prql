@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::utils::IdGenerator;
 use crate::{Errors, SourceTree};
-use prql_ast::stmt::Stmt;
+use prqlc_ast::stmt::Stmt;
 
 pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
     let mut res = SourceTree::default();
@@ -18,7 +18,7 @@ pub fn parse(file_tree: &SourceTree<String>) -> Result<SourceTree<Vec<Stmt>>> {
             .map(|x| **x)
             .unwrap_or_else(|| id_gen.gen() as u16);
 
-        match prql_parser::parse_source(source, id) {
+        match prqlc_parser::parse_source(source, id) {
             Ok(stmts) => {
                 res.sources.insert(path.clone(), stmts);
                 res.source_ids.insert(id, path.clone());

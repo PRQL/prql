@@ -4,4 +4,4 @@ pub mod generic;
 pub mod pl;
 pub mod rq;
 
-pub use prql_ast::Span;
+pub use prqlc_ast::Span;

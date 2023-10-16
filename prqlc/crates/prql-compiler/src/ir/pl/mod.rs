@@ -28,7 +28,7 @@ pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::types::*;
 pub use self::utils::*;
-pub use prql_ast::expr::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
+pub use prqlc_ast::expr::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
 pub fn print_mem_sizes() {
     use std::mem::size_of;

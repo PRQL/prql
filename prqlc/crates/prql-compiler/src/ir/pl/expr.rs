@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-use prql_ast::expr::{Ident, Literal};
+use prqlc_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
-use prql_ast::expr::generic;
-use prql_ast::Span;
+use prqlc_ast::expr::generic;
+use prqlc_ast::Span;
 
-pub use prql_ast::expr::{BinOp, UnOp};
+pub use prqlc_ast::expr::{BinOp, UnOp};
 
 use super::{Lineage, TransformCall, Ty, TyOrExpr};
 
-// The following code is tested by the tests_misc crate to match expr.rs in prql_ast.
+// The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 
 /// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].

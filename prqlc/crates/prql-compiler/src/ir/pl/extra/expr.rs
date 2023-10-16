@@ -1,5 +1,5 @@
 use enum_as_inner::EnumAsInner;
-use prql_ast::expr::{Ident, Literal};
+use prqlc_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
 use crate::ir::generic::WindowKind;

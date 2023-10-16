@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
-use prql_ast::expr::Ident;
+use prqlc_ast::expr::Ident;
 
 use crate::ir::pl::{Annotation, Expr, ExprKind, LineageColumn, TupleField, Ty};
 use crate::semantic::decl::{Decl, DeclKind, TableDecl, TableExpr};

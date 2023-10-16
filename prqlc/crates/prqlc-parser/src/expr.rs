@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use chumsky::prelude::*;
 
-use prql_ast::expr::*;
-use prql_ast::Span;
+use prqlc_ast::expr::*;
+use prqlc_ast::Span;
 
 use super::interpolation;
 use super::lexer::Token;

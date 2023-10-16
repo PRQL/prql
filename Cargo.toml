@@ -1,10 +1,10 @@
 [workspace]
 members = [
-  "prqlc/crates/ast",
+  "prqlc/crates/prqlc-ast",
+  "prqlc/crates/prqlc-parser",
   "prqlc/crates/prql-compiler",
   "prqlc/crates/prql-compiler-macros",
-  "prqlc/crates/parser",
-  "prqlc/crates/cli",
+  "prqlc/crates/prqlc",
   "prqlc/crates/tests_misc",
   "prqlc/bindings/elixir/native/prql",
   "prqlc/bindings/java",

@@ -22,7 +22,7 @@ colorchoice-clap = "1.0.0"
 env_logger = {version = "0.10.0", features = ["color"]}
 itertools = "0.11.0"
 notify = "6.1.1"
-prql-ast = {path = '../ast', version = "0.10.0" }
+prqlc-ast = {path = '../prqlc-ast', version = "0.10.0" }
 prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.10.0" }
 regex = {version = "1.9.6", features = ["std", "unicode"]}
 serde = "1"

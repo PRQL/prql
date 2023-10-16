@@ -15,7 +15,7 @@ use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
 use crate::{Error, Span, WithErrorInfo};
-use prql_ast::expr::generic::{InterpolateItem, Range};
+use prqlc_ast::expr::generic::{InterpolateItem, Range};
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
@@ -934,7 +934,7 @@ impl From<sql_ast::Expr> for ExprOrSource {
 mod test {
     use super::*;
     use insta::assert_yaml_snapshot;
-    use prql_ast::expr::generic::Range;
+    use prqlc_ast::expr::generic::Range;
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {

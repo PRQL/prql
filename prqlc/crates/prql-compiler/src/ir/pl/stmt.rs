@@ -1,9 +1,9 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use prql_ast::Span;
+use prqlc_ast::Span;
 
-pub use prql_ast::stmt::QueryDef;
+pub use prqlc_ast::stmt::QueryDef;
 
 use super::expr::Expr;
 
@@ -14,7 +14,7 @@ pub enum VarDefKind {
     Main,
 }
 
-// The following code is tested by the tests_misc crate to match stmt.rs in prql_ast.
+// The following code is tested by the tests_misc crate to match stmt.rs in prqlc_ast.
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {

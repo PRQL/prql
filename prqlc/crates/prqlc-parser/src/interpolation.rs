@@ -1,6 +1,6 @@
 use chumsky::{error::Cheap, prelude::*};
 use itertools::Itertools;
-use prql_ast::expr::*;
+use prqlc_ast::expr::*;
 
 use crate::Span;
 

@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use semver::VersionReq;
 
-use prql_ast::expr::*;
-use prql_ast::stmt::*;
+use prqlc_ast::expr::*;
+use prqlc_ast::stmt::*;
 
 use super::common::*;
 use super::expr::*;

@@ -15,7 +15,7 @@ use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
 use crate::Error;
 use crate::WithErrorInfo;
-use prql_ast::expr::generic::InterpolateItem;
+use prqlc_ast::expr::generic::InterpolateItem;
 
 use super::gen_expr::*;
 use super::gen_projection::*;

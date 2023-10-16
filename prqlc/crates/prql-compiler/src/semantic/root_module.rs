@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use anyhow::Result;
-use prql_ast::{expr::Ident, stmt::QueryDef, Span};
+use prqlc_ast::{expr::Ident, stmt::QueryDef, Span};
 use serde::{Deserialize, Serialize};
 
 use super::decl::DeclKind;

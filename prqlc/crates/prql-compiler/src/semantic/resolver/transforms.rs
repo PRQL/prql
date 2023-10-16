@@ -5,7 +5,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use prql_ast::error::{Error, Reason};
+use prqlc_ast::error::{Error, Reason};
 
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;

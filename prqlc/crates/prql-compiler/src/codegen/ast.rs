@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use prql_ast::expr::*;
-use prql_ast::stmt::*;
+use prqlc_ast::expr::*;
+use prqlc_ast::stmt::*;
 
 use crate::codegen::SeparatedExprs;
 use crate::utils::VALID_IDENT;

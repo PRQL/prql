@@ -8,10 +8,10 @@ mod test;
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
 
-use prql_ast::error::Error;
-use prql_ast::error::Reason;
-use prql_ast::stmt::*;
-use prql_ast::Span;
+use prqlc_ast::error::Error;
+use prqlc_ast::error::Reason;
+use prqlc_ast::stmt::*;
+use prqlc_ast::Span;
 
 use lexer::Token;
 use span::ParserSpan;
@@ -51,8 +51,8 @@ mod common {
     use chumsky::prelude::*;
 
     use super::{lexer::Token, span::ParserSpan};
-    use prql_ast::expr::*;
-    use prql_ast::stmt::*;
+    use prqlc_ast::expr::*;
+    use prqlc_ast::stmt::*;
 
     pub type PError = Simple<Token, ParserSpan>;
 

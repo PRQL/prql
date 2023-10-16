@@ -6,11 +6,11 @@ use similar::{ChangeTag, TextDiff};
 
 #[test]
 fn test_expr_ast_code_matches() {
-    // expr.rs exists in both prql_ast as well as the prql_compiler crate (with the latter adding some fields/variants).
+    // expr.rs exists in both prqlc_ast as well as the prql_compiler crate (with the latter adding some fields/variants).
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../../crates/ast/src/expr.rs").unwrap(),
+            &read_to_string("../../crates/prqlc-ast/src/expr.rs").unwrap(),
             &read_to_string("../../crates/prql-compiler/src/ir/pl/expr.rs").unwrap(),
         ), @r###"
     @@ .. @@
@@ -59,11 +59,11 @@ fn test_expr_ast_code_matches() {
 
 #[test]
 fn test_stmt_ast_code_matches() {
-    // stmt.rs exists in both prql_ast as well as the prql_compiler crate.
+    // stmt.rs exists in both prqlc_ast as well as the prql_compiler crate.
     // This test exists to ensure that the doc comments of the shared fields/variants stay in sync.
     assert_snapshot!(
         diff_code_after_start(
-            &read_to_string("../../crates/ast/src/stmt.rs").unwrap(),
+            &read_to_string("../../crates/prqlc-ast/src/stmt.rs").unwrap(),
             &read_to_string("../../crates/prql-compiler/src/ir/pl/stmt.rs").unwrap(),
         ), @r###"
     @@ .. @@
@@ -84,10 +84,10 @@ fn diff_code_after_start(old: &str, new: &str) -> String {
 }
 
 /// Returns a unified diff of all diff hunks where some lines were removed.
-fn diff_code(prql_ast_code: &str, pl_ast_code: &str) -> String {
+fn diff_code(prqlc_ast_code: &str, pl_ast_code: &str) -> String {
     let mut diff = String::new();
 
-    for hunk in TextDiff::from_lines(prql_ast_code, pl_ast_code)
+    for hunk in TextDiff::from_lines(prqlc_ast_code, pl_ast_code)
         .unified_diff()
         .context_radius(0)
         .iter_hunks()

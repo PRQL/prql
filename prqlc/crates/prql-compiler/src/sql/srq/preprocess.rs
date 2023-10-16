@@ -13,7 +13,7 @@ use crate::ir::rq::{
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
 use crate::{Error, WithErrorInfo};
-use prql_ast::expr::generic::{InterpolateItem, Range};
+use prqlc_ast::expr::generic::{InterpolateItem, Range};
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;

@@ -17,7 +17,7 @@ use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Span, WithErrorInfo};
-use prql_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
+use prqlc_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
 
 use super::decl::{self, DeclKind};
 use super::{RootModule, NS_DEFAULT_DB};

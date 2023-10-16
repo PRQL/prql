@@ -69,7 +69,7 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`prql_ast::expr::ExprKind::Literal`]
+//! * `serde_yaml`: adapts the `Serialize` implementation for [`prqlc_ast::expr::ExprKind::Literal`]
 //!   to `serde_yaml`, which doesn't support the serialization of nested enums
 
 #![forbid(unsafe_code)]
@@ -92,7 +92,7 @@ mod utils;
 
 pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
 pub use ir::Span;
-pub use prql_ast::error::{Error, Errors, MessageKind, Reason};
+pub use prqlc_ast::error::{Error, Errors, MessageKind, Reason};
 
 use once_cell::sync::Lazy;
 use semver::Version;
@@ -261,7 +261,7 @@ impl Options {
 pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl(prql: &str) -> Result<Vec<prql_ast::stmt::Stmt>, ErrorMessages> {
+pub fn prql_to_pl(prql: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
     parser::parse(&sources)
@@ -273,21 +273,21 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<prql_ast::stmt::Stmt>, ErrorMessages
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(
     prql: &SourceTree,
-) -> Result<SourceTree<Vec<prql_ast::stmt::Stmt>>, ErrorMessages> {
+) -> Result<SourceTree<Vec<prqlc_ast::stmt::Stmt>>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error_message::downcast)
         .map_err(|e| e.composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
-pub fn pl_to_rq(pl: Vec<prql_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
+pub fn pl_to_rq(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     let source_tree = SourceTree::single(PathBuf::new(), pl);
     semantic::resolve_and_lower(source_tree, &[]).map_err(error_message::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: SourceTree<Vec<prql_ast::stmt::Stmt>>,
+    pl: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
     main_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path).map_err(error_message::downcast)
@@ -299,7 +299,7 @@ pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<Strin
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: Vec<prql_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
+pub fn pl_to_prql(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
     Ok(codegen::write_stmts(&pl))
 }
 
@@ -308,12 +308,12 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: Vec<prql_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
+    pub fn from_pl(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
         serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<Vec<prql_ast::stmt::Stmt>, ErrorMessages> {
+    pub fn to_pl(json: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 

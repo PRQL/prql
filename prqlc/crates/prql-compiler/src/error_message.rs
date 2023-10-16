@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
 use crate::SourceTree;
-use prql_ast::error::*;
+use prqlc_ast::error::*;
 
 pub use crate::ir::Span;
 

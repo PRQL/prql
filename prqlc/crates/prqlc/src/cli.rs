@@ -6,7 +6,7 @@ use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
-use prql_ast::stmt::StmtKind;
+use prqlc_ast::stmt::StmtKind;
 use std::collections::HashMap;
 use std::env;
 use std::io::Read;

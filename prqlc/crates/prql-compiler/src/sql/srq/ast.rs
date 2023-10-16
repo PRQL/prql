@@ -11,7 +11,7 @@ use serde::Serialize;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::JoinSide;
 use crate::ir::rq::{self, fold_column_sorts, RelationLiteral, RqFold};
-use prql_ast::expr::generic::InterpolateItem;
+use prqlc_ast::expr::generic::InterpolateItem;
 
 use super::context::RIId;
 
