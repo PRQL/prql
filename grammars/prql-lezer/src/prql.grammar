@@ -69,10 +69,13 @@ expression[@isGroup=Expression] {
   DateTime |
   RangeExpression |
   Identifier |
+  boolean |
   number |
   String | FString | RString | SString |
   TimeUnit
 }
+
+boolean { @specialize[@name=Boolean]<identPart, "true" | "false"> }
 
 ArrayExpression { "[" commaSep<test | "*" expression>? "]" }
 
