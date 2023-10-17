@@ -146,6 +146,10 @@ module clickhouse {
   let div_i = l r -> s"({l} DIV {r})"
 
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
+
+  let read_csv = source -> s"file({source:0}, 'CSV')"
+
+  let read_parquet = source -> s"file({source:0}, 'Parquet')"
 }
 
 module duckdb {
