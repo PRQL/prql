@@ -141,6 +141,8 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 
   interpolatedString<prefix> { prefix ( stringInterpolatedDouble | stringInterpolatedSingle ) }
 
+  "="[@name=Equals]
+
   FString { interpolatedString<'f'> }
   RString { interpolatedString<'r'> }
   SString { interpolatedString<'s'> }

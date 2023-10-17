@@ -16,6 +16,7 @@ export const prqlHighlight = styleTags({
   ArithOp: t.arithmeticOperator,
   CompareOp: t.compareOperator,
   LogicOp: t.logicOperator,
+  Equals: t.definitionOperator,
   VariableName: t.variableName,
   "( )": t.paren,
   "[ ]": t.squareBracket,
