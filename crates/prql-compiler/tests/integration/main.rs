@@ -338,7 +338,7 @@ fn test_rdbms() {
             .and_then(|s| s.to_str())
             .unwrap_or_default();
 
-        let mut prql = fs::read_to_string(path).unwrap();
+        let prql = fs::read_to_string(path).unwrap();
 
         let is_contains_data_root = re.is_match(&prql);
 
@@ -350,6 +350,7 @@ fn test_rdbms() {
             }
             let dialect = con.dialect;
             let options = Options::default().with_target(Sql(Some(dialect)));
+            let mut prql = prql.clone();
             if is_contains_data_root {
                 prql = re.replace_all(&prql, &con.data_file_root).to_string();
             }

@@ -13,6 +13,8 @@
 - _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv` by
   default. Please set the target `sql.duckdb` to use the DuckDB's
   `read_csv_auto` function as previously. (@eitsupi, #3599)
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.clickhouse` target. (@eitsupi, #1533)
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
