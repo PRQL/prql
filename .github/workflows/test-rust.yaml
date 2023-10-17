@@ -31,15 +31,11 @@ jobs:
   test-rust:
     runs-on: ${{ inputs.os }}
     steps:
-      - name: Make space
-        # https://github.com/actions/runner-images/issues/2840
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+      - name: Free up space
+        # https://github.com/actions/runner-images/issues/2840
+        run: ./scripts/free_space.sh
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update
