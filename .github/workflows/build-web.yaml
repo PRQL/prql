@@ -49,7 +49,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
 
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
