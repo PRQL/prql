@@ -38,7 +38,7 @@ jobs:
         with:
           crate: wasm-pack
 
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
 
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2

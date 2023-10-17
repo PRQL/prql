@@ -262,7 +262,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -374,7 +374,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: hyperlink
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -401,7 +401,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-tarpaulin
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2

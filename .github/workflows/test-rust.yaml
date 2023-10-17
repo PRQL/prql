@@ -45,7 +45,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
