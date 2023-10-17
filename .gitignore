@@ -1,7 +1,7 @@
 .DS_Store
 
 dist
-target*/
+target/
 *.out
 *.log
 
@@ -23,6 +23,7 @@ _*.sql
 **/node_modules/
 
 .task
+.direnv
 
 *.snap.tmp
 # These shouldn't be committed, and cause watchers to re-run when they're
@@ -35,3 +36,4 @@ _*.sql
 *.my.csv
 
 cobertura.xml
+.envrc

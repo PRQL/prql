@@ -29,14 +29,12 @@ select {
 Strings can contain any escape character sequences defined by the
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
-<!-- TODO: https://github.com/PRQL/prql/pull/3571 for why we currently need `no-fmt` here -->
-
-```prql no-fmt
+```prql
 from artists
-derive escapes = "\tXYZ\n \\ "                  # tab (\t), "XYZ", newline (\n), " ", \, " "
-derive world = "\u0048\u0065\u006C\u006C\u006F" # "Hello"
-derive hex = "\x48\x65\x6C\x6C\x6F"             # "Hello"
-derive turtle = "\U0001F422"                    # "🐢"
+derive escapes = "\tXYZ\n \\ "                            # tab (\t), "XYZ", newline (\n), " ", \, " "
+derive world = "\u{0048}\u{0065}\u{006C}\u{006C}\u{006F}" # "Hello"
+derive hex = "\x48\x65\x6C\x6C\x6F"                       # "Hello"
+derive turtle = "\u{01F422}"                              # "🐢"
 ```
 
 ## Other string formats
@@ -62,3 +60,22 @@ and PRQL doesn't currently account for
 these differences. Please open issues with any difficulties in the current
 implementation.
 ```
+
+## Escape sequences
+
+Unless an `r` prefix is present, escape sequences in string literals are
+interpreted according to rules similar to those used by Standard C. The
+recognized escape sequences are:
+
+| Escape Sequence | Meaning                       |
+| --------------- | ----------------------------- |
+| `\\`            | Backslash (\)                 |
+| `\'`            | Single quote (')              |
+| `\"`            | Double quote (")              |
+| `\b`            | Backspace                     |
+| `\f`            | Formfeed                      |
+| `\n`            | ASCII Linefeed (LF)           |
+| `\r`            | ASCII Carriage Return (CR)    |
+| `\t`            | ASCII Horizontal Tab (TAB)    |
+| `\xhh`          | Character with hex value hh   |
+| `\u{xxxx}`      | Character with hex value xxxx |

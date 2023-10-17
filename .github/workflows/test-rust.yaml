@@ -45,7 +45,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -63,6 +63,19 @@ jobs:
           args: >
             --no-run --locked --target=${{ inputs.target }} --features=${{
             inputs.features }}
+      - name: Free up disk space
+        # https://github.com/actions/runner-images/issues/2840
+        run: ./.github/workflows/scripts/util_free_space.sh
+        # This takes ~3 minutes, so we'd really prefer not to run it on every
+        # PR. Trying to run it only when there is no cache hit. We may need to
+        # remove that condition and run it whenever we pull the docker images,
+        # or explore breaking up the tests more (though that's not easy to get
+        # savings on either). Ideally GH will allow for more disk space in the
+        # future... (deleting things doesn't actually remove the amount of stuff
+        # that GH needs to store, so it's purely performative!)
+        if:
+          ${{ contains(inputs.features, 'test-dbs-external') &&
+          steps.cache.outputs.cache-hit == 'false' }}
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./crates/prql-compiler/tests/integration

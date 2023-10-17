@@ -18,12 +18,18 @@ where the number after `e` is the exponent in 10-base.
 Underscores are ignored, so they can be placed at arbitrary positions, but it is
 advised to use them as thousand separators.
 
+Integers can, alternatively, be expressed using hexadecimal, octal or binary
+notation using these prefixes respectively: `0x`, `0o` or `0b`.
+
 ```prql
 from numbers
 select {
     small = 1.000_000_1,
     big = 5_000_000,
     huge = 5e9,
+    binary = 0x0011,
+    hex = 0x80,
+    octal = 0o777,
 }
 ```
 

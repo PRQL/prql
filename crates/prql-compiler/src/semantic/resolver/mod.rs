@@ -4,11 +4,11 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::{Itertools, Position};
 
-use crate::error::{Error, Reason, Span, WithErrorInfo};
 use crate::ir::pl::*;
 use crate::semantic::decl::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 use super::decl::{Decl, DeclKind, TableExpr};
 use super::module::Module;

@@ -10,11 +10,25 @@
 
 **Features**:
 
+- _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv` by
+  default. Please set the target `sql.duckdb` to use the DuckDB's
+  `read_csv_auto` function as previously. (@eitsupi, #3599)
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.clickhouse` target. (@eitsupi, #1533)
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
-- Add support for long Unicode escape sequences. Example `"Hello \U0001F422"`.
+- Add support for long Unicode escape sequences. Example `"Hello \u{01F422}"`.
   (@vanillajonathan, #3569)
+- Add support for binary numerical notation. Example
+  `filter status == 0b1111000011110000`. (@vanillajonathan, #3661)
+- Add support for hexadecimal numerical notation. Example
+  `filter status == 0xff`. (@vanillajonathan, #3654)
+- Add support for octal numerical notation. Example `filter status == 0o777`.
+  (@vanillajonathan, #3672)
+- New compile target `sql.glaredb` for [GlareDB](https://docs.glaredb.com/) and
+  integration tests for it (However, there is a bug in the test and it is
+  currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
 
 **Fixes**:
 
@@ -28,11 +42,30 @@
 - Limit maximum height of the playground editor's error panel to avoid taking
   over whole screen (@AaronMoat, #3524)
 
+- The playground now uses [Vite](https://vitejs.dev/) (@vanillajonathan).
+
 **Integrations**:
 
-- Bump `prql-compiler` & `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
+- Bump `prql-compiler` & `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521, #3578)
 - [Pygments](https://pygments.org/), the generic syntax highlighter library now
   has syntax highlighting for PRQL. (@vanillajonathan, #3564)
+- [Pygments](https://pygments.org/), a syntax highlighting library now has
+  syntax highlighting for PRQL. (@vanillajonathan, #3564)
+- [chroma](https://github.com/alecthomas/chroma), a syntax highlighting library
+  written in Go and used by the static website generator
+  [Hugo](https://gohugo.io/). (@vanillajonathan, #3597)
+- [scc](https://github.com/boyter/scc), a source lines of code counter now has
+  support for `.prql` files. (@vanillajonathan)
+- [gcloc](https://github.com/JoaoDanielRufino/gcloc) a source lines of code
+  counter now has support for `.prql` files. (@vanillajonathan)
+- [cloc](https://github.com/AlDanial/cloc) a source lines of code counter now
+  has support for `.prql` files. (@AlDanial)
+- [gocloc](https://github.com/hhatto/gocloc) a source lines of code counter now
+  has support for `.prql` files. (@vanillajonathan)
+- [The Quarto VS Code extension](https://marketplace.visualstudio.com/items?itemName=quarto.quarto)
+  supports editing PRQL code blocks
+  ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
+  render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
 **Internal changes**:
 
@@ -226,10 +259,14 @@ A small selection of the changes:
 - New arithmetic operators. These compile to different function or operator
   depending on the target.
 
-  - _Breaking:_ Operator `/` now always performs floating division (@aljazerzen,
-    #2684). _TODO: add link to division operator docs_
+  - _Breaking_: Operator `/` now always performs floating division (@aljazerzen,
+    #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
-  - Truncated integer division operator `//` (@aljazerzen, #2684).
+  - Truncated integer division operator `//` (@aljazerzen, #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
 

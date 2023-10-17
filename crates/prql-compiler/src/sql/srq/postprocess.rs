@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::generic::ColumnSort;
+use crate::ir::generic::ColumnSort;
 use crate::ir::pl::Ident;
 use crate::ir::rq::{CId, RqFold, TId};
 use crate::sql::Context;

@@ -202,9 +202,8 @@ tasks:
       - brew install {{.brew_dependencies | trim | splitLines | join " " }}
 
   install-npm-dependencies:
-    # Use npm to install important tools
     cmds:
-      - npm install --location=global prettier prettier-plugin-go-template
+      - npm install --global prettier prettier-plugin-go-template
       - cmd:
           echo "In order to get nice auto-formatting of web code in VS Code, VS
           Code requires configuration to use the system-wide install of
@@ -317,7 +316,7 @@ tasks:
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
       # Possibly there's a more elegant way of doing this...
-      - rsync -ai --checksum --delete playground/build/
+      - rsync -ai --checksum --delete playground/dist/
         website/public/playground/playground/
 
   test-js:
@@ -357,7 +356,7 @@ tasks:
     dir: web/playground
     cmds:
       - task: build-playground-dependencies
-      - npm start
+      - npm run dev
 
   build-playground-dependencies:
     # Check if npm dependencies for the playground need to be updated

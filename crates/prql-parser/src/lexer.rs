@@ -157,6 +157,48 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
+    let binary_notation = just("0b")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|c: &char| *c == '0' || *c == '1')
+                .repeated()
+                .at_least(1)
+                .at_most(32)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 2).unwrap()))
+                }),
+        )
+        .labelled("number");
+
+    let hexadecimal_notation = just("0x")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|c: &char| c.is_ascii_hexdigit())
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 16).unwrap()))
+                }),
+        )
+        .labelled("number");
+
+    let octal_notation = just("0o")
+        .then_ignore(just("_").or_not())
+        .ignore_then(
+            filter(|&c| ('0'..='7').contains(&c))
+                .repeated()
+                .at_least(1)
+                .at_most(12)
+                .collect::<String>()
+                .try_map(|digits, _| {
+                    Ok(Literal::Integer(i64::from_str_radix(&digits, 8).unwrap()))
+                }),
+        )
+        .labelled("number");
+
     let exp = one_of("eE").chain(one_of("+-").or_not().chain::<char, _, _>(text::digits(10)));
 
     let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
@@ -167,9 +209,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit()))
         .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated());
 
-    let number = one_of("+-")
-        .or_not()
-        .chain::<char, _, _>(integer)
+    let number = integer
         .chain::<char, _, _>(frac.or_not().flatten())
         .chain::<char, _, _>(exp.or_not().flatten())
         .try_map(|chars, span| {
@@ -286,6 +326,9 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .map(Literal::Timestamp);
 
     choice((
+        binary_notation,
+        hexadecimal_notation,
+        octal_notation,
         string,
         raw_string,
         value_and_unit,
@@ -347,29 +390,19 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
         just('n').to('\n'),
         just('r').to('\r'),
         just('t').to('\t'),
-        (just('u').ignore_then(
+        (just("u{").ignore_then(
             filter(|c: &char| c.is_ascii_hexdigit())
                 .repeated()
-                .exactly(4)
+                .at_least(1)
+                .at_most(6)
                 .collect::<String>()
                 .validate(|digits, span, emit| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
                         emit(Cheap::expected_input_found(span, None, None));
-                        '\u{FFFD}' // unicode replacement character
+                        '\u{FFFD}' // Unicode replacement character
                     })
-                }),
-        )),
-        (just("U00").ignore_then(
-            filter(|c: &char| c.is_ascii_hexdigit())
-                .repeated()
-                .exactly(6)
-                .collect::<String>()
-                .validate(|digits, span, emit| {
-                    char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
-                        emit(Cheap::expected_input_found(span, None, None));
-                        '\u{FFFD}'
-                    })
-                }),
+                })
+                .then_ignore(just('}')),
         )),
         (just('x').ignore_then(
             filter(|c: &char| c.is_ascii_hexdigit())
@@ -423,6 +456,52 @@ impl std::hash::Hash for Token {
 }
 
 impl std::cmp::Eq for Token {}
+
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::NewLine => write!(f, "new line"),
+            Token::Ident(arg0) => {
+                if arg0.is_empty() {
+                    write!(f, "an identifier")
+                } else {
+                    write!(f, "`{arg0}`")
+                }
+            }
+            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
+            Token::Literal(arg0) => write!(f, "{}", arg0),
+            Token::Control(arg0) => write!(f, "{arg0}"),
+
+            Token::ArrowThin => f.write_str("->"),
+            Token::ArrowFat => f.write_str("=>"),
+            Token::Eq => f.write_str("=="),
+            Token::Ne => f.write_str("!="),
+            Token::Gte => f.write_str(">="),
+            Token::Lte => f.write_str("<="),
+            Token::RegexSearch => f.write_str("~="),
+            Token::And => f.write_str("&&"),
+            Token::Or => f.write_str("||"),
+            Token::Coalesce => f.write_str("??"),
+            Token::DivInt => f.write_str("//"),
+            Token::Annotate => f.write_str("@{"),
+
+            Token::Param(id) => write!(f, "${id}"),
+
+            Token::Range {
+                bind_left,
+                bind_right,
+            } => write!(
+                f,
+                "'{}..{}'",
+                if *bind_left { "" } else { " " },
+                if *bind_right { "" } else { " " }
+            ),
+            Token::Interpolation(c, s) => {
+                write!(f, "{c}\"{}\"", s)
+            }
+        }
+    }
+}
 
 #[test]
 fn test_line_wrap() {
@@ -492,6 +571,29 @@ fn test_line_wrap() {
 }
 
 #[test]
+fn numbers() {
+    // Binary notation
+    assert_eq!(
+        literal().parse("0b1111000011110000").unwrap(),
+        Literal::Integer(61680)
+    );
+    assert_eq!(
+        literal().parse("0b_1111000011110000").unwrap(),
+        Literal::Integer(61680)
+    );
+
+    // Hexadecimal notation
+    assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
+    assert_eq!(
+        literal().parse("0x_deadbeef").unwrap(),
+        Literal::Integer(3735928559)
+    );
+
+    // Octal notation
+    assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
+}
+
+#[test]
 fn quotes() {
     use insta::assert_snapshot;
 
@@ -525,5 +627,5 @@ fn quotes() {
     assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
 
     // Unicode escape
-    assert_snapshot!(quoted_string(true).parse(r"'\U0001F422'").unwrap(), @"🐢");
+    assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
 }

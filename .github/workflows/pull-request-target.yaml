@@ -75,7 +75,7 @@ jobs:
 
     # Check it's not coming from a fork — both to save running and
     # in case someone spoofed an `actor` name.
-    if: "!github.event.pull_request.head.repo.fork"
+    if: ${{ !github.event.pull_request.head.repo.fork }}
 
     steps:
       # Get number of commits in the PR
@@ -87,12 +87,12 @@ jobs:
           "$GITHUB_OUTPUT"
       - if:
           # - It's dependabot
-          # - or it's an backport to the web branch
+          # - or it's prql-bot
           # - or it's a pre-commit-ci update and there's only 1 commit — so it hasn't
           #   made any changes to files
-          github.actor == 'dependabot[bot]' || (github.base_ref == 'web' &&
-          github.actor == 'prql-bot') || (github.actor == 'pre-commit-ci[bot]'
-          && steps.commit-count.outputs.commit-count == '1')
+          github.actor == 'dependabot[bot]' || github.actor == 'prql-bot' ||
+          (github.actor == 'pre-commit-ci[bot]' &&
+          steps.commit-count.outputs.commit-count == '1')
         run:
           gh pr merge --auto --squash --delete-branch ${{
           github.event.pull_request.html_url }}

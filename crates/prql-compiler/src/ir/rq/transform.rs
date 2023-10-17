@@ -1,8 +1,8 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::generic::ColumnSort;
-use crate::generic::WindowFrame;
+use crate::ir::generic::ColumnSort;
+use crate::ir::generic::WindowFrame;
 use crate::ir::pl::JoinSide;
 
 use super::*;

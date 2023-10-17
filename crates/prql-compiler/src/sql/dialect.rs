@@ -48,6 +48,7 @@ pub enum Dialect {
     DuckDb,
     #[default]
     Generic,
+    GlareDb,
     MsSql,
     MySql,
     Postgres,
@@ -70,6 +71,7 @@ impl Dialect {
             Dialect::Snowflake => Box::new(SnowflakeDialect),
             Dialect::DuckDb => Box::new(DuckDbDialect),
             Dialect::Postgres => Box::new(PostgresDialect),
+            Dialect::GlareDb => Box::new(GlareDbDialect),
             Dialect::Ansi | Dialect::Generic => Box::new(GenericDialect),
         }
     }
@@ -82,9 +84,11 @@ impl Dialect {
             | Dialect::MySql
             | Dialect::Generic
             | Dialect::ClickHouse => SupportLevel::Supported,
-            Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
-                SupportLevel::Unsupported
-            }
+            Dialect::MsSql
+            | Dialect::GlareDb
+            | Dialect::Ansi
+            | Dialect::BigQuery
+            | Dialect::Snowflake => SupportLevel::Unsupported,
         }
     }
 
@@ -118,6 +122,8 @@ pub struct SnowflakeDialect;
 pub struct DuckDbDialect;
 #[derive(Debug)]
 pub struct PostgresDialect;
+#[derive(Debug)]
+pub struct GlareDbDialect;
 
 pub(super) enum ColumnExclude {
     Exclude,
@@ -191,6 +197,12 @@ impl DialectHandler for PostgresDialect {
 
     fn supports_distinct_on(&self) -> bool {
         // https://www.postgresql.org/docs/current/sql-select.html
+        true
+    }
+}
+
+impl DialectHandler for GlareDbDialect {
+    fn requires_quotes_intervals(&self) -> bool {
         true
     }
 }

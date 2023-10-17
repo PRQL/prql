@@ -19,20 +19,20 @@ test = false
 ansi-to-html = "0.1.3"
 anyhow = "1.0.75"
 itertools = "0.11.0"
-mdbook = {version = "0.4.34", default-features = false}
+mdbook = {version = "0.4.35", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prql-compiler = {path = "../../crates/prql-compiler", default-features = false}
 pulldown-cmark = "0.9.3"
 pulldown-cmark-to-cmark = "11.0.0"
 strum = {version = "0.25.0", features = ["std", "derive"]}
-strum_macros = "0.25.2"
+strum_macros = "0.25.3"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
 globset = "0.4.13"
-insta = {version = "1.32", features = ["colors", "glob"]}
+insta = {version = "1.34", features = ["colors", "glob"]}
 log = "0.4.20"
-regex = "1.9.5"
+regex = "1.9.6"
 serde_json = "1.0.107"
 serde_yaml = "0.9"
 similar-asserts = "1.5.0"

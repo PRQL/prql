@@ -16,7 +16,7 @@ mod stmt;
 mod types;
 mod utils;
 
-use crate::generic::{SortDirection, WindowKind};
+use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::rq::TableRef;
 use crate::*;
 use crate::{ir::rq::RelationalQuery, sql::internal::SqlTransform, SourceTree, Span};

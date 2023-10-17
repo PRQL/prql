@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(String)))))
+Query(Statements(PipelineStatement(Pipeline(String))))
 
 # Double-quoted string
 
@@ -12,7 +12,7 @@ Query(Statements(Pipeline_stmt(Pipeline(Expr(String)))))
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(String)))))
+Query(Statements(PipelineStatement(Pipeline(String))))
 
 # Single-quoted f-string
 
@@ -20,7 +20,7 @@ f'Hello {name}!'
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(F_string)))))
+Query(Statements(PipelineStatement(Pipeline(FString))))
 
 # Double-quoted f-string
 
@@ -28,7 +28,7 @@ f"Hello {name}!"
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(F_string)))))
+Query(Statements(PipelineStatement(Pipeline(FString))))
 
 # Single-quoted r-string
 
@@ -36,7 +36,7 @@ r'version()'
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(R_string)))))
+Query(Statements(PipelineStatement(Pipeline(RString))))
 
 # Double-quoted r-string
 
@@ -44,7 +44,7 @@ r"version()"
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(R_string)))))
+Query(Statements(PipelineStatement(Pipeline(RString))))
 
 # Single-quoted s-string
 
@@ -52,7 +52,7 @@ s'version()'
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(S_string)))))
+Query(Statements(PipelineStatement(Pipeline(SString))))
 
 # Double-quoted s-string
 
@@ -60,4 +60,20 @@ s"version()"
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Expr(S_string)))))
+Query(Statements(PipelineStatement(Pipeline(SString))))
+
+# Triple-quoted single-quoted string
+
+'''Hello world!'''
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(String))))
+
+# Triple-quoted double-quoted string
+
+"""Hello world!"""
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(String))))

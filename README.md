@@ -128,7 +128,6 @@ To stay in touch with PRQL:
 
 - [PRQL Playground][prql playground] — experiment with PRQL in the browser.
 - [PRQL Book][prql book] — the language documentation.
-- [dbt-prql][dbt-prql] — write PRQL in dbt models.
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
@@ -143,8 +142,9 @@ To stay in touch with PRQL:
 This repo is composed of:
 
 - **[prql-compiler](./crates/prql-compiler/)** — the compiler, written in rust,
-  whose main role is to compile PRQL into SQL. It also includes
-  [prqlc](./crates/prqlc/), the CLI.
+  whose main role is to compile PRQL into SQL.
+- **[prqlc](./crates/prqlc/)** — A single binary command line tool for
+  prql-compiler, written in rust.
 - **[web](./web/)** — our web content: the [Book][prql book],
   [Website][prql website], and [Playground][prql playground].
 - **[bindings](./bindings/)** — bindings from various languages to
@@ -164,4 +164,3 @@ Many thanks to those who've made our progress possible:
 [contributing]: https://prql-lang.org/book/project/contributing/
 [development]: https://prql-lang.org/book/project/contributing/development.html
 [prql playground]: https://prql-lang.org/playground
-[dbt-prql]: https://github.com/prql/dbt-prql

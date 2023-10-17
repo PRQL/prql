@@ -70,7 +70,7 @@ let upper = column -> s"UPPER({column:0})"
 
 # Source-reading functions, primarily for DuckDB
 let read_parquet = source -> s"read_parquet({source:0})"
-let read_csv = source -> s"read_csv_auto({source:0})"
+let read_csv = source -> s"read_csv({source:0})"
 
 @{binding_strength=11}
 let mul = l r -> null
@@ -146,6 +146,10 @@ module clickhouse {
   let div_i = l r -> s"({l} DIV {r})"
 
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
+
+  let read_csv = source -> s"file({source:0}, 'CSV')"
+
+  let read_parquet = source -> s"file({source:0}, 'Parquet')"
 }
 
 module duckdb {
@@ -156,6 +160,8 @@ module duckdb {
   let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
+
+  let read_csv = source -> s"read_csv_auto({source:0})"
 }
 
 module mssql {
@@ -180,6 +186,20 @@ module mysql {
 }
 
 module postgres {
+  @{binding_strength=11}
+  let div_f = l r -> s"({l} * 1.0 / {r})"
+
+  @{binding_strength=100}
+  let div_i = l r -> s"TRUNC({l:11} / {r:11})"
+
+  @{binding_strength=100}
+  let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+
+  @{binding_strength=9}
+  let regex_search = text pattern -> s"{text} ~ {pattern}"
+}
+
+module glaredb {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r})"
 

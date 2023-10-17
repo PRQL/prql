@@ -4,7 +4,7 @@ filter foo
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Func_call(Ident,Expr(Ident))))))
+Query(Statements(PipelineStatement(Pipeline(CallExpression(Identifier,Identifier)))))
 
 # Identifier with underscore and digit
 
@@ -12,7 +12,7 @@ filter foo_123
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Func_call(Ident,Expr(Ident))))))
+Query(Statements(PipelineStatement(Pipeline(CallExpression(Identifier,Identifier)))))
 
 # Unicode identifier
 
@@ -20,4 +20,4 @@ filter räksmörgås
 
 ==>
 
-Query(Statements(Pipeline_stmt(Pipeline(Func_call(Ident,Expr(Ident))))))
+Query(Statements(PipelineStatement(Pipeline(CallExpression(Identifier,Identifier)))))

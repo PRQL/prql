@@ -1,9 +1,7 @@
 mod ast;
-mod literal;
 mod pl;
 
 pub use ast::{write_expr, write_stmts};
-pub use literal::DisplayLiteral;
 
 pub trait WriteSource {
     /// Converts self to its source representation according to specified
@@ -168,5 +166,44 @@ impl<'a, T: WriteSource> SeparatedExprs<'a, T> {
         opt.consume_width(separators as u16)?;
 
         Some(exprs.join(self.inline))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use insta::assert_snapshot;
+    use prql_ast::expr::{Expr, ExprKind, Literal};
+
+    #[test]
+    fn test_string_quoting() {
+        fn mk_str(s: &str) -> Expr {
+            Expr::new(ExprKind::Literal(Literal::String(s.to_string())))
+        }
+
+        assert_snapshot!(
+            write_expr(&mk_str("hello")),
+            @r###""hello""###
+        );
+
+        assert_snapshot!(
+            write_expr(&mk_str(r#"he's nice"#)),
+            @r###""he's nice""###
+        );
+
+        assert_snapshot!(
+            write_expr(&mk_str(r#"he said "what up""#)),
+            @r###"'he said "what up"'"###
+        );
+
+        assert_snapshot!(
+            write_expr(&mk_str(r#"he said "what's up""#)),
+            @r###"""he said "what's up""""###
+        );
+
+        assert_snapshot!(
+            write_expr(&mk_str(r#" single' three double""" found double"""" "#)),
+            @r###"""""" single' three double""" found double"""" """"""###
+        );
     }
 }

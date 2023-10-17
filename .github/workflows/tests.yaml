@@ -38,7 +38,7 @@ jobs:
       book: ${{ steps.changes.outputs.book }}
       dotnet: ${{ steps.changes.outputs.dotnet }}
       devcontainer-push: ${{ steps.devcontainer-push.outputs.run }}
-      devcontainer-test: ${{ steps.changes.outputs.devcontainer-test }}
+      devcontainer-build: ${{ steps.devcontainer-build.outputs.run }}
       elixir: ${{ steps.changes.outputs.elixir }}
       grammars: ${{ steps.changes.outputs.grammars }}
       java: ${{ steps.changes.outputs.java }}
@@ -75,7 +75,7 @@ jobs:
             devcontainer-push:
               - .devcontainer/**/*Dockerfile
               - Taskfile.yml
-            devcontainer-test:
+            devcontainer-build:
               - .devcontainer/**/*Dockerfile
               - .github/workflows/build-devcontainer.yaml
               - Taskfile.yml
@@ -123,6 +123,9 @@ jobs:
               - ".github/workflows/build-web.yaml"
               - "**.md"
 
+      # We put a few of the more complex rules as steps here, rather than having
+      # them inline. There's no strict delineation between logic here vs. inline.
+
       - id: nightly
         # TODO: actionlint annoyingly blocks this — try and find a way of getting
         # it back without too much trouble...
@@ -139,7 +142,7 @@ jobs:
       - id: main
         run:
           echo "run=${{ steps.changes.outputs.main == 'true' || github.ref ==
-          'refs/heads/main' || steps.nightly.outputs.run == 'true'  }}" >>
+          'refs/heads/main' || steps.nightly.outputs.run == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
       - id: devcontainer-push
@@ -148,6 +151,13 @@ jobs:
         run:
           echo "run=${{ steps.changes.outputs.devcontainer-push == 'true' &&
           github.ref == 'refs/heads/main' && github.event_name == 'push' }}" >>
+          "$GITHUB_OUTPUT"
+
+      - id: devcontainer-build
+        run:
+          echo "run=${{ steps.devcontainer-push.outputs.run == 'true' ||
+          steps.changes.outputs.devcontainer-build == 'true' ||
+          steps.changes.outputs.nightly-schedule == 'true' }}" >>
           "$GITHUB_OUTPUT"
 
   test-rust:
@@ -252,7 +262,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -364,7 +374,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: hyperlink
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -391,7 +401,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-tarpaulin
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -434,21 +444,19 @@ jobs:
         working-directory: grammars/prql-lezer/
         run: bun run test
 
-  push-devcontainer:
+  build-devcontainer:
     needs: rules
-    if: needs.rules.outputs.devcontainer-push == 'true'
+    if: needs.rules.outputs.devcontainer-build == 'true'
     uses: ./.github/workflows/build-devcontainer.yaml
+    # One problem with this setup is that if another commit is merged to main,
+    # this workflow will cancel existing jobs, and so this won't get pushed. We
+    # have another workflow which runs on each release, so the image should get
+    # pushed eventually. The alternative is to have a separate workflow, but
+    # then we can't use the nice logic of when to run the workflow that we've
+    # built up here.
     with:
-      push: true
-
-  test-devcontainer:
-    needs: rules
-    if:
-      ${{ needs.rules.outputs.devcontainer-test == 'true' ||
-      needs.rules.outputs.nightly-schedule == 'true' }}
-    uses: ./.github/workflows/build-devcontainer.yaml
-    with:
-      push: false
+      # This needs to compare to the string `'true'`, because of GHA awkwardness
+      push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
   time-compilation:
     runs-on: ubuntu-latest
@@ -488,6 +496,7 @@ jobs:
     # tests) will pass when a task is skipped.
     if: always()
     needs:
+      - build-devcontainer
       - build-web
       - check-links-book
       - check-links-markdown
@@ -495,7 +504,6 @@ jobs:
       - nightly
       - publish-web
       - test-msrv
-      - test-devcontainer
       - test-dotnet
       - test-elixir
       - test-java
@@ -532,6 +540,7 @@ jobs:
           # https://github.com/re-actors/alls-green/issues/23
           allowed-skips: |
             [
+              "build-devcontainer",
               "build-web",
               "check-links-book",
               "check-links-markdown",
@@ -539,7 +548,6 @@ jobs:
               "nightly",
               "publish-web",
               "test-msrv",
-              "test-devcontainer",
               "test-dotnet",
               "test-elixir",
               "test-java",

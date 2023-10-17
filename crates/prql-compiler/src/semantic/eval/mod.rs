@@ -3,9 +3,12 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
+use prql_ast::error::Error;
+use prql_ast::Span;
+
 use super::ast_expand;
-use crate::error::{Error, Span, WithErrorInfo};
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
+use crate::WithErrorInfo;
 
 pub fn eval(expr: prql_ast::expr::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
