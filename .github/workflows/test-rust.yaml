@@ -33,7 +33,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - name: Free up space
+      - name: Free up disk space
         # https://github.com/actions/runner-images/issues/2840
         run: ./scripts/free_space.sh
       - if: ${{ contains(inputs.target, 'musl') }}
