@@ -33,9 +33,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - name: Free up disk space
-        # https://github.com/actions/runner-images/issues/2840
-        run: ./scripts/free_space.sh
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update
@@ -66,6 +63,10 @@ jobs:
           args: >
             --no-run --locked --target=${{ inputs.target }} --features=${{
             inputs.features }}
+      - name: Free up disk space
+        # https://github.com/actions/runner-images/issues/2840
+        run: ./.github/workflows/scripts/util_free_space.sh
+        if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: Run docker compose
         run: docker compose up -d
         working-directory: ./crates/prql-compiler/tests/integration
