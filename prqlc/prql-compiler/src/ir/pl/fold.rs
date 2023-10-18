@@ -130,7 +130,6 @@ pub fn fold_var_def<F: ?Sized + PlFold>(fold: &mut F, var_def: VarDef) -> Result
         name: var_def.name,
         value: Box::new(fold.fold_expr(*var_def.value)?),
         ty_expr: fold_optional_box(fold, var_def.ty_expr)?,
-        kind: var_def.kind,
     })
 }
 

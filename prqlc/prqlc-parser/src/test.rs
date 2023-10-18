@@ -126,51 +126,63 @@ fn test_take() {
     parse_single("take 10").unwrap();
 
     assert_yaml_snapshot!(parse_single(r#"take 10"#).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - take
-              args:
-                - Literal:
-                    Integer: 10
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - take
+            args:
+              - Literal:
+                  Integer: 10
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - take
-              args:
-                - Range:
-                    start: ~
-                    end:
-                      Literal:
-                        Integer: 10
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - take
+            args:
+              - Range:
+                  start: ~
+                  end:
+                    Literal:
+                      Integer: 10
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - take
-              args:
-                - Range:
-                    start:
-                      Literal:
-                        Integer: 1
-                    end:
-                      Literal:
-                        Integer: 10
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - take
+            args:
+              - Range:
+                  start:
+                    Literal:
+                      Integer: 1
+                  end:
+                    Literal:
+                      Integer: 10
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -407,17 +419,21 @@ fn test_basic_exprs() {
             r#"# this is a comment
         select a"#
         ).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - select
-              args:
-                - Ident:
-                    - a
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - select
+            args:
+              - Ident:
+                  - a
+        ty_expr: ~
+      annotations: []
+    "###);
     assert_yaml_snapshot!(parse_expr(
             "join side:left country (id==employee_id)"
         ).unwrap(), @r###"
@@ -740,48 +756,56 @@ fn test_number() {
 fn test_filter() {
     assert_yaml_snapshot!(
             parse_single(r#"filter country == "USA""#).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - filter
-              args:
-                - Binary:
-                    left:
-                      Ident:
-                        - country
-                    op: Eq
-                    right:
-                      Literal:
-                        String: USA
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - filter
+            args:
+              - Binary:
+                  left:
+                    Ident:
+                      - country
+                  op: Eq
+                  right:
+                    Literal:
+                      String: USA
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(
         parse_single(r#"filter (upper country) == "USA""#).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - filter
-              args:
-                - Binary:
-                    left:
-                      FuncCall:
-                        name:
-                          Ident:
-                            - upper
-                        args:
-                          - Ident:
-                              - country
-                    op: Eq
-                    right:
-                      Literal:
-                        String: USA
-          annotations: []
-        "###
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - filter
+            args:
+              - Binary:
+                  left:
+                    FuncCall:
+                      name:
+                        Ident:
+                          - upper
+                      args:
+                        - Ident:
+                            - country
+                  op: Eq
+                  right:
+                    Literal:
+                      String: USA
+        ty_expr: ~
+      annotations: []
+    "###
     );
 }
 
@@ -795,33 +819,37 @@ fn test_aggregate() {
     .unwrap();
     assert_yaml_snapshot!(
             aggregate, @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - group
-              args:
-                - Tuple:
-                    - Ident:
-                        - title
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - Tuple:
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - sum
-                              args:
-                                - Ident:
-                                    - salary
-                          - Ident:
-                              - count
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - group
+            args:
+              - Tuple:
+                  - Ident:
+                      - title
+              - FuncCall:
+                  name:
+                    Ident:
+                      - aggregate
+                  args:
+                    - Tuple:
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - sum
+                            args:
+                              - Ident:
+                                  - salary
+                        - Ident:
+                            - count
+        ty_expr: ~
+      annotations: []
+    "###);
     let aggregate = parse_single(
         r"group {title} (
                 aggregate {sum salary}
@@ -830,31 +858,35 @@ fn test_aggregate() {
     .unwrap();
     assert_yaml_snapshot!(
             aggregate, @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - group
-              args:
-                - Tuple:
-                    - Ident:
-                        - title
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - Tuple:
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - sum
-                              args:
-                                - Ident:
-                                    - salary
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - group
+            args:
+              - Tuple:
+                  - Ident:
+                      - title
+              - FuncCall:
+                  name:
+                    Ident:
+                      - aggregate
+                  args:
+                    - Tuple:
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - sum
+                            args:
+                              - Ident:
+                                  - salary
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1022,183 +1054,187 @@ fn test_regex() {
 #[test]
 fn test_function() {
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap(), @r###"
-        ---
-        - VarDef:
-            name: plus_one
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Binary:
-                    left:
-                      Ident:
-                        - x
-                    op: Add
-                    right:
-                      Literal:
-                        Integer: 1
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
-    assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
-        , @r###"
-        ---
-        - VarDef:
-            name: identity
-            value:
-              Func:
-                return_ty: ~
-                body:
+    ---
+    - VarDef:
+        kind: Let
+        name: plus_one
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Binary:
+                left:
                   Ident:
                     - x
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+                op: Add
+                right:
+                  Literal:
+                    Integer: 1
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
+    assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
+        , @r###"
+    ---
+    - VarDef:
+        kind: Let
+        name: identity
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Ident:
+                - x
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
-        ---
-        - VarDef:
-            name: plus_one
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Binary:
-                    left:
-                      Ident:
-                        - x
-                    op: Add
-                    right:
-                      Literal:
-                        Integer: 1
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: plus_one
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Literal:
+                    Integer: 1
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
-        ---
-        - VarDef:
-            name: plus_one
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Binary:
-                    left:
-                      Ident:
-                        - x
-                    op: Add
-                    right:
-                      Literal:
-                        Integer: 1
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: plus_one
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Literal:
+                    Integer: 1
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
-        ---
-        - VarDef:
-            name: foo
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  FuncCall:
-                    name:
-                      Ident:
-                        - some_func
-                    args:
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - foo
-                          args:
-                            - Binary:
-                                left:
-                                  Ident:
-                                    - bar
-                                op: Add
-                                right:
-                                  Literal:
-                                    Integer: 1
-                      - Binary:
-                          left:
-                            Ident:
-                              - plax
-                          op: Sub
-                          right:
-                            Ident:
-                              - baz
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: foo
+        value:
+          Func:
+            return_ty: ~
+            body:
+              FuncCall:
+                name:
+                  Ident:
+                    - some_func
+                args:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - foo
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - bar
+                            op: Add
+                            right:
+                              Literal:
+                                Integer: 1
+                  - Binary:
+                      left:
+                        Ident:
+                          - plax
+                      op: Sub
+                      right:
+                        Ident:
+                          - baz
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
-        ---
-        - Main:
-            Func:
-              return_ty: ~
-              body:
-                Literal:
-                  Integer: 42
-              params:
-                - name: return_constant
-                  default_value: ~
-              named_params: []
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Literal:
+                Integer: 42
+            params:
+              - name: return_constant
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
         "#).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: count
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  SString:
-                    - String: SUM(
-                    - Expr:
-                        expr:
-                          Ident:
-                            - X
-                        format: ~
-                    - String: )
-                params:
-                  - name: X
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: count
+        value:
+          Func:
+            return_ty: ~
+            body:
+              SString:
+                - String: SUM(
+                - Expr:
+                    expr:
+                      Ident:
+                        - X
+                    format: ~
+                - String: )
+            params:
+              - name: X
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(
             r#"
@@ -1211,80 +1247,80 @@ fn test_function() {
         "#
         )
         .unwrap(), @r###"
-        ---
-        - VarDef:
-            name: lag_day
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Pipeline:
-                    exprs:
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - window
-                          args:
-                            - Ident:
-                                - x
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - by
-                          args:
-                            - Ident:
-                                - sec_id
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - sort
-                          args:
-                            - Ident:
-                                - date
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - lag
-                          args:
-                            - Literal:
-                                Integer: 1
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: lag_day
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - window
+                      args:
+                        - Ident:
+                            - x
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - by
+                      args:
+                        - Ident:
+                            - sec_id
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Ident:
+                            - date
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - lag
+                      args:
+                        - Literal:
+                            Integer: 1
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
-        ---
-        - VarDef:
-            name: add
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Binary:
-                    left:
-                      Ident:
-                        - x
-                    op: Add
-                    right:
-                      Ident:
-                        - to
-                params:
-                  - name: x
-                    default_value: ~
-                named_params:
-                  - name: to
-                    default_value:
-                      Ident:
-                        - a
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: add
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Ident:
+                    - to
+            params:
+              - name: x
+                default_value: ~
+            named_params:
+              - name: to
+                default_value:
+                  Ident:
+                    - a
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1468,21 +1504,21 @@ fn test_var_def() {
     assert_yaml_snapshot!(parse_single(
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: newest_employees
-            value:
-              FuncCall:
-                name:
-                  Ident:
-                    - from
-                args:
-                  - Ident:
-                      - employees
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: newest_employees
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - from
+            args:
+              - Ident:
+                  - employees
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(
             r#"
@@ -1497,72 +1533,72 @@ fn test_var_def() {
           take 50
         )"#.trim()).unwrap(),
          @r###"
-        ---
-        - VarDef:
-            name: newest_employees
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - employees
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - group
-                      args:
-                        - Ident:
-                            - country
-                        - FuncCall:
-                            name:
-                              Ident:
-                                - aggregate
-                            args:
-                              - Tuple:
-                                  - FuncCall:
-                                      name:
-                                        Ident:
-                                          - average
-                                      args:
-                                        - Ident:
-                                            - salary
-                                    alias: average_country_salary
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - sort
-                      args:
-                        - Ident:
-                            - tenure
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - take
-                      args:
-                        - Literal:
-                            Integer: 50
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: newest_employees
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - employees
+              - FuncCall:
+                  name:
+                    Ident:
+                      - group
+                  args:
+                    - Ident:
+                        - country
+                    - FuncCall:
+                        name:
+                          Ident:
+                            - aggregate
+                        args:
+                          - Tuple:
+                              - FuncCall:
+                                  name:
+                                    Ident:
+                                      - average
+                                  args:
+                                    - Ident:
+                                        - salary
+                                alias: average_country_salary
+              - FuncCall:
+                  name:
+                    Ident:
+                      - sort
+                  args:
+                    - Ident:
+                        - tenure
+              - FuncCall:
+                  name:
+                    Ident:
+                      - take
+                  args:
+                    - Literal:
+                        Integer: 50
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(r#"
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: e
-            value:
-              SString:
-                - String: SELECT * FROM employees
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: e
+        value:
+          SString:
+            - String: SELECT * FROM employees
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(
           "let x = (
@@ -1575,40 +1611,44 @@ fn test_var_def() {
 
           from x"
         ).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: x
-            value:
-              Pipeline:
-                exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - from
-                      args:
-                        - Ident:
-                            - x_table
-                  - FuncCall:
-                      name:
-                        Ident:
-                          - select
-                      args:
-                        - Ident:
-                            - foo
-                          alias: only_in_x
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - from
-              args:
-                - Ident:
-                    - x
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: x
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - x_table
+              - FuncCall:
+                  name:
+                    Ident:
+                      - select
+                  args:
+                    - Ident:
+                        - foo
+                      alias: only_in_x
+        ty_expr: ~
+      annotations: []
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - from
+            args:
+              - Ident:
+                  - x
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1628,32 +1668,32 @@ fn test_inline_pipeline() {
                       Integer: 50
         "###);
     assert_yaml_snapshot!(parse_single("let median = x -> (x | percentile 50)\n").unwrap(), @r###"
-        ---
-        - VarDef:
-            name: median
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Pipeline:
-                    exprs:
-                      - Ident:
-                          - x
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - percentile
-                          args:
-                            - Literal:
-                                Integer: 50
-                params:
-                  - name: x
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: median
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Pipeline:
+                exprs:
+                  - Ident:
+                      - x
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - percentile
+                      args:
+                        - Literal:
+                            Integer: 50
+            params:
+              - name: x
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1665,39 +1705,43 @@ fn test_sql_parameters() {
           last_name == $2.name
         }
         "#).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - mytable
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Tuple:
-                          - Binary:
-                              left:
-                                Ident:
-                                  - first_name
-                              op: Eq
-                              right:
-                                Param: "1"
-                          - Binary:
-                              left:
-                                Ident:
-                                  - last_name
-                              op: Eq
-                              right:
-                                Param: 2.name
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - mytable
+              - FuncCall:
+                  name:
+                    Ident:
+                      - filter
+                  args:
+                    - Tuple:
+                        - Binary:
+                            left:
+                              Ident:
+                                - first_name
+                            op: Eq
+                            right:
+                              Param: "1"
+                        - Binary:
+                            left:
+                              Ident:
+                                - last_name
+                            op: Eq
+                            right:
+                              Param: 2.name
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1725,60 +1769,64 @@ join `my-proj`.`dataset`.`table`
 ";
 
     assert_yaml_snapshot!(parse_single(prql).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - a/*.parquet
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - Tuple:
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - max
-                              args:
-                                - Ident:
-                                    - c
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - schema.table
-                      - Unary:
-                          op: EqSelf
-                          expr:
-                            Ident:
-                              - id
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - my-proj.dataset.table
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - my-proj
-                          - dataset
-                          - table
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - a/*.parquet
+              - FuncCall:
+                  name:
+                    Ident:
+                      - aggregate
+                  args:
+                    - Tuple:
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - max
+                            args:
+                              - Ident:
+                                  - c
+              - FuncCall:
+                  name:
+                    Ident:
+                      - join
+                  args:
+                    - Ident:
+                        - schema.table
+                    - Unary:
+                        op: EqSelf
+                        expr:
+                          Ident:
+                            - id
+              - FuncCall:
+                  name:
+                    Ident:
+                      - join
+                  args:
+                    - Ident:
+                        - my-proj.dataset.table
+              - FuncCall:
+                  name:
+                    Ident:
+                      - join
+                  args:
+                    - Ident:
+                        - my-proj
+                        - dataset
+                        - table
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1791,73 +1839,77 @@ fn test_sort() {
         sort {-issued_at}
         sort {issued_at, -amount, +num_of_articles}
         ").unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - invoices
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Ident:
-                          - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Unary:
-                          op: Neg
-                          expr:
-                            Ident:
-                              - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Tuple:
-                          - Ident:
-                              - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Tuple:
-                          - Unary:
-                              op: Neg
-                              expr:
-                                Ident:
-                                  - issued_at
-                - FuncCall:
-                    name:
-                      Ident:
-                        - sort
-                    args:
-                      - Tuple:
-                          - Ident:
-                              - issued_at
-                          - Unary:
-                              op: Neg
-                              expr:
-                                Ident:
-                                  - amount
-                          - Unary:
-                              op: Add
-                              expr:
-                                Ident:
-                                  - num_of_articles
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - invoices
+              - FuncCall:
+                  name:
+                    Ident:
+                      - sort
+                  args:
+                    - Ident:
+                        - issued_at
+              - FuncCall:
+                  name:
+                    Ident:
+                      - sort
+                  args:
+                    - Unary:
+                        op: Neg
+                        expr:
+                          Ident:
+                            - issued_at
+              - FuncCall:
+                  name:
+                    Ident:
+                      - sort
+                  args:
+                    - Tuple:
+                        - Ident:
+                            - issued_at
+              - FuncCall:
+                  name:
+                    Ident:
+                      - sort
+                  args:
+                    - Tuple:
+                        - Unary:
+                            op: Neg
+                            expr:
+                              Ident:
+                                - issued_at
+              - FuncCall:
+                  name:
+                    Ident:
+                      - sort
+                  args:
+                    - Tuple:
+                        - Ident:
+                            - issued_at
+                        - Unary:
+                            op: Neg
+                            expr:
+                              Ident:
+                                - amount
+                        - Unary:
+                            op: Add
+                            expr:
+                              Ident:
+                                - num_of_articles
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -1866,36 +1918,40 @@ fn test_dates() {
         from employees
         derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - derive
-                    args:
-                      - Tuple:
-                          - Binary:
-                              left:
-                                Ident:
-                                  - age
-                              op: Add
-                              right:
-                                Literal:
-                                  ValueAndUnit:
-                                    n: 2
-                                    unit: years
-                            alias: age_plus_two_years
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - employees
+              - FuncCall:
+                  name:
+                    Ident:
+                      - derive
+                  args:
+                    - Tuple:
+                        - Binary:
+                            left:
+                              Ident:
+                                - age
+                            op: Add
+                            right:
+                              Literal:
+                                ValueAndUnit:
+                                  n: 2
+                                  unit: years
+                          alias: age_plus_two_years
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
         ---
@@ -1926,18 +1982,22 @@ fn test_multiline_string() {
     assert_yaml_snapshot!(parse_single(r##"
         derive x = r#"r-string test"#
         "##).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - derive
-              args:
-                - Ident:
-                    - r
-                  alias: x
-          annotations: []
-        "### )
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - derive
+            args:
+              - Ident:
+                  - r
+                alias: x
+        ty_expr: ~
+      annotations: []
+    "### )
 }
 
 #[test]
@@ -1946,33 +2006,37 @@ fn test_coalesce() {
         from employees
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - derive
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - amount
-                          op: Coalesce
-                          right:
-                            Literal:
-                              Integer: 0
-                        alias: amount
-          annotations: []
-        "### )
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - employees
+              - FuncCall:
+                  name:
+                    Ident:
+                      - derive
+                  args:
+                    - Binary:
+                        left:
+                          Ident:
+                            - amount
+                        op: Coalesce
+                        right:
+                          Literal:
+                            Integer: 0
+                      alias: amount
+        ty_expr: ~
+      annotations: []
+    "### )
 }
 
 #[test]
@@ -1980,18 +2044,22 @@ fn test_literal() {
     assert_yaml_snapshot!(parse_single(r###"
         derive x = true
         "###).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - derive
-              args:
-                - Literal:
-                    Boolean: true
-                  alias: x
-          annotations: []
-        "###)
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - derive
+            args:
+              - Literal:
+                  Boolean: true
+                alias: x
+        ty_expr: ~
+      annotations: []
+    "###)
 }
 
 #[test]
@@ -2002,52 +2070,56 @@ fn test_allowed_idents() {
         filter first_name == $1
         select {_employees._underscored_column}
         "###).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - _salary
-                      - Unary:
-                          op: EqSelf
-                          expr:
-                            Ident:
-                              - employee_id
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - first_name
-                          op: Eq
-                          right:
-                            Param: "1"
-                - FuncCall:
-                    name:
-                      Ident:
-                        - select
-                    args:
-                      - Tuple:
-                          - Ident:
-                              - _employees
-                              - _underscored_column
-          annotations: []
-        "###)
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - employees
+              - FuncCall:
+                  name:
+                    Ident:
+                      - join
+                  args:
+                    - Ident:
+                        - _salary
+                    - Unary:
+                        op: EqSelf
+                        expr:
+                          Ident:
+                            - employee_id
+              - FuncCall:
+                  name:
+                    Ident:
+                      - filter
+                  args:
+                    - Binary:
+                        left:
+                          Ident:
+                            - first_name
+                        op: Eq
+                        right:
+                          Param: "1"
+              - FuncCall:
+                  name:
+                    Ident:
+                      - select
+                  args:
+                    - Tuple:
+                        - Ident:
+                            - _employees
+                            - _underscored_column
+        ty_expr: ~
+      annotations: []
+    "###)
 }
 
 #[test]
@@ -2059,71 +2131,75 @@ fn test_gt_lt_gte_lte() {
         filter salary > 0
         filter num_eyes < 2
         "###).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - people
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - age
-                          op: Gte
-                          right:
-                            Literal:
-                              Integer: 100
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - num_grandchildren
-                          op: Lte
-                          right:
-                            Literal:
-                              Integer: 10
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - salary
-                          op: Gt
-                          right:
-                            Literal:
-                              Integer: 0
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Binary:
-                          left:
-                            Ident:
-                              - num_eyes
-                          op: Lt
-                          right:
-                            Literal:
-                              Integer: 2
-          annotations: []
-        "###)
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - people
+              - FuncCall:
+                  name:
+                    Ident:
+                      - filter
+                  args:
+                    - Binary:
+                        left:
+                          Ident:
+                            - age
+                        op: Gte
+                        right:
+                          Literal:
+                            Integer: 100
+              - FuncCall:
+                  name:
+                    Ident:
+                      - filter
+                  args:
+                    - Binary:
+                        left:
+                          Ident:
+                            - num_grandchildren
+                        op: Lte
+                        right:
+                          Literal:
+                            Integer: 10
+              - FuncCall:
+                  name:
+                    Ident:
+                      - filter
+                  args:
+                    - Binary:
+                        left:
+                          Ident:
+                            - salary
+                        op: Gt
+                        right:
+                          Literal:
+                            Integer: 0
+              - FuncCall:
+                  name:
+                    Ident:
+                      - filter
+                  args:
+                    - Binary:
+                        left:
+                          Ident:
+                            - num_eyes
+                        op: Lt
+                        right:
+                          Literal:
+                            Integer: 2
+        ty_expr: ~
+      annotations: []
+    "###)
 }
 
 #[test]
@@ -2132,32 +2208,36 @@ fn test_assign() {
 from employees
 join s=salaries (==id)
         "###).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - join
-                    args:
-                      - Ident:
-                          - salaries
-                        alias: s
-                      - Unary:
-                          op: EqSelf
-                          expr:
-                            Ident:
-                              - id
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - employees
+              - FuncCall:
+                  name:
+                    Ident:
+                      - join
+                  args:
+                    - Ident:
+                        - salaries
+                      alias: s
+                    - Unary:
+                        op: EqSelf
+                        expr:
+                          Ident:
+                            - id
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -2234,17 +2314,21 @@ fn test_params() {
 fn test_unicode() {
     let source = "from tète";
     assert_yaml_snapshot!(parse_single(source).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - from
-              args:
-                - Ident:
-                    - tète
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          FuncCall:
+            name:
+              Ident:
+                - from
+            args:
+              - Ident:
+                  - tète
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -2254,41 +2338,45 @@ fn test_var_defs() {
             x
         )
         "#).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: a
-            value:
-              Ident:
-                - x
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: a
+        value:
+          Ident:
+            - x
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(r#"
         x
         into a
         "#).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: a
-            value:
-              Ident:
-                - x
-            ty_expr: ~
-            kind: Into
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Into
+        name: a
+        value:
+          Ident:
+            - x
+        ty_expr: ~
+      annotations: []
+    "###);
 
     assert_yaml_snapshot!(parse_single(r#"
         x
         "#).unwrap(), @r###"
-        ---
-        - Main:
-            Ident:
-              - x
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Ident:
+            - x
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -2297,30 +2385,30 @@ fn test_array() {
         let a = [1, 2,]
         let a = [false, "hello"]
         "#).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: a
-            value:
-              Array:
-                - Literal:
-                    Integer: 1
-                - Literal:
-                    Integer: 2
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        - VarDef:
-            name: a
-            value:
-              Array:
-                - Literal:
-                    Boolean: false
-                - Literal:
-                    String: hello
-            ty_expr: ~
-            kind: Let
-          annotations: []
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: a
+        value:
+          Array:
+            - Literal:
+                Integer: 1
+            - Literal:
+                Integer: 2
+        ty_expr: ~
+      annotations: []
+    - VarDef:
+        kind: Let
+        name: a
+        value:
+          Array:
+            - Literal:
+                Boolean: false
+            - Literal:
+                String: hello
+        ty_expr: ~
+      annotations: []
+    "###);
 }
 
 #[test]
@@ -2329,36 +2417,36 @@ fn test_annotation() {
         @{binding_strength=1}
         let add = a b -> a + b
         "#).unwrap(), @r###"
-        ---
-        - VarDef:
-            name: add
-            value:
-              Func:
-                return_ty: ~
-                body:
-                  Binary:
-                    left:
-                      Ident:
-                        - a
-                    op: Add
-                    right:
-                      Ident:
-                        - b
-                params:
-                  - name: a
-                    default_value: ~
-                  - name: b
-                    default_value: ~
-                named_params: []
-            ty_expr: ~
-            kind: Let
-          annotations:
-            - expr:
-                Tuple:
-                  - Literal:
-                      Integer: 1
-                    alias: binding_strength
-        "###);
+    ---
+    - VarDef:
+        kind: Let
+        name: add
+        value:
+          Func:
+            return_ty: ~
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - a
+                op: Add
+                right:
+                  Ident:
+                    - b
+            params:
+              - name: a
+                default_value: ~
+              - name: b
+                default_value: ~
+            named_params: []
+        ty_expr: ~
+      annotations:
+        - expr:
+            Tuple:
+              - Literal:
+                  Integer: 1
+                alias: binding_strength
+    "###);
     parse_single(
         r#"
         @{binding_strength=1} let add = a b -> a + b
@@ -2436,29 +2524,33 @@ fn test_target() {
         "#,
         )
         .unwrap(), @r###"
-        ---
-        - QueryDef:
-            version: ~
-            other:
-              target: sql.sqlite
-          annotations: []
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - film
-                - FuncCall:
-                    name:
-                      Ident:
-                        - remove
-                    args:
-                      - Ident:
-                          - film2
-          annotations: []
-        "###);
+    ---
+    - QueryDef:
+        version: ~
+        other:
+          target: sql.sqlite
+      annotations: []
+    - VarDef:
+        kind: Main
+        name: main
+        value:
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                      - from
+                  args:
+                    - Ident:
+                        - film
+              - FuncCall:
+                  name:
+                    Ident:
+                      - remove
+                  args:
+                    - Ident:
+                        - film2
+        ty_expr: ~
+      annotations: []
+    "###);
 }

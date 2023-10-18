@@ -23,6 +23,8 @@ pub struct RootModule {
 
 // TODO: impl Deref<Target=Module> for RootModule and DerefMut
 
+type HintAndSpan = (Option<String>, Option<Span>);
+
 impl RootModule {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
@@ -51,11 +53,16 @@ impl RootModule {
 
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
-    pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), Option<String>> {
-        let (decl, ident) = self.find_main(path)?;
+    pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), HintAndSpan> {
+        let (decl, ident) = self.find_main(path).map_err(|x| (x, None))?;
+
+        let span = decl
+            .declared_at
+            .and_then(|id| self.span_map.get(&id))
+            .cloned();
 
         let decl = (decl.kind.as_table_decl())
-            .ok_or(Some(format!("{ident} is not a relational variable")))?;
+            .ok_or((Some(format!("{ident} is not a relational variable")), span))?;
 
         Ok((&decl.expr, ident))
     }

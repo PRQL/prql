@@ -7,13 +7,6 @@ pub use prqlc_ast::stmt::QueryDef;
 
 use super::expr::Expr;
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum VarDefKind {
-    Let,
-    Into,
-    Main,
-}
-
 // The following code is tested by the tests_misc crate to match stmt.rs in prqlc_ast.
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -38,10 +31,9 @@ pub enum StmtKind {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
-    pub name: Option<String>,
+    pub name: String,
     pub value: Box<Expr>,
     pub ty_expr: Option<Box<Expr>>,
-    pub kind: VarDefKind,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
