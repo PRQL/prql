@@ -7,10 +7,10 @@ build-prql:
 	cargo build --package prqlc-clib --release
 
 build:
-	mkdir --package c/
+	mkdir -p c/
 	cp ${PRQL_PROJECT}/prqlc/bindings/clib/libprqlc.h c/
 	cp ${PRQL_PROJECT}/target/release/libprqlc.so c/
 	zig build
 
 test: build
-	zig test
+	zig build test
