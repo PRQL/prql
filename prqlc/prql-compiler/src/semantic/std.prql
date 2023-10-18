@@ -46,17 +46,18 @@ type date
 type time
 type timestamp
 type `func`
+type anytype
 
 ## Generic array
 # TODO: an array of anything, not just nulls
-type array = [null]
+type array = [anytype]
 
 ## Scalar
 type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple_of_scalars = {scalar..}
+type tuple = {anytype..}
 
 ## Relation (an array of tuples)
-type relation = [tuple_of_scalars]
+type relation = [tuple]
 
 ## Transform
 type transform = (func relation -> relation)
@@ -69,7 +70,7 @@ let from = func
   -> <relation> internal from
 
 let select = func
-  columns <scalar || tuple_of_scalars>
+  columns <scalar || tuple>
   tbl <relation>
   -> <relation> internal select
 
@@ -79,17 +80,17 @@ let filter = func
   -> <relation> internal filter
 
 let derive = func
-  columns <scalar || tuple_of_scalars>
+  columns <scalar || tuple>
   tbl <relation>
   -> <relation> internal derive
 
 let aggregate = func
-  columns <scalar || tuple_of_scalars>
+  columns <scalar || tuple>
   tbl <relation>
   -> <relation> internal aggregate
 
 let sort = func
-  by <scalar || tuple_of_scalars>
+  by <scalar || tuple>
   tbl <relation>
   -> <relation> internal sort
 
@@ -106,7 +107,7 @@ let join = func
   -> <relation> internal join
 
 let group = func
-  by<scalar || tuple_of_scalars>
+  by<scalar || tuple>
   pipeline <transform>
   tbl <relation>
   -> <relation> internal group
@@ -150,7 +151,7 @@ let average = column <array> -> <float || null> internal std.average
 
 let stddev = column <array> -> <float || null> internal std.stddev
 
-let every = column <array> -> <bool> internal std.every
+let all = column <array> -> <bool> internal std.all
 
 let any = column <array> -> <bool> internal std.any
 

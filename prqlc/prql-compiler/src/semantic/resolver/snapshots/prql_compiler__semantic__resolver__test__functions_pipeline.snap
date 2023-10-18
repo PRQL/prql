@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/src/semantic/resolver.rs
+source: prqlc/prql-compiler/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
 - RqOperator:
@@ -12,9 +12,8 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
         ty:
           kind:
             Array:
-              kind:
-                Singleton: "Null"
-              name: ~
+              kind: Any
+              name: anytype
           name: array
   alias: one
   ty:

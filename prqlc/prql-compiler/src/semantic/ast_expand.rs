@@ -387,6 +387,7 @@ fn restrict_ty(value: pl::Ty) -> prqlc_ast::expr::Expr {
         pl::TyKind::Array(item_ty) => ExprKind::Array(vec![restrict_ty(*item_ty)]),
         pl::TyKind::Set => todo!(),
         pl::TyKind::Function(_) => todo!(),
+        pl::TyKind::Any => ExprKind::Ident(Ident::from_name("anytype")),
     };
     Expr::new(expr_kind)
 }
