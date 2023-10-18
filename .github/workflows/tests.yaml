@@ -480,14 +480,14 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prqlc/prql-compiler/Cargo.toml` (and `prqlc/cli/Cargo.toml` below), because of
+        # `prqlc/prql-compiler/Cargo.toml` (and `prqlc/prqlc/Cargo.toml` below), because of
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prqlc
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
         working-directory: prqlc/prql-compiler
         run: cargo msrv verify
       - name: Verify minimum rust version — prqlc CLI
-        working-directory: prqlc/cli
+        working-directory: prqlc/prqlc
         run: cargo msrv verify
 
   check-ok-to-merge:
