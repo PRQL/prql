@@ -22,7 +22,7 @@ jobs:
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
-          args: --release -p prql-lib
+          args: --release --package prqlc-clib
       - name: Run basic C example
         working-directory: prqlc/bindings/clib/examples/minimal-c
         run: make run
@@ -46,15 +46,11 @@ jobs:
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
-          args: --release -p prql-lib
+          args: --release --package prqlc-clib
       - name: 🔧 Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           cache: false
       - name: 🧪 Build and test Zig example
         working-directory: prqlc/bindings/clib/examples/minimal-zig
-        run: |
-          mkdir c
-          cp ../../libprqlc.h c/
-          cp ../../../../../target/*/libprqlc.* c/
-          zig build test
+        run: zig test

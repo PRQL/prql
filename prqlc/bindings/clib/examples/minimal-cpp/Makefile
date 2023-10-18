@@ -4,7 +4,7 @@ run: build
 	./main.out
 
 build-prql:
-	cargo build -p prqlc-clib --release
+	cargo build --package prqlc-clib --release
 
 # TODO: would be helpful to allow running with a debug build too.
 build: main.cpp build-prql

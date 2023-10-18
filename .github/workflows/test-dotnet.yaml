@@ -10,9 +10,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - name: 🏗 Build prql-lib
-        run: cargo build
-        working-directory: prqlc/bindings/clib
+      - name: 🏗 Build prqlc-clib
+        run: cargo build --package prqlc-clib
       - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v3
         with:

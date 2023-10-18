@@ -18,13 +18,13 @@ editing, and testing PRQL's compiler code in two minutes:
   the repo should complete successfully:
 
   ```sh
-  cargo test -p prql-compiler --lib
+  cargo test --package prql-compiler --lib
   ```
 
   ...or, to run tests and update the test snapshots:
 
   ```sh
-  cargo insta test --accept -p prql-compiler --lib
+  cargo insta test --accept --package prql-compiler --lib
   ```
 
   There's more context on our tests in [How we test](#how-we-test) below.
@@ -300,7 +300,7 @@ Our tests, from the bottom of the pyramid to the top:
   ```sh
   task test-rust-fast
   # or
-  cargo insta test --accept -p prql-compiler --lib
+  cargo insta test --accept --package prql-compiler --lib
   # or, to run on every change:
   task -w test-rust-fast
   ```
