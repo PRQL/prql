@@ -16,4 +16,3 @@
 target/
 **/dist/*
 .mypy_cache/
-
