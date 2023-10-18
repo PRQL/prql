@@ -73,7 +73,7 @@ impl WriteSource for TyKind {
                 r += &(*func.return_ty).as_ref().write(opt)?;
                 Some(r)
             }
-            Any => Some("any".to_string()),
+            Any => Some("anytype".to_string()),
         }
     }
 }

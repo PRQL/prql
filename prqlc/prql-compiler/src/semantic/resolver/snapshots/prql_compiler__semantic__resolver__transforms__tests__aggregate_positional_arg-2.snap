@@ -40,7 +40,7 @@ TransformCall:
                   kind:
                     Array:
                       kind: Any
-                      name: any
+                      name: anytype
                   name: array
           ty:
             kind:
@@ -99,7 +99,7 @@ TransformCall:
                   Tuple:
                     - Wildcard:
                         kind: Any
-                        name: any
+                        name: anytype
                 name: tuple
         name: ~
 ty:
@@ -109,7 +109,7 @@ ty:
         Tuple:
           - Wildcard:
               kind: Any
-              name: any
+              name: anytype
       name: tuple
   name: relation
 lineage:

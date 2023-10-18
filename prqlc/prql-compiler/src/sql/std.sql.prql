@@ -34,7 +34,7 @@ let stddev = column -> s"STDDEV({column:0})"
 let all = column -> s"BOOL_AND({column:0})"
 
 @{window_frame=true, coalesce="FALSE"}
-let some = column -> s"BOOL_OR({column:0})"
+let any = column -> s"BOOL_OR({column:0})"
 
 @{window_frame=true, coalesce="''"}
 let concat_array = column -> s"STRING_AGG({column:0}, '')"
@@ -218,7 +218,7 @@ module sqlite {
   let all = column -> s"MIN({column:0}) > 0"
 
   @{window_frame=true, coalesce="FALSE", binding_strength=6}
-  let some = column -> s"MAX({column:0}) > 0"
+  let any = column -> s"MAX({column:0}) > 0"
 
   @{window_frame=true, coalesce="''"}
   let concat_array = column -> s"GROUP_CONCAT({column:0}, '')"

@@ -46,15 +46,15 @@ type date
 type time
 type timestamp
 type `func`
-type any
+type anytype
 
 ## Generic array
 # TODO: an array of anything, not just nulls
-type array = [any]
+type array = [anytype]
 
 ## Scalar
 type scalar = int || float || bool || text || date || time || timestamp || null
-type tuple = {any..}
+type tuple = {anytype..}
 
 ## Relation (an array of tuples)
 type relation = [tuple]
@@ -153,7 +153,7 @@ let stddev = column <array> -> <float || null> internal std.stddev
 
 let all = column <array> -> <bool> internal std.all
 
-let some = column <array> -> <bool> internal std.some
+let any = column <array> -> <bool> internal std.any
 
 let concat_array = column <array> -> <text> internal std.concat_array
 

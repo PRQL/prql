@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/src/semantic/resolver.rs
+source: prqlc/prql-compiler/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
 ---
 - RqOperator:
@@ -25,7 +25,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                       kind:
                         Array:
                           kind: Any
-                          name: any
+                          name: anytype
                       name: array
               ty:
                 kind:
