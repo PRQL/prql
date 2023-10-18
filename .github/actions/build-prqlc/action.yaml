@@ -22,7 +22,7 @@ runs:
     - run: rustup target add ${{ inputs.target }}
       shell: bash
 
-    - run: ./.github/set_version.sh
+    - run: ./.github/workflows/scripts/set_version.sh
       shell: bash
 
     - uses: Swatinem/rust-cache@v2

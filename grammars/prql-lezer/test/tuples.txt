@@ -40,7 +40,7 @@ Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Identifier))))))
+Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Equals,Identifier))))))
 
 # Tuple with keys and values
 
@@ -50,4 +50,4 @@ string    =    "string"
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Identifier),AssignCall(Integer),AssignCall(Float),AssignCall(String))))))
+Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Equals,Identifier),AssignCall(Equals,Integer),AssignCall(Equals,Float),AssignCall(Equals,String))))))

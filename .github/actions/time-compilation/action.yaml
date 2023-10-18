@@ -9,7 +9,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: ./.github/set_version.sh
+    - run: ./.github/workflows/scripts/set_version.sh
       shell: bash
     - name: 💰 Cache
       id: cache

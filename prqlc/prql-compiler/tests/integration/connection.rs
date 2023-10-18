@@ -7,6 +7,7 @@ pub type Row = Vec<String>;
 pub struct DbConnection {
     pub protocol: Box<dyn DbProtocol>,
     pub dialect: Dialect,
+    pub data_file_root: String,
 }
 
 pub trait DbProtocol {

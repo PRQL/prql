@@ -13,6 +13,8 @@
 - _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv` by
   default. Please set the target `sql.duckdb` to use the DuckDB's
   `read_csv_auto` function as previously. (@eitsupi, #3599)
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.clickhouse` target. (@eitsupi, #1533)
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
@@ -40,6 +42,8 @@
 - Limit maximum height of the playground editor's error panel to avoid taking
   over whole screen (@AaronMoat, #3524)
 
+- The playground now uses [Vite](https://vitejs.dev/) (@vanillajonathan).
+
 **Integrations**:
 
 - Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
@@ -56,6 +60,10 @@
   has support for `.prql` files. (@AlDanial)
 - [gocloc](https://github.com/hhatto/gocloc) a source lines of code counter now
   has support for `.prql` files. (@vanillajonathan)
+- [The Quarto VS Code extension](https://marketplace.visualstudio.com/items?itemName=quarto.quarto)
+  supports editing PRQL code blocks
+  ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
+  render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
 **Internal changes**:
 

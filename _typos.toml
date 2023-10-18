@@ -2,6 +2,7 @@
 extend-exclude = [
   "web/book/theme/highlight.js",
   "prqlc/prql-compiler/tests/integration/data/",
+  "prqlc/prql-compiler/tests/integration/snapshots/",
   "web/website/themes/prql-theme/static/plugins/bootstrap",
   "web/website/themes/prql-theme/static/plugins/highlight/highlight.min.js",
 ]
