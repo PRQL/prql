@@ -14,6 +14,30 @@ false
 
 Query(Statements(PipelineStatement(Pipeline(Boolean))))
 
+# Null
+
+null
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(null))))
+
+# Keyword: this
+
+this
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(this))))
+
+# Keyword: that
+
+that
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(that))))
+
 # Range: 10..20
 
 10..20
