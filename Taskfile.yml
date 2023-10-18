@@ -296,8 +296,8 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      - "crates/**/*.rs"
-      - "crates/**/*.snap"
+      - "prqlc/**/*.rs"
+      - "prqlc/**/*.snap"
     cmds:
       - cargo insta test --accept --lib -- --quiet
 
@@ -320,13 +320,13 @@ tasks:
         website/public/playground/playground/
 
   test-js:
-    dir: bindings/prql-js
+    dir: prqlc/bindings/js
     cmds:
       - npm cit
 
   # Currently disabled; see prql-elixir/README.md for details
   test-elixir:
-    dir: bindings/prql-elixir
+    dir: prqlc/bindings/elixir
     cmds:
       # We could move this line into an `install` task
       - mix local.hex --force
@@ -372,18 +372,18 @@ tasks:
     sources:
       - package.json
       - package-lock.json
-      - ../../crates/**/*.rs
-      - ../../bindings/**/*.rs
+      - ../../prqlc/**/*.rs
+      - ../../prqlc/bindings/**/*.rs
 
   build-php:
-    - cargo build -p prql-lib --release
-    - mkdir -p bindings/prql-php/lib/
-    - cp target/release/libprql_lib.* bindings/prql-lib/libprql_lib.h
-      bindings/prql-php/lib/
-    - cd bindings/prql-php && composer install
+    - cargo build --package prqlc-clib --release
+    - mkdir -p prqlc/bindings/php/lib/
+    - cp target/release/libprqlc.* prqlc/bindings/clib/libprqlc.h
+      prqlc/bindings/php/lib/
+    - cd prqlc/bindings/php && composer install
 
   test-php:
-    dir: bindings/prql-php
+    dir: prqlc/bindings/php
     cmds:
       - vendor/bin/phpunit tests
 # The next three tasks are not used for either:

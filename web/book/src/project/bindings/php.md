@@ -1,1 +1,1 @@
-{{#include ../../../../../bindings/prql-php/README.md}}
+{{#include ../../../../../prqlc/bindings/php/README.md}}

@@ -53,4 +53,4 @@ jobs:
           save-if: false
 
       - run: npm cit
-        working-directory: bindings/prql-js
+        working-directory: prqlc/bindings/js

@@ -22,7 +22,7 @@ updates:
       prefix: "chore: "
 
   - package-ecosystem: "npm"
-    directory: "/bindings/prql-js"
+    directory: "/prqlc/bindings/js"
     schedule:
       interval: daily
     ignore:

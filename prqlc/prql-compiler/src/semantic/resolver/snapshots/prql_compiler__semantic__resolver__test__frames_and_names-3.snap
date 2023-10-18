@@ -1,0 +1,34 @@
+---
+source: prql-compiler/src/semantic/resolver/mod.rs
+expression: "resolve_lineage(r#\"\n            from e = employees\n            join salaries (==emp_no)\n            group {e.emp_no, e.gender} (\n                aggregate {\n                    emp_salary = average salaries.salary\n                }\n            )\n            \"#).unwrap()"
+---
+columns:
+  - Single:
+      name:
+        - e
+        - emp_no
+      target_id: 215
+      target_name: ~
+  - Single:
+      name:
+        - e
+        - gender
+      target_id: 216
+      target_name: ~
+  - Single:
+      name:
+        - emp_salary
+      target_id: 240
+      target_name: ~
+inputs:
+  - id: 207
+    name: e
+    table:
+      - default_db
+      - employees
+  - id: 200
+    name: salaries
+    table:
+      - default_db
+      - salaries
+

@@ -18,7 +18,7 @@
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.5.0",
     "monaco-editor": "^0.44.0",
-    "prql-js": "file:../../bindings/prql-js",
+    "prql-js": "file:../../prqlc/bindings/js",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-syntax-highlighter": "^15.5.0",
@@ -44,7 +44,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "prepare": "rsync -ai --checksum --delete ../../crates/prql-compiler/tests/integration/data/ public/data/ && node generateBook.cjs",
+    "prepare": "rsync -ai --checksum --delete ../../prqlc/prql-compiler/tests/integration/data/ public/data/ && node generateBook.cjs",
     "preview": "vite preview"
   },
   "version": "0.10.0"

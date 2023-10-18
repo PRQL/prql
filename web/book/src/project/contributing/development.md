@@ -18,13 +18,13 @@ editing, and testing PRQL's compiler code in two minutes:
   the repo should complete successfully:
 
   ```sh
-  cargo test -p prql-compiler --lib
+  cargo test --package prql-compiler --lib
   ```
 
   ...or, to run tests and update the test snapshots:
 
   ```sh
-  cargo insta test --accept -p prql-compiler --lib
+  cargo insta test --accept --package prql-compiler --lib
   ```
 
   There's more context on our tests in [How we test](#how-we-test) below.
@@ -300,7 +300,7 @@ Our tests, from the bottom of the pyramid to the top:
   ```sh
   task test-rust-fast
   # or
-  cargo insta test --accept -p prql-compiler --lib
+  cargo insta test --accept --package prql-compiler --lib
   # or, to run on every change:
   task -w test-rust-fast
   ```
@@ -344,7 +344,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept
   ```
 
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/crates/prql-compiler/tests/integration)**
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/prqlc/prql-compiler/tests/integration)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
   in-process tests can be run locally with:
@@ -356,7 +356,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
   More details on running with external databases are in the
-  [Readme](https://github.com/PRQL/prql/tree/main/crates/prql-compiler/tests/integration).
+  [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration).
 
   ```admonish note
   Integration tests use DuckDB, and so require a clang compiler to compile

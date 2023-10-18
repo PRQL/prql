@@ -50,3 +50,23 @@ prqlc-test:
     cargo test --no-run --locked --target={{ target }}
 
     cargo insta test --target={{ target }}
+
+prqlc-python-build mode='debug':
+    #!/usr/bin/env bash
+    if [ '{{mode}}' = 'release' ]; then
+        release='--release'
+    else
+        release=''
+    fi
+
+    maturin build $release \
+       -o target/python \
+       -m prqlc/bindings/python/Cargo.toml
+
+prqlc-python-test:
+    #!/usr/bin/env bash
+    python -m venv target/venv
+    source target/venv/bin/activate
+    pip install target/python/prql_python-*.whl
+    pip install -r prqlc/bindings/python/requirements.txt
+    pytest

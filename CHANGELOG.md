@@ -1279,7 +1279,7 @@ interest and contributions! 0.2.2 has some fixes & some internal improvements:
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
 - Automated releases to homebrew (@roG0d)
-- [prql-js](https://github.com/PRQL/prql/tree/main/bindings/prql-js) is now a
+- [prql-js](https://github.com/PRQL/prql/tree/main/prqlc/bindings/js) is now a
   single package for Node, browsers & webpack (@charlie-sanders)
 - Parsing has some fixes, including `>=` and leading underscores in idents
   (@mklopets)
