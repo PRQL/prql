@@ -24,7 +24,7 @@ itertools = "0.11.0"
 notify = "6.1.1"
 prqlc-ast = {path = '../prqlc-ast', version = "0.10.0" }
 prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.10.0" }
-regex = {version = "1.9.6", features = ["std", "unicode"]}
+regex = {version = "1.10.2", features = ["std", "unicode"]}
 serde = "1"
 serde_json = "1.0.107"
 serde_yaml = "0.9.25"
