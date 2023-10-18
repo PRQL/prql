@@ -1,3 +1,19 @@
+# Boolean: true
+
+true
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Boolean))))
+
+# Boolean: false
+
+false
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Boolean))))
+
 # Range: 10..20
 
 10..20

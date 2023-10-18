@@ -6,6 +6,7 @@ export const prqlHighlight = styleTags({
   in: t.operatorKeyword,
   Comment: t.lineComment,
   Docblock: t.docString,
+  Boolean: t.bool,
   Integer: t.integer,
   Float: t.float,
   String: t.string,
