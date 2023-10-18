@@ -7,7 +7,7 @@ export const prqlHighlight = styleTags({
   Comment: t.lineComment,
   Docblock: t.docString,
   "this that": t.self,
-	null: t.null,
+  null: t.null,
   Boolean: t.bool,
   Integer: t.integer,
   Float: t.float,
