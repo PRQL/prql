@@ -23,7 +23,7 @@ jobs:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
           args: --release --package prqlc-clib
-      - name: Run example minimal-c 
+      - name: Run example minimal-c
         working-directory: prqlc/bindings/clib/examples/minimal-c
         run: make run
       - name: Run example minimal-cpp
