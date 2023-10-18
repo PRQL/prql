@@ -69,7 +69,7 @@ let foo = (1)
 
 ==>
 
-Query(Statements(VariableDeclaration(VariableName,Equals,NestedPipeline(Pipeline(Integer)))))
+Query(Statements(VariableDeclaration(let,VariableName,Equals,NestedPipeline(Pipeline(Integer)))))
 
 # Function declaration
 
@@ -77,7 +77,7 @@ let my_func = arg1 -> arg1
 
 ==>
 
-Query(Statements(VariableDeclaration(VariableName,Equals,Lambda(LambdaParam,Identifier))))
+Query(Statements(VariableDeclaration(let,VariableName,Equals,Lambda(LambdaParam,Identifier))))
 
 # Function declaration with two args
 
@@ -85,7 +85,7 @@ let my_func = arg1 arg2 -> arg1 + arg2
 
 ==>
 
-Query(Statements(VariableDeclaration(VariableName,Equals,Lambda(LambdaParam,LambdaParam,BinaryExpression(Identifier,ArithOp,Identifier)))))
+Query(Statements(VariableDeclaration(let,VariableName,Equals,Lambda(LambdaParam,LambdaParam,BinaryExpression(Identifier,ArithOp,Identifier)))))
 
 # Simple pipeline
 

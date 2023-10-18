@@ -95,7 +95,7 @@ number { Integer | Float }
 
 kw<term> { @specialize[@name={term}]<identPart, term> }
 
-VariableDeclaration { @specialize<identPart, "let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
+VariableDeclaration { kw<"let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
 
 Lambda { LambdaParam* "->" exprCall ( newline+ | end ) }
 TypeDefinition { "<" TypeTerm ( "|" TypeTerm)* ">" }
