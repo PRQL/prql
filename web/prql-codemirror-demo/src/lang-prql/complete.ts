@@ -9,9 +9,9 @@ const dontComplete = [
   "Comment",
   "Docblock",
   "String",
-  "FormatString",
-  "RawString",
-  "ServerString",
+  "FString",
+  "RString",
+  "SString",
 ];
 
 const globals: readonly Completion[] = ["false", "null", "true"]
