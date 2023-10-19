@@ -12,15 +12,28 @@
       <h1>PRQL</h1>
     </a>
 
-    <nav id="navbar" class="navbar">
-      <ul>
-        {{ range .Site.Menus.nav }}
-          <li>
-            {{ print "[" .Name "]" "("  .URL ")" | markdownify }}
-          </li>
-        {{ end }}
-      </ul>
-      <i class="bx bx-list-ul mobile-nav-toggle"></i>
+    <nav id="navbar" class="navbar navbar-expand-lg">
+      <button class="navbar-toggler border-0 bg-white" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
+        <svg viewBox="0 0 16 16" style="width: 1.5rem; height: 1.5rem">
+          <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"></path>
+        </svg>
+      </button>
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="offcanvasNavbarLabel">PRQL</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <hr class="d-lg-none text-black-50">
+          <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+            {{ range .Site.Menus.nav }}
+              <li class="nav-item col-6 col-lg-auto py-2 px-0 px-lg-2">
+                {{ print "[" .Name "]" "("  .URL ")" | markdownify }}
+              </li>
+            {{ end }}
+          </ul>
+        </div>
+      </div>
     </nav>
 
     <div
