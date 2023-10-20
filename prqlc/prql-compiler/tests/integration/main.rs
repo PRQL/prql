@@ -17,17 +17,16 @@ use prql_compiler::{Options, Target};
 
 mod connection;
 
+const LOCAL_CHINOOK_DIR: &str = "tests/integration/data/chinook";
+
 // This is copy-pasted from `test.rs` in prql-compiler. Ideally we would have a
 // canonical set of examples between both, which this integration test would use
 // only for integration tests, and the other test would use for checking the
 // SQL. But at the moment we're only using these examples here, and we want to
 // test the SQL, so we copy-paste the function here.
-
+//
 // TODO: an relatively easy thing to do would be to use these as the canonical
 // examples in the book, and then we get this for free.
-
-const LOCAL_CHINOOK_DIR: &str = "tests/integration/data/chinook";
-
 fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMessages> {
     prql_compiler::compile(prql, &Options::default().no_signature().with_target(target))
 }
