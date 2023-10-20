@@ -1,42 +1,44 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
-use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use prqlc_ast::stmt::QueryDef;
+use prqlc_ast::Span;
 
-use crate::ir::pl::{Expr, Ident, TupleField, Ty};
+use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn, TupleField, Ty};
 use crate::Error;
 
-use super::decl::{Decl, DeclKind, TableDecl, TableExpr};
-use super::{Lineage, LineageColumn};
-use super::{NS_INFER, NS_INFER_MODULE, NS_SELF};
-
-#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
-pub struct Module {
-    /// Names declared in this module. This is the important thing.
-    pub(super) names: HashMap<String, Decl>,
-
-    /// List of relative paths to include in search path when doing lookup in
-    /// this module.
-    ///
-    /// Assuming we want to lookup `average`, which is in `std`. The root module
-    /// does not contain the `average`. So instead:
-    /// - look for `average` in root module and find nothing,
-    /// - follow redirects in root module,
-    /// - because of redirect `std`, so we look for `average` in `std`,
-    /// - there is `average` is `std`,
-    /// - result of the lookup is FQ ident `std.average`.
-    pub redirects: Vec<Ident>,
-
-    /// A declaration that has been shadowed (overwritten) by this module.
-    pub shadowed: Option<Box<Decl>>,
-}
+use super::{
+    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF, NS_STD,
+    NS_THAT, NS_THIS,
+};
+use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 
 impl Module {
     pub fn singleton<S: ToString>(name: S, entry: Decl) -> Module {
         Module {
             names: HashMap::from([(name.to_string(), entry)]),
             ..Default::default()
+        }
+    }
+
+    pub fn new_root() -> Module {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
+        Module {
+            names: HashMap::from([
+                (
+                    NS_DEFAULT_DB.to_string(),
+                    Decl::from(DeclKind::Module(Module::new_database())),
+                ),
+                (NS_STD.to_string(), Decl::from(DeclKind::default())),
+            ]),
+            shadowed: None,
+            redirects: vec![
+                Ident::from_name(NS_THIS),
+                Ident::from_name(NS_THAT),
+                Ident::from_name(NS_PARAM),
+                Ident::from_name(NS_STD),
+            ],
         }
     }
 
@@ -371,24 +373,96 @@ impl Module {
     }
 }
 
-impl std::fmt::Debug for Module {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut ds = f.debug_struct("Namespace");
+type HintAndSpan = (Option<String>, Option<Span>);
 
-        if !self.redirects.is_empty() {
-            let redirects = self.redirects.iter().map(|x| x.to_string()).collect_vec();
-            ds.field("redirects", &redirects);
+impl RootModule {
+    pub(super) fn declare(
+        &mut self,
+        ident: Ident,
+        decl: DeclKind,
+        id: Option<usize>,
+        annotations: Vec<Annotation>,
+    ) -> Result<()> {
+        let existing = self.module.get(&ident);
+        if existing.is_some() {
+            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
         }
 
-        if self.names.len() < 15 {
-            ds.field("names", &self.names);
-        } else {
-            ds.field("names", &format!("... {} entries ...", self.names.len()));
+        let decl = Decl {
+            kind: decl,
+            declared_at: id,
+            order: 0,
+            annotations,
+        };
+        self.module.insert(ident, decl).unwrap();
+        Ok(())
+    }
+
+    /// Finds that main pipeline given a path to either main itself or its parent module.
+    /// Returns main expr and fq ident of the decl.
+    pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), HintAndSpan> {
+        let (decl, ident) = self.find_main(path).map_err(|x| (x, None))?;
+
+        let span = decl
+            .declared_at
+            .and_then(|id| self.span_map.get(&id))
+            .cloned();
+
+        let decl = (decl.kind.as_table_decl())
+            .ok_or((Some(format!("{ident} is not a relational variable")), span))?;
+
+        Ok((&decl.expr, ident))
+    }
+
+    pub fn find_main(&self, path: &[String]) -> Result<(&Decl, Ident), Option<String>> {
+        let mut tried_idents = Vec::new();
+
+        // is path referencing the relational var directly?
+        if !path.is_empty() {
+            let ident = Ident::from_path(path.to_vec());
+            let decl = self.module.get(&ident);
+
+            if let Some(decl) = decl {
+                return Ok((decl, ident));
+            } else {
+                tried_idents.push(ident.to_string());
+            }
         }
-        if let Some(shadowed) = &self.shadowed {
-            ds.field("shadowed", shadowed);
+
+        // is path referencing the parent module?
+        {
+            let mut path = path.to_vec();
+            path.push(NS_MAIN.to_string());
+
+            let ident = Ident::from_path(path);
+            let decl = self.module.get(&ident);
+
+            if let Some(decl) = decl {
+                return Ok((decl, ident));
+            } else {
+                tried_idents.push(ident.to_string());
+            }
         }
-        ds.finish()
+
+        Err(Some(format!(
+            "Expected a declaration at {}",
+            tried_idents.join(" or ")
+        )))
+    }
+
+    pub fn find_query_def(&self, main: &Ident) -> Option<&QueryDef> {
+        let ident = Ident {
+            path: main.path.clone(),
+            name: NS_QUERY_DEF.to_string(),
+        };
+
+        let decl = self.module.get(&ident)?;
+        decl.kind.as_query_def()
+    }
+
+    /// Finds all main pipelines.
+    pub fn find_mains(&self) -> Vec<Ident> {
+        self.module.find_by_suffix(NS_MAIN)
     }
 }
 

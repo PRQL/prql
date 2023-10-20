@@ -6,33 +6,31 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
+use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
 use crate::ir::rq::{
     self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
 };
-use crate::semantic::decl::TableExpr;
-use crate::semantic::module::Module;
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Span, WithErrorInfo};
 use prqlc_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
 
-use super::decl::{self, DeclKind};
-use super::{RootModule, NS_DEFAULT_DB};
+use super::NS_DEFAULT_DB;
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
 pub fn lower_to_ir(
-    context: RootModule,
+    root_mod: RootModule,
     main_path: &[String],
 ) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
-    let (_, main_ident) = context.find_main_rel(main_path).map_err(|(hint, span)| {
+    let (_, main_ident) = root_mod.find_main_rel(main_path).map_err(|(hint, span)| {
         Error::new_simple("Missing main pipeline")
             .with_code("E0001")
             .with_hints(hint)
@@ -40,18 +38,18 @@ pub fn lower_to_ir(
     })?;
 
     // find & validate query def
-    let def = context.find_query_def(&main_ident);
+    let def = root_mod.find_query_def(&main_ident);
     let def = def.cloned().unwrap_or_default();
     validate_query_def(&def)?;
 
     // find all tables in the root module
-    let tables = TableExtractor::extract(&context.root_mod);
+    let tables = TableExtractor::extract(&root_mod.module);
 
     // prune and toposort
     let tables = toposort_tables(tables, &main_ident);
 
     // lower tables
-    let mut l = Lowerer::new(context);
+    let mut l = Lowerer::new(root_mod);
     let mut main_relation = None;
     for (fq_ident, table) in tables {
         let is_main = fq_ident == main_ident;
@@ -69,7 +67,7 @@ pub fn lower_to_ir(
         tables: l.table_buffer,
         relation: main_relation.unwrap(),
     };
-    Ok((query, l.context))
+    Ok((query, l.root_mod))
 }
 
 fn extern_ref_to_relation(
@@ -118,7 +116,7 @@ struct Lowerer {
     cid: IdGenerator<CId>,
     tid: IdGenerator<TId>,
 
-    context: RootModule,
+    root_mod: RootModule,
 
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
@@ -147,9 +145,9 @@ enum LoweredTarget {
 }
 
 impl Lowerer {
-    fn new(context: RootModule) -> Self {
+    fn new(root_mod: RootModule) -> Self {
         Lowerer {
-            context,
+            root_mod,
 
             cid: IdGenerator::new(),
             tid: IdGenerator::new(),
@@ -253,7 +251,7 @@ impl Lowerer {
                 let frame = expr.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
-                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = self.root_mod.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
                 let ty = table_decl.ty.as_ref();
                 // TODO: can this panic?
@@ -287,7 +285,7 @@ impl Lowerer {
                 let frame = expr.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
-                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = self.root_mod.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
                 let ty = table_decl.ty.as_ref();
                 // TODO: can this panic?
@@ -876,7 +874,7 @@ impl Lowerer {
                     None => return Err(Error::new_simple(
                         "This table contains unnamed columns that need to be referenced by name",
                     )
-                    .with_span(self.context.span_map.get(&id).cloned())
+                    .with_span(self.root_mod.span_map.get(&id).cloned())
                     .push_hint("the name may have been overridden later in the pipeline.")
                     .into()),
                 };

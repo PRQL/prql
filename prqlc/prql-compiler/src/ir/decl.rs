@@ -1,9 +1,43 @@
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt::Debug;
 
-use super::*;
+use prqlc_ast::Span;
+
 use crate::ir::pl::*;
+use crate::semantic::write_pl;
+
+/// Context of the pipeline.
+#[derive(Default, Serialize, Deserialize, Clone)]
+pub struct RootModule {
+    /// Map of all accessible names (for each namespace)
+    pub module: Module,
+
+    pub span_map: HashMap<usize, Span>,
+}
+
+#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
+pub struct Module {
+    /// Names declared in this module. This is the important thing.
+    pub names: HashMap<String, Decl>,
+
+    /// List of relative paths to include in search path when doing lookup in
+    /// this module.
+    ///
+    /// Assuming we want to lookup `average`, which is in `std`. The root module
+    /// does not contain the `average`. So instead:
+    /// - look for `average` in root module and find nothing,
+    /// - follow redirects in root module,
+    /// - because of redirect `std`, so we look for `average` in `std`,
+    /// - there is `average` is `std`,
+    /// - result of the lookup is FQ ident `std.average`.
+    pub redirects: Vec<Ident>,
+
+    /// A declaration that has been shadowed (overwritten) by this module.
+    pub shadowed: Option<Box<Decl>>,
+}
 
 /// A struct containing information about a single declaration.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
@@ -77,6 +111,45 @@ pub enum TableExpr {
 pub enum TableColumn {
     Wildcard,
     Single(Option<String>),
+}
+
+impl std::fmt::Debug for RootModule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.module.fmt(f)
+    }
+}
+
+impl std::fmt::Debug for Module {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut ds = f.debug_struct("Module");
+
+        if !self.redirects.is_empty() {
+            let redirects = self.redirects.iter().map(|x| x.to_string()).collect_vec();
+            ds.field("redirects", &redirects);
+        }
+
+        if self.names.len() < 15 {
+            ds.field("names", &DebugNames(&self.names));
+        } else {
+            ds.field("names", &format!("... {} entries ...", self.names.len()));
+        }
+        if self.shadowed.is_some() {
+            ds.field("shadowed", &"(hidden)");
+        }
+        ds.finish()
+    }
+}
+
+struct DebugNames<'a>(&'a HashMap<String, Decl>);
+
+impl<'a> std::fmt::Debug for DebugNames<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut dm = f.debug_map();
+        for (n, decl) in self.0.iter().sorted_by_key(|x| x.0) {
+            dm.entry(n, decl);
+        }
+        dm.finish()
+    }
 }
 
 impl Default for DeclKind {

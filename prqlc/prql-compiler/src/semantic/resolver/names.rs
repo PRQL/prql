@@ -5,56 +5,39 @@ use itertools::Itertools;
 
 use prqlc_ast::expr::Ident;
 
-use crate::ir::pl::{Annotation, Expr, ExprKind, LineageColumn, TupleField, Ty};
-use crate::semantic::decl::{Decl, DeclKind, TableDecl, TableExpr};
-use crate::semantic::{Module, RootModule, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::ir::decl::{Decl, DeclKind, Module};
+use crate::ir::pl::{Expr, ExprKind};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::WithErrorInfo;
 
-impl RootModule {
-    pub(super) fn declare(
-        &mut self,
-        ident: Ident,
-        decl: DeclKind,
-        id: Option<usize>,
-        annotations: Vec<Annotation>,
-    ) -> Result<()> {
-        let existing = self.root_mod.get(&ident);
-        if existing.is_some() {
-            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
-        }
+use super::Resolver;
 
-        let decl = Decl {
-            kind: decl,
-            declared_at: id,
-            order: 0,
-            annotations,
-        };
-        self.root_mod.insert(ident, decl).unwrap();
-        Ok(())
-    }
+impl Resolver<'_> {
+    pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
+        if let Some(default_namespace) = self.default_namespace.clone() {
+            self.resolve_ident_core(ident, Some(&default_namespace))
+        } else {
+            let mut ident = ident.clone().prepend(self.current_module_path.clone());
 
-    pub(super) fn prepare_expr_decl(&mut self, value: Box<Expr>) -> DeclKind {
-        match &value.lineage {
-            Some(frame) => {
-                let columns = (frame.columns.iter())
-                    .map(|col| match col {
-                        LineageColumn::All { .. } => TupleField::Wildcard(None),
-                        LineageColumn::Single { name, .. } => {
-                            TupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
-                        }
-                    })
-                    .collect();
-                let ty = Some(Ty::relation(columns));
-
-                let expr = TableExpr::RelationVar(value);
-                DeclKind::TableDecl(TableDecl { ty, expr })
+            let mut res = self.resolve_ident_core(&ident, None);
+            for _ in 0..self.current_module_path.len() {
+                if res.is_ok() {
+                    break;
+                }
+                ident = ident.pop_front().1.unwrap();
+                res = self.resolve_ident_core(&ident, None);
             }
-            _ => DeclKind::Expr(value),
+            res
         }
+
+        // log::debug!(
+        //     "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
+        //     self.root_mod
+        // );
     }
 
-    pub(super) fn resolve_ident(
+    pub(super) fn resolve_ident_core(
         &mut self,
         ident: &Ident,
         default_namespace: Option<&String>,
@@ -71,13 +54,13 @@ impl RootModule {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
             return self.resolve_ident_wildcard(ident).map_err(|e| {
-                log::debug!("{:#?}", self.root_mod);
+                log::debug!("{:#?}", self.root_mod.module);
                 Error::new_simple(e)
             });
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(ident);
+        let decls = self.root_mod.module.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -92,7 +75,7 @@ impl RootModule {
         let ident = if let Some(default_namespace) = default_namespace {
             let ident = ident.clone().prepend(vec![default_namespace.clone()]);
 
-            let decls = self.root_mod.lookup(&ident);
+            let decls = self.root_mod.module.lookup(&ident);
             match decls.len() {
                 // no match: try match *
                 0 => ident,
@@ -131,7 +114,7 @@ impl RootModule {
         let infer_ident = ident.clone().with_name(name_replacement);
 
         // lookup of infer_ident
-        let mut decls = self.root_mod.lookup(&infer_ident);
+        let mut decls = self.root_mod.module.lookup(&infer_ident);
 
         if decls.is_empty() {
             if let Some(parent) = infer_ident.clone().pop() {
@@ -139,7 +122,7 @@ impl RootModule {
                 let _ = self.resolve_ident_fallback(&parent, NS_INFER_MODULE)?;
 
                 // module was successfully inferred, retry the lookup
-                decls = self.root_mod.lookup(&infer_ident)
+                decls = self.root_mod.module.lookup(&infer_ident)
             }
         }
 
@@ -157,7 +140,7 @@ impl RootModule {
 
     /// Create a declaration of [original] from template provided by declaration of [infer_ident].
     fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
-        let infer = self.root_mod.get(&infer_ident).unwrap();
+        let infer = self.root_mod.module.get(&infer_ident).unwrap();
         let mut infer_default = *infer.kind.as_infer().cloned().unwrap();
 
         if let DeclKind::Module(new_module) = &mut infer_default {
@@ -168,7 +151,7 @@ impl RootModule {
         }
 
         let module_ident = infer_ident.pop().unwrap();
-        let module = self.root_mod.get_mut(&module_ident).unwrap();
+        let module = self.root_mod.module.get_mut(&module_ident).unwrap();
         let module = module.kind.as_module_mut().unwrap();
 
         // insert default
@@ -193,7 +176,7 @@ impl RootModule {
             if ident.path.len() > 1 {
                 // Ident has specified full path
                 let mod_ident = ident.clone().pop().unwrap();
-                let mod_decl = (self.root_mod.get_mut(&mod_ident))
+                let mod_decl = (self.root_mod.module.get_mut(&mod_ident))
                     .ok_or_else(|| format!("Unknown relation {ident}"))?;
 
                 (mod_ident, mod_decl)
@@ -201,13 +184,13 @@ impl RootModule {
                 // Ident could be just part of NS_THIS
                 let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
 
-                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
+                if let Some(mod_decl) = self.root_mod.module.get_mut(&mod_ident) {
                     (mod_ident, mod_decl)
                 } else {
                     // ... or part of NS_THAT
                     let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
 
-                    let mod_decl = self.root_mod.get_mut(&mod_ident);
+                    let mod_decl = self.root_mod.module.get_mut(&mod_ident);
 
                     // ... well - I guess not. Throw.
                     let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
@@ -240,7 +223,7 @@ impl RootModule {
         };
 
         // This is just a workaround to return an Expr from this function.
-        // We wrap the expr into DeclKind::Expr and save it into context.
+        // We wrap the expr into DeclKind::Expr and save it into the root module.
         let cols_expr = Expr {
             flatten: true,
             ..Expr::new(ExprKind::Tuple(fq_cols))
@@ -251,55 +234,6 @@ impl RootModule {
 
         // Then we can return ident to that decl.
         Ok(mod_ident + Ident::from_name(save_as))
-    }
-
-    fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
-        let table = self.root_mod.get_mut(table_ident).unwrap();
-        let table_decl = table.kind.as_table_decl_mut().unwrap();
-
-        let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
-            return Err(format!("Variable {table_ident:?} is not a relation."));
-        };
-
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
-        if !has_wildcard {
-            return Err(format!("Table {table_ident:?} does not have wildcard."));
-        }
-
-        let exists = columns.iter().any(|c| match c {
-            TupleField::Single(Some(n), _) => n == col_name,
-            _ => false,
-        });
-        if exists {
-            return Ok(());
-        }
-
-        columns.push(TupleField::Single(Some(col_name.to_string()), None));
-
-        // also add into input tables of this table expression
-        if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(frame) = &expr.lineage {
-                let wildcard_inputs = (frame.columns.iter())
-                    .filter_map(|c| c.as_all())
-                    .collect_vec();
-
-                match wildcard_inputs.len() {
-                    0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
-                    1 => {
-                        let (input_name, _) = wildcard_inputs.into_iter().next().unwrap();
-
-                        let input = frame.find_input(input_name).unwrap();
-                        let table_ident = input.table.clone();
-                        self.infer_table_column(&table_ident, col_name)?;
-                    }
-                    _ => {
-                        return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
-                    }
-                }
-            }
-        }
-
-        Ok(())
     }
 }
 

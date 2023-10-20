@@ -1,27 +1,24 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 mod ast_expand;
-mod decl;
 mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
-mod root_module;
 mod static_analysis;
 
 use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-pub use self::module::Module;
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-pub use self::root_module::RootModule;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::decl::{Module, RootModule};
+use crate::ir::pl::{self, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::WithErrorInfo;
 use crate::{Error, Reason, SourceTree};
@@ -31,9 +28,9 @@ pub fn resolve_and_lower(
     file_tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
     main_path: &[String],
 ) -> Result<RelationalQuery> {
-    let context = resolve(file_tree, Default::default())?;
+    let root_mod = resolve(file_tree, Default::default())?;
 
-    let (query, _) = lowering::lower_to_ir(context, main_path)?;
+    let (query, _) = lowering::lower_to_ir(root_mod, main_path)?;
     Ok(query)
 }
 
@@ -54,8 +51,11 @@ pub fn resolve(
         file_tree.insert(path, content);
     }
 
-    // init empty context
-    let mut root_module = RootModule::new();
+    // init new root module
+    let mut root_module = RootModule {
+        module: Module::new_root(),
+        ..Default::default()
+    };
     let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve sources one by one
