@@ -116,7 +116,7 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   hex { @digit | $[a-fA-F] }
 
   Integer {
-    @digit ( @digit | "_" )* ("e" Integer)? |
+    @digit ( @digit | "_" )* ("e" ("+" | "-")? Integer)? |
     "0x" (hex | "_")+ |
     "0b" $[01_]+ |
     "0o" $[0-7_]+
