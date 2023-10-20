@@ -20,19 +20,6 @@ services:
       MYSQL_ROOT_PASSWORD: root
     command: --secure-file-priv=""
     volumes: *vol
-  #  db2:
-  #    image: 'icr.io/db2_community/db2'
-  #    ports:
-  #      - '50000:50000'
-  #    environment:
-  #      LICENSE: accept
-  #      DBNAME: dummy
-  #      DB2INSTANCE: db2
-  #      DB2INST1_PASSWORD: root
-  #      BLU: false
-  #      TO_CREATE_SAMPLEDB: false
-  #      REPODB: false
-  #      IS_OSXFS: false
   mssql:
     image: "mcr.microsoft.com/mssql/server"
     ports:
@@ -61,10 +48,12 @@ services:
       # ClickHouse can load csv only from user_files_path (default `/var/lib/clickhouse/user_files/`)
       # https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#server_configuration_parameters-user_scripts_path
       - ./data/chinook:/var/lib/clickhouse/user_files/chinook/:ro
-  glaredb:
-    build:
-      context: dockerfiles
-      dockerfile: glaredb.Dockerfile
-    ports:
-      - "6543:6543"
-    volumes: *vol
+  # GlareDB is not compatible with rust-postgres for now
+  # See https://github.com/GlareDB/glaredb/pull/1935
+  # glaredb:
+  #   build:
+  #     context: dockerfiles
+  #     dockerfile: glaredb.Dockerfile
+  #   ports:
+  #     - "6543:6543"
+  #   volumes: *vol
