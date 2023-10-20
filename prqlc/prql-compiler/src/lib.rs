@@ -86,8 +86,6 @@ pub mod ir;
 mod parser;
 pub mod semantic;
 pub mod sql;
-#[cfg(test)]
-mod tests;
 mod utils;
 
 pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
@@ -377,10 +375,15 @@ impl<S: ToString> From<S> for SourceTree {
 }
 
 #[cfg(test)]
-mod tests_lib {
+mod tests {
     use crate::Target;
     use insta::assert_debug_snapshot;
     use std::str::FromStr;
+
+    pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {
+        anstream::ColorChoice::Never.write_global();
+        super::compile(prql, &super::Options::default().no_signature())
+    }
 
     #[test]
     fn test_target_from_str() {
