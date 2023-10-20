@@ -2,7 +2,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ir::pl::*;
-use crate::semantic::write_pl;
+use crate::semantic::{write_pl, NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
@@ -191,6 +191,40 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
 }
 
 impl Resolver<'_> {
+    pub fn fold_type_expr(&mut self, expr: Option<Box<Expr>>) -> Result<Option<Ty>> {
+        Ok(match expr {
+            Some(expr) => {
+                let name = expr.kind.as_ident().map(|i| i.name.clone());
+
+                let old = self.disable_type_checking;
+                self.disable_type_checking = true;
+                let expr = self.fold_expr(*expr)?;
+                self.disable_type_checking = old;
+
+                let mut set_expr = coerce_to_type(self, expr)?;
+                set_expr.name = set_expr.name.or(name);
+                Some(set_expr)
+            }
+            None => None,
+        })
+    }
+
+    pub fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
+        self.context.module.shadow(NS_THIS);
+        self.context.module.shadow(NS_THAT);
+
+        let res = match ty_or_expr {
+            Some(TyOrExpr::Expr(ty_expr)) => {
+                Some(TyOrExpr::Ty(self.fold_type_expr(Some(ty_expr))?.unwrap()))
+            }
+            _ => ty_or_expr,
+        };
+
+        self.context.module.unshadow(NS_THIS);
+        self.context.module.unshadow(NS_THAT);
+        Ok(res)
+    }
+
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
