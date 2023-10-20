@@ -36,5 +36,7 @@
   "postCreateCommand": {
     "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
     "install-npm-dependencies": "task install-npm-dependencies"
-  }
+  },
+  // Docs at https://aka.ms/vscode-remote/containers/non-root.
+  "remoteUser": "root"
 }
