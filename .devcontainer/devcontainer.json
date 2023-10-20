@@ -34,7 +34,15 @@
     }
   ],
   "postCreateCommand": {
-    "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
     "install-npm-dependencies": "task install-npm-dependencies"
+  },
+  // When this is in `postCreateCommand`, it can cause a permission issue with
+  // the local path; see
+  // https://github.com/PRQL/prql/issues/3709#issuecomment-1772739134. (though
+  // not every time, and difficult to debug). The disadvantage of having it
+  // `postStartCommand` is it'll run on every start, but it's quite cheap after
+  // the first run.
+  "postStartCommand": {
+    "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks"
   }
 }
