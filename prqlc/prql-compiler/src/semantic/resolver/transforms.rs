@@ -7,16 +7,14 @@ use std::iter::zip;
 
 use prqlc_ast::error::{Error, Reason};
 
-use crate::ir::decl::{Decl, DeclKind, Module};
+use crate::ir::decl::{Decl, DeclKind, Module, RootModule};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
-use crate::semantic::write_pl;
+use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
 use crate::{WithErrorInfo, COMPILER_VERSION};
 
 use super::Resolver;
-use super::{Lineage, RootModule};
-use super::{NS_PARAM, NS_THIS};
 
 /// try to convert function call with enough args into transform
 pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Expr> {

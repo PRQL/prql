@@ -1,17 +1,7 @@
-use std::collections::HashMap;
-use std::iter::zip;
-
 use anyhow::Result;
-use itertools::{Itertools, Position};
 
-use crate::ir::decl::{Module, TableDecl};
-use crate::ir::pl::*;
-use crate::semantic::{static_analysis, NS_PARAM};
+use crate::ir::{decl::RootModule, pl::*};
 use crate::utils::IdGenerator;
-use crate::{Error, Reason, Span, WithErrorInfo};
-
-use super::{write_pl, RootModule, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
-use crate::ir::decl::{Decl, DeclKind, TableExpr};
 
 mod expr;
 mod flatten;

@@ -5,8 +5,7 @@ use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::NS_DEFAULT_DB;
-use super::{Lineage, RootModule};
-use crate::ir::decl::{DeclKind, TableDecl, TableExpr};
+use crate::ir::decl::{DeclKind, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::Span;
 

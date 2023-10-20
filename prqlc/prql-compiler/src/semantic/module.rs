@@ -4,11 +4,13 @@ use anyhow::Result;
 use prqlc_ast::stmt::QueryDef;
 use prqlc_ast::Span;
 
-use crate::ir::pl::{Annotation, Expr, Ident, TupleField, Ty};
+use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn, TupleField, Ty};
 use crate::Error;
 
-use super::{Lineage, LineageColumn, NS_MAIN, NS_QUERY_DEF};
-use super::{NS_INFER, NS_INFER_MODULE, NS_SELF};
+use super::{
+    NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF, NS_STD,
+    NS_THAT, NS_THIS,
+};
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 
 impl Module {
@@ -16,6 +18,27 @@ impl Module {
         Module {
             names: HashMap::from([(name.to_string(), entry)]),
             ..Default::default()
+        }
+    }
+
+    pub fn new_root() -> Module {
+        // Each module starts with a default namespace that contains a wildcard
+        // and the standard library.
+        Module {
+            names: HashMap::from([
+                (
+                    NS_DEFAULT_DB.to_string(),
+                    Decl::from(DeclKind::Module(Module::new_database())),
+                ),
+                (NS_STD.to_string(), Decl::from(DeclKind::default())),
+            ]),
+            shadowed: None,
+            redirects: vec![
+                Ident::from_name(NS_THIS),
+                Ident::from_name(NS_THAT),
+                Ident::from_name(NS_PARAM),
+                Ident::from_name(NS_STD),
+            ],
         }
     }
 

@@ -10,8 +10,7 @@ use crate::ir::pl::*;
 use crate::semantic::resolver::transforms;
 use crate::{Error, Span, WithErrorInfo};
 
-use super::NS_PARAM;
-use super::{NS_THAT, NS_THIS};
+use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 
 use super::Resolver;
 

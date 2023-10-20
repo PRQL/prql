@@ -1,15 +1,11 @@
-use std::collections::HashSet;
-
 use anyhow::Result;
 use itertools::Itertools;
 
 use prqlc_ast::expr::Ident;
 
-use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
-use crate::ir::pl::{Expr, ExprKind, Lineage, LineageColumn, LineageInput, TupleField, Ty};
-use crate::semantic::{NS_DEFAULT_DB, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
-use crate::Error;
-use crate::WithErrorInfo;
+use crate::ir::decl::{Decl, TableDecl, TableExpr};
+use crate::ir::pl::{Lineage, LineageColumn, LineageInput, TupleField, Ty};
+use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
 
 use super::Resolver;
 

@@ -3,11 +3,10 @@ use std::collections::HashMap;
 
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
+use crate::semantic::NS_STD;
 use crate::{Error, WithErrorInfo};
 
-use super::{Resolver, NS_STD};
-
-impl Resolver<'_> {
+impl super::Resolver<'_> {
     // entry point to the resolver
     pub fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for mut stmt in stmts {

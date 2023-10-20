@@ -5,8 +5,8 @@ use itertools::Itertools;
 
 use prqlc_ast::expr::Ident;
 
-use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableExpr};
-use crate::ir::pl::{Expr, ExprKind, TupleField};
+use crate::ir::decl::{Decl, DeclKind, Module};
+use crate::ir::pl::{Expr, ExprKind};
 use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::WithErrorInfo;

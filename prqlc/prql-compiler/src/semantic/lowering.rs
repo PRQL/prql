@@ -6,7 +6,7 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-use crate::ir::decl::{self, DeclKind, Module, TableExpr};
+use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
 use crate::ir::rq::{
@@ -18,7 +18,7 @@ use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Span, WithErrorInfo};
 use prqlc_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
 
-use super::{RootModule, NS_DEFAULT_DB};
+use super::NS_DEFAULT_DB;
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,

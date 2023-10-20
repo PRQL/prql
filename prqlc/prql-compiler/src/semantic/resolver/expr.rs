@@ -1,20 +1,11 @@
-use std::collections::HashMap;
-use std::iter::zip;
-
 use anyhow::Result;
-use itertools::{Itertools, Position};
+use itertools::Itertools;
 
-use crate::ir::decl::{Module, TableDecl};
+use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::semantic::resolver::types::infer_type;
-use crate::semantic::{static_analysis, NS_PARAM};
-use crate::utils::IdGenerator;
-use crate::{Error, Reason, Span, WithErrorInfo};
-
-use super::flatten::Flattener;
-use super::transforms::coerce_into_tuple_and_flatten;
-use super::{write_pl, Resolver, RootModule, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
-use crate::ir::decl::{Decl, DeclKind, TableExpr};
+use crate::semantic::resolver::{flatten, transforms, types, Resolver};
+use crate::semantic::{static_analysis, write_pl, NS_THIS};
+use crate::{Error, Reason, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -25,7 +16,7 @@ impl PlFold for Resolver<'_> {
         let value = if matches!(var_def.value.kind, ExprKind::Func(_)) {
             var_def.value
         } else {
-            Box::new(Flattener::fold(self.fold_expr(*var_def.value)?))
+            Box::new(flatten::Flattener::fold(self.fold_expr(*var_def.value)?))
         };
 
         Ok(VarDef {
@@ -219,7 +210,7 @@ impl PlFold for Resolver<'_> {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = infer_type(&r)?;
+            r.ty = types::infer_type(&r)?;
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
@@ -251,7 +242,7 @@ impl PlFold for Resolver<'_> {
 impl Resolver<'_> {
     fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
-        let tuple = coerce_into_tuple_and_flatten(expr)?;
+        let tuple = transforms::coerce_into_tuple_and_flatten(expr)?;
         let except: Vec<Expr> = tuple
             .into_iter()
             .map(|e| match e.kind {

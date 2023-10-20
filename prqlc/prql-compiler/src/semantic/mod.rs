@@ -6,7 +6,6 @@ mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
-mod root_module;
 mod static_analysis;
 
 use anyhow::Result;
@@ -18,8 +17,8 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
-use crate::ir::decl::RootModule;
-use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::decl::{Module, RootModule};
+use crate::ir::pl::{self, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::WithErrorInfo;
 use crate::{Error, Reason, SourceTree};
@@ -53,7 +52,10 @@ pub fn resolve(
     }
 
     // init empty context
-    let mut root_module = RootModule::new();
+    let mut root_module = RootModule {
+        module: Module::new_root(),
+        ..Default::default()
+    };
     let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve sources one by one
