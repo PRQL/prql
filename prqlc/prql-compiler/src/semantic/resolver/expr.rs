@@ -36,7 +36,7 @@ impl PlFold for Resolver<'_> {
         let span = node.span;
 
         if let Some(span) = span {
-            self.context.span_map.insert(id, span);
+            self.root_mod.span_map.insert(id, span);
         }
 
         log::trace!("folding expr {node:?}");
@@ -46,7 +46,7 @@ impl PlFold for Resolver<'_> {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
                 log::debug!("... resolved to {fq_ident}");
-                let entry = self.context.module.get(&fq_ident).unwrap();
+                let entry = self.root_mod.module.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
@@ -136,7 +136,7 @@ impl PlFold for Resolver<'_> {
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
 
             ExprKind::All { within, except } => {
-                let decl = self.context.module.get(&within);
+                let decl = self.root_mod.module.get(&within);
 
                 // lookup ids of matched inputs
                 let target_ids = decl
@@ -214,7 +214,7 @@ impl PlFold for Resolver<'_> {
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(self.context)?);
+                r.lineage = Some(call.infer_type(self.root_mod)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 

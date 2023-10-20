@@ -48,7 +48,7 @@ impl Resolver<'_> {
 
         // push the env
         let closure_env = Module::from_exprs(closure.env);
-        self.context.module.stack_push(NS_PARAM, closure_env);
+        self.root_mod.module.stack_push(NS_PARAM, closure_env);
         let closure = Func {
             env: HashMap::new(),
             ..closure
@@ -98,14 +98,14 @@ impl Resolver<'_> {
 
             let (func_env, body) = env_of_closure(closure);
 
-            self.context.module.stack_push(NS_PARAM, func_env);
+            self.root_mod.module.stack_push(NS_PARAM, func_env);
 
             // fold again, to resolve inner variables & functions
             let body = self.fold_expr(body)?;
 
             // remove param decls
             log::debug!("stack_pop: {:?}", body.id);
-            let func_env = self.context.module.stack_pop(NS_PARAM).unwrap();
+            let func_env = self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
             if let ExprKind::Func(mut inner_closure) = body.kind {
                 // body couldn't been resolved - construct a closure to be evaluated later
@@ -132,7 +132,7 @@ impl Resolver<'_> {
         };
 
         // pop the env
-        self.context.module.stack_pop(NS_PARAM).unwrap();
+        self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
         Ok(Expr { span, ..res })
     }
@@ -210,8 +210,8 @@ impl Resolver<'_> {
 
         // resolve relational args
         if has_relations {
-            self.context.module.shadow(NS_THIS);
-            self.context.module.shadow(NS_THAT);
+            self.root_mod.module.shadow(NS_THIS);
+            self.root_mod.module.shadow(NS_THAT);
 
             for (pos, (index, (param, mut arg))) in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last | Position::Only);
@@ -231,9 +231,9 @@ impl Resolver<'_> {
                 if partial_application_position.is_none() {
                     let frame = arg.lineage.as_ref().unwrap();
                     if is_last {
-                        self.context.module.insert_frame(frame, NS_THIS);
+                        self.root_mod.module.insert_frame(frame, NS_THIS);
                     } else {
-                        self.context.module.insert_frame(frame, NS_THAT);
+                        self.root_mod.module.insert_frame(frame, NS_THAT);
                     }
                 }
 
@@ -255,7 +255,7 @@ impl Resolver<'_> {
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
                             let id = field.id.unwrap();
-                            self.context.module.insert_frame_col(NS_THIS, alias, id);
+                            self.root_mod.module.insert_frame_col(NS_THIS, alias, id);
                         }
                         fields_new.push(field);
                     }
@@ -278,8 +278,8 @@ impl Resolver<'_> {
         }
 
         if has_relations {
-            self.context.module.unshadow(NS_THIS);
-            self.context.module.unshadow(NS_THAT);
+            self.root_mod.module.unshadow(NS_THIS);
+            self.root_mod.module.unshadow(NS_THAT);
         }
 
         Ok(if let Some(position) = partial_application_position {

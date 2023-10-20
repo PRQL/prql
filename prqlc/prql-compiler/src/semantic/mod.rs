@@ -28,9 +28,9 @@ pub fn resolve_and_lower(
     file_tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
     main_path: &[String],
 ) -> Result<RelationalQuery> {
-    let context = resolve(file_tree, Default::default())?;
+    let root_mod = resolve(file_tree, Default::default())?;
 
-    let (query, _) = lowering::lower_to_ir(context, main_path)?;
+    let (query, _) = lowering::lower_to_ir(root_mod, main_path)?;
     Ok(query)
 }
 
@@ -51,7 +51,7 @@ pub fn resolve(
         file_tree.insert(path, content);
     }
 
-    // init empty context
+    // init new root module
     let mut root_module = RootModule {
         module: Module::new_root(),
         ..Default::default()

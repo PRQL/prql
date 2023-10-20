@@ -32,8 +32,8 @@ impl Resolver<'_> {
         }
 
         // log::debug!(
-        //     "cannot resolve `{ident}`: `{e}`, context={:#?}",
-        //     self.context
+        //     "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
+        //     self.root_mod
         // );
     }
 
@@ -54,13 +54,13 @@ impl Resolver<'_> {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
             return self.resolve_ident_wildcard(ident).map_err(|e| {
-                log::debug!("{:#?}", self.context.module);
+                log::debug!("{:#?}", self.root_mod.module);
                 Error::new_simple(e)
             });
         }
 
         // base case: direct lookup
-        let decls = self.context.module.lookup(ident);
+        let decls = self.root_mod.module.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -75,7 +75,7 @@ impl Resolver<'_> {
         let ident = if let Some(default_namespace) = default_namespace {
             let ident = ident.clone().prepend(vec![default_namespace.clone()]);
 
-            let decls = self.context.module.lookup(&ident);
+            let decls = self.root_mod.module.lookup(&ident);
             match decls.len() {
                 // no match: try match *
                 0 => ident,
@@ -114,7 +114,7 @@ impl Resolver<'_> {
         let infer_ident = ident.clone().with_name(name_replacement);
 
         // lookup of infer_ident
-        let mut decls = self.context.module.lookup(&infer_ident);
+        let mut decls = self.root_mod.module.lookup(&infer_ident);
 
         if decls.is_empty() {
             if let Some(parent) = infer_ident.clone().pop() {
@@ -122,7 +122,7 @@ impl Resolver<'_> {
                 let _ = self.resolve_ident_fallback(&parent, NS_INFER_MODULE)?;
 
                 // module was successfully inferred, retry the lookup
-                decls = self.context.module.lookup(&infer_ident)
+                decls = self.root_mod.module.lookup(&infer_ident)
             }
         }
 
@@ -140,7 +140,7 @@ impl Resolver<'_> {
 
     /// Create a declaration of [original] from template provided by declaration of [infer_ident].
     fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
-        let infer = self.context.module.get(&infer_ident).unwrap();
+        let infer = self.root_mod.module.get(&infer_ident).unwrap();
         let mut infer_default = *infer.kind.as_infer().cloned().unwrap();
 
         if let DeclKind::Module(new_module) = &mut infer_default {
@@ -151,7 +151,7 @@ impl Resolver<'_> {
         }
 
         let module_ident = infer_ident.pop().unwrap();
-        let module = self.context.module.get_mut(&module_ident).unwrap();
+        let module = self.root_mod.module.get_mut(&module_ident).unwrap();
         let module = module.kind.as_module_mut().unwrap();
 
         // insert default
@@ -176,7 +176,7 @@ impl Resolver<'_> {
             if ident.path.len() > 1 {
                 // Ident has specified full path
                 let mod_ident = ident.clone().pop().unwrap();
-                let mod_decl = (self.context.module.get_mut(&mod_ident))
+                let mod_decl = (self.root_mod.module.get_mut(&mod_ident))
                     .ok_or_else(|| format!("Unknown relation {ident}"))?;
 
                 (mod_ident, mod_decl)
@@ -184,13 +184,13 @@ impl Resolver<'_> {
                 // Ident could be just part of NS_THIS
                 let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
 
-                if let Some(mod_decl) = self.context.module.get_mut(&mod_ident) {
+                if let Some(mod_decl) = self.root_mod.module.get_mut(&mod_ident) {
                     (mod_ident, mod_decl)
                 } else {
                     // ... or part of NS_THAT
                     let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
 
-                    let mod_decl = self.context.module.get_mut(&mod_ident);
+                    let mod_decl = self.root_mod.module.get_mut(&mod_ident);
 
                     // ... well - I guess not. Throw.
                     let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
@@ -223,7 +223,7 @@ impl Resolver<'_> {
         };
 
         // This is just a workaround to return an Expr from this function.
-        // We wrap the expr into DeclKind::Expr and save it into context.
+        // We wrap the expr into DeclKind::Expr and save it into the root module.
         let cols_expr = Expr {
             flatten: true,
             ..Expr::new(ExprKind::Tuple(fq_cols))

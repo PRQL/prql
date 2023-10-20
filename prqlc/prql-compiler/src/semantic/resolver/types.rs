@@ -210,8 +210,8 @@ impl Resolver<'_> {
     }
 
     pub fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
-        self.context.module.shadow(NS_THIS);
-        self.context.module.shadow(NS_THAT);
+        self.root_mod.module.shadow(NS_THIS);
+        self.root_mod.module.shadow(NS_THAT);
 
         let res = match ty_or_expr {
             Some(TyOrExpr::Expr(ty_expr)) => {
@@ -220,8 +220,8 @@ impl Resolver<'_> {
             _ => ty_or_expr,
         };
 
-        self.context.module.unshadow(NS_THIS);
-        self.context.module.unshadow(NS_THAT);
+        self.root_mod.module.unshadow(NS_THIS);
+        self.root_mod.module.unshadow(NS_THAT);
         Ok(res)
     }
 

@@ -471,11 +471,11 @@ fn fold_by_simulating_eval(
     )));
 
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-    resolver.context.module.stack_push(NS_PARAM, env);
+    resolver.root_mod.module.stack_push(NS_PARAM, env);
 
     let pipeline = resolver.fold_expr(pipeline)?;
 
-    resolver.context.module.stack_pop(NS_PARAM).unwrap();
+    resolver.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
     // now, we need wrap the result into a closure and replace
     // the dummy node with closure's parameter.
@@ -503,7 +503,7 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, context: &RootModule) -> Result<Lineage> {
+    pub fn infer_type(&self, root_mod: &RootModule) -> Result<Lineage> {
         use TransformKind::*;
 
         fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
@@ -517,13 +517,13 @@ impl TransformCall {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
                 frame.clear();
-                frame.apply_assigns(assigns, context);
+                frame.apply_assigns(assigns, root_mod);
                 frame
             }
             Derive { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
-                frame.apply_assigns(assigns, context);
+                frame.apply_assigns(assigns, root_mod);
                 frame
             }
             Group { pipeline, by, .. } => {
@@ -545,7 +545,7 @@ impl TransformCall {
                         frame.columns = Vec::new();
 
                         log::debug!(".. group by {by:?}");
-                        frame.apply_assigns(by, context);
+                        frame.apply_assigns(by, root_mod);
 
                         frame.columns.extend(aggregate_columns);
                     }
@@ -567,7 +567,7 @@ impl TransformCall {
                 let mut frame = ty_frame_or_default(&self.input)?;
                 frame.clear();
 
-                frame.apply_assigns(assigns, context);
+                frame.apply_assigns(assigns, root_mod);
                 frame
             }
             Join { with, .. } => {
@@ -655,7 +655,7 @@ impl Lineage {
         self.prev_columns.append(&mut self.columns);
     }
 
-    pub fn apply_assign(&mut self, expr: &Expr, context: &RootModule) {
+    pub fn apply_assign(&mut self, expr: &Expr, root_mod: &RootModule) {
         // spacial case: all except
         if let ExprKind::All { except, .. } = &expr.kind {
             let except_exprs: HashSet<&usize> =
@@ -671,7 +671,7 @@ impl Lineage {
                         if except_inputs.contains(target_id) {
                             continue;
                         }
-                        self.columns.extend(input.get_all_columns(except, context));
+                        self.columns.extend(input.get_all_columns(except, root_mod));
                     }
                     None => {
                         // include the column with if target_id
@@ -717,9 +717,9 @@ impl Lineage {
         });
     }
 
-    pub fn apply_assigns(&mut self, assigns: &[Expr], context: &RootModule) {
+    pub fn apply_assigns(&mut self, assigns: &[Expr], root_mod: &RootModule) {
         for expr in assigns {
-            self.apply_assign(expr, context);
+            self.apply_assign(expr, root_mod);
         }
     }
 
@@ -746,8 +746,8 @@ impl Lineage {
 }
 
 impl LineageInput {
-    fn get_all_columns(&self, except: &[Expr], context: &RootModule) -> Vec<LineageColumn> {
-        let rel_def = context.module.get(&self.table).unwrap();
+    fn get_all_columns(&self, except: &[Expr], root_mod: &RootModule) -> Vec<LineageColumn> {
+        let rel_def = root_mod.module.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
         // TODO: can this panic?

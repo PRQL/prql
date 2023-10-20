@@ -15,7 +15,7 @@ impl Resolver<'_> {
         table_ident: &Ident,
         col_name: &str,
     ) -> Result<(), String> {
-        let table = self.context.module.get_mut(table_ident).unwrap();
+        let table = self.root_mod.module.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {
@@ -71,7 +71,7 @@ impl Resolver<'_> {
         input_id: usize,
     ) -> Lineage {
         let id = input_id;
-        let table_decl = self.context.module.get(table_fq).unwrap();
+        let table_decl = self.root_mod.module.get(table_fq).unwrap();
         let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
         // TODO: can this panic?
@@ -124,7 +124,7 @@ impl Resolver<'_> {
 
         // declare a new table in the `default_db` module
         let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
-        let default_db = self.context.module.get_mut(&default_db_ident).unwrap();
+        let default_db = self.root_mod.module.get_mut(&default_db_ident).unwrap();
         let default_db = default_db.kind.as_module_mut().unwrap();
 
         let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();

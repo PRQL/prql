@@ -9,14 +9,14 @@ use crate::ir::decl::{DeclKind, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::Span;
 
-pub fn label_references(context: &RootModule, source_id: String, source: String) -> Vec<u8> {
+pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
 
     // label all idents and function calls
     let mut labeler = Labeler {
-        context,
+        root_mod,
         source: &source,
         source_id: &source_id,
         report: &mut report,
@@ -33,7 +33,7 @@ pub fn label_references(context: &RootModule, source_id: String, source: String)
 
 /// Traverses AST and add labels for each of the idents and function calls
 struct Labeler<'a> {
-    context: &'a RootModule,
+    root_mod: &'a RootModule,
     source: &'a Source,
     source_id: &'a str,
     report: &'a mut ReportBuilder<'static, (String, Range<usize>)>,
@@ -41,7 +41,7 @@ struct Labeler<'a> {
 
 impl<'a> Labeler<'a> {
     fn fold_table_exprs(&mut self) {
-        if let Some(default_db) = self.context.module.names.get(NS_DEFAULT_DB) {
+        if let Some(default_db) = self.root_mod.module.names.get(NS_DEFAULT_DB) {
             let default_db = default_db.clone().kind.into_module().unwrap();
 
             for (_, decl) in default_db.names.into_iter() {
@@ -57,7 +57,7 @@ impl<'a> Labeler<'a> {
     }
 
     fn get_span_lines(&mut self, id: usize) -> Option<String> {
-        let decl_span = self.context.span_map.get(&id);
+        let decl_span = self.root_mod.span_map.get(&id);
         decl_span.map(|decl_span| {
             let line_span = self.source.get_line_range(&Range::from(*decl_span));
             if line_span.len() <= 1 {
@@ -73,7 +73,7 @@ impl<'a> PlFold for Labeler<'a> {
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
-                let decl = self.context.module.get(ident);
+                let decl = self.root_mod.module.get(ident);
 
                 let ident = format!("[{ident}]");
 

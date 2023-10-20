@@ -12,7 +12,7 @@ impl super::Resolver<'_> {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
-                self.context.span_map.insert(stmt.id.unwrap(), span);
+                self.root_mod.span_map.insert(stmt.id.unwrap(), span);
             }
 
             let ident = Ident {
@@ -25,7 +25,7 @@ impl super::Resolver<'_> {
             let mut def = match stmt.kind {
                 StmtKind::QueryDef(d) => {
                     let decl = DeclKind::QueryDef(*d);
-                    self.context
+                    self.root_mod
                         .declare(ident, decl, stmt.id, Vec::new())
                         .with_span(stmt.span)?;
                     continue;
@@ -75,7 +75,7 @@ impl super::Resolver<'_> {
                         ..Default::default()
                     };
                     let ident = Ident::from_path(self.current_module_path.clone());
-                    self.context
+                    self.root_mod
                         .module
                         .insert(ident, decl)
                         .with_span(stmt.span)?;
@@ -106,7 +106,7 @@ impl super::Resolver<'_> {
 
             let decl = prepare_expr_decl(def.value);
 
-            self.context
+            self.root_mod
                 .declare(ident, decl, stmt.id, stmt.annotations)
                 .with_span(stmt.span)?;
         }

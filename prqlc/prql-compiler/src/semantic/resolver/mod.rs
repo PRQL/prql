@@ -14,7 +14,7 @@ mod types;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver<'a> {
-    context: &'a mut RootModule,
+    root_mod: &'a mut RootModule,
 
     current_module_path: Vec<String>,
 
@@ -36,9 +36,9 @@ pub struct ResolverOptions {
 }
 
 impl Resolver<'_> {
-    pub fn new(context: &mut RootModule, options: ResolverOptions) -> Resolver {
+    pub fn new(root_mod: &mut RootModule, options: ResolverOptions) -> Resolver {
         Resolver {
-            context,
+            root_mod,
             options,
             current_module_path: Vec::new(),
             default_namespace: None,
