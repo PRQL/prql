@@ -7,14 +7,13 @@ use std::iter::zip;
 
 use prqlc_ast::error::{Error, Reason};
 
+use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
 use crate::{WithErrorInfo, COMPILER_VERSION};
 
-use super::super::decl::{Decl, DeclKind};
-use super::super::module::Module;
 use super::Resolver;
 use super::{Lineage, RootModule};
 use super::{NS_PARAM, NS_THIS};
@@ -474,11 +473,11 @@ fn fold_by_simulating_eval(
     )));
 
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-    resolver.context.root_mod.stack_push(NS_PARAM, env);
+    resolver.context.module.stack_push(NS_PARAM, env);
 
     let pipeline = resolver.fold_expr(pipeline)?;
 
-    resolver.context.root_mod.stack_pop(NS_PARAM).unwrap();
+    resolver.context.module.stack_pop(NS_PARAM).unwrap();
 
     // now, we need wrap the result into a closure and replace
     // the dummy node with closure's parameter.
@@ -750,7 +749,7 @@ impl Lineage {
 
 impl LineageInput {
     fn get_all_columns(&self, except: &[Expr], context: &RootModule) -> Vec<LineageColumn> {
-        let rel_def = context.root_mod.get(&self.table).unwrap();
+        let rel_def = context.module.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
         // TODO: can this panic?

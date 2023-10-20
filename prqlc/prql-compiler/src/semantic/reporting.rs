@@ -4,9 +4,9 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::decl::{DeclKind, TableDecl, TableExpr};
 use super::NS_DEFAULT_DB;
 use super::{Lineage, RootModule};
+use crate::ir::decl::{DeclKind, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::Span;
 
@@ -42,7 +42,7 @@ struct Labeler<'a> {
 
 impl<'a> Labeler<'a> {
     fn fold_table_exprs(&mut self) {
-        if let Some(default_db) = self.context.root_mod.names.get(NS_DEFAULT_DB) {
+        if let Some(default_db) = self.context.module.names.get(NS_DEFAULT_DB) {
             let default_db = default_db.clone().kind.into_module().unwrap();
 
             for (_, decl) in default_db.names.into_iter() {
@@ -74,7 +74,7 @@ impl<'a> PlFold for Labeler<'a> {
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
         if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
-                let decl = self.context.root_mod.get(ident);
+                let decl = self.context.module.get(ident);
 
                 let ident = format!("[{ident}]");
 

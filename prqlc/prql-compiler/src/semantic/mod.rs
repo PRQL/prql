@@ -1,7 +1,6 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
 mod ast_expand;
-mod decl;
 mod eval;
 mod lowering;
 mod module;
@@ -14,13 +13,12 @@ use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 
-pub use self::module::Module;
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
-pub use self::root_module::RootModule;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
+use crate::ir::decl::RootModule;
 use crate::ir::pl::{self, Lineage, LineageColumn, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::WithErrorInfo;

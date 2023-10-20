@@ -4,15 +4,14 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::{Itertools, Position};
 
+use crate::ir::decl::{Module, TableDecl};
 use crate::ir::pl::*;
-use crate::semantic::decl::TableDecl;
 use crate::semantic::{static_analysis, NS_PARAM};
 use crate::utils::IdGenerator;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
-use super::decl::{Decl, DeclKind, TableExpr};
-use super::module::Module;
 use super::{write_pl, RootModule, NS_DEFAULT_DB, NS_INFER, NS_STD, NS_THAT, NS_THIS};
+use crate::ir::decl::{Decl, DeclKind, TableExpr};
 use flatten::Flattener;
 use transforms::coerce_into_tuple_and_flatten;
 use type_resolver::infer_type;
@@ -131,7 +130,7 @@ impl Resolver<'_> {
                     };
                     let ident = Ident::from_path(self.current_module_path.clone());
                     self.context
-                        .root_mod
+                        .module
                         .insert(ident, decl)
                         .with_span(stmt.span)?;
 
@@ -176,7 +175,7 @@ impl Resolver<'_> {
         input_id: usize,
     ) -> Lineage {
         let id = input_id;
-        let table_decl = self.context.root_mod.get(table_fq).unwrap();
+        let table_decl = self.context.module.get(table_fq).unwrap();
         let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
         // TODO: can this panic?
@@ -229,7 +228,7 @@ impl Resolver<'_> {
 
         // declare a new table in the `default_db` module
         let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
-        let default_db = self.context.root_mod.get_mut(&default_db_ident).unwrap();
+        let default_db = self.context.module.get_mut(&default_db_ident).unwrap();
         let default_db = default_db.kind.as_module_mut().unwrap();
 
         let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
@@ -292,7 +291,7 @@ impl PlFold for Resolver<'_> {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
                 log::debug!("... resolved to {fq_ident}");
-                let entry = self.context.root_mod.get(&fq_ident).unwrap();
+                let entry = self.context.module.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
@@ -382,7 +381,7 @@ impl PlFold for Resolver<'_> {
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
 
             ExprKind::All { within, except } => {
-                let decl = self.context.root_mod.get(&within);
+                let decl = self.context.module.get(&within);
 
                 // lookup ids of matched inputs
                 let target_ids = decl
@@ -542,7 +541,7 @@ impl Resolver<'_> {
 
         // push the env
         let closure_env = Module::from_exprs(closure.env);
-        self.context.root_mod.stack_push(NS_PARAM, closure_env);
+        self.context.module.stack_push(NS_PARAM, closure_env);
         let closure = Func {
             env: HashMap::new(),
             ..closure
@@ -592,14 +591,14 @@ impl Resolver<'_> {
 
             let (func_env, body) = env_of_closure(closure);
 
-            self.context.root_mod.stack_push(NS_PARAM, func_env);
+            self.context.module.stack_push(NS_PARAM, func_env);
 
             // fold again, to resolve inner variables & functions
             let body = self.fold_expr(body)?;
 
             // remove param decls
             log::debug!("stack_pop: {:?}", body.id);
-            let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
+            let func_env = self.context.module.stack_pop(NS_PARAM).unwrap();
 
             if let ExprKind::Func(mut inner_closure) = body.kind {
                 // body couldn't been resolved - construct a closure to be evaluated later
@@ -626,7 +625,7 @@ impl Resolver<'_> {
         };
 
         // pop the env
-        self.context.root_mod.stack_pop(NS_PARAM).unwrap();
+        self.context.module.stack_pop(NS_PARAM).unwrap();
 
         Ok(Expr { span, ..res })
     }
@@ -704,8 +703,8 @@ impl Resolver<'_> {
 
         // resolve relational args
         if has_relations {
-            self.context.root_mod.shadow(NS_THIS);
-            self.context.root_mod.shadow(NS_THAT);
+            self.context.module.shadow(NS_THIS);
+            self.context.module.shadow(NS_THAT);
 
             for (pos, (index, (param, mut arg))) in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last | Position::Only);
@@ -725,9 +724,9 @@ impl Resolver<'_> {
                 if partial_application_position.is_none() {
                     let frame = arg.lineage.as_ref().unwrap();
                     if is_last {
-                        self.context.root_mod.insert_frame(frame, NS_THIS);
+                        self.context.module.insert_frame(frame, NS_THIS);
                     } else {
-                        self.context.root_mod.insert_frame(frame, NS_THAT);
+                        self.context.module.insert_frame(frame, NS_THAT);
                     }
                 }
 
@@ -749,7 +748,7 @@ impl Resolver<'_> {
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
                             let id = field.id.unwrap();
-                            self.context.root_mod.insert_frame_col(NS_THIS, alias, id);
+                            self.context.module.insert_frame_col(NS_THIS, alias, id);
                         }
                         fields_new.push(field);
                     }
@@ -772,8 +771,8 @@ impl Resolver<'_> {
         }
 
         if has_relations {
-            self.context.root_mod.unshadow(NS_THIS);
-            self.context.root_mod.unshadow(NS_THAT);
+            self.context.module.unshadow(NS_THIS);
+            self.context.module.unshadow(NS_THAT);
         }
 
         Ok(if let Some(position) = partial_application_position {
@@ -877,8 +876,8 @@ impl Resolver<'_> {
     }
 
     fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
-        self.context.root_mod.shadow(NS_THIS);
-        self.context.root_mod.shadow(NS_THAT);
+        self.context.module.shadow(NS_THIS);
+        self.context.module.shadow(NS_THAT);
 
         let res = match ty_or_expr {
             Some(TyOrExpr::Expr(ty_expr)) => {
@@ -887,8 +886,8 @@ impl Resolver<'_> {
             _ => ty_or_expr,
         };
 
-        self.context.root_mod.unshadow(NS_THIS);
-        self.context.root_mod.unshadow(NS_THAT);
+        self.context.module.unshadow(NS_THIS);
+        self.context.module.unshadow(NS_THAT);
         Ok(res)
     }
 }

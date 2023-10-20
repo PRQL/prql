@@ -9,14 +9,14 @@ use once_cell::sync::Lazy;
 use super::gen_expr::{translate_operand, ExprOrSource, SourceExpr};
 use super::{Context, Dialect};
 
-use crate::ir::{pl, rq};
+use crate::ir::{decl, pl, rq};
 use crate::semantic;
 use crate::utils::Pluck;
 use crate::{Error, WithErrorInfo};
 
-static STD: Lazy<semantic::Module> = Lazy::new(load_std_sql);
+static STD: Lazy<decl::Module> = Lazy::new(load_std_sql);
 
-fn load_std_sql() -> semantic::Module {
+fn load_std_sql() -> decl::Module {
     let std_lib = crate::SourceTree::new([(
         PathBuf::from("std.prql"),
         include_str!("./std.sql.prql").to_string(),
@@ -28,7 +28,7 @@ fn load_std_sql() -> semantic::Module {
     };
 
     let context = semantic::resolve(ast, options).unwrap();
-    context.root_mod
+    context.module
 }
 
 pub(super) fn translate_operator_expr(expr: rq::Expr, ctx: &mut Context) -> Result<ExprOrSource> {

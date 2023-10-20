@@ -5,9 +5,9 @@ use itertools::Itertools;
 
 use prqlc_ast::expr::Ident;
 
+use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::{Annotation, Expr, ExprKind, LineageColumn, TupleField, Ty};
-use crate::semantic::decl::{Decl, DeclKind, TableDecl, TableExpr};
-use crate::semantic::{Module, RootModule, NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::WithErrorInfo;
 
@@ -19,7 +19,7 @@ impl RootModule {
         id: Option<usize>,
         annotations: Vec<Annotation>,
     ) -> Result<()> {
-        let existing = self.root_mod.get(&ident);
+        let existing = self.module.get(&ident);
         if existing.is_some() {
             return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
         }
@@ -30,7 +30,7 @@ impl RootModule {
             order: 0,
             annotations,
         };
-        self.root_mod.insert(ident, decl).unwrap();
+        self.module.insert(ident, decl).unwrap();
         Ok(())
     }
 
@@ -71,13 +71,13 @@ impl RootModule {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
             return self.resolve_ident_wildcard(ident).map_err(|e| {
-                log::debug!("{:#?}", self.root_mod);
+                log::debug!("{:#?}", self.module);
                 Error::new_simple(e)
             });
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(ident);
+        let decls = self.module.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -92,7 +92,7 @@ impl RootModule {
         let ident = if let Some(default_namespace) = default_namespace {
             let ident = ident.clone().prepend(vec![default_namespace.clone()]);
 
-            let decls = self.root_mod.lookup(&ident);
+            let decls = self.module.lookup(&ident);
             match decls.len() {
                 // no match: try match *
                 0 => ident,
@@ -131,7 +131,7 @@ impl RootModule {
         let infer_ident = ident.clone().with_name(name_replacement);
 
         // lookup of infer_ident
-        let mut decls = self.root_mod.lookup(&infer_ident);
+        let mut decls = self.module.lookup(&infer_ident);
 
         if decls.is_empty() {
             if let Some(parent) = infer_ident.clone().pop() {
@@ -139,7 +139,7 @@ impl RootModule {
                 let _ = self.resolve_ident_fallback(&parent, NS_INFER_MODULE)?;
 
                 // module was successfully inferred, retry the lookup
-                decls = self.root_mod.lookup(&infer_ident)
+                decls = self.module.lookup(&infer_ident)
             }
         }
 
@@ -157,7 +157,7 @@ impl RootModule {
 
     /// Create a declaration of [original] from template provided by declaration of [infer_ident].
     fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
-        let infer = self.root_mod.get(&infer_ident).unwrap();
+        let infer = self.module.get(&infer_ident).unwrap();
         let mut infer_default = *infer.kind.as_infer().cloned().unwrap();
 
         if let DeclKind::Module(new_module) = &mut infer_default {
@@ -168,7 +168,7 @@ impl RootModule {
         }
 
         let module_ident = infer_ident.pop().unwrap();
-        let module = self.root_mod.get_mut(&module_ident).unwrap();
+        let module = self.module.get_mut(&module_ident).unwrap();
         let module = module.kind.as_module_mut().unwrap();
 
         // insert default
@@ -193,7 +193,7 @@ impl RootModule {
             if ident.path.len() > 1 {
                 // Ident has specified full path
                 let mod_ident = ident.clone().pop().unwrap();
-                let mod_decl = (self.root_mod.get_mut(&mod_ident))
+                let mod_decl = (self.module.get_mut(&mod_ident))
                     .ok_or_else(|| format!("Unknown relation {ident}"))?;
 
                 (mod_ident, mod_decl)
@@ -201,13 +201,13 @@ impl RootModule {
                 // Ident could be just part of NS_THIS
                 let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
 
-                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
+                if let Some(mod_decl) = self.module.get_mut(&mod_ident) {
                     (mod_ident, mod_decl)
                 } else {
                     // ... or part of NS_THAT
                     let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
 
-                    let mod_decl = self.root_mod.get_mut(&mod_ident);
+                    let mod_decl = self.module.get_mut(&mod_ident);
 
                     // ... well - I guess not. Throw.
                     let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
@@ -254,7 +254,7 @@ impl RootModule {
     }
 
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
-        let table = self.root_mod.get_mut(table_ident).unwrap();
+        let table = self.module.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let Some(columns) = table_decl.ty.as_mut().and_then(|t| t.as_relation_mut()) else {

@@ -1,27 +1,10 @@
 use std::collections::HashMap;
-use std::fmt::Debug;
 
 use anyhow::Result;
 use prqlc_ast::{expr::Ident, stmt::QueryDef, Span};
-use serde::{Deserialize, Serialize};
 
-use super::decl::DeclKind;
-use super::{
-    decl::{Decl, TableExpr},
-    Module, NS_MAIN, NS_QUERY_DEF,
-};
-use super::{NS_PARAM, NS_STD, NS_THAT, NS_THIS};
-
-/// Context of the pipeline.
-#[derive(Serialize, Deserialize, Clone)]
-pub struct RootModule {
-    /// Map of all accessible names (for each namespace)
-    pub(crate) root_mod: Module,
-
-    pub(crate) span_map: HashMap<usize, Span>,
-}
-
-// TODO: impl Deref<Target=Module> for RootModule and DerefMut
+use super::{NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_STD, NS_THAT, NS_THIS};
+use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableExpr};
 
 type HintAndSpan = (Option<String>, Option<Span>);
 
@@ -31,7 +14,7 @@ impl RootModule {
         // Each module starts with a default namespace that contains a wildcard
         // and the standard library.
         RootModule {
-            root_mod: Module {
+            module: Module {
                 names: HashMap::from([
                     (
                         "default_db".to_string(),
@@ -73,7 +56,7 @@ impl RootModule {
         // is path referencing the relational var directly?
         if !path.is_empty() {
             let ident = Ident::from_path(path.to_vec());
-            let decl = self.root_mod.get(&ident);
+            let decl = self.module.get(&ident);
 
             if let Some(decl) = decl {
                 return Ok((decl, ident));
@@ -88,7 +71,7 @@ impl RootModule {
             path.push(NS_MAIN.to_string());
 
             let ident = Ident::from_path(path);
-            let decl = self.root_mod.get(&ident);
+            let decl = self.module.get(&ident);
 
             if let Some(decl) = decl {
                 return Ok((decl, ident));
@@ -109,18 +92,12 @@ impl RootModule {
             name: NS_QUERY_DEF.to_string(),
         };
 
-        let decl = self.root_mod.get(&ident)?;
+        let decl = self.module.get(&ident)?;
         decl.kind.as_query_def()
     }
 
     /// Finds all main pipelines.
     pub fn find_mains(&self) -> Vec<Ident> {
-        self.root_mod.find_by_suffix(NS_MAIN)
-    }
-}
-
-impl Debug for RootModule {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.root_mod.fmt(f)
+        self.module.find_by_suffix(NS_MAIN)
     }
 }

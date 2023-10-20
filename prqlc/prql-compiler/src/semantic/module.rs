@@ -1,36 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
-use itertools::Itertools;
-use serde::{Deserialize, Serialize};
 
 use crate::ir::pl::{Expr, Ident, TupleField, Ty};
 use crate::Error;
 
-use super::decl::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Lineage, LineageColumn};
 use super::{NS_INFER, NS_INFER_MODULE, NS_SELF};
-
-#[derive(Default, PartialEq, Serialize, Deserialize, Clone)]
-pub struct Module {
-    /// Names declared in this module. This is the important thing.
-    pub(super) names: HashMap<String, Decl>,
-
-    /// List of relative paths to include in search path when doing lookup in
-    /// this module.
-    ///
-    /// Assuming we want to lookup `average`, which is in `std`. The root module
-    /// does not contain the `average`. So instead:
-    /// - look for `average` in root module and find nothing,
-    /// - follow redirects in root module,
-    /// - because of redirect `std`, so we look for `average` in `std`,
-    /// - there is `average` is `std`,
-    /// - result of the lookup is FQ ident `std.average`.
-    pub redirects: Vec<Ident>,
-
-    /// A declaration that has been shadowed (overwritten) by this module.
-    pub shadowed: Option<Box<Decl>>,
-}
+use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 
 impl Module {
     pub fn singleton<S: ToString>(name: S, entry: Decl) -> Module {
@@ -368,27 +345,6 @@ impl Module {
         }
 
         res
-    }
-}
-
-impl std::fmt::Debug for Module {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut ds = f.debug_struct("Namespace");
-
-        if !self.redirects.is_empty() {
-            let redirects = self.redirects.iter().map(|x| x.to_string()).collect_vec();
-            ds.field("redirects", &redirects);
-        }
-
-        if self.names.len() < 15 {
-            ds.field("names", &self.names);
-        } else {
-            ds.field("names", &format!("... {} entries ...", self.names.len()));
-        }
-        if let Some(shadowed) = &self.shadowed {
-            ds.field("shadowed", shadowed);
-        }
-        ds.finish()
     }
 }
 

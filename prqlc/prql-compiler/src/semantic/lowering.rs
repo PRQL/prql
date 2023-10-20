@@ -6,20 +6,18 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
+use crate::ir::decl::{self, DeclKind, Module, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
 use crate::ir::rq::{
     self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
 };
-use crate::semantic::decl::TableExpr;
-use crate::semantic::module::Module;
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Span, WithErrorInfo};
 use prqlc_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
 
-use super::decl::{self, DeclKind};
 use super::{RootModule, NS_DEFAULT_DB};
 
 /// Convert AST into IR and make sure that:
@@ -45,7 +43,7 @@ pub fn lower_to_ir(
     validate_query_def(&def)?;
 
     // find all tables in the root module
-    let tables = TableExtractor::extract(&context.root_mod);
+    let tables = TableExtractor::extract(&context.module);
 
     // prune and toposort
     let tables = toposort_tables(tables, &main_ident);
@@ -253,7 +251,7 @@ impl Lowerer {
                 let frame = expr.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
-                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = self.context.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
                 let ty = table_decl.ty.as_ref();
                 // TODO: can this panic?
@@ -287,7 +285,7 @@ impl Lowerer {
                 let frame = expr.lineage.as_ref().unwrap();
                 let input = frame.inputs.get(0).unwrap();
 
-                let table_decl = self.context.root_mod.get(&input.table).unwrap();
+                let table_decl = self.context.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
                 let ty = table_decl.ty.as_ref();
                 // TODO: can this panic?
