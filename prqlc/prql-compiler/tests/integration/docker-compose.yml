@@ -48,12 +48,10 @@ services:
       # ClickHouse can load csv only from user_files_path (default `/var/lib/clickhouse/user_files/`)
       # https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#server_configuration_parameters-user_scripts_path
       - ./data/chinook:/var/lib/clickhouse/user_files/chinook/:ro
-  # GlareDB is not compatible with rust-postgres for now
-  # See https://github.com/GlareDB/glaredb/pull/1935
-  # glaredb:
-  #   build:
-  #     context: dockerfiles
-  #     dockerfile: glaredb.Dockerfile
-  #   ports:
-  #     - "6543:6543"
-  #   volumes: *vol
+  glaredb:
+    build:
+      context: dockerfiles
+      dockerfile: glaredb.Dockerfile
+    ports:
+      - "6543:6543"
+    volumes: *vol
