@@ -1,0 +1,86 @@
+[package]
+description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
+name = "prql-compiler"
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+# Doesn't inherit from workspace because of `cargo msrv` support
+metadata.msrv = "1.70.0"
+
+[features]
+default = []
+# Technically tokio could be limited to external tests, but its types are in
+# signatures which would require lots of conditional compilation.
+test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
+test-dbs-external = ["chrono", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
+
+[dependencies]
+prqlc-ast = {path = "../prqlc-ast", version = "0.10.0"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.10.0"}
+
+anstream = {version = "0.3.2", features = ["auto"]}
+anyhow = {version = "1.0.75", features = ["backtrace"]}
+ariadne = "0.3.0"
+csv = "1.3.0"
+enum-as-inner = "0.6.0"
+itertools = "0.11.0"
+log = "0.4.20"
+once_cell = "1.18.0"
+regex = "1.10.2"
+semver = {version = "1.0.20", features = ["serde"]}
+# We could put `serde` behind a feature if we wanted to reduce the size of prql-compiler.
+serde = {version = "1.0.189", features = ["derive"]}
+serde_json = "1.0.107"
+sqlformat = "0.2.2"
+sqlparser = {version = "0.38.0", features = ["serde"]}
+strum = {version = "0.25.0", features = ["std", "derive"]}
+strum_macros = "0.25.3"
+
+serde_yaml = {version = "0.9", optional = true}
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+# For integration tests. These are gated by the `test-dbs` feature, rather than
+# dev-dependencies, because dev-dependencies can't be optional.
+chrono = {version = "0.4", optional = true, features = [], default-features = false}
+duckdb = {version = "0.9.1", optional = true, features = ["bundled", "chrono"]}
+glob = {version = "0.3.1", optional = true}
+mysql = {version = "24", optional = true}
+pg_bigdecimal = {version = "0.1", optional = true}
+postgres = {version = "0.19", optional = true}
+rusqlite = {version = "0.29.0", optional = true, features = ["bundled", "csvtab"]}
+tiberius = {version = "0.12", optional = true, features = ["sql-browser-tokio", "bigdecimal", "time"]}
+tokio = {version = "1", optional = true, features = ["full"]}
+tokio-util = {version = "0.7", optional = true, features = ["compat"]}
+
+[dev-dependencies]
+cfg-if = "1.0"
+insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
+similar = {version = "2.3.0"}
+similar-asserts = "1.5.0"
+
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+criterion = {version = "0.5.1"}
+
+[[bench]]
+harness = false
+name = "bench"
+
+# Putting these pre-release replacements in the workspace root causes it to
+# refer to the path relative to `prql-compiler`, so we choose this crate out of
+# default.
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../../web/book/src/project/target.md"
+replace = 'prql version:"{{version}}"'
+search = 'prql version:"[\d.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../../CHANGELOG.md"
+replace = "# PRQL Changelog\n\n## [unreleased]\n\n**Language**:\n\n**Features**:\n\n**Fixes**:\n\n**Documentation**:\n\n**Web**:\n\n**Integrations**:\n\n**Internal changes**:\n\n**New Contributors**:\n\n"
+search = "# PRQL Changelog\n\n"

@@ -12,6 +12,8 @@
     "**/Thumbs.db": true,
     "web/book/book": true,
     "web/build": true,
-    ".direnv": true
+    ".direnv": true,
+    ".pytest_cache": true,
+    ".mypy_cache": true
   }
 }

@@ -2,7 +2,7 @@ comment: false
 
 ignore:
   # Contains code for integration tests which don't run in coverage
-  - "crates/prql-compiler/tests/integration/**"
+  - "prqlc/prql-compiler/tests/integration/**"
 
 coverage:
   status:

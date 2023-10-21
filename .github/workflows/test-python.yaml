@@ -28,7 +28,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
-          path: dist
+          path: target/python
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
@@ -47,4 +47,4 @@ jobs:
             hashFiles('prql-python/requirements.txt') }}
       - name: Run tests and typing
         shell: bash
-        run: nox -s tests typing -f bindings/prql-python/noxfile.py
+        run: nox -s tests typing -f prqlc/bindings/python/noxfile.py

@@ -1,0 +1,46 @@
+[package]
+description = "CLI for the PRQL compiler"
+name = "prqlc"
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+# Doesn't inherit from workspace because of `cargo msrv` support
+metadata.msrv = "1.70.0"
+
+[[bin]]
+name = "prqlc"
+test = false
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+anstream = {version = "0.3.2", features = ["auto"]}
+anyhow = {version = "1.0.75"}
+ariadne = "0.3.0"
+# Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
+atty = "0.2.14"
+clap = {version = "4.4.6", features = ["derive", "env", "wrap_help"]}
+clap_complete_command = "0.5.1"
+clio = {version = "0.3.3", features = ['clap-parse']}
+color-eyre = "0.6.2"
+colorchoice-clap = "1.0.0"
+env_logger = {version = "0.10.0", features = ["color"]}
+itertools = "0.11.0"
+notify = "6.1.1"
+prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.10.0"}
+prqlc-ast = {path = '../prqlc-ast', version = "0.10.0"}
+regex = {version = "1.10.2", features = ["std", "unicode"]}
+serde = "1"
+serde_json = "1.0.107"
+serde_yaml = "0.9.25"
+walkdir = "2.4.0"
+
+# We use minijinja just for the Jinja lexer, which is not part of the
+# public interface which is covered by semver guarantees.
+minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
+
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
+insta-cmd = "0.4.0"

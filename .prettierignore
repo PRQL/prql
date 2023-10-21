@@ -13,5 +13,6 @@
 **/*.html
 
 # A few large, ignored dirs
-/target
+target/
 **/dist/*
+.mypy_cache/

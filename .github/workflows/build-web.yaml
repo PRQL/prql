@@ -98,6 +98,3 @@ jobs:
       - name: Build CodeMirror demo
         working-directory: web/prql-codemirror-demo/
         run: bun run build
-      - uses: actions/upload-pages-artifact@v2.0.0
-        with:
-          path: web/prql-codemirror-demo/dist/

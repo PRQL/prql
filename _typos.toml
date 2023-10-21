@@ -1,8 +1,8 @@
 [files]
 extend-exclude = [
   "web/book/theme/highlight.js",
-  "crates/prql-compiler/tests/integration/data/",
-  "crates/prql-compiler/tests/integration/snapshots/",
+  "prqlc/prql-compiler/tests/integration/data/",
+  "prqlc/prql-compiler/tests/integration/snapshots/",
   "web/website/themes/prql-theme/static/plugins/bootstrap",
   "web/website/themes/prql-theme/static/plugins/highlight/highlight.min.js",
 ]

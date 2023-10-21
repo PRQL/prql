@@ -16,7 +16,7 @@ fmt:
             --config=.prettierrc.yaml \
             --ignore-path=.prettierignore \
             --ignore-unknown \
-            --log-level=warn
+            --log-level=warn &
 
 
 prqlc-lint:
@@ -24,29 +24,37 @@ prqlc-lint:
     @cargo clippy --all --fix --allow-staged
 
 
-target := 'x86_64-unknown-linux-gnu'
-
 # Test prqlc
+packages := '--package=prqlc-ast --package=prqlc-parser --package=prql-compiler --package=prqlc'
+prqlc-test-fast:
+    cargo clippy --all-targets {{packages}} -- -D warnings
+
+    # cargo insta test, but allowing multiple --package arguments
+    INSTA_FORCE_PASS=1 cargo test --locked {{packages}}
+
+    cargo insta review
+
 prqlc-test:
-    @echo "Testing prqlc…"
+    cargo clippy --all-targets {{packages}} -- -D warnings
 
-    cargo clippy --all-targets --target={{ target }} -- -D warnings
+    INSTA_FORCE_PASS=1 cargo test --locked
 
-    @# Note that `--all-targets` doesn't refer to targets like
-    @# `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-    @#
-    @# Autoformatting does not make this clear to read, but this tertiary
-    @# expression states to run:
-    @# - External DB integration tests — `--features=test-dbs-external`
-    @#   on Linux
-    @# - No features on Windows
-    @# - Internal DB integration tests — `--features=test-dbs` otherwise
-    @#
-    @# Below, we also add:
-    @# - Unreferenced snapshots - `--unreferenced=auto` on Linux
-    @#
-    @# We'd like to reenable on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
+prqlc-python-build mode='debug':
+    #!/usr/bin/env bash
+    if [ '{{mode}}' = 'release' ]; then
+        release='--release'
+    else
+        release=''
+    fi
 
-    cargo test --no-run --locked --target={{ target }}
+    maturin build $release \
+       -o target/python \
+       -m prqlc/bindings/python/Cargo.toml
 
-    cargo insta test --target={{ target }}
+prqlc-python-test:
+    #!/usr/bin/env bash
+    python -m venv target/venv
+    source target/venv/bin/activate
+    pip install target/python/prql_python-*.whl
+    pip install -r prqlc/bindings/python/requirements.txt
+    pytest

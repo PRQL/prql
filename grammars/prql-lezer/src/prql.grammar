@@ -62,6 +62,8 @@ binaryTest[@name="BinaryExpression"] {
 unaryTest[@name="UnaryExpression"] { kw<"!"> testInner }
 
 expression[@isGroup=Expression] {
+  kw<"this"> | kw<"that"> |
+  kw<"null"> |
   BinaryExpression |
   ArrayExpression |
   TupleExpression |
@@ -69,10 +71,13 @@ expression[@isGroup=Expression] {
   DateTime |
   RangeExpression |
   Identifier |
+  boolean |
   number |
   String | FString | RString | SString |
   TimeUnit
 }
+
+boolean { @specialize[@name=Boolean]<identPart, "true" | "false"> }
 
 ArrayExpression { "[" commaSep<test | "*" expression>? "]" }
 
@@ -88,14 +93,24 @@ VariableName { identPart }
 
 number { Integer | Float }
 
-kw<term> { @specialize[@name={term}]<identifier, term> }
+kw<term> { @specialize[@name={term}]<identPart, term> }
 
-VariableDeclaration { @specialize<identPart, "let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
+VariableDeclaration { kw<"let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
 
 Lambda { LambdaParam* "->" exprCall ( newline+ | end ) }
 TypeDefinition { "<" TypeTerm ( "|" TypeTerm)* ">" }
 TypeTerm { identPart TypeDefinition? }
 LambdaParam { identPart TypeDefinition? (":" expression)? }
+
+@skip {} {
+  // Couldn't manage to do these & the interpolated as a template.
+  String {
+    '"""' (stringContentDouble | Escape)* '"""' |
+    "'''" (stringContentSingle | Escape)* "'''" |
+    '"' (stringContentDouble | Escape)* '"' |
+    "'" (stringContentSingle | Escape)* "'"
+  }
+}
 
 @tokens {
   CompareOp { "==" | "!=" | "~=" | ">=" | "<=" | ">" | "<" }
@@ -107,27 +122,43 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   TimeUnit { @digit+ ("years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds" | "microseconds") }
   identifierChar { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
   identPart { identifierChar (identifierChar | "_" | @digit )* }
-  identifier { identPart }
-  Integer { @digit ( @digit | "_" )* ("e" Integer)? }
+
+  hex { @digit | $[a-fA-F] }
+
+  Integer {
+    @digit ( @digit | "_" )* ("e" ("+" | "-")? Integer)? |
+    "0x" (hex | "_")+ |
+    "0b" $[01_]+ |
+    "0o" $[0-7_]+
+  }
+
   Float { @digit ( @digit | "_" )* "." @digit ( @digit | "_" )* ("e" Integer)? }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
   space { " "+ }
+
+  Escape {
+    "\\" ("x" hex hex | "u" "{" hex+ "}" | ![xu])
+  }
+
+  stringContentSingle { ![\\']+ }
+
+  stringContentDouble { ![\\"]+ }
+
   Docblock { "#!" ![\n]* }
   Comment { "#" ![\n]* }
+  @precedence { Docblock, Comment }
+
   //op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
   //op_unary { "-" | "+" | "==" }
   end { @eof }
   lineWrap { "\\" }
   wrappedLine { newline+ (Comment newline+)* lineWrap }
   newline { "\n" }
+
   // TODO: Because this can also be used to compile to BETWEEN, ranges should
   // allow any literal, and arguably any expression.
   RangeExpression { @digit+ ".." @digit+ }
-  // Couldn't manage to do these & the interpolated as a template; couldn't
-  // find how to negate a variable template
-  // Matches any character except hamburger. This is a workaround.
-  String { '"""' ![🍔]* '"""' | "'''" ![🍔]* "'''" | $["] !["]* $["] | $['] ![']* $['] }
 
   // TODO: not getting the interpolations highlighted; it just shows the whole
   // string as a string, because these are all within the `@tokens` block. But
@@ -150,7 +181,8 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
   // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
-  @precedence { RangeExpression, FString, RString, SString, Float, TimeUnit, Integer, identPart, identifier, Docblock, Comment }
+  @precedence { RangeExpression, Float, TimeUnit, Integer }
+  @precedence { FString, RString, SString, identPart }
 }
 
 @external propSource prqlHighlight from "./highlight"

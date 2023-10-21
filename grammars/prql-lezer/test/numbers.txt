@@ -45,3 +45,27 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 ==>
 
 Query(Statements(PipelineStatement(Pipeline(TimeUnit))))
+
+# Binary notation
+
+0b1111
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Hex notation
+
+0xff
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Octal notation
+
+0o777
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
