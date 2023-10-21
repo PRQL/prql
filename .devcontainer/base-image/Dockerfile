@@ -1,17 +1,15 @@
-# Some of this is shared with /Dockerfile
+# syntax=docker/dockerfile:1.4
 
 FROM mcr.microsoft.com/devcontainers/rust:1-1-bullseye
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    cmake \
-    && rm -rf /var/lib/apt/lists/* \
-    && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-
 # ========= Install cargo-tools for non-root user (vscode) =========
-COPY Taskfile.yml /tmp/Taskfile.yml
 USER vscode
 
-RUN task -t /tmp/Taskfile.yml install-cargo-tools-binstall
+ARG cargo_crates
+
+RUN <<"EOF"
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+cargo binstall -y --locked ${cargo_crates}
+EOF
 
 USER root

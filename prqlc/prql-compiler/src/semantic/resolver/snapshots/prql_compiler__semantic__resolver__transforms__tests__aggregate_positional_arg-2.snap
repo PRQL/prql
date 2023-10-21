@@ -1,0 +1,133 @@
+---
+source: prqlc/prql-compiler/src/semantic/resolver/transforms.rs
+expression: expr
+---
+TransformCall:
+  input:
+    Ident:
+      - default_db
+      - c_invoice
+    ty:
+      kind:
+        Array:
+          kind:
+            Tuple:
+              - Wildcard: ~
+          name: ~
+      name: ~
+    lineage:
+      columns:
+        - All:
+            input_name: c_invoice
+            except: []
+      inputs:
+        - id: 198
+          name: c_invoice
+          table:
+            - default_db
+            - c_invoice
+  kind:
+    Aggregate:
+      assigns:
+        - RqOperator:
+            name: std.average
+            args:
+              - Ident:
+                  - this
+                  - c_invoice
+                  - amount
+                ty:
+                  kind:
+                    Array:
+                      kind: Any
+                      name: anytype
+                  name: array
+          ty:
+            kind:
+              Union:
+                - - float
+                  - kind:
+                      Primitive: Float
+                    name: float
+                - - ~
+                  - kind:
+                      Singleton: "Null"
+                    name: ~
+            name: ~
+  partition:
+    - Ident:
+        - this
+        - c_invoice
+        - issued_at
+      ty:
+        kind:
+          Union:
+            - - int
+              - kind:
+                  Primitive: Int
+                name: int
+            - - float
+              - kind:
+                  Primitive: Float
+                name: float
+            - - bool
+              - kind:
+                  Primitive: Bool
+                name: bool
+            - - text
+              - kind:
+                  Primitive: Text
+                name: text
+            - - date
+              - kind:
+                  Primitive: Date
+                name: date
+            - - time
+              - kind:
+                  Primitive: Time
+                name: time
+            - - timestamp
+              - kind:
+                  Primitive: Timestamp
+                name: timestamp
+            - - ~
+              - kind:
+                  Singleton: "Null"
+                name: ~
+            - - tuple
+              - kind:
+                  Tuple:
+                    - Wildcard:
+                        kind: Any
+                        name: anytype
+                name: tuple
+        name: ~
+ty:
+  kind:
+    Array:
+      kind:
+        Tuple:
+          - Wildcard:
+              kind: Any
+              name: anytype
+      name: tuple
+  name: relation
+lineage:
+  columns:
+    - Single:
+        name:
+          - c_invoice
+          - issued_at
+        target_id: 199
+        target_name: ~
+    - Single:
+        name: ~
+        target_id: 222
+        target_name: ~
+  inputs:
+    - id: 198
+      name: c_invoice
+      table:
+        - default_db
+        - c_invoice
+

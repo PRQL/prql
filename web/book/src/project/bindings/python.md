@@ -1,1 +1,1 @@
-{{#include ../../../../../bindings/prql-python/README.md}}
+{{#include ../../../../../prqlc/bindings/python/README.md}}

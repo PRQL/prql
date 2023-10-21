@@ -3,102 +3,188 @@
 //   normal functions?
 // - A few small TODOs included below
 
+@precedence {
+  times @left,
+  plus @left,
+  compare @left,
+  and @left,
+  or @left
+}
+
 @top Query { Statements }
-@skip { space | Comment }
 
-Statements { newline* Query_def? (Def)* Pipeline_stmt? end }
+@skip { space | Comment | Docblock | wrappedLine }
 
-Query_def { @specialize<ident_part, "prql"> Named_arg* newline+ }
+Statements { newline* QueryDefinition? VariableDeclaration* PipelineStatement? end }
 
-Pipeline_stmt { Pipeline ( ~ambig_newline newline+ | end )}
+QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
 
-Pipeline { expr_call (pipe+ expr_call)* }
+PipelineStatement { Pipeline ( ~ambigNewline newline+ | end )}
 
-pipe { "|" | ~ambig_newline newline }
+Pipeline { exprCall (pipe+ exprCall)* | test }
 
-Tuple { "{" newline? tuple_item (("," newline? ) tuple_item)* ","? newline? "}" }
+pipe { "|" | ~ambigNewline newline }
 
-tuple_item { Assign_call | expr_call | Case_branch }
+TupleExpression { "{" newline* tupleItem (("," newline* ) tupleItem)* ","? newline* "}" }
 
-expr_call { Expr | Func_call }
-// Ideally we would force a space after `Ident` to prevent an invalid s-string
-// being parsed as a Func_call, e.g. `s"{a"` -> `s` & `"{a"'. But we
+tupleItem { AssignCall | exprCall | CaseBranch }
+
+exprCall { expression | CallExpression }
+// Ideally we would force a space after `Identifier` to prevent an invalid s-string
+// being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-Func_call { Ident ( (Named_arg | Assign | Expr))+ }
+CallExpression { Identifier ( (NamedArg | Assign | expression))+ }
 
-// !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
-term { !term Ident | Number | Tuple | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range | Array | Case }
+NamedArg { identPart ":" expression }
+Assign { identPart "=" expression }
+AssignCall { identPart "=" exprCall }
+CaseBranch { expression "=>" expression }
+// Possibly we could only accept case branches inside the TupleExpression?
+CaseExpression { @specialize<identPart, "case"> TupleExpression }
 
-// Not quite sure why `!term` is required here
-Expr { !term term (( Op_bin) term)* }
+NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 
-Named_arg { ident_part ":" Expr }
-Assign { ident_part "=" Expr }
-Assign_call { ident_part "=" expr_call }
-Case_branch { Expr "=>" Expr }
-Array { "[" newline? Expr (("," newline? ) Expr)* ","? newline? "]" }
-// Possibly we could only accept case branches inside the Tuple?
-Case {  @specialize<ident_part, "case"> Tuple }
+commaSep<expr> { newline* expr ("," newline* expr newline*)* ","? }
+LogicOp<expr> { expr }
 
-Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
+// The name "test" here means equality testing. It is name used in the Python grammar.
+test { testInner }
 
-@precedence { term @left }
+testInner { binaryTest | unaryTest | expression }
+
+binaryTest[@name="BinaryExpression"] {
+  testInner !or LogicOp<"||" | "??"> testInner |
+  testInner !and LogicOp<"&&"> testInner |
+  testInner !compare (CompareOp | kw<"in">) testInner
+}
+
+unaryTest[@name="UnaryExpression"] { kw<"!"> testInner }
+
+expression[@isGroup=Expression] {
+  kw<"this"> | kw<"that"> |
+  kw<"null"> |
+  BinaryExpression |
+  ArrayExpression |
+  TupleExpression |
+  CaseExpression |
+  DateTime |
+  RangeExpression |
+  Identifier |
+  boolean |
+  number |
+  String | FString | RString | SString |
+  TimeUnit
+}
+
+boolean { @specialize[@name=Boolean]<identPart, "true" | "false"> }
+
+ArrayExpression { "[" commaSep<test | "*" expression>? "]" }
+
+BinaryExpression {
+  expression !plus ArithOp { "+" | "-" } expression |
+  expression !times ArithOp { "*" | "/" | "%" | "//" } expression
+}
 
 // Because this is outside tokens, we can't disallow whitespace.
-// It's outside tokens because otherwise it conflicts with Ident
-Ident { ident_part ( "." ident_part)* }
+// It's outside tokens because otherwise it conflicts with Identifier
+Identifier { identPart ( "." (identPart | "*"))* }
+VariableName { identPart }
 
-// I don't think it's possible to have `Op_bin` & `Op_unary` as tokens — that
-// would mean `-` can't be both unary & bin.
-Op_bin { Op_bin_only | Op_unary }
+number { Integer | Float }
+
+kw<term> { @specialize[@name={term}]<identPart, term> }
+
+VariableDeclaration { kw<"let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
+
+Lambda { LambdaParam* "->" exprCall ( newline+ | end ) }
+TypeDefinition { "<" TypeTerm ( "|" TypeTerm)* ">" }
+TypeTerm { identPart TypeDefinition? }
+LambdaParam { identPart TypeDefinition? (":" expression)? }
+
+@skip {} {
+  // Couldn't manage to do these & the interpolated as a template.
+  String {
+    '"""' (stringContentDouble | Escape)* '"""' |
+    "'''" (stringContentSingle | Escape)* "'''" |
+    '"' (stringContentDouble | Escape)* '"' |
+    "'" (stringContentSingle | Escape)* "'"
+  }
+}
 
 @tokens {
+  CompareOp { "==" | "!=" | "~=" | ">=" | "<=" | ">" | "<" }
+  date { @digit+ "-" @digit+ "-" @digit+ }
+  time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
-  // TODO: does excluding spaces here work? It seems to make a difference, but
-  // then I think the `Number` rule doesn't allow spaces...
-  Date { "@" ![ ] (( @digit | "-" ) ![ ] )+ }
-  ident_part { @asciiLetter (@asciiLetter | "_" | @digit )* }
+  DateTime { "@" ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
+  TimeUnit { @digit+ ("years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds" | "microseconds") }
+  identifierChar { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
+  identPart { identifierChar (identifierChar | "_" | @digit )* }
+
+  hex { @digit | $[a-fA-F] }
+
+  Integer {
+    @digit ( @digit | "_" )* ("e" ("+" | "-")? Integer)? |
+    "0x" (hex | "_")+ |
+    "0b" $[01_]+ |
+    "0o" $[0-7_]+
+  }
+
+  Float { @digit ( @digit | "_" )* "." @digit ( @digit | "_" )* ("e" Integer)? }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
-  number_part { @digit ( @digit | "_" )* }
-  Number { number_part "."? number_part? }
   space { " "+ }
+
+  Escape {
+    "\\" ("x" hex hex | "u" "{" hex+ "}" | ![xu])
+  }
+
+  stringContentSingle { ![\\']+ }
+
+  stringContentDouble { ![\\"]+ }
+
+  Docblock { "#!" ![\n]* }
   Comment { "#" ![\n]* }
-  Op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
-  Op_unary { "-" | "+" | "==" }
+  @precedence { Docblock, Comment }
+
+  //op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
+  //op_unary { "-" | "+" | "==" }
   end { @eof }
+  lineWrap { "\\" }
+  wrappedLine { newline+ (Comment newline+)* lineWrap }
   newline { "\n" }
-  Range { ".." }
-  // Couldn't managed to do these & the interpolated as a template; couldn't
-  // find how to negate a variable template
-  String { $["] !["]* $["] | $['] ![']* $['] }
+
+  // TODO: Because this can also be used to compile to BETWEEN, ranges should
+  // allow any literal, and arguably any expression.
+  RangeExpression { @digit+ ".." @digit+ }
 
   // TODO: not getting the interpolations highlighted; it just shows the whole
   // string as a string, because these are all within the `@tokens` block. But
   // they need to be within this block, because it's not possible to have
   // negations (e.g. `![{'}` outside it.
-  String_interpolated_single { $['] ( ![{'] | Interpolation_inner_single )* $['] }
-  String_interpolated_double { $["] ( ![{"] | Interpolation_inner_double )* $["] }
+  stringInterpolatedSingle { $['] ( ![{'] | interpolationInnerSingle )* $['] }
+  stringInterpolatedDouble { $["] ( ![{"] | interpolationInnerDouble )* $["] }
 
-  Interpolation_inner_single { "{" ![}']* "}" }
-  Interpolation_inner_double { "{" ![}"]* "}" }
+  interpolationInnerSingle { "{" ![}']* "}" }
+  interpolationInnerDouble { "{" ![}"]* "}" }
 
-  Interpolated_string<prefix> { prefix ( String_interpolated_double | String_interpolated_single ) }
+  interpolatedString<prefix> { prefix ( stringInterpolatedDouble | stringInterpolatedSingle ) }
 
-  S_string {Interpolated_string<'s'>}
-  F_string {Interpolated_string<'f'>}
+  "="[@name=Equals]
+
+  FString { interpolatedString<'f'> }
+  RString { interpolatedString<'r'> }
+  SString { interpolatedString<'s'> }
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
-  // S & F strings have precedence over idents beginning with s / f (we could
+  // R, S & F strings have precedence over idents beginning with r / s / f (we could
   // use specialize but I think means we need to redefine `String` for each)
-  @precedence { S_string, F_string, Op_bin_only, ident_part }
+  @precedence { RangeExpression, Float, TimeUnit, Integer }
+  @precedence { FString, RString, SString, identPart }
 }
 
-Def { @specialize<ident_part, "let"> ident_part "=" (Nested_pipeline (newline+ | end) | Lambda) }
+@external propSource prqlHighlight from "./highlight"
 
-Lambda { Lambda_param* "->" expr_call ( newline+ | end ) }
-Type_def { "<" Type_term ( "|" Type_term)* ">" }
-Type_term { ident_part Type_def? }
-Lambda_param { ident_part Type_def? (":" Expr)? }
+@detectDelim

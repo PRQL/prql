@@ -7,7 +7,7 @@ SELECT
   distance BETWEEN 0 AND 20 AS is_proximate,
   SUM(distance) OVER () AS total_distance,
   MIN(COALESCE(distance, 5)) OVER () AS min_capped_distance,
-  (distance / 40) AS travel_time,
+  distance / 40 AS travel_time,
   ROUND(distance, 1 + 1) AS distance_rounded_2_dp,
   distance >= 100 AS is_far,
   distance BETWEEN -100 AND 0,

@@ -30,12 +30,12 @@ take 10
 Supported dialects support all PRQL language features where possible, are tested
 on every commit, and we'll endeavor to fix bugs.
 
-- `sql.duckdb`
-- `sql.mysql`
-- `sql.postgres`
 - `sql.clickhouse`
+- `sql.duckdb`
 - `sql.generic`
   {{footnote: while there's no "generic" DB to test `sql.generic` against, we still count it as supported.}}
+- `sql.mysql`
+- `sql.postgres`
 - `sql.sqlite`
 
 ### Unsupported
@@ -46,6 +46,7 @@ minimally or not at all, and may have gaps for some features.
 We're open to contributions to improve our coverage of these, and to adding
 additional dialects.
 
+- `sql.glaredb`
 - `sql.mssql`
 - `sql.ansi`
 - `sql.bigquery`
@@ -79,7 +80,7 @@ echo 'prql target:sql.generic
 PRQL allows specifying a version of the language in the PRQL header, like:
 
 ```prql
-prql version:"0.9.5"
+prql version:"0.10.0"
 
 from employees
 ```
@@ -93,3 +94,14 @@ This has two roles, one of which is implemented:
   language to evolve without breaking existing queries, or forcing multiple
   installations of the compiler. This isn't yet implemented, but is a gating
   feature for PRQL 1.0.
+
+The version of the compiler currently in use can be called using the special
+function `std.prql_version` in PRQL.
+
+```prql
+[{version = prql_version}]
+```
+
+```admonish note
+This function `std.prql_version` may be replaced in the future by something like `prql.version`.
+```

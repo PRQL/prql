@@ -4,7 +4,31 @@
 
 **Language**:
 
+- _Breaking:_ Case syntax now uses brackets `[]` rather than braces `{}`. To
+  convert previous PRQL queries to this new syntax simply change `case { ... }`
+  to `case [ ... ]`. (@AaronMoat, #3517)
+
 **Features**:
+
+- _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv` by
+  default. Please set the target `sql.duckdb` to use the DuckDB's
+  `read_csv_auto` function as previously. (@eitsupi, #3599)
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.clickhouse` target. (@eitsupi, #1533)
+- Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
+- Add support for hex escape sequences in strings. Example `"Hello \x51"`.
+  (@vanillajonathan, #3568)
+- Add support for long Unicode escape sequences. Example `"Hello \u{01F422}"`.
+  (@vanillajonathan, #3569)
+- Add support for binary numerical notation. Example
+  `filter status == 0b1111000011110000`. (@vanillajonathan, #3661)
+- Add support for hexadecimal numerical notation. Example
+  `filter status == 0xff`. (@vanillajonathan, #3654)
+- Add support for octal numerical notation. Example `filter status == 0o777`.
+  (@vanillajonathan, #3672)
+- New compile target `sql.glaredb` for [GlareDB](https://docs.glaredb.com/) and
+  integration tests for it (However, there is a bug in the test and it is
+  currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
 
 **Fixes**:
 
@@ -12,11 +36,106 @@
 
 **Web**:
 
+- Allow cmd-/ (Mac) or ctrl-/ (Windows) to toggle comments in the playground
+  editor (@AaronMoat, #3522)
+
+- Limit maximum height of the playground editor's error panel to avoid taking
+  over whole screen (@AaronMoat, #3524)
+
+- The playground now uses [Vite](https://vitejs.dev/) (@vanillajonathan).
+
 **Integrations**:
+
+- Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
+- [Pygments](https://pygments.org/), a syntax highlighting library now has
+  syntax highlighting for PRQL. (@vanillajonathan, #3564)
+- [chroma](https://github.com/alecthomas/chroma), a syntax highlighting library
+  written in Go and used by the static website generator
+  [Hugo](https://gohugo.io/). (@vanillajonathan, #3597)
+- [scc](https://github.com/boyter/scc), a source lines of code counter now has
+  support for `.prql` files. (@vanillajonathan)
+- [gcloc](https://github.com/JoaoDanielRufino/gcloc) a source lines of code
+  counter now has support for `.prql` files. (@vanillajonathan)
+- [cloc](https://github.com/AlDanial/cloc) a source lines of code counter now
+  has support for `.prql` files. (@AlDanial)
+- [gocloc](https://github.com/hhatto/gocloc) a source lines of code counter now
+  has support for `.prql` files. (@vanillajonathan)
+- [The Quarto VS Code extension](https://marketplace.visualstudio.com/items?itemName=quarto.quarto)
+  supports editing PRQL code blocks
+  ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
+  render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
 **Internal changes**:
 
 **New Contributors**:
+
+- @hulxv, with #3533
+
+## 0.9.5 — 2023-09-16
+
+0.9.5 adds a line-wrapping character, fixes a few bugs, and improves our CI. The
+release has 77 commits from 8 contributors. Selected changes are below.
+
+Look out for some conference talks coming up over the next few weeks, including
+[QCon SF on Oct 2](https://qconsf.com/presentation/oct2023/prql-simple-powerful-pipelined-sql-replacement)
+and
+[date2day on Oct 12](https://www.data2day.de/veranstaltung-21353-0-prql-a-modern-language-for-data-transformation.html).
+
+**Language**:
+
+- A new line-wrapping character, for lines that are long and we want to break up
+  into multiple physical lines. This is slightly different from from many
+  languages — it's on the subsequent line:
+
+  ```prql no-eval
+  from artists
+  select is_europe =
+  \ country == "DE"
+  \ || country == "FR"
+  \ || country == "ES"
+  ```
+
+  This allows for easily commenting out physical lines while maintaining a
+  correct logical line; for example:
+
+  ```diff
+  from artists
+  select is_europe =
+  \ country == "DE"
+  \ || country == "FR"
+  \ || country == "FR"
+  -\ || country == "ES"
+  +#\ || country == "ES"
+  ```
+
+  (@max-sixty, #3408)
+
+**Fixes**:
+
+- Fix stack overflow on very long queries in Windows debug builds (@max-sixty,
+  #2908)
+
+- Fix panic when unresolved lineage appears in group or window (@davidot, #3266)
+
+- Fix a corner-case in handling precedence, and remove unneeded parentheses in
+  some outputs (@max-sixty, #3472)
+
+**Web**:
+
+- Compiler panics are now printed to the console (@max-sixty, #3446)
+
+**Integrations**:
+
+- [Ace](https://ace.c9.io/), the JavaScript code editor now has syntax
+  highlighting for PRQL. (@vanillajonathan, #3493)
+
+**Internal changes**:
+
+- Simplify & speed up lexer (@max-sixty, #3426, #3418)
+
+**New Contributors**:
+
+- @davidot, with #3450
 
 ## 0.9.4 — 2023-08-24
 
@@ -138,10 +257,14 @@ A small selection of the changes:
 - New arithmetic operators. These compile to different function or operator
   depending on the target.
 
-  - _Breaking:_ Operator `/` now always performs floating division (@aljazerzen,
-    #2684). _TODO: add link to division operator docs_
+  - _Breaking_: Operator `/` now always performs floating division (@aljazerzen,
+    #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
-  - Truncated integer division operator `//` (@aljazerzen, #2684).
+  - Truncated integer division operator `//` (@aljazerzen, #2684). See the
+    [Division docs](https://prql-lang.org/book/reference/syntax/operators.html#division-and-integer-division)
+    for details.
 
   - Regex search operator `~=` (@max-sixty, #2458). An example:
 
@@ -1156,7 +1279,7 @@ interest and contributions! 0.2.2 has some fixes & some internal improvements:
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
 - Automated releases to homebrew (@roG0d)
-- [prql-js](https://github.com/PRQL/prql/tree/main/bindings/prql-js) is now a
+- [prql-js](https://github.com/PRQL/prql/tree/main/prqlc/bindings/js) is now a
   single package for Node, browsers & webpack (@charlie-sanders)
 - Parsing has some fixes, including `>=` and leading underscores in idents
   (@mklopets)

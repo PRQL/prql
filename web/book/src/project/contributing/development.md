@@ -18,13 +18,13 @@ editing, and testing PRQL's compiler code in two minutes:
   the repo should complete successfully:
 
   ```sh
-  cargo test -p prql-compiler --lib
+  cargo test --package prql-compiler --lib
   ```
 
   ...or, to run tests and update the test snapshots:
 
   ```sh
-  cargo insta test --accept -p prql-compiler --lib
+  cargo insta test --accept --package prql-compiler --lib
   ```
 
   There's more context on our tests in [How we test](#how-we-test) below.
@@ -71,24 +71,15 @@ since it relies on `brew`.
   cargo install cargo-insta
   ```
 
-- We'll need a couple of additional components, which most systems will have
-  already. The easiest way to check whether they're installed is to try running
-  the full tests:
+- We'll need Python, which most systems will have already. The easiest way to
+  check is to try running the full tests:
 
   ```sh
   cargo test
   ```
 
-  ...and if that doesn't complete successfully, check we have:
-
-  - A clang compiler, to compile the DuckDB integration tests, since we use
-    [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
-
-    - On macOS, install xcode with `xcode-select --install`
-    - On Debian Linux, `apt-get update && apt-get install clang`
-    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
-
-  - Python >= 3.7, to compile `prql-python`.
+  ...and if that doesn't complete successfully, ensure we have Python >= 3.7, to
+  compile `prql-python`.
 
 - For more involved contributions, such as building the website, playground,
   book, or some release artifacts, we'll need some additional tools. But we
@@ -116,6 +107,54 @@ is on developing with VS Code in a container by
 To use a Dev Container on a local computer with VS Code, install the
 [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 and its system requirements. Then refer to the links above to get started.
+
+### Option 4: Use nix development environment
+
+A [nix](https://nixos.org/) flake `flake.nix` provides 3 development
+environments:
+
+- **default**, for building the compiler
+- **web**, for the compiler and the website,
+- **full**, for the compiler, the website and the compiler bindings.
+
+To load the shell:
+
+1. [Install nix (the package manager)](https://nixos.org/download). (only first
+   time)
+
+2. Enable flakes, which are a (pretty stable) experimental feature of nix. (only
+   first time)
+
+   For non-NixOS users:
+
+   ```
+   mkdir -p ~/.config/nix/
+   tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+   ```
+
+   For NixOs users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
+
+3. Run:
+
+   ```
+   nix develop
+   ```
+
+   If you want "web" or "full" shell, run:
+
+   ```
+   nix develop .#web
+   ```
+
+Optionally, you can install [direnv](https://direnv.net/), to automatically load
+the shell when you enter this repo. The easiest way is to also install
+[direnv-nix](https://github.com/nix-community/nix-direnv) and configure your
+`.envrc` with:
+
+```
+# .envrc
+use flake .#full
+```
 
 ---
 
@@ -261,7 +300,7 @@ Our tests, from the bottom of the pyramid to the top:
   ```sh
   task test-rust-fast
   # or
-  cargo insta test --accept -p prql-compiler --lib
+  cargo insta test --accept --package prql-compiler --lib
   # or, to run on every change:
   task -w test-rust-fast
   ```
@@ -305,7 +344,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept
   ```
 
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/crates/prql-compiler/tests/integration)**
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/prqlc/prql-compiler/tests/integration)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
   in-process tests can be run locally with:
@@ -316,7 +355,18 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept --features=test-dbs
   ```
 
-  More details on running with external databases are in the Readme.
+  More details on running with external databases are in the
+  [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration).
+
+  ```admonish note
+  Integration tests use DuckDB, and so require a clang compiler to compile
+  [`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
+  systems will have one, but the test command fails, install it with:
+
+    - On macOS, install xcode with `xcode-select --install`
+    - On Debian Linux, `apt-get update && apt-get install clang`
+    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
+  ```
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs

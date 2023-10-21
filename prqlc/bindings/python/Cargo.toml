@@ -1,0 +1,30 @@
+[package]
+build = "build.rs"
+name = "prql-python"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+name = "prql_python"
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+pyo3 = {version = "0.20.0", features = ["abi3-py37"]}
+
+[dependencies]
+prql-compiler = {path = "../../prql-compiler", default-features = false}
+
+[dev-dependencies]
+insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
+
+[build-dependencies]
+pyo3-build-config = "0.20.0"
+
+[package.metadata.release]
+tag-name = "{{version}}"
+tag-prefix = ""

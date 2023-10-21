@@ -1,6 +1,6 @@
 name: build-wheel
 description:
-  "Use maturin to build python dists of prql-python. Conditional if checks
+  "Use maturin to build python dists of prql-python. Conditional `if` checks
   ensure only the correct OS build is called."
 inputs:
   target:
@@ -10,37 +10,33 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: ./.github/set_version.sh
-      shell: bash
-    - uses: Swatinem/rust-cache@v2
-      with:
-        save-if: ${{ github.ref == 'refs/heads/main' }}
-        prefix-key: ${{ env.version }}
-        shared-key: python
+    # There's no point caching here, because the maturin action uses a container.
     - uses: messense/maturin-action@v1
       if: inputs.target == 'source'
       with:
         command: sdist
-        args: -o dist -m bindings/prql-python/Cargo.toml
+        args: -o target/python -m prqlc/bindings/python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux' && inputs.target != 'source'
       with:
         target: ${{ inputs.target }}
         manylinux: auto
         command: build
-        args: --release -o dist -m bindings/prql-python/Cargo.toml
+        args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
-        args: --release -o dist -m bindings/prql-python/Cargo.toml
+        args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
-        args: --release -o dist --universal2 -m bindings/prql-python/Cargo.toml
+        args:
+          --release -o target/python --universal2 -m
+          prqlc/bindings/python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
         name: wheels
-        path: dist
+        path: target/python

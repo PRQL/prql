@@ -1,0 +1,59 @@
+# Array on one line
+
+[foo, bar, baz]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))))
+
+# Array on multiple lines
+
+[
+  foo,
+  bar,
+  baz
+]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))))
+
+# Array on multiple lines with blank lines
+
+[
+
+  foo,
+
+  bar,
+
+  baz
+
+]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))))
+
+# Array of integers
+
+[1, 2, 3]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Integer,Integer,Integer)))))
+
+# Array of floats
+
+[1.1, 2.2, 3.3]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Float,Float,Float)))))
+
+# Array of strings
+
+["string", f"format", r"raw", s"server"]
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(ArrayExpression(String,FString,RString,SString)))))
