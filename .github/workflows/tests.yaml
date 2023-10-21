@@ -490,6 +490,27 @@ jobs:
         working-directory: prqlc/prqlc
         run: cargo msrv verify
 
+  test-deps-min-versions:
+    runs-on: ubuntu-latest
+    needs: rules
+    if: needs.rules.outputs.nightly == 'true'
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - run: rustup toolchain add nightly
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-hack
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-minimal-versions
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Verify minimum rust version
+        run: cargo minimal-versions test
+
   check-ok-to-merge:
     # This indicates to GitHub whether everything in this workflow has passed
     # and (unlike if we included each task in the branch's GitHub required
