@@ -62,7 +62,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - August 2023
+## Current Status - October 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
@@ -71,8 +71,8 @@ using one of our supported language bindings.
 PRQL still has some bugs and some missing features, and is probably only ready
 to be rolled out to non-technical teams for fairly simple queries.
 
-We recently release [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0),
-our biggest release ever. Here's our current
+We released [0.9.0](https://github.com/PRQL/prql/releases/tag/0.9.0), in July,
+our biggest ever release. Here's our current
 [Roadmap](https://prql-lang.org/roadmap/).
 
 <!-- TODO: add back when we get them
@@ -128,7 +128,6 @@ To stay in touch with PRQL:
 
 - [PRQL Playground][prql playground] — experiment with PRQL in the browser.
 - [PRQL Book][prql book] — the language documentation.
-- [dbt-prql][dbt-prql] — write PRQL in dbt models.
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
@@ -142,13 +141,11 @@ To stay in touch with PRQL:
 
 This repo is composed of:
 
-- **[prql-compiler](./crates/prql-compiler/)** — the compiler, written in rust,
-  whose main role is to compile PRQL into SQL. It also includes
-  [prqlc](./crates/prqlc/), the CLI.
+- **[prqlc](./prqlc/)** — the compiler, written in rust, whose main role is to
+  compile PRQL into SQL. Also contains the CLI and bindings from various
+  languages.
 - **[web](./web/)** — our web content: the [Book][prql book],
   [Website][prql website], and [Playground][prql playground].
-- **[bindings](./bindings/)** — bindings from various languages to
-  `prql-compiler`.
 
 It also contains our testing / CI infrastructure and development tools. Check
 out our [development docs][development] for more details.
@@ -164,4 +161,3 @@ Many thanks to those who've made our progress possible:
 [contributing]: https://prql-lang.org/book/project/contributing/
 [development]: https://prql-lang.org/book/project/contributing/development.html
 [prql playground]: https://prql-lang.org/playground
-[dbt-prql]: https://github.com/prql/dbt-prql

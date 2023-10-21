@@ -32,7 +32,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update
@@ -45,7 +45,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-insta
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
         shell: bash
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -63,9 +63,22 @@ jobs:
           args: >
             --no-run --locked --target=${{ inputs.target }} --features=${{
             inputs.features }}
+      - name: Free up disk space
+        # https://github.com/actions/runner-images/issues/2840
+        run: ./.github/workflows/scripts/util_free_space.sh
+        # This takes ~3 minutes, so we'd really prefer not to run it on every
+        # PR. Trying to run it only when there is no cache hit. We may need to
+        # remove that condition and run it whenever we pull the docker images,
+        # or explore breaking up the tests more (though that's not easy to get
+        # savings on either). Ideally GH will allow for more disk space in the
+        # future... (deleting things doesn't actually remove the amount of stuff
+        # that GH needs to store, so it's purely performative!)
+        if:
+          ${{ contains(inputs.features, 'test-dbs-external') &&
+          steps.cache.outputs.cache-hit == 'false' }}
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./crates/prql-compiler/tests/integration
+        working-directory: ./prqlc/prql-compiler/tests/integration
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1.1.0
@@ -77,17 +90,13 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: insta
-          # Now replaced with whether `nightly` is true, because we only run
-          # these on merges, which was making post-merge failures more frequent.
-          #
-          # # Here, we also add:
-          # # - Unreferenced snapshots - `--unreferenced=auto` when testing on
-          # #   linux & with `test-dbs` feature.
-          # ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
-          # 'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+          # Here, we also add:
+          # - Unreferenced snapshots - `--unreferenced=auto` when testing on
+          #   linux & with `test-dbs` feature.
           args: >
             test --target=${{ inputs.target }} --features=${{ inputs.features }}
-            ${{ inputs.nightly == 'true' && '--unreferenced=auto' || '' }}
+            ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
+            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -104,11 +113,20 @@ jobs:
           command: fmt
           args: --all --check
       - name: 🗒️ Doc
-        if: inputs.target != 'wasm32-unknown-unknown'
+        # Only running on nightly, because of
+        # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
+        # if: inputs.target == 'nightly' && inputs.target != 'wasm32-unknown-unknown'
+        if:
+          inputs.target == 'nightly' && inputs.target !=
+          'wasm32-unknown-unknown'
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: doc
-          args: --target=${{ inputs.target }} --features=${{ inputs.features }}
+          # Only run with deps on nightly, since it's much slower, and so far™
+          # we haven't seen any errors.
+          args:
+            --target=${{ inputs.target }} --features=${{ inputs.features }} ${{
+            inputs.nightly != 'true' && '--no-deps' || '' }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.

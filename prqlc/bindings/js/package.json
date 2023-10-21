@@ -1,0 +1,29 @@
+{
+  "browser": "dist/web/prql_js.js",
+  "description": "Javascript bindings for prql-compiler",
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "package.json"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/node/prql_js.js",
+  "name": "prql-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PRQL/prql"
+  },
+  "scripts": {
+    "build": "npm run build:node && npm run build:web && npm run build:bundler",
+    "build:bundler": "npx cross-env wasm-pack build --target bundler --out-dir dist/bundler --${PROFILE} && rm dist/bundler/.gitignore",
+    "build:node": "npx cross-env wasm-pack build --target nodejs --out-dir dist/node --${PROFILE} && rm dist/node/.gitignore",
+    "build:web": "npx cross-env wasm-pack build --target no-modules --out-dir dist/web --${PROFILE} && rm dist/web/.gitignore",
+    "prepare": "npm run build",
+    "test": "mocha tests"
+  },
+  "types": "dist/node/prql_js.d.ts",
+  "version": "0.10.0"
+}

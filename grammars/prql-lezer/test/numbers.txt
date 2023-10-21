@@ -1,0 +1,71 @@
+# Integer
+
+123
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Integer with underscore
+
+123_456
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Integer with underscores
+
+123_456_789
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Decimal
+
+123.45
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Float))))
+
+# Scientific notation
+
+123e10
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Number with time unit
+
+5years
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(TimeUnit))))
+
+# Binary notation
+
+0b1111
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Hex notation
+
+0xff
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))
+
+# Octal notation
+
+0o777
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(Integer))))

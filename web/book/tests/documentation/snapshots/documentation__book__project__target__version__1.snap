@@ -1,0 +1,13 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "[{version = prql_version}]\n"
+---
+WITH table_0 AS (
+  SELECT
+    '0.10.0' AS version
+)
+SELECT
+  version
+FROM
+  table_0
+

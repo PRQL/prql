@@ -12,13 +12,9 @@ on:
         type: string
         default: '["ubuntu-latest"]'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-elixir
-  cancel-in-progress: true
-
 defaults:
   run:
-    working-directory: bindings/prql-elixir
+    working-directory: prqlc/bindings/elixir
 
 env:
   MIX_ENV: test
@@ -34,7 +30,7 @@ jobs:
     steps:
       # Step: Check out the code.
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Step: Setup Elixir + Erlang image as the base.
       - name: Set up Elixir on Windows or Linux
@@ -57,7 +53,7 @@ jobs:
         env:
           cache-name: cache-elixir-deps
         with:
-          path: prql-elixir/deps
+          path: elixir/deps
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
@@ -73,7 +69,7 @@ jobs:
         env:
           cache-name: cache-compiled-build
         with:
-          path: prql-elixir/_build
+          path: elixir/_build
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}

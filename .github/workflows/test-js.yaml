@@ -18,10 +18,6 @@ env:
   RUSTFLAGS: "-C debuginfo=0"
   RUSTDOCFLAGS: "-Dwarnings"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-js
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -30,7 +26,7 @@ jobs:
         os: ${{ fromJSON(inputs.oss) }}
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -42,7 +38,7 @@ jobs:
         with:
           crate: wasm-pack
 
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
 
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
@@ -57,4 +53,4 @@ jobs:
           save-if: false
 
       - run: npm cit
-        working-directory: bindings/prql-js
+        working-directory: prqlc/bindings/js

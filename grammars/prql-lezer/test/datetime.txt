@@ -1,0 +1,55 @@
+# Date YYYY-MM-DD
+
+@1970-01-01
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
+
+# Time HH:MM
+
+@08:30
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
+
+# Time HH:MM:SS
+
+@12:00:00
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
+
+# Time HH:MM:SS.xxx
+
+@12:00:00.500
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
+
+# Date and time
+
+@1970-01-01T12:00:00
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
+
+# Date and time with timezone
+
+@1970-01-01T12:00:00+01:00
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))
+
+# Date and time in UTC
+
+@1970-01-01T12:00:00Z
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(DateTime))))

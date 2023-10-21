@@ -15,16 +15,12 @@ env: # Comment env block if you do not want to apply fixes
   APPLY_FIXES_EVENT: pull_request # Decide which event triggers application of fixes in a commit or a PR (pull_request, push, all)
   APPLY_FIXES_MODE: commit # If APPLY_FIXES is used, defines if the fixes are directly committed (commit) or posted in a PR (pull_request)
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: lint-megalinter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
 
@@ -33,7 +29,7 @@ jobs:
         id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter@v7.3.0
+        uses: oxsecurity/megalinter@v7.4.0
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/
@@ -44,7 +40,7 @@ jobs:
 
       # Upload MegaLinter artifacts
       - name: Archive production artifacts
-        if: ${{ success() }} || ${{ failure() }}
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: MegaLinter reports
@@ -92,7 +88,7 @@ jobs:
           env.APPLY_FIXES_MODE == 'commit' && github.ref != 'refs/heads/main' &&
           (github.event_name == 'push' ||
           github.event.pull_request.head.repo.full_name == github.repository)
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch:
             ${{ github.event.pull_request.head.ref || github.head_ref ||

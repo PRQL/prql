@@ -34,7 +34,7 @@ These have been screened to have sufficient context to get started (and we very
 much welcome questions where there's some context missing).
 
 To get started, check out the docs on [Development](./development.md) and the
-[Compiler architecture](https://github.com/PRQL/prql/blob/main/crates/prql-compiler/ARCHITECTURE.md)
+[Compiler architecture](https://github.com/PRQL/prql/blob/main/prqlc/ARCHITECTURE.md)
 
 And if you have questions, there are lots of friendly people on the Discord who
 will patiently help you.

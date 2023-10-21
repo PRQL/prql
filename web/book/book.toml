@@ -5,7 +5,7 @@ multilingual = false
 title = "PRQL language book"
 
 [output.html]
-additional-css = ["comparison-table.css", "mdbook-admonish.css"]
+additional-css = ["comparison-table.css", "mdbook-admonish.css", "./mdbook-admonish.css"]
 additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/PRQL/prql"
 
@@ -16,7 +16,7 @@ git-repository-url = "https://github.com/PRQL/prql"
 command = "cargo run --bin mdbook-prql"
 
 [preprocessor.admonish]
-assets_version = "2.0.0" # do not edit: managed by `mdbook-admonish install`
+assets_version = "3.0.0" # do not edit: managed by `mdbook-admonish install`
 command = "mdbook-admonish"
 
 [preprocessor.footnote]

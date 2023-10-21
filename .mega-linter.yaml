@@ -18,6 +18,7 @@ DISABLE_LINTERS:
   - REPOSITORY_TRUFFLEHOG # Detecting secrets in .git/config, which is not even committed.
   - REPOSITORY_GRYPE # Slow (10+ seconds). Blocking unrelated PRs. We already have depandabot.
   - YAML_V8R # Slow (70+ seconds). We don't use YAML schema.
+  - JSON_V8R # Failing for vscode-style syntax (comments).
 DISABLE_ERRORS_LINTERS:
   - COPYPASTE_JSCPD
   - REPOSITORY_TRIVY
@@ -35,5 +36,10 @@ DISABLE_ERRORS_LINTERS:
   - MAKEFILE_CHECKMAKE
   - MARKDOWN_MARKDOWN_LINK_CHECK
   - SPELL_MISSPELL
+  # Disabled for now, as @max-sixty didn't know whether "Unable to locate the
+  # project file. A project file (tsconfig.json or tsconfig.eslint.json) is
+  # required in order to use ts-standard." was worth fixing, from #3608. Happy for someone more informed to
+  # turn it back on.
+  - TYPESCRIPT_STANDARD
 PHP_PHPCS_ARGUMENTS:
   - --standard=PSR12

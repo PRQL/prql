@@ -1,0 +1,22 @@
+[package]
+name = "prql-java"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+crate_type = ["cdylib"]
+doctest = false
+test = false
+
+[dependencies]
+jni = "0.21.1"
+prql-compiler = {path = "../../prql-compiler", default-features = false}
+
+[package.metadata.release]
+tag-name = "{{version}}"
+tag-prefix = ""

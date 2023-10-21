@@ -1,7 +1,0 @@
-# mssql:skip
-# mysql:skip
-# clickhouse:skip
-from tracks
-filter genre_id == 100
-derive empty_name = name == ''
-aggregate {sum track_id, concat_array name, every empty_name, any empty_name}

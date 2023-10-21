@@ -1,0 +1,46 @@
+{
+  "name": "prql-lezer",
+  "version": "1.0.0",
+  "description": "lezer-based PRQL grammar",
+  "main": "dist/index.cjs",
+  "type": "module",
+  "exports": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs"
+  },
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "PRQL Project",
+  "license": "MIT",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "lezer-generator src/prql.grammar -o src/parser && rollup -c",
+    "build-debug": "lezer-generator src/prql.grammar --names -o src/parser && rollup -c",
+    "prepare": "npm run build",
+    "test": "mocha test/test-*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PRQL/prql.git"
+  },
+  "keywords": [
+    "lezer",
+    "prql"
+  ],
+  "bugs": {
+    "url": "https://github.com/PRQL/prql/issues"
+  },
+  "homepage": "https://prql-lang.org/",
+  "devDependencies": {
+    "@lezer/generator": "^1.5.1",
+    "@rollup/plugin-node-resolve": "^15.2.1",
+    "mocha": "^10.2.0",
+    "rollup": "^3.29.4"
+  },
+  "dependencies": {
+    "@lezer/highlight": "^1.1.6",
+    "@lezer/lr": "^1.3.12"
+  }
+}

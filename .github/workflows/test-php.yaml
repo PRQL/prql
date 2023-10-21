@@ -4,11 +4,6 @@ on:
   workflow_call:
   workflow_dispatch:
 
-concurrency:
-  # See notes in `tests.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-php
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -17,11 +12,11 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: arduino/setup-task@v1
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-      - run: ./.github/set_version.sh
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
