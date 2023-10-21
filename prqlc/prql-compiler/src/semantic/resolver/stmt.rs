@@ -143,22 +143,9 @@ fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
         "date" => PrimitiveSet::Date,
         "time" => PrimitiveSet::Time,
         "timestamp" => PrimitiveSet::Timestamp,
-        "func" => {
-            return Some(ExprKind::Type(Ty {
-                kind: TyKind::Function(None),
-                name: None,
-            }))
-        }
-        "anytype" => {
-            return Some(ExprKind::Type(Ty {
-                kind: TyKind::Any,
-                name: None,
-            }))
-        }
+        "func" => return Some(ExprKind::Type(Ty::new(TyKind::Function(None)))),
+        "anytype" => return Some(ExprKind::Type(Ty::new(TyKind::Any))),
         _ => return None,
     };
-    Some(ExprKind::Type(Ty {
-        kind: TyKind::Primitive(set),
-        name: None,
-    }))
+    Some(ExprKind::Type(Ty::new(set)))
 }

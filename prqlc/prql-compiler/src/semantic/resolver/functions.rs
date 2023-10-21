@@ -438,10 +438,7 @@ fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
     };
 
     Expr {
-        ty: Some(Ty {
-            kind: TyKind::Function(Some(ty)),
-            name: None,
-        }),
+        ty: Some(Ty::new(ty)),
         span,
         ..Expr::new(ExprKind::Func(Box::new(func)))
     }
