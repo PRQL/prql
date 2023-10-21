@@ -60,66 +60,57 @@ type tuple = {anytype..}
 type relation = [tuple]
 
 ## Transform
-type transform = (func relation -> relation)
+type transform = (relation -> relation)
 
 # Functions
 
 ## Relational transforms
-let from = func
-  `default_db.source` <relation>
-  -> <relation> internal from
+let from = `default_db.source` <relation>
+\  -> <relation> internal from
 
-let select = func
-  columns <scalar || tuple>
-  tbl <relation>
-  -> <relation> internal select
+let select =
+\  columns <scalar || tuple>
+\  tbl <relation>
+\  -> <relation> internal select
 
-let filter = func
-  condition <bool>
-  tbl <relation>
-  -> <relation> internal filter
+let filter = condition <bool>
+\  tbl <relation>
+\  -> <relation> internal filter
 
-let derive = func
-  columns <scalar || tuple>
-  tbl <relation>
-  -> <relation> internal derive
+let derive = columns <scalar || tuple>
+\  tbl <relation>
+\  -> <relation> internal derive
 
-let aggregate = func
-  columns <scalar || tuple>
-  tbl <relation>
-  -> <relation> internal aggregate
+let aggregate = columns <scalar || tuple>
+\  tbl <relation>
+\  -> <relation> internal aggregate
 
-let sort = func
-  by <scalar || tuple>
-  tbl <relation>
-  -> <relation> internal sort
+let sort = by <scalar || tuple>
+\  tbl <relation>
+\  -> <relation> internal sort
 
-let take = func
-  expr <scalar>
-  tbl <relation>
-  -> <relation> internal take
+let take = expr <scalar>
+\  tbl <relation>
+\  -> <relation> internal take
 
-let join = func
-  `default_db.with` <relation>
-  condition <bool>
-  `noresolve.side`:inner
-  tbl <relation>
-  -> <relation> internal join
+let join = `default_db.with` <relation>
+\  condition <bool>
+\  `noresolve.side`:inner
+\  tbl <relation>
+\  -> <relation> internal join
 
-let group = func
-  by<scalar || tuple>
-  pipeline <transform>
-  tbl <relation>
-  -> <relation> internal group
+let group = by<scalar || tuple>
+\  pipeline <transform>
+\  tbl <relation>
+\  -> <relation> internal group
 
-let window = func
-  rows:0..0
-  range:0..0
-  expanding <bool>:false
-  rolling <int>:0
-  pipeline <transform>
-  tbl <relation>
-  -> <relation> internal window
+let window = rows:0..0
+\  range:0..0
+\  expanding <bool>:false
+\  rolling <int>:0
+\  pipeline <transform>
+\  tbl <relation>
+\  -> <relation> internal window
 
 let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
 let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
@@ -133,10 +124,9 @@ let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
   filter (tuple_every (tuple_map _is_null b.*))
   select t.*
 )
-let loop = func
-  pipeline <transform>
-  top <relation>
-  -> <relation> internal loop
+let loop = pipeline <transform>
+\  top <relation>
+\  -> <relation> internal loop
 
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
@@ -180,11 +170,11 @@ let as = `noresolve.type` column -> <scalar> internal std.as
 let in = pattern value -> <bool> internal in
 
 ## Tuple functions
-let tuple_every = func list -> <bool> internal tuple_every
-let tuple_map = func fn <func> list -> internal tuple_map
-let tuple_zip = func a b -> internal tuple_zip
-let _eq = func a -> internal _eq
-let _is_null = func a -> _param.a == null
+let tuple_every = list -> <bool> internal tuple_every
+let tuple_map = fn <func> list -> internal tuple_map
+let tuple_zip = a b -> internal tuple_zip
+let _eq = a -> internal _eq
+let _is_null = a -> _param.a == null
 
 ## Misc
 let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_text

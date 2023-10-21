@@ -152,9 +152,7 @@ pub fn type_expr() -> impl Parser<Token, Expr, Error = PError> {
 
     let ident = ident().map(ExprKind::Ident);
 
-    let func = keyword("func").to(ExprKind::Ident(Ident::from_path(vec!["std", "func"])));
-
-    let term = literal.or(ident).or(func).map_with_span(into_expr);
+    let term = literal.or(ident).map_with_span(into_expr);
 
     binary_op_parser(term, operator_or())
         .delimited_by(ctrl('<'), ctrl('>'))

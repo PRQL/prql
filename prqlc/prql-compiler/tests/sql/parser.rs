@@ -1199,6 +1199,8 @@ fn test_function() {
               Literal:
                 Integer: 42
             params:
+              - name: func
+                default_value: ~
               - name: return_constant
                 default_value: ~
             named_params: []

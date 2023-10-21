@@ -28,7 +28,7 @@ exceptions where a line break doesn't create a pipeline:
 - within a tuple
 - within an array
 - when the following line is a new statement, which starts with a keyword of
-  `func`, `let` or `from`
+  `let` or `from`
 - Within a [line wrap](./operators.md#wrapping-lines)
 
 ```prql

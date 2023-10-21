@@ -190,9 +190,7 @@ function parameter definitions.
 As shown, types can be defined by defining expressions and coercing them to set
 expressions by using `< >`.
 
-But similar to how both `func` and `let` can be used to define functions (when
-we introduce lambda function syntax), let's also introduce syntactic sugar for
-type definitions:
+Let's also introduce syntactic sugar for type definitions:
 
 ```
 # these two are equivalent
