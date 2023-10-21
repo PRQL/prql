@@ -102,6 +102,16 @@ TypeDefinition { "<" TypeTerm ( "|" TypeTerm)* ">" }
 TypeTerm { identPart TypeDefinition? }
 LambdaParam { identPart TypeDefinition? (":" expression)? }
 
+@skip {} {
+  // Couldn't manage to do these & the interpolated as a template.
+  String {
+    '"""' (stringContentDouble | Escape)* '"""' |
+    "'''" (stringContentSingle | Escape)* "'''" |
+    '"' (stringContentDouble | Escape)* '"' |
+    "'" (stringContentSingle | Escape)* "'"
+  }
+}
+
 @tokens {
   CompareOp { "==" | "!=" | "~=" | ">=" | "<=" | ">" | "<" }
   date { @digit+ "-" @digit+ "-" @digit+ }
@@ -127,6 +137,14 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // underscores and allows no digit before the decimal point.
   space { " "+ }
 
+  Escape {
+    "\\" ("x" hex hex | "u" "{" hex+ "}" | ![xu])
+  }
+
+  stringContentSingle { ![\\']+ }
+
+  stringContentDouble { ![\\"]+ }
+
   Docblock { "#!" ![\n]* }
   Comment { "#" ![\n]* }
   @precedence { Docblock, Comment }
@@ -137,13 +155,10 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   lineWrap { "\\" }
   wrappedLine { newline+ (Comment newline+)* lineWrap }
   newline { "\n" }
+
   // TODO: Because this can also be used to compile to BETWEEN, ranges should
   // allow any literal, and arguably any expression.
   RangeExpression { @digit+ ".." @digit+ }
-  // Couldn't manage to do these & the interpolated as a template; couldn't
-  // find how to negate a variable template
-  // Matches any character except hamburger. This is a workaround.
-  String { '"""' ![🍔]* '"""' | "'''" ![🍔]* "'''" | $["] !["]* $["] | $['] ![']* $['] }
 
   // TODO: not getting the interpolations highlighted; it just shows the whole
   // string as a string, because these are all within the `@tokens` block. But

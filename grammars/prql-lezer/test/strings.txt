@@ -77,3 +77,11 @@ Query(Statements(PipelineStatement(Pipeline(String))))
 ==>
 
 Query(Statements(PipelineStatement(Pipeline(String))))
+
+# Escape sequence
+
+"\xff"
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(String(Escape)))))
