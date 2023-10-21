@@ -378,11 +378,29 @@ impl<S: ToString> From<S> for SourceTree {
 mod tests {
     use crate::Target;
     use insta::assert_debug_snapshot;
+    use prqlc_ast::expr::Ident;
     use std::str::FromStr;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {
         anstream::ColorChoice::Never.write_global();
         super::compile(prql, &super::Options::default().no_signature())
+    }
+
+    #[test]
+    fn test_starts_with() {
+        // Over-testing, from co-pilot, can remove some of them.
+        let a = Ident::from_path(vec!["a", "b", "c"]);
+        let b = Ident::from_path(vec!["a", "b"]);
+        let c = Ident::from_path(vec!["a", "b", "c", "d"]);
+        let d = Ident::from_path(vec!["a", "b", "d"]);
+        let e = Ident::from_path(vec!["a", "c"]);
+        let f = Ident::from_path(vec!["b", "c"]);
+        assert!(a.starts_with(&b));
+        assert!(a.starts_with(&a));
+        assert!(!a.starts_with(&c));
+        assert!(!a.starts_with(&d));
+        assert!(!a.starts_with(&e));
+        assert!(!a.starts_with(&f));
     }
 
     #[test]

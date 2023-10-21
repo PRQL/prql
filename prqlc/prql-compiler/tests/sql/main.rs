@@ -1,5 +1,7 @@
-mod test;
-mod test_bad_error_messages;
-mod test_error_messages;
+mod ast_code_matches;
+mod bad_error_messages;
+mod error_messages;
+mod parser;
+mod sql;
 
-use test::compile;
+use sql::compile;

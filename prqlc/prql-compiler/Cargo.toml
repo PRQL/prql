@@ -59,6 +59,7 @@ tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 cfg-if = "1.0"
 insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
 similar-asserts = "1.5.0"
+similar = {version = "2.3.0"}
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 criterion = {version = "0.5.1"}
