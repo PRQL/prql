@@ -124,7 +124,7 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   identPart { identifierChar (identifierChar | "_" | @digit )* }
 
   hex { @digit | $[a-fA-F] }
-  
+
   Integer {
     @digit ( @digit | "_" )* ("e" ("+" | "-")? Integer)? |
     "0x" (hex | "_")+ |
@@ -136,7 +136,7 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
   space { " "+ }
-  
+
   Escape {
     "\\" ("x" hex hex | "u" "{" hex+ "}" | ![xu])
   }
