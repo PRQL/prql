@@ -68,7 +68,7 @@ type transform = (relation -> relation)
 let from = `default_db.source` <relation>
 \  -> <relation> internal from
 
-let select = 
+let select =
 \  columns <scalar || tuple>
 \  tbl <relation>
 \  -> <relation> internal select
