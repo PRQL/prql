@@ -81,14 +81,16 @@ pub struct TyFunc {
 }
 
 impl Ty {
-    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+    pub fn new<K: Into<TyKind>>(kind: K) -> Ty {
         Ty {
-            kind: TyKind::Array(Box::new(Ty {
-                kind: TyKind::Tuple(tuple_fields),
-                name: None,
-            })),
+            kind: kind.into(),
             name: None,
         }
+    }
+
+    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+        let tuple = Ty::new(TyKind::Tuple(tuple_fields));
+        Ty::new(TyKind::Array(Box::new(tuple)))
     }
 
     pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
@@ -187,13 +189,8 @@ impl TyKind {
         if let TyKind::Tuple(fields) = self {
             let inner_fields = std::mem::take(fields);
 
-            fields.push(TupleField::Single(
-                Some(alias),
-                Some(Ty {
-                    kind: TyKind::Tuple(inner_fields),
-                    name: None,
-                }),
-            ));
+            let ty = Ty::new(TyKind::Tuple(inner_fields));
+            fields.push(TupleField::Single(Some(alias), Some(ty)));
         }
     }
 
@@ -222,6 +219,15 @@ impl TyKind {
     }
 }
 
+impl TupleField {
+    pub fn ty(&self) -> Option<&Ty> {
+        match self {
+            TupleField::Single(_, ty) => ty.as_ref(),
+            TupleField::Wildcard(ty) => ty.as_ref(),
+        }
+    }
+}
+
 fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
     if let Some(sub_ret) = sub {
         if let Some(sup_ret) = sup {
@@ -231,4 +237,22 @@ fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
         }
     }
     false
+}
+
+impl From<PrimitiveSet> for TyKind {
+    fn from(value: PrimitiveSet) -> Self {
+        TyKind::Primitive(value)
+    }
+}
+
+impl From<TyFunc> for TyKind {
+    fn from(value: TyFunc) -> Self {
+        TyKind::Function(Some(value))
+    }
+}
+
+impl From<Literal> for TyKind {
+    fn from(value: Literal) -> Self {
+        TyKind::Singleton(value)
+    }
 }

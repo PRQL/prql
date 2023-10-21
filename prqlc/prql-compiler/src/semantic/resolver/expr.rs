@@ -271,10 +271,7 @@ fn ty_of_lineage(lineage: &Lineage) -> Ty {
                 LineageColumn::All { .. } => TupleField::Wildcard(None),
                 LineageColumn::Single { name, .. } => TupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty {
-                        kind: TyKind::Singleton(Literal::Null),
-                        name: None,
-                    }),
+                    Some(Ty::new(Literal::Null)),
                 ),
             })
             .collect(),
