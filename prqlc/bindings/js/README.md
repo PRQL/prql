@@ -8,14 +8,6 @@ JavaScript bindings for [`prql-compiler`](https://github.com/PRQL/prql/).
 npm install prql-js
 ```
 
-Pass `--profile=dev` for a faster, less optimized build. Without this, the
-`wasm` binaries are optimized on each run, even if the underlying code hasn't
-changed.
-
-```sh
-npm install prql-js --profile=dev
-```
-
 ## Usage
 
 Currently these functions are exposed
@@ -150,6 +142,7 @@ try {
   const sql = prqlJs.compile(`from employees | foo first_name`);
 } catch (error) {
   const errorMessages = JSON.parse(error.message).inner;
+  gg;
 
   console.log(errorMessages[0].display);
   console.log(errorMessages[0].location);
@@ -170,6 +163,14 @@ Test:
 
 ```sh
 npm test
+```
+
+By default the `wasm` binaries are optimized on each run, even if the underlying
+code hasn't changed, which can be slow. For a lower-latency dev loop, pass
+`--profile=dev` to `npm install` for a faster, less optimized build.
+
+```sh
+npm install prql-js --profile=dev
 ```
 
 ## Notes
