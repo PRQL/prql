@@ -10,6 +10,7 @@ version.workspace = true
 
 [lib]
 doctest = false
+test = false
 
 [dependencies]
 enum-as-inner = "0.6.0"

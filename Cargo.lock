@@ -2282,15 +2282,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "misc"
-version = "0.10.0"
-dependencies = [
- "insta",
- "regex",
- "similar",
-]
-
-[[package]]
 name = "mysql"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2932,6 +2923,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "similar",
  "similar-asserts",
  "sqlformat",
  "sqlparser",

@@ -1,24 +1,20 @@
-#![cfg(test)]
-
-use super::*;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
-use prqlc_ast::expr::{Expr, FuncCall};
+use itertools::Itertools;
+use prqlc_ast::error::*;
+use prqlc_ast::expr::*;
+use prqlc_ast::stmt::*;
 
 /// Helper that does not track source_ids
 fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {
-    parse_source(source, 0)
+    prqlc_parser::parse_source(source, 0)
 }
 
 fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
-    let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
-        errs.into_iter()
-            .map(|e| convert_lexer_error(source, e, 0))
-            .collect::<Vec<_>>()
-    })?;
+    let source = format!("let result = ({source}\n)");
 
-    let stream = prepare_stream(tokens, source, 0);
-    Parser::parse(&expr::expr_call().then_ignore(end()), stream)
-        .map_err(|errs| errs.into_iter().map(construct_parser_error).collect())
+    let stmts = parse_single(&source)?;
+    let stmt = stmts.into_iter().exactly_one().unwrap();
+    Ok(*stmt.kind.into_var_def().unwrap().value)
 }
 
 #[test]

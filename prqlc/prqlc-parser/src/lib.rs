@@ -3,7 +3,6 @@ mod interpolation;
 mod lexer;
 mod span;
 mod stmt;
-mod test;
 
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};

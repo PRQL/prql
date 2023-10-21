@@ -152,20 +152,3 @@ pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), st
         write!(f, "{s}")
     }
 }
-
-#[test]
-fn test_starts_with() {
-    // Over-testing, from co-pilot, can remove some of them.
-    let a = Ident::from_path(vec!["a", "b", "c"]);
-    let b = Ident::from_path(vec!["a", "b"]);
-    let c = Ident::from_path(vec!["a", "b", "c", "d"]);
-    let d = Ident::from_path(vec!["a", "b", "d"]);
-    let e = Ident::from_path(vec!["a", "c"]);
-    let f = Ident::from_path(vec!["b", "c"]);
-    assert!(a.starts_with(&b));
-    assert!(a.starts_with(&a));
-    assert!(!a.starts_with(&c));
-    assert!(!a.starts_with(&d));
-    assert!(!a.starts_with(&e));
-    assert!(!a.starts_with(&f));
-}

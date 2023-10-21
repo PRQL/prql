@@ -3,7 +3,7 @@
 //! See also [test_bad_error_messages.rs](test_bad_error_messages.rs) for error
 //! messages which need to be improved.
 
-use super::compile;
+use super::sql::compile;
 use insta::assert_display_snapshot;
 
 #[test]
