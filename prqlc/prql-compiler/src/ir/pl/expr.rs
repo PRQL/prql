@@ -71,7 +71,6 @@ pub enum ExprKind {
 
     Tuple(Vec<Expr>),
     Array(Vec<Expr>),
-    Range(Range),
     FuncCall(FuncCall),
     Func(Box<Func>),
     TransformCall(TransformCall),

@@ -821,7 +821,6 @@ impl Lowerer {
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
 
             pl::ExprKind::FuncCall(_)
-            | pl::ExprKind::Range(_)
             | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)

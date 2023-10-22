@@ -38,9 +38,7 @@ impl PlFold for Evaluator {
             ExprKind::Literal(l) => ExprKind::Literal(l),
 
             // these are values, iff their contents are values too
-            ExprKind::Array(_) | ExprKind::Tuple(_) | ExprKind::Range(_) => {
-                self.fold_expr_kind(expr.kind)?
-            }
+            ExprKind::Array(_) | ExprKind::Tuple(_) => self.fold_expr_kind(expr.kind)?,
 
             // functions are values
             ExprKind::Func(f) => ExprKind::Func(f),

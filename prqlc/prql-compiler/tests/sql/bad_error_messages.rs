@@ -29,7 +29,7 @@ fn test_bad_error_messages() {
        │
      3 │     group
        │     ──┬──
-       │       ╰──── main expected type `relation`, but found type `transform relation -> relation`
+       │       ╰──── main expected type `relation`, but found type `func transform relation -> relation`
        │
        │ Help: Have you forgotten an argument to function std.group?
        │

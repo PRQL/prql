@@ -63,7 +63,7 @@ impl WriteSource for TyKind {
             Array(elem) => Some(format!("[{}]", elem.write(opt)?)),
             Function(None) => Some("func".to_string()),
             Function(Some(func)) => {
-                let mut r = String::new();
+                let mut r = "func ".to_string();
 
                 for t in &func.args {
                     r += &t.as_ref().write(opt.clone())?;

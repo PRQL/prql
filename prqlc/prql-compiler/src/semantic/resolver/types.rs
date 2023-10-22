@@ -2,6 +2,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ir::pl::*;
+use crate::semantic::ast_expand::try_restrict_range;
 use crate::semantic::{write_pl, NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
 
@@ -28,29 +29,29 @@ fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
         ExprKind::Literal(lit) => Ty::new(lit),
 
         // tuples
-        ExprKind::Tuple(mut elements) => {
+        ExprKind::Tuple(elements) => {
             let mut set_elements = Vec::with_capacity(elements.len());
 
-            // special case: {x..}
-            if elements.len() == 1 {
-                let only = elements.remove(0);
-                if let ExprKind::Range(Range { start, end: None }) = only.kind {
-                    let inner = match start {
-                        Some(x) => Some(coerce_to_type(resolver, *x)?),
-                        None => None,
-                    };
-
-                    set_elements.push(TupleField::Wildcard(inner))
-                } else {
-                    elements.push(only);
-                }
-            }
-
             for e in elements {
-                let (name, ty) = coerce_to_aliased_type(resolver, e)?;
-                let ty = Some(ty);
+                match try_restrict_range(e) {
+                    // special case: {x..}
+                    Ok(Range { start, .. }) => {
+                        let inner = match start {
+                            Some(x) => Some(coerce_to_type(resolver, *x)?),
+                            None => None,
+                        };
 
-                set_elements.push(TupleField::Single(name, ty));
+                        set_elements.push(TupleField::Wildcard(inner))
+                    }
+
+                    // base: case
+                    Err(e) => {
+                        let (name, ty) = coerce_to_aliased_type(resolver, e)?;
+                        let ty = Some(ty);
+
+                        set_elements.push(TupleField::Single(name, ty));
+                    }
+                }
             }
 
             Ty::new(TyKind::Tuple(set_elements))
@@ -134,7 +135,6 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
 
         ExprKind::SString(_) => return Ok(None),
         ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
-        ExprKind::Range(_) => return Ok(None), // TODO
 
         ExprKind::TransformCall(_) => return Ok(None), // TODO
         ExprKind::Tuple(fields) => TyKind::Tuple(
@@ -252,6 +252,10 @@ impl Resolver<'_> {
         let expected_is_above = match &mut found.kind {
             // special case of container type: tuple
             ExprKind::Tuple(found_fields) => {
+                if expected.kind.is_any() {
+                    return Ok(());
+                }
+
                 let ok = self.validate_tuple_type(found_fields, expected, who)?;
                 if ok {
                     return Ok(());

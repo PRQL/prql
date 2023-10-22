@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use prqlc_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident};
+use prqlc_ast::expr::generic::Range;
+use prqlc_ast::expr::{BinOp, BinaryExpr, Expr, ExprKind, Ident, Literal};
 use prqlc_ast::stmt::{Annotation, Stmt, StmtKind};
 
 use crate::ir::pl::{self, new_binop};
@@ -20,7 +21,8 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         }
         ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)?),
         ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)?),
-        ExprKind::Range(v) => pl::ExprKind::Range(v.try_map(expand_expr_box)?),
+
+        ExprKind::Range(v) => expands_range(v)?,
 
         ExprKind::Unary(unary) => expand_unary(unary)?,
         ExprKind::Binary(binary) => expand_binary(binary)?,
@@ -82,6 +84,23 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         needs_window: false,
         flatten: false,
     })
+}
+
+/// De-sugars range `a..b` into `{start=a, end=b}`. Open bounds are mapped into `null`.
+fn expands_range(v: Range<Box<Expr>>) -> Result<pl::ExprKind, anyhow::Error> {
+    let mut start = v
+        .start
+        .map(|e| expand_expr(*e))
+        .transpose()?
+        .unwrap_or_else(|| pl::Expr::new(Literal::Null));
+    start.alias = Some("start".into());
+    let mut end = v
+        .end
+        .map(|e| expand_expr(*e))
+        .transpose()?
+        .unwrap_or_else(|| pl::Expr::new(Literal::Null));
+    end.alias = Some("end".into());
+    Ok(pl::ExprKind::Tuple(vec![start, end]))
 }
 
 fn expand_exprs(exprs: Vec<prqlc_ast::expr::Expr>) -> Result<Vec<pl::Expr>> {
@@ -264,7 +283,6 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
-        pl::ExprKind::Range(v) => ExprKind::Range(v.map(restrict_expr_box)),
         pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(prqlc_ast::expr::FuncCall {
             name: restrict_expr_box(v.name),
             args: restrict_exprs(v.args),
@@ -376,4 +394,37 @@ fn restrict_ty(value: pl::Ty) -> prqlc_ast::expr::Expr {
         pl::TyKind::Any => ExprKind::Ident(Ident::from_name("anytype")),
     };
     Expr::new(expr_kind)
+}
+
+/// Restricts a tuple of form `{start=a, end=b}` into a range `a..b`.
+pub fn try_restrict_range(expr: pl::Expr) -> Result<Range<Box<pl::Expr>>, pl::Expr> {
+    let pl::ExprKind::Tuple(fields) = expr.kind else {
+        return Err(expr);
+    };
+
+    if fields.len() != 2
+        || fields[0].alias.as_deref() != Some("start")
+        || fields[1].alias.as_deref() != Some("end")
+    {
+        return Err(pl::Expr {
+            kind: pl::ExprKind::Tuple(fields),
+            ..expr
+        });
+    }
+
+    let [start, end]: [pl::Expr; 2] = fields.try_into().unwrap();
+
+    Ok(Range {
+        start: restrict_null_literal(start).map(Box::new),
+        end: restrict_null_literal(end).map(Box::new),
+    })
+}
+
+/// Returns None if the Expr is a null literal and Some(expr) otherwise.
+fn restrict_null_literal(expr: pl::Expr) -> Option<pl::Expr> {
+    if let pl::ExprKind::Literal(Literal::Null) = expr.kind {
+        None
+    } else {
+        Some(expr)
+    }
 }
