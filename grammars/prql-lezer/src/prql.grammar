@@ -34,7 +34,7 @@ exprCall { expression | CallExpression }
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-CallExpression { Identifier ( (NamedArg | Assign | expression))+ }
+CallExpression { Identifier (NamedArg | Assign | expression)+ }
 
 NamedArg { identPart ":" expression }
 Assign { identPart "=" expression }
@@ -67,6 +67,7 @@ expression[@isGroup=Expression] {
   BinaryExpression |
   ArrayExpression |
   TupleExpression |
+  NestedPipeline |
   CaseExpression |
   DateTime |
   RangeExpression |
@@ -138,7 +139,7 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   space { " "+ }
 
   Escape {
-    "\\" ("x" hex hex | "u" "{" hex+ "}" | ![xu])
+    "\\" ("x" hex hex | "u" "{" hex+ "}" | $[bfnrt])
   }
 
   stringContentSingle { ![\\']+ }
