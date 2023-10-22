@@ -46,6 +46,7 @@ jobs:
         with:
           node-version: "20.x"
           cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
 
       - run: ./.github/workflows/scripts/set_version.sh
 
