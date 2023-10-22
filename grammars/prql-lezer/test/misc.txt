@@ -105,3 +105,15 @@ derive {
 ==>
 
 Query(Statements(PipelineStatement(Pipeline(CallExpression(Identifier,TupleExpression(AssignCall(Equals,Float),AssignCall(Equals,BinaryExpression(Identifier,ArithOp,Identifier))))))))
+
+# Nested pipeline
+
+group customer_id (
+  aggregate {
+    average total
+  }
+)
+
+==>
+
+Query(Statements(PipelineStatement(Pipeline(CallExpression(Identifier,Identifier,NestedPipeline(Pipeline(CallExpression(Identifier,TupleExpression(CallExpression(Identifier,Identifier))))))))))
