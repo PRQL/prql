@@ -208,6 +208,10 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
+      # This is only required in order to have `cross-env` installed, since `npx
+      # cross-env` doesn't seem to work in CI (https://github.com/PRQL/prql/pull/3728)
+      - run: npm install
+
       - run:
           npm publish ${{ (github.event_name != 'release') && '--dry-run' || ''
           }}
