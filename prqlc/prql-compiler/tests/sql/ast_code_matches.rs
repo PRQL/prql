@@ -16,6 +16,7 @@ fn test_expr_ast_code_matches() {
     @@ .. @@
     -    Pipeline(Pipeline),
     @@ .. @@
+    -    Range(Range),
     -    Binary(BinaryExpr),
     -    Unary(UnaryExpr),
     @@ .. @@

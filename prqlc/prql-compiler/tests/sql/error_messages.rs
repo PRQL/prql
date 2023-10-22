@@ -145,9 +145,9 @@ fn test_bad_function_type() {
        │
      3 │     group foo (take)
        │                ──┬─
-       │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `scalar relation -> relation`
+       │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `func anytype relation -> relation`
        │
-       │ Help: Type `transform` expands to `infer -> relation`
+       │ Help: Type `transform` expands to `func infer -> relation`
     ───╯
     "###);
 }
