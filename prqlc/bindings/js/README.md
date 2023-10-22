@@ -142,7 +142,6 @@ try {
   const sql = prqlJs.compile(`from employees | foo first_name`);
 } catch (error) {
   const errorMessages = JSON.parse(error.message).inner;
-  gg;
 
   console.log(errorMessages[0].display);
   console.log(errorMessages[0].location);
