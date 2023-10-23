@@ -1,5 +1,6 @@
 mod ast;
 mod pl;
+mod decl;
 
 pub(crate) use ast::write_expr;
 

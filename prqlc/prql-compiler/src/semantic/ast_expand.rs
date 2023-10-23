@@ -230,7 +230,14 @@ fn expand_stmt(value: Stmt) -> Result<pl::Stmt> {
     })
 }
 
-pub fn expand_stmts(value: Vec<Stmt>) -> Result<Vec<pl::Stmt>> {
+pub fn expand_module_def(v: prqlc_ast::stmt::ModuleDef) -> Result<pl::ModuleDef> {
+    Ok(pl::ModuleDef {
+        name: v.name,
+        stmts: expand_stmts(v.stmts)?,
+    })
+}
+
+fn expand_stmts(value: Vec<Stmt>) -> Result<Vec<pl::Stmt>> {
     value.into_iter().map(expand_stmt).collect()
 }
 
@@ -246,10 +253,7 @@ fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
             name: v.name,
             value: v.value.map(expand_expr_box).transpose()?,
         }),
-        StmtKind::ModuleDef(v) => pl::StmtKind::ModuleDef(pl::ModuleDef {
-            name: v.name,
-            stmts: expand_stmts(v.stmts)?,
-        }),
+        StmtKind::ModuleDef(v) => pl::StmtKind::ModuleDef(expand_module_def(v)?),
     })
 }
 
@@ -426,5 +430,45 @@ fn restrict_null_literal(expr: pl::Expr) -> Option<pl::Expr> {
         None
     } else {
         Some(expr)
+    }
+}
+
+pub fn restrict_stmts(stmts: Vec<pl::Stmt>) -> Vec<Stmt> {
+    stmts.into_iter().map(restrict_stmt).collect()
+}
+
+fn restrict_stmt(stmt: pl::Stmt) -> Stmt {
+    let kind = match stmt.kind {
+        pl::StmtKind::QueryDef(def) => StmtKind::QueryDef(def),
+        pl::StmtKind::VarDef(def) => StmtKind::VarDef(prqlc_ast::stmt::VarDef {
+            kind: prqlc_ast::stmt::VarDefKind::Let,
+            name: def.name,
+            value: restrict_expr_box(def.value),
+            ty_expr: def.ty_expr.map(restrict_expr_box),
+        }),
+        pl::StmtKind::TypeDef(def) => StmtKind::TypeDef(prqlc_ast::stmt::TypeDef {
+            name: def.name,
+            value: def.value.map(restrict_expr_box),
+        }),
+        pl::StmtKind::ModuleDef(def) => StmtKind::ModuleDef(prqlc_ast::stmt::ModuleDef {
+            name: def.name,
+            stmts: restrict_stmts(def.stmts),
+        }),
+    };
+
+    prqlc_ast::stmt::Stmt {
+        kind,
+        span: stmt.span,
+        annotations: stmt
+            .annotations
+            .into_iter()
+            .map(restrict_annotation)
+            .collect(),
+    }
+}
+
+fn restrict_annotation(value: pl::Annotation) -> Annotation {
+    Annotation {
+        expr: restrict_expr_box(value.expr),
     }
 }

@@ -51,6 +51,13 @@ pub fn resolve(
         file_tree.insert(path, content);
     }
 
+    // convert to module def tree
+    // TODO: recursive references
+    let root_module_def = sources_to_modules(file_tree)?;
+    
+    // expand AST into PL
+    let root_module_def = ast_expand::expand_module_def(root_module_def)?;
+    
     // init new root module
     let mut root_module = RootModule {
         module: Module::new_root(),
@@ -58,13 +65,8 @@ pub fn resolve(
     };
     let mut resolver = Resolver::new(&mut root_module, options);
 
-    // resolve sources one by one
-    // TODO: recursive references
-    for (path, stmts) in normalize(file_tree)? {
-        let stmts = ast_expand::expand_stmts(stmts)?;
-
-        resolver.resolve(path, stmts)?;
-    }
+    // resolve the module def into the root module
+    resolver.fold_statements(root_module_def.stmts);
 
     Ok(root_module)
 }
@@ -92,9 +94,9 @@ pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
         .try_collect()
 }
 
-fn normalize(
+fn sources_to_modules(
     mut tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
-) -> Result<Vec<(Vec<String>, Vec<prqlc_ast::stmt::Stmt>)>> {
+) -> Result<prqlc_ast::stmt::ModuleDef> {
     // find root
     let root_path = PathBuf::from("");
 
@@ -103,10 +105,10 @@ fn normalize(
             // if there is only one file, use that as the root
             let (_, only) = tree.sources.drain().exactly_one().unwrap();
             tree.sources.insert(root_path, only);
-        } else if let Some(under) = tree.sources.keys().find(path_starts_with_uppercase) {
-            // if there is a path that starts with `_`, that's the root
-            let under = tree.sources.remove(&under.clone()).unwrap();
-            tree.sources.insert(root_path, under);
+        } else if let Some(root) = tree.sources.keys().find(path_starts_with_uppercase) {
+            // if there is a path that starts with an uppercase, that's the root
+            let root = tree.sources.remove(&root.clone()).unwrap();
+            tree.sources.insert(root_path, root);
         } else {
             let file_names = tree
                 .sources
@@ -124,19 +126,60 @@ fn normalize(
         }
     }
 
+    // prepare paths and sort
+    let mut sources: Vec<_> = Vec::with_capacity(tree.sources.len());
+    for (path, stmts) in tree.sources {
+        let path = os_path_to_prql_path(path)?;
+        sources.push((path, stmts));
+    }
+    sources.sort_unstable_by_key(|(path, _)| path);
+
+    // insert all sources into root module
+    let mut root = prqlc_ast::stmt::ModuleDef {
+        name: "Project".to_string(),
+        stmts: Vec::new(),
+    };
+
+    fn insert_module_def(
+        module: &mut prqlc_ast::stmt::ModuleDef,
+        mut path: Vec<String>,
+        stmts: Vec<prqlc_ast::stmt::Stmt>,
+    ) {
+        if path.is_empty() {
+            module.stmts.extend(stmts);
+        } else {
+            let step = path.remove(0);
+
+            let submodule = module
+                .stmts
+                .iter_mut()
+                .find(|x| x.kind.as_module_def().map_or(false, |x| x.name == path[0]))
+                .unwrap_or_else(|| {
+                    // insert new module def
+                    module.stmts.push(prqlc_ast::stmt::Stmt::new(
+                        prqlc_ast::stmt::StmtKind::ModuleDef(prqlc_ast::stmt::ModuleDef {
+                            name: step,
+                            stmts: Vec::new(),
+                        }),
+                    ));
+                    module.stmts.last_mut().unwrap()
+                })
+                .kind
+                .as_module_def_mut()
+                .unwrap();
+
+            insert_module_def(submodule, path, stmts);
+        }
+    }
+    for (path, stmts) in sources {
+        insert_module_def(&mut root, path, stmts);
+    }
+
     // TODO: make sure that the module tree is normalized
 
     // TODO: find correct resolution order
 
-    let mut modules = Vec::with_capacity(tree.sources.len());
-    for (path, stmts) in tree.sources {
-        let path = os_path_to_prql_path(path)?;
-        modules.push((path, stmts));
-    }
-    modules.sort_unstable_by_key(|(path, _)| path.join("."));
-    modules.reverse();
-
-    Ok(modules)
+    Ok(root)
 }
 
 fn path_starts_with_uppercase(p: &&PathBuf) -> bool {
@@ -165,6 +208,15 @@ pub const NS_INFER: &str = "_infer";
 pub const NS_INFER_MODULE: &str = "_infer_module";
 
 impl Stmt {
+    pub fn new(kind: StmtKind) -> Stmt {
+        Stmt {
+            id: None,
+            kind,
+            span: None,
+            annotations: Vec::new(),
+        }
+    }
+
     pub(crate) fn name(&self) -> &str {
         match &self.kind {
             StmtKind::QueryDef(_) => NS_QUERY_DEF,
