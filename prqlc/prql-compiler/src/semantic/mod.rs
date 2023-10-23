@@ -1,6 +1,6 @@
 //! Semantic resolver (name resolution, type checking and lowering to RQ)
 
-mod ast_expand;
+pub mod ast_expand;
 mod eval;
 mod lowering;
 mod module;
@@ -36,28 +36,14 @@ pub fn resolve_and_lower(
 
 /// Runs semantic analysis on the query.
 pub fn resolve(
-    mut file_tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
+    file_tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
     options: ResolverOptions,
 ) -> Result<RootModule> {
-    // inject std module if it does not exist
-    if !file_tree.sources.contains_key(&PathBuf::from("std.prql")) {
-        let mut source_tree = SourceTree {
-            sources: Default::default(),
-            source_ids: file_tree.source_ids.clone(),
-        };
-        load_std_lib(&mut source_tree);
-        let ast = crate::parser::parse(&source_tree).unwrap();
-        let (path, content) = ast.sources.into_iter().next().unwrap();
-        file_tree.insert(path, content);
-    }
+    let root_module_def = compose_module_tree(file_tree)?;
 
-    // convert to module def tree
-    // TODO: recursive references
-    let root_module_def = sources_to_modules(file_tree)?;
-    
     // expand AST into PL
     let root_module_def = ast_expand::expand_module_def(root_module_def)?;
-    
+
     // init new root module
     let mut root_module = RootModule {
         module: Module::new_root(),
@@ -66,40 +52,28 @@ pub fn resolve(
     let mut resolver = Resolver::new(&mut root_module, options);
 
     // resolve the module def into the root module
-    resolver.fold_statements(root_module_def.stmts);
+    resolver.fold_statements(root_module_def.stmts)?;
 
     Ok(root_module)
 }
 
-/// Preferred way of injecting std module.
-pub fn load_std_lib(source_tree: &mut SourceTree) {
-    let path = PathBuf::from("std.prql");
-    let content = include_str!("./std.prql");
-
-    source_tree.insert(path, content.to_string());
-}
-
-pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
-    // remove file format extension
-    let path = path.with_extension("");
-
-    // split by /
-    path.components()
-        .map(|x| {
-            x.as_os_str()
-                .to_str()
-                .ok_or_else(|| anyhow::anyhow!("Invalid file path: {path:?}"))
-                .map(str::to_string)
-        })
-        .try_collect()
-}
-
-fn sources_to_modules(
+pub fn compose_module_tree(
     mut tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
 ) -> Result<prqlc_ast::stmt::ModuleDef> {
+    // inject std module if it does not exist
+    if !tree.sources.contains_key(&PathBuf::from("std.prql")) {
+        let mut source_tree = SourceTree {
+            sources: Default::default(),
+            source_ids: tree.source_ids.clone(),
+        };
+        load_std_lib(&mut source_tree);
+        let ast = crate::parser::parse(&source_tree).unwrap();
+        let (path, content) = ast.sources.into_iter().next().unwrap();
+        tree.insert(path, content);
+    }
+
     // find root
     let root_path = PathBuf::from("");
-
     if tree.sources.get(&root_path).is_none() {
         if tree.sources.len() == 1 {
             // if there is only one file, use that as the root
@@ -132,7 +106,8 @@ fn sources_to_modules(
         let path = os_path_to_prql_path(path)?;
         sources.push((path, stmts));
     }
-    sources.sort_unstable_by_key(|(path, _)| path);
+    sources.sort_unstable_by_key(|(path, _)| path.join("."));
+    sources.reverse();
 
     // insert all sources into root module
     let mut root = prqlc_ast::stmt::ModuleDef {
@@ -150,23 +125,24 @@ fn sources_to_modules(
         } else {
             let step = path.remove(0);
 
+            // find submodule def
             let submodule = module
                 .stmts
                 .iter_mut()
-                .find(|x| x.kind.as_module_def().map_or(false, |x| x.name == path[0]))
-                .unwrap_or_else(|| {
-                    // insert new module def
-                    module.stmts.push(prqlc_ast::stmt::Stmt::new(
-                        prqlc_ast::stmt::StmtKind::ModuleDef(prqlc_ast::stmt::ModuleDef {
-                            name: step,
-                            stmts: Vec::new(),
-                        }),
-                    ));
-                    module.stmts.last_mut().unwrap()
-                })
-                .kind
-                .as_module_def_mut()
-                .unwrap();
+                .find(|x| x.kind.as_module_def().map_or(false, |x| x.name == step));
+            let submodule = if let Some(sm) = submodule {
+                sm
+            } else {
+                // insert new module def
+                module.stmts.push(prqlc_ast::stmt::Stmt::new(
+                    prqlc_ast::stmt::StmtKind::ModuleDef(prqlc_ast::stmt::ModuleDef {
+                        name: step,
+                        stmts: Vec::new(),
+                    }),
+                ));
+                module.stmts.last_mut().unwrap()
+            };
+            let submodule = submodule.kind.as_module_def_mut().unwrap();
 
             insert_module_def(submodule, path, stmts);
         }
@@ -178,8 +154,32 @@ fn sources_to_modules(
     // TODO: make sure that the module tree is normalized
 
     // TODO: find correct resolution order
+    // TODO: recursive references
 
     Ok(root)
+}
+
+/// Preferred way of injecting std module.
+pub fn load_std_lib(source_tree: &mut SourceTree) {
+    let path = PathBuf::from("std.prql");
+    let content = include_str!("./std.prql");
+
+    source_tree.insert(path, content.to_string());
+}
+
+pub fn os_path_to_prql_path(path: PathBuf) -> Result<Vec<String>> {
+    // remove file format extension
+    let path = path.with_extension("");
+
+    // split by /
+    path.components()
+        .map(|x| {
+            x.as_os_str()
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Invalid file path: {path:?}"))
+                .map(str::to_string)
+        })
+        .try_collect()
 }
 
 fn path_starts_with_uppercase(p: &&PathBuf) -> bool {
@@ -262,16 +262,12 @@ pub mod test {
     use super::{resolve, resolve_and_lower, RootModule};
 
     pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery> {
-        let mut source_tree = query.into();
-        super::load_std_lib(&mut source_tree);
-
+        let source_tree = query.into();
         resolve_and_lower(parse(&source_tree)?, &[])
     }
 
     pub fn parse_and_resolve(query: &str) -> Result<RootModule> {
-        let mut source_tree = query.into();
-        super::load_std_lib(&mut source_tree);
-
+        let source_tree = query.into();
         resolve(parse(&source_tree)?, Default::default())
     }
 

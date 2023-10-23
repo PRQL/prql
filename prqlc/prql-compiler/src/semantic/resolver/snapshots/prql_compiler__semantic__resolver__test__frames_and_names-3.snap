@@ -7,26 +7,26 @@ columns:
       name:
         - e
         - emp_no
-      target_id: 225
+      target_id: 226
       target_name: ~
   - Single:
       name:
         - e
         - gender
-      target_id: 226
+      target_id: 227
       target_name: ~
   - Single:
       name:
         - emp_salary
-      target_id: 250
+      target_id: 251
       target_name: ~
 inputs:
-  - id: 217
+  - id: 218
     name: e
     table:
       - default_db
       - employees
-  - id: 210
+  - id: 211
     name: salaries
     table:
       - default_db

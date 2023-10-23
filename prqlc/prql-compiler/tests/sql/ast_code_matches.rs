@@ -69,6 +69,17 @@ fn test_stmt_ast_code_matches() {
         ), @r###"
     @@ .. @@
     -    pub kind: VarDefKind,
+    @@ .. @@
+    -}
+    -
+    -impl Stmt {
+    -    pub fn new(kind: StmtKind) -> Stmt {
+    -        Stmt {
+    -            kind,
+    -            span: None,
+    -            annotations: Vec::new(),
+    -        }
+    -    }
     "###
     )
 }

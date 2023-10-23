@@ -1,5 +1,5 @@
 ---
-source: prqlc/tests/test.rs
+source: prqlc/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -27,6 +27,9 @@ _prqlc() {
         case "${cmd},${i}" in
             ",$1")
                 cmd="prqlc"
+                ;;
+            prqlc,collect)
+                cmd="prqlc__collect"
                 ;;
             prqlc,compile)
                 cmd="prqlc__compile"
@@ -70,6 +73,9 @@ _prqlc() {
             prqlc__debug,eval)
                 cmd="prqlc__debug__eval"
                 ;;
+            prqlc__debug,expand-pl)
+                cmd="prqlc__debug__expand__pl"
+                ;;
             prqlc__debug,help)
                 cmd="prqlc__debug__help"
                 ;;
@@ -85,11 +91,17 @@ _prqlc() {
             prqlc__debug__help,eval)
                 cmd="prqlc__debug__help__eval"
                 ;;
+            prqlc__debug__help,expand-pl)
+                cmd="prqlc__debug__help__expand__pl"
+                ;;
             prqlc__debug__help,help)
                 cmd="prqlc__debug__help__help"
                 ;;
             prqlc__debug__help,semantics)
                 cmd="prqlc__debug__help__semantics"
+                ;;
+            prqlc__help,collect)
+                cmd="prqlc__help__collect"
                 ;;
             prqlc__help,compile)
                 cmd="prqlc__help__compile"
@@ -133,6 +145,9 @@ _prqlc() {
             prqlc__help__debug,eval)
                 cmd="prqlc__help__debug__eval"
                 ;;
+            prqlc__help__debug,expand-pl)
+                cmd="prqlc__help__debug__expand__pl"
+                ;;
             prqlc__help__debug,semantics)
                 cmd="prqlc__help__debug__semantics"
                 ;;
@@ -143,8 +158,26 @@ _prqlc() {
 
     case "${cmd}" in
         prqlc)
-            opts="-h -V --color --help --version parse fmt debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="-h -V --color --help --version parse fmt collect debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__collect)
+            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -187,7 +220,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug)
-            opts="-h --color --help semantics eval annotate ast help"
+            opts="-h --color --help expand-pl semantics eval annotate ast help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -258,8 +291,26 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        prqlc__debug__expand__pl)
+            opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         prqlc__debug__help)
-            opts="semantics eval annotate ast help"
+            opts="expand-pl semantics eval annotate ast help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -301,6 +352,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__help__eval)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__debug__help__expand__pl)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -379,8 +444,22 @@ _prqlc() {
             return 0
             ;;
         prqlc__help)
-            opts="parse fmt debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
+            opts="parse fmt collect debug resolve sql:preprocess sql:anchor compile watch list-targets shell-completion help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__collect)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -407,7 +486,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug)
-            opts="semantics eval annotate ast"
+            opts="expand-pl semantics eval annotate ast"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -449,6 +528,20 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug__eval)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        prqlc__help__debug__expand__pl)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

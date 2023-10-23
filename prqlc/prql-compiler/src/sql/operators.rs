@@ -23,9 +23,7 @@ fn load_std_sql() -> decl::Module {
     )]);
     let ast = crate::parser::parse(&std_lib).unwrap();
 
-    let options = semantic::ResolverOptions {
-        allow_module_decls: true,
-    };
+    let options = semantic::ResolverOptions {};
 
     let context = semantic::resolve(ast, options).unwrap();
     context.module

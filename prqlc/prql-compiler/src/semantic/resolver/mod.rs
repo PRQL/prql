@@ -29,9 +29,7 @@ pub struct Resolver<'a> {
 }
 
 #[derive(Default, Clone)]
-pub struct ResolverOptions {
-    pub allow_module_decls: bool,
-}
+pub struct ResolverOptions {}
 
 impl Resolver<'_> {
     pub fn new(root_mod: &mut RootModule, options: ResolverOptions) -> Resolver {
