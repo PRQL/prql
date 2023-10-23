@@ -10,7 +10,6 @@ version.workspace = true
 
 [[bin]]
 name = "prqlc"
-test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anstream = {version = "0.3.2", features = ["auto"]}
