@@ -1,6 +1,13 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.10.0 — 2023-10-24
+
+0.10.0 contains lots of small improvements, including support for new types of
+literal notation, support for `read_*` functions in more dialects, playground
+improvements, and a better Lezer grammar (which we're planning on using for a
+Jupyter extension).
+
+This release has 155 commits from 9 contributors. Selected changes:
 
 **Language**:
 
@@ -70,6 +77,8 @@
 **New Contributors**:
 
 - @hulxv, with #3533
+- @AaronMoat, with #3522
+- @jangorecki, with #3634
 
 ## 0.9.5 — 2023-09-16
 
