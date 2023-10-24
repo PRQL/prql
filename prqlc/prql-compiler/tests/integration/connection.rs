@@ -1,3 +1,5 @@
+#![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
+
 use anyhow::Result;
 use prql_compiler::sql::Dialect;
 use tokio::runtime::Runtime;
