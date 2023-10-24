@@ -1,5 +1,5 @@
 ---
-source: prqlc/tests/test.rs
+source: prqlc/prqlc/tests/test.rs
 info:
   program: prqlc
   args:
@@ -64,6 +64,16 @@ _arguments "${_arguments_options[@]}" \
 '::input:_files' \
 && ret=0
 ;;
+(collect)
+_arguments "${_arguments_options[@]}" \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'-h[Print help]' \
+'--help[Print help]' \
+'::input:_files' \
+'::output:_files' \
+'::main_path -- Identifier of the main pipeline:' \
+&& ret=0
+;;
 (debug)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
@@ -79,7 +89,17 @@ _arguments "${_arguments_options[@]}" \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:prqlc-debug-command-$line[1]:"
         case $line[1] in
-            (semantics)
+            (expand-pl)
+_arguments "${_arguments_options[@]}" \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'-h[Print help]' \
+'--help[Print help]' \
+'::input:_files' \
+'::output:_files' \
+'::main_path -- Identifier of the main pipeline:' \
+&& ret=0
+;;
+(resolve)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '-h[Print help]' \
@@ -128,7 +148,11 @@ _arguments "${_arguments_options[@]}" \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:prqlc-debug-help-command-$line[1]:"
         case $line[1] in
-            (semantics)
+            (expand-pl)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(resolve)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -247,6 +271,10 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
+(collect)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (debug)
 _arguments "${_arguments_options[@]}" \
 ":: :_prqlc__help__debug_commands" \
@@ -259,7 +287,11 @@ _arguments "${_arguments_options[@]}" \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:prqlc-help-debug-command-$line[1]:"
         case $line[1] in
-            (semantics)
+            (expand-pl)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(resolve)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -325,6 +357,7 @@ _prqlc_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
 'fmt:Parse & generate PRQL code back' \
+'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
 'resolve:Parse, resolve & lower into RQ' \
 'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
@@ -367,6 +400,16 @@ _prqlc__help__debug__ast_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug ast commands' commands "$@"
 }
+(( $+functions[_prqlc__collect_commands] )) ||
+_prqlc__collect_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc collect commands' commands "$@"
+}
+(( $+functions[_prqlc__help__collect_commands] )) ||
+_prqlc__help__collect_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help collect commands' commands "$@"
+}
 (( $+functions[_prqlc__compile_commands] )) ||
 _prqlc__compile_commands() {
     local commands; commands=()
@@ -380,7 +423,8 @@ _prqlc__help__compile_commands() {
 (( $+functions[_prqlc__debug_commands] )) ||
 _prqlc__debug_commands() {
     local commands; commands=(
-'semantics:Parse & resolve, but don'\''t lower into RQ' \
+'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
+'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'ast:Print info about the AST data structure' \
@@ -391,7 +435,8 @@ _prqlc__debug_commands() {
 (( $+functions[_prqlc__help__debug_commands] )) ||
 _prqlc__help__debug_commands() {
     local commands; commands=(
-'semantics:Parse & resolve, but don'\''t lower into RQ' \
+'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
+'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'ast:Print info about the AST data structure' \
@@ -413,6 +458,21 @@ _prqlc__help__debug__eval_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug eval commands' commands "$@"
 }
+(( $+functions[_prqlc__debug__expand-pl_commands] )) ||
+_prqlc__debug__expand-pl_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug expand-pl commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__help__expand-pl_commands] )) ||
+_prqlc__debug__help__expand-pl_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug help expand-pl commands' commands "$@"
+}
+(( $+functions[_prqlc__help__debug__expand-pl_commands] )) ||
+_prqlc__help__debug__expand-pl_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help debug expand-pl commands' commands "$@"
+}
 (( $+functions[_prqlc__fmt_commands] )) ||
 _prqlc__fmt_commands() {
     local commands; commands=()
@@ -426,7 +486,8 @@ _prqlc__help__fmt_commands() {
 (( $+functions[_prqlc__debug__help_commands] )) ||
 _prqlc__debug__help_commands() {
     local commands; commands=(
-'semantics:Parse & resolve, but don'\''t lower into RQ' \
+'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
+'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'ast:Print info about the AST data structure' \
@@ -444,6 +505,7 @@ _prqlc__help_commands() {
     local commands; commands=(
 'parse:Parse into PL AST' \
 'fmt:Parse & generate PRQL code back' \
+'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
 'resolve:Parse, resolve & lower into RQ' \
 'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
@@ -481,6 +543,21 @@ _prqlc__parse_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc parse commands' commands "$@"
 }
+(( $+functions[_prqlc__debug__help__resolve_commands] )) ||
+_prqlc__debug__help__resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug help resolve commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__resolve_commands] )) ||
+_prqlc__debug__resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug resolve commands' commands "$@"
+}
+(( $+functions[_prqlc__help__debug__resolve_commands] )) ||
+_prqlc__help__debug__resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help debug resolve commands' commands "$@"
+}
 (( $+functions[_prqlc__help__resolve_commands] )) ||
 _prqlc__help__resolve_commands() {
     local commands; commands=()
@@ -490,21 +567,6 @@ _prqlc__help__resolve_commands() {
 _prqlc__resolve_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc resolve commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__help__semantics_commands] )) ||
-_prqlc__debug__help__semantics_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug help semantics commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__semantics_commands] )) ||
-_prqlc__debug__semantics_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug semantics commands' commands "$@"
-}
-(( $+functions[_prqlc__help__debug__semantics_commands] )) ||
-_prqlc__help__debug__semantics_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help debug semantics commands' commands "$@"
 }
 (( $+functions[_prqlc__help__shell-completion_commands] )) ||
 _prqlc__help__shell-completion_commands() {
