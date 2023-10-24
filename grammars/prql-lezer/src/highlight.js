@@ -11,6 +11,7 @@ export const prqlHighlight = styleTags({
   Boolean: t.bool,
   Integer: t.integer,
   Float: t.float,
+  TypeTerm: t.typeName,
   Escape: t.escape,
   String: t.string,
   FString: t.special(t.string),
