@@ -1,7 +1,7 @@
 mod ast;
 mod pl;
 
-pub use ast::{write_expr, write_stmts};
+pub(crate) use ast::write_expr;
 
 pub trait WriteSource {
     /// Converts self to its source representation according to specified
@@ -26,6 +26,17 @@ pub trait WriteSource {
 
         r += opt.consume(suffix)?;
         Some(r)
+    }
+
+    fn write_or_expand(&self, mut opt: WriteOpt) -> String {
+        loop {
+            if let Some(s) = self.write(opt.clone()) {
+                return s;
+            } else {
+                opt.max_width += opt.max_width / 2;
+                opt.reset_line();
+            }
+        }
     }
 }
 
@@ -96,13 +107,14 @@ impl WriteOpt {
         Some(())
     }
 
-    fn consume<'a>(&mut self, source: &'a str) -> Option<&'a str> {
-        let width = if let Some(new_line) = source.rfind('\n') {
-            source.len() - new_line
+    /// Subtracts the width of the source from the remaining width and returns the source unchanged.
+    fn consume<S: AsRef<str>>(&mut self, source: S) -> Option<S> {
+        let width = if let Some(new_line) = source.as_ref().rfind('\n') {
+            source.as_ref().len() - new_line
         } else {
-            source.len()
+            source.as_ref().len()
         };
-        self.consume_width(width as u16);
+        self.consume_width(width as u16)?;
         Some(source)
     }
 
