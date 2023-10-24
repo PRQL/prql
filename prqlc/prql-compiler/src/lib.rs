@@ -298,7 +298,7 @@ pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<Strin
 
 /// Generate PRQL code from PL AST
 pub fn pl_to_prql(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
-    Ok(codegen::write_stmts(&pl))
+    Ok(codegen::WriteSource::write(&pl, codegen::WriteOpt::default()).unwrap())
 }
 
 /// JSON serialization and deserialization functions
