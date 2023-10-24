@@ -99,7 +99,7 @@ _arguments "${_arguments_options[@]}" \
 '::main_path -- Identifier of the main pipeline:' \
 && ret=0
 ;;
-(semantics)
+(resolve)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '-h[Print help]' \
@@ -152,7 +152,7 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
-(semantics)
+(resolve)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -291,7 +291,7 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
-(semantics)
+(resolve)
 _arguments "${_arguments_options[@]}" \
 && ret=0
 ;;
@@ -424,7 +424,7 @@ _prqlc__help__compile_commands() {
 _prqlc__debug_commands() {
     local commands; commands=(
 'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
-'semantics:Parse & resolve, but don'\''t lower into RQ' \
+'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'ast:Print info about the AST data structure' \
@@ -436,7 +436,7 @@ _prqlc__debug_commands() {
 _prqlc__help__debug_commands() {
     local commands; commands=(
 'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
-'semantics:Parse & resolve, but don'\''t lower into RQ' \
+'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'ast:Print info about the AST data structure' \
@@ -487,7 +487,7 @@ _prqlc__help__fmt_commands() {
 _prqlc__debug__help_commands() {
     local commands; commands=(
 'expand-pl:Parse & and expand into PL, but don'\''t resolve' \
-'semantics:Parse & resolve, but don'\''t lower into RQ' \
+'resolve:Parse & resolve, but don'\''t lower into RQ' \
 'eval:Parse & evaluate expression down to a value' \
 'annotate:Parse, resolve & combine source with comments annotating relation type' \
 'ast:Print info about the AST data structure' \
@@ -543,6 +543,21 @@ _prqlc__parse_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc parse commands' commands "$@"
 }
+(( $+functions[_prqlc__debug__help__resolve_commands] )) ||
+_prqlc__debug__help__resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug help resolve commands' commands "$@"
+}
+(( $+functions[_prqlc__debug__resolve_commands] )) ||
+_prqlc__debug__resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc debug resolve commands' commands "$@"
+}
+(( $+functions[_prqlc__help__debug__resolve_commands] )) ||
+_prqlc__help__debug__resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help debug resolve commands' commands "$@"
+}
 (( $+functions[_prqlc__help__resolve_commands] )) ||
 _prqlc__help__resolve_commands() {
     local commands; commands=()
@@ -552,21 +567,6 @@ _prqlc__help__resolve_commands() {
 _prqlc__resolve_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc resolve commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__help__semantics_commands] )) ||
-_prqlc__debug__help__semantics_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug help semantics commands' commands "$@"
-}
-(( $+functions[_prqlc__debug__semantics_commands] )) ||
-_prqlc__debug__semantics_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc debug semantics commands' commands "$@"
-}
-(( $+functions[_prqlc__help__debug__semantics_commands] )) ||
-_prqlc__help__debug__semantics_commands() {
-    local commands; commands=()
-    _describe -t commands 'prqlc help debug semantics commands' commands "$@"
 }
 (( $+functions[_prqlc__help__shell-completion_commands] )) ||
 _prqlc__help__shell-completion_commands() {

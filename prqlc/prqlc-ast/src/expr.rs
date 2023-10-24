@@ -3,11 +3,11 @@ mod ident;
 mod literal;
 mod ops;
 
-use std::collections::HashMap;
-
 pub use ident::Ident;
 pub use literal::{Literal, ValueAndUnit};
 pub use ops::{BinOp, UnOp};
+
+use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 use crate::Span;
 
 impl Expr {
-    pub fn new(kind: ExprKind) -> Self {
+    pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
         Expr {
-            kind,
+            kind: kind.into(),
             span: None,
             alias: None,
         }
@@ -124,8 +124,20 @@ pub type Range = generic::Range<Box<Expr>>;
 pub type InterpolateItem = generic::InterpolateItem<Expr>;
 pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 
-impl From<Vec<Expr>> for Pipeline {
-    fn from(nodes: Vec<Expr>) -> Self {
-        Pipeline { exprs: nodes }
+impl From<Literal> for ExprKind {
+    fn from(value: Literal) -> Self {
+        ExprKind::Literal(value)
+    }
+}
+
+impl From<Ident> for ExprKind {
+    fn from(value: Ident) -> Self {
+        ExprKind::Ident(value)
+    }
+}
+
+impl From<Func> for ExprKind {
+    fn from(value: Func) -> Self {
+        ExprKind::Func(Box::new(value))
     }
 }

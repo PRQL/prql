@@ -157,7 +157,7 @@ pub enum DebugCommand {
     ExpandPL(IoArgs),
 
     /// Parse & resolve, but don't lower into RQ
-    Semantics(IoArgs),
+    Resolve(IoArgs),
 
     /// Parse & evaluate expression down to a value
     ///
@@ -291,20 +291,27 @@ impl Command {
 
                 pl_to_prql(restricted)?.into_bytes()
             }
-            Command::Debug(DebugCommand::Semantics(_)) => {
+            Command::Debug(DebugCommand::Resolve(_)) => {
                 let stmts = prql_to_pl_tree(sources)?;
 
-                let context = semantic::resolve(stmts, Default::default())
+                let root_module = semantic::resolve(stmts, Default::default())
                     .map_err(prql_compiler::downcast)
                     .map_err(|e| e.composed(sources))?;
 
-                let mut out = Vec::new();
+                // debug output of the PL
+                let mut out = format!("{root_module:#?}\n").into_bytes();
+
+                // labelled sources
                 for (source_id, source) in &sources.sources {
                     let source_id = source_id.to_str().unwrap().to_string();
-                    out.extend(label_references(&context, source_id, source.clone()));
+                    out.extend(label_references(&root_module, source_id, source.clone()));
                 }
 
-                out.extend(format!("\n{context:#?}\n").into_bytes());
+                // resolved PL, restricted back into AST
+                let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
+                drop_module_def(&mut root_module.stmts, "std");
+                out.extend(pl_to_prql(root_module.stmts)?.into_bytes());
+
                 out
             }
             Command::Debug(DebugCommand::Annotate(_)) => {
@@ -436,7 +443,7 @@ impl Command {
             | SQLPreprocess(io_args)
             | SQLAnchor { io_args, .. }
             | Debug(
-                DebugCommand::Semantics(io_args)
+                DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
@@ -476,7 +483,7 @@ impl Command {
             | SQLAnchor { io_args, .. }
             | SQLPreprocess(io_args)
             | Debug(
-                DebugCommand::Semantics(io_args)
+                DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),

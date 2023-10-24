@@ -27,13 +27,12 @@ fn test_expr_ast_code_matches() {
     -    pub left: Box<Expr>,
     -    pub op: BinOp,
     -    pub right: Box<Expr>,
-    @@ .. @@
+    -}
+    -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct UnaryExpr {
     -    pub op: UnOp,
     -    pub expr: Box<Expr>,
-    -}
-    -
     @@ .. @@
     -    pub return_ty: Option<Box<Expr>>,
     +    pub return_ty: Option<TyOrExpr>,
@@ -41,19 +40,12 @@ fn test_expr_ast_code_matches() {
     -    pub ty: Option<Box<Expr>>,
     +    pub ty: Option<TyOrExpr>,
     @@ .. @@
+    -}
+    -
     -/// A value and a series of functions that are to be applied to that value one after another.
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct Pipeline {
     -    pub exprs: Vec<Expr>,
-    -}
-    -
-    @@ .. @@
-    -
-    -impl From<Vec<Expr>> for Pipeline {
-    -    fn from(nodes: Vec<Expr>) -> Self {
-    -        Pipeline { exprs: nodes }
-    -    }
-    -}
     "###
     );
 }

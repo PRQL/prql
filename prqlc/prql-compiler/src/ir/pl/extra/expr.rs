@@ -1,5 +1,4 @@
 use enum_as_inner::EnumAsInner;
-use prqlc_ast::expr::{Ident, Literal};
 use serde::{Deserialize, Serialize};
 
 use crate::ir::generic::WindowKind;
@@ -131,23 +130,5 @@ impl Expr {
             alias: None,
             flatten: false,
         }
-    }
-}
-
-impl From<Literal> for ExprKind {
-    fn from(value: Literal) -> Self {
-        ExprKind::Literal(value)
-    }
-}
-
-impl From<Ident> for ExprKind {
-    fn from(value: Ident) -> Self {
-        ExprKind::Ident(value)
-    }
-}
-
-impl From<Func> for ExprKind {
-    fn from(value: Func) -> Self {
-        ExprKind::Func(Box::new(value))
     }
 }

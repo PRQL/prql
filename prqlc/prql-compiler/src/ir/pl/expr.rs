@@ -141,3 +141,21 @@ pub struct FuncParam {
 pub type Range = generic::Range<Box<Expr>>;
 pub type InterpolateItem = generic::InterpolateItem<Expr>;
 pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
+
+impl From<Literal> for ExprKind {
+    fn from(value: Literal) -> Self {
+        ExprKind::Literal(value)
+    }
+}
+
+impl From<Ident> for ExprKind {
+    fn from(value: Ident) -> Self {
+        ExprKind::Ident(value)
+    }
+}
+
+impl From<Func> for ExprKind {
+    fn from(value: Func) -> Self {
+        ExprKind::Func(Box::new(value))
+    }
+}

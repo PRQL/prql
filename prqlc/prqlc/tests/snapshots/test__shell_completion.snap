@@ -7,9 +7,9 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
     RUST_LOG: ""
+    RUST_BACKTRACE: ""
 ---
 success: true
 exit_code: 0
@@ -79,8 +79,8 @@ _prqlc() {
             prqlc__debug,help)
                 cmd="prqlc__debug__help"
                 ;;
-            prqlc__debug,semantics)
-                cmd="prqlc__debug__semantics"
+            prqlc__debug,resolve)
+                cmd="prqlc__debug__resolve"
                 ;;
             prqlc__debug__help,annotate)
                 cmd="prqlc__debug__help__annotate"
@@ -97,8 +97,8 @@ _prqlc() {
             prqlc__debug__help,help)
                 cmd="prqlc__debug__help__help"
                 ;;
-            prqlc__debug__help,semantics)
-                cmd="prqlc__debug__help__semantics"
+            prqlc__debug__help,resolve)
+                cmd="prqlc__debug__help__resolve"
                 ;;
             prqlc__help,collect)
                 cmd="prqlc__help__collect"
@@ -148,8 +148,8 @@ _prqlc() {
             prqlc__help__debug,expand-pl)
                 cmd="prqlc__help__debug__expand__pl"
                 ;;
-            prqlc__help__debug,semantics)
-                cmd="prqlc__help__debug__semantics"
+            prqlc__help__debug,resolve)
+                cmd="prqlc__help__debug__resolve"
                 ;;
             *)
                 ;;
@@ -220,7 +220,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug)
-            opts="-h --color --help expand-pl semantics eval annotate ast help"
+            opts="-h --color --help expand-pl resolve eval annotate ast help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -310,7 +310,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__debug__help)
-            opts="expand-pl semantics eval annotate ast help"
+            opts="expand-pl resolve eval annotate ast help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -393,7 +393,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__help__semantics)
+        prqlc__debug__help__resolve)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -407,7 +407,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__debug__semantics)
+        prqlc__debug__resolve)
             opts="-h --color --help [INPUT] [OUTPUT] [MAIN_PATH]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -486,7 +486,7 @@ _prqlc() {
             return 0
             ;;
         prqlc__help__debug)
-            opts="expand-pl semantics eval annotate ast"
+            opts="expand-pl resolve eval annotate ast"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -555,7 +555,7 @@ _prqlc() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        prqlc__help__debug__semantics)
+        prqlc__help__debug__resolve)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
