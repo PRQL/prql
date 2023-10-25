@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::semantic::NS_STD;
-use crate::{Error, WithErrorInfo};
+use crate::WithErrorInfo;
 
 impl super::Resolver<'_> {
     // entry point to the resolver
@@ -55,14 +55,6 @@ impl super::Resolver<'_> {
                     }
                 }
                 StmtKind::ModuleDef(module_def) => {
-                    if !self.options.allow_module_decls {
-                        return Err(Error::new_simple(
-                            "explicit module declarations are not allowed",
-                        )
-                        .with_span(stmt.span)
-                        .into());
-                    }
-
                     self.current_module_path.push(ident.name);
 
                     let decl = Decl {

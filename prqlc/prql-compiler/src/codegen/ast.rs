@@ -10,21 +10,8 @@ use crate::utils::VALID_IDENT;
 
 use super::{WriteOpt, WriteSource};
 
-pub fn write_stmts(stmts: &Vec<Stmt>) -> String {
-    let mut opt = WriteOpt::default();
-
-    loop {
-        if let Some(s) = stmts.write(opt.clone()) {
-            break s;
-        } else {
-            opt.max_width += opt.max_width / 2;
-        }
-    }
-}
-
-pub fn write_expr(expr: &Expr) -> String {
-    let opt = WriteOpt::new_width(u16::MAX);
-    expr.write(opt).unwrap()
+pub(crate) fn write_expr(expr: &Expr) -> String {
+    expr.write(WriteOpt::new_width(u16::MAX)).unwrap()
 }
 
 fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
@@ -39,19 +26,25 @@ impl WriteSource for Expr {
         let mut r = String::new();
 
         if let Some(alias) = &self.alias {
-            r += alias;
-            r += " = ";
+            r += opt.consume(alias)?;
+            r += opt.consume(" = ")?;
             opt.unbound_expr = false;
         }
 
         let needs_parenthesis = (opt.unbound_expr && can_bind_left(&self.kind))
             || (opt.context_strength >= binding_strength(&self.kind));
 
-        if needs_parenthesis {
-            r += &self.kind.write_between("(", ")", opt)?;
+        if !needs_parenthesis {
+            r += &self.kind.write(opt.clone())?;
         } else {
-            r += &self.kind.write(opt)?;
-        }
+            let value = self.kind.write_between("(", ")", opt.clone());
+
+            if let Some(value) = value {
+                r += &value;
+            } else {
+                r += &break_line_within_parenthesis(&self.kind, opt)?;
+            }
+        };
         Some(r)
     }
 }
@@ -145,23 +138,29 @@ impl WriteSource for ExprKind {
             Func(c) => {
                 let mut r = String::new();
                 for param in &c.params {
-                    r += &write_ident_part(&param.name);
-                    r += " ";
+                    r += opt.consume(&write_ident_part(&param.name))?;
+                    r += opt.consume(" ")?;
                 }
                 for param in &c.named_params {
-                    r += &write_ident_part(&param.name);
-                    r += ":";
-                    r += &param.default_value.as_ref().unwrap().write(opt.clone())?;
-                    r += " ";
+                    r += opt.consume(&write_ident_part(&param.name))?;
+                    r += opt.consume(":")?;
+                    r += opt.consume(&param.default_value.as_ref().unwrap().write(opt.clone())?)?;
+                    r += opt.consume(" ")?;
                 }
-                r += "-> ";
-                r += &c.body.write(opt)?;
+                r += opt.consume("-> ")?;
+
+                // try a single line
+                if let Some(body) = c.body.write(opt.clone()) {
+                    r += &body;
+                } else {
+                    r += &break_line_within_parenthesis(c.body.as_ref(), opt)?;
+                }
 
                 Some(r)
             }
             SString(parts) => display_interpolation("s", parts, opt),
             FString(parts) => display_interpolation("f", parts, opt),
-            Literal(literal) => Some(literal.to_string()),
+            Literal(literal) => opt.consume(literal.to_string()),
             Case(cases) => {
                 let mut r = String::new();
                 r += "case ";
@@ -177,6 +176,19 @@ impl WriteSource for ExprKind {
             Internal(operator_name) => Some(format!("internal {operator_name}")),
         }
     }
+}
+
+fn break_line_within_parenthesis<T: WriteSource>(expr: &T, mut opt: WriteOpt) -> Option<String> {
+    let mut r = "(\n".to_string();
+    opt.indent += 1;
+    r += &opt.write_indent();
+    opt.reset_line()?;
+    r += &expr.write(opt.clone())?;
+    r += "\n";
+    opt.indent -= 1;
+    r += &opt.write_indent();
+    r += ")";
+    Some(r)
 }
 
 fn binding_strength(expr: &ExprKind) -> u8 {
@@ -269,7 +281,7 @@ impl WriteSource for Vec<Stmt> {
             }
 
             r += &opt.write_indent();
-            r += &stmt.write(opt.clone())?;
+            r += &stmt.write_or_expand(opt.clone());
         }
         Some(r)
     }
@@ -300,7 +312,13 @@ impl WriteSource for Stmt {
             }
             StmtKind::VarDef(var_def) => match var_def.kind {
                 VarDefKind::Let => {
-                    r += opt.consume(&format!("let {} = ", var_def.name))?;
+                    let typ = if let Some(ty) = &var_def.ty_expr {
+                        format!("<{}> ", ty.write(opt.clone())?)
+                    } else {
+                        "".to_string()
+                    };
+
+                    r += opt.consume(&format!("let {} {}= ", var_def.name, typ))?;
 
                     r += &var_def.value.write(opt)?;
                     r += "\n";
@@ -463,7 +481,12 @@ mod test {
 
     #[test]
     fn test_simple() {
-        assert_is_formatted(r#"aggregate average_country_salary = (average salary)"#);
+        assert_is_formatted(
+            r#"
+aggregate average_country_salary = (
+  average salary
+)"#,
+        );
     }
 
     #[test]

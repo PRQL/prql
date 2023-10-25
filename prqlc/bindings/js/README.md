@@ -164,6 +164,14 @@ Test:
 npm test
 ```
 
+By default the `wasm` binaries are optimized on each run, even if the underlying
+code hasn't changed, which can be slow. For a lower-latency dev loop, pass
+`--profile=dev` to `npm install` for a faster, less optimized build.
+
+```sh
+npm install prql-js --profile=dev
+```
+
 ## Notes
 
 - This uses [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/) to

@@ -29,7 +29,7 @@ fn test_bad_error_messages() {
        │
      3 │     group
        │     ──┬──
-       │       ╰──── main expected type `relation`, but found type `transform relation -> relation`
+       │       ╰──── main expected type `relation`, but found type `func transform relation -> relation`
        │
        │ Help: Have you forgotten an argument to function std.group?
        │
@@ -175,7 +175,7 @@ fn test_hint_missing_args() {
        │
      3 │     select {film_id, lag film_id}
        │                      ─────┬─────
-       │                           ╰─────── unexpected `offset column -> internal std.lag`
+       │                           ╰─────── unexpected `(offset column -> internal std.lag) film_id`
        │
        │ Help: this is probably a 'bad type' error (we are working on that)
     ───╯

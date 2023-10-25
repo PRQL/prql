@@ -311,8 +311,8 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - task: build-playground-dependencies
-      - cd playground && npm run build
+      # (we don't use `build-playground-dependencies`, since that uses the dev profile)
+      - cd playground && npm install && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
       # Possibly there's a more elegant way of doing this...
@@ -354,6 +354,8 @@ tasks:
   run-playground:
     desc: Build & serve the playground for interactive development.
     dir: web/playground
+    env:
+      PROFILE: dev
     cmds:
       - task: build-playground-dependencies
       - npm run dev
@@ -363,12 +365,14 @@ tasks:
     # Use task's sources/generates to see if package.json,
     # or anything in crates or bindings was updated after the
     # node_modules was rebuilt
-    #
-    # Note that `npm install --install-links=false` no longer necessary
     desc: Install deps, checking whether a dependency recently changed
     dir: web/playground
+    env:
+      PROFILE: dev
     cmds:
       - npm install
+    # Note that now we have `PROFILE: dev`, the build is much much faster, and
+    # we could remove this sources check if it became inconvenient.
     sources:
       - package.json
       - package-lock.json

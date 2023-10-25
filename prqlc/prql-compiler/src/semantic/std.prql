@@ -56,6 +56,9 @@ type array = [anytype]
 type scalar = int || float || bool || text || date || time || timestamp || null
 type tuple = {anytype..}
 
+## Range
+type range = {start = scalar, end = scalar}
+
 ## Relation (an array of tuples)
 type relation = [tuple]
 
@@ -95,7 +98,7 @@ let sort = func
   -> <relation> internal sort
 
 let take = func
-  expr <scalar>
+  expr <anytype>
   tbl <relation>
   -> <relation> internal take
 

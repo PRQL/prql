@@ -1,3 +1,6 @@
+choose:
+    just --choose
+
 pull-request: fmt prqlc-test
 
 fmt:
