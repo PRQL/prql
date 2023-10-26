@@ -19,13 +19,13 @@ Statements { newline* QueryDefinition? VariableDeclaration* PipelineStatement? e
 
 QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
 
-PipelineStatement { Pipeline ( ~ambigNewline newline+ | end )}
+PipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
-Pipeline { exprCall (pipe+ exprCall)* | test }
+Pipeline { exprCall (pipe exprCall)* | test }
 
 pipe { "|" | ~ambigNewline newline }
 
-TupleExpression { "{" newline* tupleItem (("," newline* ) tupleItem)* ","? newline* "}" }
+TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newline* "}" }
 
 tupleItem { AssignCall | exprCall | CaseBranch }
 
@@ -34,7 +34,7 @@ exprCall { expression | CallExpression }
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-CallExpression { Identifier (NamedArg | Assign | expression)+ }
+CallExpression { Identifier ArgList { (NamedArg | Assign | expression)+ } }
 
 NamedArg { identPart ":" expression }
 Assign { identPart "=" expression }
@@ -89,7 +89,7 @@ BinaryExpression {
 
 // Because this is outside tokens, we can't disallow whitespace.
 // It's outside tokens because otherwise it conflicts with Identifier
-Identifier { identPart ( "." (identPart | "*"))* }
+Identifier { identPart ("." (identPart | "*"))* }
 VariableName { identPart }
 
 number { Integer | Float }
@@ -98,8 +98,8 @@ kw<term> { @specialize[@name={term}]<identPart, term> }
 
 VariableDeclaration { kw<"let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
 
-Lambda { LambdaParam* "->" exprCall ( newline+ | end ) }
-TypeDefinition { "<" TypeTerm ( "|" TypeTerm)* ">" }
+Lambda { LambdaParam* "->" exprCall (newline+ | end) }
+TypeDefinition { "<" TypeTerm ("|" TypeTerm)* ">" }
 TypeTerm { identPart TypeDefinition? }
 LambdaParam { identPart TypeDefinition? (":" expression)? }
 
@@ -116,24 +116,24 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 @tokens {
   CompareOp { "==" | "!=" | "~=" | ">=" | "<=" | ">" | "<" }
   date { @digit+ "-" @digit+ "-" @digit+ }
-  time { @digit+ ":" @digit+ ( ":" @digit+ ( "." @digit+ )? )? }
+  time { @digit+ ":" @digit+ (":" @digit+ ("." @digit+)?)? }
   // We can't seem to set the number of digits, so this will allow any
   // combination of digits & hyphens.
-  DateTime { "@" ( date | time | date "T" time ( "Z" | ( "-" | "+" ) @digit+ ":" @digit+ )? ) }
+  DateTime { "@" (date | time | date "T" time ("Z" | ("-" | "+") @digit+ ":" @digit+)?) }
   TimeUnit { @digit+ ("years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds" | "microseconds") }
   identifierChar { @asciiLetter | $[_\u{a1}-\u{10ffff}] }
-  identPart { identifierChar (identifierChar | "_" | @digit )* }
+  identPart { identifierChar (identifierChar | "_" | @digit)* }
 
   hex { @digit | $[a-fA-F] }
 
   Integer {
-    @digit ( @digit | "_" )* ("e" ("+" | "-")? Integer)? |
+    @digit (@digit | "_")* ("e" ("+" | "-")? Integer)? |
     "0x" (hex | "_")+ |
     "0b" $[01_]+ |
     "0o" $[0-7_]+
   }
 
-  Float { @digit ( @digit | "_" )* "." @digit ( @digit | "_" )* ("e" Integer)? }
+  Float { @digit (@digit | "_")* "." @digit (@digit | "_")* ("e" Integer)? }
   // TODO: This is not as precise as PRQL, which doesn't allow trailing
   // underscores and allows no digit before the decimal point.
   space { $[ \t] }
@@ -165,13 +165,13 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   // string as a string, because these are all within the `@tokens` block. But
   // they need to be within this block, because it's not possible to have
   // negations (e.g. `![{'}` outside it.
-  stringInterpolatedSingle { $['] ( ![{'] | interpolationInnerSingle )* $['] }
-  stringInterpolatedDouble { $["] ( ![{"] | interpolationInnerDouble )* $["] }
+  stringInterpolatedSingle { $['] (![{'] | interpolationInnerSingle)* $['] }
+  stringInterpolatedDouble { $["] (![{"] | interpolationInnerDouble)* $["] }
 
   interpolationInnerSingle { "{" ![}']* "}" }
   interpolationInnerDouble { "{" ![}"]* "}" }
 
-  interpolatedString<prefix> { prefix ( stringInterpolatedDouble | stringInterpolatedSingle ) }
+  interpolatedString<prefix> { prefix (stringInterpolatedDouble | stringInterpolatedSingle) }
 
   "="[@name=Equals]
 
