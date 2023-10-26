@@ -1,6 +1,13 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.10.0 — 2023-10-26
+
+0.10.0 contains lots of small improvements, including support for new types of
+literal notation, support for `read_*` functions in more dialects, playground
+improvements, and a better Lezer grammar (which we're planning on using for a
+Jupyter extension).
+
+This release has 155 commits from 9 contributors. Selected changes:
 
 **Language**:
 
@@ -46,6 +53,10 @@
 
 **Integrations**:
 
+- Add a CLI command `prqlc collect` to collect a project's modules into a single
+  file (@aljazerzen, #3739)
+- Add a CLI command `prqlc debug expand-pl` to parse & and expand into PL
+  without resolving (@aljazerzen, #3739)
 - Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
 - [Pygments](https://pygments.org/), a syntax highlighting library now has
   syntax highlighting for PRQL. (@vanillajonathan, #3564)
@@ -70,6 +81,8 @@
 **New Contributors**:
 
 - @hulxv, with #3533
+- @AaronMoat, with #3522
+- @jangorecki, with #3634
 
 ## 0.9.5 — 2023-09-16
 
