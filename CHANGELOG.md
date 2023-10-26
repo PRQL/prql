@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.10.0 — 2023-10-24
+## 0.10.0 — 2023-10-26
 
 0.10.0 contains lots of small improvements, including support for new types of
 literal notation, support for `read_*` functions in more dialects, playground
@@ -17,8 +17,6 @@ This release has 155 commits from 9 contributors. Selected changes:
 
 **Features**:
 
-- Add a CLI command `prqlc collect` to collect a project's modules into a single
-  file (@aljazerzen, #3739)
 - _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv` by
   default. Please set the target `sql.duckdb` to use the DuckDB's
   `read_csv_auto` function as previously. (@eitsupi, #3599)
@@ -38,8 +36,6 @@ This release has 155 commits from 9 contributors. Selected changes:
 - New compile target `sql.glaredb` for [GlareDB](https://docs.glaredb.com/) and
   integration tests for it (However, there is a bug in the test and it is
   currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
-- Add a CLI command `prqlc debug expand-pl` to parse & and expand into PL
-  without resolving (@aljazerzen, #3739)
 
 **Fixes**:
 
@@ -57,6 +53,10 @@ This release has 155 commits from 9 contributors. Selected changes:
 
 **Integrations**:
 
+- Add a CLI command `prqlc collect` to collect a project's modules into a single
+  file (@aljazerzen, #3739)
+- Add a CLI command `prqlc debug expand-pl` to parse & and expand into PL
+  without resolving (@aljazerzen, #3739)
 - Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
 - [Pygments](https://pygments.org/), a syntax highlighting library now has
   syntax highlighting for PRQL. (@vanillajonathan, #3564)
