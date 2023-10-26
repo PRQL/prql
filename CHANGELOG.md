@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.10.0 — 2023-10-26
 
 0.10.0 contains lots of small improvements, including support for new types of
@@ -37,10 +55,6 @@ This release has 155 commits from 9 contributors. Selected changes:
   integration tests for it (However, there is a bug in the test and it is
   currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
 
-**Fixes**:
-
-**Documentation**:
-
 **Web**:
 
 - Allow cmd-/ (Mac) or ctrl-/ (Windows) to toggle comments in the playground
@@ -75,8 +89,6 @@ This release has 155 commits from 9 contributors. Selected changes:
   supports editing PRQL code blocks
   ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
   render Quarto Markdown with PRQL code blocks). (@jjallaire)
-
-**Internal changes**:
 
 **New Contributors**:
 

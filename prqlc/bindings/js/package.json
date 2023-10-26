@@ -26,5 +26,5 @@
     "test": "mocha tests"
   },
   "types": "dist/node/prql_js.d.ts",
-  "version": "0.10.0"
+  "version": "0.10.1"
 }
