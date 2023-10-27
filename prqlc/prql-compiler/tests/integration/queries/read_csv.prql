@@ -1,6 +1,5 @@
 # sqlite:skip
 # postgres:skip
 # mysql:skip
-# glaredb:skip (Not implemented yet)
 from (read_csv "data_file_root/media_types.csv")
 sort media_type_id

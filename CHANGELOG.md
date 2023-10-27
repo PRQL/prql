@@ -6,6 +6,9 @@
 
 **Features**:
 
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.glaredb` target. (@eitsupi, #3749)
+
 **Fixes**:
 
 **Documentation**:
