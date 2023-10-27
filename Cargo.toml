@@ -20,7 +20,7 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["PRQL Developers"]
 
 [profile.release.package.prql-js]
