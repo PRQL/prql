@@ -83,12 +83,11 @@ impl Dialect {
             | Dialect::Postgres
             | Dialect::MySql
             | Dialect::Generic
-            | Dialect::ClickHouse => SupportLevel::Supported,
-            Dialect::MsSql
             | Dialect::GlareDb
-            | Dialect::Ansi
-            | Dialect::BigQuery
-            | Dialect::Snowflake => SupportLevel::Unsupported,
+            | Dialect::ClickHouse => SupportLevel::Supported,
+            Dialect::MsSql | Dialect::Ansi | Dialect::BigQuery | Dialect::Snowflake => {
+                SupportLevel::Unsupported
+            }
         }
     }
 

@@ -211,6 +211,10 @@ module glaredb {
 
   @{binding_strength=9}
   let regex_search = text pattern -> s"{text} ~ {pattern}"
+
+  let read_csv = source -> s"csv_scan({source:0})"
+
+  let read_parquet = source -> s"parquet_scan({source:0})"
 }
 
 module sqlite {
