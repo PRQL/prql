@@ -7,5 +7,6 @@ export default defineConfig({
   build: {
     target: "esnext",
   },
+  base: "/playground/playground",
   plugins: [react(), wasm()],
 });
