@@ -14,6 +14,8 @@
 
 **Integrations**:
 
+- Enable integration tests for GlareDB. (@eitsupi, #3749)
+
 **Internal changes**:
 
 **New Contributors**:
