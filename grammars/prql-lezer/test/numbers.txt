@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))
 
 # Integer with underscore
 
@@ -12,7 +12,7 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))
 
 # Integer with underscores
 
@@ -20,7 +20,7 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))
 
 # Decimal
 
@@ -28,7 +28,7 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Float))))
+Query(Pipeline(Float))
 
 # Scientific notation
 
@@ -36,7 +36,7 @@ Query(Statements(PipelineStatement(Pipeline(Float))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))
 
 # Number with time unit
 
@@ -44,7 +44,7 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TimeUnit))))
+Query(Pipeline(TimeUnit))
 
 # Binary notation
 
@@ -52,7 +52,7 @@ Query(Statements(PipelineStatement(Pipeline(TimeUnit))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))
 
 # Hex notation
 
@@ -60,7 +60,7 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))
 
 # Octal notation
 
@@ -68,4 +68,4 @@ Query(Statements(PipelineStatement(Pipeline(Integer))))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(Integer))))
+Query(Pipeline(Integer))

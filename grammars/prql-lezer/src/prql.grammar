@@ -11,15 +11,15 @@
   or @left
 }
 
-@top Query { Statements }
+@top Query { statements }
 
 @skip { space | Comment | Docblock | wrappedLine }
 
-Statements { newline* QueryDefinition? VariableDeclaration* PipelineStatement? end }
+statements { newline* QueryDefinition? VariableDeclaration* pipelineStatement? end }
 
 QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
 
-PipelineStatement { Pipeline (~ambigNewline newline+ | end)}
+pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
 Pipeline { exprCall (pipe exprCall)* | test }
 

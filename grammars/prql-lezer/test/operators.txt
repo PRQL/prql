@@ -4,7 +4,7 @@ foo == bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
 
 # != Not equals
 
@@ -12,7 +12,7 @@ foo != bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
 
 # >= Greater than
 
@@ -20,7 +20,7 @@ foo >= bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
 
 # <= Less than
 
@@ -28,7 +28,7 @@ foo <= bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
 
 # ~= Regex match
 
@@ -36,7 +36,7 @@ foo ~= bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
 
 # && And
 
@@ -44,7 +44,7 @@ foo && bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))
 
 # || Or
 
@@ -52,7 +52,7 @@ foo || bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))
 
 # ?? Coalesce
 
@@ -60,4 +60,4 @@ foo ?? bar
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))))
+Query(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))
