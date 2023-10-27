@@ -1,4 +1,5 @@
 # clickhouse:skip (DB::Exception: Syntax error)
+# glaredb:skip
 from [{n = 1}]
 select n = n - 2
 loop (filter n < 4 | select n = n + 1)
