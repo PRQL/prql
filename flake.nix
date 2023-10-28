@@ -25,6 +25,7 @@
           cargo-release
 
           # actions
+          go-task
           just
           sd
           ripgrep

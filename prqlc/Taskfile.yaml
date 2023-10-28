@@ -1,0 +1,39 @@
+version: '3'
+
+vars:
+  packages_core: -p prqlc-ast -p prqlc-parser -p prql-compiler -p prqlc
+  packages_addon: -p prql-compiler-macros -p compile-files
+  packages_bindings: -p prql -p prql-java -p prql-js -p prqlc-clib -p prql-python
+
+tasks:
+
+  fmt:
+    desc: Format prqlc source files
+    cmds:
+      - cmd: |
+          # remove trailing whitespace
+          rg '\s+$' --files-with-matches --glob '!*.rs' . \
+          | xargs -I _ sh -c "echo Removing trailing whitespace from _ && sd '[\t ]+$' '' _"
+
+      - cmd: |
+          # rustfmt
+          cargo fmt {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
+
+      - cmd: |
+          # no dbg
+          rg 'dbg!' --glob '*.rs' . --no-heading
+        ignore_error: true
+
+  test-core:
+    desc: Run tests of the core components
+    vars:
+      packages: -p=prqlc-ast -p=prqlc-parser -p=prql-compiler -p=prqlc
+    cmds:
+
+      # cargo insta test, but allowing multiple --package arguments
+      - cmd: |
+          INSTA_FORCE_PASS=1 cargo test --locked {{.packages}} --test sql --no-fail-fast
+
+      - cmd: cargo clippy --all-targets {{.packages}} -- -D warnings
+
+      - cmd: cargo insta review

@@ -29,7 +29,7 @@ prqlc-lint:
 
 # Test prqlc
 packages := '--package=prqlc-ast --package=prqlc-parser --package=prql-compiler --package=prqlc'
-prqlc-test-fast:
+prqlc-dev:
     cargo clippy --all-targets {{packages}} -- -D warnings
 
     # cargo insta test, but allowing multiple --package arguments
