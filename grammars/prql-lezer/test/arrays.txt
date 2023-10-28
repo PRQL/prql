@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))))
+Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
 
 # Array on multiple lines
 
@@ -16,7 +16,7 @@ Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))))
+Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
 
 # Array on multiple lines with blank lines
 
@@ -32,7 +32,7 @@ Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))))
+Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
 
 # Array of integers
 
@@ -40,7 +40,7 @@ Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Integer,Integer,Integer)))))
+Query(Pipeline(ArrayExpression(Integer,Integer,Integer)))
 
 # Array of floats
 
@@ -48,7 +48,7 @@ Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Integer,Integer,Inte
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Float,Float,Float)))))
+Query(Pipeline(ArrayExpression(Float,Float,Float)))
 
 # Array of strings
 
@@ -56,4 +56,4 @@ Query(Statements(PipelineStatement(Pipeline(ArrayExpression(Float,Float,Float)))
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(ArrayExpression(String,FString,RString,SString)))))
+Query(Pipeline(ArrayExpression(String,FString,RString,SString)))

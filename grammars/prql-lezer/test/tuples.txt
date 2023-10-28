@@ -4,7 +4,7 @@
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifier,Identifier)))))
+Query(Pipeline(TupleExpression(Identifier,Identifier,Identifier)))
 
 # Tuple on multiple lines
 
@@ -16,7 +16,7 @@ Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifier,Identifier)))))
+Query(Pipeline(TupleExpression(Identifier,Identifier,Identifier)))
 
 # Tuple on multiple lines with blank lines
 
@@ -32,7 +32,7 @@ Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifier,Identifier)))))
+Query(Pipeline(TupleExpression(Identifier,Identifier,Identifier)))
 
 # Tuple with key and value
 
@@ -40,7 +40,7 @@ Query(Statements(PipelineStatement(Pipeline(TupleExpression(Identifier,Identifie
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Equals,Identifier))))))
+Query(Pipeline(TupleExpression(AssignCall(Equals,Identifier))))
 
 # Tuple with keys and values
 
@@ -50,4 +50,4 @@ string    =    "string"
 
 ==>
 
-Query(Statements(PipelineStatement(Pipeline(TupleExpression(AssignCall(Equals,Identifier),AssignCall(Equals,Integer),AssignCall(Equals,Float),AssignCall(Equals,String))))))
+Query(Pipeline(TupleExpression(AssignCall(Equals,Identifier),AssignCall(Equals,Integer),AssignCall(Equals,Float),AssignCall(Equals,String))))
