@@ -1565,15 +1565,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "getopts"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14dbbfd5c71d70241ecf9e6f13737f7b5ce823821063188d7e46c41d371eebd5"
-dependencies = [
- "unicode-width",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2194,7 +2185,6 @@ dependencies = [
  "ansi-to-html",
  "anstream 0.3.2",
  "anyhow",
- "getopts",
  "globset",
  "insta",
  "itertools 0.11.0",
@@ -2235,6 +2225,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "minijinja"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673d1ece89f7e166f43270800d78f9b1a9d21fda92dbcfa3b98b21213cdccbbc"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -2977,10 +2976,10 @@ dependencies = [
  "color-eyre",
  "colorchoice-clap",
  "env_logger",
- "getopts",
  "insta",
  "insta-cmd",
  "itertools 0.11.0",
+ "minijinja",
  "notify",
  "prql-compiler",
  "prqlc-ast",
@@ -3058,7 +3057,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77a1a2f1f0a7ecff9c31abbe177637be0e97a0aef46cf8738ece09327985d998"
 dependencies = [
  "bitflags 1.3.2",
- "getopts",
  "memchr",
  "unicase",
 ]

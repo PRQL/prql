@@ -22,18 +22,10 @@ itertools = "0.11.0"
 mdbook = {version = "0.4.35", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prql-compiler = {path = "../../prqlc/prql-compiler", default-features = false}
-pulldown-cmark = "0.9.3"
+pulldown-cmark = {version = "0.9.3", default-features = false}
 pulldown-cmark-to-cmark = "11.0.0"
 strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.3"
-
-# Not a direct dependency, but pinning because of bugs in previous versions. Can
-# remove when dependencies no longer use it. (If CI passes, it can be removed.)
-getopts = "0.2.21"
-
-# See above re `getopts`
-[package.metadata.cargo-udeps.ignore]
-development = ["getopts"]
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.3.2"}
