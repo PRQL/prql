@@ -18,6 +18,7 @@ fn help() {
     Commands:
       parse             Parse into PL AST
       fmt               Parse & generate PRQL code back
+      collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
       resolve           Parse, resolve & lower into RQ
       sql:preprocess    Parse, resolve, lower into RQ & preprocess SRQ

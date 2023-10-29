@@ -1,6 +1,4 @@
-use anyhow::Result;
-
-use crate::ir::{decl::RootModule, pl::*};
+use crate::ir::decl::RootModule;
 use crate::utils::IdGenerator;
 
 mod expr;
@@ -31,9 +29,7 @@ pub struct Resolver<'a> {
 }
 
 #[derive(Default, Clone)]
-pub struct ResolverOptions {
-    pub allow_module_decls: bool,
-}
+pub struct ResolverOptions {}
 
 impl Resolver<'_> {
     pub fn new(root_mod: &mut RootModule, options: ResolverOptions) -> Resolver {
@@ -46,11 +42,6 @@ impl Resolver<'_> {
             disable_type_checking: false,
             id: IdGenerator::new(),
         }
-    }
-
-    pub fn resolve(&mut self, path: Vec<String>, stmts: Vec<Stmt>) -> Result<()> {
-        self.current_module_path = path;
-        self.fold_statements(stmts)
     }
 }
 

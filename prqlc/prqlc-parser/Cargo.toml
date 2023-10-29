@@ -10,7 +10,6 @@ version.workspace = true
 
 [lib]
 doctest = false
-test = false
 
 [dependencies]
 itertools = "0.11.0"

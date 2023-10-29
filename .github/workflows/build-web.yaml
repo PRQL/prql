@@ -42,10 +42,9 @@ jobs:
           crate: wasm-pack
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18.x"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "20.x"
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 

@@ -4,6 +4,36 @@
 
 **Language**:
 
+**Features**:
+
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.glaredb` target. (@eitsupi, #3749)
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+- Enable integration tests for GlareDB. (@eitsupi, #3749)
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.10.0 — 2023-10-26
+
+0.10.0 contains lots of small improvements, including support for new types of
+literal notation, support for `read_*` functions in more dialects, playground
+improvements, and a better Lezer grammar (which we're planning on using for a
+Jupyter extension).
+
+This release has 155 commits from 9 contributors. Selected changes:
+
+**Language**:
+
 - _Breaking:_ Case syntax now uses brackets `[]` rather than braces `{}`. To
   convert previous PRQL queries to this new syntax simply change `case { ... }`
   to `case [ ... ]`. (@AaronMoat, #3517)
@@ -30,10 +60,6 @@
   integration tests for it (However, there is a bug in the test and it is
   currently not running). (@universalmind303, @scsmithr, @eitsupi, #3669)
 
-**Fixes**:
-
-**Documentation**:
-
 **Web**:
 
 - Allow cmd-/ (Mac) or ctrl-/ (Windows) to toggle comments in the playground
@@ -46,6 +72,10 @@
 
 **Integrations**:
 
+- Add a CLI command `prqlc collect` to collect a project's modules into a single
+  file (@aljazerzen, #3739)
+- Add a CLI command `prqlc debug expand-pl` to parse & and expand into PL
+  without resolving (@aljazerzen, #3739)
 - Bump `prqlc`'s MSRV to 1.70.0 (@eitsupi, #3521)
 - [Pygments](https://pygments.org/), a syntax highlighting library now has
   syntax highlighting for PRQL. (@vanillajonathan, #3564)
@@ -65,11 +95,11 @@
   ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
   render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
-**Internal changes**:
-
 **New Contributors**:
 
 - @hulxv, with #3533
+- @AaronMoat, with #3522
+- @jangorecki, with #3634
 
 ## 0.9.5 — 2023-09-16
 

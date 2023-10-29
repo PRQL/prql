@@ -83,6 +83,10 @@ enum Command {
         input: clio::ClioPath,
     },
 
+    /// Parse the whole project and collect it into a single PRQL source file
+    #[command(name = "collect")]
+    Collect(IoArgs),
+
     #[command(subcommand)]
     Debug(DebugCommand),
 
@@ -149,8 +153,11 @@ enum Command {
 /// Commands for meant for debugging, prone to change
 #[derive(Subcommand, Debug, Clone)]
 pub enum DebugCommand {
+    /// Parse & and expand into PL, but don't resolve
+    ExpandPL(IoArgs),
+
     /// Parse & resolve, but don't lower into RQ
-    Semantics(IoArgs),
+    Resolve(IoArgs),
 
     /// Parse & evaluate expression down to a value
     ///
@@ -262,21 +269,49 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
-            Command::Debug(DebugCommand::Semantics(_)) => {
-                semantic::load_std_lib(sources);
+            Command::Collect(_) => {
+                let ast = prql_to_pl_tree(sources)?;
+                let mut root_module_def = prql_compiler::semantic::compose_module_tree(ast)?;
+
+                drop_module_def(&mut root_module_def.stmts, "std");
+
+                pl_to_prql(root_module_def.stmts)?.into_bytes()
+            }
+            Command::Debug(DebugCommand::ExpandPL(_)) => {
+                let ast = prql_to_pl_tree(sources)?;
+                let root_module_def = prql_compiler::semantic::compose_module_tree(ast)?;
+
+                let expanded =
+                    prql_compiler::semantic::ast_expand::expand_module_def(root_module_def)?;
+
+                let mut restricted =
+                    prql_compiler::semantic::ast_expand::restrict_stmts(expanded.stmts);
+
+                drop_module_def(&mut restricted, "std");
+
+                pl_to_prql(restricted)?.into_bytes()
+            }
+            Command::Debug(DebugCommand::Resolve(_)) => {
                 let stmts = prql_to_pl_tree(sources)?;
 
-                let context = semantic::resolve(stmts, Default::default())
+                let root_module = semantic::resolve(stmts, Default::default())
                     .map_err(prql_compiler::downcast)
                     .map_err(|e| e.composed(sources))?;
 
-                let mut out = Vec::new();
+                // debug output of the PL
+                let mut out = format!("{root_module:#?}\n").into_bytes();
+
+                // labelled sources
                 for (source_id, source) in &sources.sources {
                     let source_id = source_id.to_str().unwrap().to_string();
-                    out.extend(label_references(&context, source_id, source.clone()));
+                    out.extend(label_references(&root_module, source_id, source.clone()));
                 }
 
-                out.extend(format!("\n{context:#?}\n").into_bytes());
+                // resolved PL, restricted back into AST
+                let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
+                drop_module_def(&mut root_module.stmts, "std");
+                out.extend(pl_to_prql(root_module.stmts)?.into_bytes());
+
                 out
             }
             Command::Debug(DebugCommand::Annotate(_)) => {
@@ -399,15 +434,17 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::{Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
         let io_args = match self {
             Parse { io_args, .. }
+            | Collect(io_args)
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
             | SQLAnchor { io_args, .. }
             | Debug(
-                DebugCommand::Semantics(io_args)
+                DebugCommand::Resolve(io_args)
+                | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args,
@@ -437,15 +474,17 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
         let mut output = match self {
             Parse { io_args, .. }
+            | Collect(io_args)
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLAnchor { io_args, .. }
             | SQLPreprocess(io_args)
             | Debug(
-                DebugCommand::Semantics(io_args)
+                DebugCommand::Resolve(io_args)
+                | DebugCommand::ExpandPL(io_args)
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args.output.clone(),
@@ -453,6 +492,10 @@ impl Command {
         };
         output.write_all(data)
     }
+}
+
+fn drop_module_def(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, name: &str) {
+    stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
 }
 
 fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {

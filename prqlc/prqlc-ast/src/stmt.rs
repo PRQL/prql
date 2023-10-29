@@ -64,3 +64,13 @@ pub struct ModuleDef {
 pub struct Annotation {
     pub expr: Box<Expr>,
 }
+
+impl Stmt {
+    pub fn new(kind: StmtKind) -> Stmt {
+        Stmt {
+            kind,
+            span: None,
+            annotations: Vec::new(),
+        }
+    }
+}
