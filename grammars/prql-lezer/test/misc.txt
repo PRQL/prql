@@ -1,67 +1,76 @@
 # Boolean: true
 
-true
+test true
 
 ==>
 
-Query(Pipeline(Boolean))
+Query(Pipeline(CallExpression(Identifier,ArgList(Boolean))))
 
 # Boolean: false
 
-false
+test false
 
 ==>
 
-Query(Pipeline(Boolean))
+Query(Pipeline(CallExpression(Identifier,ArgList(Boolean))))
 
 # Null
 
-null
+test null
 
 ==>
 
-Query(Pipeline(null))
+Query(Pipeline(CallExpression(Identifier,ArgList(null))))
 
 # Keyword: this
 
-this
+test this
 
 ==>
 
-Query(Pipeline(this))
+Query(Pipeline(CallExpression(Identifier,ArgList(this))))
 
 # Keyword: that
 
-that
+test that
 
 ==>
 
-Query(Pipeline(that))
+Query(Pipeline(CallExpression(Identifier,ArgList(that))))
 
 # Range: 10..20
 
-10..20
+test 10..20
 
 ==>
 
-Query(Pipeline(RangeExpression))
+Query(Pipeline(CallExpression(Identifier,ArgList(RangeExpression))))
 
 # Comment
 
-1 # Hello
+test 1 # Hello
 
 ==>
 
-Query(Pipeline(Integer),Comment)
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))),Comment)
+
+# Two comments
+
+# Hello
+# Bar
+
+==>
+
+Query(Comment,Comment)
 
 # Docblock
 
 #! Hello
-1
+test 1
 
 ==>
 
-Query(Docblock,Pipeline(Integer))
+Query(Docblock,Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Variable declaration
 

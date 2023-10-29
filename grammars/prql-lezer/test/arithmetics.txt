@@ -1,39 +1,39 @@
 # Plus
 
-10 + 10.5
+test 10 + 10.5
 
 ==>
 
-Query(Pipeline(BinaryExpression(Integer,ArithOp,Float)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithOp,Float)))))
 
 # Minus
 
-10 - 10
+test 10 - 10
 
 ==>
 
-Query(Pipeline(BinaryExpression(Integer,ArithOp,Integer)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithOp,Integer)))))
 
 # Multiply
 
-10 * 10
+test 10 * 10
 
 ==>
 
-Query(Pipeline(BinaryExpression(Integer,ArithOp,Integer)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithOp,Integer)))))
 
 # Divide
 
-10 / 10
+test 10 / 10
 
 ==>
 
-Query(Pipeline(BinaryExpression(Integer,ArithOp,Integer)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithOp,Integer)))))
 
 # Multiple ops
 
-10 + 10 + 10
+test 10 + 10 + 10
 
 ==>
 
-Query(Pipeline(BinaryExpression(BinaryExpression(Integer,ArithOp,Integer),ArithOp,Integer)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(BinaryExpression(Integer,ArithOp,Integer),ArithOp,Integer)))))

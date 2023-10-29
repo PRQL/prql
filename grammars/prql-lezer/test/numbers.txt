@@ -1,71 +1,71 @@
 # Integer
 
-123
+test 123
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Integer with underscore
 
-123_456
+test 123_456
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Integer with underscores
 
-123_456_789
+test 123_456_789
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Decimal
 
-123.45
+test 123.45
 
 ==>
 
-Query(Pipeline(Float))
+Query(Pipeline(CallExpression(Identifier,ArgList(Float))))
 
 # Scientific notation
 
-123e10
+test 123e10
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Number with time unit
 
-5years
+test 5years
 
 ==>
 
-Query(Pipeline(TimeUnit))
+Query(Pipeline(CallExpression(Identifier,ArgList(TimeUnit))))
 
 # Binary notation
 
-0b1111
+test 0b1111
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Hex notation
 
-0xff
+test 0xff
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Octal notation
 
-0o777
+test 0o777
 
 ==>
 
-Query(Pipeline(Integer))
+Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))

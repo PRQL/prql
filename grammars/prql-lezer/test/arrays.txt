@@ -1,14 +1,14 @@
 # Array on one line
 
-[foo, bar, baz]
+test [foo, bar, baz]
 
 ==>
 
-Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Identifier,Identifier,Identifier)))))
 
 # Array on multiple lines
 
-[
+test [
   foo,
   bar,
   baz
@@ -16,11 +16,11 @@ Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
 
 ==>
 
-Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Identifier,Identifier,Identifier)))))
 
 # Array on multiple lines with blank lines
 
-[
+test [
 
   foo,
 
@@ -32,28 +32,28 @@ Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
 
 ==>
 
-Query(Pipeline(ArrayExpression(Identifier,Identifier,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Identifier,Identifier,Identifier)))))
 
 # Array of integers
 
-[1, 2, 3]
+test [1, 2, 3]
 
 ==>
 
-Query(Pipeline(ArrayExpression(Integer,Integer,Integer)))
+Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Integer,Integer,Integer)))))
 
 # Array of floats
 
-[1.1, 2.2, 3.3]
+test [1.1, 2.2, 3.3]
 
 ==>
 
-Query(Pipeline(ArrayExpression(Float,Float,Float)))
+Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Float,Float,Float)))))
 
 # Array of strings
 
-["string", f"format", r"raw", s"server"]
+test ["string", f"format", r"raw", s"server"]
 
 ==>
 
-Query(Pipeline(ArrayExpression(String,FString,RString,SString)))
+Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(String,FString,RString,SString)))))

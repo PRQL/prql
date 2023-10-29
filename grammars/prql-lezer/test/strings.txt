@@ -1,87 +1,87 @@
 # Single-quoted string
 
-'Hello'
+test 'Hello'
 
 ==>
 
-Query(Pipeline(String))
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
 
 # Double-quoted string
 
-"Hello"
+test "Hello"
 
 ==>
 
-Query(Pipeline(String))
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
 
 # Single-quoted f-string
 
-f'Hello {name}!'
+test f'Hello {name}!'
 
 ==>
 
-Query(Pipeline(FString))
+Query(Pipeline(CallExpression(Identifier,ArgList(FString))))
 
 # Double-quoted f-string
 
-f"Hello {name}!"
+test f"Hello {name}!"
 
 ==>
 
-Query(Pipeline(FString))
+Query(Pipeline(CallExpression(Identifier,ArgList(FString))))
 
 # Single-quoted r-string
 
-r'version()'
+test r'version()'
 
 ==>
 
-Query(Pipeline(RString))
+Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
 
 # Double-quoted r-string
 
-r"version()"
+test r"version()"
 
 ==>
 
-Query(Pipeline(RString))
+Query(Pipeline(CallExpression(Identifier,ArgList(RString))))
 
 # Single-quoted s-string
 
-s'version()'
+test s'version()'
 
 ==>
 
-Query(Pipeline(SString))
+Query(Pipeline(CallExpression(Identifier,ArgList(SString))))
 
 # Double-quoted s-string
 
-s"version()"
+test s"version()"
 
 ==>
 
-Query(Pipeline(SString))
+Query(Pipeline(CallExpression(Identifier,ArgList(SString))))
 
 # Triple-quoted single-quoted string
 
-'''Hello world!'''
+test '''Hello world!'''
 
 ==>
 
-Query(Pipeline(String))
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
 
 # Triple-quoted double-quoted string
 
-"""Hello world!"""
+test """Hello world!"""
 
 ==>
 
-Query(Pipeline(String))
+Query(Pipeline(CallExpression(Identifier,ArgList(String))))
 
 # Escape sequence
 
-"\xff"
+test "\xff"
 
 ==>
 
-Query(Pipeline(String(Escape)))
+Query(Pipeline(CallExpression(Identifier,ArgList(String(Escape)))))
