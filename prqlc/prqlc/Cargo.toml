@@ -33,9 +33,14 @@ serde_json = "1.0.107"
 serde_yaml = "0.9.25"
 walkdir = "2.4.0"
 
-# Not direct dependencies, but pinning because of bugs in previous versions
+# Not direct dependencies, but pinning because of bugs in previous versions. Can
+# remove when dependencies no longer use it. (If CI passes, it can be removed.)
 clap_complete = "4.4.1"
 getopts = "0.2.21"
+
+# See above re `getopts`
+[package.metadata.cargo-udeps.ignore]
+development = ["getopts"]
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.

@@ -2238,15 +2238,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "minijinja"
-version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673d1ece89f7e166f43270800d78f9b1a9d21fda92dbcfa3b98b21213cdccbbc"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2990,7 +2981,6 @@ dependencies = [
  "insta",
  "insta-cmd",
  "itertools 0.11.0",
- "minijinja",
  "notify",
  "prql-compiler",
  "prqlc-ast",
