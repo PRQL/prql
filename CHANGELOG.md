@@ -95,6 +95,13 @@ This release has 155 commits from 9 contributors. Selected changes:
   ([`prqlr`](https://prql-lang.org/book/project/bindings/r.html) is required to
   render Quarto Markdown with PRQL code blocks). (@jjallaire)
 
+**Internal**:
+
+- Rename some of the internal crates, and refactored their paths in the repo.
+  (@aljazerzen, #3683).
+- Add a `justfile` for developers who prefer that above our `Taskfile.yml`
+  (@aljazerzen, #3681)
+
 **New Contributors**:
 
 - @hulxv, with #3533
