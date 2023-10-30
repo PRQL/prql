@@ -1,6 +1,6 @@
 # Boolean: true
 
-test true
+filter true
 
 ==>
 
@@ -8,7 +8,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Boolean))))
 
 # Boolean: false
 
-test false
+filter false
 
 ==>
 
@@ -16,7 +16,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Boolean))))
 
 # Null
 
-test null
+filter null
 
 ==>
 
@@ -24,7 +24,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(null))))
 
 # Keyword: this
 
-test this
+filter this
 
 ==>
 
@@ -32,7 +32,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(this))))
 
 # Keyword: that
 
-test that
+filter that
 
 ==>
 
@@ -40,7 +40,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(that))))
 
 # Range: 10..20
 
-test 10..20
+filter 10..20
 
 ==>
 
@@ -48,7 +48,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(RangeExpression))))
 
 # Comment
 
-test 1 # Hello
+filter 1 # Hello
 
 ==>
 
@@ -66,7 +66,7 @@ Query(Comment,Comment)
 # Docblock
 
 #! Hello
-test 1
+filter 1
 
 ==>
 

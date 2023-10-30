@@ -1,6 +1,6 @@
 # Array on one line
 
-test [foo, bar, baz]
+filter [foo, bar, baz]
 
 ==>
 
@@ -8,7 +8,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Identifier,Iden
 
 # Array on multiple lines
 
-test [
+filter [
   foo,
   bar,
   baz
@@ -20,7 +20,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Identifier,Iden
 
 # Array on multiple lines with blank lines
 
-test [
+filter [
 
   foo,
 
@@ -36,7 +36,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Identifier,Iden
 
 # Array of integers
 
-test [1, 2, 3]
+filter [1, 2, 3]
 
 ==>
 
@@ -44,7 +44,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Integer,Integer
 
 # Array of floats
 
-test [1.1, 2.2, 3.3]
+filter [1.1, 2.2, 3.3]
 
 ==>
 
@@ -52,7 +52,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(ArrayExpression(Float,Float,Flo
 
 # Array of strings
 
-test ["string", f"format", r"raw", s"server"]
+filter ["string", f"format", r"raw", s"server"]
 
 ==>
 

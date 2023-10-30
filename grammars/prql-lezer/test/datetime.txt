@@ -1,6 +1,6 @@
 # Date YYYY-MM-DD
 
-test @1970-01-01
+filter @1970-01-01
 
 ==>
 
@@ -8,7 +8,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(DateTime))))
 
 # Time HH:MM
 
-test @08:30
+filter @08:30
 
 ==>
 
@@ -16,7 +16,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(DateTime))))
 
 # Time HH:MM:SS
 
-test @12:00:00
+filter @12:00:00
 
 ==>
 
@@ -24,7 +24,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(DateTime))))
 
 # Time HH:MM:SS.xxx
 
-test @12:00:00.500
+filter @12:00:00.500
 
 ==>
 
@@ -32,7 +32,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(DateTime))))
 
 # Date and time
 
-test @1970-01-01T12:00:00
+filter @1970-01-01T12:00:00
 
 ==>
 
@@ -40,7 +40,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(DateTime))))
 
 # Date and time with timezone
 
-test @1970-01-01T12:00:00+01:00
+filter @1970-01-01T12:00:00+01:00
 
 ==>
 
@@ -48,7 +48,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(DateTime))))
 
 # Date and time in UTC
 
-test @1970-01-01T12:00:00Z
+filter @1970-01-01T12:00:00Z
 
 ==>
 

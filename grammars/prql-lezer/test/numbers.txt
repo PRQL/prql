@@ -1,6 +1,6 @@
 # Integer
 
-test 123
+filter 123
 
 ==>
 
@@ -8,7 +8,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Integer with underscore
 
-test 123_456
+filter 123_456
 
 ==>
 
@@ -16,7 +16,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Integer with underscores
 
-test 123_456_789
+filter 123_456_789
 
 ==>
 
@@ -24,7 +24,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Decimal
 
-test 123.45
+filter 123.45
 
 ==>
 
@@ -32,7 +32,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Float))))
 
 # Scientific notation
 
-test 123e10
+filter 123e10
 
 ==>
 
@@ -40,7 +40,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Number with time unit
 
-test 5years
+filter 5years
 
 ==>
 
@@ -48,7 +48,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(TimeUnit))))
 
 # Binary notation
 
-test 0b1111
+filter 0b1111
 
 ==>
 
@@ -56,7 +56,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Hex notation
 
-test 0xff
+filter 0xff
 
 ==>
 
@@ -64,7 +64,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))))
 
 # Octal notation
 
-test 0o777
+filter 0o777
 
 ==>
 

@@ -1,6 +1,6 @@
 # Plus
 
-test 10 + 10.5
+filter 10 + 10.5
 
 ==>
 
@@ -8,7 +8,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithO
 
 # Minus
 
-test 10 - 10
+filter 10 - 10
 
 ==>
 
@@ -16,7 +16,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithO
 
 # Multiply
 
-test 10 * 10
+filter 10 * 10
 
 ==>
 
@@ -24,7 +24,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithO
 
 # Divide
 
-test 10 / 10
+filter 10 / 10
 
 ==>
 
@@ -32,7 +32,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Integer,ArithO
 
 # Multiple ops
 
-test 10 + 10 + 10
+filter 10 + 10 + 10
 
 ==>
 
