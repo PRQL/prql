@@ -496,7 +496,7 @@ jobs:
     if: needs.rules.outputs.nightly == 'true'
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: rustup toolchain add nightly
       - uses: baptiste0928/cargo-install@v2
         with:
