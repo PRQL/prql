@@ -19,7 +19,7 @@
 
 - Enable integration tests for GlareDB. (@eitsupi, #3749)
 - [trapd00r/LS_COLORS](https://github.com/trapd00r/LS_COLORS), a collection of
-  LS_COLORS defintions colorizes `.prql` files. (@vanillajonathan)
+  LS_COLORS definitions colorizes `.prql` files. (@vanillajonathan)
 - [vivid](https://github.com/sharkdp/vivid), a themeable LS_COLORS generator
   colorizes `.prql` files. (@vanillajonathan)
 - [Emoji File Icons](https://marketplace.visualstudio.com/items?itemName=mightbesimon.emoji-icons),
