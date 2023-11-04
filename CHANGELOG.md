@@ -22,6 +22,8 @@
   LS_COLORS definitions colorizes `.prql` files. (@vanillajonathan)
 - [vivid](https://github.com/sharkdp/vivid), a themeable LS_COLORS generator
   colorizes `.prql` files. (@vanillajonathan)
+- [colorls](https://github.com/athityakumar/colorls), displays `.prql` files
+  with a database icon. (@vanillajonathan)
 - [Emoji File Icons](https://marketplace.visualstudio.com/items?itemName=mightbesimon.emoji-icons),
   a VS Code extension displays `.prql` files with a database emoji icon.
   (@vanillajonathan)
