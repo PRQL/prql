@@ -19,7 +19,7 @@ default = ["console_error_panic_hook"]
 
 [target.'cfg(target_family="wasm")'.dependencies]
 prql-compiler = {path = "../../prql-compiler", default-features = false}
-wasm-bindgen = "0.2.87"
+wasm-bindgen = "0.2.88"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. While the docs state that "This is great
@@ -34,7 +34,7 @@ wasm-bindgen = "0.2.87"
 console_error_panic_hook = {version = "0.1.7", optional = true}
 
 [target.'cfg(target_family="wasm")'.dev-dependencies]
-wasm-bindgen-test = "0.3.37"
+wasm-bindgen-test = "0.3.38"
 
 [package.metadata.cargo-udeps.ignore]
 development = ["wasm-bindgen-test"]
