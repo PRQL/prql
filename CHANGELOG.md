@@ -27,6 +27,8 @@
 - [Emoji File Icons](https://marketplace.visualstudio.com/items?itemName=mightbesimon.emoji-icons),
   a VS Code extension displays `.prql` files with a database emoji icon.
   (@vanillajonathan)
+- [lsd](https://github.com/lsd-rs/lsd), next gen ls command  displays `.prql`
+  files with a database icon. (@vanillajonathan) 
 
 **Internal changes**:
 
