@@ -29,6 +29,7 @@
     "docs": "https://prql-lang.org/book/"
   },
   "require": {
+    "php": "^8.0",
     "ext-ffi": "*"
   },
   "require-dev": {

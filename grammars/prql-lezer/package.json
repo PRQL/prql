@@ -1,7 +1,7 @@
 {
   "name": "prql-lezer",
   "version": "1.0.0",
-  "description": "lezer-based PRQL grammar",
+  "description": "Lezer-based PRQL grammar",
   "main": "dist/index.cjs",
   "type": "module",
   "exports": {
@@ -23,7 +23,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PRQL/prql.git"
+    "url": "https://github.com/PRQL/prql.git",
+    "directory": "grammars/prql-lezer"
   },
   "keywords": [
     "lezer",
