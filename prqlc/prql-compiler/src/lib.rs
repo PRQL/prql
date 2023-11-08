@@ -71,6 +71,16 @@
 //!
 //! * `serde_yaml`: adapts the `Serialize` implementation for [`prqlc_ast::expr::ExprKind::Literal`]
 //!   to `serde_yaml`, which doesn't support the serialization of nested enums
+//!
+//! ## Large binary sizes
+//!
+//! For Linux users, the binary produced by this crate will probably be quite large (>200MB) by default.
+//! That is because it includes a lot of debuginfo symbols from our parser. You can remove them by
+//! adding the following to `Cargo.toml`:
+//! ```toml
+//! [profile.release.package.prql-compiler]
+//! strip = "debuginfo"
+//! ```
 
 #![forbid(unsafe_code)]
 // Our error type is 128 bytes, because it contains 5 strings & an Enum, which

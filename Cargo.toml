@@ -23,9 +23,19 @@ rust-version = "1.65.0"
 version = "0.10.1"
 authors = ["PRQL Developers"]
 
-[profile.release.package.prql-js]
-# Optimize for small code size.
+[profile.release]
+# Optimize for binary size in releases of all crates,
+# since compiler is fast enough as it is (for now).
 opt-level = "s"
+
+[profile.release.package.prqlc]
+# Remove all symbols.
+strip = "symbols"
+
+[profile.release.package.prqlc-clib]
+# Remove all debug symbols (linker needs some of them)
+strip = "debuginfo"
+
 # Insta runs faster this way, ref https://insta.rs/docs/quickstart/
 [profile.dev.package.insta]
 opt-level = 3
