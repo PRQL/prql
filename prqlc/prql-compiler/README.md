@@ -7,12 +7,12 @@ For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
 [PRQL repo](https://github.com/PRQL/prql).
 
 For more usage examples and the library documentation, check out the
-[`prqlc_main` documentation](https://docs.rs/prqlc_main/latest/prql_compiler/).
+[`prql-compiler` documentation](https://docs.rs/prql-compiler/).
 
 ## Installation
 
 ```shell
-cargo add prqlc_main
+cargo add prql-compiler
 ```
 
 ## Examples
