@@ -203,9 +203,7 @@ impl Module {
         for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
             let input_name = match column {
-                LineageColumn::All { input_id, .. } => {
-                    frame.find_input(*input_id).map(|i| &i.name)
-                }
+                LineageColumn::All { input_id, .. } => frame.find_input(*input_id).map(|i| &i.name),
                 LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
