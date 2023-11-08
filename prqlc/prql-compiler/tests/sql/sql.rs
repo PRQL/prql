@@ -4160,7 +4160,7 @@ fn test_relation_var_name_clashes_02() {
     .unwrap(), @r###"
     SELECT
       t.*,
-      t.*
+      table_0.*
     FROM
       t
       JOIN t AS table_0 ON t.x = table_0.x

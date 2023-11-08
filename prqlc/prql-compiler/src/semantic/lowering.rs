@@ -596,8 +596,8 @@ impl Lowerer {
                     let name = name.as_ref().map(|i| i.name.clone());
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                LineageColumn::All { input_name, except } => {
-                    let input = lineage.find_input(input_name).unwrap();
+                LineageColumn::All { input_id, except } => {
+                    let input = lineage.find_input(*input_id).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),

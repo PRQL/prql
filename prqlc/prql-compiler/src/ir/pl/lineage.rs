@@ -46,7 +46,7 @@ pub enum LineageColumn {
 
     /// All columns (including unknown ones) from an input (i.e. `foo_table.*`)
     All {
-        input_name: String,
+        input_id: usize,
         except: HashSet<String>,
     },
 }
@@ -75,8 +75,8 @@ fn display_lineage_column(
     display_ids: bool,
 ) -> std::fmt::Result {
     match col {
-        LineageColumn::All { input_name, .. } => {
-            write!(f, "{input_name}.*")?;
+        LineageColumn::All { input_id, .. } => {
+            write!(f, "{input_id}.*")?;
         }
         LineageColumn::Single {
             name, target_id, ..

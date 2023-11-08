@@ -620,8 +620,8 @@ fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (LineageColumn::All { input_name, except }, LineageColumn::All { .. }) => {
-                LineageColumn::All { input_name, except }
+            (LineageColumn::All { input_id, except }, LineageColumn::All { .. }) => {
+                LineageColumn::All { input_id, except }
             }
             (
                 LineageColumn::Single {
@@ -735,8 +735,12 @@ impl Lineage {
         }
     }
 
-    pub fn find_input(&self, input_name: &str) -> Option<&LineageInput> {
+    pub fn find_input_by_name(&self, input_name: &str) -> Option<&LineageInput> {
         self.inputs.iter().find(|i| i.name == input_name)
+    }
+
+    pub fn find_input(&self, input_id: usize) -> Option<&LineageInput> {
+        self.inputs.iter().find(|i| i.id == input_id)
     }
 
     /// Renames all frame inputs to given alias.
@@ -747,7 +751,7 @@ impl Lineage {
 
         for col in &mut self.columns {
             match col {
-                LineageColumn::All { input_name, .. } => *input_name = alias.clone(),
+                LineageColumn::All { .. } => {}
                 LineageColumn::Single {
                     name: Some(name), ..
                 } => name.path = vec![alias.clone()],
@@ -787,7 +791,7 @@ impl LineageInput {
                 .collect();
 
             return vec![LineageColumn::All {
-                input_name: self.name.clone(),
+                input_id: self.id,
                 except,
             }];
         }
