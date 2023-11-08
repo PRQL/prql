@@ -46,6 +46,9 @@ pub struct SqlTableDecl {
     /// Generated in postprocessing.
     pub name: Option<Ident>,
 
+    /// When set, any references to this decl will be redirected to the set TId.
+    pub redirect_to: Option<TId>,
+
     /// Relation that still needs to be defined (usually as CTE) so it can be referenced by name.
     /// None means that it has already been defined, or was not needed to be defined in the
     /// first place.
@@ -269,6 +272,17 @@ impl AnchorContext {
         }
         false
     }
+
+    pub fn lookup_table_decl(&self, tid: &TId) -> Option<&SqlTableDecl> {
+        let mut tid = tid;
+        loop {
+            let res = self.table_decls.get(tid)?;
+            match &res.redirect_to {
+                Some(redirect) => tid = redirect,
+                None => return Some(res),
+            }
+        }
+    }
 }
 
 /// Loads info about [Query] into [AnchorContext]
@@ -307,6 +321,7 @@ impl QueryLoader {
                 // this relation should be defined when needed
                 RelationStatus::NotYetDefined(decl.relation.into())
             },
+            redirect_to: None,
         };
 
         self.context.table_decls.insert(decl.id, sql_decl);

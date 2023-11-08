@@ -276,7 +276,7 @@ fn translate_relation_expr(relation_expr: RelationExpr, ctx: &mut Context) -> Re
 
     Ok(match relation_expr.kind {
         RelationExprKind::Ref(tid) => {
-            let decl = ctx.anchor.table_decls.get_mut(&tid).unwrap();
+            let decl = ctx.anchor.lookup_table_decl(&tid).unwrap();
 
             // prepare names
             let table_name = decl.name.clone().unwrap();
@@ -336,7 +336,7 @@ fn translate_join(
 }
 
 fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
-    let decl = ctx.anchor.table_decls.get_mut(&cte.tid).unwrap();
+    let decl = ctx.anchor.lookup_table_decl(&cte.tid).unwrap();
     let cte_name = decl.name.clone().unwrap();
 
     let cte_name = translate_ident(Some(cte_name), None, ctx).pop().unwrap();
