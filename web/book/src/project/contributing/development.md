@@ -88,12 +88,13 @@ since it relies on `brew`.
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml) will be a
   good source to copy & paste instructions from.
 
-### Option 3: Use a [Dev Container](https://containers.dev/)
+### Option 3: Use a Dev Container 
 
 This project has a
 [devcontainer.json file](https://github.com/PRQL/prql/blob/main/.devcontainer/devcontainer.json)
 and a
 [pre-built dev container base Docker image](https://github.com/PRQL/prql/pkgs/container/prql-devcontainer-base).
+Dev Containers are specified at [https://containers.dev/](https://containers.dev/) 
 
 Currently, the tools for Rust are already installed in the pre-built image, and,
 Node.js, Python and others are configured to be installed when build the
@@ -259,7 +260,7 @@ Test](https://matklad.github.io//2021/05/31/how-to-test.html).}}.
 
 ```admonish info
 If you're making your first contribution, you don't need to engage with all
-this — it's fine to just make a change and push the results; the tests that
+this — it's fine to just make a change and push the results; the tests that
 run in GitHub will point you towards any errors, which can be then be run
 locally if needed. We're always around to help out.
 ```
@@ -267,7 +268,7 @@ locally if needed. We're always around to help out.
 Our tests, from the bottom of the pyramid to the top:
 
 - **[Static checks](https://github.com/PRQL/prql/blob/main/.pre-commit-config.yaml)**
-  — we run a few static checks to ensure the code stays healthy and consistent.
+  — we run a few static checks to ensure the code stays healthy and consistent.
   They're defined in
   [**`.pre-commit-config.yaml`**](https://github.com/PRQL/prql/blob/main/.pre-commit-config.yaml),
   using [pre-commit](https://pre-commit.com). They can be run locally with
@@ -369,7 +370,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
-  — we run tests relevant to a PR's changes in CI — for example changes to docs
+  — we run tests relevant to a PR's changes in CI — for example changes to docs
   will attempt to build docs, changes to a binding will run that binding's
   tests. The vast majority of changes trigger tests which run in less than five
   minutes, and we should be reassessing their scope if they take longer than
@@ -435,7 +436,7 @@ task run-playground
 
 Currently we release in a semi-automated way:
 
-1. PR & merge an updated
+- [ ] PR & merge an updated
    [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). GitHub will
    produce a draft version at <https://github.com/PRQL/prql/releases/new>,
    including "New Contributors".
@@ -445,27 +446,27 @@ Currently we release in a semi-automated way:
    ```sh
    echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
-
-2. If the current version is correct, then skip ahead. But if the version needs
+- [ ] Review the **Current Status** on the README.md to ensure it reflects the project state.
+- [ ] If the current version is correct, then skip ahead. But if the version needs
    to be changed — for example, we had planned on a patch release, but instead
    require a minor release — then run
    `cargo release version $version -x && cargo release replace -x` to bump the
    version and PR the resulting commit.
-3. After merging, go to
+- [ ] After merging, go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
    maintainers have access to this page.}}, copy the changelog entry into the release
    description{{footnote: Unfortunately GitHub's markdown parser
     interprets linebreaks as newlines. I haven't found a better way of editing
     the markdown to look reasonable than manually editing the text.}}, enter the
    tag to be created, and hit "Publish".
-4. From there, both the tag and release is created and all packages are
+- [ ] From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Run
+- [ ] Run
    `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
    to bump the versions and add a new Changelog section; then PR the resulting
    commit.
-6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
+- [ ] Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
 
 We may make this more automated in future; e.g. automatic changelog creation.
