@@ -3448,7 +3448,7 @@ fn test_loop() {
       SELECT
         1 AS n
     ),
-    table_0 AS (
+    table_3 AS (
       SELECT
         n - 2 AS _expr_0
       FROM
@@ -3463,14 +3463,14 @@ fn test_loop() {
             _expr_0 + 1 AS _expr_1
           FROM
             table_0
-        ) AS table_3
+        ) AS table_4
       WHERE
         _expr_1 < 5
     )
     SELECT
       _expr_0 * 2 AS n
     FROM
-      table_0
+      table_3
     LIMIT
       4
     "###
@@ -3494,7 +3494,7 @@ fn test_loop_2() {
       FROM
         read_csv('employees.csv')
     ),
-    table_0 AS (
+    table_2 AS (
       SELECT
         *
       FROM
@@ -3512,7 +3512,7 @@ fn test_loop_2() {
     SELECT
       *
     FROM
-      table_0
+      table_2
     "###
     );
 }
@@ -4110,5 +4110,59 @@ fn test_relation_literal_quoting() {
       "large number"
     FROM
       table_0
+    "###);
+}
+
+#[test]
+fn test_relation_var_name_clashes_01() {
+    assert_display_snapshot!(compile(
+        r###"
+    let table_0 = (from a)
+
+    from table_0
+    take 10
+    filter x > 0
+        "###,
+    )
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        *
+      FROM
+        a
+    ),
+    table_1 AS (
+      SELECT
+        *
+      FROM
+        table_0
+      LIMIT
+        10
+    )
+    SELECT
+      *
+    FROM
+      table_1
+    WHERE
+      x > 0
+    "###);
+}
+
+#[test]
+fn test_relation_var_name_clashes_02() {
+    // issue #3713
+    assert_display_snapshot!(compile(
+        r###"
+    from t
+    join t (==x)
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      t.*,
+      t.*
+    FROM
+      t
+      JOIN t AS table_0 ON t.x = table_0.x
     "###);
 }

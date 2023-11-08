@@ -1,13 +1,13 @@
 ---
-source: prql-compiler/tests/integration/main.rs
-expression: "# skip_mssql (the keyword RECURSIVE is not allowed and you have to declare the columns for CTE)\nfrom [{n = 1}]\nselect n = n - 2\nloop (filter n < 4 | select n = n + 1)\nselect n = n * 2\nsort n\n"
-input_file: prql-compiler/tests/integration/queries/loop.prql
+source: prqlc/prql-compiler/tests/integration/main.rs
+expression: "# clickhouse:skip (DB::Exception: Syntax error)\n# glaredb:skip (DataFusion does not support recursive CTEs https://github.com/apache/arrow-datafusion/issues/462)\nfrom [{n = 1}]\nselect n = n - 2\nloop (filter n < 4 | select n = n + 1)\nselect n = n * 2\nsort n\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/loop.prql
 ---
 WITH RECURSIVE table_1 AS (
   SELECT
     1 AS n
 ),
-table_0 AS (
+table_2 AS (
   SELECT
     n - 2 AS _expr_0
   FROM
@@ -24,7 +24,7 @@ table_0 AS (
 SELECT
   _expr_0 * 2 AS n
 FROM
-  table_0
+  table_2
 ORDER BY
   n
 
