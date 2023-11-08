@@ -138,12 +138,14 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
 
 /// Makes sure all relation instances have assigned names. Tries to infer from table references.
 fn assign_names(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
-    // generate table names
+    // generate CTE names, make sure they don't clash
     let decls = ctx.anchor.table_decls.values_mut();
+    let mut names = HashSet::new();
     for decl in decls.sorted_by_key(|d| d.id.get()) {
-        if decl.name.is_none() {
+        while decl.name.is_none() || names.contains(decl.name.as_ref().unwrap()) {
             decl.name = Some(Ident::from_name(ctx.anchor.table_name.gen()));
         }
+        names.insert(decl.name.clone().unwrap());
     }
 
     // generate relation variable names
@@ -165,18 +167,20 @@ impl<'a> RqFold for RelVarNameAssigner<'a> {}
 
 impl<'a> SrqFold for RelVarNameAssigner<'a> {
     fn fold_sql_relation(&mut self, relation: SqlRelation) -> Result<SqlRelation> {
-        let outer_names = std::mem::take(&mut self.relation_instance_names);
-
-        let res = match relation {
+        // only fold AtomicPipelines
+        Ok(match relation {
             SqlRelation::AtomicPipeline(pipeline) => {
-                SqlRelation::AtomicPipeline(self.fold_sql_transforms(pipeline)?)
+                // save outer names, so they are not affected by the inner pipeline
+                // (this matters for loop, where you have nested pipelines)
+                let outer_names = std::mem::take(&mut self.relation_instance_names);
+
+                let res = self.fold_sql_transforms(pipeline)?;
+
+                self.relation_instance_names = outer_names;
+                SqlRelation::AtomicPipeline(res)
             }
             _ => relation,
-        };
-
-        self.relation_instance_names = outer_names;
-
-        Ok(res)
+        })
     }
 }
 
@@ -193,32 +197,31 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for RelVarNameAssigner<'a
         // make sure that table_ref has a name
         let riid = &rel.riid;
         let instance = self.ctx.anchor.relation_instances.get_mut(riid).unwrap();
+        let name = &mut instance.table_ref.name;
 
-        if instance.table_ref.name.is_none() {
+        if name.is_none() {
             // it does not
 
-            // try to infer from table name
-            let mut name = match &rel.kind {
+            // infer from table name
+            *name = match &rel.kind {
                 RelationExprKind::Ref(tid) => {
                     let table_decl = &self.ctx.anchor.table_decls[tid];
                     table_decl.name.as_ref().map(|i| i.name.clone())
                 }
                 _ => None,
             };
+        }
 
-            // make sure it is not already present in current query
-            if let Some(n) = &name {
-                if self.relation_instance_names.contains(n) {
-                    name = None;
-                }
-            }
-
-            instance.table_ref.name = name.or_else(|| Some(self.ctx.anchor.table_name.gen()));
+        // make sure it is not already present in current query
+        while name
+            .as_ref()
+            .map_or(true, |n| self.relation_instance_names.contains(n))
+        {
+            *name = Some(self.ctx.anchor.table_name.gen());
         }
 
         // mark name as used
-        self.relation_instance_names
-            .insert(instance.table_ref.name.clone().unwrap());
+        self.relation_instance_names.insert(name.clone().unwrap());
 
         Ok(rel)
     }

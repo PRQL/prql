@@ -6,7 +6,6 @@ use std::str::FromStr;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ir::pl::Ident;
 use crate::ir::rq::{RelationKind, RelationalQuery, RqFold, Transform};
 use crate::utils::BreakUp;
 use crate::Target;
@@ -225,11 +224,9 @@ fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sq
     let step = anchor_split(&mut ctx.anchor, initial, step);
     let from = step.first().unwrap().as_from().unwrap();
     let from = ctx.anchor.relation_instances.get(from).unwrap();
-    let from = &from.table_ref.source;
+    let initial_tid = from.table_ref.source;
 
-    let recursive_name = ctx.anchor.table_name.gen();
-    let initial = ctx.anchor.table_decls.get_mut(from).unwrap();
-    initial.name = Some(Ident::from_name(recursive_name.clone()));
+    let initial = ctx.anchor.table_decls.get_mut(&initial_tid).unwrap();
 
     // compile initial
     let initial = if let RelationStatus::NotYetDefined(rel) = initial.relation.take_to_define() {
@@ -257,7 +254,7 @@ fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sq
     // this will be table decl that references the whole loop expression
     let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
 
-    loop_decl.name = Some(Ident::from_name(recursive_name));
+    loop_decl.redirect_to = Some(initial_tid);
     loop_decl.relation = RelationStatus::Defined;
 
     // push the whole thing into WITH of the main query

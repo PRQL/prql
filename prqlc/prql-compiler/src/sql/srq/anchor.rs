@@ -260,6 +260,7 @@ pub(super) fn anchor_split(
             relation: RelationStatus::NotYetDefined(RelationAdapter::Preprocessed(
                 preceding, columns,
             )),
+            redirect_to: None,
         },
     );
 
