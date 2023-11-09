@@ -338,10 +338,16 @@ impl Lowerer {
                                 .into_tuple()
                                 .unwrap()
                                 .into_iter()
-                                .map(|element| element.kind.into_literal().unwrap())
-                                .collect()
+                                .map(|element| {
+                                    element.try_cast(
+                                        |x| x.into_literal(),
+                                        Some("relation literal"),
+                                        "literals",
+                                    )
+                                })
+                                .try_collect()
                         })
-                        .collect(),
+                        .try_collect()?,
                 };
 
                 log::debug!("lowering literal relation table, columns = {columns:?}");
