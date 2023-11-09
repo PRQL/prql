@@ -36,10 +36,9 @@ fn parse_interpolate() {
         Expr {
             expr: Expr {
                 kind: Ident(
-                    Ident {
-                        path: [],
-                        name: "a",
-                    },
+                    [
+                        "a",
+                    ],
                 ),
                 span: Some(
                     0:7-10,
@@ -84,10 +83,9 @@ fn parse_interpolate() {
         Expr {
             expr: Expr {
                 kind: Ident(
-                    Ident {
-                        path: [],
-                        name: "a",
-                    },
+                    [
+                        "a",
+                    ],
                 ),
                 span: Some(
                     0:13-16,

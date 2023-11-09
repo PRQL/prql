@@ -412,17 +412,18 @@ impl Command {
 
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path)?;
-                let srq = prql_compiler::sql::internal::anchor(rq)?;
+                let (srq, anchor_ctx) = prql_compiler::sql::internal::anchor(rq)?;
 
-                let json = serde_json::to_string_pretty(&srq)?;
-
-                match format {
-                    Format::Json => json.into_bytes(),
+                let srq_json = serde_json::to_string_pretty(&srq)?;
+                let srq_string = match format {
+                    Format::Json => srq_json,
                     Format::Yaml => {
-                        let val: serde_yaml::Value = serde_yaml::from_str(&json)?;
-                        serde_yaml::to_string(&val)?.into_bytes()
+                        let val: serde_yaml::Value = serde_yaml::from_str(&srq_json)?;
+                        serde_yaml::to_string(&val)?
                     }
-                }
+                };
+
+                format!("{anchor_ctx:#?}\n{srq_string}").into_bytes()
             }
 
             _ => unreachable!(),
@@ -737,6 +738,167 @@ sort full
         .unwrap();
 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        AnchorContext {
+            column_decls: {
+                column-2: RelationColumn(
+                    RIId(
+                        1,
+                    ),
+                    column-2,
+                    Single(
+                        Some(
+                            "salary",
+                        ),
+                    ),
+                ),
+                column-3: RelationColumn(
+                    RIId(
+                        1,
+                    ),
+                    column-3,
+                    Wildcard,
+                ),
+                column-1: RelationColumn(
+                    RIId(
+                        0,
+                    ),
+                    column-1,
+                    Wildcard,
+                ),
+                column-0: RelationColumn(
+                    RIId(
+                        0,
+                    ),
+                    column-0,
+                    Single(
+                        Some(
+                            "salary",
+                        ),
+                    ),
+                ),
+            },
+            column_names: {
+                column-0: "salary",
+                column-2: "salary",
+            },
+            table_decls: {
+                table-1: SqlTableDecl {
+                    id: table-1,
+                    name: Some(
+                        [
+                            "table_0",
+                        ],
+                    ),
+                    redirect_to: None,
+                    relation: Defined,
+                },
+                table-0: SqlTableDecl {
+                    id: table-0,
+                    name: Some(
+                        [
+                            "employees",
+                        ],
+                    ),
+                    redirect_to: None,
+                    relation: Defined,
+                },
+            },
+            relation_instances: {
+                RIId(
+                    0,
+                ): RelationInstance {
+                    riid: RIId(
+                        0,
+                    ),
+                    table_ref: TableRef {
+                        source: table-0,
+                        columns: [
+                            (
+                                Single(
+                                    Some(
+                                        "salary",
+                                    ),
+                                ),
+                                column-0,
+                            ),
+                            (
+                                Wildcard,
+                                column-1,
+                            ),
+                        ],
+                        name: Some(
+                            "employees",
+                        ),
+                    },
+                    cid_redirects: {},
+                    original_cids: [
+                        column-0,
+                        column-1,
+                    ],
+                },
+                RIId(
+                    1,
+                ): RelationInstance {
+                    riid: RIId(
+                        1,
+                    ),
+                    table_ref: TableRef {
+                        source: table-1,
+                        columns: [
+                            (
+                                Single(
+                                    Some(
+                                        "salary",
+                                    ),
+                                ),
+                                column-2,
+                            ),
+                            (
+                                Wildcard,
+                                column-3,
+                            ),
+                        ],
+                        name: Some(
+                            "table_0",
+                        ),
+                    },
+                    cid_redirects: {
+                        column-0: column-2,
+                        column-1: column-3,
+                    },
+                    original_cids: [
+                        column-2,
+                        column-3,
+                    ],
+                },
+            },
+            col_name: NameGenerator {
+                prefix: "_expr_",
+                id: IdGenerator {
+                    next_id: 0,
+                    phantom: PhantomData<usize>,
+                },
+            },
+            table_name: NameGenerator {
+                prefix: "table_",
+                id: IdGenerator {
+                    next_id: 1,
+                    phantom: PhantomData<usize>,
+                },
+            },
+            cid: IdGenerator {
+                next_id: 4,
+                phantom: PhantomData<prql_compiler::ir::rq::ids::CId>,
+            },
+            tid: IdGenerator {
+                next_id: 2,
+                phantom: PhantomData<prql_compiler::ir::rq::ids::TId>,
+            },
+            riid: IdGenerator {
+                next_id: 2,
+                phantom: PhantomData<prql_compiler::sql::srq::context::RIId>,
+            },
+        }
         ctes:
         - tid: 1
           kind:

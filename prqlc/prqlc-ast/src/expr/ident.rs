@@ -4,7 +4,7 @@ use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Seria
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Ident {
     pub path: Vec<String>,
     pub name: String,
@@ -77,6 +77,15 @@ impl Ident {
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         display_ident(f, self)
+    }
+}
+
+impl std::fmt::Debug for Ident {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut list = f.debug_list();
+        list.entries(&self.path);
+        list.entry(&self.name);
+        list.finish()
     }
 }
 

@@ -81,9 +81,10 @@ pub mod internal {
     }
 
     /// Applies preprocessing and anchoring to the main relation in RQ. Meant for debugging purposes.
-    pub fn anchor(query: RelationalQuery) -> Result<srq::ast::SqlQuery> {
-        let (query, _ctx) = srq::compile_query(query, Some(dialect::Dialect::Generic))?;
-        Ok(query)
+    pub fn anchor(query: RelationalQuery) -> Result<(srq::ast::SqlQuery, AnchorContext)> {
+        let (query, ctx) = srq::compile_query(query, Some(dialect::Dialect::Generic))?;
+
+        Ok((query, ctx.anchor))
     }
 }
 
