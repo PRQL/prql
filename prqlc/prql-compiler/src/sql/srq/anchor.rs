@@ -93,13 +93,21 @@ pub(super) fn split_off_back(
         // anchor and record all requirements
         let required = get_requirements(&transform, &following_transforms);
         log::debug!("transform {} requires {:?}", transform.as_str(), required);
-        inputs_required.extend(required);
+        inputs_required.extend(required.clone());
 
         match &transform {
             SqlTransform::Super(Transform::Compute(compute)) => {
-                if can_materialize(compute, &inputs_required) {
+                let (can_mat, max_complexity) = can_materialize(compute, &inputs_required);
+                if can_mat {
                     log::debug!("materializing {:?}", compute.id);
                     inputs_avail.insert(compute.id);
+
+                    // add transitive dependencies
+                    inputs_required.extend(required.into_iter().map(|x| Requirement {
+                        col: x.col,
+                        max_complexity,
+                        selected: false,
+                    }));
                 } else {
                     pipeline.push(transform);
                     break;
@@ -109,7 +117,7 @@ pub(super) fn split_off_back(
                 for cid in compute {
                     let decl = &ctx.column_decls[cid];
                     if let ColumnDecl::Compute(compute) = decl {
-                        if !can_materialize(compute, &inputs_required) {
+                        if !can_materialize(compute, &inputs_required).0 {
                             pipeline.push(transform);
                             break 'pipeline;
                         }
@@ -179,24 +187,25 @@ pub(super) fn split_off_back(
     (remaining_pipeline, curr_pipeline_rev)
 }
 
-fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> bool {
+fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> (bool, Complexity) {
     let complexity = infer_complexity(compute);
 
-    let required_max = inputs_required
+    let required = inputs_required
         .iter()
         .filter(|r| r.col == compute.id)
         .fold(Complexity::highest(), |c, r| {
             Complexity::min(c, r.max_complexity)
         });
 
-    let can = complexity <= required_max;
-    if !can {
+    let can_materialize = complexity <= required;
+    if !can_materialize {
+        // cannot materialize here, complexity is greater than what's required here
         log::debug!(
-            "{:?} has complexity {complexity:?}, but is required to have max={required_max:?}",
+            "{:?} has complexity {complexity:?}, but is required to have at most {required:?}",
             compute.id
         );
     }
-    can
+    (can_materialize, required)
 }
 
 /// Applies adjustments to second part of a pipeline when it's split:
@@ -373,6 +382,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
 }
 
 /// An input requirement of a transform.
+#[derive(Clone)]
 pub struct Requirement {
     pub col: CId,
 
