@@ -51,14 +51,23 @@ pub fn lower_to_ir(
     // lower tables
     let mut l = Lowerer::new(root_mod);
     let mut main_relation = None;
-    for (fq_ident, table) in tables {
+    for (fq_ident, table, rev_dep_count) in tables {
         let is_main = fq_ident == main_ident;
+        let can_be_inlined = if rev_dep_count == 1 {
+            Some(fq_ident.clone())
+        } else {
+            None
+        };
 
         l.lower_table_decl(table, fq_ident)?;
 
         if is_main {
             let main_table = l.table_buffer.pop().unwrap();
             main_relation = Some(main_table.relation);
+        }
+
+        if let Some(fq_ident) = can_be_inlined {
+            l.register_last_table_as_inlineable(fq_ident);
         }
     }
 
@@ -124,6 +133,9 @@ struct Lowerer {
     /// mapping from [Ident] of [crate::ast::TableDef] into [TId]s
     table_mapping: HashMap<Ident, TId>,
 
+    /// tables that can be inlined
+    tables_to_inline: HashMap<Ident, Vec<Transform>>,
+
     // current window for any new column defs
     window: Option<rq::Window>,
 
@@ -154,10 +166,24 @@ impl Lowerer {
 
             node_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
+            tables_to_inline: HashMap::new(),
 
             window: None,
             pipeline: Vec::new(),
             table_buffer: Vec::new(),
+        }
+    }
+
+    fn register_last_table_as_inlineable(&mut self, fq_ident: Ident) {
+        let table = self.table_buffer.last().unwrap();
+
+        match &table.relation.kind {
+            rq::RelationKind::Pipeline(transforms) => {
+                self.tables_to_inline.insert(fq_ident, transforms.clone());
+            }
+            _ => {
+                // don't ever inline
+            }
         }
     }
 
@@ -461,6 +487,14 @@ impl Lowerer {
                 if let Some(target) = ast.target_id {
                     if Some(target) == closure_param {
                         // ast is a closure param, so we can skip pushing From
+                        return Ok(());
+                    }
+                }
+
+                // special case: inline a pipeline table
+                if let pl::ExprKind::Ident(i) = &ast.kind {
+                    if let Some(transforms) = self.tables_to_inline.remove(i) {
+                        self.pipeline.extend(transforms);
                         return Ok(());
                     }
                 }
@@ -988,7 +1022,7 @@ impl TableExtractor {
 fn toposort_tables(
     tables: Vec<(Ident, decl::TableDecl)>,
     main_table: &Ident,
-) -> Vec<(Ident, decl::TableDecl)> {
+) -> Vec<(Ident, decl::TableDecl, usize)> {
     let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
 
     let mut dependencies: Vec<(Ident, Vec<Ident>)> = Vec::new();
@@ -1005,11 +1039,29 @@ fn toposort_tables(
     // sort just to make sure lowering is stable
     dependencies.sort_by(|a, b| a.0.cmp(&b.0));
 
+    // toposort
     let sort = toposort(&dependencies, Some(main_table)).unwrap();
 
+    // compute reverse dependencies, so we know which decls can be inlined
+    let mut reverse_dependencies = HashMap::<&Ident, usize>::new();
+    reverse_dependencies.insert(main_table, 1);
+    for (_, deps) in &dependencies {
+        for dep in deps {
+            let count = reverse_dependencies.entry(dep).or_default();
+            *count += 1;
+        }
+    }
+
+    // compose the result
     let mut tables = tables;
     sort.into_iter()
-        .map(|ident| tables.remove_entry(ident).unwrap())
+        .map(|ide| {
+            let (ident, decl) = tables.remove_entry(ide).unwrap();
+            let rev_dep_count = reverse_dependencies.remove(ide).unwrap_or_default();
+            (ident, decl, rev_dep_count)
+        })
+        // discard tables that are not referenced
+        .filter(|x| x.2 > 0)
         .collect_vec()
 }
 
