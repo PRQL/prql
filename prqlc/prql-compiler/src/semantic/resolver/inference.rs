@@ -47,9 +47,9 @@ impl Resolver<'_> {
                 match wildcard_inputs.len() {
                     0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
                     1 => {
-                        let (input_name, _) = wildcard_inputs.into_iter().next().unwrap();
+                        let (input_id, _) = wildcard_inputs.into_iter().next().unwrap();
 
-                        let input = frame.find_input(input_name).unwrap();
+                        let input = frame.find_input(*input_id).unwrap();
                         let table_ident = input.table.clone();
                         self.infer_table_column(&table_ident, col_name)?;
                     }
@@ -90,7 +90,7 @@ impl Resolver<'_> {
         for col in columns {
             let col = match col {
                 TupleField::Wildcard(_) => LineageColumn::All {
-                    input_name: input_name.clone(),
+                    input_id,
                     except: columns
                         .iter()
                         .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
