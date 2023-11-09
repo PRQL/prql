@@ -2452,7 +2452,8 @@ join y (foo == only_in_x)
 #[test]
 fn test_double_aggregate() {
     // #941
-    let query = r###"
+    compile(
+        r###"
     from numbers
     group {type} (
         aggregate {
@@ -2462,11 +2463,11 @@ fn test_double_aggregate() {
             max amount
         }
     )
-    "###;
+    "###,
+    )
+    .unwrap_err();
 
-    compile(query).unwrap_err();
-
-    let query = r###"
+    assert_display_snapshot!(compile(r###"
     from numbers
     group {`type`} (
         aggregate {
@@ -2474,9 +2475,7 @@ fn test_double_aggregate() {
             max amount
         }
     )
-    "###;
-
-    assert_display_snapshot!(compile(query).unwrap(),
+    "###).unwrap(),
         @r###"
     SELECT
       type,
@@ -2486,6 +2485,29 @@ fn test_double_aggregate() {
       numbers
     GROUP BY
       type
+    "###
+    );
+}
+
+#[test]
+fn test_window_function_coalesce() {
+    // #3587
+    assert_display_snapshot!(compile(r###"
+    from x
+    select {a, b=a}
+    window (
+      select {
+        cumsum_a=(sum a),
+        cumsum_b=(sum b)
+      }
+    )
+    "###).unwrap(),
+        @r###"
+    SELECT
+      SUM(a) OVER () AS cumsum_a,
+      SUM(a) OVER () AS cumsum_b
+    FROM
+      x
     "###
     );
 }
