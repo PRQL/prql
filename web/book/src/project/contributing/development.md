@@ -94,7 +94,7 @@ This project has a
 [devcontainer.json file](https://github.com/PRQL/prql/blob/main/.devcontainer/devcontainer.json)
 and a
 [pre-built dev container base Docker image](https://github.com/PRQL/prql/pkgs/container/prql-devcontainer-base).
-Dev Containers are specified at
+Learn more about Dev Containers at
 [https://containers.dev/](https://containers.dev/)
 
 Currently, the tools for Rust are already installed in the pre-built image, and,
@@ -437,40 +437,44 @@ task run-playground
 
 Currently we release in a semi-automated way:
 
-- [ ] PR & merge an updated
-      [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). GitHub
-      will produce a draft version at
-      <https://github.com/PRQL/prql/releases/new>, including "New Contributors".
+- PR & merge an updated
+  [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). GitHub will
+  produce a draft version at <https://github.com/PRQL/prql/releases/new>,
+  including "New Contributors".
 
-  We can use this script to generate the first line:
+  Use this script to generate the first line:
 
   ```sh
   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
   ```
 
-- [ ] Review the **Current Status** on the README.md to ensure it reflects the
-      project state.
-- [ ] If the current version is correct, then skip ahead. But if the version
-      needs to be changed — for example, we had planned on a patch release, but
-      instead require a minor release — then run
-      `cargo release version $version -x && cargo release replace -x` to bump
-      the version and PR the resulting commit.
-- [ ] After merging, go to
-      [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
-       maintainers have access to this page.}}, copy the changelog entry into the
-      release description{{footnote: Unfortunately GitHub's markdown parser
-        interprets linebreaks as newlines. I haven't found a better way of editing
-        the markdown to look reasonable than manually editing the text.}}, enter
-      the tag to be created, and hit "Publish".
-- [ ] From there, both the tag and release is created and all packages are
-      published automatically based on our
-      [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-- [ ] Run
-      `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
-      to bump the versions and add a new Changelog section; then PR the
-      resulting commit.
-- [ ] Check whether there are
-      [milestones](https://github.com/PRQL/prql/milestones) that need to be
-      pushed out.
+- If the current version is correct, then skip ahead. But if the version needs
+  to be changed — for example, we had planned on a patch release, but instead
+  require a minor release — then run
+  `cargo release version $version -x && cargo release replace -x` to bump the
+  version and PR the resulting commit.
+
+- After merging, go to
+  [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
+      maintainers have access to this page.}}, copy the changelog entry into the
+  release description{{footnote: Unfortunately GitHub's markdown parser
+       interprets linebreaks as newlines. I haven't found a better way of editing
+       the markdown to look reasonable than manually editing the text.}}, enter the
+  tag to be created, and hit "Publish".
+
+- From there, both the tag and release is created and all packages are published
+  automatically based on our
+  [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
+
+- Run
+  `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
+  to bump the versions and add a new Changelog section; then PR the resulting
+  commit.
+
+- Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
+  that need to be pushed out.
+
+- Review the **Current Status** on the README.md to ensure it reflects the
+  project state.
 
 We may make this more automated in future; e.g. automatic changelog creation.
