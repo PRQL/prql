@@ -2,9 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use prqlc_ast::stmt::QueryDef;
-use prqlc_ast::Span;
+use prqlc_ast::{Span, TupleField, Ty};
 
-use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn, TupleField, Ty};
+use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
 
 use super::{

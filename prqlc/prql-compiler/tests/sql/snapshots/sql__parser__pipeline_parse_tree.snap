@@ -159,6 +159,6 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
               args:
                 - Literal:
                     Integer: 20
-    ty_expr: ~
+    ty: ~
   annotations: []
 

@@ -20,8 +20,6 @@ fn test_expr_ast_code_matches() {
     -    Binary(BinaryExpr),
     -    Unary(UnaryExpr),
     @@ .. @@
-    -}
-    -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct BinaryExpr {
     -    pub left: Box<Expr>,
@@ -33,12 +31,8 @@ fn test_expr_ast_code_matches() {
     -pub struct UnaryExpr {
     -    pub op: UnOp,
     -    pub expr: Box<Expr>,
-    @@ .. @@
-    -    pub return_ty: Option<Box<Expr>>,
-    +    pub return_ty: Option<TyOrExpr>,
-    @@ .. @@
-    -    pub ty: Option<Box<Expr>>,
-    +    pub ty: Option<TyOrExpr>,
+    -}
+    -
     @@ .. @@
     -}
     -

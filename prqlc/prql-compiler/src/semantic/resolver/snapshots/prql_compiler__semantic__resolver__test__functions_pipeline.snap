@@ -13,19 +13,24 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
           kind:
             Array:
               kind: Any
-              name: anytype
+              span: "2:1878-1885"
+              name: ~
+          span: "2:1877-1886"
           name: array
   alias: one
   ty:
     kind:
       Union:
-        - - int
+        - - ~
           - kind:
               Primitive: Int
-            name: int
-        - - float
+            span: "2:4109-4112"
+            name: ~
+        - - ~
           - kind:
               Primitive: Float
-            name: float
+            span: "2:4116-4121"
+            name: ~
+    span: "2:4109-4121"
     name: ~
 

@@ -84,7 +84,6 @@ impl PlFold for Evaluator {
             | ExprKind::FString(_)
             | ExprKind::Case(_)
             | ExprKind::RqOperator { .. }
-            | ExprKind::Type(_)
             | ExprKind::Param(_)
             | ExprKind::Internal(_) => {
                 return Err(Error::new_simple("not a value").with_span(expr.span).into())

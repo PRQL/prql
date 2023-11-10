@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::Span;
+use crate::{Span, Ty};
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {
@@ -92,7 +92,7 @@ pub struct FuncCall {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Func {
     /// Type requirement for the function body expression.
-    pub return_ty: Option<Box<Expr>>,
+    pub return_ty: Option<Ty>,
 
     /// Expression containing parameter (and environment) references.
     pub body: Box<Expr>,
@@ -109,7 +109,7 @@ pub struct FuncParam {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<Box<Expr>>,
+    pub ty: Option<Ty>,
 
     pub default_value: Option<Box<Expr>>,
 }

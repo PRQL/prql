@@ -7,26 +7,26 @@ columns:
       name:
         - orders
         - customer_no
-      target_id: 214
+      target_id: 80
       target_name: ~
   - Single:
       name:
         - orders
         - gross
-      target_id: 215
+      target_id: 81
       target_name: ~
   - Single:
       name:
         - orders
         - tax
-      target_id: 216
+      target_id: 82
       target_name: ~
   - Single:
       name: ~
-      target_id: 217
+      target_id: 83
       target_name: ~
 inputs:
-  - id: 213
+  - id: 79
     name: orders
     table:
       - default_db

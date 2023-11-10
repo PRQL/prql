@@ -71,20 +71,20 @@ fn test_error_unicode_string() {
 #[test]
 fn test_error_unexpected() {
     assert_debug_snapshot!(parse_single("Answer: T-H-A-T!").unwrap_err(), @r###"
-        [
-            Error {
-                kind: Error,
-                span: Some(
-                    0:6-7,
-                ),
-                reason: Simple(
-                    "unexpected : while parsing source file",
-                ),
-                hints: [],
-                code: None,
-            },
-        ]
-        "###);
+    [
+        Error {
+            kind: Error,
+            span: Some(
+                0:6-7,
+            ),
+            reason: Simple(
+                "unexpected : while parsing function call",
+            ),
+            hints: [],
+            code: None,
+        },
+    ]
+    "###);
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn test_take() {
             args:
               - Literal:
                   Integer: 10
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -154,7 +154,7 @@ fn test_take() {
                   end:
                     Literal:
                       Integer: 10
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -176,7 +176,7 @@ fn test_take() {
                   end:
                     Literal:
                       Integer: 10
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -427,7 +427,7 @@ fn test_basic_exprs() {
             args:
               - Ident:
                   - a
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
     assert_yaml_snapshot!(parse_expr(
@@ -770,7 +770,7 @@ fn test_filter() {
                   right:
                     Literal:
                       String: USA
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -799,7 +799,7 @@ fn test_filter() {
                   right:
                     Literal:
                       String: USA
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###
     );
@@ -843,7 +843,7 @@ fn test_aggregate() {
                                   - salary
                         - Ident:
                             - count
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
     let aggregate = parse_single(
@@ -880,7 +880,7 @@ fn test_aggregate() {
                             args:
                               - Ident:
                                   - salary
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -1070,7 +1070,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
     assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
@@ -1089,7 +1089,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
@@ -1114,7 +1114,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
@@ -1139,7 +1139,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1183,7 +1183,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1202,7 +1202,7 @@ fn test_function() {
               - name: return_constant
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1228,7 +1228,7 @@ fn test_function() {
               - name: X
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1512,7 +1512,7 @@ fn test_var_def() {
             args:
               - Ident:
                   - employees
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1578,7 +1578,7 @@ fn test_var_def() {
                   args:
                     - Literal:
                         Integer: 50
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1592,7 +1592,7 @@ fn test_var_def() {
         value:
           SString:
             - String: SELECT * FROM employees
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1629,7 +1629,7 @@ fn test_var_def() {
                     - Ident:
                         - foo
                       alias: only_in_x
-        ty_expr: ~
+        ty: ~
       annotations: []
     - VarDef:
         kind: Main
@@ -1642,7 +1642,7 @@ fn test_var_def() {
             args:
               - Ident:
                   - x
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -1687,7 +1687,7 @@ fn test_inline_pipeline() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -1735,7 +1735,7 @@ fn test_sql_parameters() {
                             op: Eq
                             right:
                               Param: 2.name
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -1820,7 +1820,7 @@ join `my-proj`.`dataset`.`table`
                         - my-proj
                         - dataset
                         - table
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -1903,7 +1903,7 @@ fn test_sort() {
                             expr:
                               Ident:
                                 - num_of_articles
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -1945,7 +1945,7 @@ fn test_dates() {
                                   n: 2
                                   unit: years
                           alias: age_plus_two_years
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -1991,7 +1991,7 @@ fn test_multiline_string() {
               - Ident:
                   - r
                 alias: x
-        ty_expr: ~
+        ty: ~
       annotations: []
     "### )
 }
@@ -2030,7 +2030,7 @@ fn test_coalesce() {
                           Literal:
                             Integer: 0
                       alias: amount
-        ty_expr: ~
+        ty: ~
       annotations: []
     "### )
 }
@@ -2053,7 +2053,7 @@ fn test_literal() {
               - Literal:
                   Boolean: true
                 alias: x
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###)
 }
@@ -2113,7 +2113,7 @@ fn test_allowed_idents() {
                         - Ident:
                             - _employees
                             - _underscored_column
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###)
 }
@@ -2193,7 +2193,7 @@ fn test_gt_lt_gte_lte() {
                         right:
                           Literal:
                             Integer: 2
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###)
 }
@@ -2231,7 +2231,7 @@ join s=salaries (==id)
                         expr:
                           Ident:
                             - id
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -2322,7 +2322,7 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -2341,7 +2341,7 @@ fn test_var_defs() {
         value:
           Ident:
             - x
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -2356,7 +2356,7 @@ fn test_var_defs() {
         value:
           Ident:
             - x
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 
@@ -2370,7 +2370,7 @@ fn test_var_defs() {
         value:
           Ident:
             - x
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -2391,7 +2391,7 @@ fn test_array() {
                 Integer: 1
             - Literal:
                 Integer: 2
-        ty_expr: ~
+        ty: ~
       annotations: []
     - VarDef:
         kind: Let
@@ -2402,7 +2402,7 @@ fn test_array() {
                 Boolean: false
             - Literal:
                 String: hello
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
@@ -2435,7 +2435,7 @@ fn test_annotation() {
               - name: b
                 default_value: ~
             named_params: []
-        ty_expr: ~
+        ty: ~
       annotations:
         - expr:
             Tuple:
@@ -2546,7 +2546,7 @@ fn test_target() {
                   args:
                     - Ident:
                         - film2
-        ty_expr: ~
+        ty: ~
       annotations: []
     "###);
 }
