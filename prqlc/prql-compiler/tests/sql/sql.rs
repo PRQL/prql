@@ -668,7 +668,7 @@ fn test_quoting() {
 }
 
 #[test]
-fn test_sorts() {
+fn test_sorts_01() {
     assert_display_snapshot!((compile(r###"
     from invoices
     sort {issued_at, -amount, +num_of_articles}
@@ -700,6 +700,71 @@ fn test_sorts() {
     )
     SELECT
       renamed
+    FROM
+      table_0
+    ORDER BY
+      _expr_0
+    "###);
+}
+
+#[test]
+fn test_sorts_02() {
+    // issue #3129
+
+    assert_display_snapshot!((compile(r###"
+    let x = (
+      from table
+      sort index
+      select {fieldA}
+    )
+    from x
+    "###
+    ).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        "fieldA",
+        "index"
+      FROM
+        "table"
+    ),
+    x AS (
+      SELECT
+        "fieldA",
+        "index"
+      FROM
+        table_0
+    )
+    SELECT
+      "fieldA"
+    FROM
+      x
+    ORDER BY
+      "index"
+    "###);
+
+    assert_display_snapshot!((compile(r#"
+    from a
+    join side:left b (==col)
+    sort a.col
+    select !{a.col}
+    take 5
+    "#
+    ).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        a.*,
+        b.*,
+        a.col AS _expr_0
+      FROM
+        a
+        LEFT JOIN b ON a.col = b.col
+      ORDER BY
+        a._expr_0
+      LIMIT
+        5
+    )
+    SELECT
+      *
     FROM
       table_0
     ORDER BY
