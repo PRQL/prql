@@ -358,15 +358,15 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   More details on running with external databases are in the
   [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration).
 
-  ```admonish note
-  Integration tests use DuckDB, and so require a clang compiler to compile
-  [`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
-  systems will have one, but the test command fails, install it with:
+```admonish note
+Integration tests use DuckDB, and so require a clang compiler to compile
+[`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
+systems will have one, but the test command fails, install it with:
 
-    - On macOS, install xcode with `xcode-select --install`
-    - On Debian Linux, `apt-get update && apt-get install clang`
-    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
-  ```
+  - On macOS, install xcode with `xcode-select --install`
+  - On Debian Linux, `apt-get update && apt-get install clang`
+  - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
+```
 
 - **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/tests.yaml)**
   — we run tests relevant to a PR's changes in CI — for example changes to docs
