@@ -668,7 +668,7 @@ fn test_quoting() {
 }
 
 #[test]
-fn test_sorts() {
+fn test_sorts_01() {
     assert_display_snapshot!((compile(r###"
     from invoices
     sort {issued_at, -amount, +num_of_articles}
@@ -700,6 +700,71 @@ fn test_sorts() {
     )
     SELECT
       renamed
+    FROM
+      table_0
+    ORDER BY
+      _expr_0
+    "###);
+}
+
+#[test]
+fn test_sorts_02() {
+    // issue #3129
+
+    assert_display_snapshot!((compile(r###"
+    let x = (
+      from table
+      sort index
+      select {fieldA}
+    )
+    from x
+    "###
+    ).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        "fieldA",
+        "index"
+      FROM
+        "table"
+    ),
+    x AS (
+      SELECT
+        "fieldA",
+        "index"
+      FROM
+        table_0
+    )
+    SELECT
+      "fieldA"
+    FROM
+      x
+    ORDER BY
+      "index"
+    "###);
+
+    assert_display_snapshot!((compile(r#"
+    from a
+    join side:left b (==col)
+    sort a.col
+    select !{a.col}
+    take 5
+    "#
+    ).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        a.*,
+        b.*,
+        a.col AS _expr_0
+      FROM
+        a
+        LEFT JOIN b ON a.col = b.col
+      ORDER BY
+        a._expr_0
+      LIMIT
+        5
+    )
+    SELECT
+      *
     FROM
       table_0
     ORDER BY
@@ -1111,6 +1176,35 @@ fn test_window_functions_12() {
     SELECT
       *,
       LAG(a, 1) OVER (PARTITION BY b) AS c
+    FROM
+      table_0
+    "###);
+}
+
+#[test]
+fn test_window_functions_13() {
+    // window params need to be simple expressions
+
+    assert_display_snapshot!((compile(r###"
+    from tracks
+    group {album_id} (
+      window (derive {grp = milliseconds - (row_number this)})
+    )
+    group {grp} (
+      window (derive {count = row_number this})
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY album_id) AS _expr_0
+      FROM
+        tracks
+    )
+    SELECT
+      *,
+      milliseconds - _expr_0 AS grp,
+      ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
     FROM
       table_0
     "###);
@@ -2452,7 +2546,8 @@ join y (foo == only_in_x)
 #[test]
 fn test_double_aggregate() {
     // #941
-    let query = r###"
+    compile(
+        r###"
     from numbers
     group {type} (
         aggregate {
@@ -2462,11 +2557,11 @@ fn test_double_aggregate() {
             max amount
         }
     )
-    "###;
+    "###,
+    )
+    .unwrap_err();
 
-    compile(query).unwrap_err();
-
-    let query = r###"
+    assert_display_snapshot!(compile(r###"
     from numbers
     group {`type`} (
         aggregate {
@@ -2474,9 +2569,7 @@ fn test_double_aggregate() {
             max amount
         }
     )
-    "###;
-
-    assert_display_snapshot!(compile(query).unwrap(),
+    "###).unwrap(),
         @r###"
     SELECT
       type,
@@ -2486,6 +2579,29 @@ fn test_double_aggregate() {
       numbers
     GROUP BY
       type
+    "###
+    );
+}
+
+#[test]
+fn test_window_function_coalesce() {
+    // #3587
+    assert_display_snapshot!(compile(r###"
+    from x
+    select {a, b=a}
+    window (
+      select {
+        cumsum_a=(sum a),
+        cumsum_b=(sum b)
+      }
+    )
+    "###).unwrap(),
+        @r###"
+    SELECT
+      SUM(a) OVER () AS cumsum_a,
+      SUM(a) OVER () AS cumsum_b
+    FROM
+      x
     "###
     );
 }
@@ -4160,7 +4276,7 @@ fn test_relation_var_name_clashes_02() {
     .unwrap(), @r###"
     SELECT
       t.*,
-      t.*
+      table_0.*
     FROM
       t
       JOIN t AS table_0 ON t.x = table_0.x

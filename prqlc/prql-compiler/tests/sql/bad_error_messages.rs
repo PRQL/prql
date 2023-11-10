@@ -181,3 +181,18 @@ fn test_hint_missing_args() {
     ───╯
     "###)
 }
+
+#[test]
+fn test_relation_literal_contains_literals() {
+    assert_display_snapshot!(compile(r###"
+    from [{a=(1+1)}]
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:2:14]
+       │
+     2 │     from [{a=(1+1)}]
+       │              ──┬──
+       │                ╰──── relation literal expected literals, but found ``(std.add ...)``
+    ───╯
+    "###)
+}

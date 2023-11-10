@@ -18,7 +18,7 @@ TransformCall:
     lineage:
       columns:
         - All:
-            input_name: c_invoice
+            input_id: 206
             except: []
       inputs:
         - id: 206

@@ -36,8 +36,13 @@ fn infer_sorts(query: SqlQuery, ctx: &mut Context) -> SqlQuery {
 
 struct SortingInference<'a> {
     last_sorting: Sorting,
-    ctes_sorting: HashMap<TId, Sorting>,
+    ctes_sorting: HashMap<TId, CteSorting>,
     ctx: &'a mut Context,
+}
+
+struct CteSorting {
+    sorting: Sorting,
+    has_been_used: bool,
 }
 
 impl<'a> RqFold for SortingInference<'a> {}
@@ -50,6 +55,10 @@ impl<'a> SrqFold for SortingInference<'a> {
 
             // store sorting to be used later in From references
             let sorting = self.last_sorting.drain(..).collect();
+            let sorting = CteSorting {
+                sorting,
+                has_been_used: false,
+            };
             self.ctes_sorting.insert(cte.tid, sorting);
 
             ctes.push(cte);
@@ -60,7 +69,31 @@ impl<'a> SrqFold for SortingInference<'a> {
 
         // push a sort at the back of the main pipeline
         if let SqlRelation::AtomicPipeline(pipeline) = &mut main_relation {
-            pipeline.push(SqlTransform::Sort(self.last_sorting.drain(..).collect()))
+            pipeline.push(SqlTransform::Sort(self.last_sorting.drain(..).collect()));
+        }
+
+        // make sure that all CTEs whose sorting was used actually SELECT it
+        for cte in &mut ctes {
+            let sorting = self.ctes_sorting.get(&cte.tid).unwrap();
+            if !sorting.has_been_used {
+                continue;
+            }
+
+            let CteKind::Normal(sql_relation) = &mut cte.kind else {
+                continue;
+            };
+            let Some(pipeline) = sql_relation.as_atomic_pipeline_mut() else {
+                continue;
+            };
+            let select = pipeline.iter_mut().find_map(|x| x.as_select_mut()).unwrap();
+
+            for column_sort in &sorting.sorting {
+                let cid = column_sort.column;
+                let is_selected = select.contains(&cid);
+                if !is_selected {
+                    select.push(cid);
+                }
+            }
         }
 
         Ok(SqlQuery {
@@ -93,7 +126,12 @@ impl<'a> SrqMapper<RelationExpr, RelationExpr, (), ()> for SortingInference<'a> 
                     match expr.kind {
                         RelationExprKind::Ref(ref tid) => {
                             // infer sorting from referenced pipeline
-                            sorting = self.ctes_sorting.get(tid).cloned().unwrap_or_default();
+                            if let Some(cte_sorting) = self.ctes_sorting.get_mut(tid) {
+                                cte_sorting.has_been_used = true;
+                                sorting = cte_sorting.sorting.clone();
+                            } else {
+                                sorting = Vec::new();
+                            };
                         }
                         RelationExprKind::SubQuery(rel) => {
                             let rel = self.fold_sql_relation(rel)?;

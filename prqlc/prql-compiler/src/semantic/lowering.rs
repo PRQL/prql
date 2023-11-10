@@ -338,10 +338,16 @@ impl Lowerer {
                                 .into_tuple()
                                 .unwrap()
                                 .into_iter()
-                                .map(|element| element.kind.into_literal().unwrap())
-                                .collect()
+                                .map(|element| {
+                                    element.try_cast(
+                                        |x| x.into_literal(),
+                                        Some("relation literal"),
+                                        "literals",
+                                    )
+                                })
+                                .try_collect()
                         })
-                        .collect(),
+                        .try_collect()?,
                 };
 
                 log::debug!("lowering literal relation table, columns = {columns:?}");
@@ -596,8 +602,8 @@ impl Lowerer {
                     let name = name.as_ref().map(|i| i.name.clone());
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                LineageColumn::All { input_name, except } => {
-                    let input = lineage.find_input(input_name).unwrap();
+                LineageColumn::All { input_id, except } => {
+                    let input = lineage.find_input(*input_id).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),

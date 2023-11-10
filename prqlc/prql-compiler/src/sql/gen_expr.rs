@@ -395,9 +395,10 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<ExprOrSource>
                 let window = compute.window.clone();
                 let span = compute.expr.span;
 
+                let prev_wf = ctx.query.window_function;
                 ctx.query.window_function = window.is_some();
                 let expr = translate_expr(compute.expr.clone(), ctx)?;
-                ctx.query.window_function = false;
+                ctx.query.window_function = prev_wf;
 
                 if let Some(window) = window {
                     translate_windowed(expr, window, ctx, span)?
@@ -875,6 +876,8 @@ pub enum ExprOrSource {
 pub struct SourceExpr {
     pub text: String,
     pub binding_strength: i32,
+
+    /// True for expressions that support (and need) the window frame (OVER ...)
     pub window_frame: bool,
 }
 

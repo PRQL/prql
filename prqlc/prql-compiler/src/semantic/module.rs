@@ -203,7 +203,7 @@ impl Module {
         for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
             let input_name = match column {
-                LineageColumn::All { input_name, .. } => Some(input_name),
+                LineageColumn::All { input_id, .. } => frame.find_input(*input_id).map(|i| &i.name),
                 LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
@@ -215,7 +215,7 @@ impl Module {
                     None => {
                         namespace.redirects.push(Ident::from_name(input_name));
 
-                        let input = frame.find_input(input_name).unwrap();
+                        let input = frame.find_input_by_name(input_name).unwrap();
                         let mut sub_ns = Module::default();
 
                         let self_decl = Decl {
@@ -241,8 +241,8 @@ impl Module {
 
             // insert column decl
             match column {
-                LineageColumn::All { input_name, .. } => {
-                    let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
+                LineageColumn::All { input_id, .. } => {
+                    let input = frame.find_input(*input_id).unwrap();
 
                     let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
                     let declared_at = Some(input.id);
