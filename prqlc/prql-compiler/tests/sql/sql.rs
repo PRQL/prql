@@ -1117,6 +1117,35 @@ fn test_window_functions_12() {
 }
 
 #[test]
+fn test_window_functions_13() {
+    // window params need to be simple expressions
+
+    assert_display_snapshot!((compile(r###"
+    from tracks
+    group {album_id} (
+      window (derive {grp = milliseconds - (row_number this)})
+    )
+    group {grp} (
+      window (derive {count = row_number this})
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY album_id) AS _expr_0
+      FROM
+        tracks
+    )
+    SELECT
+      *,
+      milliseconds - _expr_0 AS grp,
+      ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
+    FROM
+      table_0
+    "###);
+}
+
+#[test]
 fn test_name_resolving() {
     let query = r###"
     from numbers
