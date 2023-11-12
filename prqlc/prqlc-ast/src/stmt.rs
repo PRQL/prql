@@ -26,9 +26,10 @@ pub enum VarDefKind {
 pub struct Stmt {
     #[serde(flatten)]
     pub kind: StmtKind,
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub span: Option<Span>,
 
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
 }
 
@@ -45,6 +46,8 @@ pub struct VarDef {
     pub kind: VarDefKind,
     pub name: String,
     pub value: Box<Expr>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
 }
 

@@ -20,10 +20,10 @@ TransformCall:
     lineage:
       columns:
         - All:
-            input_id: 76
+            input_id: 85
             except: []
       inputs:
-        - id: 76
+        - id: 85
           name: c_invoice
           table:
             - default_db
@@ -42,9 +42,9 @@ TransformCall:
                   kind:
                     Array:
                       kind: Any
-                      span: "2:1878-1885"
+                      span: "2:2069-2076"
                       name: ~
-                  span: "2:1877-1886"
+                  span: "2:2068-2077"
                   name: array
           ty:
             kind:
@@ -52,14 +52,14 @@ TransformCall:
                 - - ~
                   - kind:
                       Primitive: Float
-                    span: "2:4174-4179"
+                    span: "2:4365-4370"
                     name: ~
                 - - ~
                   - kind:
                       Singleton: "Null"
-                    span: "2:4183-4187"
+                    span: "2:4374-4378"
                     name: ~
-            span: "2:4174-4187"
+            span: "2:4365-4378"
             name: ~
   partition:
     - Ident:
@@ -75,55 +75,55 @@ TransformCall:
                     - - ~
                       - kind:
                           Primitive: Int
-                        span: "2:1912-1915"
+                        span: "2:2103-2106"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "2:1919-1924"
+                        span: "2:2110-2115"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Bool
-                        span: "2:1928-1932"
+                        span: "2:2119-2123"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Text
-                        span: "2:1936-1940"
+                        span: "2:2127-2131"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Date
-                        span: "2:1944-1948"
+                        span: "2:2135-2139"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Time
-                        span: "2:1952-1956"
+                        span: "2:2143-2147"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Timestamp
-                        span: "2:1960-1969"
+                        span: "2:2151-2160"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "2:1973-1977"
+                        span: "2:2164-2168"
                         name: ~
-                span: "2:1912-1977"
+                span: "2:2103-2168"
                 name: scalar
             - - ~
               - kind:
                   Tuple:
                     - Wildcard:
                         kind: Any
-                        span: "2:1992-1999"
+                        span: "2:2183-2190"
                         name: ~
-                span: "2:1991-2002"
+                span: "2:2182-2193"
                 name: tuple
-        span: "2:3001-3016"
+        span: "2:3192-3207"
         name: ~
 ty:
   kind:
@@ -132,11 +132,11 @@ ty:
         Tuple:
           - Wildcard:
               kind: Any
-              span: "2:1992-1999"
+              span: "2:2183-2190"
               name: ~
-      span: "2:1991-2002"
+      span: "2:2182-2193"
       name: tuple
-  span: "2:2107-2114"
+  span: "2:2298-2305"
   name: relation
 lineage:
   columns:
@@ -144,14 +144,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 77
+        target_id: 86
         target_name: ~
     - Single:
         name: ~
-        target_id: 84
+        target_id: 93
         target_name: ~
   inputs:
-    - id: 76
+    - id: 85
       name: c_invoice
       table:
         - default_db

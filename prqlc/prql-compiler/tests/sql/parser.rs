@@ -134,8 +134,7 @@ fn test_take() {
             args:
               - Literal:
                   Integer: 10
-        ty: ~
-      annotations: []
+      span: "0:0-7"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"take ..10"#).unwrap(), @r###"
@@ -154,8 +153,7 @@ fn test_take() {
                   end:
                     Literal:
                       Integer: 10
-        ty: ~
-      annotations: []
+      span: "0:0-9"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"take 1..10"#).unwrap(), @r###"
@@ -176,8 +174,7 @@ fn test_take() {
                   end:
                     Literal:
                       Integer: 10
-        ty: ~
-      annotations: []
+      span: "0:0-10"
     "###);
 }
 
@@ -427,8 +424,7 @@ fn test_basic_exprs() {
             args:
               - Ident:
                   - a
-        ty: ~
-      annotations: []
+      span: "0:28-36"
     "###);
     assert_yaml_snapshot!(parse_expr(
             "join side:left country (id==employee_id)"
@@ -770,8 +766,7 @@ fn test_filter() {
                   right:
                     Literal:
                       String: USA
-        ty: ~
-      annotations: []
+      span: "0:0-23"
     "###);
 
     assert_yaml_snapshot!(
@@ -799,8 +794,7 @@ fn test_filter() {
                   right:
                     Literal:
                       String: USA
-        ty: ~
-      annotations: []
+      span: "0:0-31"
     "###
     );
 }
@@ -843,8 +837,7 @@ fn test_aggregate() {
                                   - salary
                         - Ident:
                             - count
-        ty: ~
-      annotations: []
+      span: "0:0-77"
     "###);
     let aggregate = parse_single(
         r"group {title} (
@@ -880,8 +873,7 @@ fn test_aggregate() {
                             args:
                               - Ident:
                                   - salary
-        ty: ~
-      annotations: []
+      span: "0:0-70"
     "###);
 }
 
@@ -1070,8 +1062,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-26"
     "###);
     assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
         , @r###"
@@ -1089,8 +1080,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-22"
     "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
         , @r###"
@@ -1114,8 +1104,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-28"
     "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
         , @r###"
@@ -1139,8 +1128,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-26"
     "###);
 
     assert_yaml_snapshot!(parse_single("let foo = x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
@@ -1183,8 +1171,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-51"
     "###);
 
     assert_yaml_snapshot!(parse_single("func return_constant ->  42\n").unwrap(), @r###"
@@ -1202,8 +1189,7 @@ fn test_function() {
               - name: return_constant
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-28"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"let count = X -> s"SUM({X})"
@@ -1228,8 +1214,7 @@ fn test_function() {
               - name: X
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-28"
     "###);
 
     assert_yaml_snapshot!(parse_single(
@@ -1285,8 +1270,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
-        ty_expr: ~
-      annotations: []
+      span: "0:13-147"
     "###);
 
     assert_yaml_snapshot!(parse_single("let add = x to:a ->  x + to\n").unwrap(), @r###"
@@ -1314,8 +1298,7 @@ fn test_function() {
                 default_value:
                   Ident:
                     - a
-        ty_expr: ~
-      annotations: []
+      span: "0:0-27"
     "###);
 }
 
@@ -1512,8 +1495,7 @@ fn test_var_def() {
             args:
               - Ident:
                   - employees
-        ty: ~
-      annotations: []
+      span: "0:0-39"
     "###);
 
     assert_yaml_snapshot!(parse_single(
@@ -1578,8 +1560,7 @@ fn test_var_def() {
                   args:
                     - Literal:
                         Integer: 50
-        ty: ~
-      annotations: []
+      span: "0:0-231"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"
@@ -1592,8 +1573,7 @@ fn test_var_def() {
         value:
           SString:
             - String: SELECT * FROM employees
-        ty: ~
-      annotations: []
+      span: "0:13-47"
     "###);
 
     assert_yaml_snapshot!(parse_single(
@@ -1629,8 +1609,7 @@ fn test_var_def() {
                     - Ident:
                         - foo
                       alias: only_in_x
-        ty: ~
-      annotations: []
+      span: "0:0-84"
     - VarDef:
         kind: Main
         name: main
@@ -1642,8 +1621,7 @@ fn test_var_def() {
             args:
               - Ident:
                   - x
-        ty: ~
-      annotations: []
+      span: "0:96-102"
     "###);
 }
 
@@ -1687,8 +1665,7 @@ fn test_inline_pipeline() {
               - name: x
                 default_value: ~
             named_params: []
-        ty: ~
-      annotations: []
+      span: "0:0-37"
     "###);
 }
 
@@ -1735,8 +1712,7 @@ fn test_sql_parameters() {
                             op: Eq
                             right:
                               Param: 2.name
-        ty: ~
-      annotations: []
+      span: "0:9-108"
     "###);
 }
 
@@ -1820,8 +1796,7 @@ join `my-proj`.`dataset`.`table`
                         - my-proj
                         - dataset
                         - table
-        ty: ~
-      annotations: []
+      span: "0:1-127"
     "###);
 }
 
@@ -1903,8 +1878,7 @@ fn test_sort() {
                             expr:
                               Ident:
                                 - num_of_articles
-        ty: ~
-      annotations: []
+      span: "0:9-175"
     "###);
 }
 
@@ -1945,8 +1919,7 @@ fn test_dates() {
                                   n: 2
                                   unit: years
                           alias: age_plus_two_years
-        ty: ~
-      annotations: []
+      span: "0:9-77"
     "###);
 
     assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
@@ -1991,8 +1964,7 @@ fn test_multiline_string() {
               - Ident:
                   - r
                 alias: x
-        ty: ~
-      annotations: []
+      span: "0:9-39"
     "### )
 }
 
@@ -2030,8 +2002,7 @@ fn test_coalesce() {
                           Literal:
                             Integer: 0
                       alias: amount
-        ty: ~
-      annotations: []
+      span: "0:9-60"
     "### )
 }
 
@@ -2053,8 +2024,7 @@ fn test_literal() {
               - Literal:
                   Boolean: true
                 alias: x
-        ty: ~
-      annotations: []
+      span: "0:9-25"
     "###)
 }
 
@@ -2113,8 +2083,7 @@ fn test_allowed_idents() {
                         - Ident:
                             - _employees
                             - _underscored_column
-        ty: ~
-      annotations: []
+      span: "0:9-173"
     "###)
 }
 
@@ -2193,8 +2162,7 @@ fn test_gt_lt_gte_lte() {
                         right:
                           Literal:
                             Integer: 2
-        ty: ~
-      annotations: []
+      span: "0:9-140"
     "###)
 }
 
@@ -2231,8 +2199,7 @@ join s=salaries (==id)
                         expr:
                           Ident:
                             - id
-        ty: ~
-      annotations: []
+      span: "0:1-39"
     "###);
 }
 
@@ -2322,8 +2289,7 @@ fn test_unicode() {
             args:
               - Ident:
                   - tète
-        ty: ~
-      annotations: []
+      span: "0:0-9"
     "###);
 }
 
@@ -2341,8 +2307,7 @@ fn test_var_defs() {
         value:
           Ident:
             - x
-        ty: ~
-      annotations: []
+      span: "0:9-42"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"
@@ -2356,8 +2321,7 @@ fn test_var_defs() {
         value:
           Ident:
             - x
-        ty: ~
-      annotations: []
+      span: "0:9-25"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"
@@ -2370,8 +2334,7 @@ fn test_var_defs() {
         value:
           Ident:
             - x
-        ty: ~
-      annotations: []
+      span: "0:9-11"
     "###);
 }
 
@@ -2391,8 +2354,7 @@ fn test_array() {
                 Integer: 1
             - Literal:
                 Integer: 2
-        ty: ~
-      annotations: []
+      span: "0:9-24"
     - VarDef:
         kind: Let
         name: a
@@ -2402,8 +2364,7 @@ fn test_array() {
                 Boolean: false
             - Literal:
                 String: hello
-        ty: ~
-      annotations: []
+      span: "0:33-57"
     "###);
 }
 
@@ -2435,7 +2396,7 @@ fn test_annotation() {
               - name: b
                 default_value: ~
             named_params: []
-        ty: ~
+      span: "0:9-61"
       annotations:
         - expr:
             Tuple:
@@ -2525,7 +2486,7 @@ fn test_target() {
         version: ~
         other:
           target: sql.sqlite
-      annotations: []
+      span: "0:0-34"
     - VarDef:
         kind: Main
         name: main
@@ -2546,7 +2507,6 @@ fn test_target() {
                   args:
                     - Ident:
                         - film2
-        ty: ~
-      annotations: []
+      span: "0:45-78"
     "###);
 }
