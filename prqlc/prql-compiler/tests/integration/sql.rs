@@ -838,6 +838,23 @@ fn test_ranges() {
 }
 
 #[test]
+fn test_in_values() {
+    assert_display_snapshot!((compile(r#"
+    from employees
+    filter (title | in ["Sales Manager", "Sales Support Agent"])
+    filter (employee_id | in [1, 2, 5])
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      title IN ('Sales Manager', 'Sales Support Agent')
+      AND first_name IN (1, 2, 5)
+    "#);
+}
+
+#[test]
 fn test_interval() {
     let query = r###"
     from projects
