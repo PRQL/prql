@@ -47,7 +47,7 @@
 		<PackagePath>\</PackagePath>
 	  </None>
 	</ItemGroup>
-	
+
 	<PropertyGroup>
 		<!-- disable warning when XML comments are missing -->
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
