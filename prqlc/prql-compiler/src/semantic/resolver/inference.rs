@@ -1,11 +1,10 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::expr::Ident;
-
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
-use crate::ir::pl::{Lineage, LineageColumn, LineageInput, TupleField, Ty};
+use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
+use prqlc_ast::{Ident, TupleField, Ty};
 
 use super::Resolver;
 

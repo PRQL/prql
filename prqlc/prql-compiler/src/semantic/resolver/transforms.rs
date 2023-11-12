@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
+use prqlc_ast::TupleField;
 use serde::Deserialize;
 use std::iter::zip;
 

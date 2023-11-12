@@ -1,117 +1,120 @@
+use std::iter::zip;
+
 use anyhow::Result;
 use itertools::Itertools;
+use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyKind};
 
 use crate::ir::pl::*;
-use crate::semantic::ast_expand::try_restrict_range;
-use crate::semantic::{write_pl, NS_THAT, NS_THIS};
+
+use crate::semantic::write_pl;
 use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
 
 /// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
-pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
-    coerce_kind_to_set(resolver, expr.kind)
-}
+// pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
+//     coerce_kind_to_set(resolver, expr.kind)
+// }
 
-fn coerce_to_aliased_type(resolver: &mut Resolver, expr: Expr) -> Result<(Option<String>, Ty)> {
-    let name = expr.alias;
-    let expr = coerce_kind_to_set(resolver, expr.kind).map_err(|e| e.with_span(expr.span))?;
+// fn coerce_to_aliased_type(resolver: &mut Resolver, expr: Expr) -> Result<(Option<String>, Ty)> {
+//     let name = expr.alias;
+//     let expr = coerce_kind_to_set(resolver, expr.kind).map_err(|e| e.with_span(expr.span))?;
 
-    Ok((name, expr))
-}
+//     Ok((name, expr))
+// }
 
-fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
-    Ok(match expr {
-        // already resolved type expressions (mostly primitives)
-        ExprKind::Type(set_expr) => set_expr,
+// fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
+//     Ok(match expr {
+//         // already resolved type expressions (mostly primitives)
+//         ExprKind::Type(set_expr) => set_expr,
 
-        // singletons
-        ExprKind::Literal(lit) => Ty::new(lit),
+//         // singletons
+//         ExprKind::Literal(lit) => Ty::new(lit),
 
-        // tuples
-        ExprKind::Tuple(elements) => {
-            let mut set_elements = Vec::with_capacity(elements.len());
+//         // tuples
+//         ExprKind::Tuple(elements) => {
+//             let mut set_elements = Vec::with_capacity(elements.len());
 
-            for e in elements {
-                match try_restrict_range(e) {
-                    // special case: {x..}
-                    Ok(Range { start, .. }) => {
-                        let inner = match start {
-                            Some(x) => Some(coerce_to_type(resolver, *x)?),
-                            None => None,
-                        };
+//             for e in elements {
+//                 match try_restrict_range(e) {
+//                     // special case: {x..}
+//                     Ok(Range { start, .. }) => {
+//                         let inner = match start {
+//                             Some(x) => Some(coerce_to_type(resolver, *x)?),
+//                             None => None,
+//                         };
 
-                        set_elements.push(TupleField::Wildcard(inner))
-                    }
+//                         set_elements.push(TupleField::Wildcard(inner))
+//                     }
 
-                    // base: case
-                    Err(e) => {
-                        let (name, ty) = coerce_to_aliased_type(resolver, e)?;
-                        let ty = Some(ty);
+//                     // base: case
+//                     Err(e) => {
+//                         let (name, ty) = coerce_to_aliased_type(resolver, e)?;
+//                         let ty = Some(ty);
 
-                        set_elements.push(TupleField::Single(name, ty));
-                    }
-                }
-            }
+//                         set_elements.push(TupleField::Single(name, ty));
+//                     }
+//                 }
+//             }
 
-            Ty::new(TyKind::Tuple(set_elements))
-        }
+//             Ty::new(TyKind::Tuple(set_elements))
+//         }
 
-        // arrays
-        ExprKind::Array(elements) => {
-            if elements.len() != 1 {
-                return Err(Error::new_simple(
-                    "For type expressions, arrays must contain exactly one element.",
-                )
-                .into());
-            }
-            let items_type = elements.into_iter().next().unwrap();
-            let (_, items_type) = coerce_to_aliased_type(resolver, items_type)?;
+//         // arrays
+//         ExprKind::Array(elements) => {
+//             if elements.len() != 1 {
+//                 return Err(Error::new_simple(
+//                     "For type expressions, arrays must contain exactly one element.",
+//                 )
+//                 .into());
+//             }
+//             let items_type = elements.into_iter().next().unwrap();
+//             let (_, items_type) = coerce_to_aliased_type(resolver, items_type)?;
 
-            Ty::new(TyKind::Array(Box::new(items_type)))
-        }
+//             Ty::new(TyKind::Array(Box::new(items_type)))
+//         }
 
-        // unions
-        ExprKind::RqOperator { name, args } if name == "std.or" => {
-            let [left, right]: [_; 2] = args.try_into().unwrap();
-            let left = coerce_to_type(resolver, left)?;
-            let right = coerce_to_type(resolver, right)?;
+//         // unions
+//         ExprKind::RqOperator { name, args } if name == "std.or" => {
+//             let [left, right]: [_; 2] = args.try_into().unwrap();
+//             let left = coerce_to_type(resolver, left)?;
+//             let right = coerce_to_type(resolver, right)?;
 
-            // flatten nested unions
-            let mut options = Vec::with_capacity(2);
-            if let TyKind::Union(parts) = left.kind {
-                options.extend(parts);
-            } else {
-                options.push((left.name.clone(), left));
-            }
-            if let TyKind::Union(parts) = right.kind {
-                options.extend(parts);
-            } else {
-                options.push((right.name.clone(), right));
-            }
+//             // flatten nested unions
+//             let mut options = Vec::with_capacity(2);
+//             if let TyKind::Union(parts) = left.kind {
+//                 options.extend(parts);
+//             } else {
+//                 options.push((left.name.clone(), left));
+//             }
+//             if let TyKind::Union(parts) = right.kind {
+//                 options.extend(parts);
+//             } else {
+//                 options.push((right.name.clone(), right));
+//             }
 
-            Ty::new(TyKind::Union(options))
-        }
+//             Ty::new(TyKind::Union(options))
+//         }
 
-        // functions
-        ExprKind::Func(func) => Ty::new(TyFunc {
-            args: func
-                .params
-                .into_iter()
-                .map(|p| p.ty.map(|t| t.into_ty().unwrap()))
-                .collect_vec(),
-            return_ty: Box::new(resolver.fold_type_expr(Some(func.body))?),
-        }),
+//         // functions
+//         ExprKind::Func(func) => Ty::new(TyFunc {
+//             args: func
+//                 .params
+//                 .into_iter()
+//                 .map(|p| p.ty.map(|t| t))
+//                 .collect_vec(),
+//             return_ty: Box::new(resolver.fold_type(Some(func.body))?),
+//         }),
 
-        _ => {
-            return Err(Error::new_simple(format!(
-                "not a type expression: {}",
-                write_pl(Expr::new(expr))
-            ))
-            .into())
-        }
-    })
-}
+//         _ => {
+//             return Err(Error::new_simple(format!(
+//                 "not a type expression: {}",
+//                 write_pl(Expr::new(expr))
+//             ))
+//             .into())
+//         }
+//     })
+// }
 
 pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     if let Some(ty) = &node.ty {
@@ -172,44 +175,14 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
 
         _ => return Ok(None),
     };
-    Ok(Some(Ty { kind, name: None }))
+    Ok(Some(Ty {
+        kind,
+        name: None,
+        span: None,
+    }))
 }
 
 impl Resolver<'_> {
-    pub fn fold_type_expr(&mut self, expr: Option<Box<Expr>>) -> Result<Option<Ty>> {
-        Ok(match expr {
-            Some(expr) => {
-                let name = expr.kind.as_ident().map(|i| i.name.clone());
-
-                let old = self.disable_type_checking;
-                self.disable_type_checking = true;
-                let expr = self.fold_expr(*expr)?;
-                self.disable_type_checking = old;
-
-                let mut set_expr = coerce_to_type(self, expr)?;
-                set_expr.name = set_expr.name.or(name);
-                Some(set_expr)
-            }
-            None => None,
-        })
-    }
-
-    pub fn fold_ty_or_expr(&mut self, ty_or_expr: Option<TyOrExpr>) -> Result<Option<TyOrExpr>> {
-        self.root_mod.module.shadow(NS_THIS);
-        self.root_mod.module.shadow(NS_THAT);
-
-        let res = match ty_or_expr {
-            Some(TyOrExpr::Expr(ty_expr)) => {
-                Some(TyOrExpr::Ty(self.fold_type_expr(Some(ty_expr))?.unwrap()))
-            }
-            _ => ty_or_expr,
-        };
-
-        self.root_mod.module.unshadow(NS_THIS);
-        self.root_mod.module.unshadow(NS_THAT);
-        Ok(res)
-    }
-
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
@@ -264,14 +237,14 @@ impl Resolver<'_> {
             }
 
             // base case: compare types
-            _ => expected.is_super_type_of(&found_ty),
+            _ => is_super_type_of(expected, &found_ty),
         };
         if !expected_is_above {
             fn display_ty(ty: &Ty) -> String {
                 if ty.is_tuple() {
                     "a tuple".to_string()
                 } else {
-                    format!("type `{ty}`")
+                    format!("type `{}`", crate::codegen::write_ty(ty))
                 }
             }
 
@@ -302,7 +275,7 @@ impl Resolver<'_> {
             }
 
             if let Some(expected_name) = &expected.name {
-                let expanded = expected.kind.to_string();
+                let expanded = crate::codegen::write_ty_kind(&expected.kind);
                 e = e.push_hint(format!("Type `{expected_name}` expands to `{expanded}`"));
             }
 
@@ -381,4 +354,108 @@ fn find_potential_tuple_fields(expected: &Ty) -> Option<&Vec<TupleField>> {
         }
         _ => None,
     }
+}
+
+/// Analogous to [crate::ir::pl::Lineage::rename()]
+pub fn rename_relation(ty_kind: &mut TyKind, alias: String) {
+    if let TyKind::Array(items_ty) = ty_kind {
+        rename_tuples(&mut items_ty.kind, alias);
+    }
+}
+
+fn rename_tuples(ty_kind: &mut TyKind, alias: String) {
+    flatten_tuples(ty_kind);
+
+    if let TyKind::Tuple(fields) = ty_kind {
+        let inner_fields = std::mem::take(fields);
+
+        let ty = Ty::new(TyKind::Tuple(inner_fields));
+        fields.push(TupleField::Single(Some(alias), Some(ty)));
+    }
+}
+
+fn flatten_tuples(ty_kind: &mut TyKind) {
+    if let TyKind::Tuple(fields) = ty_kind {
+        let mut new_fields = Vec::new();
+
+        for field in fields.drain(..) {
+            let TupleField::Single(name, Some(ty)) = field else {
+                new_fields.push(field);
+                continue;
+            };
+
+            // recurse
+            // let ty = ty.flatten_tuples();
+
+            let TyKind::Tuple(inner_fields) = ty.kind else {
+                new_fields.push(TupleField::Single(name, Some(ty)));
+                continue;
+            };
+            new_fields.extend(inner_fields);
+        }
+
+        fields.extend(new_fields);
+    }
+}
+
+pub fn is_super_type_of(superset: &Ty, subset: &Ty) -> bool {
+    if superset.is_relation() && subset.is_relation() {
+        return true;
+    }
+    is_super_type_of_kind(&superset.kind, &subset.kind)
+}
+
+pub fn is_sub_type_of_array(ty: &Ty) -> bool {
+    match &ty.kind {
+        TyKind::Array(_) => true,
+        TyKind::Union(elements) => elements.iter().any(|(_, e)| is_sub_type_of_array(e)),
+        _ => false,
+    }
+}
+
+fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
+    match (superset, subset) {
+        (TyKind::Any, _) => true,
+        (_, TyKind::Any) => false,
+        (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
+
+        (one, TyKind::Union(many)) => many
+            .iter()
+            .all(|(_, each)| is_super_type_of_kind(one, &each.kind)),
+
+        (TyKind::Union(many), one) => many
+            .iter()
+            .any(|(_, any)| is_super_type_of_kind(&any.kind, one)),
+
+        (TyKind::Function(None), TyKind::Function(_)) => true,
+        (TyKind::Function(Some(_)), TyKind::Function(None)) => true,
+        (TyKind::Function(Some(sup)), TyKind::Function(Some(sub))) => {
+            if is_not_super_type_of(sup.return_ty.as_ref(), sub.return_ty.as_ref()) {
+                return false;
+            }
+            if sup.args.len() != sub.args.len() {
+                return false;
+            }
+            for (sup_arg, sub_arg) in zip(&sup.args, &sub.args) {
+                if is_not_super_type_of(sup_arg, sub_arg) {
+                    return false;
+                }
+            }
+
+            true
+        }
+
+        (l, r) => l == r,
+    }
+}
+
+fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
+    if let Some(sub_ret) = sub {
+        if let Some(sup_ret) = sup {
+            if !is_super_type_of(sup_ret, sub_ret) {
+                return true;
+            }
+        }
+    }
+    false
 }

@@ -1673,13 +1673,23 @@ fn test_distinct_on() {
       take 1
     )
     "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY department
+          ORDER BY
+            age
+        ) AS _expr_0
+      FROM
+        employees
+    )
     SELECT
-      DISTINCT ON (department) *
+      *
     FROM
-      employees
-    ORDER BY
-      department,
-      age
+      table_0
+    WHERE
+      _expr_0 <= 1
     "###);
 
     assert_display_snapshot!((compile(r###"
@@ -1689,11 +1699,21 @@ fn test_distinct_on() {
     select {class, begins}
     group {begins} (take 1)
     "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        class,
+        begins,
+        ROW_NUMBER() OVER (PARTITION BY begins) AS _expr_0
+      FROM
+        x
+    )
     SELECT
-      DISTINCT ON (begins) class,
+      class,
       begins
     FROM
-      x
+      table_0
+    WHERE
+      _expr_0 <= 1
     "###);
 }
 

@@ -11,6 +11,10 @@
 
 **Fixes**:
 
+- Stop to compiling to `DISTINCT ON` when `take 1` is used with `group by` for
+  the targets `sql.clickhouse`, `sql.duckdb` and `sql.postgres` to work around a
+  serious bug of compiler. (@eitsupi, #3788)
+
 **Documentation**:
 
 **Web**:
@@ -43,9 +47,12 @@ This release has 155 commits from 9 contributors. Selected changes:
 - _Breaking_: The `std.sql.read_csv` function is now compiled to `read_csv` by
   default. Please set the target `sql.duckdb` to use the DuckDB's
   `read_csv_auto` function as previously. (@eitsupi, #3599)
+- _Breaking_: The `std.every` function is renamed to `std.all` (@aljazerzen,
+  #3703)
 - The `std.sql.read_csv` function and the `std.sql.read_parquet` function
   supports the `sql.clickhouse` target. (@eitsupi, #1533)
 - Add `std.prql_version` function to return PRQL version (@hulxv, #3533)
+- A new type `anytype` is added. (@aljazerzen, #3703)
 - Add support for hex escape sequences in strings. Example `"Hello \x51"`.
   (@vanillajonathan, #3568)
 - Add support for long Unicode escape sequences. Example `"Hello \u{01F422}"`.

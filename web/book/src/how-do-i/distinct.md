@@ -41,7 +41,9 @@ from employees
 group {first_name, last_name} (take 1)
 ```
 
-When compiling to Postgres or DuckDB dialect, such queries will be compiled to
+<!-- TODO: uncomment when the bug is fixed -->
+
+<!-- When compiling to Postgres or DuckDB dialect, such queries will be compiled to
 `DISTINCT ON`, which is
 [the most performant option](https://stackoverflow.com/a/7630564).
 
@@ -53,4 +55,4 @@ group department (
   sort age
   take 1
 )
-```
+``` -->

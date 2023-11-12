@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/src/semantic/resolver.rs
+source: prqlc/prql-compiler/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
 ---
 - RqOperator:
@@ -28,40 +28,49 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
               ty:
                 kind:
                   Union:
-                    - - int
+                    - - ~
                       - kind:
                           Primitive: Int
-                        name: int
-                    - - float
+                        span: "2:779-782"
+                        name: ~
+                    - - ~
                       - kind:
                           Primitive: Float
-                        name: float
+                        span: "2:786-791"
+                        name: ~
+                span: "2:779-791"
                 name: ~
             - Literal:
                 Integer: 1
               ty:
                 kind:
                   Primitive: Int
+                span: ~
                 name: ~
         ty:
           kind:
             Union:
-              - - int
+              - - ~
                 - kind:
                     Primitive: Int
-                  name: int
-              - - float
+                  span: "2:1110-1113"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Float
-                  name: float
-              - - timestamp
+                  span: "2:1117-1122"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Timestamp
-                  name: timestamp
-              - - date
+                  span: "2:1126-1135"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Date
-                  name: date
+                  span: "2:1139-1143"
+                  name: ~
+          span: "2:1110-1143"
           name: ~
       - Ident:
           - this
@@ -70,41 +79,51 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
         ty:
           kind:
             Union:
-              - - int
+              - - ~
                 - kind:
                     Primitive: Int
-                  name: int
-              - - float
+                  span: "2:924-927"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Float
-                  name: float
-              - - timestamp
+                  span: "2:931-936"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Timestamp
-                  name: timestamp
-              - - date
+                  span: "2:940-949"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Date
-                  name: date
+                  span: "2:953-957"
+                  name: ~
+          span: "2:924-957"
           name: ~
   ty:
     kind:
       Union:
-        - - int
+        - - ~
           - kind:
               Primitive: Int
-            name: int
-        - - float
+            span: "2:963-966"
+            name: ~
+        - - ~
           - kind:
               Primitive: Float
-            name: float
-        - - timestamp
+            span: "2:970-975"
+            name: ~
+        - - ~
           - kind:
               Primitive: Timestamp
-            name: timestamp
-        - - date
+            span: "2:979-988"
+            name: ~
+        - - ~
           - kind:
               Primitive: Date
-            name: date
+            span: "2:992-996"
+            name: ~
+    span: "2:963-996"
     name: ~
 

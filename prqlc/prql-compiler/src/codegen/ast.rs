@@ -312,7 +312,7 @@ impl WriteSource for Stmt {
             }
             StmtKind::VarDef(var_def) => match var_def.kind {
                 VarDefKind::Let => {
-                    let typ = if let Some(ty) = &var_def.ty_expr {
+                    let typ = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
                     } else {
                         "".to_string()
@@ -343,7 +343,7 @@ impl WriteSource for Stmt {
                 }
             },
             StmtKind::TypeDef(type_def) => {
-                r += opt.consume(&format!("let {}", type_def.name))?;
+                r += opt.consume(&format!("type {}", type_def.name))?;
 
                 if let Some(value) = &type_def.value {
                     r += opt.consume(" = ")?;

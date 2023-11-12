@@ -6,11 +6,11 @@ use itertools::{Itertools, Position};
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
+use prqlc_ast::{Ty, TyFunc};
 
-use crate::semantic::resolver::transforms;
-use crate::{Error, Span, WithErrorInfo};
-
+use crate::semantic::resolver::{transforms, types};
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
+use crate::{Error, Span, WithErrorInfo};
 
 use super::Resolver;
 
@@ -72,7 +72,7 @@ impl Resolver<'_> {
 
         let needs_window = (closure.params.last())
             .and_then(|p| p.ty.as_ref())
-            .map(|t| t.as_ty().unwrap().is_sub_type_of_array())
+            .map(types::is_sub_type_of_array)
             .unwrap_or_default();
 
         // evaluate
@@ -81,7 +81,7 @@ impl Resolver<'_> {
 
             if operator_name.starts_with("std.") {
                 Expr {
-                    ty: closure.return_ty.map(|t| t.into_ty().unwrap()),
+                    ty: closure.return_ty,
                     needs_window,
                     ..Expr::new(ExprKind::RqOperator {
                         name: operator_name.clone(),
@@ -143,12 +143,12 @@ impl Resolver<'_> {
             .into_iter()
             .map(|p| -> Result<_> {
                 Ok(FuncParam {
-                    ty: self.fold_ty_or_expr(p.ty)?,
+                    ty: fold_type_opt(self, p.ty)?,
                     ..p
                 })
             })
             .try_collect()?;
-        closure.return_ty = self.fold_ty_or_expr(closure.return_ty)?;
+        closure.return_ty = fold_type_opt(self, closure.return_ty)?;
         Ok(closure)
     }
 
@@ -199,7 +199,6 @@ impl Resolver<'_> {
                 let is_relation = param
                     .ty
                     .as_ref()
-                    .and_then(|t| t.as_ty())
                     .map(|t| t.is_relation())
                     .unwrap_or_default();
 
@@ -303,13 +302,13 @@ impl Resolver<'_> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // don't validate types of unresolved exprs
-        if arg.id.is_some() && !self.disable_type_checking {
+        if arg.id.is_some() {
             // validate type
 
             let expects_func = param
                 .ty
                 .as_ref()
-                .map(|t| t.as_ty().unwrap().is_function())
+                .map(|t| t.is_function())
                 .unwrap_or_default();
             if !expects_func && arg.kind.is_func() {
                 return Ok(Err(arg));
@@ -320,8 +319,7 @@ impl Resolver<'_> {
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
-            let ty = param.ty.as_ref().map(|t| t.as_ty().unwrap());
-            self.validate_type(&mut arg, ty, &who)?;
+            self.validate_type(&mut arg, param.ty.as_ref(), &who)?;
         }
 
         Ok(Ok(arg))
@@ -432,9 +430,9 @@ fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
             .params
             .iter()
             .skip(func.args.len())
-            .map(|a| a.ty.as_ref().map(|x| x.as_ty().cloned().unwrap()))
+            .map(|a| a.ty.clone())
             .collect(),
-        return_ty: Box::new(func.return_ty.as_ref().map(|x| x.as_ty().cloned().unwrap())),
+        return_ty: Box::new(func.return_ty.clone()),
     };
 
     Expr {

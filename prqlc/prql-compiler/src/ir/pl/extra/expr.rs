@@ -1,8 +1,9 @@
 use enum_as_inner::EnumAsInner;
+use prqlc_ast::Ty;
 use serde::{Deserialize, Serialize};
 
 use crate::ir::generic::WindowKind;
-use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Range, Ty};
+use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Range};
 
 impl FuncCall {
     pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {
