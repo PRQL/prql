@@ -11,6 +11,10 @@
 
 **Fixes**:
 
+- Stop to compiling to `DISTINCT ON` when `take 1` is used with `group by` for
+  the targets `sql.clickhouse`, `sql.duckdb` and `sql.postgres` to work around a
+  serious bug of compiler. (@eitsupi, #3788)
+
 **Documentation**:
 
 **Web**:
