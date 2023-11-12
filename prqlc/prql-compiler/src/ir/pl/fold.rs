@@ -3,6 +3,7 @@
 /// type.
 use anyhow::Result;
 use itertools::Itertools;
+use prqlc_ast::{TupleField, Ty, TyFunc, TyKind};
 
 use super::*;
 
@@ -42,7 +43,7 @@ pub trait PlFold {
     fn fold_type_def(&mut self, ty_def: TypeDef) -> Result<TypeDef> {
         Ok(TypeDef {
             name: ty_def.name,
-            value: fold_optional_box(self, ty_def.value)?,
+            value: ty_def.value.map(|x| self.fold_type(x)).transpose()?,
         })
     }
     fn fold_module_def(&mut self, module_def: ModuleDef) -> Result<ModuleDef> {
@@ -61,7 +62,7 @@ pub trait PlFold {
         fold_interpolate_item(self, sstring_item)
     }
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
-        Ok(t)
+        fold_type(self, t)
     }
     fn fold_window(&mut self, window: WindowFrame) -> Result<WindowFrame> {
         fold_window(self, window)
@@ -102,7 +103,7 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
         },
 
         // None of these capture variables, so we don't need to fold them.
-        Param(_) | Internal(_) | Literal(_) | Type(_) => expr_kind,
+        Param(_) | Internal(_) | Literal(_) => expr_kind,
     })
 }
 
@@ -128,7 +129,7 @@ pub fn fold_var_def<F: ?Sized + PlFold>(fold: &mut F, var_def: VarDef) -> Result
     Ok(VarDef {
         name: var_def.name,
         value: Box::new(fold.fold_expr(*var_def.value)?),
-        ty_expr: fold_optional_box(fold, var_def.ty_expr)?,
+        ty: var_def.ty.map(|x| fold.fold_type(x)).transpose()?,
     })
 }
 
@@ -299,4 +300,54 @@ pub fn fold_func_param<T: ?Sized + PlFold>(
             })
         })
         .try_collect()
+}
+
+#[inline]
+pub fn fold_type_opt<T: ?Sized + PlFold>(fold: &mut T, ty: Option<Ty>) -> Result<Option<Ty>> {
+    ty.map(|t| fold.fold_type(t)).transpose()
+}
+
+pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
+    Ok(Ty {
+        kind: match ty.kind {
+            TyKind::Union(variants) => TyKind::Union(
+                variants
+                    .into_iter()
+                    .map(|(name, ty)| -> Result<_> { Ok((name, fold.fold_type(ty)?)) })
+                    .try_collect()?,
+            ),
+            TyKind::Tuple(fields) => TyKind::Tuple(
+                fields
+                    .into_iter()
+                    .map(|field| -> Result<_> {
+                        Ok(match field {
+                            TupleField::Single(name, ty) => {
+                                TupleField::Single(name, fold_type_opt(fold, ty)?)
+                            }
+                            TupleField::Wildcard(ty) => {
+                                TupleField::Wildcard(fold_type_opt(fold, ty)?)
+                            }
+                        })
+                    })
+                    .try_collect()?,
+            ),
+            TyKind::Array(ty) => TyKind::Array(Box::new(fold.fold_type(*ty)?)),
+            TyKind::Function(func) => TyKind::Function(
+                func.map(|f| -> Result<_> {
+                    Ok(TyFunc {
+                        args: f
+                            .args
+                            .into_iter()
+                            .map(|a| fold_type_opt(fold, a))
+                            .try_collect()?,
+                        return_ty: Box::new(fold_type_opt(fold, *f.return_ty)?),
+                    })
+                })
+                .transpose()?,
+            ),
+            TyKind::Any | TyKind::Ident(_) | TyKind::Primitive(_) | TyKind::Singleton(_) => ty.kind,
+        },
+        span: ty.span,
+        name: ty.name,
+    })
 }

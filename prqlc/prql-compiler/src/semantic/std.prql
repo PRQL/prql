@@ -38,15 +38,15 @@ let not = expr<bool> -> <bool> internal std.not
 # Types
 
 ## Type primitives
-type int
-type float
-type bool
-type text
-type date
-type time
-type timestamp
-type `func`
-type anytype
+type int = int
+type float = float
+type bool = bool
+type text = text
+type date = date
+type time = time
+type timestamp = timestamp
+type `func` = func
+type anytype = anytype
 
 ## Generic array
 # TODO: an array of anything, not just nulls
@@ -63,7 +63,7 @@ type range = {start = scalar, end = scalar}
 type relation = [tuple]
 
 ## Transform
-type transform = (func relation -> relation)
+type transform = func relation -> relation
 
 # Functions
 

@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use prqlc_ast::Span;
+use prqlc_ast::{Span, Ty};
 
+use crate::codegen::write_ty;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;
 
@@ -78,6 +79,8 @@ pub enum DeclKind {
     Infer(Box<DeclKind>),
 
     Expr(Box<Expr>),
+
+    Ty(Ty),
 
     QueryDef(QueryDef),
 }
@@ -184,13 +187,14 @@ impl std::fmt::Display for DeclKind {
                 write!(
                     f,
                     "TableDecl: {} {expr:?}",
-                    ty.as_ref().map(|t| t.to_string()).unwrap_or_default()
+                    ty.as_ref().map(write_ty).unwrap_or_default()
                 )
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
+            Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),
             Self::QueryDef(_) => write!(f, "QueryDef"),
         }
     }

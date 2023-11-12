@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
 use enum_as_inner::EnumAsInner;
-use prqlc_ast::expr::{Ident, Literal};
+
 use serde::{Deserialize, Serialize};
 
 use prqlc_ast::expr::generic;
-use prqlc_ast::Span;
+use prqlc_ast::{Ident, Literal, Span, Ty};
 
 pub use prqlc_ast::expr::{BinOp, UnOp};
 
-use super::{Lineage, TransformCall, Ty, TyOrExpr};
+use super::{Lineage, TransformCall};
 
 // The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 
@@ -82,8 +82,6 @@ pub enum ExprKind {
         args: Vec<Expr>,
     },
 
-    Type(Ty),
-
     /// placeholder for values provided after query is compiled
     Param(String),
 
@@ -109,7 +107,7 @@ pub struct Func {
     pub name_hint: Option<Ident>,
 
     /// Type requirement for the function body expression.
-    pub return_ty: Option<TyOrExpr>,
+    pub return_ty: Option<Ty>,
 
     /// Expression containing parameter (and environment) references.
     pub body: Box<Expr>,
@@ -133,7 +131,7 @@ pub struct FuncParam {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ty: Option<TyOrExpr>,
+    pub ty: Option<Ty>,
 
     pub default_value: Option<Box<Expr>>,
 }

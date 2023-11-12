@@ -21,8 +21,6 @@ pub struct Resolver<'a> {
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
 
-    disable_type_checking: bool,
-
     pub id: IdGenerator<usize>,
 
     pub options: ResolverOptions,
@@ -39,7 +37,6 @@ impl Resolver<'_> {
             current_module_path: Vec::new(),
             default_namespace: None,
             in_func_call_name: false,
-            disable_type_checking: false,
             id: IdGenerator::new(),
         }
     }

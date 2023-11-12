@@ -96,7 +96,7 @@ fn test_errors() {
        │
      1 │ Answer: T-H-A-T!
        │       ┬
-       │       ╰── unexpected : while parsing source file
+       │       ╰── unexpected : while parsing function call
     ───╯
     "###);
 }
@@ -147,7 +147,7 @@ fn test_bad_function_type() {
        │                ──┬─
        │                  ╰─── function std.group, param `pipeline` expected type `transform`, but found type `func anytype relation -> relation`
        │
-       │ Help: Type `transform` expands to `func infer -> relation`
+       │ Help: Type `transform` expands to `func relation -> relation`
     ───╯
     "###);
 }
@@ -184,8 +184,6 @@ fn test_type_error_placement() {
      4 │     select (true && (foo y))
        │                      ──┬──
        │                        ╰──── function std.and, param `right` expected type `bool`, but found type `scalar`
-       │
-       │ Help: Type `bool` expands to `bool`
     ───╯
     "###);
 }

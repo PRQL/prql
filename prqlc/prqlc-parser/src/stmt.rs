@@ -7,6 +7,8 @@ use semver::VersionReq;
 use prqlc_ast::expr::*;
 use prqlc_ast::stmt::*;
 
+use crate::types::type_expr;
+
 use super::common::*;
 use super::expr::*;
 use super::lexer::Token;
@@ -16,7 +18,6 @@ pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
         .or_not()
         .chain(module_contents())
         .then_ignore(end())
-        .labelled("source file")
 }
 
 fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
@@ -29,7 +30,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
 
         choice((type_def(), var_def(), module_def))
             .map_with_span(into_stmt)
-            .separated_by(new_line().repeated())
+            .separated_by(new_line().repeated().at_least(1))
             .allow_leading()
             .allow_trailing()
     })
@@ -103,14 +104,14 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
 
     let let_ = keyword("let")
         .ignore_then(ident_part())
-        .then(type_expr().map(Box::new).or_not())
+        .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
         .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
-        .map(|((name, ty_expr), value)| {
+        .map(|((name, ty), value)| {
             StmtKind::VarDef(VarDef {
                 name,
                 value,
-                ty_expr,
+                ty,
                 kind: VarDefKind::Let,
             })
         })
@@ -131,7 +132,7 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
                 name,
                 kind,
                 value,
-                ty_expr: None,
+                ty: None,
             })
         })
         .labelled("variable definition");
@@ -142,21 +143,7 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
 fn type_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
-        .then(ctrl('=').ignore_then(expr_call().map(Box::new)).or_not())
+        .then(ctrl('=').ignore_then(type_expr()).or_not())
         .map(|(name, value)| (Vec::new(), StmtKind::TypeDef(TypeDef { name, value })))
         .labelled("type definition")
-}
-
-pub fn type_expr() -> impl Parser<Token, Expr, Error = PError> {
-    let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
-
-    let ident = ident().map(ExprKind::Ident);
-
-    let func = keyword("func").to(ExprKind::Ident(Ident::from_path(vec!["std", "func"])));
-
-    let term = literal.or(ident).or(func).map_with_span(into_expr);
-
-    binary_op_parser(term, operator_or())
-        .delimited_by(ctrl('<'), ctrl('>'))
-        .labelled("type expression")
 }

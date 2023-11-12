@@ -5,10 +5,11 @@ use std::iter::zip;
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use prqlc_ast::TupleField;
 
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
-use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef, TupleField};
+use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
 use crate::ir::rq::{
     self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
 };
@@ -830,7 +831,6 @@ impl Lowerer {
             | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)
-            | pl::ExprKind::Type(_)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {expr:?}");
                 return Err(Error::new(Reason::Unexpected {
