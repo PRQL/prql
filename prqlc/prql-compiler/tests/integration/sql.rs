@@ -820,14 +820,16 @@ fn test_ranges() {
     assert_display_snapshot!((compile(r###"
     from employees
     derive {
-      close = (distance | in 0..100),
+      close = (distance | in ..50),
+      middle = (distance | in 50..100),
       far = (distance | in 100..),
       country_founding | in @1776-07-04..@1787-09-17
     }
     "###).unwrap()), @r###"
     SELECT
       *,
-      distance BETWEEN 0 AND 100 AS close,
+      distance <= 50 AS close,
+      distance BETWEEN 50 AND 100 AS middle,
       distance >= 100 AS far,
       country_founding BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     FROM
