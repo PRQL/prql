@@ -146,8 +146,6 @@ fn misplaced_type_error() {
      2 │     let foo = 123
        │               ─┬─
        │                ╰─── function std.and, param `right` expected type `bool`, but found type `int`
-       │
-       │ Help: Type `bool` expands to `bool`
     ───╯
     "###);
 }

@@ -5,10 +5,12 @@ use chumsky::prelude::*;
 use prqlc_ast::expr::*;
 use prqlc_ast::Span;
 
+use crate::types::type_expr;
+
+use super::common::*;
 use super::interpolation;
 use super::lexer::Token;
 use super::span::ParserSpan;
-use super::{common::*, stmt::type_expr};
 
 pub fn expr_call() -> impl Parser<Token, Expr, Error = PError> {
     let expr = expr();
@@ -319,7 +321,7 @@ where
     E: Parser<Token, Expr, Error = PError> + Clone + 'static,
 {
     let param = ident_part()
-        .then(type_expr().map(Box::new).or_not())
+        .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
         .boxed();
 
@@ -343,7 +345,7 @@ where
     ))
     .then_ignore(just(Token::ArrowThin))
     // return type
-    .then(type_expr().map(Box::new).or_not())
+    .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
     .then(choice((internal, func_call(expr))))
     .map(|((params, return_ty), body)| {

@@ -7,8 +7,6 @@ Error:
    │
  2 │ derive t = time
    │            ──┬─
-   │              ╰─── unexpected `t = `<time>``
-   │
-   │ Help: this is probably a 'bad type' error (we are working on that)
+   │              ╰─── expected a value, but found a type
 ───╯
 

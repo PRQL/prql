@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/src/semantic/resolver.rs
+source: prqlc/prql-compiler/src/semantic/resolver/mod.rs
 expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add_one bar to:3,\n                added_default = add_one bar\n            }\n            \"#).unwrap()"
 ---
 - RqOperator:
@@ -12,49 +12,60 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
         ty:
           kind:
             Union:
-              - - int
+              - - ~
                 - kind:
                     Primitive: Int
-                  name: int
-              - - float
+                  span: "2:883-886"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Float
-                  name: float
-              - - timestamp
+                  span: "2:890-895"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Timestamp
-                  name: timestamp
-              - - date
+                  span: "2:899-908"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Date
-                  name: date
+                  span: "2:912-916"
+                  name: ~
+          span: "2:883-916"
           name: ~
       - Literal:
           Integer: 3
         ty:
           kind:
             Primitive: Int
+          span: ~
           name: ~
   alias: added
   ty:
     kind:
       Union:
-        - - int
+        - - ~
           - kind:
               Primitive: Int
-            name: int
-        - - float
+            span: "2:963-966"
+            name: ~
+        - - ~
           - kind:
               Primitive: Float
-            name: float
-        - - timestamp
+            span: "2:970-975"
+            name: ~
+        - - ~
           - kind:
               Primitive: Timestamp
-            name: timestamp
-        - - date
+            span: "2:979-988"
+            name: ~
+        - - ~
           - kind:
               Primitive: Date
-            name: date
+            span: "2:992-996"
+            name: ~
+    span: "2:963-996"
     name: ~
 - RqOperator:
     name: std.add
@@ -66,48 +77,59 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
         ty:
           kind:
             Union:
-              - - int
+              - - ~
                 - kind:
                     Primitive: Int
-                  name: int
-              - - float
+                  span: "2:883-886"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Float
-                  name: float
-              - - timestamp
+                  span: "2:890-895"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Timestamp
-                  name: timestamp
-              - - date
+                  span: "2:899-908"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Date
-                  name: date
+                  span: "2:912-916"
+                  name: ~
+          span: "2:883-916"
           name: ~
       - Literal:
           Integer: 1
         ty:
           kind:
             Primitive: Int
+          span: ~
           name: ~
   alias: added_default
   ty:
     kind:
       Union:
-        - - int
+        - - ~
           - kind:
               Primitive: Int
-            name: int
-        - - float
+            span: "2:963-966"
+            name: ~
+        - - ~
           - kind:
               Primitive: Float
-            name: float
-        - - timestamp
+            span: "2:970-975"
+            name: ~
+        - - ~
           - kind:
               Primitive: Timestamp
-            name: timestamp
-        - - date
+            span: "2:979-988"
+            name: ~
+        - - ~
           - kind:
               Primitive: Date
-            name: date
+            span: "2:992-996"
+            name: ~
+    span: "2:963-996"
     name: ~
 

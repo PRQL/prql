@@ -10,6 +10,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
         ty:
           kind:
             Primitive: Int
+          span: ~
           name: ~
       - RqOperator:
           name: std.add
@@ -25,65 +26,81 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                       kind:
                         Array:
                           kind: Any
-                          name: anytype
+                          span: "2:2069-2076"
+                          name: ~
+                      span: "2:2068-2077"
                       name: array
               ty:
                 kind:
                   Union:
-                    - - int
+                    - - ~
                       - kind:
                           Primitive: Int
-                        name: int
-                    - - float
+                        span: "2:4300-4303"
+                        name: ~
+                    - - ~
                       - kind:
                           Primitive: Float
-                        name: float
+                        span: "2:4307-4312"
+                        name: ~
+                span: "2:4300-4312"
                 name: ~
             - Literal:
                 Integer: 1
               ty:
                 kind:
                   Primitive: Int
+                span: ~
                 name: ~
         ty:
           kind:
             Union:
-              - - int
+              - - ~
                 - kind:
                     Primitive: Int
-                  name: int
-              - - float
+                  span: "2:963-966"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Float
-                  name: float
-              - - timestamp
+                  span: "2:970-975"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Timestamp
-                  name: timestamp
-              - - date
+                  span: "2:979-988"
+                  name: ~
+              - - ~
                 - kind:
                     Primitive: Date
-                  name: date
+                  span: "2:992-996"
+                  name: ~
+          span: "2:963-996"
           name: ~
   alias: b
   ty:
     kind:
       Union:
-        - - int
+        - - ~
           - kind:
               Primitive: Int
-            name: int
-        - - float
+            span: "2:963-966"
+            name: ~
+        - - ~
           - kind:
               Primitive: Float
-            name: float
-        - - timestamp
+            span: "2:970-975"
+            name: ~
+        - - ~
           - kind:
               Primitive: Timestamp
-            name: timestamp
-        - - date
+            span: "2:979-988"
+            name: ~
+        - - ~
           - kind:
               Primitive: Date
-            name: date
+            span: "2:992-996"
+            name: ~
+    span: "2:963-996"
     name: ~
 

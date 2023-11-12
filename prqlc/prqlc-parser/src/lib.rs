@@ -3,6 +3,7 @@ mod interpolation;
 mod lexer;
 mod span;
 mod stmt;
+mod types;
 
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
@@ -48,6 +49,8 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
 
 mod common {
     use chumsky::prelude::*;
+    use prqlc_ast::Ty;
+    use prqlc_ast::TyKind;
 
     use super::{lexer::Token, span::ParserSpan};
     use prqlc_ast::expr::*;
@@ -89,6 +92,13 @@ mod common {
         Expr {
             span: Some(span.0),
             ..Expr::new(kind)
+        }
+    }
+
+    pub fn into_ty(kind: TyKind, span: ParserSpan) -> Ty {
+        Ty {
+            span: Some(span.0),
+            ..Ty::new(kind)
         }
     }
 }

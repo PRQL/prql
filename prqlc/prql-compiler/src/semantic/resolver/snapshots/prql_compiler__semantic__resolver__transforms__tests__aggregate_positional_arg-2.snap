@@ -13,15 +13,17 @@ TransformCall:
           kind:
             Tuple:
               - Wildcard: ~
+          span: ~
           name: ~
+      span: ~
       name: ~
     lineage:
       columns:
         - All:
-            input_id: 206
+            input_id: 85
             except: []
       inputs:
-        - id: 206
+        - id: 85
           name: c_invoice
           table:
             - default_db
@@ -40,19 +42,24 @@ TransformCall:
                   kind:
                     Array:
                       kind: Any
-                      name: anytype
+                      span: "2:2069-2076"
+                      name: ~
+                  span: "2:2068-2077"
                   name: array
           ty:
             kind:
               Union:
-                - - float
+                - - ~
                   - kind:
                       Primitive: Float
-                    name: float
+                    span: "2:4365-4370"
+                    name: ~
                 - - ~
                   - kind:
                       Singleton: "Null"
+                    span: "2:4374-4378"
                     name: ~
+            span: "2:4365-4378"
             name: ~
   partition:
     - Ident:
@@ -62,45 +69,61 @@ TransformCall:
       ty:
         kind:
           Union:
-            - - int
-              - kind:
-                  Primitive: Int
-                name: int
-            - - float
-              - kind:
-                  Primitive: Float
-                name: float
-            - - bool
-              - kind:
-                  Primitive: Bool
-                name: bool
-            - - text
-              - kind:
-                  Primitive: Text
-                name: text
-            - - date
-              - kind:
-                  Primitive: Date
-                name: date
-            - - time
-              - kind:
-                  Primitive: Time
-                name: time
-            - - timestamp
-              - kind:
-                  Primitive: Timestamp
-                name: timestamp
             - - ~
               - kind:
-                  Singleton: "Null"
-                name: ~
-            - - tuple
+                  Union:
+                    - - ~
+                      - kind:
+                          Primitive: Int
+                        span: "2:2103-2106"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Primitive: Float
+                        span: "2:2110-2115"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Primitive: Bool
+                        span: "2:2119-2123"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Primitive: Text
+                        span: "2:2127-2131"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Primitive: Date
+                        span: "2:2135-2139"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Primitive: Time
+                        span: "2:2143-2147"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Primitive: Timestamp
+                        span: "2:2151-2160"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Singleton: "Null"
+                        span: "2:2164-2168"
+                        name: ~
+                span: "2:2103-2168"
+                name: scalar
+            - - ~
               - kind:
                   Tuple:
                     - Wildcard:
                         kind: Any
-                        name: anytype
+                        span: "2:2183-2190"
+                        name: ~
+                span: "2:2182-2193"
                 name: tuple
+        span: "2:3192-3207"
         name: ~
 ty:
   kind:
@@ -109,8 +132,11 @@ ty:
         Tuple:
           - Wildcard:
               kind: Any
-              name: anytype
+              span: "2:2183-2190"
+              name: ~
+      span: "2:2182-2193"
       name: tuple
+  span: "2:2298-2305"
   name: relation
 lineage:
   columns:
@@ -118,14 +144,14 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 207
+        target_id: 86
         target_name: ~
     - Single:
         name: ~
-        target_id: 230
+        target_id: 93
         target_name: ~
   inputs:
-    - id: 206
+    - id: 85
       name: c_invoice
       table:
         - default_db

@@ -3,8 +3,9 @@ use std::collections::HashMap;
 
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
-use crate::semantic::NS_STD;
+
 use crate::WithErrorInfo;
+use prqlc_ast::{TupleField, Ty, TyKind};
 
 impl super::Resolver<'_> {
     // entry point to the resolver
@@ -32,27 +33,21 @@ impl super::Resolver<'_> {
                 }
                 StmtKind::VarDef(var_def) => self.fold_var_def(var_def)?,
                 StmtKind::TypeDef(ty_def) => {
-                    let mut value = if let Some(value) = ty_def.value {
+                    let value = if let Some(value) = ty_def.value {
                         value
                     } else {
-                        Box::new(Expr::new(Literal::Null))
+                        Ty::new(Literal::Null)
                     };
 
-                    // This is a hacky way to provide values to std.int and friends.
-                    if self.current_module_path == vec![NS_STD] {
-                        if let Some(kind) = get_stdlib_decl(&ident.name) {
-                            value.kind = kind;
-                        }
-                    }
-
-                    let mut ty = self.fold_type_expr(Some(value))?.unwrap();
+                    let mut ty = fold_type_opt(self, Some(value))?.unwrap();
                     ty.name = Some(ident.name.clone());
 
-                    VarDef {
-                        name: ty_def.name,
-                        value: Box::new(Expr::new(ExprKind::Type(ty))),
-                        ty_expr: None,
-                    }
+                    let decl = DeclKind::Ty(ty);
+
+                    self.root_mod
+                        .declare(ident, decl, stmt.id, stmt.annotations)
+                        .with_span(stmt.span)?;
+                    continue;
                 }
                 StmtKind::ModuleDef(module_def) => {
                     self.current_module_path.push(ident.name);
@@ -79,9 +74,9 @@ impl super::Resolver<'_> {
             };
 
             if def.name == "main" {
-                def.ty_expr = Some(Box::new(Expr::new(ExprKind::Ident(Ident::from_path(
-                    vec!["std", "relation"],
-                )))));
+                def.ty = Some(Ty::new(TyKind::Ident(Ident::from_path(vec![
+                    "std", "relation",
+                ]))));
             }
 
             if let ExprKind::Func(closure) = &mut def.value.kind {
@@ -90,7 +85,7 @@ impl super::Resolver<'_> {
                 }
             }
 
-            let expected_ty = self.fold_type_expr(def.ty_expr)?;
+            let expected_ty = fold_type_opt(self, def.ty)?;
             if expected_ty.is_some() {
                 let who = || Some(stmt_name.clone());
                 self.validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
@@ -124,20 +119,4 @@ fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
         }
         _ => DeclKind::Expr(value),
     }
-}
-
-fn get_stdlib_decl(name: &str) -> Option<ExprKind> {
-    let set = match name {
-        "int" => PrimitiveSet::Int,
-        "float" => PrimitiveSet::Float,
-        "bool" => PrimitiveSet::Bool,
-        "text" => PrimitiveSet::Text,
-        "date" => PrimitiveSet::Date,
-        "time" => PrimitiveSet::Time,
-        "timestamp" => PrimitiveSet::Timestamp,
-        "func" => return Some(ExprKind::Type(Ty::new(TyKind::Function(None)))),
-        "anytype" => return Some(ExprKind::Type(Ty::new(TyKind::Any))),
-        _ => return None,
-    };
-    Some(ExprKind::Type(Ty::new(set)))
 }

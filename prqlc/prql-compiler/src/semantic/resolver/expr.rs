@@ -1,15 +1,45 @@
 use anyhow::Result;
 use itertools::Itertools;
 
+use prqlc_ast::{TupleField, Ty, TyKind};
+
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, transforms, types, Resolver};
-use crate::semantic::{static_analysis, write_pl, NS_THIS};
+use crate::semantic::{static_analysis, write_pl, NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
         unreachable!()
+    }
+
+    fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
+        Ok(match ty.kind {
+            TyKind::Ident(ident) => {
+                self.root_mod.module.shadow(NS_THIS);
+                self.root_mod.module.shadow(NS_THAT);
+
+                let fq_ident = self.resolve_ident(&ident)?;
+
+                let decl = self.root_mod.module.get(&fq_ident).unwrap();
+                let decl_ty = decl.kind.as_ty().ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: None,
+                        expected: "a type".to_string(),
+                        found: decl.to_string(),
+                    })
+                })?;
+                let mut ty = decl_ty.clone();
+                ty.name = ty.name.or(Some(fq_ident.name));
+
+                self.root_mod.module.unshadow(NS_THIS);
+                self.root_mod.module.unshadow(NS_THAT);
+
+                ty
+            }
+            _ => fold_type(self, ty)?,
+        })
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
@@ -22,7 +52,7 @@ impl PlFold for Resolver<'_> {
         Ok(VarDef {
             name: var_def.name,
             value,
-            ty_expr: fold_optional_box(self, var_def.ty_expr)?,
+            ty: var_def.ty.map(|x| self.fold_type(x)).transpose()?,
         })
     }
 
@@ -96,6 +126,16 @@ impl PlFold for Resolver<'_> {
                         )
                         .with_span(span)
                         .push_hint("did you forget to specify the column name?")
+                        .into());
+                    }
+
+                    DeclKind::Ty(_) => {
+                        return Err(Error::new(Reason::Expected {
+                            who: None,
+                            expected: "a value".to_string(),
+                            found: "a type".to_string(),
+                        })
+                        .with_span(span)
                         .into());
                     }
 
@@ -231,7 +271,7 @@ impl PlFold for Resolver<'_> {
                 lineage.rename(alias.clone());
 
                 if let Some(ty) = &mut r.ty {
-                    ty.kind.rename_relation(alias);
+                    types::rename_relation(&mut ty.kind, alias);
                 }
             }
         }

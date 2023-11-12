@@ -674,8 +674,7 @@ sort full
                       args:
                       - Ident:
                         - y
-              ty_expr: null
-            annotations: []
+            span: 1:0-17
         source_ids:
           1: ''
         "###);
