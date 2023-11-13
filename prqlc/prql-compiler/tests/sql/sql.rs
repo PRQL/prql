@@ -1663,7 +1663,7 @@ fn test_distinct() {
 }
 
 #[test]
-fn test_distinct_on() {
+fn test_distinct_on_01() {
     assert_display_snapshot!((compile(r###"
     prql target:sql.postgres
 
@@ -1673,25 +1673,18 @@ fn test_distinct_on() {
       take 1
     )
     "###).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        *,
-        ROW_NUMBER() OVER (
-          PARTITION BY department
-          ORDER BY
-            age
-        ) AS _expr_0
-      FROM
-        employees
-    )
     SELECT
-      *
+      DISTINCT ON (department) *
     FROM
-      table_0
-    WHERE
-      _expr_0 <= 1
+      employees
+    ORDER BY
+      department,
+      age
     "###);
+}
 
+#[test]
+fn test_distinct_on_02() {
     assert_display_snapshot!((compile(r###"
     prql target:sql.duckdb
 
@@ -1699,21 +1692,36 @@ fn test_distinct_on() {
     select {class, begins}
     group {begins} (take 1)
     "###).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        class,
-        begins,
-        ROW_NUMBER() OVER (PARTITION BY begins) AS _expr_0
-      FROM
-        x
-    )
     SELECT
-      class,
+      DISTINCT ON (begins) class,
       begins
     FROM
+      x
+    "###);
+}
+
+#[test]
+fn test_distinct_on_03() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from tab1
+    group col1 (
+      take 1
+    )
+    derive foo = 1
+    select foo
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        DISTINCT ON (col1) NULL
+      FROM
+        tab1
+    )
+    SELECT
+      1 AS foo
+    FROM
       table_0
-    WHERE
-      _expr_0 <= 1
     "###);
 }
 
