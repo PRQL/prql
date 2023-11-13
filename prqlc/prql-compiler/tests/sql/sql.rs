@@ -1738,16 +1738,15 @@ fn test_distinct_on_04() {
     )
     select {a.id, b.y}
     "###).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        DISTINCT ON (col1) NULL
-      FROM
-        tab1
-    )
     SELECT
-      1 AS foo
+      DISTINCT ON (a.id) a.id,
+      b.y
     FROM
-      table_0
+      a
+      JOIN b ON b.a_id = a.id
+    ORDER BY
+      a.id,
+      b.x
     "###);
 }
 
