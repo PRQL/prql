@@ -1726,6 +1726,32 @@ fn test_distinct_on_03() {
 }
 
 #[test]
+fn test_distinct_on_04() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from a
+    join b (b.a_id == a.id)
+    group {a.id} (
+      sort b.x
+      take 1
+    )
+    select {a.id, b.y}
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        DISTINCT ON (col1) NULL
+      FROM
+        tab1
+    )
+    SELECT
+      1 AS foo
+    FROM
+      table_0
+    "###);
+}
+
+#[test]
 fn test_join() {
     assert_display_snapshot!((compile(r###"
     from x
