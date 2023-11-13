@@ -22,6 +22,19 @@
 **Integrations**:
 
 - Enable integration tests for GlareDB. (@eitsupi, #3749)
+- [trapd00r/LS_COLORS](https://github.com/trapd00r/LS_COLORS), a collection of
+  LS_COLORS definitions colorizes `.prql` files. (@vanillajonathan)
+- [vivid](https://github.com/sharkdp/vivid), a themeable LS_COLORS generator
+  colorizes `.prql` files. (@vanillajonathan)
+- [colorls](https://github.com/athityakumar/colorls), displays `.prql` files
+  with a database icon. (@vanillajonathan)
+- [Emoji File Icons](https://marketplace.visualstudio.com/items?itemName=mightbesimon.emoji-icons),
+  a VS Code extension displays `.prql` files with a database emoji icon.
+  (@vanillajonathan)
+- [eza](https://eza.rocks/), a modern ls replacement colorizes `.prql` files.
+  (@vanillajonathan)
+- [lsd](https://github.com/lsd-rs/lsd), next gen ls command displays `.prql`
+  files with a database icon. (@vanillajonathan)
 
 **Internal changes**:
 
