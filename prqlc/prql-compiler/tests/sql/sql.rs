@@ -3579,7 +3579,7 @@ fn prql_version() {
     "#).unwrap(),@r###"
     SELECT
       *,
-      '0.10.1' AS y
+      '0.10.2' AS y
     FROM
       x
     "###);
@@ -3591,7 +3591,7 @@ fn shortest_prql_version() {
     assert_display_snapshot!(compile(r#"[{version = prql_version}]"#).unwrap(),@r###"
     WITH table_0 AS (
       SELECT
-        '0.10.1' AS version
+        '0.10.2' AS version
     )
     SELECT
       version
