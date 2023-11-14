@@ -74,9 +74,10 @@
 //!
 //! ## Large binary sizes
 //!
-//! For Linux users, the binary produced by this crate will probably be quite large (>200MB) by default.
-//! That is because it includes a lot of debuginfo symbols from our parser. You can remove them by
-//! adding the following to `Cargo.toml`:
+//! For Linux users, the binary size contributed by this crate will probably be
+//! quite large (>20MB) by default. That is because it includes a lot of
+//! debuginfo symbols from our parser. They can be removed by adding the
+//! following to `Cargo.toml`, reducing the contribution to around 7MB:
 //! ```toml
 //! [profile.release.package.prql-compiler]
 //! strip = "debuginfo"
