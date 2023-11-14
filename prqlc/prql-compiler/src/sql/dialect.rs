@@ -195,10 +195,7 @@ impl DialectHandler for PostgresDialect {
     }
 
     fn supports_distinct_on(&self) -> bool {
-        // https://www.postgresql.org/docs/current/sql-select.html
-        // TODO: switch to true when the bug is fixed
-        // https://github.com/PRQL/prql/issues/3111
-        false
+        true
     }
 }
 
@@ -258,10 +255,7 @@ impl DialectHandler for ClickHouseDialect {
     }
 
     fn supports_distinct_on(&self) -> bool {
-        // https://clickhouse.com/docs/en/sql-reference/statements/select/distinct
-        // TODO: switch to true when the bug is fixed
-        // https://github.com/PRQL/prql/issues/3111
-        false
+        true
     }
 }
 
@@ -304,10 +298,7 @@ impl DialectHandler for DuckDbDialect {
     }
 
     fn supports_distinct_on(&self) -> bool {
-        // https://duckdb.org/docs/sql/query_syntax/select.html#distinct-on-clause
-        // TODO: switch to true when the bug is fixed
-        // https://github.com/PRQL/prql/issues/3111
-        false
+        true
     }
 }
 

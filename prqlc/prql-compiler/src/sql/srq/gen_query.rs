@@ -1,6 +1,5 @@
 //! This module is responsible for translating RQ to SRQ.
 
-use std::collections::HashSet;
 use std::str::FromStr;
 
 use anyhow::Result;
@@ -267,11 +266,10 @@ fn compile_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<Sq
 }
 
 fn ensure_names(transforms: &[SqlTransform], ctx: &mut AnchorContext) {
-    let empty = HashSet::new();
     for t in transforms {
-        if let SqlTransform::Super(Transform::Sort(_)) = t {
-            for r in anchor::get_requirements(t, &empty) {
-                ctx.ensure_column_name(r.col);
+        if let SqlTransform::Super(Transform::Sort(columns)) | SqlTransform::Sort(columns) = t {
+            for r in columns {
+                ctx.ensure_column_name(r.column);
             }
         }
     }

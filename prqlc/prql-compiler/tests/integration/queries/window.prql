@@ -1,4 +1,7 @@
 # mssql:skip Conversion("cannot interpret I64(Some(1)) as an i32 value")', connection.rs:200:34
+# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)
+# clickhouse:skip problems with DISTINCT ON
+# postgres:skip problems with DISTINCT ON
 from tracks
 group genre_id (
   sort milliseconds
