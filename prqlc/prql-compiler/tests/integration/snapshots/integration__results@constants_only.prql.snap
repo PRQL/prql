@@ -1,7 +1,8 @@
 ---
-source: prql-compiler/tests/integration/main.rs
+source: prqlc/prql-compiler/tests/integration/main.rs
+description: "# Running on dialect `sqlite`\n\n# Query:\n---\nfrom genres\ntake 10\nfilter true\ntake 20\nfilter true\nselect d = 10\n"
 expression: "from genres\ntake 10\nfilter true\ntake 20\nfilter true\nselect d = 10\n"
-input_file: prql-compiler/tests/integration/queries/constants_only.prql
+input_file: prqlc/prql-compiler/tests/integration/queries/constants_only.prql
 ---
 10
 10

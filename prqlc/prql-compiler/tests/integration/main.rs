@@ -127,7 +127,7 @@ fn test_rdbms() {
             insta::with_settings!({
                 description=>format!("# Running on dialect `{}`\n\n# Query:\n---\n{}", &con.dialect, &prql)
             }, {
-                assert_snapshot!("results", &result);
+                assert_snapshot!("results", &result, &prql);
             })
         }
         }
