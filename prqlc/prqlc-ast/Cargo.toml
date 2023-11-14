@@ -15,5 +15,5 @@ test = false
 [dependencies]
 enum-as-inner = "0.6.0"
 semver = {version = "1.0.20", features = ["serde"]}
-serde = {version = "1.0.190", features = ["derive"]}
+serde = {version = "1.0.192", features = ["derive"]}
 strum = {version = "0.25.0", features = ["std", "derive"]}

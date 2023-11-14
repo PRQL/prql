@@ -6,18 +6,34 @@
 
 **Features**:
 
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.10.1 — 2023-11-14
+
+0.10.1 is a small release containing some internal fixes of the compiler.
+
+This release has 36 commits from 7 contributors. Selected changes:
+
+**Features**:
+
 - The `std.sql.read_csv` function and the `std.sql.read_parquet` function
   supports the `sql.glaredb` target. (@eitsupi, #3749)
 
 **Fixes**:
 
-- Stop to compiling to `DISTINCT ON` when `take 1` is used with `group by` for
-  the targets `sql.clickhouse`, `sql.duckdb` and `sql.postgres` to work around a
-  serious bug of compiler. (@eitsupi, #3788)
-
-**Documentation**:
-
-**Web**:
+- Fix the bug of compiling to `DISTINCT ON` when `take 1` is used with
+  `group by` for the targets `sql.clickhouse`, `sql.duckdb` and `sql.postgres`.
+  (@aljazerzen, #3792)
 
 **Integrations**:
 
@@ -35,10 +51,6 @@
   (@vanillajonathan)
 - [lsd](https://github.com/lsd-rs/lsd), next gen ls command displays `.prql`
   files with a database icon. (@vanillajonathan)
-
-**Internal changes**:
-
-**New Contributors**:
 
 ## 0.10.0 — 2023-10-26
 

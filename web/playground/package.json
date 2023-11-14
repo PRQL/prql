@@ -47,5 +47,5 @@
     "prepare": "rsync -ai --checksum --delete ../../prqlc/prql-compiler/tests/integration/data/ public/data/ && node generateBook.cjs",
     "preview": "vite preview"
   },
-  "version": "0.10.1"
+  "version": "0.10.2"
 }
