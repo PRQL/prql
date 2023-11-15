@@ -79,9 +79,9 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
-    # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -105,10 +105,16 @@ jobs:
 
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
+      - name: Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prqlc_*.deb
 
   build-rpm-package:
-    # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -135,6 +141,12 @@ jobs:
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
           license: Apache-2.0
+      - run: rm prqlc-debuginfo-*.rpm
+      - name: Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prqlc-*.rpm
 
   build-and-publish-snap:
     runs-on: ubuntu-latest
