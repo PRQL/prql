@@ -102,6 +102,11 @@ jobs:
 
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-deb
+          path: |
+            ./*.deb
       - name: Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
@@ -135,6 +140,12 @@ jobs:
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
           license: Apache-2.0
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-rpm
+          path: |
+            ./*.rpm
+            !./*-debuginfo-*.rpm
       - run: rm prqlc-debuginfo-*.rpm
       - name: Release
         if: github.event_name == 'release'
