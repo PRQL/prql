@@ -4335,3 +4335,94 @@ fn test_relation_var_name_clashes_02() {
       JOIN t AS table_0 ON t.x = table_0.x
     "###);
 }
+
+#[test]
+fn long_query() {
+    // This test is also ran with stack size limit
+    assert_display_snapshot!(compile(
+    r#"
+    let long_query = (
+      from employees
+      filter gross_cost > 0
+      group {title} (
+          aggregate {
+              ct = count this,
+          }
+      )
+      sort ct
+      filter ct > 200
+      take 20
+      sort ct
+      filter ct > 200
+      take 20
+      sort ct
+      filter ct > 200
+      take 20
+      sort ct
+      filter ct > 200
+      take 20
+    )
+    from long_query
+  "#).unwrap(), @r###"
+    WITH table_2 AS (
+      SELECT
+        title,
+        COUNT(*) AS ct
+      FROM
+        employees
+      WHERE
+        gross_cost > 0
+      GROUP BY
+        title
+      HAVING
+        COUNT(*) > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), table_1 AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_2
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), table_0 AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_1
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    ), long_query AS (
+      SELECT
+        title,
+        ct
+      FROM
+        table_0
+      WHERE
+        ct > 200
+      ORDER BY
+        ct
+      LIMIT
+        20
+    )
+    SELECT
+      title,
+      ct
+    FROM
+      long_query
+    ORDER BY
+      ct
+    "###);
+}
