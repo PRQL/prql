@@ -87,7 +87,7 @@ jobs:
       - name: Copy files into .deb package
         run: |
           mkdir -p .debpkg/usr/bin
-          cp target/release/prqlc .debpkg/usr/bin/prqlc
+          cp target/x86_64-unknown-linux-musl/release/prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
@@ -117,7 +117,7 @@ jobs:
       - name: Copy files into .rpm package
         run: |
           mkdir -p .rpmpkg/usr/bin
-          cp target/release/prqlc .rpmpkg/usr/bin/prqlc
+          cp target/x86_64-unknown-linux-musl/release/prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
