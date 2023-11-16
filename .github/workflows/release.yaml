@@ -49,6 +49,8 @@ jobs:
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+    permissions:
+      contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -63,6 +65,11 @@ jobs:
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact-prqlc
+          path: target/release/prqlc
 
   winget-release:
     runs-on: ubuntu-latest
@@ -92,11 +99,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: artifact-prqlc
       - name: Copy files into .deb package
         run: |
           mkdir -p .debpkg/usr/bin
-          cp target/release/prqlc .debpkg/usr/bin/prqlc
+          cp prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
@@ -136,11 +146,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: artifact-prqlc
       - name: Copy files into .rpm package
         run: |
           mkdir -p .rpmpkg/usr/bin
-          cp target/release/prqlc .rpmpkg/usr/bin/prqlc
+          cp prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
