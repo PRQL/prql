@@ -80,13 +80,10 @@ jobs:
 
   build-deb-package:
     runs-on: ubuntu-latest
+    needs: build-prqlc
     permissions:
       contents: write
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - name: 👷 Build prql-compiler
-        run: cargo build --release -p prqlc
       - name: Copy files into .deb package
         run: |
           mkdir -p .debpkg/usr/bin
@@ -113,13 +110,10 @@ jobs:
 
   build-rpm-package:
     runs-on: ubuntu-latest
+    needs: build-prqlc
     permissions:
       contents: write
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - name: 👷 Build prqlc
-        run: cargo build --bin prqlc --release
       - name: Copy files into .rpm package
         run: |
           mkdir -p .rpmpkg/usr/bin
