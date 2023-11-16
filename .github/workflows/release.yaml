@@ -79,7 +79,15 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
     needs: build-prqlc
     permissions:
       contents: write
@@ -87,7 +95,7 @@ jobs:
       - name: Copy files into .deb package
         run: |
           mkdir -p .debpkg/usr/bin
-          cp target/x86_64-unknown-linux-musl/release/prqlc .debpkg/usr/bin/prqlc
+          cp target/${{ matrix.target }}/release/prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
@@ -114,7 +122,15 @@ jobs:
           files: prqlc_*.deb
 
   build-rpm-package:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
     needs: build-prqlc
     permissions:
       contents: write
@@ -122,7 +138,7 @@ jobs:
       - name: Copy files into .rpm package
         run: |
           mkdir -p .rpmpkg/usr/bin
-          cp target/x86_64-unknown-linux-musl/release/prqlc .rpmpkg/usr/bin/prqlc
+          cp target/${{ matrix.target }}/release/prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
