@@ -1663,7 +1663,7 @@ fn test_distinct() {
 }
 
 #[test]
-fn test_distinct_on() {
+fn test_distinct_on_01() {
     assert_display_snapshot!((compile(r###"
     prql target:sql.postgres
 
@@ -1673,25 +1673,18 @@ fn test_distinct_on() {
       take 1
     )
     "###).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        *,
-        ROW_NUMBER() OVER (
-          PARTITION BY department
-          ORDER BY
-            age
-        ) AS _expr_0
-      FROM
-        employees
-    )
     SELECT
-      *
+      DISTINCT ON (department) *
     FROM
-      table_0
-    WHERE
-      _expr_0 <= 1
+      employees
+    ORDER BY
+      department,
+      age
     "###);
+}
 
+#[test]
+fn test_distinct_on_02() {
     assert_display_snapshot!((compile(r###"
     prql target:sql.duckdb
 
@@ -1699,21 +1692,61 @@ fn test_distinct_on() {
     select {class, begins}
     group {begins} (take 1)
     "###).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        class,
-        begins,
-        ROW_NUMBER() OVER (PARTITION BY begins) AS _expr_0
-      FROM
-        x
-    )
     SELECT
-      class,
+      DISTINCT ON (begins) class,
       begins
     FROM
+      x
+    "###);
+}
+
+#[test]
+fn test_distinct_on_03() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from tab1
+    group col1 (
+      take 1
+    )
+    derive foo = 1
+    select foo
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        DISTINCT ON (col1) NULL
+      FROM
+        tab1
+    )
+    SELECT
+      1 AS foo
+    FROM
       table_0
-    WHERE
-      _expr_0 <= 1
+    "###);
+}
+
+#[test]
+fn test_distinct_on_04() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from a
+    join b (b.a_id == a.id)
+    group {a.id} (
+      sort b.x
+      take 1
+    )
+    select {a.id, b.y}
+    "###).unwrap()), @r###"
+    SELECT
+      DISTINCT ON (a.id) a.id,
+      b.y
+    FROM
+      a
+      JOIN b ON b.a_id = a.id
+    ORDER BY
+      a.id,
+      b.x
     "###);
 }
 
@@ -3152,7 +3185,7 @@ fn test_static_analysis() {
     SELECT
       3 AS a,
       false AS b,
-      y,
+      y AS _expr_0,
       CASE
         WHEN 7 = y THEN 3
         ELSE 4
@@ -3546,7 +3579,7 @@ fn prql_version() {
     "#).unwrap(),@r###"
     SELECT
       *,
-      '0.10.1' AS y
+      '0.10.2' AS y
     FROM
       x
     "###);
@@ -3558,7 +3591,7 @@ fn shortest_prql_version() {
     assert_display_snapshot!(compile(r#"[{version = prql_version}]"#).unwrap(),@r###"
     WITH table_0 AS (
       SELECT
-        '0.10.1' AS version
+        '0.10.2' AS version
     )
     SELECT
       version

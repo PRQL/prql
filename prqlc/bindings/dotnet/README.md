@@ -11,8 +11,8 @@ welcome.
 
 ## Installation
 
-Current project and package only handles Windows native library `prqlc.dll`.
-Handling of `prqlc.so` (Linux), `prqlc.dylib` (macOS) is work in progress.
+Current project and package only handles Windows native library `libprqlc_lib.dll`.
+Handling of `libprqlc_lib.so` (Linux), `libprqlc_lib.dylib` (macOS) is work in progress.
 
 For consumer of this package, ensure that `prqlc.dll` is in your project's `bin`
 (i.e. `{your_project}/bin/Debug/net7.0/`) directory together with
@@ -49,7 +49,7 @@ var sql = PrqlCompiler.Compile("from employees", options);
 Console.WriteLine(sql);
 ```
 
-# TODO
+## TODO
 
 We're waiting to include the build and tests of this package into the
 GitHub-actions. When we've done that, we can match the version here with the

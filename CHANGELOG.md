@@ -6,14 +6,7 @@
 
 **Features**:
 
-- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
-  supports the `sql.glaredb` target. (@eitsupi, #3749)
-
 **Fixes**:
-
-- Stop to compiling to `DISTINCT ON` when `take 1` is used with `group by` for
-  the targets `sql.clickhouse`, `sql.duckdb` and `sql.postgres` to work around a
-  serious bug of compiler. (@eitsupi, #3788)
 
 **Documentation**:
 
@@ -21,11 +14,43 @@
 
 **Integrations**:
 
-- Enable integration tests for GlareDB. (@eitsupi, #3749)
-
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.10.1 — 2023-11-14
+
+0.10.1 is a small release containing some internal fixes of the compiler.
+
+This release has 36 commits from 7 contributors. Selected changes:
+
+**Features**:
+
+- The `std.sql.read_csv` function and the `std.sql.read_parquet` function
+  supports the `sql.glaredb` target. (@eitsupi, #3749)
+
+**Fixes**:
+
+- Fix the bug of compiling to `DISTINCT ON` when `take 1` is used with
+  `group by` for the targets `sql.clickhouse`, `sql.duckdb` and `sql.postgres`.
+  (@aljazerzen, #3792)
+
+**Integrations**:
+
+- Enable integration tests for GlareDB. (@eitsupi, #3749)
+- [trapd00r/LS_COLORS](https://github.com/trapd00r/LS_COLORS), a collection of
+  LS_COLORS definitions colorizes `.prql` files. (@vanillajonathan)
+- [vivid](https://github.com/sharkdp/vivid), a themeable LS_COLORS generator
+  colorizes `.prql` files. (@vanillajonathan)
+- [colorls](https://github.com/athityakumar/colorls), displays `.prql` files
+  with a database icon. (@vanillajonathan)
+- [Emoji File Icons](https://marketplace.visualstudio.com/items?itemName=mightbesimon.emoji-icons),
+  a VS Code extension displays `.prql` files with a database emoji icon.
+  (@vanillajonathan)
+- [eza](https://eza.rocks/), a modern ls replacement colorizes `.prql` files.
+  (@vanillajonathan)
+- [lsd](https://github.com/lsd-rs/lsd), next gen ls command displays `.prql`
+  files with a database icon. (@vanillajonathan)
 
 ## 0.10.0 — 2023-10-26
 

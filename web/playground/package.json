@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@vitejs/plugin-react": "^4.1.0",
+    "@vitejs/plugin-react": "^4.2.0",
     "vite": "^4.5.0",
     "vite-plugin-wasm": "^3.2.2"
   },
@@ -47,5 +47,5 @@
     "prepare": "rsync -ai --checksum --delete ../../prqlc/prql-compiler/tests/integration/data/ public/data/ && node generateBook.cjs",
     "preview": "vite preview"
   },
-  "version": "0.10.1"
+  "version": "0.10.2"
 }

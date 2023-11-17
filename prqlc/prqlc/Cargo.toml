@@ -17,16 +17,16 @@ anyhow = {version = "1.0.75"}
 ariadne = "0.3.0"
 # Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
 atty = "0.2.14"
-clap = {version = "4.4.7", features = ["derive", "env", "wrap_help"]}
+clap = {version = "4.4.8", features = ["derive", "env", "wrap_help"]}
 clap_complete_command = "0.5.1"
 clio = {version = "0.3.3", features = ['clap-parse']}
 color-eyre = "0.6.2"
 colorchoice-clap = "1.0.0"
-env_logger = {version = "0.10.0", features = ["color"]}
+env_logger = {version = "0.10.1", features = ["color"]}
 itertools = "0.11.0"
 notify = "6.1.1"
-prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.10.1"}
-prqlc-ast = {path = '../prqlc-ast', version = "0.10.1"}
+prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.10.2" }
+prqlc-ast = {path = '../prqlc-ast', version = "0.10.2" }
 regex = {version = "1.10.2", features = ["std", "unicode"]}
 serde = "1"
 serde_json = "1.0.108"

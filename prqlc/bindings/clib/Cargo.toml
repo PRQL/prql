@@ -9,9 +9,9 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
-name = "prqlc"
 crate_type = ["staticlib", "cdylib"]
 doctest = false
+name = "prqlc_lib"
 test = false
 
 [dependencies]

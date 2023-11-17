@@ -11,7 +11,7 @@ build: main.cpp build-prql
 	g++ main.cpp -o main.out \
 		-I${PRQL_PROJECT}/prqlc/bindings/clib \
 		-L${PRQL_PROJECT}/target/release \
-		${PRQL_PROJECT}/target/release/libprqlc.a
+		${PRQL_PROJECT}/target/release/libprqlc_lib.a
 
 valgrind: build
 	valgrind ./main.out

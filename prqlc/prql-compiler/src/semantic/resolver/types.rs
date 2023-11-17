@@ -4,117 +4,14 @@ use anyhow::Result;
 use itertools::Itertools;
 use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyKind};
 
+use crate::codegen::{write_ty, write_ty_kind};
+use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 
 use crate::semantic::write_pl;
 use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
-
-/// Takes a resolved [Expr] and evaluates it a type expression that can be used to construct a type.
-// pub fn coerce_to_type(resolver: &mut Resolver, expr: Expr) -> Result<Ty> {
-//     coerce_kind_to_set(resolver, expr.kind)
-// }
-
-// fn coerce_to_aliased_type(resolver: &mut Resolver, expr: Expr) -> Result<(Option<String>, Ty)> {
-//     let name = expr.alias;
-//     let expr = coerce_kind_to_set(resolver, expr.kind).map_err(|e| e.with_span(expr.span))?;
-
-//     Ok((name, expr))
-// }
-
-// fn coerce_kind_to_set(resolver: &mut Resolver, expr: ExprKind) -> Result<Ty> {
-//     Ok(match expr {
-//         // already resolved type expressions (mostly primitives)
-//         ExprKind::Type(set_expr) => set_expr,
-
-//         // singletons
-//         ExprKind::Literal(lit) => Ty::new(lit),
-
-//         // tuples
-//         ExprKind::Tuple(elements) => {
-//             let mut set_elements = Vec::with_capacity(elements.len());
-
-//             for e in elements {
-//                 match try_restrict_range(e) {
-//                     // special case: {x..}
-//                     Ok(Range { start, .. }) => {
-//                         let inner = match start {
-//                             Some(x) => Some(coerce_to_type(resolver, *x)?),
-//                             None => None,
-//                         };
-
-//                         set_elements.push(TupleField::Wildcard(inner))
-//                     }
-
-//                     // base: case
-//                     Err(e) => {
-//                         let (name, ty) = coerce_to_aliased_type(resolver, e)?;
-//                         let ty = Some(ty);
-
-//                         set_elements.push(TupleField::Single(name, ty));
-//                     }
-//                 }
-//             }
-
-//             Ty::new(TyKind::Tuple(set_elements))
-//         }
-
-//         // arrays
-//         ExprKind::Array(elements) => {
-//             if elements.len() != 1 {
-//                 return Err(Error::new_simple(
-//                     "For type expressions, arrays must contain exactly one element.",
-//                 )
-//                 .into());
-//             }
-//             let items_type = elements.into_iter().next().unwrap();
-//             let (_, items_type) = coerce_to_aliased_type(resolver, items_type)?;
-
-//             Ty::new(TyKind::Array(Box::new(items_type)))
-//         }
-
-//         // unions
-//         ExprKind::RqOperator { name, args } if name == "std.or" => {
-//             let [left, right]: [_; 2] = args.try_into().unwrap();
-//             let left = coerce_to_type(resolver, left)?;
-//             let right = coerce_to_type(resolver, right)?;
-
-//             // flatten nested unions
-//             let mut options = Vec::with_capacity(2);
-//             if let TyKind::Union(parts) = left.kind {
-//                 options.extend(parts);
-//             } else {
-//                 options.push((left.name.clone(), left));
-//             }
-//             if let TyKind::Union(parts) = right.kind {
-//                 options.extend(parts);
-//             } else {
-//                 options.push((right.name.clone(), right));
-//             }
-
-//             Ty::new(TyKind::Union(options))
-//         }
-
-//         // functions
-//         ExprKind::Func(func) => Ty::new(TyFunc {
-//             args: func
-//                 .params
-//                 .into_iter()
-//                 .map(|p| p.ty.map(|t| t))
-//                 .collect_vec(),
-//             return_ty: Box::new(resolver.fold_type(Some(func.body))?),
-//         }),
-
-//         _ => {
-//             return Err(Error::new_simple(format!(
-//                 "not a type expression: {}",
-//                 write_pl(Expr::new(expr))
-//             ))
-//             .into())
-//         }
-//     })
-// }
 
 pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
     if let Some(ty) = &node.ty {
@@ -184,7 +81,7 @@ pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
 
 impl Resolver<'_> {
     /// Validates that found node has expected type. Returns assumed type of the node.
-    pub fn validate_type<F>(
+    pub fn validate_expr_type<F>(
         &mut self,
         found: &mut Expr,
         expected: Option<&Ty>,
@@ -193,18 +90,15 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
-        let found_ty = found.ty.clone();
-
-        // infer
-        let Some(expected) = expected else {
+        if expected.is_none() {
             // expected is none: there is no validation to be done
             return Ok(());
         };
 
-        let Some(found_ty) = found_ty else {
+        let Some(found_ty) = &mut found.ty else {
             // found is none: infer from expected
 
-            if found.lineage.is_none() && expected.is_relation() {
+            if found.lineage.is_none() && expected.unwrap().is_relation() {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns
@@ -217,109 +111,216 @@ impl Resolver<'_> {
             }
 
             // base case: infer expected type
-            found.ty = Some(expected.clone());
+            found.ty = expected.cloned();
 
             return Ok(());
         };
 
-        let expected_is_above = match &mut found.kind {
-            // special case of container type: tuple
-            ExprKind::Tuple(found_fields) => {
-                if expected.kind.is_any() {
-                    return Ok(());
-                }
-
-                let ok = self.validate_tuple_type(found_fields, expected, who)?;
-                if ok {
-                    return Ok(());
-                }
-                false
-            }
-
-            // base case: compare types
-            _ => is_super_type_of(expected, &found_ty),
-        };
-        if !expected_is_above {
-            fn display_ty(ty: &Ty) -> String {
-                if ty.is_tuple() {
-                    "a tuple".to_string()
-                } else {
-                    format!("type `{}`", crate::codegen::write_ty(ty))
-                }
-            }
-
-            let who = who();
-            let is_join = who
-                .as_ref()
-                .map(|x| x.contains("std.join"))
-                .unwrap_or_default();
-
-            let mut e = Err(Error::new(Reason::Expected {
-                who,
-                expected: display_ty(expected),
-                found: display_ty(&found_ty),
-            })
-            .with_span(found.span));
-
-            if found_ty.is_function() && !expected.is_function() {
-                let func_name = found.kind.as_func().and_then(|c| c.name_hint.as_ref());
-                let to_what = func_name
-                    .map(|n| format!("to function {n}"))
-                    .unwrap_or_else(|| "in this function call?".to_string());
-
-                e = e.push_hint(format!("Have you forgotten an argument {to_what}?"));
-            }
-
-            if is_join && found_ty.is_tuple() && !expected.is_tuple() {
-                e = e.push_hint("Try using `(...)` instead of `{...}`");
-            }
-
-            if let Some(expected_name) = &expected.name {
-                let expanded = crate::codegen::write_ty_kind(&expected.kind);
-                e = e.push_hint(format!("Type `{expected_name}` expands to `{expanded}`"));
-            }
-
-            return e;
-        }
-        Ok(())
+        self.validate_type(found_ty, expected, who)
+            .with_span(found.span)
     }
 
-    fn validate_tuple_type<F>(
+    /// Validates that found node has expected type. Returns assumed type of the node.
+    pub fn validate_type<F>(
         &mut self,
-        found_fields: &mut [Expr],
-        expected: &Ty,
+        found: &mut Ty,
+        expected: Option<&Ty>,
         who: &F,
-    ) -> Result<bool, Error>
+    ) -> Result<(), Error>
     where
         F: Fn() -> Option<String>,
     {
-        let Some(expected_fields) = find_potential_tuple_fields(expected) else {
-            return Ok(false);
+        // infer
+        let Some(expected) = expected else {
+            // expected is none: there is no validation to be done
+            return Ok(());
         };
 
-        let mut found = found_fields.iter_mut();
+        let expected_is_above = is_super_type_of(expected, found);
+        if expected_is_above {
+            return Ok(());
+        }
 
-        for expected_field in expected_fields {
-            match expected_field {
-                TupleField::Single(_, expected_kind) => match found.next() {
-                    Some(found_field) => {
-                        self.validate_type(found_field, expected_kind.as_ref(), who)?
+        // if type is a generic, infer the constraint
+        // TODO
+        if false {
+            // This case will happen when variable is for example an `int || timestamp`, but the
+            // expected type is just `int`. If the variable allows it, we infer that the
+            // variable is actually just `int`.
+
+            // This if prevents variables of for example type `int || timestamp` to be inferred
+            // as `text`.
+            let is_found_above = is_super_type_of(found, expected);
+            if is_found_above {
+                restrict_type(found, expected.clone());
+
+                // propagate the inference to table declarations
+                // if let Some(instance_of) = &found.instance_of {
+                //     self.push_type_info(instance_of, expected.clone())
+                // }
+                return Ok(());
+            }
+        }
+
+        Err(compose_type_error(found, expected, who))
+    }
+
+    /// Saves information that declaration identified by `fq_ident` must be of type `sub_ty`.
+    /// Param `sub_ty` must be a sub type of the current type of the declaration.
+    #[allow(dead_code)]
+    pub fn push_type_info(&mut self, fq_ident: &Ident, sub_ty: Ty) {
+        let decl = self.root_mod.module.get_mut(fq_ident).unwrap();
+
+        match &mut decl.kind {
+            DeclKind::Expr(expr) => {
+                restrict_type_opt(&mut expr.ty, Some(sub_ty));
+            }
+
+            DeclKind::Module(_)
+            | DeclKind::LayeredModules(_)
+            | DeclKind::Column(_)
+            | DeclKind::Infer(_)
+            | DeclKind::TableDecl(_)
+            | DeclKind::Ty(_)
+            | DeclKind::InstanceOf { .. }
+            | DeclKind::QueryDef(_) => {
+                panic!("declaration {decl} is not able to have a type")
+            }
+        }
+    }
+}
+
+fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {
+    let Some(sub_ty) = sub_ty else {
+        return;
+    };
+    if let Some(ty) = ty {
+        restrict_type(ty, sub_ty)
+    } else {
+        *ty = Some(sub_ty);
+    }
+}
+
+fn restrict_type(ty: &mut Ty, sub_ty: Ty) {
+    match (&mut ty.kind, sub_ty.kind) {
+        (TyKind::Any, sub) => ty.kind = sub,
+
+        (TyKind::Union(variants), sub_kind) => {
+            let sub_ty = Ty {
+                kind: sub_kind,
+                ..sub_ty
+            };
+            let drained = variants
+                .drain(..)
+                .filter(|(_, variant)| is_super_type_of(variant, &sub_ty))
+                .map(|(name, mut ty)| {
+                    restrict_type(&mut ty, sub_ty.clone());
+                    (name, ty)
+                })
+                .collect_vec();
+            variants.extend(drained);
+        }
+
+        (kind, TyKind::Union(sub_variants)) => {
+            todo!("restrict {kind:?} to union of {sub_variants:?}")
+        }
+
+        (TyKind::Primitive(_), _) => {}
+
+        (TyKind::Singleton(_), _) => {}
+
+        (TyKind::Tuple(tuple), TyKind::Tuple(sub_tuple)) => {
+            for sub_field in sub_tuple {
+                match sub_field {
+                    TupleField::Single(sub_name, sub_ty) => {
+                        if let Some(sub_name) = sub_name {
+                            let existing = tuple
+                                .iter_mut()
+                                .filter_map(|x| x.as_single_mut())
+                                .find(|f| f.0.as_ref() == Some(&sub_name));
+
+                            if let Some((_, existing)) = existing {
+                                restrict_type_opt(existing, sub_ty)
+                            } else {
+                                tuple.push(TupleField::Single(Some(sub_name), sub_ty));
+                            }
+                        } else {
+                            // TODO: insert unnamed fields?
+                        }
                     }
-                    None => {
-                        return Ok(false);
-                    }
-                },
-                TupleField::Wildcard(expected_wildcard) => {
-                    for found_field in found {
-                        self.validate_type(found_field, expected_wildcard.as_ref(), who)?;
-                    }
-                    return Ok(true);
+                    TupleField::Wildcard(_) => todo!("remove TupleField::Wildcard"),
                 }
             }
         }
 
-        Ok(found.next().is_none())
+        (TyKind::Array(ty), TyKind::Array(sub_ty)) => restrict_type(ty, *sub_ty),
+
+        (TyKind::Function(ty), TyKind::Function(sub_ty)) => {
+            if sub_ty.is_none() {
+                return;
+            }
+            if ty.is_none() {
+                *ty = sub_ty;
+                return;
+            }
+            if let (Some(func), Some(sub_func)) = (ty, sub_ty) {
+                todo!("restrict function {func:?} to function {sub_func:?}")
+            }
+        }
+
+        _ => {
+            panic!("trying to restrict a type with a non sub type")
+        }
     }
+}
+
+fn compose_type_error<F>(found_ty: &mut Ty, expected: &Ty, who: &F) -> Error
+where
+    F: Fn() -> Option<String>,
+{
+    fn display_ty(ty: &Ty) -> String {
+        if ty.name.is_none() && ty.is_tuple() {
+            "a tuple".to_string()
+        } else {
+            format!("type `{}`", write_ty(ty))
+        }
+    }
+
+    let who = who();
+    let is_join = who
+        .as_ref()
+        .map(|x| x.contains("std.join"))
+        .unwrap_or_default();
+
+    let mut e = Error::new(Reason::Expected {
+        who,
+        expected: display_ty(expected),
+        found: display_ty(found_ty),
+    });
+
+    if found_ty.is_function() && !expected.is_function() {
+        let found = found_ty.kind.as_function().unwrap();
+        let func_name = if let Some(func) = found {
+            func.name_hint.as_ref()
+        } else {
+            None
+        };
+        let to_what = func_name
+            .map(|n| format!("to function {n}"))
+            .unwrap_or_else(|| "in this function call?".to_string());
+
+        e = e.push_hint(format!("Have you forgotten an argument {to_what}?"));
+    }
+
+    if is_join && found_ty.is_tuple() && !expected.is_tuple() {
+        e = e.push_hint("Try using `(...)` instead of `{...}`");
+    }
+
+    if let Some(expected_name) = &expected.name {
+        let expanded = write_ty_kind(&expected.kind);
+        e = e.push_hint(format!("Type `{expected_name}` expands to `{expanded}`"));
+    }
+    e
 }
 
 #[allow(dead_code)]
@@ -338,21 +339,6 @@ fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -
         ))
     } else {
         err
-    }
-}
-
-fn find_potential_tuple_fields(expected: &Ty) -> Option<&Vec<TupleField>> {
-    match &expected.kind {
-        TyKind::Tuple(fields) => Some(fields),
-        TyKind::Union(variants) => {
-            for (_, variant) in variants {
-                if let Some(fields) = find_potential_tuple_fields(variant) {
-                    return Some(fields);
-                }
-            }
-            None
-        }
-        _ => None,
     }
 }
 
@@ -417,6 +403,7 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
     match (superset, subset) {
         (TyKind::Any, _) => true,
         (_, TyKind::Any) => false,
+
         (TyKind::Primitive(l0), TyKind::Primitive(r0)) => l0 == r0,
 
         (one, TyKind::Union(many)) => many
@@ -442,6 +429,45 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
                 }
             }
 
+            true
+        }
+
+        (TyKind::Array(sup), TyKind::Array(sub)) => is_super_type_of(sup, sub),
+
+        (TyKind::Tuple(sup_tuple), TyKind::Tuple(sub_tuple)) => {
+            let sup_has_wildcard = sup_tuple
+                .iter()
+                .any(|f| matches!(f, TupleField::Wildcard(_)));
+            let sub_has_wildcard = sub_tuple
+                .iter()
+                .any(|f| matches!(f, TupleField::Wildcard(_)));
+
+            let mut sup_fields = sup_tuple.iter().filter(|f| f.is_single());
+            let mut sub_fields = sub_tuple.iter().filter(|f| f.is_single());
+
+            loop {
+                let sup = sup_fields.next();
+                let sub = sub_fields.next();
+
+                match (sup, sub) {
+                    (Some(TupleField::Single(_, sup)), Some(TupleField::Single(_, sub))) => {
+                        if is_not_super_type_of(sup, sub) {
+                            return false;
+                        }
+                    }
+                    (_, Some(_)) => {
+                        if !sup_has_wildcard {
+                            return false;
+                        }
+                    }
+                    (Some(_), None) => {
+                        if !sub_has_wildcard {
+                            return false;
+                        }
+                    }
+                    (None, None) => break,
+                }
+            }
             true
         }
 

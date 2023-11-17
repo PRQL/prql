@@ -1,11 +1,12 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
+use strum::AsRefStr;
 
 use crate::{Ident, Span};
 
 use super::Literal;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -15,7 +16,7 @@ pub struct Ty {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner, AsRefStr)]
 pub enum TyKind {
     /// Identifier that still needs to be resolved.
     Ident(Ident),
@@ -77,6 +78,7 @@ pub enum PrimitiveSet {
 // Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
+    pub name_hint: Option<Ident>,
     pub args: Vec<Option<Ty>>,
     pub return_ty: Box<Option<Ty>>,
 }
@@ -149,5 +151,15 @@ impl From<TyFunc> for TyKind {
 impl From<Literal> for TyKind {
     fn from(value: Literal) -> Self {
         TyKind::Singleton(value)
+    }
+}
+
+impl std::fmt::Debug for Ty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(name) = &self.name {
+            f.write_str(name)
+        } else {
+            f.write_str(self.kind.as_ref())
+        }
     }
 }

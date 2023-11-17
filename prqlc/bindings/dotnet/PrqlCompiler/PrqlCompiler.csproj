@@ -6,7 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\..\target\release\prqlc.dll">
+    <None Include="..\..\..\..\target\release\libprqlc_lib.dll">
       <Visible>false</Visible>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Pack>true</Pack>
