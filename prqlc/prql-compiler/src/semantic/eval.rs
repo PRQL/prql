@@ -31,7 +31,7 @@ impl Evaluator {
 
 impl PlFold for Evaluator {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
-        let mut expr = super::static_analysis::static_analysis(expr);
+        let mut expr = expr;
 
         expr.kind = match expr.kind {
             // these are values already

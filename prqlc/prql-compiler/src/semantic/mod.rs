@@ -6,7 +6,6 @@ mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
-mod static_analysis;
 
 use anyhow::Result;
 use itertools::Itertools;

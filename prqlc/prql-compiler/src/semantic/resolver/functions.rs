@@ -319,7 +319,7 @@ impl Resolver<'_> {
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
-            self.validate_type(&mut arg, param.ty.as_ref(), &who)?;
+            self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
         }
 
         Ok(Ok(arg))
@@ -433,6 +433,7 @@ fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
             .map(|a| a.ty.clone())
             .collect(),
         return_ty: Box::new(func.return_ty.clone()),
+        name_hint: func.name_hint.clone(),
     };
 
     Expr {

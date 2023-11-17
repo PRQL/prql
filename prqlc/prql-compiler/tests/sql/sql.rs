@@ -3185,7 +3185,7 @@ fn test_static_analysis() {
     SELECT
       3 AS a,
       false AS b,
-      y,
+      y AS _expr_0,
       CASE
         WHEN 7 = y THEN 3
         ELSE 4
