@@ -4,7 +4,7 @@ use anyhow::Result;
 use prqlc_ast::stmt::QueryDef;
 use prqlc_ast::{Span, TupleField, Ty};
 
-use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
+use crate::ir::pl::{Annotation, Ident, Lineage, LineageColumn};
 use crate::Error;
 
 use super::{
@@ -312,29 +312,6 @@ impl Module {
         (self.names.get_mut(ident))
             .and_then(|e| e.kind.as_layered_modules_mut())
             .and_then(|stack| stack.pop())
-    }
-
-    pub(crate) fn into_exprs(self) -> HashMap<String, Expr> {
-        self.names
-            .into_iter()
-            .map(|(k, v)| (k, *v.kind.into_expr().unwrap()))
-            .collect()
-    }
-
-    pub(crate) fn from_exprs(exprs: HashMap<String, Expr>) -> Module {
-        Module {
-            names: exprs
-                .into_iter()
-                .map(|(key, expr)| {
-                    let decl = Decl {
-                        kind: DeclKind::Expr(Box::new(expr)),
-                        ..Default::default()
-                    };
-                    (key, decl)
-                })
-                .collect(),
-            ..Default::default()
-        }
     }
 
     pub fn as_decls(&self) -> Vec<(Ident, &Decl)> {

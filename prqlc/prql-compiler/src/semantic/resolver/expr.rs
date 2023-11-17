@@ -1,10 +1,11 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{TupleField, Ty, TyKind};
+use prqlc_ast::{Ty, TyKind};
 
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
+use crate::semantic::resolver::inference::ty_of_lineage;
 use crate::semantic::resolver::{flatten, transforms, types, Resolver};
 use crate::semantic::{write_pl, NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
@@ -80,11 +81,6 @@ impl PlFold for Resolver<'_> {
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
-                    DeclKind::Infer(_) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
-                        target_id: entry.declared_at,
-                        ..node
-                    },
                     DeclKind::Column(target_id) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: Some(*target_id),
@@ -105,21 +101,6 @@ impl PlFold for Resolver<'_> {
                         }
                     }
 
-                    DeclKind::Expr(expr) => match &expr.kind {
-                        ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(*closure.clone())?;
-
-                            let expr = Expr::new(ExprKind::Func(Box::new(closure)));
-
-                            if self.in_func_call_name {
-                                expr
-                            } else {
-                                self.fold_expr(expr)?
-                            }
-                        }
-                        _ => self.fold_expr(expr.as_ref().clone())?,
-                    },
-
                     DeclKind::InstanceOf(_) => {
                         return Err(Error::new_simple(
                             "table instance cannot be referenced directly",
@@ -139,8 +120,17 @@ impl PlFold for Resolver<'_> {
                         .into());
                     }
 
+                    DeclKind::Param(ty_and_lineage) => Expr {
+                        kind: ExprKind::Ident(fq_ident),
+                        target_id: entry.declared_at,
+                        ty: Some(ty_and_lineage.0.clone()),
+                        lineage: ty_and_lineage.1.clone(),
+                        ..node
+                    },
+
                     _ => Expr {
                         kind: ExprKind::Ident(fq_ident),
+                        target_id: entry.declared_at,
                         ..node
                     },
                 }
@@ -166,11 +156,19 @@ impl PlFold for Resolver<'_> {
                 let name = self.fold_expr(*name)?;
                 self.in_func_call_name = old;
 
-                let func = *name.try_cast(|n| n.into_func(), None, "a function")?;
-
-                // fold function
-                let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, span)?
+                if let ExprKind::Func(func) = name.kind {
+                    // fold function
+                    let func = self.apply_args_to_closure(*func, args, named_args)?;
+                    self.fold_function(func, span)?
+                } else {
+                    // non-resolved function, delay resolution
+                    let kind = ExprKind::FuncCall(FuncCall {
+                        name: Box::new(name),
+                        args,
+                        named_args,
+                    });
+                    Expr { kind, ..node }
+                }
             }
 
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
@@ -244,8 +242,9 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        let mut r = self.static_eval(r)?;
+        let mut r = r;
         r.id = r.id.or(Some(id));
+        let mut r = self.static_eval(r)?;
         r.alias = r.alias.or(alias);
         r.span = r.span.or(span);
 
@@ -257,7 +256,6 @@ impl PlFold for Resolver<'_> {
                 r.lineage = Some(call.infer_type(self.root_mod)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
-
                 let columns = Some(relation_columns.clone());
 
                 let name = r.alias.clone();
@@ -300,20 +298,4 @@ impl Resolver<'_> {
             except,
         }))
     }
-}
-
-fn ty_of_lineage(lineage: &Lineage) -> Ty {
-    Ty::relation(
-        lineage
-            .columns
-            .iter()
-            .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(Literal::Null)),
-                ),
-            })
-            .collect(),
-    )
 }

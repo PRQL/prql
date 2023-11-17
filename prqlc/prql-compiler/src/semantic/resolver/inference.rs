@@ -4,7 +4,7 @@ use itertools::Itertools;
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
 use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
-use prqlc_ast::{Ident, TupleField, Ty};
+use prqlc_ast::{Ident, Literal, TupleField, Ty};
 
 use super::Resolver;
 
@@ -145,4 +145,20 @@ impl Resolver<'_> {
         let table_fq = default_db_ident + Ident::from_name(global_name);
         self.lineage_of_table_decl(&table_fq, input_name, id)
     }
+}
+
+pub(super) fn ty_of_lineage(lineage: &Lineage) -> Ty {
+    Ty::relation(
+        lineage
+            .columns
+            .iter()
+            .map(|col| match col {
+                LineageColumn::All { .. } => TupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TupleField::Single(
+                    name.as_ref().map(|i| i.name.clone()),
+                    Some(Ty::new(Literal::Null)),
+                ),
+            })
+            .collect(),
+    )
 }

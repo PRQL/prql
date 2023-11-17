@@ -181,6 +181,7 @@ impl Resolver<'_> {
             | DeclKind::Column(_)
             | DeclKind::Infer(_)
             | DeclKind::TableDecl(_)
+            | DeclKind::Param(_)
             | DeclKind::Ty(_)
             | DeclKind::InstanceOf { .. }
             | DeclKind::QueryDef(_) => {

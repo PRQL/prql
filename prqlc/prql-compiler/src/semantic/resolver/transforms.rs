@@ -2,11 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
-use prqlc_ast::TupleField;
 use serde::Deserialize;
 use std::iter::zip;
 
 use prqlc_ast::error::{Error, Reason};
+use prqlc_ast::TupleField;
 
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule};
 use crate::ir::generic::{SortDirection, WindowKind};
@@ -126,8 +126,7 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
 
             let by = coerce_into_tuple_and_flatten(by)?;
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, &tbl)?;
 
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
@@ -192,8 +191,7 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, &tbl)?;
 
             let transform_kind = TransformKind::Window {
                 kind,
@@ -210,8 +208,7 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
         "loop" => {
             let [pipeline, tbl] = unpack::<2>(closure);
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, &tbl)?;
 
             (TransformKind::Loop(Box::new(pipeline)), tbl)
         }
@@ -461,7 +458,7 @@ fn range_from_ints(start: Option<i64>, end: Option<i64>) -> Range {
 fn fold_by_simulating_eval(
     resolver: &mut Resolver,
     pipeline: Expr,
-    val_lineage: Lineage,
+    val: &Expr,
 ) -> Result<Expr, anyhow::Error> {
     log::debug!("fold by simulating evaluation");
 
@@ -476,15 +473,36 @@ fn fold_by_simulating_eval(
     // chunk and instruct resolver to apply the transform on that.
 
     let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.lineage = Some(val_lineage);
+    dummy.lineage = Some(val.lineage.clone().unwrap());
+    dummy.ty = Some(val.ty.clone().unwrap());
 
     let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
         pipeline,
         vec![dummy],
     )));
 
-    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+    let env = Module::singleton(
+        param_name,
+        Decl::from(DeclKind::Param(Box::new((
+            val.ty.clone().unwrap(),
+            val.lineage.clone(),
+        )))),
+    );
     resolver.root_mod.module.stack_push(NS_PARAM, env);
+
+    /*
+    (_partial_104 ->
+        (
+            (expr tbl -> internal take)
+            1
+            (
+                (by tbl -> internal sort)
+                {std.neg album_id}
+                _param._partial_104
+            )
+        )
+    ) _tbl
+    */
 
     let pipeline = resolver.fold_expr(pipeline)?;
 

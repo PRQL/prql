@@ -1,12 +1,36 @@
 //! Static analysis - compile time expression evaluation
 
 use anyhow::Result;
+use prqlc_ast::expr::Ident;
 
-use crate::ir::pl::{Expr, ExprKind, Literal};
+use crate::ir::decl::{Decl, DeclKind};
+use crate::ir::pl::{Expr, ExprKind, Literal, PlFold};
+
+use super::inference::ty_of_lineage;
 
 impl super::Resolver<'_> {
     pub fn static_eval(&mut self, expr: Expr) -> Result<Expr> {
         Ok(match &expr.kind {
+            ExprKind::Ident(fq_ident) => {
+                let Some(decl) = self.root_mod.module.get(fq_ident) else {
+                    return Ok(expr);
+                };
+
+                let DeclKind::Expr(decl_expr) = &decl.kind else {
+                    return Ok(expr);
+                };
+
+                // inline only specific types of expr kinds
+                match decl_expr.kind {
+                    ExprKind::Func(_) => {
+                        self.inline_decl(fq_ident, decl.clone(), expr.id.unwrap())?
+                    }
+
+                    // don't inline by default
+                    _ => expr,
+                }
+            }
+
             ExprKind::RqOperator { .. } => {
                 let id = expr.id;
                 let span = expr.span;
@@ -18,6 +42,33 @@ impl super::Resolver<'_> {
 
             _ => expr,
         })
+    }
+
+    pub fn inline_decl(&mut self, fq_ident: &Ident, decl: Decl, id: usize) -> Result<Expr> {
+        let mut expr = *decl.kind.into_expr().unwrap();
+
+        if expr.ty.as_ref().map_or(false, |x| x.is_relation()) {
+            let input_name = fq_ident.name.clone();
+
+            let lineage = self.lineage_of_table_decl(fq_ident, input_name, id);
+
+            Ok(Expr {
+                kind: ExprKind::Ident(fq_ident.clone()),
+                ty: Some(ty_of_lineage(&lineage)),
+                lineage: Some(lineage),
+                ..expr
+            })
+        } else {
+            if let ExprKind::Func(func) = expr.kind {
+                expr = Expr::new(ExprKind::Func(func));
+
+                if self.in_func_call_name {
+                    return Ok(expr);
+                }
+            }
+
+            Ok(self.fold_expr(expr)?)
+        }
     }
 }
 

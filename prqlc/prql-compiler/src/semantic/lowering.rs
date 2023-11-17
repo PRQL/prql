@@ -827,8 +827,14 @@ impl Lowerer {
             }
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
 
-            pl::ExprKind::FuncCall(_)
-            | pl::ExprKind::Tuple(_)
+            pl::ExprKind::FuncCall(_) => {
+                return Err(Error::new_simple("Unable to inline this function call")
+                    .push_hint("we are working on supporting such patterns")
+                    .with_span(expr.span)
+                    .into());
+            }
+
+            pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)
             | pl::ExprKind::TransformCall(_) => {
@@ -891,7 +897,7 @@ impl Lowerer {
                     panic!("cannot find cid by id={id} and name={name:?}");
                 }
             }
-            None => panic!("cannot find cid by id={id}"),
+            None => panic!("cannot find cid by id={id} and name={name:?}"),
         };
 
         Ok(cid)

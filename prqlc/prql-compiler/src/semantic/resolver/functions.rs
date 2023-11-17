@@ -4,9 +4,9 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::{Itertools, Position};
 
-use crate::ir::decl::{Decl, DeclKind, Module};
+use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use prqlc_ast::{Ty, TyFunc};
+use prqlc_ast::{Ty, TyFunc, TyKind};
 
 use crate::semantic::resolver::{transforms, types};
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
@@ -16,7 +16,9 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr> {
-        let closure = self.fold_function_types(closure)?;
+        let closure = self.resolve_function_types(closure)?;
+
+        let closure = self.resolve_function_body(closure)?;
 
         log::debug!(
             "func {} {}/{} params",
@@ -47,20 +49,13 @@ impl Resolver<'_> {
         };
 
         // push the env
-        let closure_env = Module::from_exprs(closure.env);
-        self.root_mod.module.stack_push(NS_PARAM, closure_env);
-        let closure = Func {
-            env: HashMap::new(),
-            ..closure
-        };
-
-        if log::log_enabled!(log::Level::Debug) {
-            let name = closure
+        log::debug!(
+            "resolving args of function {}",
+            closure
                 .name_hint
                 .clone()
-                .unwrap_or_else(|| Ident::from_name("<unnamed>"));
-            log::debug!("resolving args of function {}", name);
-        }
+                .unwrap_or_else(|| Ident::from_name("<unnamed>"))
+        );
         let res = self.resolve_function_args(closure)?;
 
         let closure = match res {
@@ -93,25 +88,15 @@ impl Resolver<'_> {
                 self.fold_expr(expr)?
             }
         } else {
-            // base case: materialize
-            log::debug!("stack_push for {}", closure.as_debug_name());
+            // base case: inline function
+            let body = inline_function(closure);
 
-            let (func_env, body) = env_of_closure(closure);
-
-            self.root_mod.module.stack_push(NS_PARAM, func_env);
-
-            // fold again, to resolve inner variables & functions
-            let body = self.fold_expr(body)?;
-
-            // remove param decls
-            log::debug!("stack_pop: {:?}", body.id);
-            let func_env = self.root_mod.module.stack_pop(NS_PARAM).unwrap();
-
+            // TODO: do we still need this?
+            //       when the tests pass again, we should try to remove and see what breaks.
             if let ExprKind::Func(mut inner_closure) = body.kind {
                 // body couldn't been resolved - construct a closure to be evaluated later
 
-                inner_closure.env = func_env.into_exprs();
-
+                // inner_closure.env = func_env.into_exprs();
                 let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
                 let missing = missing.to_vec();
                 inner_closure.params = got.to_vec();
@@ -131,14 +116,11 @@ impl Resolver<'_> {
             }
         };
 
-        // pop the env
-        self.root_mod.module.stack_pop(NS_PARAM).unwrap();
-
         Ok(Expr { span, ..res })
     }
 
-    pub fn fold_function_types(&mut self, mut closure: Func) -> Result<Func> {
-        closure.params = closure
+    pub fn resolve_function_types(&mut self, mut func: Func) -> Result<Func> {
+        func.params = func
             .params
             .into_iter()
             .map(|p| -> Result<_> {
@@ -148,8 +130,8 @@ impl Resolver<'_> {
                 })
             })
             .try_collect()?;
-        closure.return_ty = fold_type_opt(self, closure.return_ty)?;
-        Ok(closure)
+        func.return_ty = fold_type_opt(self, func.return_ty)?;
+        Ok(func)
     }
 
     pub fn apply_args_to_closure(
@@ -228,11 +210,11 @@ impl Resolver<'_> {
 
                 // add relation frame into scope
                 if partial_application_position.is_none() {
-                    let frame = arg.lineage.as_ref().unwrap();
+                    let lineage = arg.lineage.as_ref().unwrap();
                     if is_last {
-                        self.root_mod.module.insert_frame(frame, NS_THIS);
+                        self.root_mod.module.insert_frame(lineage, NS_THIS);
                     } else {
-                        self.root_mod.module.insert_frame(frame, NS_THAT);
+                        self.root_mod.module.insert_frame(lineage, NS_THAT);
                     }
                 }
 
@@ -338,7 +320,76 @@ impl Resolver<'_> {
 
         let res = self.fold_expr(expr);
         self.default_namespace = prev_namespace;
+        if let Ok(e) = &res {
+            assert!(e.id.is_some(), "not resolved: {e:?}");
+        }
         res
+    }
+
+    fn resolve_function_body(&mut self, mut func: Func) -> Result<Func> {
+        if matches!(func.body.kind, ExprKind::Internal(_)) {
+            return Ok(func);
+        }
+
+        self.root_mod.module.shadow(NS_PARAM);
+
+        // insert type definitions of the params
+        let module = self.root_mod.module.names.get_mut(NS_PARAM).unwrap();
+        let module = module.kind.as_module_mut().unwrap();
+        for param in func.params.iter().chain(func.named_params.iter()) {
+            let ty = (param.ty).clone().unwrap_or_else(|| Ty::new(TyKind::Any));
+            // TODO: continue here: anytype is incorrect here, it should be the generic type the is then restricted
+
+            // infer types of params during resolution of the body
+            // ty.infer = true;
+
+            module.names.insert(
+                param.name.clone(),
+                Decl::from(DeclKind::Param(Box::new((ty, None)))),
+            );
+
+            // this should not be done in most cases, but only when this is an implicit closure
+            // module.redirects.insert(Ident::from_name(&param.name));
+        }
+
+        let body = self.fold_expr(*func.body);
+
+        // retrieve type definitions of the params
+        //  let module = self.root_mod.module.names.get_mut(NS_PARAM).unwrap();
+        //  let module = module.kind.as_module_mut().unwrap();
+        //  for param in func.params.iter_mut().chain(func.named_params.iter_mut()) {
+        //      let Some(decl) = module.names.remove(&param.name) else {
+        //          continue;
+        //      };
+
+        //      let DeclKind::Param(ty) = decl.kind else {
+        //          continue;
+        //      };
+
+        //      param.ty = Some(TyOrExpr::Ty(*ty));
+        //  }
+
+        self.root_mod.module.unshadow(NS_PARAM);
+
+        let body = body?;
+
+        // validate return type
+        //  if let Some(body_ty) = &mut body.ty {
+        //      let expected = func.return_ty.as_ref().and_then(|x| x.as_ty());
+        //      let who = || {
+        //          if let Some(name_hint) = &func.name_hint {
+        //              Some(format!("return type of function {name_hint}"))
+        //          } else {
+        //              Some("return type".to_string())
+        //          }
+        //      };
+        //      self.validate_type(body_ty, expected, &who)?;
+
+        //      func.return_ty = Some(TyOrExpr::Ty(body_ty.clone()));
+        //  }
+
+        func.body = Box::new(body);
+        Ok(func)
     }
 }
 
@@ -348,7 +399,7 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
     //     params: [x, y, z],
     //     args: [
     //         x,
-    //         Func {
+    //         Func { # <--- this is arg_func below
     //             params: [a, b],
     //             args: [a],
     //             body: arg_body
@@ -360,15 +411,15 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
 
     // Output:
     // Func {
-    //     params: [b],
+    //     params: [substitute],
     //     args: [],
     //     body: Func {
     //         params: [x, y, z],
     //         args: [
     //             x,
-    //             Func {
+    //             Func { # <--- this is arg_func below
     //                 params: [a, b],
-    //                 args: [a, b],
+    //                 args: [a, substitute],
     //                 body: arg_body
     //             },
     //             z
@@ -385,10 +436,10 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
     let arg = func.args.get_mut(position).unwrap();
     let arg_func = arg.kind.as_func_mut().unwrap();
 
-    let param_name = format!("_partial_{}", arg.id.unwrap());
+    let substitute = format!("_partial_{}", arg.id.unwrap());
     let substitute_arg = Expr::new(Ident::from_path(vec![
         NS_PARAM.to_string(),
-        param_name.clone(),
+        substitute.clone(),
     ]));
     arg_func.args.push(substitute_arg);
 
@@ -398,7 +449,7 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
         return_ty: None,
         body: Box::new(Expr::new(func)),
         params: vec![FuncParam {
-            name: param_name,
+            name: substitute,
             ty: None,
             default_value: None,
         }],
@@ -406,22 +457,6 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
         args: Default::default(),
         env: Default::default(),
     }
-}
-
-fn env_of_closure(closure: Func) -> (Module, Expr) {
-    let mut func_env = Module::default();
-
-    for (param, arg) in zip(closure.params, closure.args) {
-        let v = Decl {
-            declared_at: arg.id,
-            kind: DeclKind::Expr(Box::new(arg)),
-            ..Default::default()
-        };
-        let param_name = param.name.split('.').last().unwrap();
-        func_env.names.insert(param_name.to_string(), v);
-    }
-
-    (func_env, *closure.body)
 }
 
 fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
@@ -440,5 +475,41 @@ fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
         ty: Some(Ty::new(ty)),
         span,
         ..Expr::new(ExprKind::Func(Box::new(func)))
+    }
+}
+
+fn inline_function(func: Func) -> Expr {
+    // construct params map
+    let mut params = HashMap::new();
+    for (param, arg) in zip(func.params, func.args) {
+        let param_name = param.name.split('.').last().unwrap();
+        params.insert(param_name.to_string(), arg);
+    }
+
+    let mut inliner = FunctionInliner { params };
+
+    inliner.fold_expr(*func.body).unwrap()
+}
+struct FunctionInliner {
+    params: HashMap<String, Expr>,
+}
+
+impl PlFold for FunctionInliner {
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        // this is the main thing: inline params
+        if let ExprKind::Ident(ident) = &expr.kind {
+            if ident.starts_with_part(NS_PARAM) {
+                let param = self.params.get(&ident.name).unwrap();
+                return Ok(param.clone());
+            }
+        }
+
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        Ok(expr)
+    }
+
+    fn fold_func(&mut self, func: Func) -> Result<Func> {
+        // params cannot appear within functions, so we can skip folding all together
+        Ok(func)
     }
 }
