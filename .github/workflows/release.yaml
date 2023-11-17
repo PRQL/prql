@@ -85,9 +85,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         target:
-           - x86_64-unknown-linux-musl
-           - aarch64-unknown-linux-musl
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
     needs: build-prqlc
     permissions:
       contents: write
@@ -131,9 +131,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         target:
-           - x86_64-unknown-linux-musl
-           - aarch64-unknown-linux-musl
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
     needs: build-prqlc
     permissions:
       contents: write
