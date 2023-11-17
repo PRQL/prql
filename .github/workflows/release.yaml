@@ -1,9 +1,9 @@
 # This workflow runs on tags / releases. It also runs on nightly builds without
 # publishing anything, in order to test as much of the build works as possible.
 #
-# We indicate whether it should publish, vs. just build, by checking if we're on
-# a tag. (An alternative would be to have an input which is passed in by the
-# calling workflow.)
+# We indicate whether it should publish, vs. just build, by checking whether
+# `github.event_name == 'release'` . (An alternative would be to have an input
+# which is passed in by the calling workflow.)
 
 name: release
 on:

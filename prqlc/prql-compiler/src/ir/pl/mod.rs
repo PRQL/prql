@@ -13,7 +13,6 @@ mod extra;
 mod fold;
 mod lineage;
 mod stmt;
-mod types;
 mod utils;
 
 pub use self::expr::*;
@@ -21,7 +20,6 @@ pub use self::extra::expr::*;
 pub use self::fold::*;
 pub use self::lineage::*;
 pub use self::stmt::*;
-pub use self::types::*;
 pub use self::utils::*;
 pub use prqlc_ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
