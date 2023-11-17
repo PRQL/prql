@@ -1,7 +1,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "libprqlc.hpp"
+#include "libprqlc_lib.hpp"
 
 using namespace prqlc;
 

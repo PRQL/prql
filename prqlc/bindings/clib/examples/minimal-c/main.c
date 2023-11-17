@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include <libprqlc.h>
+#include <libprqlc_lib.h>
 
 void print_result(CompileResult res)
 {

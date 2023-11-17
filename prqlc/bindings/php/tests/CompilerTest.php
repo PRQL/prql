@@ -26,7 +26,7 @@ final class CompilerTest extends TestCase
 
     public function testPrqlHeaderFileExists(): void
     {
-        $this->assertFileExists("lib/libprqlc.h");
+        $this->assertFileExists("lib/libprqlc_lib.h");
     }
 
     public function testInvalidQuery(): void

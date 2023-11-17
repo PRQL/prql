@@ -92,15 +92,15 @@ func ToJSON(prql string) (string, error) {
 
 ### C header file
 
-The C header file `libprqlc.h` was generated using
+The C header file `libprqlc_lib.h` was generated using
 [cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
 
     cargo install --force cbindgen
-    cbindgen --crate prqlc-clib --output libprqlc.h
+    cbindgen --crate prqlc-clib --output libprqlc_lib.h
 
 ### C++ header file
 
-The C++ header file `libprqlc.hpp` was generated using cbindgen. To generate a
-new one run:
+The C++ header file `libprqlc_lib.hpp` was generated using cbindgen. To generate
+a new one run:
 
-    cbindgen --crate prqlc-clib --lang C++ --output libprqlc.hpp
+    cbindgen --crate prqlc-clib --lang C++ --output libprqlc_lib.hpp
