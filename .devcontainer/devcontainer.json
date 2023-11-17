@@ -31,9 +31,15 @@
       "source": "devcontainer-cargo-cache-${devcontainerId}",
       "target": "/usr/local/cargo/registry",
       "type": "volume"
+    },
+    {
+      "source": "${localWorkspaceFolderBasename}-target",
+      "target": "${containerWorkspaceFolder}/target",
+      "type": "volume"
     }
   ],
   "postCreateCommand": {
+    "set-ownership": "sudo chown vscode target",
     "install-python-deps": "task install-maturin",
     // Disabling because of the issues in #3709
     // "install-python-deps": "task install-maturin && task install-pre-commit && pre-commit install-hooks",
