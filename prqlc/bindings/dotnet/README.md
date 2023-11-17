@@ -11,8 +11,9 @@ welcome.
 
 ## Installation
 
-Current project and package only handles Windows native library `libprqlc_lib.dll`.
-Handling of `libprqlc_lib.so` (Linux), `libprqlc_lib.dylib` (macOS) is work in progress.
+Current project and package only handles Windows native library
+`libprqlc_lib.dll`. Handling of `libprqlc_lib.so` (Linux), `libprqlc_lib.dylib`
+(macOS) is work in progress.
 
 For consumer of this package, ensure that `prqlc.dll` is in your project's `bin`
 (i.e. `{your_project}/bin/Debug/net7.0/`) directory together with
