@@ -81,11 +81,10 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         target:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
@@ -128,11 +127,10 @@ jobs:
           files: prqlc_*.deb
 
   build-rpm-package:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         target:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
