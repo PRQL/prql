@@ -341,6 +341,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                             .map(|a| fold_type_opt(fold, a))
                             .try_collect()?,
                         return_ty: Box::new(fold_type_opt(fold, *f.return_ty)?),
+                        name_hint: f.name_hint,
                     })
                 })
                 .transpose()?,

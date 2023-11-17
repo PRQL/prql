@@ -88,7 +88,7 @@ impl super::Resolver<'_> {
             let expected_ty = fold_type_opt(self, def.ty)?;
             if expected_ty.is_some() {
                 let who = || Some(stmt_name.clone());
-                self.validate_type(&mut def.value, expected_ty.as_ref(), &who)?;
+                self.validate_expr_type(&mut def.value, expected_ty.as_ref(), &who)?;
             }
 
             let decl = prepare_expr_decl(def.value);
