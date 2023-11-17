@@ -100,6 +100,7 @@ jobs:
           name: prqlc-${{ matrix.target }}
       - name: Copy files into .deb package
         run: |
+          tar -xf prqlc-*.tar.gz
           mkdir -p .debpkg/usr/bin
           cp prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
@@ -147,6 +148,7 @@ jobs:
           name: prqlc-${{ matrix.target }}
       - name: Copy files into .rpm package
         run: |
+          tar -xf prqlc-*.tar.gz
           mkdir -p .rpmpkg/usr/bin
           cp prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
