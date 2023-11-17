@@ -100,7 +100,7 @@ jobs:
         run: |
           tar -xf prqlc-*.tar.gz
           mkdir -p .debpkg/usr/bin
-          cp prqlc .debpkg/usr/bin/prqlc
+          mv prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
@@ -146,7 +146,7 @@ jobs:
         run: |
           tar -xf prqlc-*.tar.gz
           mkdir -p .rpmpkg/usr/bin
-          cp prqlc .rpmpkg/usr/bin/prqlc
+          mv prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
