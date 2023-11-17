@@ -6,7 +6,7 @@ use prqlc_ast::{TupleField, Ty, TyKind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, transforms, types, Resolver};
-use crate::semantic::{static_analysis, write_pl, NS_THAT, NS_THIS};
+use crate::semantic::{write_pl, NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
@@ -227,7 +227,7 @@ impl PlFold for Resolver<'_> {
                     if expr.ty.is_some() {
                         if expected_ty.is_some() {
                             let who = || Some("array".to_string());
-                            self.validate_type(expr, expected_ty, &who)?;
+                            self.validate_expr_type(expr, expected_ty, &who)?;
                         }
                         expected_ty = expr.ty.as_ref();
                     }
@@ -244,7 +244,7 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        let mut r = static_analysis::static_analysis(r);
+        let mut r = self.static_eval(r)?;
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);
         r.span = r.span.or(span);
