@@ -143,7 +143,7 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-musl
-          - aarch64-unknown-linux-musl
+          #- aarch64-unknown-linux-musl # https://github.com/jiro4989/build-rpm-action/issues/6
     needs: build-prqlc
     permissions:
       contents: write
