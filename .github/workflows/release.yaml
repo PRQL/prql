@@ -102,6 +102,15 @@ jobs:
           mkdir -p .debpkg/usr/bin
           mv prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
+      - name: Set variables
+        run: |
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+            echo "package_arch=arm64" >> $GITHUB_ENV
+          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]; then
+            echo "package_arch=amd64" >> $GITHUB_ENV
+          else
+            echo "::error::Unknown architecture: ${{ matrix.target }}"
+          fi
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
         with:
@@ -109,6 +118,7 @@ jobs:
           package_root: .debpkg
           maintainer: The PRQL Project
           version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
+          arch: ${{ env.package_arch }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
@@ -148,6 +158,15 @@ jobs:
           mkdir -p .rpmpkg/usr/bin
           mv prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
+      - name: Set variables
+        run: |
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+            echo "package_arch=aarch64" >> $GITHUB_ENV
+          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]; then
+            echo "package_arch=x86_64" >> $GITHUB_ENV
+          else
+            echo "::error::Unknown architecture: ${{ matrix.target }}"
+          fi
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
         with:
@@ -157,6 +176,7 @@ jobs:
           maintainer: The PRQL Project
           vendor: The PRQL Project
           version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
+          arch: ${{ env.package_arch }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
