@@ -102,7 +102,7 @@ jobs:
           mkdir -p .debpkg/usr/bin
           mv prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
-      - name: Set variables
+      - name: Set arch variable
         run: |
           if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
             echo "package_arch=arm64" >> $GITHUB_ENV
