@@ -110,6 +110,7 @@ jobs:
             echo "package_arch=amd64" >> $GITHUB_ENV
           else
             echo "::error::Unknown architecture: ${{ matrix.target }}"
+            exit 1
           fi
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
