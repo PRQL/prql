@@ -35,6 +35,13 @@
       "Oh wow I missed this. Clickhouse now supports PRQL:
       https://github.com/ClickHouse/ClickHouse/pull/50686"
 
+- quote:
+    text:
+      I'm also really excited about efforts to create entire new query languages
+      that compile to SQL, like Malloy and PRQL.
+    author: Wes McKinney, Creator of Pandas
+    link: https://wesmckinney.com/blog/looking-back-15-years/
+
 - tweet:
     user_id: "16080017"
     name: "Swanand."
@@ -94,7 +101,3 @@
       boost in large projects and leads to great intellisense.
     author: Ruben Slabbert
     link: https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql#c_nmzcd7
-- quote:
-    text: Just wanna say, I absolutely love this.
-    author: Alex Kritchevsky
-    link: https://news.ycombinator.com/item?id=30063771
