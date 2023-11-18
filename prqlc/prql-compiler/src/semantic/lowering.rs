@@ -482,17 +482,21 @@ impl Lowerer {
                 kind: transform_call.frame.kind,
                 range: self.lower_range(transform_call.frame.range)?,
             },
-            partition: self.declare_as_columns(transform_call.partition, false)?,
+            partition: if let Some(partition) = transform_call.partition {
+                self.declare_as_columns(*partition, false)?
+            } else {
+                vec![]
+            },
             sort: self.lower_sorts(transform_call.sort)?,
         };
         self.window = Some(window);
 
         match *transform_call.kind {
             pl::TransformKind::Derive { assigns, .. } => {
-                self.declare_as_columns(assigns, false)?;
+                self.declare_as_columns(*assigns, false)?;
             }
             pl::TransformKind::Select { assigns, .. } => {
-                let cids = self.declare_as_columns(assigns, false)?;
+                let cids = self.declare_as_columns(*assigns, false)?;
                 self.pipeline.push(Transform::Select(cids));
             }
             pl::TransformKind::Filter { filter, .. } => {
@@ -503,7 +507,7 @@ impl Lowerer {
             pl::TransformKind::Aggregate { assigns, .. } => {
                 let window = self.window.take();
 
-                let compute = self.declare_as_columns(assigns, true)?;
+                let compute = self.declare_as_columns(*assigns, true)?;
 
                 let partition = window.unwrap().partition;
                 self.pipeline
@@ -635,45 +639,48 @@ impl Lowerer {
         Ok(cols)
     }
 
-    fn declare_as_columns(
-        &mut self,
-        exprs: Vec<pl::Expr>,
-        is_aggregation: bool,
-    ) -> Result<Vec<CId>> {
-        let mut r = Vec::with_capacity(exprs.len());
-        for expr in exprs {
-            let pl::ExprKind::All { except, .. } = expr.kind else {
-                // base case
-                r.push(self.declare_as_column(expr, is_aggregation)?);
-                continue;
-            };
+    fn declare_as_columns(&mut self, exprs: pl::Expr, is_aggregation: bool) -> Result<Vec<CId>> {
+        let mut r = Vec::new();
 
-            // special case: ExprKind::All
-            let mut selected = Vec::<CId>::new();
-            for target_id in expr.target_ids {
-                match &self.node_mapping[&target_id] {
-                    LoweredTarget::Compute(cid) => {
-                        selected.push(*cid);
-                    }
-                    LoweredTarget::Input(input) => {
-                        let mut cols = input.iter().collect_vec();
-                        cols.sort_by_key(|c| c.1 .1);
-                        selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
+        match exprs.kind {
+            pl::ExprKind::All { except, .. } => {
+                // special case: ExprKind::All
+                let mut selected = Vec::<CId>::new();
+                for target_id in exprs.target_ids {
+                    match &self.node_mapping[&target_id] {
+                        LoweredTarget::Compute(cid) => {
+                            selected.push(*cid);
+                        }
+                        LoweredTarget::Input(input) => {
+                            let mut cols = input.iter().collect_vec();
+                            cols.sort_by_key(|c| c.1 .1);
+                            selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
+                        }
                     }
                 }
+
+                let except: HashSet<CId> = except
+                    .into_iter()
+                    .filter(|e| e.target_id.is_some())
+                    .map(|e| {
+                        let id = e.target_id.unwrap();
+                        self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
+                    })
+                    .try_collect()?;
+                selected.retain(|c| !except.contains(c));
+
+                r.extend(selected);
             }
-
-            let except: HashSet<CId> = except
-                .into_iter()
-                .filter(|e| e.target_id.is_some())
-                .map(|e| {
-                    let id = e.target_id.unwrap();
-                    self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
-                })
-                .try_collect()?;
-            selected.retain(|c| !except.contains(c));
-
-            r.extend(selected);
+            pl::ExprKind::Tuple(fields) => {
+                // tuple unpacking
+                for expr in fields {
+                    r.extend(self.declare_as_columns(expr, is_aggregation)?);
+                }
+            }
+            _ => {
+                // base case
+                r.push(self.declare_as_column(exprs, is_aggregation)?);
+            }
         }
         Ok(r)
     }

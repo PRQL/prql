@@ -4335,3 +4335,25 @@ fn test_relation_var_name_clashes_02() {
       JOIN t AS table_0 ON t.x = table_0.x
     "###);
 }
+
+#[test]
+#[ignore]
+fn test_select_this() {
+    // Currently broken for a few reasons:
+    // - type of `this` is not resolved as tuple, but an union?
+    // - lineage is not computed correctly
+    assert_display_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    select this
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      a,
+      b
+    FROM
+      x
+    "###);
+}

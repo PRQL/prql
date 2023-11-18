@@ -41,8 +41,8 @@ pub struct TransformCall {
     pub kind: Box<TransformKind>,
 
     /// Grouping of values in columns
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub partition: Vec<Expr>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partition: Option<Box<Expr>>,
 
     /// Windowing frame of columns
     #[serde(default, skip_serializing_if = "WindowFrame::is_default")]
@@ -56,16 +56,16 @@ pub struct TransformCall {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum TransformKind {
     Derive {
-        assigns: Vec<Expr>,
+        assigns: Box<Expr>,
     },
     Select {
-        assigns: Vec<Expr>,
+        assigns: Box<Expr>,
     },
     Filter {
         filter: Box<Expr>,
     },
     Aggregate {
-        assigns: Vec<Expr>,
+        assigns: Box<Expr>,
     },
     Sort {
         by: Vec<ColumnSort>,
@@ -79,7 +79,7 @@ pub enum TransformKind {
         filter: Box<Expr>,
     },
     Group {
-        by: Vec<Expr>,
+        by: Box<Expr>,
         pipeline: Box<Expr>,
     },
     Window {

@@ -31,7 +31,7 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
         "select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_tuple_and_flatten(assigns)?;
+            let assigns = Box::new(resolver.coerce_into_tuple(assigns)?);
             (TransformKind::Select { assigns }, tbl)
         }
         "filter" => {
@@ -43,26 +43,28 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
         "derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_tuple_and_flatten(assigns)?;
+            let assigns = Box::new(resolver.coerce_into_tuple(assigns)?);
             (TransformKind::Derive { assigns }, tbl)
         }
         "aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_tuple_and_flatten(assigns)?;
+            let assigns = Box::new(resolver.coerce_into_tuple(assigns)?);
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = coerce_into_tuple_and_flatten(by)?
+            let by = resolver
+                .coerce_into_tuple(by)?
+                .try_cast(|x| x.into_tuple(), Some("sort"), "tuple")?
                 .into_iter()
-                .map(|node| {
-                    let (column, direction) = match node.kind {
+                .map(|expr| {
+                    let (column, direction) = match expr.kind {
                         ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
                             (args.remove(0), SortDirection::Desc)
                         }
-                        _ => (node, SortDirection::default()),
+                        _ => (expr, SortDirection::default()),
                     };
                     let column = Box::new(column);
 
@@ -124,7 +126,7 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
         "group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = coerce_into_tuple_and_flatten(by)?;
+            let by = Box::new(resolver.coerce_into_tuple(by)?);
 
             let pipeline =
                 fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
@@ -395,44 +397,35 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
     let transform_call = TransformCall {
         kind: Box::new(kind),
         input: Box::new(input),
-        partition: Vec::new(),
+        partition: None,
         frame: WindowFrame::default(),
         sort: Vec::new(),
     };
     Ok(Expr::new(ExprKind::TransformCall(transform_call)))
 }
 
-/// Wraps non-tuple Exprs into a singleton Tuple.
-// This function should eventually be applied to all function arguments that
-// expect a tuple.
-pub fn coerce_into_tuple(expr: Expr) -> Result<Vec<Expr>> {
-    Ok(match expr.kind {
-        ExprKind::Tuple(items) => {
+impl Resolver<'_> {
+    /// Wraps non-tuple Exprs into a singleton Tuple.
+    pub(super) fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
+        let is_tuple_ty = expr.ty.as_ref().unwrap().is_tuple() && !(expr.kind.is_all());
+        Ok(if is_tuple_ty {
+            // a helpful check for a common mis-pattern
             if let Some(alias) = expr.alias {
-                bail!(Error::new(Reason::Unexpected {
-                    found: format!("assign to `{alias}`")
+                return Err(Error::new(Reason::Unexpected {
+                    found: format!("assign to `{alias}`"),
                 })
                 .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
-                .with_span(expr.span))
+                .with_span(expr.span)
+                .into());
             }
-            items
-        }
-        _ => vec![expr],
-    })
-}
 
-/// Converts `a` into `[a]` and `[b, [c, d]]` into `[b, c, d]`.
-pub fn coerce_into_tuple_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
-    let items = coerce_into_tuple(expr)?;
-    let mut res = Vec::with_capacity(items.len());
-    for item in items {
-        res.extend(coerce_into_tuple(item)?);
+            expr
+        } else {
+            let expr = Expr::new(ExprKind::Tuple(vec![expr]));
+
+            self.fold_expr(expr)?
+        })
     }
-    let mut res2 = Vec::with_capacity(res.len());
-    for item in res {
-        res2.extend(coerce_into_tuple(item)?);
-    }
-    Ok(res2)
 }
 
 fn range_is_empty(range: &Range) -> bool {
@@ -730,9 +723,14 @@ impl Lineage {
         });
     }
 
-    pub fn apply_assigns(&mut self, assigns: &[Expr], root_mod: &RootModule) {
-        for expr in assigns {
-            self.apply_assign(expr, root_mod);
+    pub fn apply_assigns(&mut self, assigns: &Expr, root_mod: &RootModule) {
+        match &assigns.kind {
+            ExprKind::Tuple(fields) => {
+                for expr in fields {
+                    self.apply_assigns(expr, root_mod);
+                }
+            }
+            _ => self.apply_assign(assigns, root_mod),
         }
     }
 
