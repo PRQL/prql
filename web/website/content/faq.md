@@ -42,10 +42,14 @@ Yes, probably. We're standing on the shoulders of giants:
 - [Kusto](https://docs.microsoft.com/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
   is also a beautiful pipelined language, similar to PRQL. But it can only use
   Kusto-compatible DBs.
+  <!-- We can add more articles by linking from works in the "There are other similar piecs out there" sentence -->
 - [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives a
   fairly complete description of SQL's weaknesses, both for analytical and
   transactional queries. [**@jamii**](https://github.com/jamii) consistently
-  writes insightful pieces, and it's worth sponsoring him for his updates.
+  writes insightful pieces, and it's worth sponsoring him for his updates. There
+  are
+  [other](https://buttondown.email/jaffray/archive/sql-scoping-is-surprisingly-subtle-and-semantic/)
+  similar pieces out there.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl) demonstrate how effective
   point-free pipelines can be, and how line breaks can work as pipes.
