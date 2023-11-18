@@ -104,9 +104,9 @@ jobs:
           chmod +x .debpkg/usr/bin/prqlc
       - name: Set variables
         run: |
-          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
             echo "package_arch=arm64" >> $GITHUB_ENV
-          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]; then
+          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]; then
             echo "package_arch=amd64" >> $GITHUB_ENV
           else
             echo "::error::Unknown architecture: ${{ matrix.target }}"
@@ -160,9 +160,9 @@ jobs:
           chmod +x .rpmpkg/usr/bin/prqlc
       - name: Set variables
         run: |
-          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
             echo "package_arch=aarch64" >> $GITHUB_ENV
-          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]; then
+          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]; then
             echo "package_arch=x86_64" >> $GITHUB_ENV
           else
             echo "::error::Unknown architecture: ${{ matrix.target }}"
