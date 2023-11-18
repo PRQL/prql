@@ -33,7 +33,7 @@
       "type": "volume"
     },
     {
-      "source": "${localWorkspaceFolderBasename}-target",
+      "source": "devcontainer-cargo-target-${devcontainerId}",
       "target": "${containerWorkspaceFolder}/target",
       "type": "volume"
     }
