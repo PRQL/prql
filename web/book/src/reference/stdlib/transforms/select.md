@@ -67,3 +67,12 @@ from artists
 derive nick = name
 select !{artists.*}
 ```
+
+Note that `!` is also the `NOT` operator, so without the tuple it has a
+different meaning:
+
+```prql
+prql target:sql.bigquery
+from tracks
+select !is_compilation
+```
