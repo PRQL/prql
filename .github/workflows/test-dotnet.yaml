@@ -14,39 +14,45 @@ jobs:
         run: cargo build --package prqlc-clib --release
       - name: 🔢 Set version
         run: |
-            $raw = cargo metadata --format-version=1 --no-deps
-            $version = $raw | jq --raw-output '.packages[0] | .version'
-            echo "version=$version" >> $env:GITHUB_ENV
+          $raw = cargo metadata --format-version=1 --no-deps
+          $version = $raw | jq --raw-output '.packages[0] | .version'
+          echo "version=$version" >> $env:GITHUB_ENV
       - name: 🐜 Debug CI/CD (version + target/release)
         shell: pwsh
         run: |
-            Write-Host "Version: $env:version"
-            Get-ChildItem ./target/release/
+          Write-Host "Version: $env:version"
+          Get-ChildItem ./target/release/
       - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: |
-              6
-              7
+            6
+            7
       - name: 🛠️ Build
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: dotnet build prql-net.sln -p:version="%version%" -c Release /p:ContinuousIntegrationBuild=true --nologo
+        run:
+          dotnet build prql-net.sln -p:version="%version%" -c Release
+          /p:ContinuousIntegrationBuild=true --nologo
       - name: 🧪 Test
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
+        run:
+          dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release
+          --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
       - name: 📦 Package
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: dotnet pack PrqlCompiler -p:version="%version%" -c Release --include-symbols /p:CI=true --no-build --nologo
+        run:
+          dotnet pack PrqlCompiler -p:version="%version%" -c Release
+          --include-symbols /p:CI=true --no-build --nologo
       - name: 🍱 Archive artifacts
         uses: actions/upload-artifact@v3
         with:
           name: nuget-packages
           path: |
-              prqlc/bindings/dotnet/PrqlCompiler/bin/Release/*.nupkg
-              prqlc/bindings/dotnet/PrqlCompiler/bin/Release/*.snupkg
+            prqlc/bindings/dotnet/PrqlCompiler/bin/Release/*.nupkg
+            prqlc/bindings/dotnet/PrqlCompiler/bin/Release/*.snupkg
       # - name: 🚚 Publish
       #   working-directory: prqlc/bindings/dotnet
       #   run: |
