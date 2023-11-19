@@ -26,7 +26,7 @@ indent_size = 4
 trim_trailing_whitespace = true
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 tab_width = 4
-end_of_line = crlf
+end_of_line = lf
 
 # C# files
 [*.cs]
