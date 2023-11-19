@@ -15,7 +15,6 @@ jobs:
       - name: 🔢 Set version
         run: |
             $raw = cargo metadata --format-version=1 --no-deps 
-            Write-Host "version: $raw"
             $version = $raw | jq --raw-output '.packages[0] | .version'
             echo "version=$version" >> $env:GITHUB_ENV
       - name: 🐜 Debug CI/CD (version + target/release)
