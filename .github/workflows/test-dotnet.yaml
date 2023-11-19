@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-2022
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -15,11 +15,24 @@ jobs:
       - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 7
-      - name: 🧪 Build and test
-        working-directory: prqlc/bindings
+          dotnet-version: |
+              6
+              7
+      - name: 🛠️ Build
+        working-directory: prqlc/bindings/dotnet
         run: |
-          dotnet build dotnet
-          cp ../../target/debug/libprqlc_lib.* dotnet/PrqlCompiler/bin/Debug/net*/
-          cp ../../target/debug/libprqlc_lib.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
-          dotnet test dotnet
+          dotnet build prql-net.sln -p:version="%version%" -c Release /p:ContinuousIntegrationBuild=true --nologo
+      - name: 🧪 Test
+        working-directory: prqlc/bindings/dotnet
+        run: |
+          dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
+      - name: 📦 Package
+        working-directory: prqlc/bindings/dotnet
+        run: |
+          dotnet pack PrqlCompiler -p:version="%version%" -c Release --include-symbols /p:CI=true --no-build --nologo
+      # - name: 🚚 Publish
+      #   working-directory: prqlc/bindings/dotnet
+      #   run: |
+      #     dotnet nuget push PrqlCompiler/bin/Release/*.nupkg -k $NUGET_AUTH_TOKEN -s https://api.nuget.org/v3/index.json
+      #   env:
+      #     NUGET_AUTH_TOKEN: ${{ secrets.NUGET_TOKEN }}

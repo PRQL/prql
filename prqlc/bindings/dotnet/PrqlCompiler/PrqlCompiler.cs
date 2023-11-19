@@ -105,16 +105,16 @@ namespace Prql.Compiler
             return result;
         }
 
-        [DllImport("libprqlc_lib", EntryPoint = "compile", CharSet = CharSet.Ansi)]
+        [DllImport("prqlc_lib", EntryPoint = "compile", CharSet = CharSet.Ansi)]
         private static extern NativeResult CompileExtern(string prqlQuery, ref NativePrqlCompilerOptions options);
 
-        [DllImport("libprqlc_lib", EntryPoint = "prql_to_pl", CharSet = CharSet.Ansi)]
+        [DllImport("prqlc_lib", EntryPoint = "prql_to_pl", CharSet = CharSet.Ansi)]
         private static extern NativeResult PrqlToPlExtern(string prqlQuery);
 
-        [DllImport("libprqlc_lib", EntryPoint = "pl_to_rq", CharSet = CharSet.Ansi)]
+        [DllImport("prqlc_lib", EntryPoint = "pl_to_rq", CharSet = CharSet.Ansi)]
         private static extern NativeResult PlToRqExtern(string plJson);
 
-        [DllImport("libprqlc_lib", EntryPoint = "rq_to_sql", CharSet = CharSet.Ansi)]
+        [DllImport("prqlc_lib", EntryPoint = "rq_to_sql", CharSet = CharSet.Ansi)]
         private static extern NativeResult RqToSqlExtern(string rqJson, ref NativePrqlCompilerOptions options);
     }
 }
