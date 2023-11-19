@@ -16,7 +16,7 @@ jobs:
         run: |
             $raw = cargo metadata --format-version=1 --no-deps 
             Write-Host "version: $raw"
-            $version = $raw | jq --raw-output '.packages[] | select(.name == "prql-compiler") | .version'
+            $version = $raw | jq --raw-output '.packages[0] | .version'
             echo "version=$version" >> $env:GITHUB_ENV
       - name: 🐜 Debug CI/CD (version + target/release)
         shell: pwsh
@@ -32,18 +32,15 @@ jobs:
       - name: 🛠️ Build
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: |
-          dotnet build prql-net.sln -p:version="%version%" -c Release /p:ContinuousIntegrationBuild=true --nologo
+        run: dotnet build prql-net.sln -p:version="%version%" -c Release /p:ContinuousIntegrationBuild=true --nologo
       - name: 🧪 Test
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: |
-          dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
+        run: dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
       - name: 📦 Package
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: |
-          dotnet pack PrqlCompiler -p:version="$version" -c Release --include-symbols /p:CI=true --no-build --nologo
+        run: dotnet pack PrqlCompiler -p:version="$version" -c Release --include-symbols /p:CI=true --no-build --nologo
       # - name: 🚚 Publish
       #   working-directory: prqlc/bindings/dotnet
       #   run: |
