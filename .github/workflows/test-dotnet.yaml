@@ -39,7 +39,7 @@ jobs:
       - name: 📦 Package
         working-directory: prqlc/bindings/dotnet
         shell: cmd
-        run: dotnet pack PrqlCompiler -p:version="$version" -c Release --include-symbols /p:CI=true --no-build --nologo
+        run: dotnet pack PrqlCompiler -p:version="%version%" -c Release --include-symbols /p:CI=true --no-build --nologo
       # - name: 🚚 Publish
       #   working-directory: prqlc/bindings/dotnet
       #   run: |
