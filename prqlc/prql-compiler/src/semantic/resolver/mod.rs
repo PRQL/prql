@@ -82,6 +82,9 @@ pub(super) mod test {
         let exprs = derive
             .kind
             .into_derive()
+            .unwrap_or_else(|e| panic!("Failed to convert `{e:?}`"))
+            .kind
+            .into_tuple()
             .unwrap_or_else(|e| panic!("Failed to convert `{e:?}`"));
 
         let exprs = IdEraser {}.fold_exprs(exprs).unwrap();

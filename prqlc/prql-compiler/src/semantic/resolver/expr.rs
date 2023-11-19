@@ -5,7 +5,7 @@ use prqlc_ast::{TupleField, Ty, TyKind};
 
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::semantic::resolver::{flatten, transforms, types, Resolver};
+use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{write_pl, NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
 
@@ -282,7 +282,11 @@ impl PlFold for Resolver<'_> {
 impl Resolver<'_> {
     fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
-        let tuple = transforms::coerce_into_tuple_and_flatten(expr)?;
+        let tuple = self.coerce_into_tuple(expr)?.try_cast(
+            |x| x.into_tuple(),
+            Some("column exclusion"),
+            "tuple literal",
+        )?;
         let except: Vec<Expr> = tuple
             .into_iter()
             .map(|e| match e.kind {

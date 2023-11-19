@@ -23,7 +23,7 @@ pub struct Flattener {
     /// Group affects transforms in it's inner pipeline.
     /// This means that this field has to be set before folding inner pipeline,
     /// and unset after the folding.
-    partition: Vec<Expr>,
+    partition: Option<Box<Expr>>,
 
     /// Window affects transforms in it's inner pipeline.
     /// This means that this field has to be set before folding inner pipeline,
@@ -88,13 +88,13 @@ impl PlFold for Flattener {
                         let param_id = table_param.name.parse::<usize>().unwrap();
 
                         self.replace_map.insert(param_id, input);
-                        self.partition = by;
+                        self.partition = Some(by);
                         self.sort.clear();
 
                         let pipeline = self.fold_expr(*pipeline.body)?;
 
                         self.replace_map.remove(&param_id);
-                        self.partition.clear();
+                        self.partition = None;
                         self.sort.clear();
                         self.sort_undone = sort_undone;
 

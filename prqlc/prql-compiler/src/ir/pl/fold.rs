@@ -222,7 +222,7 @@ pub fn fold_transform_call<T: ?Sized + PlFold>(
     Ok(TransformCall {
         kind: Box::new(fold_transform_kind(fold, *t.kind)?),
         input: Box::new(fold.fold_expr(*t.input)?),
-        partition: fold.fold_exprs(t.partition)?,
+        partition: fold_optional_box(fold, t.partition)?,
         frame: fold.fold_window(t.frame)?,
         sort: fold_column_sorts(fold, t.sort)?,
     })
@@ -235,16 +235,16 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
     use TransformKind::*;
     Ok(match t {
         Derive { assigns } => Derive {
-            assigns: fold.fold_exprs(assigns)?,
+            assigns: Box::new(fold.fold_expr(*assigns)?),
         },
         Select { assigns } => Select {
-            assigns: fold.fold_exprs(assigns)?,
+            assigns: Box::new(fold.fold_expr(*assigns)?),
         },
         Filter { filter } => Filter {
             filter: Box::new(fold.fold_expr(*filter)?),
         },
         Aggregate { assigns } => Aggregate {
-            assigns: fold.fold_exprs(assigns)?,
+            assigns: Box::new(fold.fold_expr(*assigns)?),
         },
         Sort { by } => Sort {
             by: fold_column_sorts(fold, by)?,
@@ -259,7 +259,7 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
         },
         Append(bottom) => Append(Box::new(fold.fold_expr(*bottom)?)),
         Group { by, pipeline } => Group {
-            by: fold.fold_exprs(by)?,
+            by: Box::new(fold.fold_expr(*by)?),
             pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
         Window {
