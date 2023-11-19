@@ -13,7 +13,7 @@ jobs:
       - name: 🏗 Build prqlc-clib
         run: cargo build --package --release prqlc-clib
       - name: 🔢 Set version
-      - run: ./.github/workflows/scripts/set_version.sh
+        run: ./.github/workflows/scripts/set_version.sh
       - name: 🐜 Debug CI/CD
         shell: pwsh
         run: |
