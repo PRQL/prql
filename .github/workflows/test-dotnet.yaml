@@ -14,7 +14,9 @@ jobs:
         run: cargo build --package prqlc-clib --release 
       - name: 🔢 Set version
         run: |
-            $version = cargo metadata --format-version=1 --no-deps | jq --raw-output '.packages[] | select(.name == "prql-compiler") | .version'
+            $raw = cargo metadata --format-version=1 --no-deps 
+            Write-Host "version: $raw"
+            $version = $raw | jq --raw-output '.packages[] | select(.name == "prql-compiler") | .version'
             echo "version=$version" >> $env:GITHUB_ENV
       - name: 🐜 Debug CI/CD (version + target/release)
         shell: pwsh
