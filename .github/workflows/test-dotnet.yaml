@@ -14,7 +14,9 @@ jobs:
         run: cargo build --package prqlc-clib --release 
       - name: 🔢 Set version
         run: ./.github/workflows/scripts/set_version.sh
-      - name: 🐜 Debug CI/CD
+      - name: 🐜 Debug CI/CD (version)
+        run: echo $version
+      - name: 🐜 Debug CI/CD (version + target/release)
         shell: pwsh
         run: |
             Write-Host "Version: $env:version"
