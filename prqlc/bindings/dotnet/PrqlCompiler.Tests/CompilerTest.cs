@@ -2,7 +2,7 @@ using Prql.Compiler;
 
 namespace Prql.Compiler.Tests;
 
-sealed public class CompilerTest
+public sealed class CompilerTest
 {
     [Fact]
     public void ToCompile_Works()
