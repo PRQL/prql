@@ -409,7 +409,7 @@ impl Resolver<'_> {
     pub(super) fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
         let is_tuple_ty = expr.ty.as_ref().unwrap().is_tuple() && !(expr.kind.is_all());
         Ok(if is_tuple_ty {
-            // a helpful check for a common mis-pattern
+            // a helpful check for a common anti-pattern
             if let Some(alias) = expr.alias {
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`"),
