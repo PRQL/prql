@@ -13,9 +13,9 @@ jobs:
       - name: 🏗 Build prqlc-clib
         run: cargo build --package prqlc-clib --release 
       - name: 🔢 Set version
-        run: ./.github/workflows/scripts/set_version.sh
-      - name: 🐜 Debug CI/CD (version)
-        run: echo $version
+        run: |
+            $version = cargo metadata --format-version=1 --no-deps | jq --raw-output '.packages[] | select(.name == "prql-compiler") | .version'
+            echo "version=$version" >> $env:GITHUB_ENV
       - name: 🐜 Debug CI/CD (version + target/release)
         shell: pwsh
         run: |
@@ -29,16 +29,19 @@ jobs:
               7
       - name: 🛠️ Build
         working-directory: prqlc/bindings/dotnet
+        shell: cmd
         run: |
           dotnet build prql-net.sln -p:version="%version%" -c Release /p:ContinuousIntegrationBuild=true --nologo
       - name: 🧪 Test
         working-directory: prqlc/bindings/dotnet
+        shell: cmd
         run: |
           dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
       - name: 📦 Package
         working-directory: prqlc/bindings/dotnet
+        shell: cmd
         run: |
-          dotnet pack PrqlCompiler -p:version="%version%" -c Release --include-symbols /p:CI=true --no-build --nologo
+          dotnet pack PrqlCompiler -p:version="$version" -c Release --include-symbols /p:CI=true --no-build --nologo
       # - name: 🚚 Publish
       #   working-directory: prqlc/bindings/dotnet
       #   run: |
