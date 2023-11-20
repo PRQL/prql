@@ -280,7 +280,7 @@ impl PlFold for Resolver<'_> {
 }
 
 impl Resolver<'_> {
-    fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
+    pub fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
         let tuple = self.coerce_into_tuple(expr)?.try_cast(
             |x| x.into_tuple(),
@@ -291,11 +291,15 @@ impl Resolver<'_> {
             .into_iter()
             .map(|e| match e.kind {
                 ExprKind::Ident(_) | ExprKind::All { .. } => Ok(e),
-                _ => Err(Error::new(Reason::Expected {
-                    who: Some("exclusion".to_string()),
-                    expected: "column name".to_string(),
-                    found: format!("`{}`", write_pl(e)),
-                })),
+                _ => {
+                    let span = e.span;
+                    Err(Error::new(Reason::Expected {
+                        who: Some("exclusion".to_string()),
+                        expected: "column name".to_string(),
+                        found: format!("`{}`", write_pl(e)),
+                    })
+                    .with_span(span))
+                }
             })
             .try_collect()?;
 

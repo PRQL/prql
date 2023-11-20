@@ -557,6 +557,7 @@ fn test_intersect() {
 
 #[test]
 fn test_rn_ids_are_unique() {
+    // this is wrong, output will have duplicate y_id and x_id
     assert_display_snapshot!((compile(r###"
     from y_orig
     group {y_id} (
@@ -583,6 +584,8 @@ fn test_rn_ids_are_unique() {
         _expr_1 <= 2
     )
     SELECT
+      x_id,
+      y_id,
       *
     FROM
       table_0
@@ -1168,8 +1171,8 @@ fn test_window_functions_12() {
     "###).unwrap()), @r###"
     WITH table_0 AS (
       SELECT
-        *,
-        LAG(a, 1) OVER () AS b
+        LAG(a, 1) OVER () AS b,
+        *
       FROM
         x
     )
@@ -1202,8 +1205,9 @@ fn test_window_functions_13() {
         tracks
     )
     SELECT
-      *,
       milliseconds - _expr_0 AS grp,
+      album_id,
+      *,
       ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
     FROM
       table_0
@@ -1644,15 +1648,15 @@ fn test_distinct() {
     ").unwrap(), @r###"
     WITH table_0 AS (
       SELECT
-        billing_country,
         billing_city,
+        billing_country,
         ROW_NUMBER() OVER (PARTITION BY billing_city) AS _expr_0
       FROM
         invoices
     )
     SELECT
-      billing_country,
-      billing_city
+      billing_city,
+      billing_country
     FROM
       table_0
     WHERE
@@ -1693,8 +1697,8 @@ fn test_distinct_on_02() {
     group {begins} (take 1)
     "###).unwrap()), @r###"
     SELECT
-      DISTINCT ON (begins) class,
-      begins
+      DISTINCT ON (begins) begins,
+      class
     FROM
       x
     "###);
@@ -4356,4 +4360,39 @@ fn test_select_this() {
     FROM
       x
     "###);
+}
+
+#[test]
+fn test_group_exclude() {
+    assert_display_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    group {a} (derive c = a + 1)
+        "###,
+    )
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:4:27]
+       │
+     4 │     group {a} (derive c = a + 1)
+       │                           ┬
+       │                           ╰── Unknown name `a`
+    ───╯
+    "###);
+
+    // assert_display_snapshot!(compile(
+    //     r###"
+    // from x
+    // select {a, b}
+    // group {a + 1} (aggregate {sum b})
+    //     "###,
+    // )
+    // .unwrap_err(), @r###"
+    // SELECT
+    //   a,
+    //   b
+    // FROM
+    //   x
+    // "###);
 }
