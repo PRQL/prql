@@ -254,7 +254,10 @@ impl PlFold for Resolver<'_> {
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(self.root_mod)?);
+                r.lineage = Some(call.infer_lineage(self.root_mod)?);
+
+                // a sanity check that inferred lineage matches inferred types
+                lineage_and_ty_match(&r);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -276,6 +279,38 @@ impl PlFold for Resolver<'_> {
             }
         }
         Ok(r)
+    }
+}
+
+fn lineage_and_ty_match(r: &Expr) {
+    let lineage = r.lineage.as_ref().unwrap();
+    let ty = r.ty.as_ref().unwrap().as_relation().unwrap();
+    assert_eq!(lineage.columns.len(), ty.len());
+
+    let ty_fields_flattened = ty
+        .iter()
+        .flat_map(|x| match x {
+            TupleField::Single(name, ty) => match ty.as_ref().and_then(|x| x.kind.as_tuple()) {
+                Some(fields) => fields
+                    .iter()
+                    .map(|f| match f {
+                        TupleField::Single(Some(inner), _) => {
+                            let mut ident = vec![inner.clone()];
+                            ident.extend(name.clone());
+                            Some(Ident::from_path(ident))
+                        }
+                        _ => None,
+                    })
+                    .collect_vec(),
+                None => vec![name.clone().map(Ident::from_name)],
+            },
+            TupleField::Wildcard(_) => vec![None],
+        })
+        .collect::<Vec<Option<Ident>>>();
+
+    for (lin_col, ty_field) in std::iter::zip(&lineage.columns, ty_fields_flattened) {
+        let (lin_name, _, _) = lin_col.as_single().unwrap();
+        assert_eq!(lin_name, &ty_field);
     }
 }
 

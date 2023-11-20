@@ -631,10 +631,10 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, root_mod: &RootModule) -> Result<Lineage> {
+    pub fn infer_lineage(&self, root_mod: &RootModule) -> Result<Lineage> {
         use TransformKind::*;
 
-        fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
+        fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
             expr.lineage
                 .clone()
                 .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
@@ -642,56 +642,70 @@ impl TransformCall {
 
         Ok(match self.kind.as_ref() {
             Select { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
+                let mut lineage = lineage_or_default(&self.input)?;
 
-                frame.clear();
-                frame.apply_assigns(assigns, root_mod);
-                frame
+                lineage.clear();
+                lineage.apply_assigns(assigns, root_mod);
+                lineage
             }
             Derive { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
+                let mut lineage = lineage_or_default(&self.input)?;
 
-                frame.apply_assigns(assigns, root_mod);
-                frame
+                lineage.apply_assigns(assigns, root_mod);
+                lineage
             }
             Group { pipeline, by, .. } => {
-                let mut lineage = ty_frame_or_default(&self.input)?;
+                let mut lineage = lineage_or_default(&self.input)?;
                 lineage.clear();
                 lineage.apply_assigns(by, root_mod);
 
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                let partition_lin = ty_frame_or_default(body).unwrap();
+                let partition_lin = lineage_or_default(body).unwrap();
                 lineage.columns.extend(partition_lin.columns);
 
+                // prepend aggregate with `by` columns
+                if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
+                    if let TransformKind::Aggregate { .. } = kind.as_ref() {
+                        let aggregate_columns = lineage.columns;
+                        lineage.columns = Vec::new();
+
+                        log::debug!(".. group by {by:?}");
+                        lineage.apply_assigns(by, root_mod);
+
+                        lineage.columns.extend(aggregate_columns);
+                    }
+                }
+
+                log::debug!(".. type={lineage}");
                 lineage
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                ty_frame_or_default(body).unwrap()
+                lineage_or_default(body).unwrap()
             }
             Aggregate { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
-                frame.clear();
+                let mut lineage = lineage_or_default(&self.input)?;
+                lineage.clear();
 
-                frame.apply_assigns(assigns, root_mod);
-                frame
+                lineage.apply_assigns(assigns, root_mod);
+                lineage
             }
             Join { with, .. } => {
-                let left = ty_frame_or_default(&self.input)?;
-                let right = ty_frame_or_default(with)?;
+                let left = lineage_or_default(&self.input)?;
+                let right = lineage_or_default(with)?;
                 join(left, right)
             }
             Append(bottom) => {
-                let top = ty_frame_or_default(&self.input)?;
-                let bottom = ty_frame_or_default(bottom)?;
+                let top = lineage_or_default(&self.input)?;
+                let bottom = lineage_or_default(bottom)?;
                 append(top, bottom)?
             }
-            Loop(_) => ty_frame_or_default(&self.input)?,
-            Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
+            Loop(_) => lineage_or_default(&self.input)?,
+            Sort { .. } | Filter { .. } | Take { .. } => lineage_or_default(&self.input)?,
         })
     }
 }
