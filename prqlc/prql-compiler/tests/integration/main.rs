@@ -23,6 +23,8 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
 
 #[test]
 fn test_sql_examples_generic() {
+    env_logger::init();
+
     // We're currently not testing for each dialect, as it's a lot of snapshots.
     // We can consider doing that if helpful.
     glob!("queries/**/*.prql", |path| {

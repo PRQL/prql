@@ -128,8 +128,33 @@ pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Ex
 
             let by = Box::new(resolver.coerce_into_tuple(by)?);
 
+            // construct the relation that is passed into the pipeline
+            // (when generics are a thing, this can be removed)
+            let partition = {
+                let partition = Expr::new(ExprKind::All {
+                    within: Ident::from_name(NS_THIS),
+                    except: by.clone().try_cast(
+                        |f| f.into_tuple(),
+                        Some("group"),
+                        "tuple literal",
+                    )?,
+                });
+                // wrap into select, so the names are resolved correctly
+                let partition = FuncCall {
+                    name: Box::new(Expr::new(Ident::from_path(vec!["std", "select"]))),
+                    args: vec![partition, tbl],
+                    named_args: Default::default(),
+                };
+                let partition = Expr::new(ExprKind::FuncCall(partition));
+                // fold, so lineage and types are inferred
+                resolver.fold_expr(partition)?
+            };
+
             let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
+                fold_by_simulating_eval(resolver, pipeline, partition.lineage.clone().unwrap())?;
+
+            // unpack tbl back out
+            let tbl = *partition.kind.into_transform_call().unwrap().input;
 
             let pipeline = Box::new(pipeline);
             (TransformKind::Group { by, pipeline }, tbl)
@@ -421,7 +446,9 @@ impl Resolver<'_> {
 
             expr
         } else {
-            let expr = Expr::new(ExprKind::Tuple(vec![expr]));
+            let span = expr.span;
+            let mut expr = Expr::new(ExprKind::Tuple(vec![expr]));
+            expr.span = span;
 
             self.fold_expr(expr)?
         })
@@ -533,33 +560,19 @@ impl TransformCall {
                 frame
             }
             Group { pipeline, by, .. } => {
+                let mut lineage = ty_frame_or_default(&self.input)?;
+                lineage.clear();
+                lineage.apply_assigns(by, root_mod);
+
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-                let mut frame = ty_frame_or_default(body).map_err(|_| {
+                let partition_lin = ty_frame_or_default(body).map_err(|_| {
                     anyhow!("Invalid lineage in group, verify the contents of the group call")
                 })?;
 
-                log::debug!(
-                    "inferring type of group with pipeline: {}",
-                    write_pl(*body.clone())
-                );
+                lineage.columns.extend(partition_lin.columns);
 
-                // prepend aggregate with `by` columns
-                if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
-                    if let TransformKind::Aggregate { .. } = kind.as_ref() {
-                        let aggregate_columns = frame.columns;
-                        frame.columns = Vec::new();
-
-                        log::debug!(".. group by {by:?}");
-                        frame.apply_assigns(by, root_mod);
-
-                        frame.columns.extend(aggregate_columns);
-                    }
-                }
-
-                log::debug!(".. type={frame}");
-
-                frame
+                lineage
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type

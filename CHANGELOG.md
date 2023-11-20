@@ -4,6 +4,8 @@
 
 **Language**:
 
+- _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
+
 **Features**:
 
 **Fixes**:
