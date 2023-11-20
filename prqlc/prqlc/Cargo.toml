@@ -23,7 +23,7 @@ clio = {version = "0.3.3", features = ['clap-parse']}
 color-eyre = "0.6.2"
 colorchoice-clap = "1.0.0"
 env_logger = {version = "0.10.1", features = ["color"]}
-itertools = "0.11.0"
+itertools = "0.12.0"
 notify = "6.1.1"
 prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.10.2" }
 prqlc-ast = {path = '../prqlc-ast', version = "0.10.2" }

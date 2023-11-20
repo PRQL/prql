@@ -1877,6 +1877,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25db6b064527c5d482d0423354fcd07a89a2dfe07b67892e62411946db7f07b0"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2187,7 +2196,7 @@ dependencies = [
  "anyhow",
  "globset",
  "insta",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "log",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
@@ -2901,7 +2910,7 @@ dependencies = [
  "env_logger",
  "glob",
  "insta",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "log",
  "mysql",
  "once_cell",
@@ -2979,7 +2988,7 @@ dependencies = [
  "env_logger",
  "insta",
  "insta-cmd",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "minijinja",
  "notify",
  "prql-compiler",
@@ -3016,7 +3025,7 @@ version = "0.10.2"
 dependencies = [
  "chumsky",
  "insta",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "prqlc-ast",
  "semver",
  "stacker",
