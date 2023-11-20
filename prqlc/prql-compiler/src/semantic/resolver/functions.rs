@@ -424,7 +424,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr) {
     (func_env, *closure.body)
 }
 
-fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
+pub fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
     let ty = TyFunc {
         args: func
             .params
@@ -432,7 +432,7 @@ fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
             .skip(func.args.len())
             .map(|a| a.ty.clone())
             .collect(),
-        return_ty: Box::new(func.return_ty.clone()),
+        return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
         name_hint: func.name_hint.clone(),
     };
 

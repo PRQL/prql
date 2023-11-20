@@ -6,16 +6,18 @@ use serde::Deserialize;
 use std::iter::zip;
 
 use prqlc_ast::error::{Error, Reason};
-use prqlc_ast::TupleField;
+use prqlc_ast::{TupleField, Ty, TyKind};
 
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
+use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
 use crate::{WithErrorInfo, COMPILER_VERSION};
 
+use super::types::type_intersection;
 use super::Resolver;
 
 impl Resolver<'_> {
@@ -428,7 +430,11 @@ impl Resolver<'_> {
             frame: WindowFrame::default(),
             sort: Vec::new(),
         };
-        Ok(Expr::new(ExprKind::TransformCall(transform_call)))
+        let ty = self.infer_type_of_special_func(&transform_call)?;
+        Ok(Expr {
+            ty,
+            ..Expr::new(ExprKind::TransformCall(transform_call))
+        })
     }
 
     /// Wraps non-tuple Exprs into a singleton Tuple.
@@ -452,6 +458,80 @@ impl Resolver<'_> {
             expr.span = span;
 
             self.fold_expr(expr)?
+        })
+    }
+
+    /// Figure out the type of a function call, if this function is a *special function*.
+    /// (declared in std module & requires special handling).
+    pub fn infer_type_of_special_func(
+        &mut self,
+        transform_call: &TransformCall,
+    ) -> Result<Option<Ty>> {
+        // Long term plan is to make this function obsolete with generic function parameters.
+        // In other words, I hope to make our type system powerful enough to express return
+        // type of all std module functions.
+
+        Ok(match transform_call.kind.as_ref() {
+            TransformKind::Select { assigns } => assigns
+                .ty
+                .clone()
+                .map(|x| Ty::new(TyKind::Array(Box::new(x)))),
+            TransformKind::Filter { .. } => transform_call.input.ty.clone(),
+            TransformKind::Derive { assigns } => {
+                let input = transform_call.input.ty.clone().unwrap();
+                let input = input.into_relation().unwrap();
+
+                let derived = assigns.ty.clone().unwrap();
+                let derived = derived.kind.into_tuple().unwrap();
+
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
+                    [input, derived].concat(),
+                ))))))
+            }
+            TransformKind::Aggregate { assigns } => {
+                let tuple = assigns.ty.clone().unwrap();
+
+                Some(Ty::new(TyKind::Array(Box::new(tuple))))
+            }
+            TransformKind::Sort { .. } | TransformKind::Take { .. } => {
+                transform_call.input.ty.clone()
+            }
+            TransformKind::Join { with, .. } => {
+                let input = transform_call.input.ty.clone().unwrap();
+                let input = input.into_relation().unwrap();
+
+                let with_name = with.alias.clone();
+                let with = with.ty.clone().unwrap();
+                let with = with.kind.into_array().unwrap();
+                let with = TupleField::Single(with_name, Some(*with));
+
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
+                    [input, vec![with]].concat(),
+                ))))))
+            }
+            TransformKind::Group { pipeline, by } => {
+                let by = by.ty.clone().unwrap();
+                let by = by.kind.into_tuple().unwrap();
+
+                let pipeline = pipeline.ty.clone().unwrap();
+                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
+                let pipeline = pipeline.return_ty.unwrap().into_relation().unwrap();
+
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
+                    [by, pipeline].concat(),
+                ))))))
+            }
+            TransformKind::Window { pipeline, .. } | TransformKind::Loop(pipeline) => {
+                let pipeline = pipeline.ty.clone().unwrap();
+                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
+                *pipeline.return_ty
+            }
+            TransformKind::Append(bottom) => {
+                let top = transform_call.input.ty.clone().unwrap();
+                let bottom = bottom.ty.clone().unwrap();
+
+                Some(type_intersection(top, bottom))
+            }
         })
     }
 }
@@ -490,6 +570,7 @@ fn fold_by_simulating_eval(
     val_lineage: Lineage,
 ) -> Result<Expr, anyhow::Error> {
     log::debug!("fold by simulating evaluation");
+    let span = pipeline.span;
 
     let param_name = "_tbl";
     let param_id = resolver.id.gen();
@@ -512,7 +593,7 @@ fn fold_by_simulating_eval(
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
     resolver.root_mod.module.stack_push(NS_PARAM, env);
 
-    let pipeline = resolver.fold_expr(pipeline)?;
+    let mut pipeline = resolver.fold_expr(pipeline)?;
 
     resolver.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
@@ -523,7 +604,15 @@ fn fold_by_simulating_eval(
     // let mut tbl_node = extract_ref_to_first(&mut pipeline);
     // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
 
-    let pipeline = Expr::new(ExprKind::Func(Box::new(Func {
+    // validate that the return type is a relation
+    // this can be removed after we have proper type checking for all std functions
+    let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
+    resolver.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
+        Some("pipeline".to_string())
+    })?;
+
+    // construct the function back
+    let func = Func {
         name_hint: None,
         body: Box::new(pipeline),
         return_ty: None,
@@ -537,8 +626,8 @@ fn fold_by_simulating_eval(
         named_params: vec![],
 
         env: Default::default(),
-    })));
-    Ok(pipeline)
+    };
+    Ok(expr_of_func(func, span))
 }
 
 impl TransformCall {
@@ -572,10 +661,8 @@ impl TransformCall {
 
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-                let partition_lin = ty_frame_or_default(body).map_err(|_| {
-                    anyhow!("Invalid lineage in group, verify the contents of the group call")
-                })?;
 
+                let partition_lin = ty_frame_or_default(body).unwrap();
                 lineage.columns.extend(partition_lin.columns);
 
                 lineage
@@ -584,9 +671,7 @@ impl TransformCall {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                ty_frame_or_default(body).map_err(|_| {
-                    anyhow!("Invalid lineage in window, verify the contents of the window call")
-                })?
+                ty_frame_or_default(body).unwrap()
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;

@@ -97,6 +97,10 @@ impl Ty {
         Ty::new(TyKind::Array(Box::new(tuple)))
     }
 
+    pub fn never() -> Self {
+        Ty::new(TyKind::Union(Vec::new()))
+    }
+
     pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
         self.kind.as_array()?.kind.as_tuple()
     }

@@ -485,3 +485,94 @@ fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
     }
     false
 }
+
+fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(type_intersection(a, b)),
+        (x, None) | (None, x) => x,
+    }
+}
+
+pub fn type_intersection(a: Ty, b: Ty) -> Ty {
+    match (&a.kind, &b.kind) {
+        (a_kind, b_kind) if a_kind == b_kind => a,
+
+        (TyKind::Any, _) => b,
+        (_, TyKind::Any) => a,
+
+        (TyKind::Union(_), _) => type_intersection_with_union(a, b),
+        (_, TyKind::Union(_)) => type_intersection_with_union(b, a),
+
+        (TyKind::Tuple(_), TyKind::Tuple(_)) => {
+            let a = a.kind.into_tuple().unwrap();
+            let b = b.kind.into_tuple().unwrap();
+
+            type_intersection_of_tuples(a, b)
+        }
+
+        (TyKind::Array(_), TyKind::Array(_)) => {
+            let a = a.kind.into_array().unwrap();
+            let b = b.kind.into_array().unwrap();
+            Ty::new(TyKind::Array(Box::new(type_intersection(*a, *b))))
+        }
+
+        _ => Ty::never(),
+    }
+}
+fn type_intersection_with_union(union: Ty, b: Ty) -> Ty {
+    let variants = union.kind.into_union().unwrap();
+    let variants = variants
+        .into_iter()
+        .map(|(name, variant)| {
+            let inter = type_intersection(variant, b.clone());
+
+            (name, inter)
+        })
+        .collect_vec();
+
+    Ty::new(TyKind::Union(variants))
+}
+
+fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
+    let a_has_other = a.iter().any(|f| f.is_wildcard());
+    let b_has_other = b.iter().any(|f| f.is_wildcard());
+
+    let mut a_fields = a.into_iter().filter_map(|f| f.into_single().ok());
+    let mut b_fields = b.into_iter().filter_map(|f| f.into_single().ok());
+
+    let mut fields = Vec::new();
+    let mut has_other = false;
+    loop {
+        match (a_fields.next(), b_fields.next()) {
+            (None, None) => break,
+            (None, Some(b_field)) => {
+                if !a_has_other {
+                    return Ty::never();
+                }
+                has_other = true;
+                fields.push(TupleField::Single(b_field.0, b_field.1));
+            }
+            (Some(a_field), None) => {
+                if !b_has_other {
+                    return Ty::never();
+                }
+                has_other = true;
+                fields.push(TupleField::Single(a_field.0, a_field.1));
+            }
+            (Some((a_name, a_ty)), Some((b_name, b_ty))) => {
+                let name = match (a_name, b_name) {
+                    (None, None) | (Some(_), Some(_)) => None,
+                    (None, Some(n)) | (Some(n), None) => Some(n),
+                };
+                let ty = maybe_type_intersection(a_ty, b_ty);
+
+                fields.push(TupleField::Single(name, ty));
+            }
+        }
+    }
+    if has_other {
+        fields.push(TupleField::Wildcard(None));
+    }
+
+    Ty::new(TyKind::Tuple(fields))
+}
