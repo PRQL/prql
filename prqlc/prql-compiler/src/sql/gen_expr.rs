@@ -165,6 +165,8 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             distinct: false,
             special: false,
             order_by: vec![],
+            filter: None,
+            null_treatment: None,
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -382,6 +384,8 @@ fn translate_datetime_literal_with_sqlite_function(
         distinct: false,
         special: false,
         order_by: vec![],
+        filter: None,
+        null_treatment: None,
     })
 }
 
