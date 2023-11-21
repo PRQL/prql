@@ -156,8 +156,7 @@ impl Resolver<'_> {
                     self.fold_expr(partition)?
                 };
 
-                let pipeline =
-                    fold_by_simulating_eval(self, pipeline, partition.lineage.clone().unwrap())?;
+                let pipeline = self.fold_by_simulating_eval(pipeline, &partition)?;
 
                 // unpack tbl back out
                 let tbl = *partition.kind.into_transform_call().unwrap().input;
@@ -216,8 +215,7 @@ impl Resolver<'_> {
                     end: end.map(Literal::Integer).map(Expr::new).map(Box::new),
                 };
 
-                let pipeline =
-                    fold_by_simulating_eval(self, pipeline, tbl.lineage.clone().unwrap())?;
+                let pipeline = self.fold_by_simulating_eval(pipeline, &tbl)?;
 
                 let transform_kind = TransformKind::Window {
                     kind,
@@ -234,8 +232,7 @@ impl Resolver<'_> {
             "loop" => {
                 let [pipeline, tbl] = unpack::<2>(func.args);
 
-                let pipeline =
-                    fold_by_simulating_eval(self, pipeline, tbl.lineage.clone().unwrap())?;
+                let pipeline = self.fold_by_simulating_eval(pipeline, &tbl)?;
 
                 (TransformKind::Loop(Box::new(pipeline)), tbl)
             }
@@ -476,7 +473,6 @@ impl Resolver<'_> {
                 .ty
                 .clone()
                 .map(|x| Ty::new(TyKind::Array(Box::new(x)))),
-            TransformKind::Filter { .. } => transform_call.input.ty.clone(),
             TransformKind::Derive { assigns } => {
                 let input = transform_call.input.ty.clone().unwrap();
                 let input = input.into_relation().unwrap();
@@ -493,9 +489,9 @@ impl Resolver<'_> {
 
                 Some(Ty::new(TyKind::Array(Box::new(tuple))))
             }
-            TransformKind::Sort { .. } | TransformKind::Take { .. } => {
-                transform_call.input.ty.clone()
-            }
+            TransformKind::Filter { .. }
+            | TransformKind::Sort { .. }
+            | TransformKind::Take { .. } => transform_call.input.ty.clone(),
             TransformKind::Join { with, .. } => {
                 let input = transform_call.input.ty.clone().unwrap();
                 let input = input.into_relation().unwrap();
@@ -562,72 +558,75 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
     Ok((into_int(range.0)?, into_int(range.1)?))
 }
 
-/// Simulate evaluation of the inner pipeline of group or window
-// Creates a dummy node that acts as value that pipeline can be resolved upon.
-fn fold_by_simulating_eval(
-    resolver: &mut Resolver,
-    pipeline: Expr,
-    val_lineage: Lineage,
-) -> Result<Expr, anyhow::Error> {
-    log::debug!("fold by simulating evaluation");
-    let span = pipeline.span;
+impl Resolver<'_> {
+    /// Simulate evaluation of the inner pipeline of group or window
+    // Creates a dummy node that acts as value that pipeline can be resolved upon.
+    fn fold_by_simulating_eval(
+        &mut self,
+        pipeline: Expr,
+        val: &Expr,
+    ) -> Result<Expr, anyhow::Error> {
+        log::debug!("fold by simulating evaluation");
+        let span = pipeline.span;
 
-    let param_name = "_tbl";
-    let param_id = resolver.id.gen();
+        let param_name = "_tbl";
+        let param_id = self.id.gen();
 
-    // resolver will not resolve a function call if any arguments are missing
-    // but would instead return a closure to be resolved later.
-    // because the pipeline of group is a function that takes a table chunk
-    // and applies the transforms to it, it would not get resolved.
-    // thats why we trick the resolver with a dummy node that acts as table
-    // chunk and instruct resolver to apply the transform on that.
+        // resolver will not resolve a function call if any arguments are missing
+        // but would instead return a closure to be resolved later.
+        // because the pipeline of group is a function that takes a table chunk
+        // and applies the transforms to it, it would not get resolved.
+        // thats why we trick the resolver with a dummy node that acts as table
+        // chunk and instruct resolver to apply the transform on that.
 
-    let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.lineage = Some(val_lineage);
+        let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
+        dummy.lineage = val.lineage.clone();
+        dummy.ty = val.ty.clone();
 
-    let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
-        pipeline,
-        vec![dummy],
-    )));
+        let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+            pipeline,
+            vec![dummy],
+        )));
 
-    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-    resolver.root_mod.module.stack_push(NS_PARAM, env);
+        let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+        self.root_mod.module.stack_push(NS_PARAM, env);
 
-    let mut pipeline = resolver.fold_expr(pipeline)?;
+        let mut pipeline = self.fold_expr(pipeline)?;
 
-    resolver.root_mod.module.stack_pop(NS_PARAM).unwrap();
+        self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
-    // now, we need wrap the result into a closure and replace
-    // the dummy node with closure's parameter.
+        // now, we need wrap the result into a closure and replace
+        // the dummy node with closure's parameter.
 
-    // extract reference to the dummy node
-    // let mut tbl_node = extract_ref_to_first(&mut pipeline);
-    // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
+        // extract reference to the dummy node
+        // let mut tbl_node = extract_ref_to_first(&mut pipeline);
+        // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
 
-    // validate that the return type is a relation
-    // this can be removed after we have proper type checking for all std functions
-    let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
-    resolver.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
-        Some("pipeline".to_string())
-    })?;
+        // validate that the return type is a relation
+        // this can be removed after we have proper type checking for all std functions
+        let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
+        self.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
+            Some("pipeline".to_string())
+        })?;
 
-    // construct the function back
-    let func = Func {
-        name_hint: None,
-        body: Box::new(pipeline),
-        return_ty: None,
+        // construct the function back
+        let func = Func {
+            name_hint: None,
+            body: Box::new(pipeline),
+            return_ty: None,
 
-        args: vec![],
-        params: vec![FuncParam {
-            name: param_id.to_string(),
-            ty: None,
-            default_value: None,
-        }],
-        named_params: vec![],
+            args: vec![],
+            params: vec![FuncParam {
+                name: param_id.to_string(),
+                ty: None,
+                default_value: None,
+            }],
+            named_params: vec![],
 
-        env: Default::default(),
-    };
-    Ok(expr_of_func(func, span))
+            env: Default::default(),
+        };
+        Ok(expr_of_func(func, span))
+    }
 }
 
 impl TransformCall {

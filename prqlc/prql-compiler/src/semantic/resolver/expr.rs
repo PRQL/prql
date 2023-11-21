@@ -192,9 +192,8 @@ impl PlFold for Resolver<'_> {
                     .unique()
                     .collect();
 
-                let kind = ExprKind::All { within, except };
                 Expr {
-                    kind,
+                    kind: ExprKind::All { within, except },
                     target_ids,
                     ..node
                 }
@@ -250,14 +249,14 @@ impl PlFold for Resolver<'_> {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = types::infer_type(&r)?;
+            r.ty = self.infer_type(&r)?;
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_lineage(self.root_mod)?);
 
                 // a sanity check that inferred lineage matches inferred types
-                lineage_and_ty_match(&r);
+                assert_lineage_and_ty(&r);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -282,10 +281,14 @@ impl PlFold for Resolver<'_> {
     }
 }
 
-fn lineage_and_ty_match(r: &Expr) {
+fn assert_lineage_and_ty(r: &Expr) {
     let lineage = r.lineage.as_ref().unwrap();
     let ty = r.ty.as_ref().unwrap().as_relation().unwrap();
-    assert_eq!(lineage.columns.len(), ty.len());
+    assert_eq!(
+        lineage.columns.len(),
+        ty.len(),
+        "lineage and ty columns mismatch, expr={r:#?}"
+    );
 
     let ty_fields_flattened = ty
         .iter()
@@ -309,8 +312,10 @@ fn lineage_and_ty_match(r: &Expr) {
         .collect::<Vec<Option<Ident>>>();
 
     for (lin_col, ty_field) in std::iter::zip(&lineage.columns, ty_fields_flattened) {
-        let (lin_name, _, _) = lin_col.as_single().unwrap();
-        assert_eq!(lin_name, &ty_field);
+        let LineageColumn::Single { name: lin_name, .. } = lin_col else {
+            continue;
+        };
+        assert_eq!(lin_name.clone().map(|x| x.name), ty_field.map(|x| x.name));
     }
 }
 

@@ -13,73 +13,106 @@ use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
 
-pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
-    if let Some(ty) = &node.ty {
-        return Ok(Some(ty.clone()));
-    }
-
-    let kind = match &node.kind {
-        ExprKind::Literal(ref literal) => match literal {
-            Literal::Null => TyKind::Singleton(Literal::Null),
-            Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
-            Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
-            Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
-            Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
-            Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
-            Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
-            Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
-            Literal::ValueAndUnit(_) => return Ok(None), // TODO
-        },
-
-        ExprKind::Ident(_) | ExprKind::FuncCall(_) => return Ok(None),
-
-        ExprKind::SString(_) => return Ok(None),
-        ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
-
-        ExprKind::TransformCall(_) => return Ok(None), // TODO
-        ExprKind::Tuple(fields) => TyKind::Tuple(
-            fields
-                .iter()
-                .map(|x| -> Result<_> {
-                    let ty = infer_type(x)?;
-
-                    Ok(TupleField::Single(x.alias.clone(), ty))
-                })
-                .try_collect()?,
-        ),
-        ExprKind::Array(items) => {
-            let mut intersection = None;
-            for item in items {
-                let item_ty = infer_type(item)?;
-
-                if let Some(item_ty) = item_ty {
-                    if let Some(intersection) = &intersection {
-                        if intersection != &item_ty {
-                            // TODO: compute type intersection instead
-                            return Ok(None);
-                        }
-                    } else {
-                        intersection = Some(item_ty);
-                    }
-                }
-            }
-            let Some(items_ty) = intersection else {
-                // TODO: return Array(Infer) instead of Infer
-                return Ok(None);
-            };
-            TyKind::Array(Box::new(items_ty))
+impl Resolver<'_> {
+    pub fn infer_type(&mut self, expr: &Expr) -> Result<Option<Ty>> {
+        if let Some(ty) = &expr.ty {
+            return Ok(Some(ty.clone()));
         }
 
-        _ => return Ok(None),
-    };
-    Ok(Some(Ty {
-        kind,
-        name: None,
-        span: None,
-    }))
-}
+        let kind = match &expr.kind {
+            ExprKind::Literal(ref literal) => match literal {
+                Literal::Null => TyKind::Singleton(Literal::Null),
+                Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
+                Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
+                Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
+                Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
+                Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
+                Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
+                Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
+                Literal::ValueAndUnit(_) => return Ok(None), // TODO
+            },
 
-impl Resolver<'_> {
+            ExprKind::Ident(_) | ExprKind::FuncCall(_) => return Ok(None),
+
+            ExprKind::SString(_) => return Ok(None),
+            ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
+
+            ExprKind::TransformCall(_) => return Ok(None), // TODO
+            ExprKind::Tuple(fields) => {
+                let mut ty_fields: Vec<TupleField> = Vec::with_capacity(fields.len());
+                let has_other = false;
+
+                for field in fields {
+                    let ty = self.infer_type(field)?;
+
+                    if field.flatten {
+                        if let Some(fields) = ty.as_ref().and_then(|x| x.kind.as_tuple()) {
+                            ty_fields.extend(fields.iter().cloned());
+                            continue;
+                        }
+                    }
+
+                    // TODO: move this into de-sugar stage (expand PL)
+                    // TODO: this will not infer nested namespaces
+                    let name = field
+                        .alias
+                        .clone()
+                        .or_else(|| field.kind.as_ident().map(|i| i.name.clone()));
+
+                    // remove names from previous fields with the same name
+                    if name.is_some() {
+                        for f in ty_fields.iter_mut() {
+                            if f.as_single().and_then(|x| x.0.as_ref()) == name.as_ref() {
+                                *f.as_single_mut().unwrap().0 = None;
+                            }
+                        }
+                    }
+
+                    ty_fields.push(TupleField::Single(name, ty));
+                }
+
+                if has_other {
+                    ty_fields.push(TupleField::Wildcard(None));
+                }
+
+                TyKind::Tuple(ty_fields)
+            }
+            ExprKind::Array(items) => {
+                let mut intersection = None;
+                for item in items {
+                    let item_ty = self.infer_type(item)?;
+
+                    if let Some(item_ty) = item_ty {
+                        if let Some(intersection) = &intersection {
+                            if intersection != &item_ty {
+                                // TODO: compute type intersection instead
+                                return Ok(None);
+                            }
+                        } else {
+                            intersection = Some(item_ty);
+                        }
+                    }
+                }
+                let Some(items_ty) = intersection else {
+                    // TODO: return Array(Infer) instead of Infer
+                    return Ok(None);
+                };
+                TyKind::Array(Box::new(items_ty))
+            }
+
+            ExprKind::All { within, except } => {
+                todo!()
+            }
+
+            _ => return Ok(None),
+        };
+        Ok(Some(Ty {
+            kind,
+            name: None,
+            span: None,
+        }))
+    }
+
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_expr_type<F>(
         &mut self,
