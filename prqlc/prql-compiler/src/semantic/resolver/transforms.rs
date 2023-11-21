@@ -2,434 +2,435 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
-use prqlc_ast::TupleField;
 use serde::Deserialize;
 use std::iter::zip;
 
 use prqlc_ast::error::{Error, Reason};
+use prqlc_ast::TupleField;
 
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
-use crate::semantic::ast_expand::try_restrict_range;
+use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
 use crate::{WithErrorInfo, COMPILER_VERSION};
 
 use super::Resolver;
 
-/// try to convert function call with enough args into transform
-pub fn resolve_special_func(resolver: &mut Resolver, closure: Func) -> Result<Expr> {
-    let internal_name = closure.body.kind.as_internal().unwrap();
+impl Resolver<'_> {
+    /// try to convert function call with enough args into transform
+    pub fn resolve_special_func(&mut self, func: Func) -> Result<Expr> {
+        let internal_name = func.body.kind.into_internal().unwrap();
 
-    let (kind, input) = match internal_name.as_str() {
-        "from" => {
-            let [source] = unpack::<1>(closure);
+        let (kind, input) = match internal_name.as_str() {
+            "from" => {
+                let [source] = unpack::<1>(func.args);
 
-            return Ok(source);
-        }
-        "select" => {
-            let [assigns, tbl] = unpack::<2>(closure);
+                return Ok(source);
+            }
+            "select" => {
+                let [assigns, tbl] = unpack::<2>(func.args);
 
-            let assigns = Box::new(resolver.coerce_into_tuple(assigns)?);
-            (TransformKind::Select { assigns }, tbl)
-        }
-        "filter" => {
-            let [filter, tbl] = unpack::<2>(closure);
+                let assigns = Box::new(self.coerce_into_tuple(assigns)?);
+                (TransformKind::Select { assigns }, tbl)
+            }
+            "filter" => {
+                let [filter, tbl] = unpack::<2>(func.args);
 
-            let filter = Box::new(filter);
-            (TransformKind::Filter { filter }, tbl)
-        }
-        "derive" => {
-            let [assigns, tbl] = unpack::<2>(closure);
+                let filter = Box::new(filter);
+                (TransformKind::Filter { filter }, tbl)
+            }
+            "derive" => {
+                let [assigns, tbl] = unpack::<2>(func.args);
 
-            let assigns = Box::new(resolver.coerce_into_tuple(assigns)?);
-            (TransformKind::Derive { assigns }, tbl)
-        }
-        "aggregate" => {
-            let [assigns, tbl] = unpack::<2>(closure);
+                let assigns = Box::new(self.coerce_into_tuple(assigns)?);
+                (TransformKind::Derive { assigns }, tbl)
+            }
+            "aggregate" => {
+                let [assigns, tbl] = unpack::<2>(func.args);
 
-            let assigns = Box::new(resolver.coerce_into_tuple(assigns)?);
-            (TransformKind::Aggregate { assigns }, tbl)
-        }
-        "sort" => {
-            let [by, tbl] = unpack::<2>(closure);
+                let assigns = Box::new(self.coerce_into_tuple(assigns)?);
+                (TransformKind::Aggregate { assigns }, tbl)
+            }
+            "sort" => {
+                let [by, tbl] = unpack::<2>(func.args);
 
-            let by = resolver
-                .coerce_into_tuple(by)?
-                .try_cast(|x| x.into_tuple(), Some("sort"), "tuple")?
-                .into_iter()
-                .map(|expr| {
-                    let (column, direction) = match expr.kind {
-                        ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
-                            (args.remove(0), SortDirection::Desc)
+                let by = self
+                    .coerce_into_tuple(by)?
+                    .try_cast(|x| x.into_tuple(), Some("sort"), "tuple")?
+                    .into_iter()
+                    .map(|expr| {
+                        let (column, direction) = match expr.kind {
+                            ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
+                                (args.remove(0), SortDirection::Desc)
+                            }
+                            _ => (expr, SortDirection::default()),
+                        };
+                        let column = Box::new(column);
+
+                        ColumnSort { direction, column }
+                    })
+                    .collect();
+
+                (TransformKind::Sort { by }, tbl)
+            }
+            "take" => {
+                let [expr, tbl] = unpack::<2>(func.args);
+
+                let range = if let ExprKind::Literal(Literal::Integer(n)) = expr.kind {
+                    range_from_ints(None, Some(n))
+                } else {
+                    match try_restrict_range(expr) {
+                        Ok((start, end)) => Range {
+                            start: restrict_null_literal(start).map(Box::new),
+                            end: restrict_null_literal(end).map(Box::new),
+                        },
+                        Err(expr) => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`take`".to_string()),
+                                expected: "int or range".to_string(),
+                                found: write_pl(expr.clone()),
+                            })
+                            // Possibly this should refer to the item after the `take` where
+                            // one exists?
+                            .with_span(expr.span)
+                            .into());
                         }
-                        _ => (expr, SortDirection::default()),
-                    };
-                    let column = Box::new(column);
-
-                    ColumnSort { direction, column }
-                })
-                .collect();
-
-            (TransformKind::Sort { by }, tbl)
-        }
-        "take" => {
-            let [expr, tbl] = unpack::<2>(closure);
-
-            let range = if let ExprKind::Literal(Literal::Integer(n)) = expr.kind {
-                range_from_ints(None, Some(n))
-            } else {
-                match try_restrict_range(expr) {
-                    Ok(range) => range,
-                    Err(expr) => {
-                        return Err(Error::new(Reason::Expected {
-                            who: Some("`take`".to_string()),
-                            expected: "int or range".to_string(),
-                            found: write_pl(expr.clone()),
-                        })
-                        // Possibly this should refer to the item after the `take` where
-                        // one exists?
-                        .with_span(expr.span)
-                        .into());
                     }
-                }
-            };
-
-            (TransformKind::Take { range }, tbl)
-        }
-        "join" => {
-            let [side, with, filter, tbl] = unpack::<4>(closure);
-
-            let side = {
-                let span = side.span;
-                let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
-                match ident.to_string().as_str() {
-                    "inner" => JoinSide::Inner,
-                    "left" => JoinSide::Left,
-                    "right" => JoinSide::Right,
-                    "full" => JoinSide::Full,
-
-                    found => bail!(Error::new(Reason::Expected {
-                        who: Some("`side`".to_string()),
-                        expected: "inner, left, right or full".to_string(),
-                        found: found.to_string()
-                    })
-                    .with_span(span)),
-                }
-            };
-
-            let filter = Box::new(filter);
-            let with = Box::new(with);
-            (TransformKind::Join { side, with, filter }, tbl)
-        }
-        "group" => {
-            let [by, pipeline, tbl] = unpack::<3>(closure);
-
-            let by = Box::new(resolver.coerce_into_tuple(by)?);
-
-            // construct the relation that is passed into the pipeline
-            // (when generics are a thing, this can be removed)
-            let partition = {
-                let partition = Expr::new(ExprKind::All {
-                    within: Ident::from_name(NS_THIS),
-                    except: by.clone().try_cast(
-                        |f| f.into_tuple(),
-                        Some("group"),
-                        "tuple literal",
-                    )?,
-                });
-                // wrap into select, so the names are resolved correctly
-                let partition = FuncCall {
-                    name: Box::new(Expr::new(Ident::from_path(vec!["std", "select"]))),
-                    args: vec![partition, tbl],
-                    named_args: Default::default(),
                 };
-                let partition = Expr::new(ExprKind::FuncCall(partition));
-                // fold, so lineage and types are inferred
-                resolver.fold_expr(partition)?
-            };
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, partition.lineage.clone().unwrap())?;
-
-            // unpack tbl back out
-            let tbl = *partition.kind.into_transform_call().unwrap().input;
-
-            let pipeline = Box::new(pipeline);
-            (TransformKind::Group { by, pipeline }, tbl)
-        }
-        "window" => {
-            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
-
-            let expanding = {
-                let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
-
-                *as_bool.ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `expanding`".to_string()),
-                        expected: "a boolean".to_string(),
-                        found: write_pl(expanding.clone()),
-                    })
-                    .with_span(expanding.span)
-                })?
-            };
-
-            let rolling = {
-                let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
-
-                *as_int.ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `rolling`".to_string()),
-                        expected: "a number".to_string(),
-                        found: write_pl(rolling.clone()),
-                    })
-                    .with_span(rolling.span)
-                })?
-            };
-
-            let rows = try_restrict_range(rows).map_err(|e| {
-                Error::new(Reason::Expected {
-                    who: Some("parameter `rows`".to_string()),
-                    expected: "a range".to_string(),
-                    found: write_pl(e),
-                })
-            })?;
-
-            let range = try_restrict_range(range).map_err(|e| {
-                Error::new(Reason::Expected {
-                    who: Some("parameter `range`".to_string()),
-                    expected: "a range".to_string(),
-                    found: write_pl(e),
-                })
-            })?;
-
-            let (kind, range) = if expanding {
-                (WindowKind::Rows, range_from_ints(None, Some(0)))
-            } else if rolling > 0 {
-                (
-                    WindowKind::Rows,
-                    range_from_ints(Some(-rolling + 1), Some(0)),
-                )
-            } else if !range_is_empty(&rows) {
-                (WindowKind::Rows, rows)
-            } else if !range_is_empty(&range) {
-                (WindowKind::Range, range)
-            } else {
-                (WindowKind::Rows, Range::unbounded())
-            };
-
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
-
-            let transform_kind = TransformKind::Window {
-                kind,
-                range,
-                pipeline: Box::new(pipeline),
-            };
-            (transform_kind, tbl)
-        }
-        "append" => {
-            let [bottom, top] = unpack::<2>(closure);
-
-            (TransformKind::Append(Box::new(bottom)), top)
-        }
-        "loop" => {
-            let [pipeline, tbl] = unpack::<2>(closure);
-
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.lineage.clone().unwrap())?;
-
-            (TransformKind::Loop(Box::new(pipeline)), tbl)
-        }
-
-        "in" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
-
-            let [pattern, value] = unpack::<2>(closure);
-
-            let pattern = match try_restrict_range(pattern) {
-                Ok(Range { start, end }) => {
-                    let start = start.map(|s| new_binop(value.clone(), &["std", "gte"], *s));
-                    let end = end.map(|end| new_binop(value, &["std", "lte"], *end));
-
-                    let res = maybe_binop(start, &["std", "and"], end);
-                    let res =
-                        res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
-                    return Ok(res);
-                }
-                Err(expr) => expr,
-            };
-
-            return Err(Error::new(Reason::Expected {
-                who: Some("std.in".to_string()),
-                expected: "a pattern".to_string(),
-                found: write_pl(pattern.clone()),
-            })
-            .with_span(pattern.span)
-            .into());
-        }
-
-        "tuple_every" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
-
-            let [list] = unpack::<1>(closure);
-            let list = list.kind.into_tuple().unwrap();
-
-            let mut res = None;
-            for item in list {
-                res = maybe_binop(res, &["std", "and"], Some(item));
+                (TransformKind::Take { range }, tbl)
             }
-            let res = res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
+            "join" => {
+                let [side, with, filter, tbl] = unpack::<4>(func.args);
 
-            return Ok(res);
-        }
+                let side = {
+                    let span = side.span;
+                    let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                    match ident.to_string().as_str() {
+                        "inner" => JoinSide::Inner,
+                        "left" => JoinSide::Left,
+                        "right" => JoinSide::Right,
+                        "full" => JoinSide::Full,
 
-        "tuple_map" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
+                        found => bail!(Error::new(Reason::Expected {
+                            who: Some("`side`".to_string()),
+                            expected: "inner, left, right or full".to_string(),
+                            found: found.to_string()
+                        })
+                        .with_span(span)),
+                    }
+                };
 
-            let [func, list] = unpack::<2>(closure);
-            let list_items = list.kind.into_tuple().unwrap();
+                let filter = Box::new(filter);
+                let with = Box::new(with);
+                (TransformKind::Join { side, with, filter }, tbl)
+            }
+            "group" => {
+                let [by, pipeline, tbl] = unpack::<3>(func.args);
 
-            let list_items = list_items
-                .into_iter()
-                .map(|item| {
-                    Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
-                        func.clone(),
-                        vec![item],
-                    )))
-                })
-                .collect_vec();
+                let by = Box::new(self.coerce_into_tuple(by)?);
 
-            return Ok(Expr {
-                kind: ExprKind::Tuple(list_items),
-                ..list
-            });
-        }
+                // construct the relation that is passed into the pipeline
+                // (when generics are a thing, this can be removed)
+                let partition = {
+                    let partition = Expr::new(ExprKind::All {
+                        within: Ident::from_name(NS_THIS),
+                        except: by.clone().try_cast(
+                            |f| f.into_tuple(),
+                            Some("group"),
+                            "tuple literal",
+                        )?,
+                    });
+                    // wrap into select, so the names are resolved correctly
+                    let partition = FuncCall {
+                        name: Box::new(Expr::new(Ident::from_path(vec!["std", "select"]))),
+                        args: vec![partition, tbl],
+                        named_args: Default::default(),
+                    };
+                    let partition = Expr::new(ExprKind::FuncCall(partition));
+                    // fold, so lineage and types are inferred
+                    self.fold_expr(partition)?
+                };
 
-        "tuple_zip" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
+                let pipeline =
+                    fold_by_simulating_eval(self, pipeline, partition.lineage.clone().unwrap())?;
 
-            let [a, b] = unpack::<2>(closure);
-            let a = a.kind.into_tuple().unwrap();
-            let b = b.kind.into_tuple().unwrap();
+                // unpack tbl back out
+                let tbl = *partition.kind.into_transform_call().unwrap().input;
 
-            let mut res = Vec::new();
-            for (a, b) in std::iter::zip(a, b) {
-                res.push(Expr::new(ExprKind::Tuple(vec![a, b])));
+                let pipeline = Box::new(pipeline);
+                (TransformKind::Group { by, pipeline }, tbl)
+            }
+            "window" => {
+                let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(func.args);
+
+                let expanding = {
+                    let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
+
+                    *as_bool.ok_or_else(|| {
+                        Error::new(Reason::Expected {
+                            who: Some("parameter `expanding`".to_string()),
+                            expected: "a boolean".to_string(),
+                            found: write_pl(expanding.clone()),
+                        })
+                        .with_span(expanding.span)
+                    })?
+                };
+
+                let rolling = {
+                    let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
+
+                    *as_int.ok_or_else(|| {
+                        Error::new(Reason::Expected {
+                            who: Some("parameter `rolling`".to_string()),
+                            expected: "a number".to_string(),
+                            found: write_pl(rolling.clone()),
+                        })
+                        .with_span(rolling.span)
+                    })?
+                };
+
+                let rows = into_literal_range(try_restrict_range(rows).unwrap())?;
+
+                let range = into_literal_range(try_restrict_range(range).unwrap())?;
+
+                let (kind, start, end) = if expanding {
+                    (WindowKind::Rows, None, Some(0))
+                } else if rolling > 0 {
+                    (WindowKind::Rows, Some(-rolling + 1), Some(0))
+                } else if !range_is_empty(&rows) {
+                    (WindowKind::Rows, rows.0, rows.1)
+                } else if !range_is_empty(&range) {
+                    (WindowKind::Range, range.0, range.1)
+                } else {
+                    (WindowKind::Rows, None, None)
+                };
+                // let start = Expr::new(start.map_or(Literal::Null, Literal::Integer));
+                // let end = Expr::new(end.map_or(Literal::Null, Literal::Integer));
+                let range = Range {
+                    start: start.map(Literal::Integer).map(Expr::new).map(Box::new),
+                    end: end.map(Literal::Integer).map(Expr::new).map(Box::new),
+                };
+
+                let pipeline =
+                    fold_by_simulating_eval(self, pipeline, tbl.lineage.clone().unwrap())?;
+
+                let transform_kind = TransformKind::Window {
+                    kind,
+                    range,
+                    pipeline: Box::new(pipeline),
+                };
+                (transform_kind, tbl)
+            }
+            "append" => {
+                let [bottom, top] = unpack::<2>(func.args);
+
+                (TransformKind::Append(Box::new(bottom)), top)
+            }
+            "loop" => {
+                let [pipeline, tbl] = unpack::<2>(func.args);
+
+                let pipeline =
+                    fold_by_simulating_eval(self, pipeline, tbl.lineage.clone().unwrap())?;
+
+                (TransformKind::Loop(Box::new(pipeline)), tbl)
             }
 
-            return Ok(Expr::new(ExprKind::Tuple(res)));
-        }
+            "in" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
 
-        "_eq" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
+                let [pattern, value] = unpack::<2>(func.args);
 
-            let [list] = unpack::<1>(closure);
-            let list = list.kind.into_tuple().unwrap();
-            let [a, b]: [Expr; 2] = list.try_into().unwrap();
+                let pattern = match try_restrict_range(pattern) {
+                    Ok((start, end)) => {
+                        let start = restrict_null_literal(start);
+                        let end = restrict_null_literal(end);
 
-            let res = maybe_binop(Some(a), &["std", "eq"], Some(b)).unwrap();
-            return Ok(res);
-        }
+                        let start = start.map(|s| new_binop(value.clone(), &["std", "gte"], s));
+                        let end = end.map(|e| new_binop(value, &["std", "lte"], e));
 
-        "from_text" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
+                        let res = maybe_binop(start, &["std", "and"], end);
+                        let res = res.unwrap_or_else(|| {
+                            Expr::new(ExprKind::Literal(Literal::Boolean(true)))
+                        });
+                        return Ok(res);
+                    }
+                    Err(expr) => expr,
+                };
 
-            let [format, text_expr] = unpack::<2>(closure);
+                return Err(Error::new(Reason::Expected {
+                    who: Some("std.in".to_string()),
+                    expected: "a pattern".to_string(),
+                    found: write_pl(pattern.clone()),
+                })
+                .with_span(pattern.span)
+                .into());
+            }
 
-            let text = match text_expr.kind {
-                ExprKind::Literal(Literal::String(text)) => text,
-                _ => {
-                    return Err(Error::new(Reason::Expected {
-                        who: Some("std.from_text".to_string()),
-                        expected: "a string literal".to_string(),
-                        found: format!("`{}`", write_pl(text_expr.clone())),
-                    })
-                    .with_span(text_expr.span)
-                    .into());
+            "tuple_every" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
+
+                let [list] = unpack::<1>(func.args);
+                let list = list.kind.into_tuple().unwrap();
+
+                let mut res = None;
+                for item in list {
+                    res = maybe_binop(res, &["std", "and"], Some(item));
                 }
-            };
+                let res =
+                    res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
 
-            let res = {
-                let span = format.span;
-                let format = format
-                    .try_cast(ExprKind::into_ident, Some("format"), "ident")?
-                    .to_string();
-                match format.as_str() {
-                    "csv" => from_text::parse_csv(&text)?,
-                    "json" => from_text::parse_json(&text)?,
+                return Ok(res);
+            }
 
+            "tuple_map" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
+
+                let [func, list] = unpack::<2>(func.args);
+                let list_items = list.kind.into_tuple().unwrap();
+
+                let list_items = list_items
+                    .into_iter()
+                    .map(|item| {
+                        Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+                            func.clone(),
+                            vec![item],
+                        )))
+                    })
+                    .collect_vec();
+
+                return Ok(Expr {
+                    kind: ExprKind::Tuple(list_items),
+                    ..list
+                });
+            }
+
+            "tuple_zip" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
+
+                let [a, b] = unpack::<2>(func.args);
+                let a = a.kind.into_tuple().unwrap();
+                let b = b.kind.into_tuple().unwrap();
+
+                let mut res = Vec::new();
+                for (a, b) in std::iter::zip(a, b) {
+                    res.push(Expr::new(ExprKind::Tuple(vec![a, b])));
+                }
+
+                return Ok(Expr::new(ExprKind::Tuple(res)));
+            }
+
+            "_eq" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
+
+                let [list] = unpack::<1>(func.args);
+                let list = list.kind.into_tuple().unwrap();
+                let [a, b]: [Expr; 2] = list.try_into().unwrap();
+
+                let res = maybe_binop(Some(a), &["std", "eq"], Some(b)).unwrap();
+                return Ok(res);
+            }
+
+            "from_text" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
+
+                let [format, text_expr] = unpack::<2>(func.args);
+
+                let text = match text_expr.kind {
+                    ExprKind::Literal(Literal::String(text)) => text,
                     _ => {
                         return Err(Error::new(Reason::Expected {
-                            who: Some("`format`".to_string()),
-                            expected: "csv or json".to_string(),
-                            found: format,
+                            who: Some("std.from_text".to_string()),
+                            expected: "a string literal".to_string(),
+                            found: format!("`{}`", write_pl(text_expr.clone())),
                         })
-                        .with_span(span)
-                        .into())
+                        .with_span(text_expr.span)
+                        .into());
                     }
-                }
-            };
+                };
 
-            let expr_id = text_expr.id.unwrap();
-            let input_name = text_expr.alias.unwrap_or_else(|| "text".to_string());
+                let res = {
+                    let span = format.span;
+                    let format = format
+                        .try_cast(ExprKind::into_ident, Some("format"), "ident")?
+                        .to_string();
+                    match format.as_str() {
+                        "csv" => from_text::parse_csv(&text)?,
+                        "json" => from_text::parse_json(&text)?,
 
-            let columns: Vec<_> = res
-                .columns
-                .iter()
-                .cloned()
-                .map(|x| TupleField::Single(Some(x), None))
-                .collect();
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`format`".to_string()),
+                                expected: "csv or json".to_string(),
+                                found: format,
+                            })
+                            .with_span(span)
+                            .into())
+                        }
+                    }
+                };
 
-            let frame =
-                resolver.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
+                let expr_id = text_expr.id.unwrap();
+                let input_name = text_expr.alias.unwrap_or_else(|| "text".to_string());
 
-            let res = Expr::new(ExprKind::Array(
-                res.rows
-                    .into_iter()
-                    .map(|row| {
-                        Expr::new(ExprKind::Tuple(
-                            row.into_iter()
-                                .map(|lit| Expr::new(ExprKind::Literal(lit)))
-                                .collect(),
-                        ))
-                    })
-                    .collect(),
-            ));
-            let res = Expr {
-                lineage: Some(frame),
-                id: text_expr.id,
-                ..res
-            };
-            return Ok(res);
-        }
+                let columns: Vec<_> = res
+                    .columns
+                    .iter()
+                    .cloned()
+                    .map(|x| TupleField::Single(Some(x), None))
+                    .collect();
 
-        "prql_version" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
-            let ver = COMPILER_VERSION.to_string();
-            return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
-        }
+                let frame =
+                    self.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
 
-        _ => {
-            return Err(Error::new_simple("unknown operator {internal_name}")
-                .push_hint("this is a bug in prql-compiler")
-                .with_span(closure.body.span)
-                .into())
-        }
-    };
+                let res = Expr::new(ExprKind::Array(
+                    res.rows
+                        .into_iter()
+                        .map(|row| {
+                            Expr::new(ExprKind::Tuple(
+                                row.into_iter()
+                                    .map(|lit| Expr::new(ExprKind::Literal(lit)))
+                                    .collect(),
+                            ))
+                        })
+                        .collect(),
+                ));
+                let res = Expr {
+                    lineage: Some(frame),
+                    id: text_expr.id,
+                    ..res
+                };
+                return Ok(res);
+            }
 
-    let transform_call = TransformCall {
-        kind: Box::new(kind),
-        input: Box::new(input),
-        partition: None,
-        frame: WindowFrame::default(),
-        sort: Vec::new(),
-    };
-    Ok(Expr::new(ExprKind::TransformCall(transform_call)))
-}
+            "prql_version" => {
+                // yes, this is not a transform, but this is the most appropriate place for it
+                let ver = COMPILER_VERSION.to_string();
+                return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
+            }
 
-impl Resolver<'_> {
+            _ => {
+                return Err(
+                    Error::new_simple(format!("unknown operator {internal_name}"))
+                        .push_hint("this is a bug in prqlc")
+                        .with_span(func.body.span)
+                        .into(),
+                )
+            }
+        };
+
+        let transform_call = TransformCall {
+            kind: Box::new(kind),
+            input: Box::new(input),
+            partition: None,
+            frame: WindowFrame::default(),
+            sort: Vec::new(),
+        };
+        Ok(Expr::new(ExprKind::TransformCall(transform_call)))
+    }
+
     /// Wraps non-tuple Exprs into a singleton Tuple.
     pub(super) fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
         let is_tuple_ty = expr.ty.as_ref().unwrap().is_tuple() && !(expr.kind.is_all());
@@ -455,18 +456,10 @@ impl Resolver<'_> {
     }
 }
 
-fn range_is_empty(range: &Range) -> bool {
-    fn as_int(bound: &Option<Box<Expr>>) -> Option<i64> {
-        bound
-            .as_ref()
-            .and_then(|s| s.kind.as_literal())
-            .and_then(|l| l.as_integer().cloned())
-    }
-
-    if let Some((s, e)) = as_int(&range.start).zip(as_int(&range.end)) {
-        s >= e
-    } else {
-        false
+fn range_is_empty(range: &(Option<i64>, Option<i64>)) -> bool {
+    match (&range.0, &range.1) {
+        (Some(s), Some(e)) => s >= e,
+        _ => false,
     }
 }
 
@@ -474,6 +467,19 @@ fn range_from_ints(start: Option<i64>, end: Option<i64>) -> Range {
     let start = start.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
     let end = end.map(|x| Box::new(Expr::new(ExprKind::Literal(Literal::Integer(x)))));
     Range { start, end }
+}
+
+fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)> {
+    fn into_int(bound: Expr) -> Result<Option<i64>> {
+        match bound.kind {
+            ExprKind::Literal(Literal::Null) => Ok(None),
+            ExprKind::Literal(Literal::Integer(i)) => Ok(Some(i)),
+            _ => Err(Error::new_simple("expected an int literal")
+                .with_span(bound.span)
+                .into()),
+        }
+    }
+    Ok((into_int(range.0)?, into_int(range.1)?))
 }
 
 /// Simulate evaluation of the inner pipeline of group or window
@@ -823,10 +829,10 @@ impl LineageInput {
     }
 }
 
-// Expects closure's args to be resolved.
-// Note that named args are before positional args, in order of declaration.
-fn unpack<const P: usize>(closure: Func) -> [Expr; P] {
-    closure.args.try_into().expect("bad transform cast")
+/// Expects closure's args to be resolved.
+/// Note that named args are before positional args, in order of declaration.
+fn unpack<const P: usize>(func_args: Vec<Expr>) -> [Expr; P] {
+    func_args.try_into().expect("bad special function cast")
 }
 
 mod from_text {

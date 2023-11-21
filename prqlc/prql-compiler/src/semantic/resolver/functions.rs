@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use prqlc_ast::{Ty, TyFunc};
 
-use crate::semantic::resolver::{transforms, types};
+use crate::semantic::resolver::types;
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};
 
@@ -89,7 +89,7 @@ impl Resolver<'_> {
                     })
                 }
             } else {
-                let expr = transforms::resolve_special_func(self, closure)?;
+                let expr = self.resolve_special_func(closure)?;
                 self.fold_expr(expr)?
             }
         } else {
