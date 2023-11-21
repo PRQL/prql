@@ -247,6 +247,18 @@ tasks:
         cargo build --all-targets -p {{ . }}
         {{ end -}}
 
+  test-rust-api:
+    summary: |
+      Run tests, excluding some internal crates
+    vars:
+      PACKAGES:
+        sh:
+          cargo metadata --format-version=1 | jq -r '.workspace_members[] |
+          split(" ")[0]'
+    cmds:
+      - |
+        cargo test {{ range without (splitLines .PACKAGES) "prqlc-ast" "prqlc-parser" }} -p={{ . }} {{ end }}
+
   test-all:
     desc: Test everything, accepting snapshots.
     summary: |
