@@ -19,10 +19,12 @@ icon: web/website/static/img/icon.svg
 parts:
   rust-deps:
     plugin: nil
-    override-pull: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.69.0
+    override-pull:
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      --profile minimal --default-toolchain 1.69.0
   prqlc:
     plugin: rust
-    after: [ rust-deps ]
+    after: [rust-deps]
     source: .
     build-packages: [cargo]
     rust-path: [prqlc/prqlc]
