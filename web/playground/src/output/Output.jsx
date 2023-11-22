@@ -29,8 +29,8 @@ class Output extends React.Component {
     return (
       <div className="tab">
         <div className="tab-top">
-          <Tab text="Compiled SQL" name="sql" parent={this.props} />
-          <Tab text="Query Results" name="arrow" parent={this.props} />
+          <Tab text="Compiled&nbsp;SQL" name="sql" parent={this.props} />
+          <Tab text="Query&nbsp;Results" name="arrow" parent={this.props} />
           <Tab text="PL.yaml" name="pl" parent={this.props} />
           <Tab text="RQ.yaml" name="rq" parent={this.props} />
 

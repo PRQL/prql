@@ -64,6 +64,7 @@
 
   max-height: 50%;
   overflow-y: auto;
+  flex-shrink: 0;
 
   font-family: monospace;
   white-space: pre-wrap;

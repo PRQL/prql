@@ -86,7 +86,7 @@ class Workbench extends React.Component {
       this.monaco.editor.setModelMarkers(
         this.editor.getModel(),
         "prql",
-        monacoErrors,
+        monacoErrors
       );
       return;
     }
@@ -190,6 +190,7 @@ class Workbench extends React.Component {
           ></Output>
         </div>
 
+        {/* Display an error message relevant to the tab */}
         {this.state.prqlError && (
           <div className="error-pane">{this.state.prqlError}</div>
         )}
