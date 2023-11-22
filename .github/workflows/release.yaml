@@ -200,7 +200,7 @@ jobs:
 
   build-and-publish-snap:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'release' }}
+    #if: ${{ github.event_name == 'release' }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
