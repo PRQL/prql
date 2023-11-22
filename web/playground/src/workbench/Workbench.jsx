@@ -86,7 +86,7 @@ class Workbench extends React.Component {
       this.monaco.editor.setModelMarkers(
         this.editor.getModel(),
         "prql",
-        monacoErrors
+        monacoErrors,
       );
       return;
     }
