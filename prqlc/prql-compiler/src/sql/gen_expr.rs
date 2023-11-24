@@ -754,8 +754,7 @@ fn needs_parentheses(
     parent_strength: i32,
     parent_associativity: Associativity,
 ) -> bool {
-    let rule_3a = dbg!(matches!(parent_associativity, Associativity::Both));
-    // let rule_3b_left = dbg!(is_left && dbg!(expr.left_associative()));
+    let rule_3a = matches!(parent_associativity, Associativity::Both);
     let rule_3b_left = is_left && parent_associativity.left_associative();
     let rule_3b_right = !is_left && parent_associativity.right_associative();
 
