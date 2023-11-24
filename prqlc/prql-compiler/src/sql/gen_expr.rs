@@ -713,7 +713,6 @@ pub(super) fn translate_operand(
     context: &mut Context,
 ) -> Result<ExprOrSource> {
     let expr = translate_expr(expr, context)?;
-    dbg!(&expr);
 
     if needs_parentheses(&expr, is_left, parent_strength, parent_associativity) {
         Ok(expr.wrap_in_parenthesis())
