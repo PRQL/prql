@@ -4,6 +4,7 @@
 // - A few small TODOs included below
 
 @precedence {
+  prefix,
   times @left,
   plus @left,
   compare @left,
@@ -45,6 +46,7 @@ CaseExpression { @specialize<identPart, "case"> TupleExpression }
 NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 
 commaSep<expr> { newline* expr ("," newline* expr newline*)* ","? }
+ArithOp<expr> { expr }
 LogicOp<expr> { expr }
 
 // The name "test" here means equality testing. It is name used in the Python grammar.
@@ -64,6 +66,7 @@ expression[@isGroup=Expression] {
   kw<"this"> | kw<"that"> |
   kw<"null"> |
   BinaryExpression |
+  UnaryExpression |
   ArrayExpression |
   TupleExpression |
   NestedPipeline |
@@ -82,9 +85,11 @@ boolean { @specialize[@name=Boolean]<identPart, "true" | "false"> }
 ArrayExpression { "[" commaSep<test | "*" expression>? "]" }
 
 BinaryExpression {
-  expression !plus ArithOp { "+" | "-" } expression |
-  expression !times ArithOp { "*" | "/" | "%" | "//" } expression
+  expression !plus ArithOp<"+" | "-"> expression |
+  expression !times ArithOp<"*" | "/" | "%" | "//"> expression
 }
+
+UnaryExpression { !prefix ArithOp<"+" | "-"> expression }
 
 // Because this is outside tokens, we can't disallow whitespace.
 // It's outside tokens because otherwise it conflicts with Identifier
