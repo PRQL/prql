@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::Literal;
 use prqlc_ast::expr::Ident;
+use prqlc_ast::Literal;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};

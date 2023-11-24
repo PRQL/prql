@@ -168,6 +168,12 @@ impl Resolver<'_> {
             return Ok(());
         }
 
+        // A temporary hack for allowing calling window functions from within
+        // aggregate and derive.
+        if expected.kind.is_array() && !found.is_function() {
+            return Ok(());
+        }
+
         // if type is a generic, infer the constraint
         // TODO
         if false {

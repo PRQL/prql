@@ -643,26 +643,9 @@ impl Lowerer {
         let mut r = Vec::new();
 
         match exprs.kind {
-            pl::ExprKind::All { except, .. } => {
+            pl::ExprKind::All { .. } => {
                 // special case: ExprKind::All
-                let mut selected = Vec::<CId>::new();
-                for target_id in exprs.target_ids {
-                    match &self.node_mapping[&target_id] {
-                        LoweredTarget::Compute(cid) => {
-                            selected.push(*cid);
-                        }
-                        LoweredTarget::Input(input) => {
-                            let mut cols = input.iter().collect_vec();
-                            cols.sort_by_key(|c| c.1 .1);
-                            selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
-                        }
-                    }
-                }
-
-                let except = self.find_except_ids(*except)?;
-                selected.retain(|c| !except.contains(c));
-
-                r.extend(selected);
+                r.extend(self.find_selected_all(exprs)?);
             }
             pl::ExprKind::Tuple(fields) => {
                 // tuple unpacking
@@ -678,19 +661,59 @@ impl Lowerer {
         Ok(r)
     }
 
-    fn find_except_ids(&mut self, except: pl::Expr) -> Result<HashSet<CId>> {
-        match except.kind {
-            pl::ExprKind::Tuple(fields) => fields
-                .into_iter()
-                .filter(|e| e.target_id.is_some())
-                .map(|e| -> Result<_> {
-                    let id = e.target_id.unwrap();
-                    let ident = e.try_cast(|x| x.into_ident(), None, "an identifier")?;
-                    self.lookup_cid(id, Some(&ident.name))
-                })
-                .try_collect(),
-            _ => Ok(HashSet::new()),
+    fn find_selected_all(&mut self, expr: pl::Expr) -> Result<Vec<CId>> {
+        let pl::ExprKind::All { except, .. } = expr.kind else {
+            unreachable!()
+        };
+
+        let mut selected = Vec::<CId>::new();
+        for target_id in &expr.target_ids {
+            match self.node_mapping.get(target_id) {
+                Some(LoweredTarget::Compute(cid)) => selected.push(*cid),
+                Some(LoweredTarget::Input(input_columns)) => {
+                    let mut cols = input_columns.iter().collect_vec();
+                    cols.sort_by_key(|c| c.1 .1);
+                    selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
+                }
+                _ => {}
+            }
         }
+        let except: HashSet<_> = self.find_except_ids(*except)?;
+        selected.retain(|t| !except.contains(t));
+        Ok(selected)
+    }
+
+    fn find_except_ids(&mut self, except: pl::Expr) -> Result<HashSet<CId>> {
+        let pl::ExprKind::Tuple(fields) = except.kind else {
+            return Ok(HashSet::new());
+        };
+
+        let mut res = HashSet::new();
+        for e in fields {
+            if e.target_id.is_none() {
+                continue;
+            }
+
+            let id = e.target_id.unwrap();
+            match e.kind {
+                pl::ExprKind::Ident(ident) => {
+                    res.insert(
+                        self.lookup_cid(id, Some(&ident.name))
+                            .with_span(except.span)?,
+                    );
+                }
+                pl::ExprKind::All { .. } => res.extend(self.find_selected_all(e)?),
+                _ => {
+                    return Err(Error::new(Reason::Expected {
+                        who: None,
+                        expected: "an identifier".to_string(),
+                        found: write_pl(e),
+                    })
+                    .into());
+                }
+            }
+        }
+        Ok(res)
     }
 
     fn declare_as_column(
@@ -749,6 +772,8 @@ impl Lowerer {
     }
 
     fn lower_expr(&mut self, expr: pl::Expr) -> Result<rq::Expr> {
+        let span = expr.span;
+
         if expr.needs_window {
             let span = expr.span;
             let cid = self.declare_as_column(expr, false)?;
@@ -762,7 +787,7 @@ impl Lowerer {
                 log::debug!("lowering ident {ident} (target {:?})", expr.target_id);
 
                 if let Some(id) = expr.target_id {
-                    let cid = self.lookup_cid(id, Some(&ident.name))?;
+                    let cid = self.lookup_cid(id, Some(&ident.name)).with_span(span)?;
 
                     rq::ExprKind::ColumnRef(cid)
                 } else {
@@ -771,28 +796,15 @@ impl Lowerer {
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            pl::ExprKind::All { except, .. } => {
-                let mut targets = Vec::new();
+            pl::ExprKind::All { .. } => {
+                let selected = self.find_selected_all(expr)?;
 
-                for target_id in &expr.target_ids {
-                    match self.node_mapping.get(target_id) {
-                        Some(LoweredTarget::Compute(cid)) => targets.push(*cid),
-                        Some(LoweredTarget::Input(input_columns)) => {
-                            targets.extend(input_columns.values().map(|(c, _)| c))
-                        }
-                        _ => {}
-                    }
-                }
-
-                let except: HashSet<_> = self.find_except_ids(*except)?;
-                targets.retain(|t| !except.contains(t));
-
-                if targets.len() == 1 {
-                    rq::ExprKind::ColumnRef(targets[0])
+                if selected.len() == 1 {
+                    rq::ExprKind::ColumnRef(selected[0])
                 } else {
                     return Err(
                         Error::new_simple("This wildcard usage is not yet supported.")
-                            .with_span(expr.span)
+                            .with_span(span)
                             .into(),
                     );
                 }
@@ -852,10 +864,7 @@ impl Lowerer {
             }
         };
 
-        Ok(rq::Expr {
-            kind,
-            span: expr.span,
-        })
+        Ok(rq::Expr { kind, span })
     }
 
     fn lower_interpolations(
@@ -880,6 +889,14 @@ impl Lowerer {
         let cid = match self.node_mapping.get(&id) {
             Some(LoweredTarget::Compute(cid)) => *cid,
             Some(LoweredTarget::Input(input_columns)) => {
+                if name.map_or(false, |x| x == "_self") {
+                    return Err(
+                        Error::new_simple("table instance cannot be referenced directly")
+                            .push_hint("did you forget to specify the column name?")
+                            .into(),
+                    );
+                }
+
                 let name = match name {
                     Some(v) => RelationColumn::Single(Some(v.clone())),
                     None => return Err(Error::new_simple(

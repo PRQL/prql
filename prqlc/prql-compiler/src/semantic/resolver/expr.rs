@@ -262,9 +262,6 @@ impl PlFold for Resolver<'_> {
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
                 r.lineage = Some(call.infer_lineage(self.root_mod)?);
-
-                // a sanity check that inferred lineage matches inferred types
-                assert_lineage_and_ty(&r);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -286,47 +283,6 @@ impl PlFold for Resolver<'_> {
             }
         }
         Ok(r)
-    }
-}
-
-fn assert_lineage_and_ty(r: &Expr) {
-    let lineage = r.lineage.as_ref().unwrap();
-    let ty = r.ty.as_ref().unwrap().as_relation().unwrap();
-
-    let ty_fields_flattened = ty
-        .iter()
-        .flat_map(|x| match x {
-            TupleField::Single(name, ty) => match ty.as_ref().and_then(|x| x.kind.as_tuple()) {
-                Some(fields) => fields
-                    .iter()
-                    .map(|f| match f {
-                        TupleField::Single(Some(inner), _) => {
-                            let mut ident = vec![inner.clone()];
-                            ident.extend(name.clone());
-                            Some(Ident::from_path(ident))
-                        }
-                        _ => None,
-                    })
-                    .collect_vec(),
-                None => vec![name.clone().map(Ident::from_name)],
-            },
-            TupleField::Wildcard(_) => vec![None],
-        })
-        .collect::<Vec<Option<Ident>>>();
-
-    assert_eq!(
-        lineage.columns.len(),
-        ty_fields_flattened.len(),
-        "lineage and ty columns mismatch, expr={r:#?}"
-    );
-
-    for (lin_col, ty_field) in std::iter::zip(&lineage.columns, ty_fields_flattened) {
-        match lin_col {
-            LineageColumn::Single { name: lin_name, .. } => {
-                assert_eq!(lin_name.clone().map(|x| x.name), ty_field.map(|x| x.name));
-            }
-            LineageColumn::All { .. } => {}
-        };
     }
 }
 

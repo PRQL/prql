@@ -196,7 +196,7 @@ impl Module {
         res
     }
 
-    pub(super) fn insert_frame(&mut self, lineage: &Lineage, namespace: &str, columnar: bool) {
+    pub(super) fn insert_frame(&mut self, lineage: &Lineage, namespace: &str) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
@@ -230,14 +230,7 @@ impl Module {
                             .and_then(|(_, ty)| ty)
                             .or(Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(
                                 None,
-                            )]))))
-                            .map(|ty| {
-                                if columnar {
-                                    Ty::new(TyKind::Array(Box::new(ty)))
-                                } else {
-                                    ty
-                                }
-                            });
+                            )]))));
 
                         let self_decl = Decl {
                             declared_at: Some(input.id),
@@ -293,11 +286,6 @@ impl Module {
         }
 
         // insert namespace._self with correct type
-        let lin_ty = if columnar {
-            Ty::new(TyKind::Array(Box::new(lin_ty)))
-        } else {
-            lin_ty
-        };
         namespace.names.insert(
             NS_SELF.to_string(),
             Decl::from(DeclKind::InstanceOf(Ident::from_name(""), Some(lin_ty))),

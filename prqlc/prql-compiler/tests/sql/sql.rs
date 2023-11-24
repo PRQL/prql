@@ -1116,7 +1116,7 @@ fn test_window_functions_11() {
     assert_display_snapshot!((compile(r###"
     from employees
     sort age
-    derive {num = row_number this})
+    derive {num = row_number this}
     "###).unwrap()), @r###"
     SELECT
       *,
