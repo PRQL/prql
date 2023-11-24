@@ -61,3 +61,11 @@ filter foo ?? bar
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,LogicOp,Identifier)))))
+
+# Unary operator
+
+sort { -name }
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(UnaryExpression(ArithOp,Identifier))))))
