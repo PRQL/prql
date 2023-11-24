@@ -10,6 +10,8 @@
 
 **Fixes**:
 
+- Fix an issue with arithmetic precedence (@max-sixty, #3846)
+
 **Documentation**:
 
 **Web**:

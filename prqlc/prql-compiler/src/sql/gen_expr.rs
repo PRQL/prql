@@ -724,20 +724,19 @@ pub(super) fn translate_operand(
 /// For an operation represented as `a child b` with a surrounding parent
 /// operation (e.g., `(a child b) parent c` or `a parent (b child c)`):
 ///
-/// 1. When the child operator has higher precedence than the parent:
-///    - Parentheses are not required.
+/// 1. When the child operator has higher precedence than the parent,
+///    parentheses *are not* required.
 ///
-/// 2. When the child operator has lower precedence than the parent:
-///    - Parentheses are required.
+/// 2. When the child operator has lower precedence than the parent,
+///    parentheses *are* required.
 ///
-/// 3. When the child and parent operators have the same precedence, parentheses
-///    are not required if:
-///
-///    a. The parent is "Both" associative — e.g. `a + (b - c)`, but not `a - (b
-///    - c)`,
-///
-///    b. or the child is on the (left,right) and the child is (left,right)
-///    associative — e.g. `(a - b) - c` — but not `a - (b - c)`
+/// 3. When the child and parent operators have the same precedence, the child
+///    is on the {left,right} and the parent is {left,right} associative,
+///    parentheses are not required. Some examples of when parentheses are not required:
+///    - `(a - b) - c` & `(a + b) - c` — as opposed to `a - (b - c)`
+///    - `a + (b - c)` & `a + (b + c)` — as opposed to `a - (b + c)` & `a - (b - c)`
+///         
+///       
 //
 // If it were possible to evaluate this with less context that would be
 // preferable, but it's not clear how to do that. (For example, even if we
@@ -755,8 +754,8 @@ fn needs_parentheses(
     parent_associativity: Associativity,
 ) -> bool {
     let rule_3a = matches!(parent_associativity, Associativity::Both);
-    let rule_3b_left = is_left && expr.left_associative();
-    let rule_3b_right = !is_left && expr.right_associative();
+    let rule_3b_left = is_left && parent_associativity.left_associative();
+    let rule_3b_right = !is_left && parent_associativity.right_associative();
 
     match expr.binding_strength().cmp(&parent_strength) {
         // Rule 1
@@ -772,6 +771,7 @@ fn needs_parentheses(
 /// Note that there's no exponent symbol in SQL, so we don't seem to require a `Right` variant.
 /// https://en.wikipedia.org/wiki/Operator_associativity
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Associativity {
     Left,
     /// `Both` means mathematically associative, like `+` or `*`
@@ -779,30 +779,37 @@ pub enum Associativity {
     Right,
 }
 
+impl Associativity {
+    /// Returns true iff `a + b + c = (a + b) + c`
+    fn left_associative(&self) -> bool {
+        matches!(self, Associativity::Left | Associativity::Both)
+    }
+
+    /// Returns true iff `a + b + c = a + (b + c)`
+    fn right_associative(&self) -> bool {
+        matches!(self, Associativity::Right | Associativity::Both)
+    }
+}
+
 trait SQLExpression {
-    /// Returns binding strength of an SQL expression
+    /// Returns binding strength of a SQL expression
     /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
 
+    /// Default to `Both`, but expected to be overwritten by concrete types
     fn associativity(&self) -> Associativity {
         Associativity::Both
     }
 
     /// Returns true iff `a + b + c = (a + b) + c`
     fn left_associative(&self) -> bool {
-        matches!(
-            self.associativity(),
-            Associativity::Left | Associativity::Both
-        )
+        self.associativity().left_associative()
     }
 
     /// Returns true iff `a + b + c = a + (b + c)`
     fn right_associative(&self) -> bool {
-        matches!(
-            self.associativity(),
-            Associativity::Right | Associativity::Both
-        )
+        self.associativity().right_associative()
     }
 }
 

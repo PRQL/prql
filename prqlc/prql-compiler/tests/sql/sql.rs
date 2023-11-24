@@ -52,6 +52,23 @@ fn json_of_test() {
 #[test]
 fn test_precedence() {
     assert_display_snapshot!((compile(r###"
+    from artists
+    derive {
+      p1 = a - (b + c), # needs parentheses
+      np1 = a + (b - c), # no parentheses
+      np2 = (a + b) - c, # no parentheses
+    }
+    "###).unwrap()), @r###"
+    SELECT
+      *,
+      a - (b + c) AS p1,
+      a + b - c AS np1,
+      a + b - c AS np2
+    FROM
+      artists
+    "###);
+
+    assert_display_snapshot!((compile(r###"
     from x
     derive {
       temp_c = (temp_f - 32) / 1.8,
@@ -135,12 +152,12 @@ fn test_precedence() {
     "###
     ).unwrap(), @r###"
     SELECT
-      c - a + b,
+      c - (a + b),
       c + a - b,
       c + a - b,
       c + a + b,
       c + a - b,
-      c - d - a - b,
+      c - d - (a - b),
       c + d + a - b,
       a / b * c,
       y - z AS x,
