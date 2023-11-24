@@ -1116,7 +1116,7 @@ fn test_window_functions_11() {
     assert_display_snapshot!((compile(r###"
     from employees
     sort age
-    derive {num = row_number this}
+    derive {num = row_number this})
     "###).unwrap()), @r###"
     SELECT
       *,
@@ -1497,7 +1497,7 @@ fn test_take() {
 }
 
 #[test]
-fn test_distinct() {
+fn test_distinct_01() {
     // window functions cannot materialize into where statement: CTE is needed
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1518,7 +1518,10 @@ fn test_distinct() {
     WHERE
       rn > 2
     "###);
+}
 
+#[test]
+fn test_distinct_02() {
     // basic distinct
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1530,7 +1533,10 @@ fn test_distinct() {
     FROM
       employees
     "###);
+}
 
+#[test]
+fn test_distinct_03() {
     // distinct on two columns
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1543,7 +1549,9 @@ fn test_distinct() {
     FROM
       employees
     "###);
-
+}
+#[test]
+fn test_distinct_04() {
     // We want distinct only over first_name and last_name, so we can't use a
     // `DISTINCT *` here.
     assert_display_snapshot!((compile(r###"
@@ -1564,14 +1572,18 @@ fn test_distinct() {
     WHERE
       _expr_0 <= 1
     "###);
-
+}
+#[test]
+fn test_distinct_05() {
     // Check that a different order doesn't stop distinct from being used.
     assert!(compile(
         "from employees | select {first_name, last_name} | group {last_name, first_name} (take 1)"
     )
     .unwrap()
     .contains("DISTINCT"));
-
+}
+#[test]
+fn test_distinct_06() {
     // head
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1591,7 +1603,9 @@ fn test_distinct() {
     WHERE
       _expr_0 <= 3
     "###);
-
+}
+#[test]
+fn test_distinct_07() {
     assert_display_snapshot!((compile(r###"
     from employees
     group department (sort salary | take 2..3)
@@ -1614,7 +1628,9 @@ fn test_distinct() {
     WHERE
       _expr_0 BETWEEN 2 AND 3
     "###);
-
+}
+#[test]
+fn test_distinct_08() {
     assert_display_snapshot!((compile(r###"
     from employees
     group department (sort salary | take 4..4)
@@ -1637,7 +1653,10 @@ fn test_distinct() {
     WHERE
       _expr_0 = 4
     "###);
+}
 
+#[test]
+fn test_distinct_09() {
     assert_display_snapshot!(compile("
     from invoices
     select {billing_country, billing_city}
@@ -3243,7 +3262,7 @@ fn test_basic_agg() {
 }
 
 #[test]
-fn test_exclude_columns() {
+fn test_exclude_columns_01() {
     assert_display_snapshot!(compile(r#"
     from tracks
     select {track_id, title, composer, bytes}
@@ -3257,7 +3276,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_02() {
     assert_display_snapshot!(compile(r#"
     from tracks
     select {track_id, title, composer, bytes}
@@ -3275,7 +3297,10 @@ fn test_exclude_columns() {
       bytes
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_03() {
     assert_display_snapshot!(compile(r#"
     from artists
     derive nick = name
@@ -3288,7 +3313,10 @@ fn test_exclude_columns() {
       artists
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_04() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.bigquery
     from tracks
@@ -3303,7 +3331,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_05() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.snowflake
     from tracks
@@ -3316,7 +3347,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_06() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.duckdb
     from tracks
@@ -3329,7 +3363,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_07() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.duckdb
     from s"SELECT * FROM foo"

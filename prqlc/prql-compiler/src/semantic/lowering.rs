@@ -659,14 +659,7 @@ impl Lowerer {
                     }
                 }
 
-                let except: HashSet<CId> = except
-                    .into_iter()
-                    .filter(|e| e.target_id.is_some())
-                    .map(|e| {
-                        let id = e.target_id.unwrap();
-                        self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
-                    })
-                    .try_collect()?;
+                let except = self.find_except_ids(*except)?;
                 selected.retain(|c| !except.contains(c));
 
                 r.extend(selected);
@@ -683,6 +676,21 @@ impl Lowerer {
             }
         }
         Ok(r)
+    }
+
+    fn find_except_ids(&mut self, except: pl::Expr) -> Result<HashSet<CId>> {
+        match except.kind {
+            pl::ExprKind::Tuple(fields) => fields
+                .into_iter()
+                .filter(|e| e.target_id.is_some())
+                .map(|e| -> Result<_> {
+                    let id = e.target_id.unwrap();
+                    let ident = e.try_cast(|x| x.into_ident(), None, "an identifier")?;
+                    self.lookup_cid(id, Some(&ident.name))
+                })
+                .try_collect(),
+            _ => Ok(HashSet::new()),
+        }
     }
 
     fn declare_as_column(
@@ -776,16 +784,7 @@ impl Lowerer {
                     }
                 }
 
-                // this is terrible code
-                let except: HashSet<_> = except
-                    .iter()
-                    .map(|e| {
-                        let ident = e.kind.as_ident().unwrap();
-                        self.lookup_cid(e.target_id.unwrap(), Some(&ident.name))
-                            .unwrap()
-                    })
-                    .collect();
-
+                let except: HashSet<_> = self.find_except_ids(*except)?;
                 targets.retain(|t| !except.contains(t));
 
                 if targets.len() == 1 {

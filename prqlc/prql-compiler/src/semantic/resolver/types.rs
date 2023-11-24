@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::iter::zip;
 
 use anyhow::Result;
@@ -14,7 +15,7 @@ use crate::{Error, Reason, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn infer_type(&mut self, expr: &Expr) -> Result<Option<Ty>> {
+    pub fn infer_type(expr: &Expr) -> Result<Option<Ty>> {
         if let Some(ty) = &expr.ty {
             return Ok(Some(ty.clone()));
         }
@@ -43,7 +44,7 @@ impl Resolver<'_> {
                 let has_other = false;
 
                 for field in fields {
-                    let ty = self.infer_type(field)?;
+                    let ty = Resolver::infer_type(field)?;
 
                     if field.flatten {
                         if let Some(fields) = ty.as_ref().and_then(|x| x.kind.as_tuple()) {
@@ -59,28 +60,18 @@ impl Resolver<'_> {
                         .clone()
                         .or_else(|| field.kind.as_ident().map(|i| i.name.clone()));
 
-                    // remove names from previous fields with the same name
-                    if name.is_some() {
-                        for f in ty_fields.iter_mut() {
-                            if f.as_single().and_then(|x| x.0.as_ref()) == name.as_ref() {
-                                *f.as_single_mut().unwrap().0 = None;
-                            }
-                        }
-                    }
-
                     ty_fields.push(TupleField::Single(name, ty));
                 }
 
                 if has_other {
                     ty_fields.push(TupleField::Wildcard(None));
                 }
-
-                TyKind::Tuple(ty_fields)
+                ty_tuple_kind(ty_fields)
             }
             ExprKind::Array(items) => {
                 let mut intersection = None;
                 for item in items {
-                    let item_ty = self.infer_type(item)?;
+                    let item_ty = Resolver::infer_type(item)?;
 
                     if let Some(item_ty) = item_ty {
                         if let Some(intersection) = &intersection {
@@ -101,7 +92,10 @@ impl Resolver<'_> {
             }
 
             ExprKind::All { within, except } => {
-                todo!()
+                let within_ty = Resolver::infer_type(within)?.unwrap();
+                let except_ty = Resolver::infer_type(except)?.unwrap();
+
+                type_difference(within_ty, &except_ty).kind
             }
 
             _ => return Ok(None),
@@ -221,6 +215,90 @@ impl Resolver<'_> {
             }
         }
     }
+}
+
+pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
+    let mut res: Vec<TupleField> = Vec::with_capacity(fields.len());
+    for field in fields {
+        if let TupleField::Single(name, _) = &field {
+            // remove names from previous fields with the same name
+            if name.is_some() {
+                for f in res.iter_mut() {
+                    if f.as_single().and_then(|x| x.0.as_ref()) == name.as_ref() {
+                        *f.as_single_mut().unwrap().0 = None;
+                    }
+                }
+            }
+        }
+        res.push(field);
+    }
+    TyKind::Tuple(res)
+}
+
+fn type_difference(left: Ty, right: &Ty) -> Ty {
+    let kind = match left.kind {
+        TyKind::Union(variants) => TyKind::Union(
+            variants
+                .into_iter()
+                .map(|(name, ty)| {
+                    let ty = type_difference(ty, right);
+                    (name, ty)
+                })
+                .collect(),
+        ),
+        TyKind::Tuple(fields) => {
+            let TyKind::Tuple(right_fields) = &right.kind else {
+                return Ty {
+                    kind: TyKind::Tuple(fields),
+                    ..left
+                };
+            };
+            let right_fields: HashMap<&String, &Option<Ty>> = right_fields
+                .iter()
+                .flat_map(|field| match field {
+                    TupleField::Single(Some(name), ty) => Some((name, ty)),
+                    _ => None,
+                })
+                .collect();
+
+            let mut res = Vec::new();
+            for field in fields {
+                match field {
+                    TupleField::Single(Some(name), Some(ty)) => {
+                        if let Some(right_field) = right_fields.get(&name) {
+                            let right_tuple =
+                                right_field.as_ref().map_or(false, |x| x.kind.is_tuple());
+
+                            if right_tuple {
+                                // recursively erase selection
+                                let ty = type_difference(ty, right_field.as_ref().unwrap());
+                                res.push(TupleField::Single(Some(name), Some(ty)))
+                            } else {
+                                // erase completely
+                            }
+                        } else {
+                            res.push(TupleField::Single(Some(name), Some(ty)))
+                        }
+                    }
+                    TupleField::Single(Some(name), None) => {
+                        if right_fields.get(&name).is_some() {
+                            // TODO: I'm not sure what should happen in this case
+                            continue;
+                        } else {
+                            res.push(TupleField::Single(Some(name), None))
+                        }
+                    }
+                    TupleField::Single(None, ty) => {
+                        res.push(TupleField::Single(None, ty));
+                    }
+                    TupleField::Wildcard(_) => res.push(field),
+                }
+            }
+            TyKind::Tuple(res)
+        }
+        _ => return left,
+    };
+    Ty { kind, ..left }
 }
 
 fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {

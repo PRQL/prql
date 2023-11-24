@@ -17,7 +17,7 @@ use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
 use crate::{WithErrorInfo, COMPILER_VERSION};
 
-use super::types::type_intersection;
+use super::types::{ty_tuple_kind, type_intersection};
 use super::Resolver;
 
 impl Resolver<'_> {
@@ -138,12 +138,8 @@ impl Resolver<'_> {
                 // (when generics are a thing, this can be removed)
                 let partition = {
                     let partition = Expr::new(ExprKind::All {
-                        within: Ident::from_name(NS_THIS),
-                        except: by.clone().try_cast(
-                            |f| f.into_tuple(),
-                            Some("group"),
-                            "tuple literal",
-                        )?,
+                        within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+                        except: by.clone(),
                     });
                     // wrap into select, so the names are resolved correctly
                     let partition = FuncCall {
@@ -155,7 +151,6 @@ impl Resolver<'_> {
                     // fold, so lineage and types are inferred
                     self.fold_expr(partition)?
                 };
-
                 let pipeline = self.fold_by_simulating_eval(pipeline, &partition)?;
 
                 // unpack tbl back out
@@ -480,7 +475,7 @@ impl Resolver<'_> {
                 let derived = assigns.ty.clone().unwrap();
                 let derived = derived.kind.into_tuple().unwrap();
 
-                Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
                     [input, derived].concat(),
                 ))))))
             }
@@ -501,7 +496,7 @@ impl Resolver<'_> {
                 let with = with.kind.into_array().unwrap();
                 let with = TupleField::Single(with_name, Some(*with));
 
-                Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
                     [input, vec![with]].concat(),
                 ))))))
             }
@@ -513,7 +508,7 @@ impl Resolver<'_> {
                 let pipeline = pipeline.kind.into_function().unwrap().unwrap();
                 let pipeline = pipeline.return_ty.unwrap().into_relation().unwrap();
 
-                Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
                     [by, pipeline].concat(),
                 ))))))
             }
@@ -664,19 +659,6 @@ impl TransformCall {
                 let partition_lin = lineage_or_default(body).unwrap();
                 lineage.columns.extend(partition_lin.columns);
 
-                // prepend aggregate with `by` columns
-                if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
-                    if let TransformKind::Aggregate { .. } = kind.as_ref() {
-                        let aggregate_columns = lineage.columns;
-                        lineage.columns = Vec::new();
-
-                        log::debug!(".. group by {by:?}");
-                        lineage.apply_assigns(by, root_mod);
-
-                        lineage.columns.extend(aggregate_columns);
-                    }
-                }
-
                 log::debug!(".. type={lineage}");
                 lineage
             }
@@ -781,10 +763,20 @@ impl Lineage {
     pub fn apply_assign(&mut self, expr: &Expr, root_mod: &RootModule) {
         // spacial case: all except
         if let ExprKind::All { except, .. } = &expr.kind {
-            let except_exprs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_id.iter()).collect();
-            let except_inputs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_ids.iter()).collect();
+            let except_exprs: HashSet<&usize> = except
+                .kind
+                .as_tuple()
+                .iter()
+                .flat_map(|x| x.iter())
+                .flat_map(|e| e.target_id.iter())
+                .collect();
+            let except_inputs: HashSet<&usize> = except
+                .kind
+                .as_tuple()
+                .iter()
+                .flat_map(|x| x.iter())
+                .flat_map(|e| e.target_ids.iter())
+                .collect();
 
             for target_id in &expr.target_ids {
                 let target_input = self.inputs.iter().find(|i| i.id == *target_id);
@@ -878,7 +870,7 @@ impl Lineage {
 }
 
 impl LineageInput {
-    fn get_all_columns(&self, except: &[Expr], root_mod: &RootModule) -> Vec<LineageColumn> {
+    fn get_all_columns(&self, except: &Expr, root_mod: &RootModule) -> Vec<LineageColumn> {
         let rel_def = root_mod.module.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
@@ -897,7 +889,10 @@ impl LineageInput {
             let input_ident_fq = Ident::from_path(vec![NS_THIS, self.name.as_str()]);
 
             let except = except
+                .kind
+                .as_tuple()
                 .iter()
+                .flat_map(|x| x.iter())
                 .filter_map(|e| match &e.kind {
                     ExprKind::Ident(i) => Some(i),
                     _ => None,

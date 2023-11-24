@@ -193,6 +193,11 @@ impl Resolver<'_> {
 
         let func_name = &closure.name_hint;
 
+        // a hack, but a temporary one (obviously)
+        let columnar = func_name
+            .as_ref()
+            .map_or(false, |x| x.name == "aggregate" || x.name == "window");
+
         let (relations, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
             .enumerate()
             .partition(|(_, (param, _))| {
@@ -230,9 +235,9 @@ impl Resolver<'_> {
                 if partial_application_position.is_none() {
                     let frame = arg.lineage.as_ref().unwrap();
                     if is_last {
-                        self.root_mod.module.insert_frame(frame, NS_THIS);
+                        self.root_mod.module.insert_frame(frame, NS_THIS, columnar);
                     } else {
-                        self.root_mod.module.insert_frame(frame, NS_THAT);
+                        self.root_mod.module.insert_frame(frame, NS_THAT, columnar);
                     }
                 }
 

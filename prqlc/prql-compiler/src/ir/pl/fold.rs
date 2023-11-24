@@ -74,8 +74,8 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
     Ok(match expr_kind {
         Ident(ident) => Ident(ident),
         All { within, except } => All {
-            within,
-            except: fold.fold_exprs(except)?,
+            within: Box::new(fold.fold_expr(*within)?),
+            except: Box::new(fold.fold_expr(*except)?),
         },
         Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),

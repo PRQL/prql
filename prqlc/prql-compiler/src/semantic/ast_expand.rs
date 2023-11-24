@@ -326,7 +326,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         pl::ExprKind::Internal(v) => ExprKind::Internal(v),
 
         // TODO: these are not correct, they are producing invalid PRQL
-        pl::ExprKind::All { within, .. } => ExprKind::Ident(within),
+        pl::ExprKind::All { within, .. } => restrict_expr(*within).kind,
         pl::ExprKind::TransformCall(tc) => ExprKind::Ident(Ident::from_name(format!(
             "({} ...)",
             tc.kind.as_ref().as_ref()
@@ -459,7 +459,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             ty: table_decl.ty,
         }),
 
-        decl::DeclKind::InstanceOf(ident) => {
+        decl::DeclKind::InstanceOf(ident, _) => {
             new_internal_stmt(name, format!("instance_of.{ident}"))
         }
         decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),

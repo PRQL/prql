@@ -152,7 +152,7 @@ TransformCall:
       kind:
         Tuple:
           - Single:
-              - ~
+              - issued_at
               - kind:
                   Union:
                     - - ~
@@ -219,7 +219,7 @@ ty:
       kind:
         Tuple:
           - Single:
-              - ~
+              - issued_at
               - kind:
                   Union:
                     - - ~
@@ -308,7 +308,7 @@ lineage:
         target_name: ~
     - Single:
         name: ~
-        target_id: 99
+        target_id: 100
         target_name: ~
   inputs:
     - id: 85

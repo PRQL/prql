@@ -64,8 +64,8 @@ pub struct Expr {
 pub enum ExprKind {
     Ident(Ident),
     All {
-        within: Ident,
-        except: Vec<Expr>,
+        within: Box<Expr>,
+        except: Box<Expr>,
     },
     Literal(Literal),
 
