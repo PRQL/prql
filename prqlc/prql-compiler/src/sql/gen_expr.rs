@@ -781,10 +781,6 @@ pub enum Associativity {
 }
 
 impl Associativity {
-    fn associativity(&self) -> Associativity {
-        Associativity::Both
-    }
-
     /// Returns true iff `a + b + c = (a + b) + c`
     fn left_associative(&self) -> bool {
         matches!(self, Associativity::Left | Associativity::Both)
@@ -797,7 +793,7 @@ impl Associativity {
 }
 
 trait SQLExpression {
-    /// Returns binding strength of an SQL expression
+    /// Returns binding strength of a SQL expression
     /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
@@ -808,18 +804,12 @@ trait SQLExpression {
 
     /// Returns true iff `a + b + c = (a + b) + c`
     fn left_associative(&self) -> bool {
-        matches!(
-            self.associativity(),
-            Associativity::Left | Associativity::Both
-        )
+        self.associativity().left_associative()
     }
 
     /// Returns true iff `a + b + c = a + (b + c)`
     fn right_associative(&self) -> bool {
-        matches!(
-            self.associativity(),
-            Associativity::Right | Associativity::Both
-        )
+        self.associativity().right_associative()
     }
 }
 
