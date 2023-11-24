@@ -9,16 +9,16 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "typescript": "^5.3.2",
+    "vite": "^5.0.2"
   },
   "dependencies": {
-    "@codemirror/autocomplete": "^6.9.1",
+    "@codemirror/autocomplete": "^6.11.0",
     "@codemirror/commands": "^6.3.0",
-    "@codemirror/language": "^6.9.1",
+    "@codemirror/language": "^6.9.2",
     "@codemirror/lint": "^6.4.2",
     "@codemirror/search": "^6.5.4",
     "@codemirror/theme-one-dark": "^6.1.2",
-    "@codemirror/view": "^6.21.2"
+    "@codemirror/view": "^6.22.0"
   }
 }
