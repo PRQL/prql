@@ -798,7 +798,7 @@ trait SQLExpression {
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
 
-    /// Default to `Both`, but expected to be ovewritten by concrete types
+    /// Default to `Both`, but expected to be overwritten by concrete types
     fn associativity(&self) -> Associativity {
         Associativity::Both
     }
