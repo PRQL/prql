@@ -593,10 +593,6 @@ impl Resolver<'_> {
         // now, we need wrap the result into a closure and replace
         // the dummy node with closure's parameter.
 
-        // extract reference to the dummy node
-        // let mut tbl_node = extract_ref_to_first(&mut pipeline);
-        // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
-
         // validate that the return type is a relation
         // this can be removed after we have proper type checking for all std functions
         let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
