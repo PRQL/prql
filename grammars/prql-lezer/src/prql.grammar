@@ -28,7 +28,7 @@ pipe { "|" | ~ambigNewline newline }
 
 TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newline* "}" }
 
-tupleItem { AssignCall | expression | CallExpression | CaseBranch }
+tupleItem { Property | expression | CallExpression | CaseBranch }
 
 // Ideally we would force a space after `Identifier` to prevent an invalid s-string
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
@@ -38,7 +38,7 @@ CallExpression { Identifier ArgList { (NamedArg | Assign | test)+ } }
 
 NamedArg { identPart ":" expression }
 Assign { identPart "=" expression }
-AssignCall { identPart "=" expression }
+Property { PropertyName { identPart } "=" expression }
 CaseBranch { expression "=>" expression }
 // Possibly we could only accept case branches inside the TupleExpression?
 CaseExpression { @specialize<identPart, "case"> TupleExpression }

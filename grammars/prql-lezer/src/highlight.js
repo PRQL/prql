@@ -12,6 +12,7 @@ export const prqlHighlight = styleTags({
   Boolean: t.bool,
   Integer: t.integer,
   Float: t.float,
+  PropertyName: t.propertyName,
   TypeTerm: t.typeName,
   Escape: t.escape,
   String: t.string,

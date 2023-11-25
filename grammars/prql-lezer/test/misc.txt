@@ -121,7 +121,7 @@ derive {
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(AssignCall(Equals,Float),AssignCall(Equals,BinaryExpression(Identifier,ArithOp,Identifier)))))))
+Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(Property(PropertyName,Equals,Float),Property(PropertyName,Equals,BinaryExpression(Identifier,ArithOp,Identifier)))))))
 
 # Nested pipeline
 
