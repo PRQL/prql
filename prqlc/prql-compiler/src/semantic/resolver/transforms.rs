@@ -6,16 +6,18 @@ use serde::Deserialize;
 use std::iter::zip;
 
 use prqlc_ast::error::{Error, Reason};
-use prqlc_ast::TupleField;
+use prqlc_ast::{TupleField, Ty, TyKind};
 
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
+use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
 use crate::{WithErrorInfo, COMPILER_VERSION};
 
+use super::types::{ty_tuple_kind, type_intersection};
 use super::Resolver;
 
 impl Resolver<'_> {
@@ -136,12 +138,8 @@ impl Resolver<'_> {
                 // (when generics are a thing, this can be removed)
                 let partition = {
                     let partition = Expr::new(ExprKind::All {
-                        within: Ident::from_name(NS_THIS),
-                        except: by.clone().try_cast(
-                            |f| f.into_tuple(),
-                            Some("group"),
-                            "tuple literal",
-                        )?,
+                        within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+                        except: by.clone(),
                     });
                     // wrap into select, so the names are resolved correctly
                     let partition = FuncCall {
@@ -153,9 +151,7 @@ impl Resolver<'_> {
                     // fold, so lineage and types are inferred
                     self.fold_expr(partition)?
                 };
-
-                let pipeline =
-                    fold_by_simulating_eval(self, pipeline, partition.lineage.clone().unwrap())?;
+                let pipeline = self.fold_by_simulating_eval(pipeline, &partition)?;
 
                 // unpack tbl back out
                 let tbl = *partition.kind.into_transform_call().unwrap().input;
@@ -214,8 +210,7 @@ impl Resolver<'_> {
                     end: end.map(Literal::Integer).map(Expr::new).map(Box::new),
                 };
 
-                let pipeline =
-                    fold_by_simulating_eval(self, pipeline, tbl.lineage.clone().unwrap())?;
+                let pipeline = self.fold_by_simulating_eval(pipeline, &tbl)?;
 
                 let transform_kind = TransformKind::Window {
                     kind,
@@ -232,8 +227,7 @@ impl Resolver<'_> {
             "loop" => {
                 let [pipeline, tbl] = unpack::<2>(func.args);
 
-                let pipeline =
-                    fold_by_simulating_eval(self, pipeline, tbl.lineage.clone().unwrap())?;
+                let pipeline = self.fold_by_simulating_eval(pipeline, &tbl)?;
 
                 (TransformKind::Loop(Box::new(pipeline)), tbl)
             }
@@ -428,7 +422,11 @@ impl Resolver<'_> {
             frame: WindowFrame::default(),
             sort: Vec::new(),
         };
-        Ok(Expr::new(ExprKind::TransformCall(transform_call)))
+        let ty = self.infer_type_of_special_func(&transform_call)?;
+        Ok(Expr {
+            ty,
+            ..Expr::new(ExprKind::TransformCall(transform_call))
+        })
     }
 
     /// Wraps non-tuple Exprs into a singleton Tuple.
@@ -452,6 +450,79 @@ impl Resolver<'_> {
             expr.span = span;
 
             self.fold_expr(expr)?
+        })
+    }
+
+    /// Figure out the type of a function call, if this function is a *special function*.
+    /// (declared in std module & requires special handling).
+    pub fn infer_type_of_special_func(
+        &mut self,
+        transform_call: &TransformCall,
+    ) -> Result<Option<Ty>> {
+        // Long term plan is to make this function obsolete with generic function parameters.
+        // In other words, I hope to make our type system powerful enough to express return
+        // type of all std module functions.
+
+        Ok(match transform_call.kind.as_ref() {
+            TransformKind::Select { assigns } => assigns
+                .ty
+                .clone()
+                .map(|x| Ty::new(TyKind::Array(Box::new(x)))),
+            TransformKind::Derive { assigns } => {
+                let input = transform_call.input.ty.clone().unwrap();
+                let input = input.into_relation().unwrap();
+
+                let derived = assigns.ty.clone().unwrap();
+                let derived = derived.kind.into_tuple().unwrap();
+
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
+                    [input, derived].concat(),
+                ))))))
+            }
+            TransformKind::Aggregate { assigns } => {
+                let tuple = assigns.ty.clone().unwrap();
+
+                Some(Ty::new(TyKind::Array(Box::new(tuple))))
+            }
+            TransformKind::Filter { .. }
+            | TransformKind::Sort { .. }
+            | TransformKind::Take { .. } => transform_call.input.ty.clone(),
+            TransformKind::Join { with, .. } => {
+                let input = transform_call.input.ty.clone().unwrap();
+                let input = input.into_relation().unwrap();
+
+                let with_name = with.alias.clone();
+                let with = with.ty.clone().unwrap();
+                let with = with.kind.into_array().unwrap();
+                let with = TupleField::Single(with_name, Some(*with));
+
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
+                    [input, vec![with]].concat(),
+                ))))))
+            }
+            TransformKind::Group { pipeline, by } => {
+                let by = by.ty.clone().unwrap();
+                let by = by.kind.into_tuple().unwrap();
+
+                let pipeline = pipeline.ty.clone().unwrap();
+                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
+                let pipeline = pipeline.return_ty.unwrap().into_relation().unwrap();
+
+                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
+                    [by, pipeline].concat(),
+                ))))))
+            }
+            TransformKind::Window { pipeline, .. } | TransformKind::Loop(pipeline) => {
+                let pipeline = pipeline.ty.clone().unwrap();
+                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
+                *pipeline.return_ty
+            }
+            TransformKind::Append(bottom) => {
+                let top = transform_call.input.ty.clone().unwrap();
+                let bottom = bottom.ty.clone().unwrap();
+
+                Some(type_intersection(top, bottom))
+            }
         })
     }
 }
@@ -482,70 +553,78 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
     Ok((into_int(range.0)?, into_int(range.1)?))
 }
 
-/// Simulate evaluation of the inner pipeline of group or window
-// Creates a dummy node that acts as value that pipeline can be resolved upon.
-fn fold_by_simulating_eval(
-    resolver: &mut Resolver,
-    pipeline: Expr,
-    val_lineage: Lineage,
-) -> Result<Expr, anyhow::Error> {
-    log::debug!("fold by simulating evaluation");
+impl Resolver<'_> {
+    /// Simulate evaluation of the inner pipeline of group or window
+    // Creates a dummy node that acts as value that pipeline can be resolved upon.
+    fn fold_by_simulating_eval(
+        &mut self,
+        pipeline: Expr,
+        val: &Expr,
+    ) -> Result<Expr, anyhow::Error> {
+        log::debug!("fold by simulating evaluation");
+        let span = pipeline.span;
 
-    let param_name = "_tbl";
-    let param_id = resolver.id.gen();
+        let param_name = "_tbl";
+        let param_id = self.id.gen();
 
-    // resolver will not resolve a function call if any arguments are missing
-    // but would instead return a closure to be resolved later.
-    // because the pipeline of group is a function that takes a table chunk
-    // and applies the transforms to it, it would not get resolved.
-    // thats why we trick the resolver with a dummy node that acts as table
-    // chunk and instruct resolver to apply the transform on that.
+        // resolver will not resolve a function call if any arguments are missing
+        // but would instead return a closure to be resolved later.
+        // because the pipeline of group is a function that takes a table chunk
+        // and applies the transforms to it, it would not get resolved.
+        // thats why we trick the resolver with a dummy node that acts as table
+        // chunk and instruct resolver to apply the transform on that.
 
-    let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
-    dummy.lineage = Some(val_lineage);
+        let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
+        dummy.lineage = val.lineage.clone();
+        dummy.ty = val.ty.clone();
 
-    let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
-        pipeline,
-        vec![dummy],
-    )));
+        let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+            pipeline,
+            vec![dummy],
+        )));
 
-    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-    resolver.root_mod.module.stack_push(NS_PARAM, env);
+        let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+        self.root_mod.module.stack_push(NS_PARAM, env);
 
-    let pipeline = resolver.fold_expr(pipeline)?;
+        let mut pipeline = self.fold_expr(pipeline)?;
 
-    resolver.root_mod.module.stack_pop(NS_PARAM).unwrap();
+        self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
-    // now, we need wrap the result into a closure and replace
-    // the dummy node with closure's parameter.
+        // now, we need wrap the result into a closure and replace
+        // the dummy node with closure's parameter.
 
-    // extract reference to the dummy node
-    // let mut tbl_node = extract_ref_to_first(&mut pipeline);
-    // *tbl_node = Expr::new(ExprKind::Ident("x".to_string()));
+        // validate that the return type is a relation
+        // this can be removed after we have proper type checking for all std functions
+        let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
+        self.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
+            Some("pipeline".to_string())
+        })?;
 
-    let pipeline = Expr::new(ExprKind::Func(Box::new(Func {
-        name_hint: None,
-        body: Box::new(pipeline),
-        return_ty: None,
+        // construct the function back
+        let func = Func {
+            name_hint: None,
+            body: Box::new(pipeline),
+            return_ty: None,
 
-        args: vec![],
-        params: vec![FuncParam {
-            name: param_id.to_string(),
-            ty: None,
-            default_value: None,
-        }],
-        named_params: vec![],
+            args: vec![],
+            params: vec![FuncParam {
+                name: param_id.to_string(),
+                ty: None,
+                default_value: None,
+            }],
+            named_params: vec![],
 
-        env: Default::default(),
-    })));
-    Ok(pipeline)
+            env: Default::default(),
+        };
+        Ok(expr_of_func(func, span))
+    }
 }
 
 impl TransformCall {
-    pub fn infer_type(&self, root_mod: &RootModule) -> Result<Lineage> {
+    pub fn infer_lineage(&self, root_mod: &RootModule) -> Result<Lineage> {
         use TransformKind::*;
 
-        fn ty_frame_or_default(expr: &Expr) -> Result<Lineage> {
+        fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
             expr.lineage
                 .clone()
                 .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
@@ -553,60 +632,57 @@ impl TransformCall {
 
         Ok(match self.kind.as_ref() {
             Select { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
+                let mut lineage = lineage_or_default(&self.input)?;
 
-                frame.clear();
-                frame.apply_assigns(assigns, root_mod);
-                frame
+                lineage.clear();
+                lineage.apply_assigns(assigns, root_mod);
+                lineage
             }
             Derive { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
+                let mut lineage = lineage_or_default(&self.input)?;
 
-                frame.apply_assigns(assigns, root_mod);
-                frame
+                lineage.apply_assigns(assigns, root_mod);
+                lineage
             }
             Group { pipeline, by, .. } => {
-                let mut lineage = ty_frame_or_default(&self.input)?;
+                let mut lineage = lineage_or_default(&self.input)?;
                 lineage.clear();
                 lineage.apply_assigns(by, root_mod);
 
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-                let partition_lin = ty_frame_or_default(body).map_err(|_| {
-                    anyhow!("Invalid lineage in group, verify the contents of the group call")
-                })?;
 
+                let partition_lin = lineage_or_default(body).unwrap();
                 lineage.columns.extend(partition_lin.columns);
 
+                log::debug!(".. type={lineage}");
                 lineage
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
 
-                ty_frame_or_default(body).map_err(|_| {
-                    anyhow!("Invalid lineage in window, verify the contents of the window call")
-                })?
+                lineage_or_default(body).unwrap()
             }
             Aggregate { assigns } => {
-                let mut frame = ty_frame_or_default(&self.input)?;
-                frame.clear();
+                let mut lineage = lineage_or_default(&self.input)?;
+                lineage.clear();
 
-                frame.apply_assigns(assigns, root_mod);
-                frame
+                lineage.apply_assigns(assigns, root_mod);
+                lineage
             }
             Join { with, .. } => {
-                let left = ty_frame_or_default(&self.input)?;
-                let right = ty_frame_or_default(with)?;
+                let left = lineage_or_default(&self.input)?;
+                let right = lineage_or_default(with)?;
                 join(left, right)
             }
             Append(bottom) => {
-                let top = ty_frame_or_default(&self.input)?;
-                let bottom = ty_frame_or_default(bottom)?;
+                let top = lineage_or_default(&self.input)?;
+                let bottom = lineage_or_default(bottom)?;
                 append(top, bottom)?
             }
-            Loop(_) => ty_frame_or_default(&self.input)?,
-            Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
+            Loop(_) => lineage_or_default(&self.input)?,
+            Sort { .. } | Filter { .. } | Take { .. } => lineage_or_default(&self.input)?,
         })
     }
 }
@@ -683,10 +759,20 @@ impl Lineage {
     pub fn apply_assign(&mut self, expr: &Expr, root_mod: &RootModule) {
         // spacial case: all except
         if let ExprKind::All { except, .. } = &expr.kind {
-            let except_exprs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_id.iter()).collect();
-            let except_inputs: HashSet<&usize> =
-                except.iter().flat_map(|e| e.target_ids.iter()).collect();
+            let except_exprs: HashSet<&usize> = except
+                .kind
+                .as_tuple()
+                .iter()
+                .flat_map(|x| x.iter())
+                .flat_map(|e| e.target_id.iter())
+                .collect();
+            let except_inputs: HashSet<&usize> = except
+                .kind
+                .as_tuple()
+                .iter()
+                .flat_map(|x| x.iter())
+                .flat_map(|e| e.target_ids.iter())
+                .collect();
 
             for target_id in &expr.target_ids {
                 let target_input = self.inputs.iter().find(|i| i.id == *target_id);
@@ -780,7 +866,7 @@ impl Lineage {
 }
 
 impl LineageInput {
-    fn get_all_columns(&self, except: &[Expr], root_mod: &RootModule) -> Vec<LineageColumn> {
+    fn get_all_columns(&self, except: &Expr, root_mod: &RootModule) -> Vec<LineageColumn> {
         let rel_def = root_mod.module.get(&self.table).unwrap();
         let rel_def = rel_def.kind.as_table_decl().unwrap();
 
@@ -799,7 +885,10 @@ impl LineageInput {
             let input_ident_fq = Ident::from_path(vec![NS_THIS, self.name.as_str()]);
 
             let except = except
+                .kind
+                .as_tuple()
                 .iter()
+                .flat_map(|x| x.iter())
                 .filter_map(|e| match &e.kind {
                     ExprKind::Ident(i) => Some(i),
                     _ => None,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::iter::zip;
 
 use anyhow::Result;
@@ -13,73 +14,99 @@ use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
 
-pub fn infer_type(node: &Expr) -> Result<Option<Ty>> {
-    if let Some(ty) = &node.ty {
-        return Ok(Some(ty.clone()));
-    }
-
-    let kind = match &node.kind {
-        ExprKind::Literal(ref literal) => match literal {
-            Literal::Null => TyKind::Singleton(Literal::Null),
-            Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
-            Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
-            Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
-            Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
-            Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
-            Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
-            Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
-            Literal::ValueAndUnit(_) => return Ok(None), // TODO
-        },
-
-        ExprKind::Ident(_) | ExprKind::FuncCall(_) => return Ok(None),
-
-        ExprKind::SString(_) => return Ok(None),
-        ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
-
-        ExprKind::TransformCall(_) => return Ok(None), // TODO
-        ExprKind::Tuple(fields) => TyKind::Tuple(
-            fields
-                .iter()
-                .map(|x| -> Result<_> {
-                    let ty = infer_type(x)?;
-
-                    Ok(TupleField::Single(x.alias.clone(), ty))
-                })
-                .try_collect()?,
-        ),
-        ExprKind::Array(items) => {
-            let mut intersection = None;
-            for item in items {
-                let item_ty = infer_type(item)?;
-
-                if let Some(item_ty) = item_ty {
-                    if let Some(intersection) = &intersection {
-                        if intersection != &item_ty {
-                            // TODO: compute type intersection instead
-                            return Ok(None);
-                        }
-                    } else {
-                        intersection = Some(item_ty);
-                    }
-                }
-            }
-            let Some(items_ty) = intersection else {
-                // TODO: return Array(Infer) instead of Infer
-                return Ok(None);
-            };
-            TyKind::Array(Box::new(items_ty))
+impl Resolver<'_> {
+    pub fn infer_type(expr: &Expr) -> Result<Option<Ty>> {
+        if let Some(ty) = &expr.ty {
+            return Ok(Some(ty.clone()));
         }
 
-        _ => return Ok(None),
-    };
-    Ok(Some(Ty {
-        kind,
-        name: None,
-        span: None,
-    }))
-}
+        let kind = match &expr.kind {
+            ExprKind::Literal(ref literal) => match literal {
+                Literal::Null => TyKind::Singleton(Literal::Null),
+                Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
+                Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
+                Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
+                Literal::String(_) => TyKind::Primitive(PrimitiveSet::Text),
+                Literal::Date(_) => TyKind::Primitive(PrimitiveSet::Date),
+                Literal::Time(_) => TyKind::Primitive(PrimitiveSet::Time),
+                Literal::Timestamp(_) => TyKind::Primitive(PrimitiveSet::Timestamp),
+                Literal::ValueAndUnit(_) => return Ok(None), // TODO
+            },
 
-impl Resolver<'_> {
+            ExprKind::Ident(_) | ExprKind::FuncCall(_) => return Ok(None),
+
+            ExprKind::SString(_) => return Ok(None),
+            ExprKind::FString(_) => TyKind::Primitive(PrimitiveSet::Text),
+
+            ExprKind::TransformCall(_) => return Ok(None), // TODO
+            ExprKind::Tuple(fields) => {
+                let mut ty_fields: Vec<TupleField> = Vec::with_capacity(fields.len());
+                let has_other = false;
+
+                for field in fields {
+                    let ty = Resolver::infer_type(field)?;
+
+                    if field.flatten {
+                        if let Some(fields) = ty.as_ref().and_then(|x| x.kind.as_tuple()) {
+                            ty_fields.extend(fields.iter().cloned());
+                            continue;
+                        }
+                    }
+
+                    // TODO: move this into de-sugar stage (expand PL)
+                    // TODO: this will not infer nested namespaces
+                    let name = field
+                        .alias
+                        .clone()
+                        .or_else(|| field.kind.as_ident().map(|i| i.name.clone()));
+
+                    ty_fields.push(TupleField::Single(name, ty));
+                }
+
+                if has_other {
+                    ty_fields.push(TupleField::Wildcard(None));
+                }
+                ty_tuple_kind(ty_fields)
+            }
+            ExprKind::Array(items) => {
+                let mut intersection = None;
+                for item in items {
+                    let item_ty = Resolver::infer_type(item)?;
+
+                    if let Some(item_ty) = item_ty {
+                        if let Some(intersection) = &intersection {
+                            if intersection != &item_ty {
+                                // TODO: compute type intersection instead
+                                return Ok(None);
+                            }
+                        } else {
+                            intersection = Some(item_ty);
+                        }
+                    }
+                }
+                let Some(items_ty) = intersection else {
+                    // TODO: return Array(Infer) instead of Infer
+                    return Ok(None);
+                };
+                TyKind::Array(Box::new(items_ty))
+            }
+
+            ExprKind::All { within, except } => {
+                let within_ty = Resolver::infer_type(within)?.unwrap();
+                let except_ty = Resolver::infer_type(except)?.unwrap();
+
+                type_difference(within_ty, &except_ty).kind
+            }
+
+            _ => return Ok(None),
+        };
+        Ok(Some(Ty {
+            kind,
+            name: None,
+            span: None,
+        }))
+    }
+
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_expr_type<F>(
         &mut self,
@@ -141,6 +168,12 @@ impl Resolver<'_> {
             return Ok(());
         }
 
+        // A temporary hack for allowing calling window functions from within
+        // aggregate and derive.
+        if expected.kind.is_array() && !found.is_function() {
+            return Ok(());
+        }
+
         // if type is a generic, infer the constraint
         // TODO
         if false {
@@ -188,6 +221,90 @@ impl Resolver<'_> {
             }
         }
     }
+}
+
+pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
+    let mut res: Vec<TupleField> = Vec::with_capacity(fields.len());
+    for field in fields {
+        if let TupleField::Single(name, _) = &field {
+            // remove names from previous fields with the same name
+            if name.is_some() {
+                for f in res.iter_mut() {
+                    if f.as_single().and_then(|x| x.0.as_ref()) == name.as_ref() {
+                        *f.as_single_mut().unwrap().0 = None;
+                    }
+                }
+            }
+        }
+        res.push(field);
+    }
+    TyKind::Tuple(res)
+}
+
+fn type_difference(left: Ty, right: &Ty) -> Ty {
+    let kind = match left.kind {
+        TyKind::Union(variants) => TyKind::Union(
+            variants
+                .into_iter()
+                .map(|(name, ty)| {
+                    let ty = type_difference(ty, right);
+                    (name, ty)
+                })
+                .collect(),
+        ),
+        TyKind::Tuple(fields) => {
+            let TyKind::Tuple(right_fields) = &right.kind else {
+                return Ty {
+                    kind: TyKind::Tuple(fields),
+                    ..left
+                };
+            };
+            let right_fields: HashMap<&String, &Option<Ty>> = right_fields
+                .iter()
+                .flat_map(|field| match field {
+                    TupleField::Single(Some(name), ty) => Some((name, ty)),
+                    _ => None,
+                })
+                .collect();
+
+            let mut res = Vec::new();
+            for field in fields {
+                match field {
+                    TupleField::Single(Some(name), Some(ty)) => {
+                        if let Some(right_field) = right_fields.get(&name) {
+                            let right_tuple =
+                                right_field.as_ref().map_or(false, |x| x.kind.is_tuple());
+
+                            if right_tuple {
+                                // recursively erase selection
+                                let ty = type_difference(ty, right_field.as_ref().unwrap());
+                                res.push(TupleField::Single(Some(name), Some(ty)))
+                            } else {
+                                // erase completely
+                            }
+                        } else {
+                            res.push(TupleField::Single(Some(name), Some(ty)))
+                        }
+                    }
+                    TupleField::Single(Some(name), None) => {
+                        if right_fields.get(&name).is_some() {
+                            // TODO: I'm not sure what should happen in this case
+                            continue;
+                        } else {
+                            res.push(TupleField::Single(Some(name), None))
+                        }
+                    }
+                    TupleField::Single(None, ty) => {
+                        res.push(TupleField::Single(None, ty));
+                    }
+                    TupleField::Wildcard(_) => res.push(field),
+                }
+            }
+            TyKind::Tuple(res)
+        }
+        _ => return left,
+    };
+    Ty { kind, ..left }
 }
 
 fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {
@@ -484,4 +601,95 @@ fn is_not_super_type_of(sup: &Option<Ty>, sub: &Option<Ty>) -> bool {
         }
     }
     false
+}
+
+fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(type_intersection(a, b)),
+        (x, None) | (None, x) => x,
+    }
+}
+
+pub fn type_intersection(a: Ty, b: Ty) -> Ty {
+    match (&a.kind, &b.kind) {
+        (a_kind, b_kind) if a_kind == b_kind => a,
+
+        (TyKind::Any, _) => b,
+        (_, TyKind::Any) => a,
+
+        (TyKind::Union(_), _) => type_intersection_with_union(a, b),
+        (_, TyKind::Union(_)) => type_intersection_with_union(b, a),
+
+        (TyKind::Tuple(_), TyKind::Tuple(_)) => {
+            let a = a.kind.into_tuple().unwrap();
+            let b = b.kind.into_tuple().unwrap();
+
+            type_intersection_of_tuples(a, b)
+        }
+
+        (TyKind::Array(_), TyKind::Array(_)) => {
+            let a = a.kind.into_array().unwrap();
+            let b = b.kind.into_array().unwrap();
+            Ty::new(TyKind::Array(Box::new(type_intersection(*a, *b))))
+        }
+
+        _ => Ty::never(),
+    }
+}
+fn type_intersection_with_union(union: Ty, b: Ty) -> Ty {
+    let variants = union.kind.into_union().unwrap();
+    let variants = variants
+        .into_iter()
+        .map(|(name, variant)| {
+            let inter = type_intersection(variant, b.clone());
+
+            (name, inter)
+        })
+        .collect_vec();
+
+    Ty::new(TyKind::Union(variants))
+}
+
+fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
+    let a_has_other = a.iter().any(|f| f.is_wildcard());
+    let b_has_other = b.iter().any(|f| f.is_wildcard());
+
+    let mut a_fields = a.into_iter().filter_map(|f| f.into_single().ok());
+    let mut b_fields = b.into_iter().filter_map(|f| f.into_single().ok());
+
+    let mut fields = Vec::new();
+    let mut has_other = false;
+    loop {
+        match (a_fields.next(), b_fields.next()) {
+            (None, None) => break,
+            (None, Some(b_field)) => {
+                if !a_has_other {
+                    return Ty::never();
+                }
+                has_other = true;
+                fields.push(TupleField::Single(b_field.0, b_field.1));
+            }
+            (Some(a_field), None) => {
+                if !b_has_other {
+                    return Ty::never();
+                }
+                has_other = true;
+                fields.push(TupleField::Single(a_field.0, a_field.1));
+            }
+            (Some((a_name, a_ty)), Some((b_name, b_ty))) => {
+                let name = match (a_name, b_name) {
+                    (None, None) | (Some(_), Some(_)) => None,
+                    (None, Some(n)) | (Some(n), None) => Some(n),
+                };
+                let ty = maybe_type_intersection(a_ty, b_ty);
+
+                fields.push(TupleField::Single(name, ty));
+            }
+        }
+    }
+    if has_other {
+        fields.push(TupleField::Wildcard(None));
+    }
+
+    Ty::new(TyKind::Tuple(fields))
 }

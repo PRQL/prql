@@ -4,6 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use prqlc_ast::expr::Ident;
+use prqlc_ast::Literal;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
@@ -161,7 +162,7 @@ impl Resolver<'_> {
 
         // infer table columns
         if let Some(decl) = module.names.get(NS_SELF).cloned() {
-            if let DeclKind::InstanceOf(table_ident) = decl.kind {
+            if let DeclKind::InstanceOf(table_ident, _) = decl.kind {
                 log::debug!("inferring {original} to be from table {table_ident}");
                 self.infer_table_column(&table_ident, &original.name)?;
             }
@@ -208,8 +209,8 @@ impl Resolver<'_> {
             // Columns can be inferred, which means that we don't know all column names at
             // compile time: use ExprKind::All
             vec![Expr::new(ExprKind::All {
-                within: mod_ident.clone(),
-                except: Vec::new(),
+                within: Box::new(Expr::new(mod_ident.clone())),
+                except: Box::new(Expr::new(Literal::Null)),
             })]
         } else {
             // Columns cannot be inferred, what's in the namespace is all there

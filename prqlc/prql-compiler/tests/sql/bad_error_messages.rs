@@ -158,8 +158,9 @@ fn invalid_lineage_in_transform() {
     sort -val
   )
   "###).unwrap_err(), @r###"
-  Error: "Invalid lineage in group, verify the contents of the group call"
-  "###);
+    Error: expected a pipeline that resolves to a table, but found `internal std.sub`
+    ↳ Hint: are you missing `from` statement?
+    "###);
 }
 
 #[test]

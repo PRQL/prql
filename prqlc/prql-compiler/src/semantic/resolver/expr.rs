@@ -6,7 +6,7 @@ use prqlc_ast::{TupleField, Ty, TyKind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{write_pl, NS_THAT, NS_THIS};
+use crate::semantic::{NS_THAT, NS_THIS};
 use crate::{Error, Reason, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
@@ -120,13 +120,31 @@ impl PlFold for Resolver<'_> {
                         _ => self.fold_expr(expr.as_ref().clone())?,
                     },
 
-                    DeclKind::InstanceOf(_) => {
-                        return Err(Error::new_simple(
-                            "table instance cannot be referenced directly",
-                        )
-                        .with_span(span)
-                        .push_hint("did you forget to specify the column name?")
-                        .into());
+                    DeclKind::InstanceOf(_, ty) => {
+                        let target_id = entry.declared_at;
+
+                        let fq_ident_parent = fq_ident.clone().pop().unwrap();
+                        let decl = self.root_mod.module.get(&fq_ident_parent);
+                        let target_ids = decl
+                            .and_then(|d| d.kind.as_module())
+                            .iter()
+                            .flat_map(|module| module.as_decls())
+                            .sorted_by_key(|(_, decl)| decl.order)
+                            .flat_map(|(_, decl)| match &decl.kind {
+                                DeclKind::Column(id) => Some(*id),
+                                DeclKind::Infer(_) => decl.declared_at,
+                                _ => None,
+                            })
+                            .unique()
+                            .collect();
+
+                        Expr {
+                            kind: ExprKind::Ident(fq_ident),
+                            ty: ty.clone(),
+                            target_id,
+                            target_ids,
+                            ..node
+                        }
                     }
 
                     DeclKind::Ty(_) => {
@@ -176,26 +194,15 @@ impl PlFold for Resolver<'_> {
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
 
             ExprKind::All { within, except } => {
-                let decl = self.root_mod.module.get(&within);
-
-                // lookup ids of matched inputs
-                let target_ids = decl
-                    .and_then(|d| d.kind.as_module())
-                    .iter()
-                    .flat_map(|module| module.as_decls())
-                    .sorted_by_key(|(_, decl)| decl.order)
-                    .flat_map(|(_, decl)| match &decl.kind {
-                        DeclKind::Column(target_id) => Some(*target_id),
-                        DeclKind::Infer(_) => decl.declared_at,
-                        _ => None,
-                    })
-                    .unique()
-                    .collect();
-
-                let kind = ExprKind::All { within, except };
+                let within = self.fold_expr(*within)?;
+                let except = self.fold_expr(*except)?;
                 Expr {
-                    kind,
-                    target_ids,
+                    target_ids: within.target_ids.clone(),
+                    target_id: within.target_id,
+                    kind: ExprKind::All {
+                        within: Box::new(within),
+                        except: Box::new(except),
+                    },
                     ..node
                 }
             }
@@ -250,11 +257,11 @@ impl PlFold for Resolver<'_> {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = types::infer_type(&r)?;
+            r.ty = Resolver::infer_type(&r)?;
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_type(self.root_mod)?);
+                r.lineage = Some(call.infer_lineage(self.root_mod)?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -282,30 +289,11 @@ impl PlFold for Resolver<'_> {
 impl Resolver<'_> {
     pub fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
-        let tuple = self.coerce_into_tuple(expr)?.try_cast(
-            |x| x.into_tuple(),
-            Some("column exclusion"),
-            "tuple literal",
-        )?;
-        let except: Vec<Expr> = tuple
-            .into_iter()
-            .map(|e| match e.kind {
-                ExprKind::Ident(_) | ExprKind::All { .. } => Ok(e),
-                _ => {
-                    let span = e.span;
-                    Err(Error::new(Reason::Expected {
-                        who: Some("exclusion".to_string()),
-                        expected: "column name".to_string(),
-                        found: format!("`{}`", write_pl(e)),
-                    })
-                    .with_span(span))
-                }
-            })
-            .try_collect()?;
+        let except = self.coerce_into_tuple(expr)?;
 
         self.fold_expr(Expr::new(ExprKind::All {
-            within: Ident::from_name(NS_THIS),
-            except,
+            within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+            except: Box::new(except),
         }))
     }
 }

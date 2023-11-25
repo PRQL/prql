@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use prqlc_ast::stmt::QueryDef;
-use prqlc_ast::{Span, TupleField, Ty};
+use prqlc_ast::{Literal, Span, TupleField, Ty, TyKind};
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
@@ -196,14 +196,18 @@ impl Module {
         res
     }
 
-    pub(super) fn insert_frame(&mut self, frame: &Lineage, namespace: &str) {
+    pub(super) fn insert_frame(&mut self, lineage: &Lineage, namespace: &str) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        for (col_index, column) in frame.columns.iter().enumerate() {
+        let lin_ty = *ty_of_lineage(lineage).kind.into_array().unwrap();
+
+        for (col_index, column) in lineage.columns.iter().enumerate() {
             // determine input name
             let input_name = match column {
-                LineageColumn::All { input_id, .. } => frame.find_input(*input_id).map(|i| &i.name),
+                LineageColumn::All { input_id, .. } => {
+                    lineage.find_input(*input_id).map(|i| &i.name)
+                }
                 LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
@@ -215,12 +219,22 @@ impl Module {
                     None => {
                         namespace.redirects.push(Ident::from_name(input_name));
 
-                        let input = frame.find_input_by_name(input_name).unwrap();
+                        let input = lineage.find_input_by_name(input_name).unwrap();
                         let mut sub_ns = Module::default();
+
+                        let self_ty = lin_ty.clone().kind.into_tuple().unwrap();
+                        let self_ty = self_ty
+                            .into_iter()
+                            .flat_map(|x| x.into_single())
+                            .find(|(name, _)| name.as_ref() == Some(input_name))
+                            .and_then(|(_, ty)| ty)
+                            .or(Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(
+                                None,
+                            )]))));
 
                         let self_decl = Decl {
                             declared_at: Some(input.id),
-                            kind: DeclKind::InstanceOf(input.table.clone()),
+                            kind: DeclKind::InstanceOf(input.table.clone(), self_ty),
                             ..Default::default()
                         };
                         sub_ns.names.insert(NS_SELF.to_string(), self_decl);
@@ -242,7 +256,7 @@ impl Module {
             // insert column decl
             match column {
                 LineageColumn::All { input_id, .. } => {
-                    let input = frame.find_input(*input_id).unwrap();
+                    let input = lineage.find_input(*input_id).unwrap();
 
                     let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
                     let declared_at = Some(input.id);
@@ -270,6 +284,12 @@ impl Module {
                 _ => {}
             }
         }
+
+        // insert namespace._self with correct type
+        namespace.names.insert(
+            NS_SELF.to_string(),
+            Decl::from(DeclKind::InstanceOf(Ident::from_name(""), Some(lin_ty))),
+        );
     }
 
     pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String, id: usize) {
@@ -464,6 +484,22 @@ impl RootModule {
     pub fn find_mains(&self) -> Vec<Ident> {
         self.module.find_by_suffix(NS_MAIN)
     }
+}
+
+pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
+    Ty::relation(
+        lineage
+            .columns
+            .iter()
+            .map(|col| match col {
+                LineageColumn::All { .. } => TupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TupleField::Single(
+                    name.as_ref().map(|i| i.name.clone()),
+                    Some(Ty::new(Literal::Null)),
+                ),
+            })
+            .collect(),
+    )
 }
 
 #[cfg(test)]

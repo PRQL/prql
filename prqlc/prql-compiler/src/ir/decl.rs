@@ -68,7 +68,7 @@ pub enum DeclKind {
 
     TableDecl(TableDecl),
 
-    InstanceOf(Ident),
+    InstanceOf(Ident, Option<Ty>),
 
     /// A single column. Contains id of target which is either:
     /// - an input relation that is source of this column or
@@ -190,7 +190,7 @@ impl std::fmt::Display for DeclKind {
                     ty.as_ref().map(write_ty).unwrap_or_default()
                 )
             }
-            Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
+            Self::InstanceOf(arg0, _) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
