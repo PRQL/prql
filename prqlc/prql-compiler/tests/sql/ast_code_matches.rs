@@ -14,12 +14,17 @@ fn test_expr_ast_code_matches() {
             &read_to_string("../prql-compiler/src/ir/pl/expr.rs").unwrap(),
         ), @r###"
     @@ .. @@
+    -#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    +#[derive(Clone, PartialEq, Serialize, Deserialize)]
+    @@ .. @@
     -    Pipeline(Pipeline),
     @@ .. @@
     -    Range(Range),
     -    Binary(BinaryExpr),
     -    Unary(UnaryExpr),
     @@ .. @@
+    -}
+    -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct BinaryExpr {
     -    pub left: Box<Expr>,
@@ -31,8 +36,6 @@ fn test_expr_ast_code_matches() {
     -pub struct UnaryExpr {
     -    pub op: UnOp,
     -    pub expr: Box<Expr>,
-    -}
-    -
     @@ .. @@
     -}
     -
