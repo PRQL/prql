@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
@@ -8,10 +8,11 @@ use std::iter::zip;
 use prqlc_ast::error::{Error, Reason};
 use prqlc_ast::{TupleField, Ty, TyKind};
 
-use crate::ir::decl::{Decl, DeclKind, Module, RootModule};
+use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
+
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
@@ -22,7 +23,7 @@ use super::Resolver;
 
 impl Resolver<'_> {
     /// try to convert function call with enough args into transform
-    pub fn resolve_special_func(&mut self, func: Func) -> Result<Expr> {
+    pub fn resolve_special_func(&mut self, func: Func, needs_window: bool) -> Result<Expr> {
         let internal_name = func.body.kind.into_internal().unwrap();
 
         let (kind, input) = match internal_name.as_str() {
@@ -405,6 +406,20 @@ impl Resolver<'_> {
                 return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
             }
 
+            "count" | "row_number" => {
+                // HACK: these functions get `this`, resolved to `{x = {_self}}`, which
+                // throws an error during lowering.
+                // But because these functions don't *really* need an arg, we can just pass
+                // a null instead.
+                return Ok(Expr {
+                    needs_window,
+                    ..Expr::new(ExprKind::RqOperator {
+                        name: format!("std.{internal_name}"),
+                        args: vec![Expr::new(Literal::Null)],
+                    })
+                });
+            }
+
             _ => {
                 return Err(
                     Error::new_simple(format!("unknown operator {internal_name}"))
@@ -621,7 +636,7 @@ impl Resolver<'_> {
 }
 
 impl TransformCall {
-    pub fn infer_lineage(&self, root_mod: &RootModule) -> Result<Lineage> {
+    pub fn infer_lineage(&self) -> Result<Lineage> {
         use TransformKind::*;
 
         fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
@@ -635,19 +650,19 @@ impl TransformCall {
                 let mut lineage = lineage_or_default(&self.input)?;
 
                 lineage.clear();
-                lineage.apply_assigns(assigns, root_mod);
+                lineage.apply_assigns(assigns, false);
                 lineage
             }
             Derive { assigns } => {
                 let mut lineage = lineage_or_default(&self.input)?;
 
-                lineage.apply_assigns(assigns, root_mod);
+                lineage.apply_assigns(assigns, false);
                 lineage
             }
             Group { pipeline, by, .. } => {
                 let mut lineage = lineage_or_default(&self.input)?;
                 lineage.clear();
-                lineage.apply_assigns(by, root_mod);
+                lineage.apply_assigns(by, false);
 
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
@@ -668,7 +683,7 @@ impl TransformCall {
                 let mut lineage = lineage_or_default(&self.input)?;
                 lineage.clear();
 
-                lineage.apply_assigns(assigns, root_mod);
+                lineage.apply_assigns(assigns, false);
                 lineage
             }
             Join { with, .. } => {
@@ -756,59 +771,139 @@ impl Lineage {
         self.prev_columns.append(&mut self.columns);
     }
 
-    pub fn apply_assign(&mut self, expr: &Expr, root_mod: &RootModule) {
-        // spacial case: all except
-        if let ExprKind::All { except, .. } = &expr.kind {
-            let except_exprs: HashSet<&usize> = except
-                .kind
-                .as_tuple()
-                .iter()
-                .flat_map(|x| x.iter())
-                .flat_map(|e| e.target_id.iter())
-                .collect();
-            let except_inputs: HashSet<&usize> = except
-                .kind
-                .as_tuple()
-                .iter()
-                .flat_map(|x| x.iter())
-                .flat_map(|e| e.target_ids.iter())
-                .collect();
+    pub fn apply_assigns(&mut self, assigns: &Expr, inline_refs: bool) {
+        match &assigns.kind {
+            ExprKind::Tuple(fields) => {
+                for expr in fields {
+                    self.apply_assigns(expr, inline_refs);
+                }
+            }
+            _ => self.apply_assign(assigns, inline_refs),
+        }
+    }
 
-            for target_id in &expr.target_ids {
-                let target_input = self.inputs.iter().find(|i| i.id == *target_id);
-                match target_input {
-                    Some(input) => {
-                        // include all of the input's columns
-                        if except_inputs.contains(target_id) {
-                            continue;
-                        }
-                        self.columns.extend(input.get_all_columns(except, root_mod));
-                    }
-                    None => {
-                        // include the column with if target_id
-                        if except_exprs.contains(target_id) {
-                            continue;
-                        }
-                        let prev_col = self.prev_columns.iter().find(|c| match c {
-                            LineageColumn::Single {
-                                target_id: expr_id, ..
-                            } => expr_id == target_id,
-                            _ => false,
+    pub fn apply_assign(&mut self, expr: &Expr, inline_refs: bool) {
+        // special case: all except
+        if let ExprKind::All { within, except } = &expr.kind {
+            let mut within_lineage = Lineage::default();
+            within_lineage.inputs.extend(self.inputs.clone());
+            within_lineage.apply_assigns(within, true);
+
+            let mut except_lineage = Lineage::default();
+            except_lineage.inputs.extend(self.inputs.clone());
+            except_lineage.apply_assigns(except, true);
+
+            'within: for col in within_lineage.columns {
+                match col {
+                    LineageColumn::Single {
+                        ref name,
+                        ref target_id,
+                        ref target_name,
+                        ..
+                    } => {
+                        let is_excluded = except_lineage.columns.iter().any(|e| match e {
+                            LineageColumn::Single { name: e_name, .. } => name == e_name,
+
+                            LineageColumn::All {
+                                input_id: e_iid,
+                                except: e_except,
+                            } => {
+                                target_id == e_iid
+                                    && !e_except.contains(target_name.as_ref().unwrap())
+                            }
                         });
-                        self.columns.extend(prev_col.cloned());
+                        if !is_excluded {
+                            self.columns.push(col);
+                        }
+                    }
+                    LineageColumn::All {
+                        input_id,
+                        mut except,
+                    } => {
+                        for excluded in &except_lineage.columns {
+                            match excluded {
+                                LineageColumn::Single {
+                                    name: Some(name), ..
+                                } => {
+                                    let input = self.find_input(input_id).unwrap();
+                                    let ex_input_name = name.iter().next().unwrap();
+                                    if ex_input_name == &input.name {
+                                        except.insert(name.name.clone());
+                                    }
+                                }
+                                LineageColumn::Single { .. } => {}
+                                LineageColumn::All {
+                                    input_id: e_iid,
+                                    except: e_e,
+                                } => {
+                                    if *e_iid == input_id {
+                                        // The two `All`s match and will erase each other.
+                                        // The only remaining columns are those from the first wildcard
+                                        // that are not excluded, but are excluded in the second wildcard.
+                                        let input = self.find_input(input_id).unwrap();
+                                        let input_name = input.name.clone();
+                                        for remaining in e_e.difference(&except).sorted() {
+                                            self.columns.push(LineageColumn::Single {
+                                                name: Some(Ident {
+                                                    path: vec![input_name.clone()],
+                                                    name: remaining.clone(),
+                                                }),
+                                                target_id: input_id,
+                                                target_name: Some(remaining.clone()),
+                                            })
+                                        }
+                                        continue 'within;
+                                    }
+                                }
+                            }
+                        }
+                        self.columns.push(LineageColumn::All { input_id, except });
                     }
                 }
             }
             return;
         }
 
-        // base case: append the column into the frame
-        let id = expr.id.unwrap();
+        // special case: include a tuple
+        if expr.ty.as_ref().map_or(false, |x| x.is_tuple()) && expr.kind.is_ident() {
+            // this ident is a tuple, which means it much point to an input
+            let input_id = expr.target_id.unwrap();
 
-        let alias = expr.alias.as_ref();
-        let name = alias
-            .map(Ident::from_name)
-            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
+            self.columns.push(LineageColumn::All {
+                input_id,
+                except: Default::default(),
+            });
+            return;
+        }
+
+        // special case: an ref that should be inlined because this node
+        // might not exist in the resulting AST
+        if inline_refs && expr.target_id.is_some() {
+            let ident = expr.kind.as_ident().unwrap().clone().pop_front().1.unwrap();
+            let target_id = expr.target_id.unwrap();
+            let input = &self.find_input(target_id);
+
+            self.columns.push(if input.is_some() {
+                LineageColumn::Single {
+                    target_name: Some(ident.name.clone()),
+                    name: Some(ident),
+                    target_id,
+                }
+            } else {
+                LineageColumn::Single {
+                    target_name: None,
+                    name: Some(ident),
+                    target_id,
+                }
+            });
+            return;
+        };
+
+        // base case: define the expr as a new lineage column
+        let (target_id, target_name) = (expr.id.unwrap(), None);
+
+        let alias = expr.alias.as_ref().map(Ident::from_name);
+        let name = alias.or_else(|| expr.kind.as_ident()?.clone().pop_front().1);
 
         // remove names from columns with the same name
         if name.is_some() {
@@ -823,20 +918,9 @@ impl Lineage {
 
         self.columns.push(LineageColumn::Single {
             name,
-            target_id: id,
-            target_name: None,
+            target_id,
+            target_name,
         });
-    }
-
-    pub fn apply_assigns(&mut self, assigns: &Expr, root_mod: &RootModule) {
-        match &assigns.kind {
-            ExprKind::Tuple(fields) => {
-                for expr in fields {
-                    self.apply_assigns(expr, root_mod);
-                }
-            }
-            _ => self.apply_assign(assigns, root_mod),
-        }
     }
 
     pub fn find_input_by_name(&self, input_name: &str) -> Option<&LineageInput> {
@@ -847,7 +931,7 @@ impl Lineage {
         self.inputs.iter().find(|i| i.id == input_id)
     }
 
-    /// Renames all frame inputs to given alias.
+    /// Renames all frame inputs to the given alias.
     pub fn rename(&mut self, alias: String) {
         for input in &mut self.inputs {
             input.name = alias.clone();
@@ -862,59 +946,6 @@ impl Lineage {
                 _ => {}
             }
         }
-    }
-}
-
-impl LineageInput {
-    fn get_all_columns(&self, except: &Expr, root_mod: &RootModule) -> Vec<LineageColumn> {
-        let rel_def = root_mod.module.get(&self.table).unwrap();
-        let rel_def = rel_def.kind.as_table_decl().unwrap();
-
-        // TODO: can this panic?
-        let columns = rel_def.ty.as_ref().unwrap().as_relation().unwrap();
-
-        // special case: wildcard
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
-        if has_wildcard {
-            // Relation has a wildcard (i.e. we don't know all the columns)
-            // which means we cannot list all columns.
-            // Instead we can just stick FrameColumn::All into the frame.
-            // We could do this for all columns, but it is less transparent,
-            // so let's use it just as a last resort.
-
-            let input_ident_fq = Ident::from_path(vec![NS_THIS, self.name.as_str()]);
-
-            let except = except
-                .kind
-                .as_tuple()
-                .iter()
-                .flat_map(|x| x.iter())
-                .filter_map(|e| match &e.kind {
-                    ExprKind::Ident(i) => Some(i),
-                    _ => None,
-                })
-                .filter(|i| i.starts_with(&input_ident_fq))
-                .map(|i| i.name.clone())
-                .collect();
-
-            return vec![LineageColumn::All {
-                input_id: self.id,
-                except,
-            }];
-        }
-
-        // base case: convert rel_def into frame columns
-        columns
-            .iter()
-            .map(|col| {
-                let name = col.as_single().unwrap().0.clone().map(Ident::from_name);
-                LineageColumn::Single {
-                    name,
-                    target_id: self.id,
-                    target_name: None,
-                }
-            })
-            .collect_vec()
     }
 }
 

@@ -6,7 +6,7 @@ use crate::{Ident, Span};
 
 use super::Literal;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -155,5 +155,11 @@ impl From<TyFunc> for TyKind {
 impl From<Literal> for TyKind {
     fn from(value: Literal) -> Self {
         TyKind::Singleton(value)
+    }
+}
+
+impl std::fmt::Debug for Ty {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
     }
 }

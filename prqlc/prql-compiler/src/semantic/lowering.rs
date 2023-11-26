@@ -432,13 +432,14 @@ impl Lowerer {
     }
 
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
+        let span = expr.span;
         let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_pipeline(expr, None)?;
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
-        let columns = self.push_select(lineage, &mut transforms)?;
+        let columns = self.push_select(lineage, &mut transforms).with_span(span)?;
 
         self.pipeline = prev_pipeline;
 
@@ -640,12 +641,25 @@ impl Lowerer {
     }
 
     fn declare_as_columns(&mut self, exprs: pl::Expr, is_aggregation: bool) -> Result<Vec<CId>> {
+        // special case: reference to a tuple that is a relational input
+        if exprs.ty.as_ref().map_or(false, |x| x.is_tuple()) && exprs.kind.is_ident() {
+            // return all contained columns
+            let input_id = exprs.target_id.as_ref().unwrap();
+            let id_mapping = self.node_mapping.get(input_id).unwrap();
+            let input_columns = id_mapping.as_input().unwrap();
+            return Ok(input_columns
+                .iter()
+                .sorted_by_key(|c| c.1 .1)
+                .map(|(_, (cid, _))| *cid)
+                .collect_vec());
+        }
+
         let mut r = Vec::new();
 
         match exprs.kind {
-            pl::ExprKind::All { .. } => {
+            pl::ExprKind::All { within, except } => {
                 // special case: ExprKind::All
-                r.extend(self.find_selected_all(exprs)?);
+                r.extend(self.find_selected_all(*within, Some(*except))?);
             }
             pl::ExprKind::Tuple(fields) => {
                 // tuple unpacking
@@ -661,25 +675,16 @@ impl Lowerer {
         Ok(r)
     }
 
-    fn find_selected_all(&mut self, expr: pl::Expr) -> Result<Vec<CId>> {
-        let pl::ExprKind::All { except, .. } = expr.kind else {
-            unreachable!()
-        };
-
-        let mut selected = Vec::<CId>::new();
-        for target_id in &expr.target_ids {
-            match self.node_mapping.get(target_id) {
-                Some(LoweredTarget::Compute(cid)) => selected.push(*cid),
-                Some(LoweredTarget::Input(input_columns)) => {
-                    let mut cols = input_columns.iter().collect_vec();
-                    cols.sort_by_key(|c| c.1 .1);
-                    selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
-                }
-                _ => {}
-            }
+    fn find_selected_all(
+        &mut self,
+        within: pl::Expr,
+        except: Option<pl::Expr>,
+    ) -> Result<Vec<CId>> {
+        let mut selected = self.declare_as_columns(within, false)?;
+        if let Some(except) = except {
+            let except: HashSet<_> = self.find_except_ids(except)?;
+            selected.retain(|t| !except.contains(t));
         }
-        let except: HashSet<_> = self.find_except_ids(*except)?;
-        selected.retain(|t| !except.contains(t));
         Ok(selected)
     }
 
@@ -696,13 +701,18 @@ impl Lowerer {
 
             let id = e.target_id.unwrap();
             match e.kind {
+                pl::ExprKind::Ident(_) if e.ty.as_ref().map_or(false, |x| x.is_tuple()) => {
+                    res.extend(self.find_selected_all(e, None).with_span(except.span)?);
+                }
                 pl::ExprKind::Ident(ident) => {
                     res.insert(
                         self.lookup_cid(id, Some(&ident.name))
                             .with_span(except.span)?,
                     );
                 }
-                pl::ExprKind::All { .. } => res.extend(self.find_selected_all(e)?),
+                pl::ExprKind::All { within, except } => {
+                    res.extend(self.find_selected_all(*within, Some(*except))?)
+                }
                 _ => {
                     return Err(Error::new(Reason::Expected {
                         who: None,
@@ -786,18 +796,36 @@ impl Lowerer {
             pl::ExprKind::Ident(ident) => {
                 log::debug!("lowering ident {ident} (target {:?})", expr.target_id);
 
-                if let Some(id) = expr.target_id {
+                if expr.ty.as_ref().map_or(false, |x| x.is_tuple()) {
+                    // special case: tuple ref
+                    let expr = pl::Expr {
+                        kind: pl::ExprKind::Ident(ident),
+                        ..expr
+                    };
+                    let selected = self.find_selected_all(expr, None)?;
+
+                    if selected.len() == 1 {
+                        rq::ExprKind::ColumnRef(selected[0])
+                    } else {
+                        return Err(
+                            Error::new_simple("This wildcard usage is not yet supported.")
+                                .with_span(span)
+                                .into(),
+                        );
+                    }
+                } else if let Some(id) = expr.target_id {
+                    // base case: column ref
                     let cid = self.lookup_cid(id, Some(&ident.name)).with_span(span)?;
 
                     rq::ExprKind::ColumnRef(cid)
                 } else {
-                    // This is an unresolved ident.
+                    // fallback: unresolved ident
                     // Let's hope that the database engine can resolve it.
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            pl::ExprKind::All { .. } => {
-                let selected = self.find_selected_all(expr)?;
+            pl::ExprKind::All { within, except } => {
+                let selected = self.find_selected_all(*within, Some(*except))?;
 
                 if selected.len() == 1 {
                     rq::ExprKind::ColumnRef(selected[0])
@@ -845,8 +873,16 @@ impl Lowerer {
             }
             pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
 
+            pl::ExprKind::Tuple(_) => {
+                return Err(
+                    Error::new_simple("table instance cannot be referenced directly")
+                        .push_hint("did you forget to specify the column name?")
+                        .with_span(span)
+                        .into(),
+                );
+            }
+
             pl::ExprKind::FuncCall(_)
-            | pl::ExprKind::Tuple(_)
             | pl::ExprKind::Array(_)
             | pl::ExprKind::Func(_)
             | pl::ExprKind::TransformCall(_) => {
@@ -889,14 +925,6 @@ impl Lowerer {
         let cid = match self.node_mapping.get(&id) {
             Some(LoweredTarget::Compute(cid)) => *cid,
             Some(LoweredTarget::Input(input_columns)) => {
-                if name.map_or(false, |x| x == "_self") {
-                    return Err(
-                        Error::new_simple("table instance cannot be referenced directly")
-                            .push_hint("did you forget to specify the column name?")
-                            .into(),
-                    );
-                }
-
                 let name = match name {
                     Some(v) => RelationColumn::Single(Some(v.clone())),
                     None => return Err(Error::new_simple(

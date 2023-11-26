@@ -77,7 +77,6 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         alias: expr.alias,
         id: None,
         target_id: None,
-        target_ids: Vec::new(),
         ty: None,
         lineage: None,
         needs_window: false,

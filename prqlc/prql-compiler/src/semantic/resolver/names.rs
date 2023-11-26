@@ -1,14 +1,12 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
-use itertools::Itertools;
 
 use prqlc_ast::expr::Ident;
-use prqlc_ast::Literal;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
-use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THIS};
 use crate::Error;
 use crate::WithErrorInfo;
 
@@ -16,7 +14,7 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        if let Some(default_namespace) = self.default_namespace.clone() {
+        let r = if let Some(default_namespace) = self.default_namespace.clone() {
             self.resolve_ident_core(ident, Some(&default_namespace))
         } else {
             let mut ident = ident.clone().prepend(self.current_module_path.clone());
@@ -30,12 +28,15 @@ impl Resolver<'_> {
                 res = self.resolve_ident_core(&ident, None);
             }
             res
-        }
+        };
 
-        // log::debug!(
-        //     "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
-        //     self.root_mod
-        // );
+        if let Err(e) = &r {
+            log::debug!(
+                "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
+                self.root_mod
+            );
+        }
+        r
     }
 
     pub(super) fn resolve_ident_core(
@@ -54,10 +55,9 @@ impl Resolver<'_> {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
-            return self.resolve_ident_wildcard(ident).map_err(|e| {
-                log::debug!("{:#?}", self.root_mod.module);
-                Error::new_simple(e)
-            });
+            return self
+                .resolve_ident_wildcard(ident)
+                .map_err(Error::new_simple);
         }
 
         // base case: direct lookup
@@ -172,69 +172,34 @@ impl Resolver<'_> {
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        // Try matching ident prefix with a module
-        let (mod_ident, mod_decl) = {
-            if ident.path.len() > 1 {
-                // Ident has specified full path
-                let mod_ident = ident.clone().pop().unwrap();
-                let mod_decl = (self.root_mod.module.get_mut(&mod_ident))
-                    .ok_or_else(|| format!("Unknown relation {ident}"))?;
+        let ident_self = ident.clone().pop().unwrap() + Ident::from_name(NS_SELF);
+        let mut res = self.root_mod.module.lookup(&ident_self);
+        if res.contains(&ident_self) {
+            res = HashSet::from_iter([ident_self]);
+        }
+        if res.len() != 1 {
+            return Err(format!("Unknown relation {ident}"));
+        }
+        let module_fq_self = res.into_iter().next().unwrap();
 
-                (mod_ident, mod_decl)
-            } else {
-                // Ident could be just part of NS_THIS
-                let mod_ident = (Ident::from_name(NS_THIS) + ident.clone()).pop().unwrap();
-
-                if let Some(mod_decl) = self.root_mod.module.get_mut(&mod_ident) {
-                    (mod_ident, mod_decl)
-                } else {
-                    // ... or part of NS_THAT
-                    let mod_ident = (Ident::from_name(NS_THAT) + ident.clone()).pop().unwrap();
-
-                    let mod_decl = self.root_mod.module.get_mut(&mod_ident);
-
-                    // ... well - I guess not. Throw.
-                    let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
-
-                    (mod_ident, mod_decl)
-                }
-            }
-        };
-
-        // Unwrap module
-        let module = (mod_decl.kind.as_module_mut())
-            .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
-
-        let fq_cols = if module.names.contains_key(NS_INFER) {
-            // Columns can be inferred, which means that we don't know all column names at
-            // compile time: use ExprKind::All
-            vec![Expr::new(ExprKind::All {
-                within: Box::new(Expr::new(mod_ident.clone())),
-                except: Box::new(Expr::new(Literal::Null)),
-            })]
-        } else {
-            // Columns cannot be inferred, what's in the namespace is all there
-            // could be in this namespace.
-            (module.names.iter())
-                .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
-                .sorted_by_key(|(_, decl)| decl.order)
-                .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
-                .map(|fq_col| Expr::new(ExprKind::Ident(fq_col)))
-                .collect_vec()
-        };
+        // Materialize into a tuple literal, containing idents.
+        let fields = self.construct_wildcard_include(&module_fq_self);
 
         // This is just a workaround to return an Expr from this function.
         // We wrap the expr into DeclKind::Expr and save it into the root module.
         let cols_expr = Expr {
             flatten: true,
-            ..Expr::new(ExprKind::Tuple(fq_cols))
+            ..Expr::new(ExprKind::Tuple(fields))
         };
         let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
-        module.names.insert(save_as.to_string(), cols_expr.into());
+        self.root_mod
+            .module
+            .names
+            .insert(save_as.to_string(), cols_expr.into());
 
         // Then we can return ident to that decl.
-        Ok(mod_ident + Ident::from_name(save_as))
+        Ok(Ident::from_name(save_as))
     }
 }
 

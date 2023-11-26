@@ -61,7 +61,6 @@ pub(super) mod test {
             expr.kind = self.fold_expr_kind(expr.kind)?;
             expr.id = None;
             expr.target_id = None;
-            expr.target_ids.clear();
             Ok(expr)
         }
     }

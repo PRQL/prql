@@ -124,7 +124,6 @@ impl Expr {
             kind: kind.into(),
             span: None,
             target_id: None,
-            target_ids: Vec::new(),
             ty: None,
             lineage: None,
             needs_window: false,

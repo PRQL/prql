@@ -162,7 +162,7 @@ let concat_array = column <array> -> <text> internal std.concat_array
 
 # Counts number of items in the column.
 # Note that the count will include null values.
-let count = column<array> -> <int> internal std.count
+let count = column<array> -> <int> internal count
 
 # Deprecated in favour of filterning input to the [std.count] function (not yet implemented).
 @{deprecated}
@@ -175,7 +175,7 @@ let first      = column <array> -> internal std.first
 let last       = column <array> -> internal std.last
 let rank       = column <array> -> internal std.rank
 let rank_dense = column <array> -> internal std.rank_dense
-let row_number = column <array> -> internal std.row_number
+let row_number = column <array> -> internal row_number
 
 ## Misc functions
 let round = n_digits column -> <scalar> internal std.round
