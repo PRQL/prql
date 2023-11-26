@@ -9,13 +9,15 @@ use prqlc_ast::{Ident, Literal, Span, Ty};
 
 pub use prqlc_ast::expr::{BinOp, UnOp};
 
+use crate::codegen::write_ty;
+
 use super::{Lineage, TransformCall};
 
 // The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 
 /// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
     #[serde(flatten)]
     pub kind: ExprKind,
@@ -155,5 +157,49 @@ impl From<Ident> for ExprKind {
 impl From<Func> for ExprKind {
     fn from(value: Func) -> Self {
         ExprKind::Func(Box::new(value))
+    }
+}
+
+impl std::fmt::Debug for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut ds = f.debug_struct("Expr");
+
+        if let Some(x) = &self.span {
+            ds.field("span", x);
+        }
+        ds.field("kind", &self.kind);
+        if let Some(x) = &self.alias {
+            ds.field("alias", x);
+        }
+        if let Some(x) = &self.id {
+            ds.field("id", x);
+        }
+        if let Some(x) = &self.target_id {
+            ds.field("target_id", x);
+        }
+        if !self.target_ids.is_empty() {
+            ds.field("target_ids", &self.target_ids);
+        }
+        if self.needs_window {
+            ds.field("needs_window", &self.needs_window);
+        }
+        if self.flatten {
+            ds.field("flatten", &self.flatten);
+        }
+        if let Some(x) = &self.ty {
+            // DebugTy is needed to get around string quotes that
+            // would be printed if we Debug-ed the string directly.
+            struct DebugTy<'a>(&'a Ty);
+            impl std::fmt::Debug for DebugTy<'_> {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    f.write_str(&write_ty(self.0))
+                }
+            }
+            ds.field("ty", &DebugTy(x));
+        }
+        if let Some(x) = &self.lineage {
+            ds.field("lineage", x);
+        }
+        ds.finish()
     }
 }
