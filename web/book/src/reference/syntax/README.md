@@ -11,7 +11,7 @@ A summary of PRQL syntax:
 | Syntax               | Usage                                                                          | Example                                                 |
 | -------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | <code>\|</code>      | [Pipelines](./function-calls.md)                                               | <code>from employees \| select first_name</code>        |
-| `=`                  | [Assigns](./tuples.md)                                                         | `from e = employees` <br> `derive total = (sum salary)` |
+| `=`                  | [Assigns](../declarations/variables.md)                                        | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`                  | [Named args & parameters](../declarations/functions.md)                        | `interp low:0 1600 sat_score`                           |
 | `{}`                 | [Tuples](./tuples.md)                                                          | `{id, false, total = 3}`                                |
 | `[]`                 | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
@@ -23,7 +23,7 @@ A summary of PRQL syntax:
 | `true`,`false`       | [Booleans](./literals.md#booleans)                                             | `derive { Col1 = true }`                                |
 | `null`               | [Null](./literals.md#null)                                                     | `filter ( name != null )`                               |
 | `@`                  | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
-| `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | ``select `first name` ``                                |
+| `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | `` select `first name`  ``                              |
 | `#`                  | [Comments](./comments.md)                                                      | `# A comment`                                           |
 | `==`                 | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                 | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
