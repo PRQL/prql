@@ -23,7 +23,7 @@ A summary of PRQL syntax:
 | `true`,`false`       | [Booleans](./literals.md#booleans)                                             | `derive { Col1 = true }`                                |
 | `null`               | [Null](./literals.md#null)                                                     | `filter ( name != null )`                               |
 | `@`                  | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
-| `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | `` select `first name`  ``                              |
+| `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | ``select `first name` ``                                |
 | `#`                  | [Comments](./comments.md)                                                      | `# A comment`                                           |
 | `==`                 | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                 | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
