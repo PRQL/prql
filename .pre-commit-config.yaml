@@ -42,7 +42,7 @@ repos:
       - id: clippy
         stages: [manual]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.0
+    rev: v1.7.1
     hooks:
       - id: mypy
   - repo: https://github.com/rhysd/actionlint
