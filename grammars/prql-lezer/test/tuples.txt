@@ -40,7 +40,7 @@ test {foo=bar}
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(Property(PropertyName,Equals,Identifier))))))
+Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(AssignTupleItem(PropertyName,Equals,Identifier))))))
 
 # Tuple with keys and values
 
@@ -50,4 +50,4 @@ string    =    "string"
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(Property(PropertyName,Equals,Identifier),Property(PropertyName,Equals,Integer),Property(PropertyName,Equals,Float),Property(PropertyName,Equals,String))))))
+Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(AssignTupleItem(PropertyName,Equals,Identifier),AssignTupleItem(PropertyName,Equals,Integer),AssignTupleItem(PropertyName,Equals,Float),AssignTupleItem(PropertyName,Equals,String))))))

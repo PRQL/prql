@@ -10,4 +10,4 @@ filter income > 1
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(Identifier)),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,DateTime))),CallExpression(Identifier,ArgList(TupleExpression(Property(PropertyName,Equals,Float),Property(PropertyName,Equals,BinaryExpression(Identifier,ArithOp,Identifier))))),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Integer)))))
+Query(Pipeline(CallExpression(Identifier,ArgList(Identifier)),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,DateTime))),CallExpression(Identifier,ArgList(TupleExpression(AssignTupleItem(PropertyName,Equals,Float),AssignTupleItem(PropertyName,Equals,BinaryExpression(Identifier,ArithOp,Identifier))))),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Integer)))))
