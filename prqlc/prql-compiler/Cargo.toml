@@ -32,7 +32,7 @@ once_cell = "1.18.0"
 regex = "1.10.2"
 semver = {version = "1.0.20", features = ["serde"]}
 # We could put `serde` behind a feature if we wanted to reduce the size of prql-compiler.
-serde = {version = "1.0.192", features = ["derive"]}
+serde = {version = "1.0.193", features = ["derive"]}
 serde_json = "1.0.108"
 sqlformat = "0.2.2"
 sqlparser = {version = "0.38.0", features = ["serde"]}
