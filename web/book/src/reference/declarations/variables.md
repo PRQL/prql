@@ -1,7 +1,8 @@
 # Variables
 
-Variables assign a name to an expression (let's call it `x`). The name can then
-be used in any expression, acting as a substitute for the expression `x`.
+Variables assign a name — say `x` — to an expression, like in most programming
+languages. The name can then be used in any expression, acting as a substitute
+for the expression `x`.
 
 Syntactically, variables can take 3 forms.
 
@@ -20,17 +21,15 @@ Syntactically, variables can take 3 forms.
   into my_name
   ```
 
-- implicit name, does not declare a name at all, but uses name `main` as the
-  default. This is practical, as `main` is the variable that is compiled as the
-  main relational query by default.
+- The final expression of a pipeline defaults to taking the name `main`.
 
   ```prql no-eval
-  x
+  from x
   ```
 
   ... is equivalent to:
 
-  ```
+  ```prql no-eval
   let main = x
   ```
 
@@ -48,7 +47,7 @@ let top_50 = (
 from top_50      # Starts a new pipeline
 ```
 
-```prqls
+```prql
 from employees
 take 50
 into first_50
