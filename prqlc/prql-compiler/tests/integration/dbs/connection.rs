@@ -89,4 +89,3 @@ impl DbProtocol for rusqlite::Connection {
         Ok(vec)
     }
 }
-
