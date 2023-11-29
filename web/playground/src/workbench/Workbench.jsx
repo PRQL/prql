@@ -72,6 +72,11 @@ class Workbench extends React.Component {
       this.setState({ prqlError: null });
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     } catch (e) {
+      if (e instanceof WebAssembly.RuntimeError) {
+        this.setState({ prqlError: "The compiler crashed! Report this as a bug!" });
+        return;
+      }
+
       const errors = JSON.parse(e.message).inner;
       this.setState({ prqlError: errors[0].display });
 
