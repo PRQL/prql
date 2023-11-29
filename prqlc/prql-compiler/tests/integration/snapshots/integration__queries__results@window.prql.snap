@@ -1,0 +1,37 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34\n# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)\n# clickhouse:skip problems with DISTINCT ON\n# postgres:skip problems with DISTINCT ON\nfrom tracks\ngroup genre_id (\n  sort milliseconds\n  derive {\n    num = row_number this,\n    total = count this,\n    last_val = last track_id,\n  }\n  take 10\n)\nsort {genre_id, milliseconds}\nselect {track_id, genre_id, num, total, last_val}\nfilter genre_id >= 22\n"
+expression: "# mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34\n# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)\n# clickhouse:skip problems with DISTINCT ON\n# postgres:skip problems with DISTINCT ON\nfrom tracks\ngroup genre_id (\n  sort milliseconds\n  derive {\n    num = row_number this,\n    total = count this,\n    last_val = last track_id,\n  }\n  take 10\n)\nsort {genre_id, milliseconds}\nselect {track_id, genre_id, num, total, last_val}\nfilter genre_id >= 22\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/window.prql
+---
+3219,22,1,17,3219
+3218,22,2,17,3218
+3214,22,3,17,3214
+3210,22,4,17,3210
+3213,22,5,17,3213
+3216,22,6,17,3216
+3208,22,7,17,3208
+3211,22,8,17,3211
+3215,22,9,17,3215
+3221,22,10,17,3221
+3379,23,1,40,3379
+3384,23,2,40,3384
+3399,23,3,40,3399
+3395,23,4,40,3395
+3377,23,5,40,3377
+3478,23,6,40,3478
+3385,23,7,40,3385
+3390,23,8,40,3390
+3381,23,9,40,3381
+3393,23,10,40,3393
+3496,24,1,74,3496
+3501,24,2,74,3501
+3448,24,3,74,3448
+3452,24,4,74,3452
+3483,24,5,74,3483
+3449,24,6,74,3449
+3408,24,7,74,3408
+3447,24,8,74,3447
+3492,24,9,74,3492
+3500,24,10,74,3500
+3451,25,1,1,3451

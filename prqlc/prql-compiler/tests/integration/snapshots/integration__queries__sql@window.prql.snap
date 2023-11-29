@@ -1,0 +1,59 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34\n# duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)\n# clickhouse:skip problems with DISTINCT ON\n# postgres:skip problems with DISTINCT ON\nfrom tracks\ngroup genre_id (\n  sort milliseconds\n  derive {\n    num = row_number this,\n    total = count this,\n    last_val = last track_id,\n  }\n  take 10\n)\nsort {genre_id, milliseconds}\nselect {track_id, genre_id, num, total, last_val}\nfilter genre_id >= 22\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/window.prql
+---
+WITH table_0 AS (
+  SELECT
+    track_id,
+    genre_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY genre_id
+      ORDER BY
+        milliseconds
+    ) AS num,
+    COUNT(*) OVER (
+      PARTITION BY genre_id
+      ORDER BY
+        milliseconds ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS total,
+    LAST_VALUE(track_id) OVER (
+      PARTITION BY genre_id
+      ORDER BY
+        milliseconds
+    ) AS last_val,
+    milliseconds,
+    ROW_NUMBER() OVER (
+      PARTITION BY genre_id
+      ORDER BY
+        milliseconds
+    ) AS _expr_0
+  FROM
+    tracks
+),
+table_1 AS (
+  SELECT
+    track_id,
+    genre_id,
+    num,
+    total,
+    last_val,
+    milliseconds
+  FROM
+    table_0
+  WHERE
+    _expr_0 <= 10
+    AND genre_id >= 22
+)
+SELECT
+  track_id,
+  genre_id,
+  num,
+  total,
+  last_val
+FROM
+  table_1
+ORDER BY
+  genre_id,
+  milliseconds
+
