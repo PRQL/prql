@@ -2907,7 +2907,6 @@ dependencies = [
  "csv",
  "duckdb",
  "enum-as-inner",
- "env_logger",
  "glob",
  "insta",
  "itertools 0.12.0",
