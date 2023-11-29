@@ -78,7 +78,7 @@ jobs:
           steps.cache.outputs.cache-hit == 'false' }}
       - name: Run docker compose
         run: docker compose up -d
-        working-directory: ./prqlc/prql-compiler/tests/integration
+        working-directory: ./prqlc/prql-compiler/tests/integration/dbs
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1.1.0
