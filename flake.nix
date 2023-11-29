@@ -19,6 +19,7 @@
           clang
 
           # tools
+          cargo-nextest
           bacon
           cargo-audit
           cargo-insta
