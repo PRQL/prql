@@ -24,6 +24,8 @@
           cargo-audit
           cargo-insta
           cargo-release
+          pkg-config
+          openssl
 
           # actions
           just

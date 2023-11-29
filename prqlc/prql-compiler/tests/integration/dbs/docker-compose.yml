@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
     volumes: &vol
-      - ./data/chinook:/tmp/chinook:ro
+      - ../data/chinook:/tmp/chinook:ro
   mysql:
     image: "mysql:oracle"
     ports:
