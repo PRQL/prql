@@ -30,12 +30,12 @@ prqlc-lint:
 # Test prqlc
 packages := '--package=prqlc-ast --package=prqlc-parser --package=prql-compiler --package=prqlc'
 prqlc-test-fast:
-    cargo clippy --all-targets {{packages}} -- -D warnings
-
     # cargo insta test, but allowing multiple --package arguments
     INSTA_FORCE_PASS=1 cargo test --locked {{packages}}
 
     cargo insta review
+
+    cargo clippy --all-targets {{packages}} -- -D warnings
 
 prqlc-test:
     cargo clippy --all-targets {{packages}} -- -D warnings

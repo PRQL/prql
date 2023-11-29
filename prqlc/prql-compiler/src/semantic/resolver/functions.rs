@@ -89,7 +89,7 @@ impl Resolver<'_> {
                     })
                 }
             } else {
-                let expr = self.resolve_special_func(closure)?;
+                let expr = self.resolve_special_func(closure, needs_window)?;
                 self.fold_expr(expr)?
             }
         } else {

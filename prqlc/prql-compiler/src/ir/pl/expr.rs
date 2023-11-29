@@ -36,10 +36,6 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_id: Option<usize>,
 
-    /// For [ExprKind::All], these are ids of included nodes
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub target_ids: Vec<usize>,
-
     /// Type of expression this node represents.
     /// [None] means that type should be inferred.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -176,9 +172,6 @@ impl std::fmt::Debug for Expr {
         }
         if let Some(x) = &self.target_id {
             ds.field("target_id", x);
-        }
-        if !self.target_ids.is_empty() {
-            ds.field("target_ids", &self.target_ids);
         }
         if self.needs_window {
             ds.field("needs_window", &self.needs_window);

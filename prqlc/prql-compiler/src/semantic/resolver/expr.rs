@@ -3,10 +3,11 @@ use itertools::Itertools;
 
 use prqlc_ast::{TupleField, Ty, TyKind};
 
-use crate::ir::decl::DeclKind;
+use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
+use crate::utils::IdGenerator;
 use crate::{Error, Reason, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
@@ -121,28 +122,13 @@ impl PlFold for Resolver<'_> {
                     },
 
                     DeclKind::InstanceOf(_, ty) => {
-                        let target_id = entry.declared_at;
+                        let ty = ty.clone();
 
-                        let fq_ident_parent = fq_ident.clone().pop().unwrap();
-                        let decl = self.root_mod.module.get(&fq_ident_parent);
-                        let target_ids = decl
-                            .and_then(|d| d.kind.as_module())
-                            .iter()
-                            .flat_map(|module| module.as_decls())
-                            .sorted_by_key(|(_, decl)| decl.order)
-                            .flat_map(|(_, decl)| match &decl.kind {
-                                DeclKind::Column(id) => Some(*id),
-                                DeclKind::Infer(_) => decl.declared_at,
-                                _ => None,
-                            })
-                            .unique()
-                            .collect();
+                        let fields = self.construct_wildcard_include(&fq_ident);
 
                         Expr {
-                            kind: ExprKind::Ident(fq_ident),
-                            ty: ty.clone(),
-                            target_id,
-                            target_ids,
+                            kind: ExprKind::Tuple(fields),
+                            ty,
                             ..node
                         }
                     }
@@ -192,20 +178,6 @@ impl PlFold for Resolver<'_> {
             }
 
             ExprKind::Func(closure) => self.fold_function(*closure, span)?,
-
-            ExprKind::All { within, except } => {
-                let within = self.fold_expr(*within)?;
-                let except = self.fold_expr(*except)?;
-                Expr {
-                    target_ids: within.target_ids.clone(),
-                    target_id: within.target_id,
-                    kind: ExprKind::All {
-                        within: Box::new(within),
-                        except: Box::new(except),
-                    },
-                    ..node
-                }
-            }
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -261,7 +233,7 @@ impl PlFold for Resolver<'_> {
         }
         if r.lineage.is_none() {
             if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_lineage(self.root_mod)?);
+                r.lineage = Some(call.infer_lineage()?);
             } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
                 // lineage from ty
 
@@ -295,6 +267,57 @@ impl Resolver<'_> {
             within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
             except: Box::new(except),
         }))
+    }
+
+    pub fn construct_wildcard_include(&mut self, module_fq_self: &Ident) -> Vec<Expr> {
+        let module_fq = module_fq_self.clone().pop().unwrap();
+
+        let decl = self.root_mod.module.get(&module_fq).unwrap();
+        let module = decl.kind.as_module().unwrap();
+
+        let prefix = module_fq.iter().collect_vec();
+        Self::construct_tuple_from_module(&mut self.id, &prefix, module)
+    }
+
+    pub fn construct_tuple_from_module(
+        id: &mut IdGenerator<usize>,
+        prefix: &[&String],
+        module: &Module,
+    ) -> Vec<Expr> {
+        let mut res = Vec::new();
+
+        if let Some(decl) = module.names.get(NS_INFER) {
+            let wildcard_field = Expr {
+                id: Some(id.gen()),
+                target_id: decl.declared_at,
+                flatten: true,
+                ty: Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(None)]))),
+                ..Expr::new(Ident::from_name(NS_SELF))
+            };
+            return vec![wildcard_field];
+        }
+
+        for (name, decl) in module.names.iter().sorted_by_key(|(_, d)| d.order) {
+            res.push(match &decl.kind {
+                DeclKind::Module(submodule) => {
+                    let prefix = [prefix.to_vec(), vec![name]].concat();
+                    let sub_fields = Self::construct_tuple_from_module(id, &prefix, submodule);
+                    Expr {
+                        id: Some(id.gen()),
+                        alias: Some(name.clone()),
+                        ..Expr::new(ExprKind::Tuple(sub_fields))
+                    }
+                }
+                DeclKind::Column(target_id) => Expr {
+                    id: Some(id.gen()),
+                    target_id: Some(*target_id),
+                    // alias: Some(name.clone()),
+                    ..Expr::new(Ident::from_path([prefix.to_vec(), vec![name]].concat()))
+                },
+                _ => continue,
+            });
+        }
+        res
     }
 }
 

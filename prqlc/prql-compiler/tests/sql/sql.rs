@@ -601,8 +601,6 @@ fn test_rn_ids_are_unique() {
         _expr_1 <= 2
     )
     SELECT
-      x_id,
-      y_id,
       *
     FROM
       table_0
@@ -762,6 +760,7 @@ fn test_sorts_02() {
       "index"
     "###);
 
+    // TODO: this is invalid SQL: a._expr_0 does not exist
     assert_display_snapshot!((compile(r#"
     from a
     join side:left b (==col)
@@ -1223,7 +1222,6 @@ fn test_window_functions_13() {
     )
     SELECT
       milliseconds - _expr_0 AS grp,
-      album_id,
       *,
       ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
     FROM
@@ -2156,9 +2154,9 @@ take 20
       SELECT
         title,
         country,
-        salary,
         salary + payroll_tax + benefits_cost AS _expr_0,
-        salary + payroll_tax AS _expr_1
+        salary + payroll_tax AS _expr_1,
+        salary
       FROM
         employees
       WHERE
@@ -3014,16 +3012,11 @@ fn test_direct_table_references() {
     select x
     "###,
     )
-    .unwrap_err(), @r###"
-    Error:
-       ╭─[:3:12]
-       │
-     3 │     select x
-       │            ┬
-       │            ╰── table instance cannot be referenced directly
-       │
-       │ Help: did you forget to specify the column name?
-    ───╯
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      x
     "###);
 }
 

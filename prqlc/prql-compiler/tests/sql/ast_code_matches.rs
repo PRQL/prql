@@ -37,12 +37,12 @@ fn test_expr_ast_code_matches() {
     -    pub op: UnOp,
     -    pub expr: Box<Expr>,
     @@ .. @@
-    -}
-    -
     -/// A value and a series of functions that are to be applied to that value one after another.
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct Pipeline {
     -    pub exprs: Vec<Expr>,
+    -}
+    -
     "###
     );
 }

@@ -220,6 +220,9 @@ impl Module {
                         namespace.redirects.push(Ident::from_name(input_name));
 
                         let input = lineage.find_input_by_name(input_name).unwrap();
+                        let order = lineage.inputs.iter().position(|i| i.id == input.id);
+                        let order = order.unwrap();
+
                         let mut sub_ns = Module::default();
 
                         let self_ty = lin_ty.clone().kind.into_tuple().unwrap();
@@ -241,6 +244,7 @@ impl Module {
 
                         let sub_ns = Decl {
                             declared_at: Some(input.id),
+                            order,
                             kind: DeclKind::Module(sub_ns),
                             ..Default::default()
                         };
