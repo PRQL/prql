@@ -34,10 +34,10 @@ tupleItem { AssignTupleItem | expression | CallExpression | CaseBranch }
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-CallExpression { Identifier ArgList { (NamedArg | Assign | test)+ } }
+CallExpression { Identifier ArgList { (NamedArg | Parameter | test)+ } }
 
-NamedArg { identPart ":" expression }
-Assign { identPart "=" expression }
+NamedArg { ArgumentName { identPart } ":" expression }
+Parameter { ParameterName { identPart } "=" expression }
 AssignTupleItem { PropertyName { identPart } "=" expression }
 CaseBranch { expression "=>" expression }
 // Possibly we could only accept case branches inside the TupleExpression?
