@@ -62,6 +62,8 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/prqlc.svg)](https://repology.org/project/prqlc/versions)
+
 ## Current Status - November 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
