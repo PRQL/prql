@@ -1,37 +1,44 @@
 #![cfg(not(target_family = "wasm"))]
+use std::path::Path;
 use std::{env, fs};
 
-use insta::{assert_snapshot, glob};
+use insta::{assert_snapshot, with_settings};
 
 use prql_compiler::sql::Dialect;
 use prql_compiler::{Options, Target};
+use test_each_file::test_each_path;
 
-#[test]
-fn test_queries_compile() {
-    env_logger::init();
+// If this is giving compilation errors saying `expected identifier, found keyword`,
+// rename the filenames in queries to something that's not a keyword in Rust.
+test_each_path! { in "./prqlc/prql-compiler/tests/integration/queries" as compile => compile }
+
+fn compile(prql_path: &Path) {
+    let file_stem = prql_path.file_stem().unwrap().to_str().unwrap();
+    let snapshot_name = format!("sql@{file_stem}");
+    let prql = fs::read_to_string(prql_path).unwrap();
 
     let target = Target::Sql(Some(Dialect::Generic));
     let options = Options::default().no_signature().with_target(target);
 
-    // We're currently not testing for each dialect, as it's a lot of snapshots.
-    // We can consider doing that if helpful.
-    glob!("queries/**/*.prql", |path| {
-        log::debug!("testing {path:?}");
-        let prql = fs::read_to_string(path).unwrap();
-        let sql = prql_compiler::compile(&prql, &options).unwrap();
-        assert_snapshot!("sql", &sql, &prql)
+    let sql = prql_compiler::compile(&prql, &options).unwrap();
+
+    with_settings!({ input_file => prql_path }, {
+        assert_snapshot!(snapshot_name, &sql, &prql)
     });
 }
 
-#[test]
-fn test_queries_fmt() {
-    glob!("queries/**/*.prql", |path| {
-        let prql = fs::read_to_string(path).unwrap();
+test_each_path! { in "./prqlc/prql-compiler/tests/integration/queries" as fmt => fmt }
 
-        let pl = prql_compiler::prql_to_pl(&prql).unwrap();
-        let formatted = prql_compiler::pl_to_prql(pl).unwrap();
+fn fmt(prql_path: &Path) {
+    let file_stem = prql_path.file_stem().unwrap().to_str().unwrap();
+    let snapshot_name = format!("fmt@{file_stem}");
+    let prql = fs::read_to_string(prql_path).unwrap();
 
-        assert_snapshot!("fmt", &formatted, &prql)
+    let pl = prql_compiler::prql_to_pl(&prql).unwrap();
+    let formatted = prql_compiler::pl_to_prql(pl).unwrap();
+
+    with_settings!({ input_file => prql_path }, {
+        assert_snapshot!(snapshot_name, &formatted, &prql)
     });
 }
 
