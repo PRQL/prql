@@ -74,7 +74,7 @@ class Workbench extends React.Component {
     } catch (e) {
       if (e instanceof WebAssembly.RuntimeError) {
         this.setState({
-          prqlError: "The compiler crashed! Report this as a bug!",
+          prqlError: "A compiler bug encountered. Please report this to https://github.com/PRQL/prql/issues/new/choose",
         });
         return;
       }
