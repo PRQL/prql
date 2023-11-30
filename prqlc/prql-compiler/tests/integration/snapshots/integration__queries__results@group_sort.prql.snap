@@ -1,0 +1,16 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+expression: "# mssql:test\nfrom tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/group_sort.prql
+---
+2,91
+3,2
+4,12
+5,148
+6,450
+7,572
+8,678
+9,973
+10,644
+11,1281

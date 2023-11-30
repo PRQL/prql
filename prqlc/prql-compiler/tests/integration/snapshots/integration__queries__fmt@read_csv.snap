@@ -1,0 +1,8 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# sqlite:skip\n# postgres:skip\n# mysql:skip\nfrom (read_csv \"data_file_root/media_types.csv\")\nsort media_type_id\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/read_csv.prql
+---
+from (read_csv "data_file_root/media_types.csv")
+sort media_type_id
+

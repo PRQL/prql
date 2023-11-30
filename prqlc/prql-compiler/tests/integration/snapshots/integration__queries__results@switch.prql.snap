@@ -1,0 +1,16 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# glaredb:skip (May be a bag of String type conversion for Postgres Client)\n# mssql:test\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
+expression: "# glaredb:skip (May be a bag of String type conversion for Postgres Client)\n# mssql:test\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/switch.prql
+---
+Samuel Rosa
+no composer
+no composer
+no composer
+L. Muggerud
+no composer
+L. Muggerud
+unknown composer
+Gilberto Gil
+Chico Science

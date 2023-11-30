@@ -1,0 +1,21 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+description: "# Running on dialect `duckdb`\n\n# Query:\n---\n# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
+expression: "# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/pipelines.prql
+---
+My Love,Jauperi/Zeu Góes
+The Girl I Love She Got Long Black Wavy Hair,Jimmy Page/John Bonham/John Estes/John Paul Jones/Robert Plant
+Love Gun,Paul Stanley
+Do You Love Me,Paul Stanley, B. Ezrin, K. Fowley
+Calling Dr. Love,Gene Simmons
+Um Love,
+Love Child,Bolin/Coverdale
+Love Conquers All,Blackmore, Glover, Turner
+You Can't Do it Right (With the One You Love),D.Coverdale/G.Hughes/Glenn Hughes/R.Blackmore/Ritchie Blackmore
+She Loves Me Not,Bill Gould/Mike Bordin/Mike Patton
+Underwater Love,Faith No More
+Loves Been Good To Me,rod mckuen
+Love Or Confusion,Jimi Hendrix
+May This Be Love,Jimi Hendrix
+Do You Love Me,Paul Stanley, Bob Ezrin, Kim Fowley

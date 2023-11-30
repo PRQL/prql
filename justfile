@@ -30,8 +30,7 @@ prqlc-lint:
 # Test prqlc
 packages := '--package=prqlc-ast --package=prqlc-parser --package=prql-compiler --package=prqlc'
 prqlc-test-fast:
-    # cargo insta test, but allowing multiple --package arguments
-    INSTA_FORCE_PASS=1 cargo test --locked {{packages}}
+    INSTA_FORCE_PASS=1 cargo nextest run {{packages}}
 
     cargo insta review
 
@@ -40,7 +39,7 @@ prqlc-test-fast:
 prqlc-test:
     cargo clippy --all-targets {{packages}} -- -D warnings
 
-    INSTA_FORCE_PASS=1 cargo test --locked
+    INSTA_FORCE_PASS=1 cargo nextest run
 
 prqlc-python-build mode='debug':
     #!/usr/bin/env bash
