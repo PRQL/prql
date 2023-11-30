@@ -2,8 +2,8 @@ use anyhow::{bail, Result};
 use mysql::prelude::Queryable;
 use mysql::Value;
 
-use crate::dbs::Row;
 use super::DbProtocolHandler;
+use crate::dbs::Row;
 
 pub fn init(url: &str) -> Box<dyn DbProtocolHandler> {
     Box::new(mysql::Pool::new(url).unwrap())

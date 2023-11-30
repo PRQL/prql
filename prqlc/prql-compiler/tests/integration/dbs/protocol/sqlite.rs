@@ -1,8 +1,8 @@
 use anyhow::Result;
 use rusqlite::types::ValueRef;
 
-use crate::dbs::Row;
 use super::DbProtocolHandler;
+use crate::dbs::Row;
 
 pub fn init() -> Box<dyn DbProtocolHandler> {
     Box::new(rusqlite::Connection::open_in_memory().unwrap())

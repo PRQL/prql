@@ -1,8 +1,8 @@
 use anyhow::Result;
 use duckdb::types::ValueRef;
 
-use crate::dbs::Row;
 use super::DbProtocolHandler;
+use crate::dbs::Row;
 
 pub fn init() -> Box<dyn DbProtocolHandler> {
     Box::new(duckdb::Connection::open_in_memory().unwrap())

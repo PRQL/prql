@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 use pg_bigdecimal::PgNumeric;
 use postgres::types::Type;
 
-use crate::dbs::Row;
 use super::DbProtocolHandler;
+use crate::dbs::Row;
 
 pub fn init(url: &str) -> Box<dyn DbProtocolHandler> {
     Box::new(postgres::Client::connect(url, postgres::NoTls).unwrap())
