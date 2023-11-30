@@ -1,0 +1,41 @@
+version: "3"
+
+vars:
+  build_dir: "../../../target/python"
+  venv_dir: "../../../target/venv"
+
+tasks:
+  fmt:
+    desc: "Format"
+    cmds:
+      - black .
+      - ruff check
+
+  build:
+    desc: Build
+    vars:
+      mode: "debug"
+    cmds:
+      - cmd: |
+          maturin build \
+            {{if eq .mode "release"}}--release{{end}} \
+            -o {{.build_dir}} \
+            -m Cargo.toml
+
+  init-venv:
+    status:
+      - test -d {{.venv_dir}}
+    cmds:
+      - python -m venv {{.venv_dir}}
+
+  test:
+    desc: A fast test used for feedback during compiler development
+    deps: [init-venv]
+    cmds:
+      - cmd: |
+          source {{.venv_dir}}/bin/activate
+          pip install {{.build_dir}}/prql_python-*.whl
+          pip install -r requirements.txt
+      - cmd: |
+          source {{.venv_dir}}/bin/activate
+          pytest
