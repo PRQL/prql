@@ -39,7 +39,9 @@ prqlc-test-fast:
 prqlc-test:
     cargo clippy --all-targets {{packages}} -- -D warnings
 
-    INSTA_FORCE_PASS=1 cargo nextest run
+    cargo nextest run
+
+    cargo test --features=test-dbs --test=integration -- queries::results
 
 prqlc-python-build mode='debug':
     #!/usr/bin/env bash

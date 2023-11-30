@@ -1,0 +1,15 @@
+[profile.default]
+failure-output = "final"
+
+[test-groups]
+
+# test-dbs runs database setup when the connection is established,
+# and becuase nextest runs test in separate processes, this happens on every test.
+# To prevent mutliple setups running at once, we set max-threads to 1.
+# Ideally, we could run tests in parallel and they would use a locking mechanism to see if
+# the database has already been setup. For now, we can use cargo test instead.
+test-dbs = { max-threads = 1 }
+
+[[profile.default.overrides]]
+filter = 'test(queries::results::)'
+test-group = 'test-dbs'

@@ -1,0 +1,5 @@
+dialect = 'MsSql'
+data_file_root = '/tmp/chinook'
+
+[protocol]
+type = 'mssql'

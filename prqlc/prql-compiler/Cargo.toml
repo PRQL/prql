@@ -14,7 +14,7 @@ metadata.msrv = "1.65.0"
 default = []
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
-test-dbs = ["duckdb", "glob", "rusqlite", "tokio", "insta/glob"]
+test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
 test-dbs-external = ["chrono", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
