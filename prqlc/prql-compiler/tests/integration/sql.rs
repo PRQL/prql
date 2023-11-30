@@ -3785,27 +3785,36 @@ FROM
     )
 }
 
-// for #1969
 #[test]
 fn test_datetime_sqlite() {
-    let query = &r#"
-        from test_table
-        select {date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800}
-        "#;
+    // for #1969
 
-    let opts = Options::default()
-        .no_signature()
-        .with_target(Target::Sql(Some(sql::Dialect::SQLite)));
+    assert_snapshot!(compile(r#"
+    prql target:sql.sqlite
 
-    assert_snapshot!(
-        prql_compiler::compile(query, &opts).unwrap(),
-        @r###"SELECT
-  DATE('2022-12-31') AS date,
-  TIME('08:30') AS time,
-  DATETIME('2020-01-01T13:19:55-08:00') AS timestamp
-FROM
-  test_table
-"###
+    from x
+    select {
+        date = @2022-12-31,
+        time = @08:30,
+        time_tz = @03:05+08:00,
+        time_tz2 = @03:05+0800,
+        timestamp1 = @2020-01-01T13:19:55-0800,
+        timestamp2 = @2021-03-14T03:05+0800,
+        timestamp3 = @2021-03-14T03:05+08:00,
+    }
+    "#).unwrap(),
+        @r###"
+    SELECT
+      DATE('2022-12-31') AS date,
+      TIME('08:30') AS time,
+      TIME('03:05+08:00') AS time_tz,
+      TIME('03:05+08:00') AS time_tz2,
+      DATETIME('2020-01-01T13:19:55-08:00') AS timestamp1,
+      DATETIME('2021-03-14T03:05+08:00') AS timestamp2,
+      DATETIME('2021-03-14T03:05+08:00') AS timestamp3
+    FROM
+      x
+    "###
     );
 }
 
