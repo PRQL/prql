@@ -2933,6 +2933,7 @@ dependencies = [
  "tiberius",
  "tokio",
  "tokio-util",
+ "toml",
 ]
 
 [[package]]

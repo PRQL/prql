@@ -1,8 +1,6 @@
 ---
 source: prqlc/prql-compiler/tests/integration/queries.rs
-description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = ((sum tracks.unit_price)))\nsort album_id\n"
 expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = ((sum tracks.unit_price)))\nsort album_id\n"
-input_file: prqlc/prql-compiler/tests/integration/queries/group_all.prql
 ---
 1,For Those About To Rock We Salute You,9.9
 2,Balls to the Wall,0.99

@@ -1,0 +1,6 @@
+dialect = 'MySql'
+data_file_root = '/tmp/chinook'
+
+[protocol]
+type = 'mysql'
+params.url = 'mysql://root:root@localhost:3306/dummy'

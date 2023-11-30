@@ -1,272 +1,131 @@
 #![cfg(not(target_family = "wasm"))]
 #![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
 
-pub mod connection;
-pub mod connection_external;
+mod protocol;
+mod runner;
 
-use itertools::Itertools;
-use once_cell::sync::Lazy;
+use anyhow::Result;
+use prql_compiler::{sql::Dialect, sql::SupportLevel, Options, Target};
 use regex::Regex;
-use std::fs;
-use tokio::runtime::Runtime;
+use serde::{Deserialize, Serialize};
 
-use prql_compiler::{sql::Dialect, sql::SupportLevel};
-
-use connection::{DbConnection, DbProtocol, Row};
+use self::protocol::{DbProtocol, DbProtocolHandler};
+use self::runner::DbTestRunner;
 
 const LOCAL_CHINOOK_DIR: &str = "tests/integration/data/chinook";
 
-pub trait IntegrationTest {
-    fn should_run_query(&self, prql: &str) -> bool;
-    fn get_connection(&self) -> Option<DbConnection>;
-    // We sometimes want to modify the SQL `INSERT` query (we don't modify the
-    // SQL `SELECT` query)
-    fn import_csv(&mut self, protocol: &mut dyn DbProtocol, csv_path: &str, runtime: &Runtime);
-    fn modify_sql(&self, sql: String) -> String;
+pub type Row = Vec<String>;
+
+pub struct DbConnection {
+    /// Configuration parameters
+    pub cfg: ConnectionCfg,
+
+    /// Protocol handler (the inner connection)
+    pub protocol: Box<dyn DbProtocolHandler>,
+
+    /// Runner that handles DBMS-specific behavior
+    runner: Box<dyn DbTestRunner>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ConnectionCfg {
+    /// Wire protocol to use for connecting to the database
+    pub protocol: DbProtocol,
+
+    /// SQL dialect to be used
+    pub dialect: Dialect,
+
+    /// Path of data file directory within the database container
+    pub data_file_root: String,
 }
 
 impl DbConnection {
-    pub fn setup_connection(&mut self, runtime: &Runtime) {
-        let setup = include_str!("../data/chinook/schema.sql");
-        setup
+    pub fn new(cfg: ConnectionCfg) -> Option<DbConnection> {
+        let protocol = match &cfg.protocol {
+            DbProtocol::DuckDb => protocol::duckdb::init(),
+            DbProtocol::SQLite => protocol::sqlite::init(),
+
+            #[cfg(feature = "test-dbs-external")]
+            DbProtocol::Postgres { url } => protocol::postgres::init(url),
+
+            #[cfg(feature = "test-dbs-external")]
+            DbProtocol::MySql { url } => protocol::mysql::init(url),
+
+            #[cfg(feature = "test-dbs-external")]
+            DbProtocol::MsSql => protocol::mssql::init(),
+
+            #[allow(unreachable_patterns)]
+            _ => return None,
+        };
+
+        let runner: Box<dyn DbTestRunner> = match &cfg.dialect {
+            Dialect::DuckDb => Box::new(runner::DuckDbTestRunner),
+            Dialect::SQLite => Box::new(runner::SQLiteTestRunner),
+            Dialect::Postgres => Box::new(runner::PostgresTestRunner),
+            Dialect::GlareDb => Box::new(runner::GlareDbTestRunner),
+            Dialect::MySql => Box::new(runner::MySqlTestRunner),
+            Dialect::ClickHouse => Box::new(runner::ClickHouseTestRunner),
+            Dialect::MsSql => Box::new(runner::MsSqlTestRunner),
+            _ => return None,
+        };
+
+        Some(DbConnection {
+            cfg,
+            runner,
+            protocol,
+        })
+    }
+
+    pub fn setup(&mut self) {
+        let schema = include_str!("../data/chinook/schema.sql");
+        schema
             .split(';')
             .map(str::trim)
             .filter(|s| !s.is_empty())
+            .map(|s| self.runner.modify_ddl(s.to_string()))
             .for_each(|s| {
-                self.protocol
-                    .run_query(self.dialect.modify_sql(s.to_string()).as_str(), runtime)
-                    .unwrap();
+                self.protocol.query(&s).unwrap();
             });
-        for csv in glob::glob(format!("{}/*.csv", LOCAL_CHINOOK_DIR).as_str()).unwrap() {
-            let csv_path = format!(
-                "{}/{}",
-                self.data_file_root,
-                csv.unwrap().file_name().unwrap().to_str().unwrap()
-            );
-            self.dialect
-                .import_csv(&mut *self.protocol, &csv_path, runtime);
+
+        for file_path in glob::glob(format!("{}/*.csv", LOCAL_CHINOOK_DIR).as_str()).unwrap() {
+            let file_path = file_path.unwrap();
+            let stem = file_path.file_stem().unwrap().to_str().unwrap();
+            let path = format!("{}/{}.csv", self.cfg.data_file_root, stem);
+            self.runner.import_csv(&mut *self.protocol, &path, &stem);
         }
     }
-}
 
-impl IntegrationTest for Dialect {
     // If it's supported, test unless it has `duckdb:skip`. If it's not
     // supported, test only if it has `duckdb:test`.
-    fn should_run_query(&self, prql: &str) -> bool {
-        match self.support_level() {
-            SupportLevel::Supported => {
-                !prql.contains(format!("{}:skip", self.to_string().to_lowercase()).as_str())
-            }
-            SupportLevel::Unsupported => {
-                prql.contains(format!("{}:test", self.to_string().to_lowercase()).as_str())
-            }
+    pub fn should_run_query(&self, prql: &str) -> bool {
+        let dialect = self.cfg.dialect.to_string().to_lowercase();
+
+        match self.cfg.dialect.support_level() {
+            SupportLevel::Supported => !prql.contains(format!("{}:skip", dialect).as_str()),
+            SupportLevel::Unsupported => prql.contains(format!("{}:test", dialect).as_str()),
             SupportLevel::Nascent => false,
         }
     }
 
-    fn get_connection(&self) -> Option<DbConnection> {
-        #[cfg(feature = "test-dbs-external")]
-        let external_db_default_chinook_dir = "/tmp/chinook".to_string();
-        match self {
-            Dialect::DuckDb => Some(DbConnection {
-                dialect: Dialect::DuckDb,
-                protocol: Box::new(duckdb::Connection::open_in_memory().unwrap()),
-                data_file_root: LOCAL_CHINOOK_DIR.to_string(),
-            }),
-            Dialect::SQLite => Some(DbConnection {
-                dialect: Dialect::SQLite,
-                protocol: Box::new(rusqlite::Connection::open_in_memory().unwrap()),
-                data_file_root: LOCAL_CHINOOK_DIR.to_string(),
-            }),
+    pub fn run_query(&mut self, prql: &str) -> Result<Vec<Row>> {
+        // compile to SQL
+        let dialect = self.cfg.dialect;
+        let options = Options::default().with_target(Target::Sql(Some(dialect)));
+        let sql = prql_compiler::compile(&prql, &options)?;
 
-            #[cfg(feature = "test-dbs-external")]
-            Dialect::Postgres => Some(DbConnection {
-                dialect: Dialect::Postgres,
-                protocol: Box::new(
-                    postgres::Client::connect(
-                        "host=localhost user=root password=root dbname=dummy",
-                        postgres::NoTls,
-                    )
-                    .unwrap(),
-                ),
-                data_file_root: external_db_default_chinook_dir,
-            }),
-            #[cfg(feature = "test-dbs-external")]
-            Dialect::GlareDb => Some(DbConnection {
-                dialect: Dialect::GlareDb,
-                protocol: Box::new(
-                    postgres::Client::connect(
-                        "host=localhost user=glaredb dbname=glaredb port=6543",
-                        postgres::NoTls,
-                    )
-                    .unwrap(),
-                ),
-                data_file_root: external_db_default_chinook_dir,
-            }),
-            #[cfg(feature = "test-dbs-external")]
-            Dialect::MySql => Some(DbConnection {
-                dialect: Dialect::MySql,
-                protocol: Box::new(
-                    mysql::Pool::new("mysql://root:root@localhost:3306/dummy").unwrap(),
-                ),
-                data_file_root: external_db_default_chinook_dir,
-            }),
-            #[cfg(feature = "test-dbs-external")]
-            Dialect::ClickHouse => Some(DbConnection {
-                dialect: Dialect::ClickHouse,
-                protocol: Box::new(
-                    mysql::Pool::new("mysql://default:@localhost:9004/dummy").unwrap(),
-                ),
-                data_file_root: "chinook".to_string(),
-            }),
-            #[cfg(feature = "test-dbs-external")]
-            Dialect::MsSql => {
-                use tiberius::{AuthMethod, Client, Config};
-                use tokio::net::TcpStream;
-                use tokio_util::compat::TokioAsyncWriteCompatExt;
+        // execute
+        let mut rows = self.protocol.query(&sql)?;
 
-                let mut config = Config::new();
-                config.host("localhost");
-                config.port(1433);
-                config.trust_cert();
-                config.authentication(AuthMethod::sql_server("sa", "Wordpass123##"));
+        // modify result
+        replace_booleans(&mut rows);
+        remove_trailing_zeros(&mut rows);
 
-                Some(DbConnection {
-                    dialect: Dialect::MsSql,
-                    protocol: Box::new(
-                        RUNTIME
-                            .block_on(async {
-                                let tcp = TcpStream::connect(config.get_addr()).await?;
-                                tcp.set_nodelay(true).unwrap();
-                                Client::connect(config, tcp.compat_write()).await
-                            })
-                            .unwrap(),
-                    ),
-                    data_file_root: external_db_default_chinook_dir,
-                })
-            }
-            _ => None,
-        }
-    }
-    fn import_csv(&mut self, protocol: &mut dyn DbProtocol, csv_path: &str, runtime: &Runtime) {
-        let csv_path_binding = std::path::PathBuf::from(csv_path);
-        let csv_name = csv_path_binding.file_stem().unwrap().to_str().unwrap();
-        match self {
-            Dialect::DuckDb => {
-                protocol
-                    .run_query(
-                        &format!("COPY {csv_name} FROM '{csv_path}' (AUTO_DETECT TRUE);"),
-                        runtime,
-                    )
-                    .unwrap();
-            }
-            Dialect::SQLite => {
-                let mut reader = csv::ReaderBuilder::new()
-                    .has_headers(true)
-                    .from_path(csv_path)
-                    .unwrap();
-                let headers = reader
-                    .headers()
-                    .unwrap()
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>();
-                for result in reader.records() {
-                    let r = result.unwrap();
-                    let q = format!(
-                        "INSERT INTO {csv_name} ({}) VALUES ({})",
-                        headers.iter().join(","),
-                        r.iter()
-                            .map(|s| if s.is_empty() {
-                                "null".to_string()
-                            } else {
-                                format!("\"{}\"", s.replace('"', "\"\""))
-                            })
-                            .join(",")
-                    );
-                    protocol.run_query(q.as_str(), runtime).unwrap();
-                }
-            }
-            Dialect::Postgres => {
-                protocol
-                    .run_query(
-                        &format!("COPY {csv_name} FROM '{csv_path}' DELIMITER ',' CSV HEADER;"),
-                        runtime,
-                    )
-                    .unwrap();
-            }
-            Dialect::GlareDb => {
-                protocol
-                    .run_query(
-                        &format!("INSERT INTO {csv_name} SELECT * FROM '{csv_path}'"),
-                        runtime,
-                    )
-                    .unwrap();
-            }
-            Dialect::MySql => {
-                // hacky hack for MySQL
-                // MySQL needs a special character in csv that means NULL (https://stackoverflow.com/a/2675493)
-                // 1. read the csv
-                // 2. create a copy with the special character
-                // 3. import the data and remove the copy
-                let local_csv_path = format!(
-                    "{}/{}",
-                    LOCAL_CHINOOK_DIR,
-                    csv_path_binding.file_name().unwrap().to_str().unwrap()
-                );
-                let local_old_path = std::path::PathBuf::from(local_csv_path);
-                let mut local_new_path = local_old_path.clone();
-                local_new_path.pop();
-                local_new_path.push(format!("{csv_name}.my.csv").as_str());
-                let mut file_content = fs::read_to_string(local_old_path).unwrap();
-                file_content = file_content.replace(",,", ",\\N,").replace(",\n", ",\\N\n");
-                fs::write(&local_new_path, file_content).unwrap();
-                let query_result = protocol.run_query(
-                    &format!(
-                        "LOAD DATA INFILE '{}' INTO TABLE {csv_name} FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;",
-                        &csv_path_binding.parent().unwrap().join(local_new_path.file_name().unwrap()).to_str().unwrap()
-            ), runtime);
-                fs::remove_file(&local_new_path).unwrap();
-                query_result.unwrap();
-            }
-            Dialect::ClickHouse => {
-                protocol
-                    .run_query(
-                        &format!("INSERT INTO {csv_name} SELECT * FROM file('{csv_path}')"),
-                        runtime,
-                    )
-                    .unwrap();
-            }
-            Dialect::MsSql => {
-                protocol.run_query(&format!("BULK INSERT {csv_name} FROM '{csv_path}' WITH (FIRSTROW = 2, FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', TABLOCK, FORMAT = 'CSV', CODEPAGE = 'RAW');"), runtime).unwrap();
-            }
-            _ => unreachable!(),
-        }
-    }
-    fn modify_sql(&self, sql: String) -> String {
-        match self {
-            Dialect::DuckDb => sql.replace("REAL", "DOUBLE"),
-            Dialect::Postgres => sql.replace("REAL", "DOUBLE PRECISION"),
-            Dialect::GlareDb => sql.replace("REAL", "DOUBLE PRECISION"),
-            Dialect::MySql => sql.replace("TIMESTAMP", "DATETIME"),
-            Dialect::ClickHouse => {
-                let re = Regex::new(r"(?s)\)$").unwrap();
-                re.replace(&sql, r") ENGINE = Memory")
-                    .replace("TIMESTAMP", "DATETIME64")
-                    .replace("REAL", "DOUBLE")
-                    .replace("VARCHAR(255)", "Nullable(String)")
-            }
-            Dialect::MsSql => sql
-                .replace("TIMESTAMP", "DATETIME")
-                .replace("REAL", "FLOAT(53)")
-                .replace(" AS TEXT", " AS VARCHAR"),
-            _ => sql,
-        }
+        Ok(rows)
     }
 }
 
 // some sql dialects use 1 and 0 instead of true and false
-pub fn replace_booleans(rows: &mut Vec<Row>) {
+fn replace_booleans(rows: &mut Vec<Row>) {
     for row in rows {
         for col in row {
             if col == "true" {
@@ -279,7 +138,7 @@ pub fn replace_booleans(rows: &mut Vec<Row>) {
 }
 
 // MySQL may adds 0s to the end of results of `/` operator
-pub fn remove_trailing_zeros(rows: &mut Vec<Row>) {
+fn remove_trailing_zeros(rows: &mut Vec<Row>) {
     let re = Regex::new(r"^(|-)\d+\.\d+0+$").unwrap();
     for row in rows {
         for col in row {
@@ -289,6 +148,3 @@ pub fn remove_trailing_zeros(rows: &mut Vec<Row>) {
         }
     }
 }
-
-pub static RUNTIME: Lazy<Runtime> =
-    Lazy::new(|| Runtime::new().expect("Failed to create global runtime"));

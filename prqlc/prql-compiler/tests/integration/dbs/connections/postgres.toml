@@ -1,0 +1,6 @@
+dialect = 'Postgres'
+data_file_root = '/tmp/chinook'
+
+[protocol]
+type = 'postgres'
+params.url = 'host=localhost user=root password=root dbname=dummy'

@@ -1,8 +1,6 @@
 ---
 source: prqlc/prql-compiler/tests/integration/queries.rs
-description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# mssql:test\nfrom tracks\nselect {album_id, genre_id}\ngroup tracks.* (take 1)\nsort tracks.*\n"
 expression: "# mssql:test\nfrom tracks\nselect {album_id, genre_id}\ngroup tracks.* (take 1)\nsort tracks.*\n"
-input_file: prqlc/prql-compiler/tests/integration/queries/distinct.prql
 ---
 1,1
 2,1

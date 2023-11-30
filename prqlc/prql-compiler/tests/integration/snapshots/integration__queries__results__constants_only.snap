@@ -1,0 +1,14 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "from genres\ntake 10\nfilter true\ntake 20\nfilter true\nselect d = 10\n"
+---
+10
+10
+10
+10
+10
+10
+10
+10
+10
+10
