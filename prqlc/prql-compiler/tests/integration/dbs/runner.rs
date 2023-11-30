@@ -2,7 +2,7 @@ use itertools::Itertools;
 use regex::Regex;
 use std::fs;
 
-use super::{protocol::DbProtocolHandler, LOCAL_CHINOOK_DIR};
+use super::protocol::DbProtocolHandler;
 
 /// Behavior specific to DBMS
 pub trait DbTestRunner: Send {
@@ -105,8 +105,7 @@ impl DbTestRunner for MySqlTestRunner {
 
         let csv_path_binding = std::path::PathBuf::from(csv_path);
         let local_csv_path = format!(
-            "{}/{}",
-            LOCAL_CHINOOK_DIR,
+            "tests/integration/data/chinook/{}",
             csv_path_binding.file_name().unwrap().to_str().unwrap()
         );
         let local_old_path = std::path::PathBuf::from(local_csv_path);

@@ -12,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use self::protocol::{DbProtocol, DbProtocolHandler};
 use self::runner::DbTestRunner;
 
-const LOCAL_CHINOOK_DIR: &str = "tests/integration/data/chinook";
-
 pub type Row = Vec<String>;
 
 pub struct DbConnection {
@@ -42,7 +40,10 @@ pub struct ConnectionCfg {
 impl DbConnection {
     pub fn new(cfg: ConnectionCfg) -> Option<DbConnection> {
         let protocol = match &cfg.protocol {
+            #[cfg(feature = "test-dbs")]
             DbProtocol::DuckDb => protocol::duckdb::init(),
+            
+            #[cfg(feature = "test-dbs")]
             DbProtocol::SQLite => protocol::sqlite::init(),
 
             #[cfg(feature = "test-dbs-external")]
@@ -87,7 +88,7 @@ impl DbConnection {
                 self.protocol.query(&s).unwrap();
             });
 
-        for file_path in glob::glob(format!("{}/*.csv", LOCAL_CHINOOK_DIR).as_str()).unwrap() {
+        for file_path in glob::glob("tests/integration/data/chinook/*.csv").unwrap() {
             let file_path = file_path.unwrap();
             let stem = file_path.file_stem().unwrap().to_str().unwrap();
             let path = format!("{}/{}.csv", self.cfg.data_file_root, stem);
