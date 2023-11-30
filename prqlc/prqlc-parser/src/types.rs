@@ -31,7 +31,11 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = PError> {
                     .repeated()
                     .then_ignore(just(Token::ArrowThin))
                     .then(nested_type_expr.clone().map(Some).map(Box::new))
-                    .map(|(args, return_ty)| TyFunc { args, return_ty })
+                    .map(|(args, return_ty)| TyFunc {
+                        args,
+                        return_ty,
+                        name_hint: None,
+                    })
                     .or_not(),
             )
             .map(TyKind::Function);

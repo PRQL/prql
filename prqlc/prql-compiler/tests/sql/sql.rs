@@ -52,6 +52,23 @@ fn json_of_test() {
 #[test]
 fn test_precedence() {
     assert_display_snapshot!((compile(r###"
+    from artists
+    derive {
+      p1 = a - (b + c), # needs parentheses
+      np1 = a + (b - c), # no parentheses
+      np2 = (a + b) - c, # no parentheses
+    }
+    "###).unwrap()), @r###"
+    SELECT
+      *,
+      a - (b + c) AS p1,
+      a + b - c AS np1,
+      a + b - c AS np2
+    FROM
+      artists
+    "###);
+
+    assert_display_snapshot!((compile(r###"
     from x
     derive {
       temp_c = (temp_f - 32) / 1.8,
@@ -135,12 +152,12 @@ fn test_precedence() {
     "###
     ).unwrap(), @r###"
     SELECT
-      c - a + b,
+      c - (a + b),
       c + a - b,
       c + a - b,
       c + a + b,
       c + a - b,
-      c - d - a - b,
+      c - d - (a - b),
       c + d + a - b,
       a / b * c,
       y - z AS x,
@@ -557,6 +574,7 @@ fn test_intersect() {
 
 #[test]
 fn test_rn_ids_are_unique() {
+    // this is wrong, output will have duplicate y_id and x_id
     assert_display_snapshot!((compile(r###"
     from y_orig
     group {y_id} (
@@ -742,6 +760,7 @@ fn test_sorts_02() {
       "index"
     "###);
 
+    // TODO: this is invalid SQL: a._expr_0 does not exist
     assert_display_snapshot!((compile(r#"
     from a
     join side:left b (==col)
@@ -1168,8 +1187,8 @@ fn test_window_functions_12() {
     "###).unwrap()), @r###"
     WITH table_0 AS (
       SELECT
-        *,
-        LAG(a, 1) OVER () AS b
+        LAG(a, 1) OVER () AS b,
+        *
       FROM
         x
     )
@@ -1202,8 +1221,8 @@ fn test_window_functions_13() {
         tracks
     )
     SELECT
-      *,
       milliseconds - _expr_0 AS grp,
+      *,
       ROW_NUMBER() OVER (PARTITION BY milliseconds - _expr_0) AS count
     FROM
       table_0
@@ -1493,7 +1512,7 @@ fn test_take() {
 }
 
 #[test]
-fn test_distinct() {
+fn test_distinct_01() {
     // window functions cannot materialize into where statement: CTE is needed
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1514,7 +1533,10 @@ fn test_distinct() {
     WHERE
       rn > 2
     "###);
+}
 
+#[test]
+fn test_distinct_02() {
     // basic distinct
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1526,7 +1548,10 @@ fn test_distinct() {
     FROM
       employees
     "###);
+}
 
+#[test]
+fn test_distinct_03() {
     // distinct on two columns
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1539,7 +1564,9 @@ fn test_distinct() {
     FROM
       employees
     "###);
-
+}
+#[test]
+fn test_distinct_04() {
     // We want distinct only over first_name and last_name, so we can't use a
     // `DISTINCT *` here.
     assert_display_snapshot!((compile(r###"
@@ -1560,14 +1587,18 @@ fn test_distinct() {
     WHERE
       _expr_0 <= 1
     "###);
-
+}
+#[test]
+fn test_distinct_05() {
     // Check that a different order doesn't stop distinct from being used.
     assert!(compile(
         "from employees | select {first_name, last_name} | group {last_name, first_name} (take 1)"
     )
     .unwrap()
     .contains("DISTINCT"));
-
+}
+#[test]
+fn test_distinct_06() {
     // head
     assert_display_snapshot!((compile(r###"
     from employees
@@ -1587,7 +1618,9 @@ fn test_distinct() {
     WHERE
       _expr_0 <= 3
     "###);
-
+}
+#[test]
+fn test_distinct_07() {
     assert_display_snapshot!((compile(r###"
     from employees
     group department (sort salary | take 2..3)
@@ -1610,7 +1643,9 @@ fn test_distinct() {
     WHERE
       _expr_0 BETWEEN 2 AND 3
     "###);
-
+}
+#[test]
+fn test_distinct_08() {
     assert_display_snapshot!((compile(r###"
     from employees
     group department (sort salary | take 4..4)
@@ -1633,7 +1668,10 @@ fn test_distinct() {
     WHERE
       _expr_0 = 4
     "###);
+}
 
+#[test]
+fn test_distinct_09() {
     assert_display_snapshot!(compile("
     from invoices
     select {billing_country, billing_city}
@@ -1644,15 +1682,15 @@ fn test_distinct() {
     ").unwrap(), @r###"
     WITH table_0 AS (
       SELECT
-        billing_country,
         billing_city,
+        billing_country,
         ROW_NUMBER() OVER (PARTITION BY billing_city) AS _expr_0
       FROM
         invoices
     )
     SELECT
-      billing_country,
-      billing_city
+      billing_city,
+      billing_country
     FROM
       table_0
     WHERE
@@ -1663,7 +1701,7 @@ fn test_distinct() {
 }
 
 #[test]
-fn test_distinct_on() {
+fn test_distinct_on_01() {
     assert_display_snapshot!((compile(r###"
     prql target:sql.postgres
 
@@ -1673,25 +1711,18 @@ fn test_distinct_on() {
       take 1
     )
     "###).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        *,
-        ROW_NUMBER() OVER (
-          PARTITION BY department
-          ORDER BY
-            age
-        ) AS _expr_0
-      FROM
-        employees
-    )
     SELECT
-      *
+      DISTINCT ON (department) *
     FROM
-      table_0
-    WHERE
-      _expr_0 <= 1
+      employees
+    ORDER BY
+      department,
+      age
     "###);
+}
 
+#[test]
+fn test_distinct_on_02() {
     assert_display_snapshot!((compile(r###"
     prql target:sql.duckdb
 
@@ -1699,21 +1730,61 @@ fn test_distinct_on() {
     select {class, begins}
     group {begins} (take 1)
     "###).unwrap()), @r###"
+    SELECT
+      DISTINCT ON (begins) begins,
+      class
+    FROM
+      x
+    "###);
+}
+
+#[test]
+fn test_distinct_on_03() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from tab1
+    group col1 (
+      take 1
+    )
+    derive foo = 1
+    select foo
+    "###).unwrap()), @r###"
     WITH table_0 AS (
       SELECT
-        class,
-        begins,
-        ROW_NUMBER() OVER (PARTITION BY begins) AS _expr_0
+        DISTINCT ON (col1) NULL
       FROM
-        x
+        tab1
     )
     SELECT
-      class,
-      begins
+      1 AS foo
     FROM
       table_0
-    WHERE
-      _expr_0 <= 1
+    "###);
+}
+
+#[test]
+fn test_distinct_on_04() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.duckdb
+
+    from a
+    join b (b.a_id == a.id)
+    group {a.id} (
+      sort b.x
+      take 1
+    )
+    select {a.id, b.y}
+    "###).unwrap()), @r###"
+    SELECT
+      DISTINCT ON (a.id) a.id,
+      b.y
+    FROM
+      a
+      JOIN b ON b.a_id = a.id
+    ORDER BY
+      a.id,
+      b.x
     "###);
 }
 
@@ -2083,9 +2154,9 @@ take 20
       SELECT
         title,
         country,
-        salary,
         salary + payroll_tax + benefits_cost AS _expr_0,
-        salary + payroll_tax AS _expr_1
+        salary + payroll_tax AS _expr_1,
+        salary
       FROM
         employees
       WHERE
@@ -2941,16 +3012,11 @@ fn test_direct_table_references() {
     select x
     "###,
     )
-    .unwrap_err(), @r###"
-    Error:
-       ╭─[:3:12]
-       │
-     3 │     select x
-       │            ┬
-       │            ╰── table instance cannot be referenced directly
-       │
-       │ Help: did you forget to specify the column name?
-    ───╯
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      x
     "###);
 }
 
@@ -3152,7 +3218,7 @@ fn test_static_analysis() {
     SELECT
       3 AS a,
       false AS b,
-      y,
+      y AS _expr_0,
       CASE
         WHEN 7 = y THEN 3
         ELSE 4
@@ -3206,7 +3272,7 @@ fn test_basic_agg() {
 }
 
 #[test]
-fn test_exclude_columns() {
+fn test_exclude_columns_01() {
     assert_display_snapshot!(compile(r#"
     from tracks
     select {track_id, title, composer, bytes}
@@ -3220,7 +3286,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_02() {
     assert_display_snapshot!(compile(r#"
     from tracks
     select {track_id, title, composer, bytes}
@@ -3238,7 +3307,10 @@ fn test_exclude_columns() {
       bytes
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_03() {
     assert_display_snapshot!(compile(r#"
     from artists
     derive nick = name
@@ -3251,7 +3323,10 @@ fn test_exclude_columns() {
       artists
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_04() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.bigquery
     from tracks
@@ -3266,7 +3341,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_05() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.snowflake
     from tracks
@@ -3279,7 +3357,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_06() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.duckdb
     from tracks
@@ -3292,7 +3373,10 @@ fn test_exclude_columns() {
       tracks
     "###
     );
+}
 
+#[test]
+fn test_exclude_columns_07() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.duckdb
     from s"SELECT * FROM foo"
@@ -3546,7 +3630,7 @@ fn prql_version() {
     "#).unwrap(),@r###"
     SELECT
       *,
-      '0.10.1' AS y
+      '0.10.2' AS y
     FROM
       x
     "###);
@@ -3558,7 +3642,7 @@ fn shortest_prql_version() {
     assert_display_snapshot!(compile(r#"[{version = prql_version}]"#).unwrap(),@r###"
     WITH table_0 AS (
       SELECT
-        '0.10.1' AS version
+        '0.10.2' AS version
     )
     SELECT
       version
@@ -3700,27 +3784,36 @@ FROM
     )
 }
 
-// for #1969
 #[test]
 fn test_datetime_sqlite() {
-    let query = &r#"
-        from test_table
-        select {date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800}
-        "#;
+    // for #1969
 
-    let opts = Options::default()
-        .no_signature()
-        .with_target(Target::Sql(Some(sql::Dialect::SQLite)));
+    assert_snapshot!(compile(r#"
+    prql target:sql.sqlite
 
-    assert_snapshot!(
-        prql_compiler::compile(query, &opts).unwrap(),
-        @r###"SELECT
-  DATE('2022-12-31') AS date,
-  TIME('08:30') AS time,
-  DATETIME('2020-01-01T13:19:55-08:00') AS timestamp
-FROM
-  test_table
-"###
+    from x
+    select {
+        date = @2022-12-31,
+        time = @08:30,
+        time_tz = @03:05+08:00,
+        time_tz2 = @03:05+0800,
+        timestamp1 = @2020-01-01T13:19:55-0800,
+        timestamp2 = @2021-03-14T03:05+0800,
+        timestamp3 = @2021-03-14T03:05+08:00,
+    }
+    "#).unwrap(),
+        @r###"
+    SELECT
+      DATE('2022-12-31') AS date,
+      TIME('08:30') AS time,
+      TIME('03:05+08:00') AS time_tz,
+      TIME('03:05+08:00') AS time_tz2,
+      DATETIME('2020-01-01T13:19:55-08:00') AS timestamp1,
+      DATETIME('2021-03-14T03:05+08:00') AS timestamp2,
+      DATETIME('2021-03-14T03:05+08:00') AS timestamp3
+    FROM
+      x
+    "###
     );
 }
 
@@ -4301,4 +4394,61 @@ fn test_relation_var_name_clashes_02() {
       t
       JOIN t AS table_0 ON t.x = table_0.x
     "###);
+}
+
+#[test]
+#[ignore]
+fn test_select_this() {
+    // Currently broken for a few reasons:
+    // - type of `this` is not resolved as tuple, but an union?
+    // - lineage is not computed correctly
+    assert_display_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    select this
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      a,
+      b
+    FROM
+      x
+    "###);
+}
+
+#[test]
+fn test_group_exclude() {
+    assert_display_snapshot!(compile(
+        r###"
+    from x
+    select {a, b}
+    group {a} (derive c = a + 1)
+        "###,
+    )
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:4:27]
+       │
+     4 │     group {a} (derive c = a + 1)
+       │                           ┬
+       │                           ╰── Unknown name `a`
+    ───╯
+    "###);
+
+    // assert_display_snapshot!(compile(
+    //     r###"
+    // from x
+    // select {a, b}
+    // group {a + 1} (aggregate {sum b})
+    //     "###,
+    // )
+    // .unwrap_err(), @r###"
+    // SELECT
+    //   a,
+    //   b
+    // FROM
+    //   x
+    // "###);
 }

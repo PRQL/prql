@@ -77,7 +77,6 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         alias: expr.alias,
         id: None,
         target_id: None,
-        target_ids: Vec::new(),
         ty: None,
         lineage: None,
         needs_window: false,
@@ -326,7 +325,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         pl::ExprKind::Internal(v) => ExprKind::Internal(v),
 
         // TODO: these are not correct, they are producing invalid PRQL
-        pl::ExprKind::All { within, .. } => ExprKind::Ident(within),
+        pl::ExprKind::All { within, .. } => restrict_expr(*within).kind,
         pl::ExprKind::TransformCall(tc) => ExprKind::Ident(Ident::from_name(format!(
             "({} ...)",
             tc.kind.as_ref().as_ref()
@@ -350,9 +349,7 @@ fn restrict_func_param(value: pl::FuncParam) -> prqlc_ast::FuncParam {
 }
 
 /// Restricts a tuple of form `{start=a, end=b}` into a range `a..b`.
-pub fn try_restrict_range(
-    expr: pl::Expr,
-) -> Result<prqlc_ast::generic::Range<Box<pl::Expr>>, pl::Expr> {
+pub fn try_restrict_range(expr: pl::Expr) -> Result<(pl::Expr, pl::Expr), pl::Expr> {
     let pl::ExprKind::Tuple(fields) = expr.kind else {
         return Err(expr);
     };
@@ -369,14 +366,11 @@ pub fn try_restrict_range(
 
     let [start, end]: [pl::Expr; 2] = fields.try_into().unwrap();
 
-    Ok(prqlc_ast::generic::Range {
-        start: restrict_null_literal(start).map(Box::new),
-        end: restrict_null_literal(end).map(Box::new),
-    })
+    Ok((start, end))
 }
 
 /// Returns None if the Expr is a null literal and Some(expr) otherwise.
-fn restrict_null_literal(expr: pl::Expr) -> Option<pl::Expr> {
+pub fn restrict_null_literal(expr: pl::Expr) -> Option<pl::Expr> {
     if let pl::ExprKind::Literal(Literal::Null) = expr.kind {
         None
     } else {
@@ -464,7 +458,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             ty: table_decl.ty,
         }),
 
-        decl::DeclKind::InstanceOf(ident) => {
+        decl::DeclKind::InstanceOf(ident, _) => {
             new_internal_stmt(name, format!("instance_of.{ident}"))
         }
         decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),

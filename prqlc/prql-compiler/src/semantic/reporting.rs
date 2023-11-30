@@ -76,7 +76,7 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Ty(_) => Color::Green,
                         DeclKind::Column { .. } => Color::Yellow,
-                        DeclKind::InstanceOf(_) => Color::Yellow,
+                        DeclKind::InstanceOf(_, _) => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
                         DeclKind::Module(module) => {
                             self.label_module(module);

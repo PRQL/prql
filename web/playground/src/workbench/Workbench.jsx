@@ -72,6 +72,14 @@ class Workbench extends React.Component {
       this.setState({ prqlError: null });
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     } catch (e) {
+      if (e instanceof WebAssembly.RuntimeError) {
+        this.setState({
+          prqlError:
+            "A compiler bug encountered. Please report this to https://github.com/PRQL/prql/issues/new/choose",
+        });
+        return;
+      }
+
       const errors = JSON.parse(e.message).inner;
       this.setState({ prqlError: errors[0].display });
 
@@ -190,6 +198,7 @@ class Workbench extends React.Component {
           ></Output>
         </div>
 
+        {/* Display an error message relevant to the tab */}
         {this.state.prqlError && (
           <div className="error-pane">{this.state.prqlError}</div>
         )}

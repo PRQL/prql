@@ -247,6 +247,18 @@ tasks:
         cargo build --all-targets -p {{ . }}
         {{ end -}}
 
+  test-rust-api:
+    summary: |
+      Run tests, excluding some internal crates
+    vars:
+      PACKAGES:
+        sh:
+          cargo metadata --format-version=1 | jq -r '.workspace_members[] |
+          split(" ")[0]'
+    cmds:
+      - |
+        cargo test {{ range without (splitLines .PACKAGES) "prqlc-ast" "prqlc-parser" }} -p={{ . }} {{ end }}
+
   test-all:
     desc: Test everything, accepting snapshots.
     summary: |
@@ -382,7 +394,7 @@ tasks:
   build-php:
     - cargo build --package prqlc-clib --release
     - mkdir -p prqlc/bindings/php/lib/
-    - cp target/release/libprqlc.* prqlc/bindings/clib/libprqlc.h
+    - cp target/release/libprqlc_lib.* prqlc/bindings/clib/libprqlc_lib.h
       prqlc/bindings/php/lib/
     - cd prqlc/bindings/php && composer install
 

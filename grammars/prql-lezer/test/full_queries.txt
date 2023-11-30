@@ -1,0 +1,13 @@
+# Website showcasing example
+
+from invoices
+filter invoice_date >= @1970-01-16
+derive {
+  transaction_fees = 0.8,
+  income = total - transaction_fees
+}
+filter income > 1
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Identifier)),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,DateTime))),CallExpression(Identifier,ArgList(TupleExpression(AssignCall(Equals,Float),AssignCall(Equals,BinaryExpression(Identifier,ArithOp,Identifier))))),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Integer)))))

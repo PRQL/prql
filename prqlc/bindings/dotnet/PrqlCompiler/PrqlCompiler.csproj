@@ -26,13 +26,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="libprqlc.dll">
+    <None Update="libprqlc_lib.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="libprqlc.dylib">
+    <None Update="libprqlc_lib.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="libprqlc.so">
+    <None Update="libprqlc_lib.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,63 +1,71 @@
 # == Equals
 
-foo == bar
+filter foo == bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
 # != Not equals
 
-foo != bar
+filter foo != bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
 # >= Greater than
 
-foo >= bar
+filter foo >= bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
 # <= Less than
 
-foo <= bar
+filter foo <= bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
 # ~= Regex match
 
-foo ~= bar
+filter foo ~= bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,CompareOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Identifier)))))
 
 # && And
 
-foo && bar
+filter foo && bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,LogicOp,Identifier)))))
 
 # || Or
 
-foo || bar
+filter foo || bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,LogicOp,Identifier)))))
 
 # ?? Coalesce
 
-foo ?? bar
+filter foo ?? bar
 
 ==>
 
-Query(Pipeline(BinaryExpression(Identifier,LogicOp,Identifier)))
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,LogicOp,Identifier)))))
+
+# Unary operator
+
+sort { -name }
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(UnaryExpression(ArithOp,Identifier))))))

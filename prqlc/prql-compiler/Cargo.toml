@@ -18,21 +18,21 @@ test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
 test-dbs-external = ["chrono", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
-prqlc-ast = {path = "../prqlc-ast", version = "0.10.1" }
-prqlc-parser = {path = "../prqlc-parser", version = "0.10.1" }
+prqlc-ast = {path = "../prqlc-ast", version = "0.10.2" }
+prqlc-parser = {path = "../prqlc-parser", version = "0.10.2" }
 
 anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.75", features = ["backtrace"]}
 ariadne = "0.3.0"
 csv = "1.3.0"
 enum-as-inner = "0.6.0"
-itertools = "0.11.0"
+itertools = "0.12.0"
 log = "0.4.20"
 once_cell = "1.18.0"
 regex = "1.10.2"
 semver = {version = "1.0.20", features = ["serde"]}
 # We could put `serde` behind a feature if we wanted to reduce the size of prql-compiler.
-serde = {version = "1.0.192", features = ["derive"]}
+serde = {version = "1.0.193", features = ["derive"]}
 serde_json = "1.0.108"
 sqlformat = "0.2.2"
 sqlparser = {version = "0.39.0", features = ["serde"]}
@@ -60,6 +60,7 @@ cfg-if = "1.0"
 insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
 similar-asserts = "1.5.0"
 similar = {version = "2.3.0"}
+env_logger = {version = "0.10.1"}
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 criterion = {version = "0.5.1"}

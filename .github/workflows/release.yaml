@@ -1,9 +1,9 @@
 # This workflow runs on tags / releases. It also runs on nightly builds without
 # publishing anything, in order to test as much of the build works as possible.
 #
-# We indicate whether it should publish, vs. just build, by checking if we're on
-# a tag. (An alternative would be to have an input which is passed in by the
-# calling workflow.)
+# We indicate whether it should publish, vs. just build, by checking whether
+# `github.event_name == 'release'` . (An alternative would be to have an input
+# which is passed in by the calling workflow.)
 
 name: release
 on:
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           script: |
@@ -49,6 +49,8 @@ jobs:
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+    permissions:
+      contents: write
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -79,19 +81,37 @@ jobs:
           fork-user: prql-bot
 
   build-deb-package:
-    # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
-    # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    needs: build-prqlc
+    permissions:
+      contents: write
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - name: 👷 Build prql-compiler
-        run: cargo build --release -p prqlc
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: prqlc-${{ matrix.target }}
       - name: Copy files into .deb package
         run: |
+          tar -xf prqlc-*.tar.gz
           mkdir -p .debpkg/usr/bin
-          cp target/release/prqlc .debpkg/usr/bin/prqlc
+          mv prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
+      - name: Set arch variable
+        run: |
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
+            echo "package_arch=arm64" >> "$GITHUB_ENV"
+          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]; then
+            echo "package_arch=amd64" >> "$GITHUB_ENV"
+          else
+            echo "::error::Unknown architecture: ${{ matrix.target }}"
+            exit 1
+          fi
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v3
         with:
@@ -99,26 +119,55 @@ jobs:
           package_root: .debpkg
           maintainer: The PRQL Project
           version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
+          arch: ${{ env.package_arch }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
 
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-deb
+          path: |
+            ./*.deb
+      - name: Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prqlc_*.deb
 
   build-rpm-package:
-    # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          #- aarch64-unknown-linux-musl # https://github.com/jiro4989/build-rpm-action/issues/6
+    needs: build-prqlc
+    permissions:
+      contents: write
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - name: 👷 Build prqlc
-        run: cargo build --bin prqlc --release
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: prqlc-${{ matrix.target }}
       - name: Copy files into .rpm package
         run: |
+          tar -xf prqlc-*.tar.gz
           mkdir -p .rpmpkg/usr/bin
-          cp target/release/prqlc .rpmpkg/usr/bin/prqlc
+          mv prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
+      - name: Set variables
+        run: |
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]; then
+            echo "package_arch=aarch64" >> "$GITHUB_ENV"
+          elif [ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]; then
+            echo "package_arch=x86_64" >> "$GITHUB_ENV"
+          else
+            echo "::error::Unknown architecture: ${{ matrix.target }}"
+          fi
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
         with:
@@ -128,6 +177,7 @@ jobs:
           maintainer: The PRQL Project
           vendor: The PRQL Project
           version: ${{ github.event_name == 'release' && github.ref_name || 0 }}
+          arch: ${{ env.package_arch }}
           desc: >
             prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and
             offers various diagnostics.
@@ -135,6 +185,18 @@ jobs:
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
           license: Apache-2.0
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-rpm
+          path: |
+            ./*.rpm
+            !./*-debuginfo-*.rpm
+      - run: rm prqlc-debuginfo-*.rpm
+      - name: Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prqlc-*.rpm
 
   build-and-publish-snap:
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 const std = @import("std");
 const prql = @cImport({
-    @cInclude("../c/libprqlc.h");
+    @cInclude("../c/libprqlc_lib.h");
 });
 
 pub fn main() !void {

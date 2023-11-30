@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use prqlc_ast::{Ty, TyFunc};
 
-use crate::semantic::resolver::{transforms, types};
+use crate::semantic::resolver::types;
 use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};
 
@@ -89,7 +89,7 @@ impl Resolver<'_> {
                     })
                 }
             } else {
-                let expr = transforms::resolve_special_func(self, closure)?;
+                let expr = self.resolve_special_func(closure, needs_window)?;
                 self.fold_expr(expr)?
             }
         } else {
@@ -319,7 +319,7 @@ impl Resolver<'_> {
                     .as_ref()
                     .map(|n| format!("function {n}, param `{}`", param.name))
             };
-            self.validate_type(&mut arg, param.ty.as_ref(), &who)?;
+            self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
         }
 
         Ok(Ok(arg))
@@ -424,7 +424,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr) {
     (func_env, *closure.body)
 }
 
-fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
+pub fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
     let ty = TyFunc {
         args: func
             .params
@@ -432,7 +432,8 @@ fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
             .skip(func.args.len())
             .map(|a| a.ty.clone())
             .collect(),
-        return_ty: Box::new(func.return_ty.clone()),
+        return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
+        name_hint: func.name_hint.clone(),
     };
 
     Expr {

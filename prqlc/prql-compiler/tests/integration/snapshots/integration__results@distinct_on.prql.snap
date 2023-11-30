@@ -1,7 +1,8 @@
 ---
-source: prql-compiler/tests/integration/main.rs
-expression: "prql target:sql.duckdb\n\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}"
-input_file: prql-compiler/tests/integration/queries/distinct_on.prql
+source: prqlc/prql-compiler/tests/integration/main.rs
+description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
+expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/distinct_on.prql
 ---
 25,2,317
 24,2,346
@@ -41,4 +42,3 @@ input_file: prql-compiler/tests/integration/queries/distinct_on.prql
 1,1,246
 1,2,257
 1,5,265
-

@@ -1,7 +1,7 @@
 ---
-source: prql-compiler/tests/integration/main.rs
-expression: "let genre_count = (\n    from genres\n    aggregate a = count\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
-input_file: prql-compiler/tests/integration/queries/genre_counts.prql
+source: prqlc/prql-compiler/tests/integration/main.rs
+description: "# Running on dialect `sqlite`\n\n# Query:\n---\n# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
+expression: "# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/genre_counts.prql
 ---
 -25
-

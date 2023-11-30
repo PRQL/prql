@@ -10,12 +10,12 @@ welcome.
 
 ## Installation
 
-Make sure that `libprqlc.so` (Linux), `libprqlc.dylib` (macOS) or `libprqlc.dll`
-(Windows) is in your project's `bin` directory together with `PrqlCompiler.dll`
-and the rest of your project's compiled files. I.e.
+Make sure that `libprqlc_lib.so` (Linux), `libprqlc_lib.dylib` (macOS) or
+`libprqlc_lib.dll` (Windows) is in the project's `bin` directory together with
+`PrqlCompiler.dll` and the rest of the project's compiled files. I.e.
 `{your_project}/bin/Debug/net7.0/`.
 
-The `libprqlc` library gets dynamically imported at runtime.
+The `libprqlc_lib` library gets dynamically imported at runtime.
 
 ## Usage
 
@@ -31,7 +31,7 @@ var sql = PrqlCompiler.Compile("from employees", options);
 Console.WriteLine(sql);
 ```
 
-# TODO
+## TODO
 
 This is currently at 0.1.0 because we're waiting to update prqlc-clib for the
 latest API. When we've done that, we can match the version here with the broader

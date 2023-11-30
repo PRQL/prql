@@ -1,17 +1,17 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "let grouping = s\"\"\"\n  SELECT SUM(a)\n  FROM tbl\n  GROUP BY\n    GROUPING SETS\n    ((b, c, d), (d), (b, d))\n\"\"\"\n\nfrom grouping\n"
+expression: "from employees\ntake 50\ninto first_50\n\nfrom first_50\n"
 ---
-WITH table_0 AS (
+WITH first_50 AS (
   SELECT
-    SUM(a)
+    *
   FROM
-    tbl
-  GROUP BY
-    GROUPING SETS ((b, c, d), (d), (b, d))
+    employees
+  LIMIT
+    50
 )
 SELECT
   *
 FROM
-  table_0
+  first_50
 

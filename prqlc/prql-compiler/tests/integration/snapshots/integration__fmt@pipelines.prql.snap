@@ -1,7 +1,7 @@
 ---
-source: prql-compiler/tests/integration/main.rs
-expression: "# skip_mssql (https://github.com/PRQL/prql/issues/2448)\n# skip_mysql (regex not yet implemented)\n# skip_sqlite (regex not yet implemented)\n# booleans cannot be selected directly. instead CASE is needed (https://dba.stackexchange.com/a/2774)\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
-input_file: prql-compiler/tests/integration/queries/pipelines.prql
+source: prqlc/prql-compiler/tests/integration/main.rs
+expression: "# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/pipelines.prql
 ---
 from tracks
 filter name ~= "Love"

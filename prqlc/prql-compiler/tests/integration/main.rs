@@ -23,9 +23,12 @@ fn compile(prql: &str, target: Target) -> Result<String, prql_compiler::ErrorMes
 
 #[test]
 fn test_sql_examples_generic() {
+    env_logger::init();
+
     // We're currently not testing for each dialect, as it's a lot of snapshots.
     // We can consider doing that if helpful.
     glob!("queries/**/*.prql", |path| {
+        log::debug!("testing {path:?}");
         let prql = fs::read_to_string(path).unwrap();
         assert_snapshot!(
             "sql",
@@ -127,7 +130,7 @@ fn test_rdbms() {
             insta::with_settings!({
                 description=>format!("# Running on dialect `{}`\n\n# Query:\n---\n{}", &con.dialect, &prql)
             }, {
-                assert_snapshot!("results", &result);
+                assert_snapshot!("results", &result, &prql);
             })
         }
         }

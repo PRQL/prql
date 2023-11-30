@@ -4,6 +4,7 @@
 // - A few small TODOs included below
 
 @precedence {
+  prefix,
   times @left,
   plus @left,
   compare @left,
@@ -21,24 +22,23 @@ QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
 
 pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
-Pipeline { exprCall (pipe exprCall)* | test }
+Pipeline { CallExpression (pipe CallExpression)* }
 
 pipe { "|" | ~ambigNewline newline }
 
 TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newline* "}" }
 
-tupleItem { AssignCall | exprCall | CaseBranch }
+tupleItem { AssignCall | expression | CallExpression | CaseBranch }
 
-exprCall { expression | CallExpression }
 // Ideally we would force a space after `Identifier` to prevent an invalid s-string
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-CallExpression { Identifier ArgList { (NamedArg | Assign | expression)+ } }
+CallExpression { Identifier ArgList { (NamedArg | Assign | test)+ } }
 
 NamedArg { identPart ":" expression }
 Assign { identPart "=" expression }
-AssignCall { identPart "=" exprCall }
+AssignCall { identPart "=" expression }
 CaseBranch { expression "=>" expression }
 // Possibly we could only accept case branches inside the TupleExpression?
 CaseExpression { @specialize<identPart, "case"> TupleExpression }
@@ -46,6 +46,7 @@ CaseExpression { @specialize<identPart, "case"> TupleExpression }
 NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 
 commaSep<expr> { newline* expr ("," newline* expr newline*)* ","? }
+ArithOp<expr> { expr }
 LogicOp<expr> { expr }
 
 // The name "test" here means equality testing. It is name used in the Python grammar.
@@ -65,6 +66,7 @@ expression[@isGroup=Expression] {
   kw<"this"> | kw<"that"> |
   kw<"null"> |
   BinaryExpression |
+  UnaryExpression |
   ArrayExpression |
   TupleExpression |
   NestedPipeline |
@@ -83,9 +85,11 @@ boolean { @specialize[@name=Boolean]<identPart, "true" | "false"> }
 ArrayExpression { "[" commaSep<test | "*" expression>? "]" }
 
 BinaryExpression {
-  expression !plus ArithOp { "+" | "-" } expression |
-  expression !times ArithOp { "*" | "/" | "%" | "//" } expression
+  expression !plus ArithOp<"+" | "-"> expression |
+  expression !times ArithOp<"*" | "/" | "%" | "//"> expression
 }
+
+UnaryExpression { !prefix ArithOp<"+" | "-"> expression }
 
 // Because this is outside tokens, we can't disallow whitespace.
 // It's outside tokens because otherwise it conflicts with Identifier
@@ -98,7 +102,7 @@ kw<term> { @specialize[@name={term}]<identPart, term> }
 
 VariableDeclaration { kw<"let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
 
-Lambda { LambdaParam* "->" exprCall (newline+ | end) }
+Lambda { LambdaParam* "->" expression (newline+ | end) }
 TypeDefinition { "<" TypeTerm ("|" TypeTerm)* ">" }
 TypeTerm { identPart TypeDefinition? }
 LambdaParam { identPart TypeDefinition? (":" expression)? }

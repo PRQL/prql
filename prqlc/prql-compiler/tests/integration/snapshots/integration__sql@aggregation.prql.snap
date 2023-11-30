@@ -1,7 +1,7 @@
 ---
-source: prql-compiler/tests/integration/main.rs
-expression: "# mssql:skip\n# mysql:skip\n# clickhouse:skip\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, every empty_name, any empty_name}\n"
-input_file: prql-compiler/tests/integration/queries/aggregation.prql
+source: prqlc/prql-compiler/tests/integration/main.rs
+expression: "# mssql:skip\n# mysql:skip\n# clickhouse:skip\n# glaredb:skip (the string_agg function is not supported)\nfrom tracks\nfilter genre_id == 100\nderive empty_name = name == ''\naggregate {sum track_id, concat_array name, all empty_name, any empty_name}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/aggregation.prql
 ---
 SELECT
   COALESCE(SUM(track_id), 0),
