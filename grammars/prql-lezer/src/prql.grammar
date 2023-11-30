@@ -28,17 +28,17 @@ pipe { "|" | ~ambigNewline newline }
 
 TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newline* "}" }
 
-tupleItem { AssignTupleItem | expression | CallExpression | CaseBranch }
+tupleItem { DeclarationTuple | expression | CallExpression | CaseBranch }
 
 // Ideally we would force a space after `Identifier` to prevent an invalid s-string
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
 // can't seem to force a space because it's in our skip, and I can't see
 // a way of changing the skip expression to only specialize on a single item
-CallExpression { Identifier ArgList { (NamedArg | Parameter | test)+ } }
+CallExpression { Identifier ArgList { (NamedArg | Declaration | test)+ } }
 
 NamedArg { ArgumentName { identPart } ":" expression }
-Parameter { ParameterName { identPart } "=" expression }
-AssignTupleItem { PropertyName { identPart } "=" expression }
+Declaration { DeclarationItem { identPart } "=" expression }
+DeclarationTuple { DeclarationItem { identPart } "=" expression }
 CaseBranch { expression "=>" expression }
 // Possibly we could only accept case branches inside the TupleExpression?
 CaseExpression { @specialize<identPart, "case"> TupleExpression }
