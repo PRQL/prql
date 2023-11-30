@@ -21,7 +21,7 @@ test-dbs-external = ["chrono", "duckdb", "glob", "mysql", "pg_bigdecimal", "post
 prqlc-ast = {path = "../prqlc-ast", version = "0.10.2" }
 prqlc-parser = {path = "../prqlc-parser", version = "0.10.2" }
 
-anstream = {version = "0.3.2", features = ["auto"]}
+anstream = {version = "0.5.0", features = ["auto"]}
 anyhow = {version = "1.0.75", features = ["backtrace"]}
 ariadne = "0.3.0"
 csv = "1.3.0"
