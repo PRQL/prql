@@ -58,23 +58,68 @@ mod results {
     use once_cell::sync::Lazy;
     use prql_compiler::sql::SupportLevel;
 
-    use crate::dbs::{ConnectionCfg, DbConnection};
+    use crate::dbs::{ConnectionCfg, DbConnection, DbProtocol};
 
     static CONNECTIONS: Lazy<Mutex<Vec<DbConnection>>> = Lazy::new(init_connections);
 
     fn init_connections() -> Mutex<Vec<DbConnection>> {
-        let con_dir = "./tests/integration/dbs/connections";
+        let configs = [
+            ConnectionCfg {
+                dialect: Dialect::SQLite,
+                data_file_root: "tests/integration/data/chinook".to_string(),
+
+                protocol: DbProtocol::SQLite,
+            },
+            ConnectionCfg {
+                dialect: Dialect::DuckDb,
+                data_file_root: "tests/integration/data/chinook".to_string(),
+
+                protocol: DbProtocol::DuckDb,
+            },
+            ConnectionCfg {
+                dialect: Dialect::Postgres,
+                data_file_root: "/tmp/chinook".to_string(),
+
+                protocol: DbProtocol::Postgres {
+                    url: "host=localhost user=root password=root dbname=dummy".to_string(),
+                },
+            },
+            ConnectionCfg {
+                dialect: Dialect::MySql,
+                data_file_root: "/tmp/chinook".to_string(),
+
+                protocol: DbProtocol::MySql {
+                    url: "mysql://root:root@localhost:3306/dummy".to_string(),
+                },
+            },
+            ConnectionCfg {
+                dialect: Dialect::ClickHouse,
+                data_file_root: "chinook".to_string(),
+
+                protocol: DbProtocol::MySql {
+                    url: "mysql://default:@localhost:9004/dummy".to_string(),
+                },
+            },
+            ConnectionCfg {
+                dialect: Dialect::GlareDb,
+                data_file_root: "/tmp/chinook".to_string(),
+
+                protocol: DbProtocol::Postgres {
+                    url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
+                },
+            },
+            ConnectionCfg {
+                dialect: Dialect::MsSql,
+                data_file_root: "/tmp/chinook".to_string(),
+
+                protocol: DbProtocol::MsSql,
+            },
+        ];
 
         let mut connections = Vec::new();
-        for con_file in fs::read_dir(con_dir).unwrap() {
-            let con_file = con_file.unwrap();
-            let con_toml = fs::read_to_string(con_file.path()).unwrap();
-            let con_cfg: ConnectionCfg = toml::from_str(&con_toml)
-                .context(format!("{con_file:?}"))
-                .unwrap();
-
+        for cfg in configs {
             if !matches!(
-                con_cfg.dialect.support_level(),
+                cfg.dialect.support_level(),
                 SupportLevel::Supported | SupportLevel::Unsupported
             ) {
                 continue;
@@ -83,7 +128,7 @@ mod results {
             // The filtering is not a great design, since it doesn't proactively
             // check that we can get connections; but it's a compromise given we
             // implement the external_dbs feature using this.
-            let Some(mut connection) = DbConnection::new(con_cfg) else {
+            let Some(mut connection) = DbConnection::new(cfg) else {
                 continue;
             };
 

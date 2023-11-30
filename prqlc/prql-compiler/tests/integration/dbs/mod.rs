@@ -9,9 +9,10 @@ use prql_compiler::{sql::Dialect, sql::SupportLevel, Options, Target};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use self::protocol::{DbProtocol, DbProtocolHandler};
+use self::protocol::DbProtocolHandler;
 use self::runner::DbTestRunner;
 
+pub use self::protocol::DbProtocol;
 pub type Row = Vec<String>;
 
 pub struct DbConnection {
@@ -42,7 +43,7 @@ impl DbConnection {
         let protocol = match &cfg.protocol {
             #[cfg(feature = "test-dbs")]
             DbProtocol::DuckDb => protocol::duckdb::init(),
-            
+
             #[cfg(feature = "test-dbs")]
             DbProtocol::SQLite => protocol::sqlite::init(),
 
@@ -92,7 +93,7 @@ impl DbConnection {
             let file_path = file_path.unwrap();
             let stem = file_path.file_stem().unwrap().to_str().unwrap();
             let path = format!("{}/{}.csv", self.cfg.data_file_root, stem);
-            self.runner.import_csv(&mut *self.protocol, &path, &stem);
+            self.runner.import_csv(&mut *self.protocol, &path, stem);
         }
     }
 
@@ -112,7 +113,7 @@ impl DbConnection {
         // compile to SQL
         let dialect = self.cfg.dialect;
         let options = Options::default().with_target(Target::Sql(Some(dialect)));
-        let sql = prql_compiler::compile(&prql, &options)?;
+        let sql = prql_compiler::compile(prql, &options)?;
 
         // execute
         let mut rows = self.protocol.query(&sql)?;
