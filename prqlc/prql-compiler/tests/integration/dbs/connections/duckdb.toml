@@ -1,5 +1,0 @@
-dialect = 'DuckDb'
-data_file_root = 'tests/integration/data/chinook'
-
-[protocol]
-type = 'duckdb'
