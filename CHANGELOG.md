@@ -20,6 +20,8 @@
 
 **Internal changes**:
 
+- Bump `prql-compiler`'s MSRV to 1.70.0 (@eitsupi, #3876)
+
 **New Contributors**:
 
 ## 0.10.1 — 2023-11-14
