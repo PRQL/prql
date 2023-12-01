@@ -76,7 +76,7 @@ class Workbench extends React.Component {
         this.setState({
           prqlError:
             "A compiler bug was encountered. Please copy/paste the PRQL query into a new report at:\n" +
-            "   https://github.com/PRQL/prql/issues/new/choose",
+            "   https://github.com/PRQL/prql/issues/new?template=bug_report.yaml",
         });
         return;
       }
