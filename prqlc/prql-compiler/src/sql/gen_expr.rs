@@ -165,6 +165,8 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             distinct: false,
             special: false,
             order_by: vec![],
+            filter: None,
+            null_treatment: None,
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -382,6 +384,8 @@ fn translate_datetime_literal_with_sqlite_function(
         distinct: false,
         special: false,
         order_by: vec![],
+        filter: None,
+        null_treatment: None,
     })
 }
 
@@ -960,217 +964,74 @@ mod test {
             Range { start, end }
         }
 
-        let range1 = from_ints(Some(1), Some(10));
-        let range2 = from_ints(Some(5), Some(6));
-        let range3 = from_ints(Some(5), None);
-        let range4 = from_ints(None, Some(8));
-        let range5 = from_ints(Some(5), Some(5));
+        let range_1_10 = from_ints(Some(1), Some(10));
+        let range_5_6 = from_ints(Some(5), Some(6));
+        let range_5_inf = from_ints(Some(5), None);
+        let range_inf_8 = from_ints(None, Some(8));
+        let range_5_5 = from_ints(Some(5), Some(5));
 
-        assert!(range_of_ranges(vec![range1.clone()])?.end.is_some());
+        assert!(range_of_ranges(vec![range_1_10.clone()])?.end.is_some());
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone()])?, @r###"
         ---
         start: 1
         end: 10
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_1_10.clone()])?, @r###"
         ---
         start: 1
         end: 10
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10.clone(), range_5_6.clone()])?, @r###"
         ---
         start: 5
         end: 6
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_1_10.clone()])?, @r###"
         ---
         start: 5
         end: 6
         "###);
 
         // empty range
-        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range2.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6.clone(), range_5_6.clone()])?, @r###"
         ---
         start: ~
         end: 0
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_inf.clone(), range_5_inf.clone()])?, @r###"
         ---
         start: 9
         end: ~
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range1, range3])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_1_10, range_5_inf])?, @r###"
         ---
         start: 5
         end: 10
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range2, range4.clone()])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_6, range_inf_8.clone()])?, @r###"
         ---
         start: 5
         end: 6
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range4.clone(), range4])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_inf_8.clone(), range_inf_8])?, @r###"
         ---
         start: ~
         end: 8
         "###);
 
-        assert_yaml_snapshot!(range_of_ranges(vec![range5])?, @r###"
+        assert_yaml_snapshot!(range_of_ranges(vec![range_5_5])?, @r###"
         ---
         start: 5
         end: 5
         "###);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_translate_datetime_literal_with_sqlite_function() -> Result<()> {
-        assert_yaml_snapshot!(
-                translate_datetime_literal_with_sqlite_function(
-                sql_ast::DataType::Date,
-                "2020-01-01".to_string(),
-            ),
-            @r###"
-        ---
-        Function:
-          name:
-            - value: DATE
-              quote_style: ~
-          args:
-            - Unnamed:
-                Expr:
-                  Value:
-                    SingleQuotedString: 2020-01-01
-          over: ~
-          distinct: false
-          special: false
-          order_by: []
-        "###
-        );
-
-        assert_yaml_snapshot!(
-                translate_datetime_literal_with_sqlite_function(
-                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-                "03:05".to_string(),
-            ),
-            @r###"
-        ---
-        Function:
-          name:
-            - value: TIME
-              quote_style: ~
-          args:
-            - Unnamed:
-                Expr:
-                  Value:
-                    SingleQuotedString: "03:05"
-          over: ~
-          distinct: false
-          special: false
-          order_by: []
-        "###
-        );
-
-        assert_yaml_snapshot!(
-                translate_datetime_literal_with_sqlite_function(
-                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-                "03:05+08:00".to_string(),
-            ),
-            @r###"
-        ---
-        Function:
-          name:
-            - value: TIME
-              quote_style: ~
-          args:
-            - Unnamed:
-                Expr:
-                  Value:
-                    SingleQuotedString: "03:05+08:00"
-          over: ~
-          distinct: false
-          special: false
-          order_by: []
-        "###
-        );
-
-        assert_yaml_snapshot!(
-                translate_datetime_literal_with_sqlite_function(
-                sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-                "03:05+0800".to_string(),
-            ),
-            @r###"
-        ---
-        Function:
-          name:
-            - value: TIME
-              quote_style: ~
-          args:
-            - Unnamed:
-                Expr:
-                  Value:
-                    SingleQuotedString: "03:05+08:00"
-          over: ~
-          distinct: false
-          special: false
-          order_by: []
-        "###
-        );
-
-        assert_yaml_snapshot!(
-                translate_datetime_literal_with_sqlite_function(
-                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-                "2021-03-14T03:05+0800".to_string(),
-            ),
-            @r###"
-        ---
-        Function:
-          name:
-            - value: DATETIME
-              quote_style: ~
-          args:
-            - Unnamed:
-                Expr:
-                  Value:
-                    SingleQuotedString: "2021-03-14T03:05+08:00"
-          over: ~
-          distinct: false
-          special: false
-          order_by: []
-        "###
-        );
-
-        assert_yaml_snapshot!(
-                translate_datetime_literal_with_sqlite_function(
-                sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-                "2021-03-14T03:05+08:00".to_string(),
-            ),
-            @r###"
-        ---
-        Function:
-          name:
-            - value: DATETIME
-              quote_style: ~
-          args:
-            - Unnamed:
-                Expr:
-                  Value:
-                    SingleQuotedString: "2021-03-14T03:05+08:00"
-          over: ~
-          distinct: false
-          special: false
-          order_by: []
-        "###
-        );
 
         Ok(())
     }

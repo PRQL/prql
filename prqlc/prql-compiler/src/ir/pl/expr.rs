@@ -7,8 +7,6 @@ use serde::{Deserialize, Serialize};
 use prqlc_ast::expr::generic;
 use prqlc_ast::{Ident, Literal, Span, Ty};
 
-pub use prqlc_ast::expr::{BinOp, UnOp};
-
 use crate::codegen::write_ty;
 
 use super::{Lineage, TransformCall};

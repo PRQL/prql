@@ -513,6 +513,7 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
         offset: None,
         fetch: None,
         locks: Vec::new(),
+        limit_by: Vec::new(),
     }
 }
 

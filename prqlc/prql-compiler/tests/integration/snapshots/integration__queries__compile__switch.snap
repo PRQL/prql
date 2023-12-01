@@ -1,0 +1,27 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# glaredb:skip (May be a bag of String type conversion for Postgres Client)\n# mssql:test\nfrom tracks\nsort milliseconds\nselect display = case [\n    composer != null => composer,\n    genre_id < 17 => 'no composer',\n    true => f'unknown composer'\n]\ntake 10\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/switch.prql
+---
+WITH table_0 AS (
+  SELECT
+    CASE
+      WHEN composer IS NOT NULL THEN composer
+      WHEN genre_id < 17 THEN 'no composer'
+      ELSE 'unknown composer'
+    END AS display,
+    milliseconds
+  FROM
+    tracks
+  ORDER BY
+    milliseconds
+  LIMIT
+    10
+)
+SELECT
+  display
+FROM
+  table_0
+ORDER BY
+  milliseconds
+

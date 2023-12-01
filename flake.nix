@@ -19,10 +19,13 @@
           clang
 
           # tools
+          cargo-nextest
           bacon
           cargo-audit
           cargo-insta
           cargo-release
+          pkg-config
+          openssl
 
           # actions
           just
