@@ -15,7 +15,7 @@ metadata.msrv = "1.70.0"
 name = "prqlc"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-anstream = {version = "0.3.2", features = ["auto"]}
+anstream = {version = "0.6.4", features = ["auto"]}
 anyhow = {version = "1.0.75"}
 ariadne = "0.3.0"
 # Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
