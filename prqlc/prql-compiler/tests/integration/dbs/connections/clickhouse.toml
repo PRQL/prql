@@ -1,6 +1,0 @@
-dialect = 'ClickHouse'
-data_file_root = 'chinook'
-
-[protocol]
-type = 'mysql'
-params.url = 'mysql://default:@localhost:9004/dummy'

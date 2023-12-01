@@ -1,5 +1,0 @@
-dialect = 'SQLite'
-data_file_root = 'tests/integration/data/chinook'
-
-[protocol]
-type = 'sqlite'

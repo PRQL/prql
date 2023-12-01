@@ -1,6 +1,0 @@
-dialect = "GlareDb"
-data_file_root = "/tmp/chinook"
-
-[protocol]
-type = 'postgres'
-params.url = "host=localhost user=glaredb dbname=glaredb port=6543"
