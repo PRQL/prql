@@ -62,7 +62,7 @@ tasks:
           --test=integration -- queries::results
 
   pull-request:
-    desc: All checks that run within GH actions for a pull request
+    desc: Most checks that run within GH actions for a pull request
     cmds:
       - task: fmt
       - task: test
