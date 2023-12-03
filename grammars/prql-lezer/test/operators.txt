@@ -62,10 +62,18 @@ filter foo ?? bar
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,LogicOp,Identifier)))))
 
-# Unary operator
+# Unary operator -
 
 sort { -name }
 
 ==>
 
 Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(UnaryExpression(ArithOp,Identifier))))))
+
+# Unary operator ==
+
+filter ==customer_id
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(UnaryExpression(CompareOp,Identifier)))))
