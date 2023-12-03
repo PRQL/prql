@@ -850,7 +850,22 @@ fn test_in_values() {
       employees
     WHERE
       title IN ('Sales Manager', 'Sales Support Agent')
-      AND first_name IN (1, 2, 5)
+      AND employee_id IN (1, 2, 5)
+    "#);
+}
+
+#[test]
+fn test_not_in_values() {
+    assert_display_snapshot!((compile(r#"
+    from employees
+    filter !(title | in ["Sales Manager", "Sales Support Agent"])
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      NOT title IN ('Sales Manager', 'Sales Support Agent')
     "#);
 }
 
