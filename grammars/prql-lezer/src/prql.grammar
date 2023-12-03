@@ -193,6 +193,6 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   @precedence { FString, RString, SString, identPart }
 }
 
-//@external propSource prqlHighlight from "./highlight"
+@external propSource prqlHighlight from "./highlight"
 
 @detectDelim
