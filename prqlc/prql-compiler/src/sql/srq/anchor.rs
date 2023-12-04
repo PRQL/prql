@@ -566,8 +566,8 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
         rq::ExprKind::ColumnRef(_)
         | rq::ExprKind::Literal(_)
         | rq::ExprKind::SString(_)
-        | rq::ExprKind::Param(_) => Complexity::Plain,
-        rq::ExprKind::Array(_) => panic!("unsupported expr kind: array"),
+        | rq::ExprKind::Param(_)
+        | rq::ExprKind::Array(_) => Complexity::Plain,
     }
 }
 

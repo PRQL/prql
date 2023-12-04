@@ -90,9 +90,7 @@ fn array_instead_of_tuple() {
        │
      3 │     select [e.first_name, e.last_name]
        │            ─────────────┬─────────────
-       │                         ╰─────────────── unexpected `[this.e.first_name, this.e.last_name]`
-       │
-       │ Help: this is probably a 'bad type' error (we are working on that)
+       │                         ╰─────────────── unexpected array of values (not supported here)
     ───╯
     "###);
 }

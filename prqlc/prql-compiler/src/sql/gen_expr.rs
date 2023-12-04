@@ -14,7 +14,7 @@ use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
-use crate::{Error, Span, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 use prqlc_ast::expr::generic::{InterpolateItem, Range};
 
 use super::gen_projection::try_into_exprs;
@@ -117,7 +117,13 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
             }
             super::operators::translate_operator_expr(expr, ctx)?
         }
-        ExprKind::Array(_) => panic!("unsupported expr kind: array"),
+        ExprKind::Array(_) => {
+            return Err(Error::new(Reason::Unexpected {
+                found: "array of values (not supported here)".to_string(),
+            })
+            .with_span(expr.span)
+            .into());
+        }
     })
 }
 
