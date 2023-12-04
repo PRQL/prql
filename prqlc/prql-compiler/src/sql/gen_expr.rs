@@ -117,6 +117,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
             }
             super::operators::translate_operator_expr(expr, ctx)?
         }
+        ExprKind::Array(_) => panic!("unsupported expr kind: array"),
     })
 }
 
@@ -149,18 +150,23 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 
 /// Translates into IN (v1, v2, ...) if possible
 fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
-    let col_expr = args.first().expect("The column expr is always prepended");
-    let expr = Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast());
-    let list: Vec<sql_ast::Expr> = args
-        .iter()
-        .skip(1) // skip the column expr
-        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
-        .collect::<Result<Vec<_>>>()?;
-    Ok(sql_ast::Expr::InList {
-        expr,
-        list,
-        negated: false,
-    })
+    match args {
+        [col_expr @ Expr {
+            kind: ExprKind::ColumnRef(_),
+            ..
+        }, Expr {
+            kind: ExprKind::Array(in_values),
+            ..
+        }] => Ok(sql_ast::Expr::InList {
+            expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+            list: in_values
+                .iter()
+                .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                .collect::<Result<Vec<sql_ast::Expr>>>()?,
+            negated: false,
+        }),
+        _ => panic!("args to `std.array_in` must be a column ref and an array"),
+    }
 }
 
 fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
