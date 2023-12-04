@@ -238,6 +238,7 @@ impl Resolver<'_> {
 
                 let [pattern, value] = unpack::<2>(func.args);
 
+                // TODO: instead of unpacking the array, compile it to rq::ExprKind::Array
                 if let ExprKind::Array(in_values) = pattern.kind {
                     let mut col_and_values: Vec<Expr> = Vec::with_capacity(in_values.len() + 1);
                     col_and_values.push(value);
