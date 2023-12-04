@@ -8,6 +8,8 @@
 
 **Features**:
 
+- The filter `std.in` now supports a list of values (@PrettyWood, #3883)
+
 **Fixes**:
 
 - Fix an issue with arithmetic precedence (@max-sixty, #3846)
@@ -23,6 +25,8 @@
 - Bump `prql-compiler`'s MSRV to 1.70.0 (@eitsupi, #3876)
 
 **New Contributors**:
+
+- @PrettyWood, with #3883
 
 ## 0.10.1 — 2023-11-14
 
