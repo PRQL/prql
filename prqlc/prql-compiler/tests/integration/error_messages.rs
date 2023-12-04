@@ -102,6 +102,24 @@ fn test_errors() {
 }
 
 #[test]
+fn array_instead_of_tuple() {
+    // Particularly given this used to be our syntax, this could be clearer
+    // (though we do say so in the message, which is friendly!)
+    assert_display_snapshot!(compile(r###"
+    from e=employees
+    select [e.first_name, e.last_name]
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:12]
+       │
+     3 │     select [e.first_name, e.last_name]
+       │            ─────────────┬─────────────
+       │                         ╰─────────────── unexpected array of values (not supported here)
+    ───╯
+    "###);
+}
+
+#[test]
 fn test_union_all_sqlite() {
     // TODO: `SQLiteDialect` would be better as `sql.sqlite` or `sqlite`.
     assert_display_snapshot!(compile(r###"
