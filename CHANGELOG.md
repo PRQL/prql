@@ -8,7 +8,7 @@
 
 **Features**:
 
-- The filter `std.in` now supports a list of values (@PrettyWood, #3883)
+- The `std.in` function now supports a list of values (@PrettyWood, #3883)
 
 **Fixes**:
 
