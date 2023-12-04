@@ -13,7 +13,7 @@ jobs:
       - name: 🏗 Build prqlc-clib
         run: cargo build --package prqlc-clib
       - name: 🔧 Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 7
       - name: 🧪 Build and test
