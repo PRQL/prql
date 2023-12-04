@@ -103,8 +103,6 @@ fn test_errors() {
 
 #[test]
 fn array_instead_of_tuple() {
-    // Particularly given this used to be our syntax, this could be clearer
-    // (though we do say so in the message, which is friendly!)
     assert_display_snapshot!(compile(r###"
     from e=employees
     select [e.first_name, e.last_name]
