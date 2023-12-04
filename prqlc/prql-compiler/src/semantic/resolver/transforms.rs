@@ -238,11 +238,13 @@ impl Resolver<'_> {
 
                 let [pattern, value] = unpack::<2>(func.args);
 
-                if let ExprKind::Array(mut in_values) = pattern.kind {
-                    in_values.insert(0, value);
+                if let ExprKind::Array(in_values) = pattern.kind {
+                    let mut col_and_values: Vec<Expr> = Vec::with_capacity(in_values.len() + 1);
+                    col_and_values.push(value);
+                    col_and_values.extend(in_values);
                     return Ok(Expr::new(ExprKind::RqOperator {
                         name: "std.in".to_string(),
-                        args: in_values.clone(),
+                        args: col_and_values,
                     }));
                 }
 
