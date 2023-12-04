@@ -149,7 +149,7 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
 
 /// Translates into IN (v1, v2, ...) if possible
 fn process_in_values(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
-    let col_expr = args.first().expect("The column expr is always preprended");
+    let col_expr = args.first().expect("The column expr is always prepended");
     let expr = Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast());
     let list: Vec<sql_ast::Expr> = args
         .iter()
