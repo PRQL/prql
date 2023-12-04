@@ -103,6 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                     }
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
+                "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr.into()),
                     None => {
@@ -144,6 +145,22 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
     } else {
         unreachable!()
     }
+}
+
+/// Translates into IN (v1, v2, ...) if possible
+fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+    let col_expr = args.first().expect("The column expr is always prepended");
+    let expr = Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast());
+    let list: Vec<sql_ast::Expr> = args
+        .iter()
+        .skip(1) // skip the column expr
+        .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(sql_ast::Expr::InList {
+        expr,
+        list,
+        negated: false,
+    })
 }
 
 fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
