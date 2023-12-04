@@ -244,7 +244,7 @@ impl Resolver<'_> {
                     col_and_values.push(value);
                     col_and_values.extend(in_values);
                     return Ok(Expr::new(ExprKind::RqOperator {
-                        name: "std.in".to_string(),
+                        name: "std.array_in".to_string(),
                         args: col_and_values,
                     }));
                 }
