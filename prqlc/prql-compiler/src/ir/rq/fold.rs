@@ -230,6 +230,9 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
         ExprKind::Param(id) => ExprKind::Param(id),
 
         ExprKind::Literal(_) => kind,
+        ExprKind::Array(exprs) => {
+            ExprKind::Array(exprs.into_iter().map(|e| fold.fold_expr(e)).try_collect()?)
+        }
     })
 }
 

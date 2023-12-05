@@ -38,6 +38,8 @@ pub enum ExprKind {
 
     /// Placeholder for expressions provided after compilation.
     Param(String),
+
+    Array(Vec<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

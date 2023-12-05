@@ -882,10 +882,14 @@ impl Lowerer {
                 );
             }
 
-            pl::ExprKind::FuncCall(_)
-            | pl::ExprKind::Array(_)
-            | pl::ExprKind::Func(_)
-            | pl::ExprKind::TransformCall(_) => {
+            pl::ExprKind::Array(exprs) => rq::ExprKind::Array(
+                exprs
+                    .into_iter()
+                    .map(|x| self.lower_expr(x))
+                    .try_collect()?,
+            ),
+
+            pl::ExprKind::FuncCall(_) | pl::ExprKind::Func(_) | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {expr:?}");
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("`{}`", write_pl(expr.clone())),
