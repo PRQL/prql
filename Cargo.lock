@@ -73,9 +73,9 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "ansi-to-html"
-version = "0.1.3"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7bd918cc0ff933f0e6cf48a8f74584818ea43e07d1fba1f9251bb3df2a37ca2"
+checksum = "d73c455ae09fa2223a75114789f30ad605e9e297f79537953523366c05995f5f"
 dependencies = [
  "regex",
  "thiserror",
