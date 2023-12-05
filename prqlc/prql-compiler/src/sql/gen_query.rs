@@ -514,6 +514,7 @@ fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
         fetch: None,
         locks: Vec::new(),
         limit_by: Vec::new(),
+        for_clause: None,
     }
 }
 
