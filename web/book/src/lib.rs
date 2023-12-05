@@ -116,7 +116,7 @@ fn replace_examples(text: &str) -> Result<String> {
                         "Query was labeled to raise an error, but succeeded.\n{prql}\n\n{sql}\n\n"
                     )
                 }
-                Err(e) => ansi_to_html::convert_escaped(e.to_string().as_str()).unwrap(),
+                Err(e) => ansi_to_html::convert(e.to_string().as_str()).unwrap(),
             };
 
             cmark_acc.push(Event::Html(table_of_error(&prql, &error_message).into()))
