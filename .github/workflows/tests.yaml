@@ -272,7 +272,7 @@ jobs:
           # cache, since we're out of cache space and this workflow takes 1.5GB.
           shared-key: rust-x86_64-apple-darwin-test-dbs
           save-if: false
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install Task
