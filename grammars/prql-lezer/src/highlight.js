@@ -14,7 +14,7 @@ export const prqlHighlight = styleTags({
   Float: t.float,
   DateTime: t.color,
   DeclarationItem: t.propertyName,
-  TypeTerm: t.typeName,
+  TypeName: t.typeName,
   Escape: t.escape,
   String: t.string,
   FString: t.special(t.string),
