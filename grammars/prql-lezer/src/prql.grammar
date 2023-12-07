@@ -47,6 +47,7 @@ NestedPipeline { "(" newline* Pipeline ~ambigNewline newline? ")" }
 
 commaSep<expr> { newline* expr ("," newline* expr newline*)* ","? }
 ArithOp<expr> { expr }
+CompareOp<expr> { expr }
 LogicOp<expr> { expr }
 
 // The name "test" here means equality testing. It is name used in the Python grammar.
@@ -57,7 +58,7 @@ testInner { binaryTest | unaryTest | expression }
 binaryTest[@name="BinaryExpression"] {
   testInner !or LogicOp<"||" | "??"> testInner |
   testInner !and LogicOp<"&&"> testInner |
-  testInner !compare (CompareOp | kw<"in">) testInner
+  testInner !compare (CompareOp<"==" | "!=" | "~=" | ">=" | "<=" | ">" | "<"> | kw<"in">) testInner
 }
 
 unaryTest[@name="UnaryExpression"] { kw<"!"> testInner }
@@ -93,7 +94,10 @@ BinaryExpression {
 
 ParenthesizedExpression { "(" expression ")" }
 
-UnaryExpression { !prefix ArithOp<"+" | "-"> expression }
+UnaryExpression {
+  !prefix ArithOp<"+" | "-"> expression |
+  !prefix CompareOp<"=="> Identifier
+}
 
 // Because this is outside tokens, we can't disallow whitespace.
 // It's outside tokens because otherwise it conflicts with Identifier
@@ -122,7 +126,6 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
 }
 
 @tokens {
-  CompareOp { "==" | "!=" | "~=" | ">=" | "<=" | ">" | "<" }
   date { @digit+ "-" @digit+ "-" @digit+ }
   time { @digit+ ":" @digit+ (":" @digit+ ("." @digit+)?)? }
   // We can't seem to set the number of digits, so this will allow any

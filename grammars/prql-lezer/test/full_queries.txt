@@ -7,7 +7,20 @@ derive {
   income = total - transaction_fees
 }
 filter income > 1
+group customer_id (
+  aggregate {
+    average total
+  }
+)
+sort {-sum_income}
+take 10
+join c=customers (==customer_id)
+derive name = f"{c.last_name}, {c.first_name}"
+select {
+  c.customer_id, name, sum_income
+}
+derive db_version = s"version()"
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(Identifier)),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,DateTime))),CallExpression(Identifier,ArgList(TupleExpression(DeclarationTuple(DeclarationItem,Equals,Float),DeclarationTuple(DeclarationItem,Equals,BinaryExpression(Identifier,ArithOp,Identifier))))),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Integer)))))
+Query(Pipeline(CallExpression(Identifier,ArgList(Identifier)),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,DateTime))),CallExpression(Identifier,ArgList(TupleExpression(DeclarationTuple(DeclarationItem,Equals,Float),DeclarationTuple(DeclarationItem,Equals,BinaryExpression(Identifier,ArithOp,Identifier))))),CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Integer))),CallExpression(Identifier,ArgList(Identifier,NestedPipeline(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(CallExpression(Identifier,ArgList(Identifier))))))))),CallExpression(Identifier,ArgList(TupleExpression(UnaryExpression(ArithOp,Identifier)))),CallExpression(Identifier,ArgList(Integer)),CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,Identifier),ParenthesizedExpression(UnaryExpression(CompareOp,Identifier)))),CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,FString))),CallExpression(Identifier,ArgList(TupleExpression(Identifier,Identifier,Identifier))),CallExpression(Identifier,ArgList(Declaration(DeclarationItem,Equals,SString)))))
