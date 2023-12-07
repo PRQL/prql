@@ -57,6 +57,7 @@
     - [Take](./reference/stdlib/transforms/take.md)
     - [Window](./reference/stdlib/transforms/window.md)
 
+  - [Compute](./reference/stdlib/compute/README.md)
   - [Aggregation functions]()
 
 - [Specification](./reference/spec/README.md)
