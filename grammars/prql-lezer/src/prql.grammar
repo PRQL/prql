@@ -104,8 +104,8 @@ kw<term> { @specialize[@name={term}]<identPart, term> }
 VariableDeclaration { kw<"let"> VariableName "=" (NestedPipeline (newline+ | end) | Lambda) }
 
 Lambda { LambdaParam* "->" expression (newline+ | end) }
-TypeDefinition { "<" TypeTerm ("|" TypeTerm)* ">" }
-TypeTerm { identPart TypeDefinition? }
+TypeDefinition { "<" TypeName ("|" TypeName)* ">" }
+TypeName { identPart TypeDefinition? }
 LambdaParam { identPart TypeDefinition? (":" expression)? }
 
 @skip {} {
