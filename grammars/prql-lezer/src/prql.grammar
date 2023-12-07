@@ -74,6 +74,7 @@ expression[@isGroup=Expression] {
   CaseExpression |
   DateTime |
   Parameter |
+  ParenthesizedExpression |
   RangeExpression |
   Identifier |
   boolean |
@@ -90,6 +91,8 @@ BinaryExpression {
   expression !plus ArithOp<"+" | "-"> expression |
   expression !times ArithOp<"*" | "/" | "%" | "//"> expression
 }
+
+ParenthesizedExpression { "(" expression ")" }
 
 UnaryExpression {
   !prefix ArithOp<"+" | "-"> expression |

@@ -112,6 +112,14 @@ filter id == $1
 
 Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Parameter)))))
 
+# Parenthesized expression
+
+filter (1)
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(ParenthesizedExpression(Integer)))))
+
 # Simple pipeline
 
 from foo | select bar
