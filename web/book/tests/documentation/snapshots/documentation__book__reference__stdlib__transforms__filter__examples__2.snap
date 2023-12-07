@@ -1,11 +1,11 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nfilter (age | in 25..40)\n"
+expression: "from employees\nfilter (department | in [\"IT\", \"HR\"])\n"
 ---
 SELECT
   *
 FROM
   employees
 WHERE
-  age BETWEEN 25 AND 40
+  department IN ('IT', 'HR')
 
