@@ -27,7 +27,3 @@ filter (department | in ["IT", "HR"])
 from employees
 filter (age | in 25..40)
 ```
-
-```admonish note
-You can also use `in` operator to [declare variables or functions](../compute)
-```
