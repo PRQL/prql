@@ -72,6 +72,7 @@ expression[@isGroup=Expression] {
   NestedPipeline |
   CaseExpression |
   DateTime |
+  Parameter |
   RangeExpression |
   Identifier |
   boolean |
@@ -145,6 +146,8 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   Escape {
     "\\" ("x" hex hex | "u" "{" hex+ "}" | $[bfnrt])
   }
+
+  Parameter { "$" (@digit+ | identPart) }
 
   stringContentSingle { ![\\']+ }
 

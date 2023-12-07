@@ -25,6 +25,7 @@ export const prqlHighlight = styleTags({
   CompareOp: t.compareOperator,
   LogicOp: t.logicOperator,
   Equals: t.definitionOperator,
+  Parameter: t.processingInstruction,
   VariableName: t.variableName,
   "( )": t.paren,
   "[ ]": t.squareBracket,
