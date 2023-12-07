@@ -72,8 +72,8 @@ Query(Pipeline(CallExpression(Identifier,ArgList(TupleExpression(UnaryExpression
 
 # Unary operator ==
 
-filter ==customer_id
+join customers (==customer_id)
 
 ==>
 
-Query(Pipeline(CallExpression(Identifier,ArgList(UnaryExpression(CompareOp,Identifier)))))
+Query(Pipeline(CallExpression(Identifier,ArgList(Identifier,ParenthesizedExpression(UnaryExpression(CompareOp,Identifier))))))
