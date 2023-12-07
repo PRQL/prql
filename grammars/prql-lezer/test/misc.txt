@@ -102,7 +102,15 @@ let my_func = arg1<int32> -> arg1
 
 ==>
 
-Query(VariableDeclaration(let,VariableName,Equals,Lambda(LambdaParam(TypeDefinition(TypeTerm)),Identifier)))
+Query(VariableDeclaration(let,VariableName,Equals,Lambda(LambdaParam(TypeDefinition(TypeName)),Identifier)))
+
+# Parameter
+
+filter id == $1
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(BinaryExpression(Identifier,CompareOp,Parameter)))))
 
 # Simple pipeline
 

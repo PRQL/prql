@@ -14,7 +14,7 @@ use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
-use crate::{Error, Span, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 use prqlc_ast::expr::generic::{InterpolateItem, Range};
 
 use super::gen_projection::try_into_exprs;
@@ -103,6 +103,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                     }
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
+                "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr.into()),
                     None => {
@@ -115,6 +116,13 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                 },
             }
             super::operators::translate_operator_expr(expr, ctx)?
+        }
+        ExprKind::Array(_) => {
+            return Err(Error::new(Reason::Unexpected {
+                found: "array of values (not supported here)".to_string(),
+            })
+            .with_span(expr.span)
+            .into());
         }
     })
 }
@@ -143,6 +151,27 @@ fn process_null(name: &str, args: &[Expr], ctx: &mut Context) -> Result<sql_ast:
         Ok(sql_ast::Expr::IsNotNull(expr))
     } else {
         unreachable!()
+    }
+}
+
+/// Translates into IN (v1, v2, ...) if possible
+fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
+    match args {
+        [col_expr @ Expr {
+            kind: ExprKind::ColumnRef(_),
+            ..
+        }, Expr {
+            kind: ExprKind::Array(in_values),
+            ..
+        }] => Ok(sql_ast::Expr::InList {
+            expr: Box::new(translate_expr(col_expr.clone(), ctx)?.into_ast()),
+            list: in_values
+                .iter()
+                .map(|a| Ok(translate_expr(a.clone(), ctx)?.into_ast()))
+                .collect::<Result<Vec<sql_ast::Expr>>>()?,
+            negated: false,
+        }),
+        _ => panic!("args to `std.array_in` must be a column ref and an array"),
     }
 }
 

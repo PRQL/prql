@@ -14,6 +14,11 @@
 
 version: "3"
 
+includes:
+  prqlc:
+    taskfile: ./prqlc
+    dir: ./prqlc
+
 vars:
   # Keep in sync with .vscode/extensions.json
   vscode_extensions: |

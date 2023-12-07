@@ -1,0 +1,68 @@
+version: "3"
+
+includes:
+  bindings-python:
+    taskfile: ./bindings/python
+    dir: ./bindings/python
+
+vars:
+  packages_core: -p prqlc-ast -p prqlc-parser -p prql-compiler -p prqlc
+  packages_addon: -p prql-compiler-macros -p compile-files
+  packages_bindings:
+    -p prql -p prql-java -p prql-js -p prqlc-clib -p prql-python
+
+tasks:
+  fmt:
+    desc: Format prqlc source files
+    cmds:
+      - cmd: |
+          # remove trailing whitespace
+          rg '\s+$' --files-with-matches --glob '!*.rs' . \
+          | xargs -I _ sh -c "echo Removing trailing whitespace from _ && sd '[\t ]+$' '' _"
+
+      - cmd: |
+          # rustfmt
+          cargo fmt {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
+
+      - cmd: |
+          # no dbg
+          rg 'dbg!' --glob '*.rs' . --no-heading
+        ignore_error: true
+
+      - cmd: |
+          prettier --write . \
+          --config=../.prettierrc.yaml \
+          --ignore-path=../.prettierignore \
+          --ignore-unknown \
+          --log-level=warn
+
+  test-fast:
+    desc: A fast test used for feedback during compiler development
+    cmds:
+      - cmd: |
+          INSTA_FORCE_PASS=1 cargo nextest run {{.packages_core}} --no-fail-fast
+
+      - cmd: cargo insta review
+
+      - cmd: cargo clippy --all-targets {{.packages_core}}
+
+  test:
+    desc: A full test of prqlc
+    cmds:
+      - cmd:
+          cargo nextest run {{.packages_core}} {{.packages_addon}}
+          {{.packages_bindings}}
+
+      - cmd:
+          cargo clippy --all-targets {{.packages_core}} {{.packages_addon}}
+          {{.packages_bindings}} -- -D warnings
+
+      - cmd:
+          cargo test --package prql-compiler --features=test-dbs
+          --test=integration -- queries::results
+
+  pull-request:
+    desc: Most checks that run within GH actions for a pull request
+    cmds:
+      - task: fmt
+      - task: test

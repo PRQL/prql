@@ -238,6 +238,13 @@ impl Resolver<'_> {
 
                 let [pattern, value] = unpack::<2>(func.args);
 
+                if let ExprKind::Array(in_values) = pattern.kind {
+                    return Ok(Expr::new(ExprKind::RqOperator {
+                        name: "std.array_in".to_string(),
+                        args: vec![value, Expr::new(ExprKind::Array(in_values))],
+                    }));
+                }
+
                 let pattern = match try_restrict_range(pattern) {
                     Ok((start, end)) => {
                         let start = restrict_null_literal(start);

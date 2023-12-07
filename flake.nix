@@ -28,7 +28,7 @@
           openssl
 
           # actions
-          just
+          go-task
           sd
           ripgrep
           nodePackages.prettier
@@ -57,9 +57,12 @@
         bindings = with pkgs; [
           # compiler bindings
           python311
+          maturin
+          ruff
+          black
+
           wasm-bindgen-cli
           wasm-pack
-          maturin
         ];
       in
       {

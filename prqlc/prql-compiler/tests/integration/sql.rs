@@ -820,19 +820,53 @@ fn test_ranges() {
     assert_display_snapshot!((compile(r###"
     from employees
     derive {
-      close = (distance | in 0..100),
+      close = (distance | in ..50),
+      middle = (distance | in 50..100),
       far = (distance | in 100..),
       country_founding | in @1776-07-04..@1787-09-17
     }
     "###).unwrap()), @r###"
     SELECT
       *,
-      distance BETWEEN 0 AND 100 AS close,
+      distance <= 50 AS close,
+      distance BETWEEN 50 AND 100 AS middle,
       distance >= 100 AS far,
       country_founding BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     FROM
       employees
     "###);
+}
+
+#[test]
+fn test_in_values() {
+    assert_display_snapshot!((compile(r#"
+    from employees
+    filter (title | in ["Sales Manager", "Sales Support Agent"])
+    filter (employee_id | in [1, 2, 5])
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      title IN ('Sales Manager', 'Sales Support Agent')
+      AND employee_id IN (1, 2, 5)
+    "#);
+}
+
+#[test]
+fn test_not_in_values() {
+    assert_display_snapshot!((compile(r#"
+    from employees
+    filter !(title | in ["Sales Manager", "Sales Support Agent"])
+    "#).unwrap()), @r#"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      NOT title IN ('Sales Manager', 'Sales Support Agent')
+    "#);
 }
 
 #[test]

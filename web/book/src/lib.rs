@@ -116,7 +116,7 @@ fn replace_examples(text: &str) -> Result<String> {
                         "Query was labeled to raise an error, but succeeded.\n{prql}\n\n{sql}\n\n"
                     )
                 }
-                Err(e) => ansi_to_html::convert_escaped(e.to_string().as_str()).unwrap(),
+                Err(e) => ansi_to_html::convert(e.to_string().as_str()).unwrap(),
             };
 
             cmark_acc.push(Event::Html(table_of_error(&prql, &error_message).into()))
@@ -299,7 +299,7 @@ this is an error
     <div>
     <h4>Error</h4>
 
-    <pre><code class="hljs language-undefined"><span style='color:#a00'>Error:</span>
+    <pre><code class="hljs language-undefined"><span style='color:var(--red,#a00)'>Error:</span>
        <span style='color:#949494'>╭─[</span>:1:1<span style='color:#949494'>]</span>
        <span style='color:#949494'>│</span>
      <span style='color:#949494'>1 │</span> this<span style='color:#b2b2b2'> is an error</span>

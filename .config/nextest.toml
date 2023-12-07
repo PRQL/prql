@@ -1,15 +1,25 @@
 [profile.default]
 failure-output = "final"
+slow-timeout = { period = "500ms", terminate-after = 4 }
+fail-fast = false
 
-[test-groups]
+[[profile.default.overrides]]
+filter = 'test(prql-compiler::queries::results::)'
+test-group = 'test-dbs'
+slow-timeout = { period = "2s", terminate-after = 4 }
 
+[test-groups.test-dbs]
 # test-dbs runs database setup when the connection is established,
 # and becuase nextest runs test in separate processes, this happens on every test.
 # To prevent mutliple setups running at once, we set max-threads to 1.
 # Ideally, we could run tests in parallel and they would use a locking mechanism to see if
 # the database has already been setup. For now, we can use cargo test instead.
-test-dbs = { max-threads = 1 }
+max-threads = 1
 
 [[profile.default.overrides]]
-filter = 'test(queries::results::)'
-test-group = 'test-dbs'
+filter = 'package(mdbook-prql)'
+test-group = 'docs-mdbook'
+slow-timeout = { period = "4s", terminate-after = 2 }
+
+[test-groups.docs-mdbook]
+max-threads = 'num-cpus'
