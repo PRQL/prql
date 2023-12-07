@@ -1,0 +1,23 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "let is_adult = col -> col >= 18\nlet writes_code = col -> (col | in [\"PRQL\", \"Rust\"])\n\nfrom employees\nselect {\n    first_name,\n    last_name,\n    hobby,\n    adult = is_adult age,\n}\nfilter (writes_code hobby)\n"
+---
+WITH table_0 AS (
+  SELECT
+    first_name,
+    last_name,
+    hobby,
+    age >= 18 AS adult
+  FROM
+    employees
+)
+SELECT
+  first_name,
+  last_name,
+  hobby,
+  adult
+FROM
+  table_0
+WHERE
+  hobby IN ('PRQL', 'Rust')
+
