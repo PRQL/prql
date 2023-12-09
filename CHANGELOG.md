@@ -9,6 +9,8 @@
 **Features**:
 
 - The `std.in` function now supports a list of values (@PrettyWood, #3883)
+- Most standard mathematical functions are now supported: `abs`, `floor`, `ceil`, `pi`, `exp`, `ln`, `log10`, `log`, `sqrt`, `degrees`, `radians`, `cos`, `acos`, `sin`, `asin`, `tan`, `atan` and `pow`.<br/>Note: `pow` can be written with the new `**` operator.
+(@PrettyWood, #3909)
 
 **Fixes**:
 
