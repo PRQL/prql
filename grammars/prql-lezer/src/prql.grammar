@@ -16,7 +16,7 @@
 
 @skip { space | Comment | Docblock | wrappedLine }
 
-statements { newline* QueryDefinition? VariableDeclaration* pipelineStatement? end }
+statements { newline* QueryDefinition? Annotation? VariableDeclaration* pipelineStatement? end }
 
 QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
 
@@ -29,6 +29,8 @@ pipe { "|" | ~ambigNewline newline }
 TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newline* "}" }
 
 tupleItem { DeclarationTuple | expression | CallExpression | CaseBranch }
+
+Annotation { "@{" commaSep<Declaration>? "}" }
 
 // Ideally we would force a space after `Identifier` to prevent an invalid s-string
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we

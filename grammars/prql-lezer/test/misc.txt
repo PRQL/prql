@@ -38,6 +38,14 @@ filter that
 
 Query(Pipeline(CallExpression(Identifier,ArgList(that))))
 
+# Annotation
+
+@{binding_strength=1}
+
+==>
+
+Query(Annotation(Declaration(DeclarationItem,Equals,Integer)))
+
 # Range: 10..20
 
 filter 10..20
