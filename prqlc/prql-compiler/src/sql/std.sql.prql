@@ -60,6 +60,34 @@ let rank_dense = -> s"DENSE_RANK()"
 
 let row_number = -> s"ROW_NUMBER()"
 
+# Mathematical functions
+# Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions
+# DuckDB: https://duckdb.org/docs/test/functions/math.html
+# MySQL: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_truncate
+# Postgres: https://www.postgresql.org/docs/7.4/functions-math.html
+# SQLite: https://www.sqlite.org/lang_mathfunc.html
+# MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/mathematical-functions-transact-sql
+# BigQuery: https://cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions
+# Snowflake: https://docs.snowflake.com/en/sql-reference/functions-math.html
+let abs = column -> s"ABS({column:0})"
+let floor = column -> s"FLOOR({column:0})"
+let ceil = column -> s"CEIL({column:0})"
+let pi = -> s"PI()"
+let exp = column -> s"EXP({column:0})"
+let ln = column -> s"LN({column:0})"
+let log10 = column -> s"LOG10({column:0})"
+let log = base column -> s"LOG10({column:0}) / LOG10({base:0})"
+let sqrt = column -> s"SQRT({column:0})"
+let degrees = column -> s"DEGREES({column:0})"
+let radians = column -> s"RADIANS({column:0})"
+let cos = column -> s"COS({column:0})"
+let acos = column -> s"ACOS({column:0})"
+let sin = column -> s"SIN({column:0})"
+let asin = column -> s"ASIN({column:0})"
+let tan = column -> s"TAN({column:0})"
+let atan = column -> s"ATAN({column:0})"
+let pow = column exponent -> s"POW({column:0}, {exponent:0})"  # TODO: create an operator for that (** or ^ ?)
+
 # Other functions
 let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 let as = `type` column -> s"CAST({column:0} AS {type:0})"
@@ -134,6 +162,11 @@ module bigquery {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r})"
 
+  # Mathematical functions
+  # BigQuery: https://cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions
+  let degrees = column -> s"({column:0} * 180 / PI())"
+  let radians = column -> s"({column:0} * PI() / 180)"
+
   let regex_search = text pattern -> s"REGEXP_CONTAINS({text:0}, {pattern:0})"
 }
 
@@ -167,6 +200,12 @@ module duckdb {
 module mssql {
   @{binding_strength=11}
   let div_f = l r -> s"({l} * 1.0 / {r})"
+
+  # Mathematical functions
+  # https://learn.microsoft.com/en-us/sql/t-sql/functions/mathematical-functions-transact-sql
+  let ceil = column -> s"CEILING({column:0})"
+  let ln = column -> s"LOG({column:0})"
+  let pow = column exponent -> s"POWER({column:0}, {exponent:0})"
 
   let regex_search = text pattern -> null
 }
