@@ -39,6 +39,58 @@ fn test_stdlib() {
 }
 
 #[test]
+fn test_stdlib_math() {
+    assert_snapshot!(compile(r#"
+    from employees
+    select {
+      salary_abs = abs salary,
+      salary_floor = floor salary,
+      salary_ceil = ceil salary,
+      salary_pi = -> pi,
+      salary_exp = exp salary,
+      salary_ln = ln salary,
+      salary_log10 = log10 salary,
+      salary_log = log 2 salary,
+      salary_sqrt = sqrt salary,
+      salary_degrees = degrees salary,
+      salary_radians = radians salary,
+      salary_cos = cos salary,
+      salary_acos = acos salary,
+      salary_sin = sin salary,
+      salary_asin = asin salary,
+      salary_tan = tan salary,
+      salary_atan = atan salary,
+      salary_pow1 = salary ** 2,
+      salary_pow2 = pow salary 2,
+    }
+    "#).unwrap(), @r#"
+    SELECT
+      ABS(salary) AS salary_abs,
+      FLOOR(salary) AS salary_floor,
+      CEIL(salary) AS salary_ceil,
+      PI() AS salary_pi,
+      EXP(salary) AS salary_exp,
+      LN(salary) AS salary_ln,
+      LOG10(salary) AS salary_log10,
+      LOG10(salary) / LOG10(2) AS salary_log,
+      SQRT(salary) AS salary_sqrt,
+      DEGREES(salary) AS salary_degrees,
+      RADIANS(salary) AS salary_radians,
+      COS(salary) AS salary_cos,
+      ACOS(salary) AS salary_acos,
+      SIN(salary) AS salary_sin,
+      ASIN(salary) AS salary_asin,
+      TAN(salary) AS salary_tan,
+      ATAN(salary) AS salary_atan,
+      POW(salary, 2) AS salary_pow1,
+      POW(salary, 2) AS salary_pow2
+    FROM
+      employees
+    "#
+    );
+}
+
+#[test]
 fn json_of_test() {
     let json = prql_compiler::prql_to_pl("from employees | take 10")
         .and_then(prql_compiler::json::from_pl)
