@@ -26,7 +26,7 @@ operations and for function calls (see the discussion below.)
 | identifier dot | `.`                         |     1      |               |
 |          unary | `-` `+` `!` `==`            |     2      |               |
 |          range | `..`                        |     3      |               |
-|            mul | `*` `/` `//` `%`            |     4      | left-to-right |
+|            mul | `*` `/` `//` `%` `**`       |     4      | left-to-right |
 |            add | `+` `-`                     |     5      | left-to-right |
 |        compare | `==` `!=` `<=` `>=` `<` `>` |     6      | left-to-right |
 |       coalesce | `??`                        |     7      | left-to-right |

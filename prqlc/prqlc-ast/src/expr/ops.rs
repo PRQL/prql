@@ -44,6 +44,8 @@ pub enum BinOp {
     DivFloat,
     #[strum(to_string = "%")]
     Mod,
+    #[strum(to_string = "**")]
+    Pow,
     #[strum(to_string = "+")]
     Add,
     #[strum(to_string = "-")]

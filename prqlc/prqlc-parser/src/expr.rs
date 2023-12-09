@@ -390,6 +390,7 @@ fn operator_mul() -> impl Parser<Token, BinOp, Error = PError> {
         .or(just(Token::DivInt).to(BinOp::DivInt))
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
+        .or(just(Token::Pow).to(BinOp::Pow))
 }
 fn operator_add() -> impl Parser<Token, BinOp, Error = PError> {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
