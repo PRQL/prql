@@ -193,6 +193,8 @@ pub fn expr() -> impl Parser<Token, Expr, Error = PError> + Clone {
 
         // Binary operators
         let expr = term;
+        // TODO: for `operator_pow` we need to do right-associative parsing
+        // let expr = binary_op_parser_right(expr, operator_pow());
         let expr = binary_op_parser(expr, operator_mul());
         let expr = binary_op_parser(expr, operator_add());
         let expr = binary_op_parser(expr, operator_compare());
@@ -385,9 +387,11 @@ fn operator_unary() -> impl Parser<Token, UnOp, Error = PError> {
         .or(ctrl('!').to(UnOp::Not))
         .or(just(Token::Eq).to(UnOp::EqSelf))
 }
+// fn operator_pow() -> impl Parser<Token, BinOp, Error = PError> {
+//     just(Token::Pow).to(BinOp::Pow)
+// }
 fn operator_mul() -> impl Parser<Token, BinOp, Error = PError> {
     (just(Token::DivInt).to(BinOp::DivInt))
-        .or(just(Token::Pow).to(BinOp::Pow))
         .or(ctrl('*').to(BinOp::Mul))
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
