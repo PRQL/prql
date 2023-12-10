@@ -32,8 +32,8 @@ operations and for function calls (see the discussion below.)
 |        compare | `==` `!=` `<=` `>=` `<` `>` |     7      | left-to-right |
 |       coalesce | `??`                        |     8      | left-to-right |
 |            and | `&&`                        |     9      | left-to-right |
-|             or | <code>\|\|</code>           |    10      | left-to-right |
-|  function call |                             |    11      |               |
+|             or | <code>\|\|</code>           |     10     | left-to-right |
+|  function call |                             |     11     |               |
 
 ## Division and integer division
 
