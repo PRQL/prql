@@ -180,6 +180,7 @@ fn expand_binary(BinaryExpr { op, left, right }: BinaryExpr) -> Result<pl::ExprK
         BinOp::DivInt => ["std", "div_i"],
         BinOp::DivFloat => ["std", "div_f"],
         BinOp::Mod => ["std", "mod"],
+        BinOp::Pow => ["std", "pow"],
         BinOp::Add => ["std", "add"],
         BinOp::Sub => ["std", "sub"],
         BinOp::Eq => ["std", "eq"],

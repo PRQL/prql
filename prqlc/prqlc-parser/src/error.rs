@@ -175,6 +175,7 @@ impl std::fmt::Display for DisplayToken<'_> {
             Token::Or => f.write_str("||"),
             Token::Coalesce => f.write_str("??"),
             Token::DivInt => f.write_str("//"),
+            Token::Pow => f.write_str("**"),
             Token::Annotate => f.write_str("@{"),
 
             Token::Param(id) => write!(f, "${id}"),

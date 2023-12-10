@@ -24,13 +24,13 @@ const def = {
   keywords: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS, ...LITERALS],
 
   operators: [
+    "+",
     "-",
     "*",
     "/",
     "//",
     "%",
-    "+",
-    "-",
+    // "**",
     "==",
     "!=",
     "->",
