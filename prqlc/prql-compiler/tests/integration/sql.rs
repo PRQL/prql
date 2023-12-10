@@ -1,10 +1,21 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 use insta::{assert_display_snapshot, assert_snapshot};
 use prql_compiler::{sql, ErrorMessages, Options, SourceTree, Target};
+use rstest::rstest;
 
 pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
     anstream::ColorChoice::Never.write_global();
     prql_compiler::compile(prql, &Options::default().no_signature())
+}
+
+fn compile_with_sql_dialect(prql: &str, dialect: sql::Dialect) -> Result<String, ErrorMessages> {
+    anstream::ColorChoice::Never.write_global();
+    prql_compiler::compile(
+        prql,
+        &Options::default()
+            .no_signature()
+            .with_target(Target::Sql(Some(dialect))),
+    )
 }
 
 #[test]
@@ -166,13 +177,34 @@ fn test_stdlib_string() {
       CHAR_LENGTH(name) AS name_length,
       SUBSTRING(name, 3, 5) AS name_substring,
       REPLACE(name, 'pika', 'chu') AS name_replace,
-      (name) LIKE CONCAT(('pika'), '%') AS name_starts_with,
-      (name) LIKE CONCAT('%', ('pika'), '%') AS name_contains,
-      (name) LIKE CONCAT('%', ('pika')) AS name_ends_with
+      name LIKE CONCAT('pika', '%') AS name_starts_with,
+      name LIKE CONCAT('%', 'pika', '%') AS name_contains,
+      name LIKE CONCAT('%', 'pika') AS name_ends_with
     FROM
       employees
     "#
     );
+}
+
+#[rstest]
+#[case::generic(sql::Dialect::Generic, "LIKE CONCAT('%', 'pika', '%')")]
+#[case::sqlite(sql::Dialect::SQLite, "LIKE '%' || 'pika' || '%'")] // `CONCAT` is not supported in SQLite
+fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static str) {
+    let query = r#"
+    from employees
+    select {
+      name_ends_with = name | str.contains "pika",
+    }
+    "#;
+    let expected = format!(
+        r#"
+    SELECT
+      name {expected_like} AS name_ends_with
+    FROM
+      employees
+    "#
+    );
+    assert_snapshot!(compile_with_sql_dialect(query, dialect).unwrap(), expected)
 }
 
 #[test]

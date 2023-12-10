@@ -1,0 +1,10 @@
+---
+source: prqlc/prql-compiler/tests/integration/sql.rs
+expression: expected
+---
+
+    SELECT
+      name LIKE '%' || 'pika' || '%' AS name_ends_with
+    FROM
+      employees
+    

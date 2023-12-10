@@ -112,9 +112,9 @@ module str {
   let length = column -> s"CHAR_LENGTH({column:0})"
   let substring = offset length column -> s"SUBSTRING({column:0}, {offset:0}, {length:0})"
   let replace = pattern replacement column -> s"REPLACE({column:0}, {pattern:0}, {replacement:0})"
-  let starts_with = prefix column -> s"{column} LIKE CONCAT({prefix}, '%')"
-  let contains = substr column -> s"{column} LIKE CONCAT('%', {substr}, '%')"
-  let ends_with = suffix column -> s"{column} LIKE CONCAT('%', {suffix})"
+  let starts_with = prefix column -> s"{column:0} LIKE CONCAT({prefix:0}, '%')"
+  let contains = substr column -> s"{column:0} LIKE CONCAT('%', {substr:0}, '%')"
+  let ends_with = suffix column -> s"{column:0} LIKE CONCAT('%', {suffix:0})"
 }
 
 # Source-reading functions, primarily for DuckDB
@@ -314,6 +314,14 @@ module sqlite {
 
   @{binding_strength=100}
   let div_i = l r -> s"ROUND(ABS({l:11} / {r:11}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
+
+  # String functions
+  module str {
+    # SQLite: https://www.sqlite.org/lang_corefunc.html
+    let starts_with = prefix column -> s"{column:0} LIKE {prefix:0} || '%'"
+    let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
+    let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:0}"
+  }
 
   @{binding_strength=9}
   let regex_search = text pattern -> s"{text} REGEXP {pattern}"
