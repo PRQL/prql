@@ -205,7 +205,7 @@ module mssql {
   # https://learn.microsoft.com/en-us/sql/t-sql/functions/mathematical-functions-transact-sql
   let ceil = column -> s"CEILING({column:0})"
   let ln = column -> s"LOG({column:0})"
-  let pow = column exponent -> s"POWER({column:0}, {exponent:0})"
+  let pow = exponent column -> s"POWER({column:0}, {exponent:0})"
 
   let regex_search = text pattern -> null
 }
