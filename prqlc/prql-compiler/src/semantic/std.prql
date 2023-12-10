@@ -195,7 +195,7 @@ let sin = column -> <int || float> internal std.sin
 let asin = column -> <int || float> internal std.asin
 let tan = column -> <int || float> internal std.tan
 let atan = column -> <int || float> internal std.atan
-let pow = column exponent<int || float> -> <int || float> internal std.pow
+let pow = exponent<int || float> column -> <int || float> internal std.pow
 
 ## Misc functions
 let round = n_digits column -> <scalar> internal std.round

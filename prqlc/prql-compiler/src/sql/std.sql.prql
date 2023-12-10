@@ -86,7 +86,7 @@ let sin = column -> s"SIN({column:0})"
 let asin = column -> s"ASIN({column:0})"
 let tan = column -> s"TAN({column:0})"
 let atan = column -> s"ATAN({column:0})"
-let pow = column exponent -> s"POW({column:0}, {exponent:0})"
+let pow = exponent column -> s"POW({column:0}, {exponent:0})"
 
 # Other functions
 let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"

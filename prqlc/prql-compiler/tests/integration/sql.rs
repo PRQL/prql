@@ -60,7 +60,7 @@ fn test_stdlib_math() {
       salary_asin = asin salary,
       salary_tan = tan salary,
       salary_atan = atan salary,
-      salary_pow = pow salary 2,
+      salary_pow = salary | pow 2,
     }
     "#).unwrap(), @r#"
     SELECT
