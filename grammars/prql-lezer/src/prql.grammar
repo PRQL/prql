@@ -163,7 +163,7 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   Comment { "#" ![\n]* }
   @precedence { Docblock, Comment }
 
-  //op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
+  //op_bin_only { "*" | "/" | "//" | "%" | "**" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
   //op_unary { "-" | "+" | "==" }
   end { @eof }
   lineWrap { "\\" }

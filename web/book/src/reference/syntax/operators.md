@@ -26,13 +26,14 @@ operations and for function calls (see the discussion below.)
 | identifier dot | `.`                         |     1      |               |
 |          unary | `-` `+` `!` `==`            |     2      |               |
 |          range | `..`                        |     3      |               |
-|            mul | `*` `/` `//` `%` `**`       |     4      | left-to-right |
-|            add | `+` `-`                     |     5      | left-to-right |
-|        compare | `==` `!=` `<=` `>=` `<` `>` |     6      | left-to-right |
-|       coalesce | `??`                        |     7      | left-to-right |
-|            and | `&&`                        |     8      | left-to-right |
-|             or | <code>\|\|</code>           |     9      | left-to-right |
-|  function call |                             |     10     |               |
+|            pow | `**`                        |     4      |               |
+|            mul | `*` `/` `//` `%`            |     5      | left-to-right |
+|            add | `+` `-`                     |     6      | left-to-right |
+|        compare | `==` `!=` `<=` `>=` `<` `>` |     7      | left-to-right |
+|       coalesce | `??`                        |     8      | left-to-right |
+|            and | `&&`                        |     9      | left-to-right |
+|             or | <code>\|\|</code>           |    10      | left-to-right |
+|  function call |                             |    11      |               |
 
 ## Division and integer division
 

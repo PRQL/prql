@@ -386,11 +386,11 @@ fn operator_unary() -> impl Parser<Token, UnOp, Error = PError> {
         .or(just(Token::Eq).to(UnOp::EqSelf))
 }
 fn operator_mul() -> impl Parser<Token, BinOp, Error = PError> {
-    (ctrl('*').to(BinOp::Mul))
-        .or(just(Token::DivInt).to(BinOp::DivInt))
+    (just(Token::DivInt).to(BinOp::DivInt))
+        .or(just(Token::Pow).to(BinOp::Pow))
+        .or(ctrl('*').to(BinOp::Mul))
         .or(ctrl('/').to(BinOp::DivFloat))
         .or(ctrl('%').to(BinOp::Mod))
-        .or(just(Token::Pow).to(BinOp::Pow))
 }
 fn operator_add() -> impl Parser<Token, BinOp, Error = PError> {
     (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))

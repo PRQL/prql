@@ -205,7 +205,8 @@ fn binding_strength(expr: &ExprKind) -> u8 {
         ExprKind::Range(_) => 19,
 
         ExprKind::Binary(BinaryExpr { op, .. }) => match op {
-            BinOp::Mul | BinOp::DivInt | BinOp::DivFloat | BinOp::Mod | BinOp::Pow => 18,
+            BinOp::Pow => 19,
+            BinOp::Mul | BinOp::DivInt | BinOp::DivFloat | BinOp::Mod => 18,
             BinOp::Add | BinOp::Sub => 17,
             BinOp::Eq
             | BinOp::Ne
