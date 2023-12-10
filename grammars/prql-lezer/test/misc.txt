@@ -38,6 +38,15 @@ filter that
 
 Query(Pipeline(CallExpression(Identifier,ArgList(that))))
 
+# Annotation
+
+@{binding_strength=1}
+let x = y -> z
+
+==>
+
+Query(Annotation(Declaration(DeclarationItem,Equals,Integer)),VariableDeclaration(let,VariableName,Equals,Lambda(LambdaParam,Identifier)))
+
 # Range: 10..20
 
 filter 10..20
