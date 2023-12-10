@@ -220,6 +220,24 @@ fn test_precedence() {
 }
 
 #[test]
+#[ignore]
+// FIXME: right associativity of `pow` is not implemented yet
+fn test_pow_is_right_associative() {
+    assert_display_snapshot!(compile(r#"
+    from numbers
+    select {
+      c ** a ** b
+    }
+    "#).unwrap(), @r#"
+    SELECT
+      POW(c, POW(a, b))
+    FROM
+      numbers
+    "#
+    );
+}
+
+#[test]
 fn test_append() {
     assert_display_snapshot!(compile(r###"
     from employees
