@@ -770,7 +770,7 @@ fn test_filter() {
     "###);
 
     assert_yaml_snapshot!(
-        parse_single(r#"filter (upper country) == "USA""#).unwrap(), @r###"
+        parse_single(r#"filter (str.upper country) == "USA""#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -786,6 +786,7 @@ fn test_filter() {
                     FuncCall:
                       name:
                         Ident:
+                          - str
                           - upper
                       args:
                         - Ident:
@@ -794,7 +795,7 @@ fn test_filter() {
                   right:
                     Literal:
                       String: USA
-      span: "0:0-31"
+      span: "0:0-35"
     "###
     );
 }

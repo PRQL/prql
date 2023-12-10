@@ -40,6 +40,7 @@ derive {
 let is_adult = col -> col >= 18
 let writes_code = col -> (col | in ["PRQL", "Rust"])
 let square = col -> (col | math.pow 2)
+let starts_with_a = col -> (col | str.lower | str.starts_with("a"))
 
 from employees
 select {
@@ -49,7 +50,7 @@ select {
     adult = is_adult age,
     age_squared = square age,
 }
-filter (writes_code hobby)
+filter ((starts_with_a last_name) && (writes_code hobby))
 ```
 
 ## Piping values into functions

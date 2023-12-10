@@ -95,8 +95,27 @@ let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 let as = `type` column -> s"CAST({column:0} AS {type:0})"
 
 # String functions
-let lower = column -> s"LOWER({column:0})"
-let upper = column -> s"UPPER({column:0})"
+module str {
+  # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/string-functions
+  # DuckDB: https://duckdb.org/docs/sql/functions/char
+  # MySQL: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html
+  # Postgres: https://www.postgresql.org/docs/7.4/functions-string.html
+  # SQLite: https://www.sqlite.org/lang_corefunc.html
+  # MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/string-functions-transact-sql
+  # BigQuery: https://cloud.google.com/bigquery/docs/reference/standard-sql/string_functions
+  # Snowflake: https://docs.snowflake.com/en/sql-reference/functions-string
+  let lower = column -> s"LOWER({column:0})"
+  let upper = column -> s"UPPER({column:0})"
+  let ltrim = column -> s"LTRIM({column:0})"
+  let rtrim = column -> s"RTRIM({column:0})"
+  let trim = column -> s"TRIM({column:0})"
+  let length = column -> s"CHAR_LENGTH({column:0})"
+  let substring = offset length column -> s"SUBSTRING({column:0}, {offset:0}, {length:0})"
+  let replace = pattern replacement column -> s"REPLACE({column:0}, {pattern:0}, {replacement:0})"
+  let starts_with = prefix column -> s"{column} LIKE CONCAT({prefix}, '%')"
+  let contains = substr column -> s"{column} LIKE CONCAT('%', {substr}, '%')"
+  let ends_with = suffix column -> s"{column} LIKE CONCAT('%', {suffix})"
+}
 
 # Source-reading functions, primarily for DuckDB
 let read_parquet = source -> s"read_parquet({source:0})"
@@ -196,6 +215,12 @@ module duckdb {
   @{binding_strength=11}
   let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
+  # String functions
+  module str {
+    # DuckDB: https://duckdb.org/docs/sql/functions/char
+    let length = column -> s"LENGTH({column:0})"
+  }
+
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 
   let read_csv = source -> s"read_csv_auto({source:0})"
@@ -211,6 +236,12 @@ module mssql {
     let ceil = column -> s"CEILING({column:0})"
     let ln = column -> s"LOG({column:0})"
     let pow = exponent column -> s"POWER({column:0}, {exponent:0})"
+  }
+
+  # String functions
+  module str {
+    # https://learn.microsoft.com/en-us/sql/t-sql/functions/string-functions-transact-sql
+    let length = column -> s"LEN({column:0})"
   }
 
   let regex_search = text pattern -> null
@@ -239,6 +270,12 @@ module postgres {
 
   @{binding_strength=100}
   let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+
+  # String functions
+  module str {
+    # Postgres: https://www.postgresql.org/docs/7.4/functions-string.html
+    let substring = offset length column -> s"SUBSTR({column:0}, {offset:0}, {length:0})"
+  }
 
   @{binding_strength=9}
   let regex_search = text pattern -> s"{text} ~ {pattern}"

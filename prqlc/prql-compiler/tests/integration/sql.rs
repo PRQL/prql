@@ -136,7 +136,42 @@ fn test_stdlib_math_mssql() {
     POWER(salary, 2) AS salary_pow
   FROM
     employees
-  "#
+  "#);
+}
+
+#[test]
+fn test_stdlib_string() {
+    assert_snapshot!(compile(r#"
+    from employees
+    select {
+      name_lower = name | str.lower,
+      name_upper = name | str.upper,
+      name_ltrim = name | str.ltrim,
+      name_rtrim = name | str.rtrim,
+      name_trim = name | str.trim,
+      name_length = name | str.length,
+      name_substring = name | str.substring 3 5,
+      name_replace = name | str.replace "pika" "chu",
+      name_starts_with = name | str.starts_with "pika",
+      name_contains = name | str.contains "pika",
+      name_ends_with = name | str.ends_with "pika",
+    }
+    "#).unwrap(), @r#"
+    SELECT
+      LOWER(name) AS name_lower,
+      UPPER(name) AS name_upper,
+      LTRIM(name) AS name_ltrim,
+      RTRIM(name) AS name_rtrim,
+      TRIM(name) AS name_trim,
+      CHAR_LENGTH(name) AS name_length,
+      SUBSTRING(name, 3, 5) AS name_substring,
+      REPLACE(name, 'pika', 'chu') AS name_replace,
+      (name) LIKE CONCAT(('pika'), '%') AS name_starts_with,
+      (name) LIKE CONCAT('%', ('pika'), '%') AS name_contains,
+      (name) LIKE CONCAT('%', ('pika')) AS name_ends_with
+    FROM
+      employees
+    "#
     );
 }
 
@@ -3993,7 +4028,7 @@ fn test_datetime_parsing() {
 fn test_lower() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {lower_name = (name | lower)}
+    derive {lower_name = (name | str.lower)}
     "#).unwrap(),
         @r###"
     SELECT
@@ -4009,7 +4044,7 @@ fn test_lower() {
 fn test_upper() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {upper_name = upper name}
+    derive {upper_name = str.upper name}
     select {upper_name}
     "#).unwrap(),
         @r###"
