@@ -30,7 +30,7 @@ TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newlin
 
 tupleItem { DeclarationTuple | expression | CallExpression | CaseBranch }
 
-Annotation { "@{" commaSep<Declaration>? "}" }
+Annotation { "@{" commaSep<Declaration>? "}" newline }
 
 // Ideally we would force a space after `Identifier` to prevent an invalid s-string
 // being parsed as a CallExpression, e.g. `s"{a"` -> `s` & `"{a"'. But we
