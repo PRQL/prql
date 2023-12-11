@@ -123,8 +123,12 @@ fn find_operator_impl(
     dialect: Dialect,
 ) -> Option<(&pl::Func, Option<i32>, bool, Option<String>)> {
     let operator_name = operator_name.strip_prefix("std.").unwrap();
-
-    let operator_name = pl::Ident::from_name(operator_name);
+    let operator_ident = pl::Ident::from_path(
+        operator_name
+            .split('.')
+            .map(String::from)
+            .collect::<Vec<_>>(),
+    );
 
     let dialect_module = STD.get(&pl::Ident::from_name(dialect.to_string()));
 
@@ -132,11 +136,11 @@ fn find_operator_impl(
 
     if let Some(dialect_module) = dialect_module {
         let module = dialect_module.kind.as_module().unwrap();
-        func_def = module.get(&operator_name);
+        func_def = module.get(&operator_ident);
     }
 
     if func_def.is_none() {
-        func_def = STD.get(&operator_name);
+        func_def = STD.get(&operator_ident);
     }
 
     let decl = func_def?;

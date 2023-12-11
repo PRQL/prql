@@ -66,25 +66,8 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "rank",
       "rank_dense",
       "row_number",
-      // Mathematical functions
-      "abs",
-      "floor",
-      "ceil",
-      "pi",
-      "exp",
-      "ln",
-      "log10",
-      "log",
-      "sqrt",
-      "degrees",
-      "radians",
-      "cos",
-      "acos",
-      "sin",
-      "asin",
-      "tan",
-      "atan",
-      "pow",
+      // Mathematical functions module
+      "math",
     ].map((n) => ({ label: n, type: "function" })),
   )
   .concat(
