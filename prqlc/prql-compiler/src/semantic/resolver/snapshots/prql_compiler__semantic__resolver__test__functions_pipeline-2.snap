@@ -26,9 +26,9 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                       kind:
                         Array:
                           kind: Any
-                          span: "2:2069-2076"
+                          span: "2:1929-1936"
                           name: ~
-                      span: "2:2068-2077"
+                      span: "2:1928-1937"
                       name: array
               ty:
                 kind:
@@ -36,14 +36,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     - - ~
                       - kind:
                           Primitive: Int
-                        span: "2:4300-4303"
+                        span: "2:4160-4163"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "2:4307-4312"
+                        span: "2:4167-4172"
                         name: ~
-                span: "2:4300-4312"
+                span: "2:4160-4172"
                 name: ~
             - Literal:
                 Integer: 1
@@ -58,24 +58,24 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
               - - ~
                 - kind:
                     Primitive: Int
-                  span: "2:963-966"
+                  span: "2:893-896"
                   name: ~
               - - ~
                 - kind:
                     Primitive: Float
-                  span: "2:970-975"
+                  span: "2:900-905"
                   name: ~
               - - ~
                 - kind:
                     Primitive: Timestamp
-                  span: "2:979-988"
+                  span: "2:909-918"
                   name: ~
               - - ~
                 - kind:
                     Primitive: Date
-                  span: "2:992-996"
+                  span: "2:922-926"
                   name: ~
-          span: "2:963-996"
+          span: "2:893-926"
           name: ~
   alias: b
   ty:
@@ -84,23 +84,23 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
         - - ~
           - kind:
               Primitive: Int
-            span: "2:963-966"
+            span: "2:893-896"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "2:970-975"
+            span: "2:900-905"
             name: ~
         - - ~
           - kind:
               Primitive: Timestamp
-            span: "2:979-988"
+            span: "2:909-918"
             name: ~
         - - ~
           - kind:
               Primitive: Date
-            span: "2:992-996"
+            span: "2:922-926"
             name: ~
-    span: "2:963-996"
+    span: "2:893-926"
     name: ~
 
