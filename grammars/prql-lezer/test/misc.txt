@@ -72,7 +72,7 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))),Comment)
 
 Query(Comment,Comment)
 
-# Comment beween pipes
+# Comment between pipes
 
 from foo
 # filter...
