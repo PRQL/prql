@@ -9,60 +9,10 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
           - this
           - employees
           - gross_salary
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "2:1030-1033"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "2:1037-1042"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "2:1046-1055"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "2:1059-1063"
-                  name: ~
-          span: "2:1030-1063"
-          name: ~
       - Ident:
           - this
           - employees
           - tax
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "2:1071-1074"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "2:1078-1083"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "2:1087-1096"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "2:1100-1104"
-                  name: ~
-          span: "2:1071-1104"
-          name: ~
   alias: net_salary
   ty:
     kind:
@@ -70,23 +20,23 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
         - - ~
           - kind:
               Primitive: Int
-            span: "2:1110-1113"
+            span: "2:970-973"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "2:1117-1122"
+            span: "2:977-982"
             name: ~
         - - ~
           - kind:
               Primitive: Timestamp
-            span: "2:1126-1135"
+            span: "2:986-995"
             name: ~
         - - ~
           - kind:
               Primitive: Date
-            span: "2:1139-1143"
+            span: "2:999-1003"
             name: ~
-    span: "2:1110-1143"
+    span: "2:970-1003"
     name: ~
 

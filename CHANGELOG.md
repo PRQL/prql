@@ -16,6 +16,7 @@
 **Fixes**:
 
 - Fix an issue with arithmetic precedence (@max-sixty, #3846)
+- `+` and `-` can be used after a cast (@PrettyWood, #3923)
 
 **Documentation**:
 

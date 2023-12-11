@@ -9,60 +9,10 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
           - this
           - employees
           - salary
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "2:883-886"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "2:890-895"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "2:899-908"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "2:912-916"
-                  name: ~
-          span: "2:883-916"
-          name: ~
       - Ident:
           - this
           - employees
           - payroll_tax
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "2:924-927"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "2:931-936"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "2:940-949"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "2:953-957"
-                  name: ~
-          span: "2:924-957"
-          name: ~
   alias: gross_salary
   ty:
     kind:
@@ -70,24 +20,24 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - - ~
           - kind:
               Primitive: Int
-            span: "2:963-966"
+            span: "2:893-896"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "2:970-975"
+            span: "2:900-905"
             name: ~
         - - ~
           - kind:
               Primitive: Timestamp
-            span: "2:979-988"
+            span: "2:909-918"
             name: ~
         - - ~
           - kind:
               Primitive: Date
-            span: "2:992-996"
+            span: "2:922-926"
             name: ~
-    span: "2:963-996"
+    span: "2:893-926"
     name: ~
 - RqOperator:
     name: std.add
@@ -95,60 +45,10 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
       - Ident:
           - this
           - gross_salary
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "2:883-886"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "2:890-895"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "2:899-908"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "2:912-916"
-                  name: ~
-          span: "2:883-916"
-          name: ~
       - Ident:
           - this
           - employees
           - benefits_cost
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Primitive: Int
-                  span: "2:924-927"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Float
-                  span: "2:931-936"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Timestamp
-                  span: "2:940-949"
-                  name: ~
-              - - ~
-                - kind:
-                    Primitive: Date
-                  span: "2:953-957"
-                  name: ~
-          span: "2:924-957"
-          name: ~
   alias: gross_cost
   ty:
     kind:
@@ -156,23 +56,23 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - - ~
           - kind:
               Primitive: Int
-            span: "2:963-966"
+            span: "2:893-896"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "2:970-975"
+            span: "2:900-905"
             name: ~
         - - ~
           - kind:
               Primitive: Timestamp
-            span: "2:979-988"
+            span: "2:909-918"
             name: ~
         - - ~
           - kind:
               Primitive: Date
-            span: "2:992-996"
+            span: "2:922-926"
             name: ~
-    span: "2:963-996"
+    span: "2:893-926"
     name: ~
 

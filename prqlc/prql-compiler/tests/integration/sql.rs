@@ -2806,13 +2806,19 @@ fn test_casting() {
     from x
     select {a}
     derive {
-        c = (a | as int) / 10
+        b = (a | as int) + 10,
+        c = (a | as int) - 10,
+        d = (a | as float) * 10,
+        e = (a | as float) / 10,
     }
     "###).unwrap(),
         @r###"
     SELECT
       a,
-      CAST(a AS int) / 10 AS c
+      CAST(a AS int) + 10 AS b,
+      CAST(a AS int) - 10 AS c,
+      CAST(a AS float) * 10 AS d,
+      CAST(a AS float) / 10 AS e
     FROM
       x
     "###
