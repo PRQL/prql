@@ -24,7 +24,7 @@ pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
 Pipeline { CallExpression (pipe CallExpression)* }
 
-pipe { "|" | ~ambigNewline newline }
+pipe { "|" | ~ambigNewline newline+ }
 
 TupleExpression { "{" newline* tupleItem (("," newline*) tupleItem)* ","? newline* "}" }
 

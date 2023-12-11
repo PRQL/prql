@@ -72,6 +72,16 @@ Query(Pipeline(CallExpression(Identifier,ArgList(Integer))),Comment)
 
 Query(Comment,Comment)
 
+# Comment between pipes
+
+from foo
+# filter...
+select bar
+
+==>
+
+Query(Pipeline(CallExpression(Identifier,ArgList(Identifier)),Comment,CallExpression(Identifier,ArgList(Identifier))))
+
 # Docblock
 
 #! Hello
