@@ -17,7 +17,7 @@ select url = f"http{tls}://www.{domain}.{tld}/{page}"
 ```
 
 Note that currently interpolations can only contain plain variable names and not
-whole expression like Python, so this won't work:
+whole expressions like Python, so this won't work:
 
 ```prql error no-fmt
 from tracks
