@@ -43,24 +43,24 @@ fn test_stdlib_math() {
     assert_snapshot!(compile(r#"
     from employees
     select {
-      salary_abs = abs salary,
-      salary_floor = floor salary,
-      salary_ceil = ceil salary,
-      salary_pi = -> pi,
-      salary_exp = exp salary,
-      salary_ln = ln salary,
-      salary_log10 = log10 salary,
-      salary_log = log 2 salary,
-      salary_sqrt = sqrt salary,
-      salary_degrees = degrees salary,
-      salary_radians = radians salary,
-      salary_cos = cos salary,
-      salary_acos = acos salary,
-      salary_sin = sin salary,
-      salary_asin = asin salary,
-      salary_tan = tan salary,
-      salary_atan = atan salary,
-      salary_pow = salary | pow 2,
+      salary_abs = math.abs salary,
+      salary_floor = math.floor salary,
+      salary_ceil = math.ceil salary,
+      salary_pi = math.pi,
+      salary_exp = math.exp salary,
+      salary_ln = math.ln salary,
+      salary_log10 = math.log10 salary,
+      salary_log = math.log 2 salary,
+      salary_sqrt = math.sqrt salary,
+      salary_degrees = math.degrees salary,
+      salary_radians = math.radians salary,
+      salary_cos = math.cos salary,
+      salary_acos = math.acos salary,
+      salary_sin = math.sin salary,
+      salary_asin = math.asin salary,
+      salary_tan = math.tan salary,
+      salary_atan = math.atan salary,
+      salary_pow = salary | math.pow 2,
     }
     "#).unwrap(), @r#"
     SELECT
@@ -85,6 +85,58 @@ fn test_stdlib_math() {
     FROM
       employees
     "#
+    );
+}
+
+#[test]
+fn test_stdlib_math_mssql() {
+    assert_snapshot!(compile(r#"
+  prql target:sql.mssql
+
+  from employees
+  select {
+    salary_abs = math.abs salary,
+    salary_floor = math.floor salary,
+    salary_ceil = math.ceil salary,
+    salary_pi = math.pi,
+    salary_exp = math.exp salary,
+    salary_ln = math.ln salary,
+    salary_log10 = math.log10 salary,
+    salary_log = math.log 2 salary,
+    salary_sqrt = math.sqrt salary,
+    salary_degrees = math.degrees salary,
+    salary_radians = math.radians salary,
+    salary_cos = math.cos salary,
+    salary_acos = math.acos salary,
+    salary_sin = math.sin salary,
+    salary_asin = math.asin salary,
+    salary_tan = math.tan salary,
+    salary_atan = math.atan salary,
+    salary_pow = salary | math.pow 2,
+  }
+  "#).unwrap(), @r#"
+  SELECT
+    ABS(salary) AS salary_abs,
+    FLOOR(salary) AS salary_floor,
+    CEILING(salary) AS salary_ceil,
+    PI() AS salary_pi,
+    EXP(salary) AS salary_exp,
+    LOG(salary) AS salary_ln,
+    LOG10(salary) AS salary_log10,
+    LOG10(salary) / LOG10(2) AS salary_log,
+    SQRT(salary) AS salary_sqrt,
+    DEGREES(salary) AS salary_degrees,
+    RADIANS(salary) AS salary_radians,
+    COS(salary) AS salary_cos,
+    ACOS(salary) AS salary_acos,
+    SIN(salary) AS salary_sin,
+    ASIN(salary) AS salary_asin,
+    TAN(salary) AS salary_tan,
+    ATAN(salary) AS salary_atan,
+    POWER(salary, 2) AS salary_pow
+  FROM
+    employees
+  "#
     );
 }
 

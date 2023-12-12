@@ -39,6 +39,7 @@ derive {
 ```prql
 let is_adult = col -> col >= 18
 let writes_code = col -> (col | in ["PRQL", "Rust"])
+let square = col -> (col | math.pow 2)
 
 from employees
 select {
@@ -46,6 +47,7 @@ select {
     last_name,
     hobby,
     adult = is_adult age,
+    age_squared = square age,
 }
 filter (writes_code hobby)
 ```

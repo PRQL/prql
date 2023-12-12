@@ -178,24 +178,26 @@ let rank_dense = column <array> -> internal std.rank_dense
 let row_number = column <array> -> internal row_number
 
 # Mathematical functions
-let abs = column -> <int || float> internal std.abs
-let floor = column -> <int> internal std.floor
-let ceil = column -> <int> internal std.ceil
-let pi = -> <float> internal std.pi
-let exp = column -> <int || float> internal std.exp
-let ln = column -> <int || float> internal std.ln
-let log10 = column -> <int || float> internal std.log10
-let log = base<int || float> column -> <int || float> internal std.log
-let sqrt = column -> <int || float> internal std.sqrt
-let degrees = column -> <int || float> internal std.degrees
-let radians = column -> <int || float> internal std.radians
-let cos = column -> <int || float> internal std.cos
-let acos = column -> <int || float> internal std.acos
-let sin = column -> <int || float> internal std.sin
-let asin = column -> <int || float> internal std.asin
-let tan = column -> <int || float> internal std.tan
-let atan = column -> <int || float> internal std.atan
-let pow = exponent<int || float> column -> <int || float> internal std.pow
+module math {
+  let abs = column -> <int || float> internal std.math.abs
+  let floor = column -> <int> internal std.math.floor
+  let ceil = column -> <int> internal std.math.ceil
+  let pi = -> <float> internal std.math.pi
+  let exp = column -> <int || float> internal std.math.exp
+  let ln = column -> <int || float> internal std.math.ln
+  let log10 = column -> <int || float> internal std.math.log10
+  let log = base<int || float> column -> <int || float> internal std.math.log
+  let sqrt = column -> <int || float> internal std.math.sqrt
+  let degrees = column -> <int || float> internal std.math.degrees
+  let radians = column -> <int || float> internal std.math.radians
+  let cos = column -> <int || float> internal std.math.cos
+  let acos = column -> <int || float> internal std.math.acos
+  let sin = column -> <int || float> internal std.math.sin
+  let asin = column -> <int || float> internal std.math.asin
+  let tan = column -> <int || float> internal std.math.tan
+  let atan = column -> <int || float> internal std.math.atan
+  let pow = exponent<int || float> column -> <int || float> internal std.math.pow
+}
 
 ## Misc functions
 let round = n_digits column -> <scalar> internal std.round

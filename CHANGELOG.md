@@ -11,7 +11,8 @@
 - The `std.in` function now supports a list of values (@PrettyWood, #3883)
 - Most standard mathematical functions are now supported: `abs`, `floor`,
   `ceil`, `pi`, `exp`, `ln`, `log10`, `log`, `sqrt`, `degrees`, `radians`,
-  `cos`, `acos`, `sin`, `asin`, `tan`, `atan` and `pow` (@PrettyWood, #3909)
+  `cos`, `acos`, `sin`, `asin`, `tan`, `atan` and `pow`.\
+  Those functions are in the `math` module (@PrettyWood, #3909 & #3916)
 
 **Fixes**:
 
