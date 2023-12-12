@@ -346,7 +346,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept
   ```
 
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/prqlc/prql-compiler/tests/integration)**
+- **[Database integration tests](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration/dbs)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
   in-process tests can be run locally with:
@@ -363,7 +363,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 ```admonish note
 Integration tests use DuckDB, and so require a clang compiler to compile
 [`duckdb-rs`](https://github.com/wangfenjin/duckdb-rs). Most development
-systems will have one, but the test command fails, install it with:
+systems will have one, but if the test command fails, install a clang compiler with:
 
   - On macOS, install xcode with `xcode-select --install`
   - On Debian Linux, `apt-get update && apt-get install clang`
@@ -399,10 +399,9 @@ systems will have one, but the test command fails, install it with:
   We can run these tests before a merge by adding a label `pr-nightly` to the
   PR.
 
-The goal of our tests is to allow us to make changes quickly. If you find
-they're making it more difficult for you to make changes, or there are missing
-tests that would give you the confidence to make changes faster, then please
-raise an issue.
+The goal of our tests is to allow us to make changes quickly. If they're making
+it more difficult to make changes, or there are missing tests that would offer
+the confidence to make changes faster, please raise an issue.
 
 ---
 
