@@ -205,7 +205,11 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     employees
   "#
     );
-    assert_snapshot!(compile_with_sql_dialect(query, dialect).unwrap(), expected)
+    assert_snapshot!(
+        format!("like_concat_{}", dialect),
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        &expected
+    )
 }
 
 #[test]
