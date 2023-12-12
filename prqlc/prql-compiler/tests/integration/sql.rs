@@ -147,7 +147,8 @@ fn test_stdlib_math_mssql() {
     POWER(salary, 2) AS salary_pow
   FROM
     employees
-  "#);
+  "#
+    );
 }
 
 #[test]
@@ -191,18 +192,18 @@ fn test_stdlib_string() {
 #[case::sqlite(sql::Dialect::SQLite, "LIKE '%' || 'pika' || '%'")] // `CONCAT` is not supported in SQLite
 fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static str) {
     let query = r#"
-    from employees
-    select {
-      name_ends_with = name | str.contains "pika",
-    }
-    "#;
+  from employees
+  select {
+    name_ends_with = name | str.contains "pika",
+  }
+  "#;
     let expected = format!(
         r#"
-    SELECT
-      name {expected_like} AS name_ends_with
-    FROM
-      employees
-    "#
+  SELECT
+    name {expected_like} AS name_ends_with
+  FROM
+    employees
+  "#
     );
     assert_snapshot!(compile_with_sql_dialect(query, dialect).unwrap(), expected)
 }
@@ -2925,13 +2926,19 @@ fn test_casting() {
     from x
     select {a}
     derive {
-        c = (a | as int) / 10
+        b = (a | as int) + 10,
+        c = (a | as int) - 10,
+        d = (a | as float) * 10,
+        e = (a | as float) / 10,
     }
     "###).unwrap(),
         @r###"
     SELECT
       a,
-      CAST(a AS int) / 10 AS c
+      CAST(a AS int) + 10 AS b,
+      CAST(a AS int) - 10 AS c,
+      CAST(a AS float) * 10 AS d,
+      CAST(a AS float) / 10 AS e
     FROM
       x
     "###

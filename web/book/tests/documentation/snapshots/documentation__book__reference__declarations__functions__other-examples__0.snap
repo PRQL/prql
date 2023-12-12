@@ -21,6 +21,6 @@ SELECT
 FROM
   table_0
 WHERE
-  LOWER(last_name) LIKE CONCAT(('a'), '%')
+  LOWER(last_name) LIKE CONCAT('a', '%')
   AND hobby IN ('PRQL', 'Rust')
 

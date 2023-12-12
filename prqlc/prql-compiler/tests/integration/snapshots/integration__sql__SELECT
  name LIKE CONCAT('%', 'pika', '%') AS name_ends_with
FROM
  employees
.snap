@@ -3,8 +3,8 @@ source: prqlc/prql-compiler/tests/integration/sql.rs
 expression: expected
 ---
 
-    SELECT
-      name LIKE CONCAT('%', 'pika', '%') AS name_ends_with
-    FROM
-      employees
-    
+  SELECT
+    name LIKE CONCAT('%', 'pika', '%') AS name_ends_with
+  FROM
+    employees
+  

@@ -62,9 +62,9 @@ let row_number = -> s"ROW_NUMBER()"
 
 # Mathematical functions
 module math {
-  # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions
+  # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/math-functions
   # DuckDB: https://duckdb.org/docs/test/functions/math.html
-  # MySQL: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_truncate
+  # MySQL: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html
   # Postgres: https://www.postgresql.org/docs/7.4/functions-math.html
   # SQLite: https://www.sqlite.org/lang_mathfunc.html
   # MSSQL: https://learn.microsoft.com/en-us/sql/t-sql/functions/mathematical-functions-transact-sql
