@@ -25,7 +25,7 @@ And a couple of examples:
 from employees
 derive {
   gross_salary = (salary + payroll_tax | as int),
-  gross_salary_rounded = (gross_salary | round 0),
+  gross_salary_rounded = (gross_salary | math.round 0),
   time = s"NOW()",  # an s-string, given no `now` function exists in PRQL
 }
 ```

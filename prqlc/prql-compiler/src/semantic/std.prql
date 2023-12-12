@@ -197,10 +197,10 @@ module math {
   let tan = column -> <int || float> internal std.math.tan
   let atan = column -> <int || float> internal std.math.atan
   let pow = exponent<int || float> column -> <int || float> internal std.math.pow
+  let round = n_digits column -> <scalar> internal std.math.round
 }
 
 ## Misc functions
-let round = n_digits column -> <scalar> internal std.round
 let as = `noresolve.type` column -> <scalar> internal std.as
 let in = pattern value -> <bool> internal in
 

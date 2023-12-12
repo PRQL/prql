@@ -88,10 +88,10 @@ module math {
   let tan = column -> s"TAN({column:0})"
   let atan = column -> s"ATAN({column:0})"
   let pow = exponent column -> s"POW({column:0}, {exponent:0})"
+  let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 }
 
 # Other functions
-let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 let as = `type` column -> s"CAST({column:0} AS {type:0})"
 
 # String functions
@@ -268,8 +268,12 @@ module postgres {
   @{binding_strength=100}
   let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
-  @{binding_strength=100}
-  let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+  # Mathematical functions
+  module math {
+    # Postgres: https://www.postgresql.org/docs/7.4/functions-math.html
+    @{binding_strength=100}
+    let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+  }
 
   # String functions
   module string {
@@ -288,8 +292,12 @@ module glaredb {
   @{binding_strength=100}
   let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
-  @{binding_strength=100}
-  let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+  # Mathematical functions
+  module math {
+    # GlareDB: https://glaredb.com/docs/sql-reference/functions/math-functions
+    @{binding_strength=100}
+    let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
+  }
 
   @{binding_strength=9}
   let regex_search = text pattern -> s"{text} ~ {pattern}"

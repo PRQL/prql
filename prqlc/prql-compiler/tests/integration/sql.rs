@@ -37,7 +37,7 @@ fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from employees
     aggregate (
-        {salary_usd = (round 2 salary)}
+        {salary_usd = (math.round 2 salary)}
     )
     "###).unwrap(),
         @r###"

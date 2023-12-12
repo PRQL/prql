@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nderive {\n  gross_salary = (salary + payroll_tax | as int),\n  gross_salary_rounded = (gross_salary | round 0),\n  time = s\"NOW()\",  # an s-string, given no `now` function exists in PRQL\n}\n"
+expression: "from employees\nderive {\n  gross_salary = (salary + payroll_tax | as int),\n  gross_salary_rounded = (gross_salary | math.round 0),\n  time = s\"NOW()\",  # an s-string, given no `now` function exists in PRQL\n}\n"
 ---
 SELECT
   *,
