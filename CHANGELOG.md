@@ -5,8 +5,8 @@
 **Language**:
 
 - _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
-- _Breaking_: `round` is now in the `math` module and needs to be
-  called via `math.round`. See #3928
+- _Breaking_: `round` is now in the `math` module and needs to be called via
+  `math.round`. See #3928
 - _Breaking_: `lower` and `upper` are now in the `string` module and need to be
   called via `string.lower` and `string.upper`. See #3913
 
