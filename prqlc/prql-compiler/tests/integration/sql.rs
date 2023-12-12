@@ -1,10 +1,21 @@
 //! Simple tests for "this PRQL creates this SQL" go here.
 use insta::{assert_display_snapshot, assert_snapshot};
 use prql_compiler::{sql, ErrorMessages, Options, SourceTree, Target};
+use rstest::rstest;
 
 pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
     anstream::ColorChoice::Never.write_global();
     prql_compiler::compile(prql, &Options::default().no_signature())
+}
+
+fn compile_with_sql_dialect(prql: &str, dialect: sql::Dialect) -> Result<String, ErrorMessages> {
+    anstream::ColorChoice::Never.write_global();
+    prql_compiler::compile(
+        prql,
+        &Options::default()
+            .no_signature()
+            .with_target(Target::Sql(Some(dialect))),
+    )
 }
 
 #[test]
@@ -138,6 +149,67 @@ fn test_stdlib_math_mssql() {
     employees
   "#
     );
+}
+
+#[test]
+fn test_stdlib_string() {
+    assert_snapshot!(compile(r#"
+    from employees
+    select {
+      name_lower = name | string.lower,
+      name_upper = name | string.upper,
+      name_ltrim = name | string.ltrim,
+      name_rtrim = name | string.rtrim,
+      name_trim = name | string.trim,
+      name_length = name | string.length,
+      name_substring = name | string.substring 3 5,
+      name_replace = name | string.replace "pika" "chu",
+      name_starts_with = name | string.starts_with "pika",
+      name_contains = name | string.contains "pika",
+      name_ends_with = name | string.ends_with "pika",
+    }
+    "#).unwrap(), @r#"
+    SELECT
+      LOWER(name) AS name_lower,
+      UPPER(name) AS name_upper,
+      LTRIM(name) AS name_ltrim,
+      RTRIM(name) AS name_rtrim,
+      TRIM(name) AS name_trim,
+      CHAR_LENGTH(name) AS name_length,
+      SUBSTRING(name, 3, 5) AS name_substring,
+      REPLACE(name, 'pika', 'chu') AS name_replace,
+      name LIKE CONCAT('pika', '%') AS name_starts_with,
+      name LIKE CONCAT('%', 'pika', '%') AS name_contains,
+      name LIKE CONCAT('%', 'pika') AS name_ends_with
+    FROM
+      employees
+    "#
+    );
+}
+
+#[rstest]
+#[case::generic(sql::Dialect::Generic, "LIKE CONCAT('%', 'pika', '%')")]
+#[case::sqlite(sql::Dialect::SQLite, "LIKE '%' || 'pika' || '%'")] // `CONCAT` is not supported in SQLite
+fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static str) {
+    let query = r#"
+  from employees
+  select {
+    name_ends_with = name | string.contains "pika",
+  }
+  "#;
+    let expected = format!(
+        r#"
+  SELECT
+    name {expected_like} AS name_ends_with
+  FROM
+    employees
+  "#
+    );
+    assert_snapshot!(
+        format!("like_concat_{}", dialect),
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        &expected
+    )
 }
 
 #[test]
@@ -3999,7 +4071,7 @@ fn test_datetime_parsing() {
 fn test_lower() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {lower_name = (name | lower)}
+    derive {lower_name = (name | string.lower)}
     "#).unwrap(),
         @r###"
     SELECT
@@ -4015,7 +4087,7 @@ fn test_lower() {
 fn test_upper() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {upper_name = upper name}
+    derive {upper_name = string.upper name}
     select {upper_name}
     "#).unwrap(),
         @r###"

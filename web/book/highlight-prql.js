@@ -50,9 +50,8 @@ formatting = function (hljs) {
     "_is_null",
     // Misc functions
     "from_text",
-    // String functions
-    "lower",
-    "upper",
+    // String functions module
+    "string",
     // Window functions
     "lag",
     "lead",
@@ -61,7 +60,7 @@ formatting = function (hljs) {
     "rank",
     "rank_dense",
     "row_number",
-    // Mathematical-functions module
+    // Mathematical functions module
     "math",
   ];
 
