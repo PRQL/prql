@@ -7,4 +7,4 @@ expression: expected
     name LIKE '%' || 'pika' || '%' AS name_ends_with
   FROM
     employees
-  
+
