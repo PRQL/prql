@@ -39,7 +39,7 @@ formatting = function (hljs) {
     // Misc functions
     "from_text",
     // String functions module
-    "str",
+    "string",
     // Window functions
     "lag",
     "lead",

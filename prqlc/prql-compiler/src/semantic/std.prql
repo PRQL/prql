@@ -215,18 +215,18 @@ let _is_null = func a -> _param.a == null
 let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_text
 
 ## String functions
-module str {
-  let lower = column -> <text> internal std.str.lower
-  let upper = column -> <text> internal std.str.upper
-  let ltrim = column -> <text> internal std.str.ltrim
-  let rtrim = column -> <text> internal std.str.rtrim
-  let trim = column -> <text> internal std.str.trim
-  let length = column -> <int> internal std.str.length
-  let substring = offset<int> length<int> column -> <text> internal std.str.substring
-  let replace = pattern<text> replacement<text> column -> <text> internal std.str.replace
-  let starts_with = prefix<text> column -> <bool> internal std.str.starts_with
-  let contains = substr<text> column -> <bool> internal std.str.contains
-  let ends_with = suffix<text> column -> <bool> internal std.str.ends_with
+module string {
+  let lower = column -> <text> internal std.string.lower
+  let upper = column -> <text> internal std.string.upper
+  let ltrim = column -> <text> internal std.string.ltrim
+  let rtrim = column -> <text> internal std.string.rtrim
+  let trim = column -> <text> internal std.string.trim
+  let length = column -> <int> internal std.string.length
+  let substring = offset<int> length<int> column -> <text> internal std.string.substring
+  let replace = pattern<text> replacement<text> column -> <text> internal std.string.replace
+  let starts_with = prefix<text> column -> <bool> internal std.string.starts_with
+  let contains = substr<text> column -> <bool> internal std.string.contains
+  let ends_with = suffix<text> column -> <bool> internal std.string.ends_with
 }
 
 ## File-reading functions, primarily for DuckDB

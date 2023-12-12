@@ -5,8 +5,8 @@
 **Language**:
 
 - _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
-- _Breaking_: `lower` and `upper` are now in the `str` module and need to be
-  called via `str.lower` and `str.upper`. See #3913
+- _Breaking_: `lower` and `upper` are now in the `string` module and need to be
+  called via `string.lower` and `string.upper`. See #3913
 
 **Features**:
 
@@ -18,7 +18,7 @@
 - Most standard string functions are now supported: `ltrim`, `rtrim`, `trim`,
   `length`, `substring`, `replace`. Utility functions `starts_with`, `contains`
   and `ends_with` are also available.\
-  Those functions are in the `str` module (@PrettyWood, #3913)
+  Those functions are in the `string` module (@PrettyWood, #3913)
 
 **Fixes**:
 

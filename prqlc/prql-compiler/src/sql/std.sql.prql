@@ -95,7 +95,7 @@ let round = n_digits column -> s"ROUND({column:0}, {n_digits:0})"
 let as = `type` column -> s"CAST({column:0} AS {type:0})"
 
 # String functions
-module str {
+module string {
   # Clickhouse: https://clickhouse.com/docs/en/sql-reference/functions/string-functions
   # DuckDB: https://duckdb.org/docs/sql/functions/char
   # MySQL: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html
@@ -216,7 +216,7 @@ module duckdb {
   let div_i = l r -> s"TRUNC({l:11} / {r:11})"
 
   # String functions
-  module str {
+  module string {
     # DuckDB: https://duckdb.org/docs/sql/functions/char
     let length = column -> s"LENGTH({column:0})"
   }
@@ -239,7 +239,7 @@ module mssql {
   }
 
   # String functions
-  module str {
+  module string {
     # https://learn.microsoft.com/en-us/sql/t-sql/functions/string-functions-transact-sql
     let length = column -> s"LEN({column:0})"
   }
@@ -272,7 +272,7 @@ module postgres {
   let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
 
   # String functions
-  module str {
+  module string {
     # Postgres: https://www.postgresql.org/docs/7.4/functions-string.html
     let substring = offset length column -> s"SUBSTR({column:0}, {offset:0}, {length:0})"
   }
@@ -316,7 +316,7 @@ module sqlite {
   let div_i = l r -> s"ROUND(ABS({l:11} / {r:11}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
 
   # String functions
-  module str {
+  module string {
     # SQLite: https://www.sqlite.org/lang_corefunc.html
     let starts_with = prefix column -> s"{column:0} LIKE {prefix:0} || '%'"
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"

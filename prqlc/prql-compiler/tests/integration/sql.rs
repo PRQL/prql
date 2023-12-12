@@ -156,17 +156,17 @@ fn test_stdlib_string() {
     assert_snapshot!(compile(r#"
     from employees
     select {
-      name_lower = name | str.lower,
-      name_upper = name | str.upper,
-      name_ltrim = name | str.ltrim,
-      name_rtrim = name | str.rtrim,
-      name_trim = name | str.trim,
-      name_length = name | str.length,
-      name_substring = name | str.substring 3 5,
-      name_replace = name | str.replace "pika" "chu",
-      name_starts_with = name | str.starts_with "pika",
-      name_contains = name | str.contains "pika",
-      name_ends_with = name | str.ends_with "pika",
+      name_lower = name | string.lower,
+      name_upper = name | string.upper,
+      name_ltrim = name | string.ltrim,
+      name_rtrim = name | string.rtrim,
+      name_trim = name | string.trim,
+      name_length = name | string.length,
+      name_substring = name | string.substring 3 5,
+      name_replace = name | string.replace "pika" "chu",
+      name_starts_with = name | string.starts_with "pika",
+      name_contains = name | string.contains "pika",
+      name_ends_with = name | string.ends_with "pika",
     }
     "#).unwrap(), @r#"
     SELECT
@@ -194,7 +194,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let query = r#"
   from employees
   select {
-    name_ends_with = name | str.contains "pika",
+    name_ends_with = name | string.contains "pika",
   }
   "#;
     let expected = format!(
@@ -4071,7 +4071,7 @@ fn test_datetime_parsing() {
 fn test_lower() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {lower_name = (name | str.lower)}
+    derive {lower_name = (name | string.lower)}
     "#).unwrap(),
         @r###"
     SELECT
@@ -4087,7 +4087,7 @@ fn test_lower() {
 fn test_upper() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {upper_name = str.upper name}
+    derive {upper_name = string.upper name}
     select {upper_name}
     "#).unwrap(),
         @r###"

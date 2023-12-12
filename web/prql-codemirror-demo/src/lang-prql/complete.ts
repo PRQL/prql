@@ -56,7 +56,7 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       // misc-functions
       "from_text",
       // string functions module
-      "str",
+      "string",
       // window-functions
       "lag",
       "lead",
