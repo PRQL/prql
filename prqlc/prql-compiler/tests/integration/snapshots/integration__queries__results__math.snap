@@ -1,0 +1,10 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "from invoices\ntake 5\nselect {\n    total_original = total | math.round 2,\n    total_x = math.pi - total | math.round 2 | math.abs,\n    total_floor = math.floor total,\n    total_ceil = math.ceil total,\n    total_log10 = math.log10 total | math.round 3,\n    total_log2 = math.log 2 total | math.round 3,\n    total_sqrt = math.sqrt total | math.round 3,\n    total_1 = math.ln total | math.exp | math.round 2,\n    total_2 = math.cos total | math.acos | math.round 2,\n    total_3 = math.sin total | math.asin | math.round 2,\n    total_4 = math.tan total | math.atan | math.round 2,\n    total_5 = total | math.degrees | math.radians | math.round 2,\n    total_square = total | math.pow 2| math.round 2,\n}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/math.prql
+---
+1.98,1.16,1,2,0.297,0.986,1.407,1.98,1.98,1.16,-1.16,1.98,3.92
+3.96,0.82,3,4,0.598,1.986,1.99,3.96,2.32,-0.82,0.82,3.96,15.68
+5.94,2.8,5,6,0.774,2.57,2.437,5.94,0.34,-0.34,-0.34,5.94,35.28
+8.91,5.77,8,9,0.95,3.155,2.985,8.91,2.63,0.51,-0.51,8.91,79.39
+13.86,10.72,13,14,1.142,3.793,3.723,13.86,1.29,1.29,1.29,13.86,192.1
