@@ -1,0 +1,40 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# mssql:test\nfrom albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = title | string.lower,\n    up = title | string.upper,\n    ltrimmed = title | string.ltrim,\n    rtrimmed = title | string.rtrim,\n    trimmed = title | string.trim,\n    len = title | string.length,\n    subs = title | string.substring 2 5,\n    replace = title | string.replace \"al\" \"PIKA\",\n}\nsort {title}\nfilter (title | string.starts_with \"Black\") || (title | string.contains \"Sabbath\") || (title | string.ends_with \"os\")\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/string.prql
+---
+WITH table_0 AS (
+  SELECT
+    title,
+    CONCAT('  ', title, '  ') AS title_and_spaces,
+    LOWER(title) AS low,
+    UPPER(title) AS up,
+    LTRIM(title) AS ltrimmed,
+    RTRIM(title) AS rtrimmed,
+    TRIM(title) AS trimmed,
+    CHAR_LENGTH(title) AS len,
+    SUBSTRING(title, 2, 5) AS subs,
+    REPLACE(title, 'al', 'PIKA') AS "replace"
+  FROM
+    albums
+)
+SELECT
+  title,
+  title_and_spaces,
+  low,
+  up,
+  ltrimmed,
+  rtrimmed,
+  trimmed,
+  len,
+  subs,
+  "replace"
+FROM
+  table_0
+WHERE
+  title LIKE CONCAT('Black', '%')
+  OR title LIKE CONCAT('%', 'Sabbath', '%')
+  OR title LIKE CONCAT('%', 'os')
+ORDER BY
+  title
+

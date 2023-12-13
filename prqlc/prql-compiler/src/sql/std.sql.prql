@@ -326,6 +326,7 @@ module sqlite {
   # String functions
   module string {
     # SQLite: https://www.sqlite.org/lang_corefunc.html
+    let length = column -> s"LENGTH({column:0})"
     let starts_with = prefix column -> s"{column:0} LIKE {prefix:0} || '%'"
     let contains = substr column -> s"{column:0} LIKE '%' || {substr:0} || '%'"
     let ends_with = suffix column -> s"{column:0} LIKE '%' || {suffix:0}"
