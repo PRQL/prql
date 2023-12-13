@@ -162,6 +162,7 @@ mod results {
 
             let dialect = con.cfg.dialect;
 
+            println!("Executing {test_name} for {dialect}");
             let rows = con
                 .run_query(&prql)
                 .context(format!("Executing {test_name} for {dialect}"))

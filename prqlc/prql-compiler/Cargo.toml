@@ -43,8 +43,8 @@ strum_macros = "0.25.3"
 serde_yaml = {version = "0.9", optional = true}
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-# For integration tests. These are gated by the `test-dbs` feature, rather than
-# dev-dependencies, because dev-dependencies can't be optional.
+# For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
+# rather than dev-dependencies, because dev-dependencies can't be optional.
 chrono = {version = "0.4", optional = true, features = [], default-features = false}
 duckdb = {version = "0.9.2", optional = true, features = ["bundled", "chrono"]}
 glob = {version = "0.3.1", optional = true}
