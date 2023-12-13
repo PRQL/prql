@@ -129,7 +129,7 @@ PRQL uses parentheses `()` for several purposes:
   main pipeline, for example: `(column-name | in 0..20)`
 
 - Parentheses wrap a function call that is part of a larger expression, for
-  example: `round 0 (sum distance)`
+  example: `math.round 0 (sum distance)`
 
 Parentheses are _not_ required for expressions that do not contain function
 calls, for example: `foo + bar`.
@@ -147,7 +147,7 @@ derive min_capped_distance = (min distance ?? 5)
 # No parentheses needed, because no function call
 derive travel_time = distance / 40
 # No inner parentheses needed around `1+1` because no function call
-derive distance_rounded_2_dp = (round 1+1 distance)
+derive distance_rounded_2_dp = (math.round 1+1 distance)
 derive {
   # Requires parentheses, because it contains a pipe
   is_far = (distance | in 100..),
