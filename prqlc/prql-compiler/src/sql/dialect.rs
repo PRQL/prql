@@ -129,6 +129,30 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
+pub struct DateFormatMapping<'a> {
+    day_number: &'a str,
+    month_number: &'a str,
+    year_number: &'a str,
+}
+
+const PRQL_DATE_FORMAT_MAPPING: DateFormatMapping<'static> = DateFormatMapping {
+    day_number: "%d",
+    month_number: "%m",
+    year_number: "%Y",
+};
+
+const PERCENT_SQL_DATE_FORMAT_MAPPING: DateFormatMapping<'static> = DateFormatMapping {
+    day_number: "%d",
+    month_number: "%m",
+    year_number: "%Y",
+};
+
+const CAPS_SQL_DATE_FORMAT_MAPPING: DateFormatMapping<'static> = DateFormatMapping {
+    day_number: "DD",
+    month_number: "MM",
+    year_number: "YYYY",
+};
+
 pub(super) trait DialectHandler: Any + Debug {
     fn use_top(&self) -> bool {
         false
@@ -178,6 +202,26 @@ pub(super) trait DialectHandler: Any + Debug {
     fn supports_distinct_on(&self) -> bool {
         false
     }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static>;
+
+    /// Get the date format for the given dialect
+    fn get_date_format(&self, prql_date_format: &str) -> String {
+        let format_mapping = self.date_format_mapping();
+        prql_date_format
+            .replace(
+                PRQL_DATE_FORMAT_MAPPING.day_number,
+                format_mapping.day_number,
+            )
+            .replace(
+                PRQL_DATE_FORMAT_MAPPING.month_number,
+                format_mapping.month_number,
+            )
+            .replace(
+                PRQL_DATE_FORMAT_MAPPING.year_number,
+                format_mapping.year_number,
+            )
+    }
 }
 
 impl dyn DialectHandler {
@@ -187,7 +231,11 @@ impl dyn DialectHandler {
     }
 }
 
-impl DialectHandler for GenericDialect {}
+impl DialectHandler for GenericDialect {
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        unimplemented!("Generic dialect does not support date formatting")
+    }
+}
 
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
@@ -197,11 +245,19 @@ impl DialectHandler for PostgresDialect {
     fn supports_distinct_on(&self) -> bool {
         true
     }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        CAPS_SQL_DATE_FORMAT_MAPPING
+    }
 }
 
 impl DialectHandler for GlareDbDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
+    }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        CAPS_SQL_DATE_FORMAT_MAPPING
     }
 }
 
@@ -221,6 +277,10 @@ impl DialectHandler for SQLiteDialect {
     fn stars_in_group(&self) -> bool {
         false
     }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        PERCENT_SQL_DATE_FORMAT_MAPPING
+    }
 }
 
 impl DialectHandler for MsSqlDialect {
@@ -236,6 +296,14 @@ impl DialectHandler for MsSqlDialect {
     fn set_ops_distinct(&self) -> bool {
         false
     }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        DateFormatMapping {
+            day_number: "dd",
+            month_number: "MM",
+            year_number: "yyyy",
+        }
+    }
 }
 
 impl DialectHandler for MySqlDialect {
@@ -247,6 +315,10 @@ impl DialectHandler for MySqlDialect {
         // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
         true
     }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        PERCENT_SQL_DATE_FORMAT_MAPPING
+    }
 }
 
 impl DialectHandler for ClickHouseDialect {
@@ -256,6 +328,10 @@ impl DialectHandler for ClickHouseDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
+    }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        PERCENT_SQL_DATE_FORMAT_MAPPING
     }
 }
 
@@ -272,6 +348,10 @@ impl DialectHandler for BigQueryDialect {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
         true
     }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        PERCENT_SQL_DATE_FORMAT_MAPPING
+    }
 }
 
 impl DialectHandler for SnowflakeDialect {
@@ -283,6 +363,10 @@ impl DialectHandler for SnowflakeDialect {
     fn set_ops_distinct(&self) -> bool {
         // https://docs.snowflake.com/en/sql-reference/operators-query.html
         false
+    }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        CAPS_SQL_DATE_FORMAT_MAPPING
     }
 }
 
@@ -299,6 +383,10 @@ impl DialectHandler for DuckDbDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
+    }
+
+    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
+        PERCENT_SQL_DATE_FORMAT_MAPPING
     }
 }
 

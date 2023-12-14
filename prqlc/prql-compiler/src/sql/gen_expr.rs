@@ -104,6 +104,32 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
                 "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
+                "std.date.to_string" => {
+                    if let [date_format_exp @ Expr {
+                        kind: ExprKind::Literal(Literal::String(date_format)),
+                        ..
+                    }, col_expr] = &args[..]
+                    {
+                        // Translate PRQL date format to dialect specific date format
+                        // and then continue with the standard approach.
+                        let expr = Expr {
+                            kind: ExprKind::Operator {
+                                name: name.to_string(),
+                                args: vec![
+                                    Expr {
+                                        kind: ExprKind::Literal(Literal::String(
+                                            ctx.dialect.get_date_format(date_format),
+                                        )),
+                                        span: date_format_exp.span,
+                                    },
+                                    col_expr.clone(),
+                                ],
+                            },
+                            ..expr
+                        };
+                        return super::operators::translate_operator_expr(expr, ctx);
+                    }
+                }
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr.into()),
                     None => {
