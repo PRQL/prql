@@ -36,7 +36,7 @@ runs:
           --release -o target/python --universal2 -m
           prqlc/bindings/python/Cargo.toml
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: target/python
