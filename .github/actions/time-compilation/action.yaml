@@ -29,7 +29,7 @@ runs:
       with:
         command: build
         args: --timings --all-targets
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: cargo-timing.html
         path: target/cargo-timings/cargo-timing-*.html
