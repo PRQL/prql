@@ -1,0 +1,8 @@
+# generic:skip
+# mssql:test
+# glaredb:skip
+from invoices
+take 20
+select {
+    invoice_date | date.to_string "%Y/%m/%d"
+}

@@ -1,0 +1,10 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "from invoices\nselect {\n    invoice_date\n}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/date.prql
+---
+SELECT
+  invoice_date
+FROM
+  invoices
+

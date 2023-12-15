@@ -1,0 +1,9 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# mssql:test\nfrom invoices\ntake 20\nselect {\n    invoice_date | date.to_string \"%Y/%m/%d\"\n}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/date.prql
+---
+from invoices
+take 20
+select {(invoice_date | date.to_string "%Y/%m/%d")}
+
