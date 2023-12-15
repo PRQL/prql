@@ -14,6 +14,7 @@
 
 use core::fmt::Debug;
 
+use chrono::format::{Fixed, Item, Numeric, Pad, StrftimeItems};
 use serde::{Deserialize, Serialize};
 use std::any::{Any, TypeId};
 use strum::VariantNames;
@@ -129,30 +130,6 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
-pub struct DateFormatMapping<'a> {
-    day_number: &'a str,
-    month_number: &'a str,
-    year_number: &'a str,
-}
-
-const PRQL_DATE_FORMAT_MAPPING: DateFormatMapping<'static> = DateFormatMapping {
-    day_number: "%d",
-    month_number: "%m",
-    year_number: "%Y",
-};
-
-const PERCENT_SQL_DATE_FORMAT_MAPPING: DateFormatMapping<'static> = DateFormatMapping {
-    day_number: "%d",
-    month_number: "%m",
-    year_number: "%Y",
-};
-
-const CAPS_SQL_DATE_FORMAT_MAPPING: DateFormatMapping<'static> = DateFormatMapping {
-    day_number: "DD",
-    month_number: "MM",
-    year_number: "YYYY",
-};
-
 pub(super) trait DialectHandler: Any + Debug {
     fn use_top(&self) -> bool {
         false
@@ -203,24 +180,35 @@ pub(super) trait DialectHandler: Any + Debug {
         false
     }
 
-    fn date_format_mapping(&self) -> DateFormatMapping<'static>;
-
     /// Get the date format for the given dialect
-    fn get_date_format(&self, prql_date_format: &str) -> String {
-        let format_mapping = self.date_format_mapping();
-        prql_date_format
-            .replace(
-                PRQL_DATE_FORMAT_MAPPING.day_number,
-                format_mapping.day_number,
-            )
-            .replace(
-                PRQL_DATE_FORMAT_MAPPING.month_number,
-                format_mapping.month_number,
-            )
-            .replace(
-                PRQL_DATE_FORMAT_MAPPING.year_number,
-                format_mapping.year_number,
-            )
+    /// PRQL uses the same format as `chrono` crate
+    fn translate_prql_format(&self, prql_format: &str) -> String {
+        StrftimeItems::new(prql_format)
+            .map(|item| match item {
+                Item::Numeric(numeric, pad) => {
+                    self.convert_date_numeric_item(numeric, pad).to_string()
+                }
+                Item::Fixed(fixed) => self.convert_date_fixed_item(fixed).to_string(),
+                Item::Literal(literal) => literal.to_string(),
+                Item::OwnedLiteral(literal) => literal.to_string(),
+                Item::Space(spaces) => spaces.to_string(),
+                Item::OwnedSpace(spaces) => spaces.to_string(),
+                Item::Error => panic!("invalid format"),
+            })
+            .collect::<Vec<_>>()
+            .join("")
+    }
+
+    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+        match item {
+            Numeric::Year => "%Y",
+            Numeric::Month => "%m",
+            Numeric::Day => "%d",
+            _ => todo!(),
+        }
+    }
+    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+        todo!();
     }
 }
 
@@ -231,11 +219,7 @@ impl dyn DialectHandler {
     }
 }
 
-impl DialectHandler for GenericDialect {
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        unimplemented!("Generic dialect does not support date formatting")
-    }
-}
+impl DialectHandler for GenericDialect {}
 
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
@@ -246,18 +230,22 @@ impl DialectHandler for PostgresDialect {
         true
     }
 
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        CAPS_SQL_DATE_FORMAT_MAPPING
+    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+        match item {
+            Numeric::Year => "YYYY",
+            Numeric::Month => "MM",
+            Numeric::Day => "DD",
+            _ => todo!(),
+        }
+    }
+    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+        todo!()
     }
 }
 
 impl DialectHandler for GlareDbDialect {
     fn requires_quotes_intervals(&self) -> bool {
         true
-    }
-
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        CAPS_SQL_DATE_FORMAT_MAPPING
     }
 }
 
@@ -277,10 +265,6 @@ impl DialectHandler for SQLiteDialect {
     fn stars_in_group(&self) -> bool {
         false
     }
-
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        PERCENT_SQL_DATE_FORMAT_MAPPING
-    }
 }
 
 impl DialectHandler for MsSqlDialect {
@@ -297,12 +281,16 @@ impl DialectHandler for MsSqlDialect {
         false
     }
 
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        DateFormatMapping {
-            day_number: "dd",
-            month_number: "MM",
-            year_number: "yyyy",
+    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+        match item {
+            Numeric::Year => "yyyy",
+            Numeric::Month => "MM",
+            Numeric::Day => "dd",
+            _ => todo!(),
         }
+    }
+    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+        todo!()
     }
 }
 
@@ -315,10 +303,6 @@ impl DialectHandler for MySqlDialect {
         // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
         true
     }
-
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        PERCENT_SQL_DATE_FORMAT_MAPPING
-    }
 }
 
 impl DialectHandler for ClickHouseDialect {
@@ -328,10 +312,6 @@ impl DialectHandler for ClickHouseDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
-    }
-
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        PERCENT_SQL_DATE_FORMAT_MAPPING
     }
 }
 
@@ -348,10 +328,6 @@ impl DialectHandler for BigQueryDialect {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
         true
     }
-
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        PERCENT_SQL_DATE_FORMAT_MAPPING
-    }
 }
 
 impl DialectHandler for SnowflakeDialect {
@@ -365,8 +341,8 @@ impl DialectHandler for SnowflakeDialect {
         false
     }
 
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        CAPS_SQL_DATE_FORMAT_MAPPING
+    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+        PostgresDialect.convert_date_numeric_item(item, pad)
     }
 }
 
@@ -383,10 +359,6 @@ impl DialectHandler for DuckDbDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
-    }
-
-    fn date_format_mapping(&self) -> DateFormatMapping<'static> {
-        PERCENT_SQL_DATE_FORMAT_MAPPING
     }
 }
 

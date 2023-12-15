@@ -118,7 +118,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                                 args: vec![
                                     Expr {
                                         kind: ExprKind::Literal(Literal::String(
-                                            ctx.dialect.get_date_format(date_format),
+                                            ctx.dialect.translate_prql_format(date_format),
                                         )),
                                         span: date_format_exp.span,
                                     },
