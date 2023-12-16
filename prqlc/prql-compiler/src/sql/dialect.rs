@@ -226,11 +226,11 @@ impl dyn DialectHandler {
 }
 
 impl DialectHandler for GenericDialect {
-    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+    fn convert_date_fixed_item(&self, _item: Fixed) -> &str {
         unimplemented!("GenericDialect does not support date formatting")
     }
 
-    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+    fn convert_date_numeric_item(&self, _item: Numeric, _pad: Pad) -> &str {
         unimplemented!("GenericDialect does not support date formatting")
     }
 }
@@ -319,7 +319,7 @@ impl DialectHandler for PostgresDialect {
     }
 
     fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
-        format!("\"{}\"", literal.replace("'", "''").replace("\"", "\\\""))
+        format!("\"{}\"", literal.replace('\'', "''").replace('\"', "\\\""))
     }
 }
 
@@ -328,11 +328,11 @@ impl DialectHandler for GlareDbDialect {
         true
     }
 
-    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+    fn convert_date_fixed_item(&self, _item: Fixed) -> &str {
         unimplemented!("GlareDB does not support date formatting")
     }
 
-    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+    fn convert_date_numeric_item(&self, _item: Numeric, _pad: Pad) -> &str {
         unimplemented!("GlareDB does not support date formatting")
     }
 }
@@ -515,7 +515,7 @@ impl DialectHandler for MsSqlDialect {
     }
 
     fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
-        format!("\"{}\"", literal.replace("'", "''").replace("\"", "\\\""))
+        format!("\"{}\"", literal.replace('\'', "''").replace('\"', "\\\""))
     }
 }
 
@@ -684,7 +684,7 @@ impl DialectHandler for ClickHouseDialect {
     }
 
     fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
-        format!("'{}'", literal.replace("'", "''").replace("\"", "\\\""))
+        format!("'{}'", literal.replace('\'', "''").replace('\"', "\\\""))
     }
 }
 
