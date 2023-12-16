@@ -212,6 +212,32 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     )
 }
 
+#[rstest]
+#[case::duckdb(sql::Dialect::DuckDb, "strftime(invoice_date, '%d/%m/%Y')")]
+fn date_to_string_operator(
+    #[case] dialect: sql::Dialect,
+    #[case] expected_date_to_string: &'static str,
+) {
+    let query = r#"
+    from [{d = @2021-01-01}]
+    derive {
+      d_str = d | date.to_string "%Y/%m/%d"
+    }"#;
+    let expected = format!(
+        r#"
+    SELECT
+      {expected_date_to_string} AS invoice_date_str
+    FROM
+      invoices
+    "#
+    );
+    assert_snapshot!(
+        format!("date_to_string_{}", dialect),
+        compile_with_sql_dialect(query, dialect).unwrap(),
+        &expected
+    )
+}
+
 #[test]
 fn json_of_test() {
     let json = prql_compiler::prql_to_pl("from employees | take 10")

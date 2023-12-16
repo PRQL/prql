@@ -221,6 +221,12 @@ module duckdb {
     let length = column -> s"LENGTH({column:0})"
   }
 
+  # Date functions
+  module date {
+    # https://duckdb.org/docs/sql/functions/dateformat
+    let to_string = format column -> s"strftime({column:0}, {format:0})"
+  }
+
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
 
   let read_csv = source -> s"read_csv_auto({source:0})"

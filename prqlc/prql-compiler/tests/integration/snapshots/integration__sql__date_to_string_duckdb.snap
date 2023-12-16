@@ -1,0 +1,14 @@
+---
+source: prqlc/prql-compiler/tests/integration/sql.rs
+expression: "\n    SELECT\n      strftime(invoice_date, '%d/%m/%Y') AS invoice_date_str\n    FROM\n      invoices\n    "
+---
+WITH table_0 AS (
+  SELECT
+    DATE '2021-01-01' AS d
+)
+SELECT
+  d,
+  strftime(d, '%Y/%m/%d') AS d_str
+FROM
+  table_0
+
