@@ -210,7 +210,7 @@ module clickhouse {
   # Date functions
   module date {
     # https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions
-    let to_string = format column -> s"formatDateTime({column:0}, {format:0})"
+    let to_string = format column -> s"formatDateTimeInJodaSyntax({column:0}, {format:0})"
   }
 
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
@@ -333,12 +333,6 @@ module glaredb {
     # GlareDB: https://glaredb.com/docs/sql-reference/functions/math-functions
     @{binding_strength=100}
     let round = n_digits column -> s"ROUND(({column:0})::numeric, {n_digits:0})"
-  }
-
-  # Date functions
-  module date {
-    # https://www.postgresql.org/docs/current/functions-formatting.html
-    let to_string = format column -> s"TO_CHAR({column:0}, {format:0})"
   }
 
   @{binding_strength=9}

@@ -190,7 +190,16 @@ pub(super) trait DialectHandler: Any + Debug {
                     self.convert_date_numeric_item(numeric, pad).to_string()
                 }
                 Item::Fixed(fixed) => self.convert_date_fixed_item(fixed).to_string(),
-                Item::Literal(literal) => literal.to_string(),
+                Item::Literal(literal) => {
+                    if literal
+                        .chars()
+                        .any(|c| c.is_ascii_alphanumeric() || c == '"' || c == '\'')
+                    {
+                        self.escape_alpha_numeric_literal(literal)
+                    } else {
+                        literal.to_string()
+                    }
+                }
                 Item::OwnedLiteral(literal) => literal.to_string(),
                 Item::Space(spaces) => spaces.to_string(),
                 Item::OwnedSpace(spaces) => spaces.to_string(),
@@ -203,6 +212,10 @@ pub(super) trait DialectHandler: Any + Debug {
     fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str;
 
     fn convert_date_fixed_item(&self, item: Fixed) -> &str;
+
+    fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
+        literal.to_string()
+    }
 }
 
 impl dyn DialectHandler {
@@ -236,22 +249,43 @@ impl DialectHandler for PostgresDialect {
         match item {
             Numeric::Year => "YYYY",
             Numeric::YearDiv100 => unimplemented!(),
-            Numeric::YearMod100 => "YY",
+            Numeric::YearMod100 => match pad {
+                Pad::Zero => "YY",
+                Pad::None | Pad::Space => "FMYY",
+            },
             Numeric::IsoYear => unimplemented!(),
             Numeric::IsoYearDiv100 => unimplemented!(),
             Numeric::IsoYearMod100 => unimplemented!(),
-            Numeric::Month => "MM",
-            Numeric::Day => "DD",
+            Numeric::Month => match pad {
+                Pad::Zero => "MM",
+                Pad::None | Pad::Space => "FMMM",
+            },
+            Numeric::Day => match pad {
+                Pad::Zero => "DD",
+                Pad::None | Pad::Space => "FMDD",
+            },
             Numeric::WeekFromSun => unimplemented!(),
             Numeric::WeekFromMon => unimplemented!(),
             Numeric::IsoWeek => "IW",
             Numeric::NumDaysFromSun => unimplemented!(),
             Numeric::WeekdayFromMon => unimplemented!(),
             Numeric::Ordinal => "DDD",
-            Numeric::Hour => "HH24",
-            Numeric::Hour12 => "HH12",
-            Numeric::Minute => "MI",
-            Numeric::Second => "SS",
+            Numeric::Hour => match pad {
+                Pad::Zero => "HH24",
+                Pad::None | Pad::Space => "FMHH24",
+            },
+            Numeric::Hour12 => match pad {
+                Pad::Zero => "HH12",
+                Pad::None | Pad::Space => "FMHH12",
+            },
+            Numeric::Minute => match pad {
+                Pad::Zero => "MI",
+                Pad::None | Pad::Space => "FMMI",
+            },
+            Numeric::Second => match pad {
+                Pad::Zero => "SS",
+                Pad::None | Pad::Space => "FMSS",
+            },
             Numeric::Nanosecond => unimplemented!(),
             Numeric::Timestamp => unimplemented!(),
             Numeric::Internal(_) => unreachable!("internal type"),
@@ -260,10 +294,12 @@ impl DialectHandler for PostgresDialect {
 
     fn convert_date_fixed_item(&self, item: Fixed) -> &str {
         match item {
+            // By default long names are blank-padded to 9 chars
+            // We trim them with the FM prefix.
             Fixed::ShortMonthName => "Mon",
-            Fixed::LongMonthName => "Month",
+            Fixed::LongMonthName => "FMMonth",
             Fixed::ShortWeekdayName => "Dy",
-            Fixed::LongWeekdayName => "Day",
+            Fixed::LongWeekdayName => "FMDay",
             Fixed::LowerAmPm => "am",
             Fixed::UpperAmPm => "AM",
             Fixed::Nanosecond => unimplemented!(),
@@ -277,9 +313,13 @@ impl DialectHandler for PostgresDialect {
             Fixed::TimezoneOffsetColonZ => unimplemented!(),
             Fixed::TimezoneOffset => unimplemented!(),
             Fixed::TimezoneOffsetZ => unimplemented!(),
-            Fixed::RFC3339 => "YYYY-MM-DDTHH:MI:SS.USZ",
+            Fixed::RFC3339 => "YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"",
             Fixed::RFC2822 | Fixed::Internal(_) => unreachable!("cannot be used in format"),
         }
+    }
+
+    fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
+        format!("\"{}\"", literal.replace("'", "''").replace("\"", "\\\""))
     }
 }
 
@@ -315,11 +355,76 @@ impl DialectHandler for SQLiteDialect {
     }
 
     fn convert_date_fixed_item(&self, item: Fixed) -> &str {
-        MySqlDialect.convert_date_fixed_item(item)
+        match item {
+            // SQLite does not support day names
+            // https://www.sqlite.org/lang_datefunc.html
+            // TODO: case on '%w': 0 => 'Sun', 1 => 'Mon', ...
+            Fixed::ShortMonthName => unimplemented!(),
+            Fixed::LongMonthName => unimplemented!(),
+            // TODO: case on '%m': 01 => 'Jan', 02 => 'Feb', ...
+            Fixed::ShortWeekdayName => unimplemented!(),
+            Fixed::LongWeekdayName => unimplemented!(),
+            Fixed::LowerAmPm => "%P",
+            Fixed::UpperAmPm => "%p",
+            Fixed::Nanosecond => unimplemented!(),
+            Fixed::Nanosecond3 => unimplemented!(),
+            Fixed::Nanosecond6 => "%f",
+            Fixed::Nanosecond9 => unimplemented!(),
+            Fixed::TimezoneName => unimplemented!(),
+            Fixed::TimezoneOffsetColon => unimplemented!(),
+            Fixed::TimezoneOffsetDoubleColon => unimplemented!(),
+            Fixed::TimezoneOffsetTripleColon => unimplemented!(),
+            Fixed::TimezoneOffsetColonZ => unimplemented!(),
+            Fixed::TimezoneOffset => unimplemented!(),
+            Fixed::TimezoneOffsetZ => unimplemented!(),
+            Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%fZ",
+            Fixed::RFC2822 | Fixed::Internal(_) => unreachable!("cannot be used in format"),
+        }
     }
 
+    // https://www.sqlite.org/lang_datefunc.html
     fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
-        MySqlDialect.convert_date_numeric_item(item, pad)
+        match item {
+            Numeric::Year => "%Y",
+            Numeric::YearDiv100 => unimplemented!(),
+            Numeric::YearMod100 => unimplemented!(),
+            Numeric::IsoYear => unimplemented!(),
+            Numeric::IsoYearDiv100 => unimplemented!(),
+            Numeric::IsoYearMod100 => unimplemented!(),
+            Numeric::Month => match pad {
+                Pad::Zero => "%m",
+                Pad::None | Pad::Space => unimplemented!(),
+            },
+            Numeric::Day => match pad {
+                Pad::Zero => "%d",
+                Pad::None | Pad::Space => unimplemented!(),
+            },
+            Numeric::WeekFromSun => unimplemented!(),
+            Numeric::WeekFromMon => unimplemented!(),
+            Numeric::IsoWeek => unimplemented!(),
+            Numeric::NumDaysFromSun => unimplemented!(),
+            Numeric::WeekdayFromMon => unimplemented!(),
+            Numeric::Ordinal => unimplemented!(),
+            Numeric::Hour => match pad {
+                Pad::Zero => "%H",
+                Pad::None | Pad::Space => "%k",
+            },
+            Numeric::Hour12 => match pad {
+                Pad::Zero => "%I",
+                Pad::None | Pad::Space => "%l",
+            },
+            Numeric::Minute => match pad {
+                Pad::Zero => "%M",
+                Pad::None | Pad::Space => unimplemented!("No padding is not supported for minutes"),
+            },
+            Numeric::Second => match pad {
+                Pad::Zero => "%S",
+                Pad::None | Pad::Space => unimplemented!("No padding is not supported for seconds"),
+            },
+            Numeric::Nanosecond => unimplemented!(),
+            Numeric::Timestamp => "%s",
+            _ => panic!("invalid format"),
+        }
     }
 }
 
@@ -342,22 +447,43 @@ impl DialectHandler for MsSqlDialect {
         match item {
             Numeric::Year => "yyyy",
             Numeric::YearDiv100 => unimplemented!(),
-            Numeric::YearMod100 => unimplemented!(),
+            Numeric::YearMod100 => match pad {
+                Pad::Zero => "yy",
+                Pad::None | Pad::Space => "y",
+            },
             Numeric::IsoYear => unimplemented!(),
             Numeric::IsoYearDiv100 => unimplemented!(),
             Numeric::IsoYearMod100 => unimplemented!(),
-            Numeric::Month => "MM",
-            Numeric::Day => "dd",
+            Numeric::Month => match pad {
+                Pad::Zero => "MM",
+                Pad::None | Pad::Space => "M",
+            },
+            Numeric::Day => match pad {
+                Pad::Zero => "dd",
+                Pad::None | Pad::Space => "d",
+            },
             Numeric::WeekFromSun => unimplemented!(),
             Numeric::WeekFromMon => unimplemented!(),
             Numeric::IsoWeek => unimplemented!(),
             Numeric::NumDaysFromSun => unimplemented!(),
             Numeric::WeekdayFromMon => unimplemented!(),
             Numeric::Ordinal => unimplemented!(),
-            Numeric::Hour => "HH",
-            Numeric::Hour12 => "hh",
-            Numeric::Minute => "mm",
-            Numeric::Second => "ss",
+            Numeric::Hour => match pad {
+                Pad::Zero => "HH",
+                Pad::None | Pad::Space => "H",
+            },
+            Numeric::Hour12 => match pad {
+                Pad::Zero => "hh",
+                Pad::None | Pad::Space => "h",
+            },
+            Numeric::Minute => match pad {
+                Pad::Zero => "mm",
+                Pad::None | Pad::Space => "m",
+            },
+            Numeric::Second => match pad {
+                Pad::Zero => "ss",
+                Pad::None | Pad::Space => "s",
+            },
             Numeric::Nanosecond => unimplemented!(),
             Numeric::Timestamp => unimplemented!(),
             Numeric::Internal(_) => unreachable!("internal type"),
@@ -383,9 +509,13 @@ impl DialectHandler for MsSqlDialect {
             Fixed::TimezoneOffsetColonZ => unimplemented!(),
             Fixed::TimezoneOffset => unimplemented!(),
             Fixed::TimezoneOffsetZ => unimplemented!(),
-            Fixed::RFC3339 => "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'",
+            Fixed::RFC3339 => "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'",
             Fixed::RFC2822 | Fixed::Internal(_) => unreachable!("cannot be used in format"),
         }
+    }
+
+    fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
+        format!("\"{}\"", literal.replace("'", "''").replace("\"", "\\\""))
     }
 }
 
@@ -403,23 +533,44 @@ impl DialectHandler for MySqlDialect {
     fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
         match item {
             Numeric::Year => "%Y",
-            Numeric::YearDiv100 => "%y",
-            Numeric::YearMod100 => unimplemented!(),
+            Numeric::YearDiv100 => unimplemented!(),
+            Numeric::YearMod100 => match pad {
+                Pad::Zero => "%y",
+                Pad::None | Pad::Space => unimplemented!("No padding is not supported for year"),
+            },
             Numeric::IsoYear => unimplemented!(),
             Numeric::IsoYearDiv100 => unimplemented!(),
             Numeric::IsoYearMod100 => unimplemented!(),
-            Numeric::Month => "%m",
-            Numeric::Day => "%d",
+            Numeric::Month => match pad {
+                Pad::Zero => "%m",
+                Pad::None | Pad::Space => "%c",
+            },
+            Numeric::Day => match pad {
+                Pad::Zero => "%d",
+                Pad::None | Pad::Space => "%e",
+            },
             Numeric::WeekFromSun => unimplemented!(),
             Numeric::WeekFromMon => unimplemented!(),
             Numeric::IsoWeek => unimplemented!(),
             Numeric::NumDaysFromSun => unimplemented!(),
             Numeric::WeekdayFromMon => unimplemented!(),
             Numeric::Ordinal => unimplemented!(),
-            Numeric::Hour => "%H",
-            Numeric::Hour12 => unimplemented!(),
-            Numeric::Minute => "%i",
-            Numeric::Second => "%S",
+            Numeric::Hour => match pad {
+                Pad::Zero => "%H",
+                Pad::None | Pad::Space => "%k",
+            },
+            Numeric::Hour12 => match pad {
+                Pad::Zero => "%I",
+                Pad::None | Pad::Space => "%l",
+            },
+            Numeric::Minute => match pad {
+                Pad::Zero => "%i",
+                Pad::None | Pad::Space => unimplemented!("No padding is not supported for minutes"),
+            },
+            Numeric::Second => match pad {
+                Pad::Zero => "%S",
+                Pad::None | Pad::Space => unimplemented!("No padding is not supported for seconds"),
+            },
             Numeric::Nanosecond => unimplemented!(),
             Numeric::Timestamp => unimplemented!(),
             _ => panic!("invalid format"),
@@ -460,12 +611,80 @@ impl DialectHandler for ClickHouseDialect {
         true
     }
 
-    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
-        MySqlDialect.convert_date_fixed_item(item)
+    // https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#formatDateTime
+    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+        match item {
+            Numeric::Year => "yyyy",
+            Numeric::YearDiv100 => unimplemented!(),
+            Numeric::YearMod100 => match pad {
+                Pad::Zero => "yy",
+                Pad::None | Pad::Space => "y",
+            },
+            Numeric::IsoYear => unimplemented!(),
+            Numeric::IsoYearDiv100 => unimplemented!(),
+            Numeric::IsoYearMod100 => unimplemented!(),
+            Numeric::Month => match pad {
+                Pad::Zero => "MM",
+                Pad::None | Pad::Space => "M",
+            },
+            Numeric::Day => match pad {
+                Pad::Zero => "dd",
+                Pad::None | Pad::Space => "d",
+            },
+            Numeric::WeekFromSun => unimplemented!(),
+            Numeric::WeekFromMon => unimplemented!(),
+            Numeric::IsoWeek => unimplemented!(),
+            Numeric::NumDaysFromSun => unimplemented!(),
+            Numeric::WeekdayFromMon => unimplemented!(),
+            Numeric::Ordinal => unimplemented!(),
+            Numeric::Hour => match pad {
+                Pad::Zero => "HH",
+                Pad::None | Pad::Space => "H",
+            },
+            Numeric::Hour12 => match pad {
+                Pad::Zero => "hh",
+                Pad::None | Pad::Space => "h",
+            },
+            Numeric::Minute => match pad {
+                Pad::Zero => "mm",
+                Pad::None | Pad::Space => "m",
+            },
+            Numeric::Second => match pad {
+                Pad::Zero => "ss",
+                Pad::None | Pad::Space => "s",
+            },
+            Numeric::Nanosecond => unimplemented!(),
+            Numeric::Timestamp => unimplemented!(),
+            _ => panic!("invalid format"),
+        }
     }
 
-    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
-        MySqlDialect.convert_date_numeric_item(item, pad)
+    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+        match item {
+            Fixed::ShortMonthName => "MMM",
+            Fixed::LongMonthName => "MMMM",
+            Fixed::ShortWeekdayName => "EEE",
+            Fixed::LongWeekdayName => "EEEE",
+            Fixed::LowerAmPm => unimplemented!(),
+            Fixed::UpperAmPm => "aa",
+            Fixed::Nanosecond => unimplemented!(),
+            Fixed::Nanosecond3 => unimplemented!(),
+            Fixed::Nanosecond6 => "SSSSSS",
+            Fixed::Nanosecond9 => unimplemented!(),
+            Fixed::TimezoneName => unimplemented!(),
+            Fixed::TimezoneOffsetColon => unimplemented!(),
+            Fixed::TimezoneOffsetDoubleColon => unimplemented!(),
+            Fixed::TimezoneOffsetTripleColon => unimplemented!(),
+            Fixed::TimezoneOffsetColonZ => unimplemented!(),
+            Fixed::TimezoneOffset => unimplemented!(),
+            Fixed::TimezoneOffsetZ => unimplemented!(),
+            Fixed::RFC3339 => "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+            Fixed::RFC2822 | Fixed::Internal(_) => unreachable!("cannot be used in format"),
+        }
+    }
+
+    fn escape_alpha_numeric_literal(&self, literal: &str) -> String {
+        format!("'{}'", literal.replace("'", "''").replace("\"", "\\\""))
     }
 }
 
@@ -527,12 +746,77 @@ impl DialectHandler for DuckDbDialect {
         true
     }
 
-    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
-        MySqlDialect.convert_date_fixed_item(item)
+    // https://duckdb.org/docs/sql/functions/dateformat
+    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
+        match item {
+            Numeric::Year => "%Y",
+            Numeric::YearDiv100 => unimplemented!(),
+            Numeric::YearMod100 => match pad {
+                Pad::Zero => "%y",
+                // We can't add a space only for values greater than 9, so we use the same
+                Pad::None | Pad::Space => "%-y",
+            },
+            Numeric::IsoYear => unimplemented!(),
+            Numeric::IsoYearDiv100 => unimplemented!(),
+            Numeric::IsoYearMod100 => unimplemented!(),
+            Numeric::Month => match pad {
+                Pad::Zero => "%m",
+                Pad::None | Pad::Space => "%-m",
+            },
+            Numeric::Day => match pad {
+                Pad::Zero => "%d",
+                Pad::None | Pad::Space => "%-d",
+            },
+            Numeric::WeekFromSun => unimplemented!(),
+            Numeric::WeekFromMon => unimplemented!(),
+            Numeric::IsoWeek => unimplemented!(),
+            Numeric::NumDaysFromSun => unimplemented!(),
+            Numeric::WeekdayFromMon => unimplemented!(),
+            Numeric::Ordinal => unimplemented!(),
+            Numeric::Hour => match pad {
+                Pad::Zero => "%H",
+                Pad::None | Pad::Space => "%-H",
+            },
+            Numeric::Hour12 => match pad {
+                Pad::Zero => "%I",
+                Pad::None | Pad::Space => "%-I",
+            },
+            Numeric::Minute => match pad {
+                Pad::Zero => "%M",
+                Pad::None | Pad::Space => "%-M",
+            },
+            Numeric::Second => match pad {
+                Pad::Zero => "%S",
+                Pad::None | Pad::Space => "%-S",
+            },
+            Numeric::Nanosecond => "%n",
+            Numeric::Timestamp => unimplemented!(),
+            _ => panic!("invalid format"),
+        }
     }
 
-    fn convert_date_numeric_item(&self, item: Numeric, pad: Pad) -> &str {
-        MySqlDialect.convert_date_numeric_item(item, pad)
+    fn convert_date_fixed_item(&self, item: Fixed) -> &str {
+        match item {
+            Fixed::ShortMonthName => "%b",
+            Fixed::LongMonthName => "%B",
+            Fixed::ShortWeekdayName => "%a",
+            Fixed::LongWeekdayName => "%A",
+            Fixed::LowerAmPm => unimplemented!(),
+            Fixed::UpperAmPm => "%p",
+            Fixed::Nanosecond => "%n",
+            Fixed::Nanosecond3 => "%g",
+            Fixed::Nanosecond6 => "%f",
+            Fixed::Nanosecond9 => "%n",
+            Fixed::TimezoneName => unimplemented!(),
+            Fixed::TimezoneOffsetColon => unimplemented!(),
+            Fixed::TimezoneOffsetDoubleColon => unimplemented!(),
+            Fixed::TimezoneOffsetTripleColon => unimplemented!(),
+            Fixed::TimezoneOffsetColonZ => unimplemented!(),
+            Fixed::TimezoneOffset => unimplemented!(),
+            Fixed::TimezoneOffsetZ => unimplemented!(),
+            Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%fZ",
+            Fixed::RFC2822 | Fixed::Internal(_) => unreachable!("cannot be used in format"),
+        }
     }
 }
 
@@ -540,7 +824,7 @@ impl DialectHandler for DuckDbDialect {
 mod tests {
     use rstest::rstest;
 
-    use super::{Dialect, DialectHandler, MsSqlDialect, MySqlDialect, PostgresDialect};
+    use super::*;
     use insta::assert_debug_snapshot;
     use std::str::FromStr;
 
@@ -560,20 +844,26 @@ mod tests {
     }
 
     #[rstest]
+    #[case("%Y-%m-%d", DuckDbDialect {},"%Y-%m-%d")]
     #[case("%Y-%m-%d", MsSqlDialect {}, "yyyy-MM-dd")]
     #[case("%Y-%m-%d", MySqlDialect {},"%Y-%m-%d")]
     #[case("%Y-%m-%d", PostgresDialect {}, "YYYY-MM-DD")]
+    #[case("%Y-%m-%d %H:%M:%S.%.6f", DuckDbDialect {}, "%Y-%m-%d %H:%M:%S.%f")]
     #[case("%Y-%m-%d %H:%M:%S.%.6f", MsSqlDialect {}, "yyyy-MM-dd HH:mm:ss.ffffff")]
     #[case("%Y-%m-%d %H:%M:%S.%.6f", MySqlDialect {}, "%Y-%m-%d %H:%i:%S.%f")]
     #[case("%Y-%m-%d %H:%M:%S.%.6f", PostgresDialect {}, "YYYY-MM-DD HH24:MI:SS.US")]
+    #[case("%A %B %d %Y", DuckDbDialect {},"%A %B %d %Y")]
+    #[case("%A %B %d %Y", MsSqlDialect {}, "dddd MMMM dd yyyy")]
+    #[case("%A %B %d %Y", MySqlDialect {},"%W %M %d %Y")]
+    #[case("%A %B %d %Y", PostgresDialect {}, "FMDay FMMonth DD YYYY")]
     fn test_translate_date(
         #[case] prql_date_format: &str,
         #[case] dialect: impl DialectHandler + 'static,
-        #[case] postgres_date_format: &str,
+        #[case] expected_dialect_date_format: &str,
     ) {
         assert_eq!(
             dialect.translate_prql_format(prql_date_format),
-            postgres_date_format.to_string()
+            expected_dialect_date_format.to_string()
         );
     }
 }

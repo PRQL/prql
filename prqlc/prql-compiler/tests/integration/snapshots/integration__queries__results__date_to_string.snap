@@ -1,0 +1,25 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# generic:skip\n# glaredb:skip\n# clickhouse:skip\n# mssql:skip\n# postgres:skip\n# mysql:test\n# duckdb:skip\n# sqlite:skip\nfrom invoices\ntake 20\nselect {\n    d1 = invoice_date | date.to_string \"%Y/%m/%d\",\n    d2 = invoice_date | date.to_string \"%F\",\n    d3 = invoice_date | date.to_string \"%v\",\n    d4 = invoice_date | date.to_string \"%x\",\n    d5 = invoice_date | date.to_string \"%+\",\n    d6 = invoice_date | date.to_string \"%c\",\n    d7 = invoice_date | date.to_string \"%r\",\n    d8 = invoice_date | date.to_string \"%A %B %d %Y\",\n    d9 = invoice_date | date.to_string \"%-d/%-m/%y %-H:%M:%S\",\n    d10 = invoice_date | date.to_string \"%Mmin %Ssec\",\n    d11 = invoice_date | date.to_string \"%M'%S\\\"\",\n}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/date_to_string.prql
+---
+2009/01/01,2009-01-01,1-Jan-2009,01/01/09,2009-01-01T00:00:00.000000Z,Thu Jan 1 00:00:00 2009,12:00:00 AM,Thursday January 01 2009,1/1/09 0:00:00,00min 00sec,00'00"
+2009/01/02,2009-01-02,2-Jan-2009,01/02/09,2009-01-02T00:00:00.000000Z,Fri Jan 2 00:00:00 2009,12:00:00 AM,Friday January 02 2009,2/1/09 0:00:00,00min 00sec,00'00"
+2009/01/03,2009-01-03,3-Jan-2009,01/03/09,2009-01-03T00:00:00.000000Z,Sat Jan 3 00:00:00 2009,12:00:00 AM,Saturday January 03 2009,3/1/09 0:00:00,00min 00sec,00'00"
+2009/01/06,2009-01-06,6-Jan-2009,01/06/09,2009-01-06T00:00:00.000000Z,Tue Jan 6 00:00:00 2009,12:00:00 AM,Tuesday January 06 2009,6/1/09 0:00:00,00min 00sec,00'00"
+2009/01/11,2009-01-11,11-Jan-2009,01/11/09,2009-01-11T00:00:00.000000Z,Sun Jan 11 00:00:00 2009,12:00:00 AM,Sunday January 11 2009,11/1/09 0:00:00,00min 00sec,00'00"
+2009/01/19,2009-01-19,19-Jan-2009,01/19/09,2009-01-19T00:00:00.000000Z,Mon Jan 19 00:00:00 2009,12:00:00 AM,Monday January 19 2009,19/1/09 0:00:00,00min 00sec,00'00"
+2009/02/01,2009-02-01,1-Feb-2009,02/01/09,2009-02-01T00:00:00.000000Z,Sun Feb 1 00:00:00 2009,12:00:00 AM,Sunday February 01 2009,1/2/09 0:00:00,00min 00sec,00'00"
+2009/02/01,2009-02-01,1-Feb-2009,02/01/09,2009-02-01T00:00:00.000000Z,Sun Feb 1 00:00:00 2009,12:00:00 AM,Sunday February 01 2009,1/2/09 0:00:00,00min 00sec,00'00"
+2009/02/02,2009-02-02,2-Feb-2009,02/02/09,2009-02-02T00:00:00.000000Z,Mon Feb 2 00:00:00 2009,12:00:00 AM,Monday February 02 2009,2/2/09 0:00:00,00min 00sec,00'00"
+2009/02/03,2009-02-03,3-Feb-2009,02/03/09,2009-02-03T00:00:00.000000Z,Tue Feb 3 00:00:00 2009,12:00:00 AM,Tuesday February 03 2009,3/2/09 0:00:00,00min 00sec,00'00"
+2009/02/06,2009-02-06,6-Feb-2009,02/06/09,2009-02-06T00:00:00.000000Z,Fri Feb 6 00:00:00 2009,12:00:00 AM,Friday February 06 2009,6/2/09 0:00:00,00min 00sec,00'00"
+2009/02/11,2009-02-11,11-Feb-2009,02/11/09,2009-02-11T00:00:00.000000Z,Wed Feb 11 00:00:00 2009,12:00:00 AM,Wednesday February 11 2009,11/2/09 0:00:00,00min 00sec,00'00"
+2009/02/19,2009-02-19,19-Feb-2009,02/19/09,2009-02-19T00:00:00.000000Z,Thu Feb 19 00:00:00 2009,12:00:00 AM,Thursday February 19 2009,19/2/09 0:00:00,00min 00sec,00'00"
+2009/03/04,2009-03-04,4-Mar-2009,03/04/09,2009-03-04T00:00:00.000000Z,Wed Mar 4 00:00:00 2009,12:00:00 AM,Wednesday March 04 2009,4/3/09 0:00:00,00min 00sec,00'00"
+2009/03/04,2009-03-04,4-Mar-2009,03/04/09,2009-03-04T00:00:00.000000Z,Wed Mar 4 00:00:00 2009,12:00:00 AM,Wednesday March 04 2009,4/3/09 0:00:00,00min 00sec,00'00"
+2009/03/05,2009-03-05,5-Mar-2009,03/05/09,2009-03-05T00:00:00.000000Z,Thu Mar 5 00:00:00 2009,12:00:00 AM,Thursday March 05 2009,5/3/09 0:00:00,00min 00sec,00'00"
+2009/03/06,2009-03-06,6-Mar-2009,03/06/09,2009-03-06T00:00:00.000000Z,Fri Mar 6 00:00:00 2009,12:00:00 AM,Friday March 06 2009,6/3/09 0:00:00,00min 00sec,00'00"
+2009/03/09,2009-03-09,9-Mar-2009,03/09/09,2009-03-09T00:00:00.000000Z,Mon Mar 9 00:00:00 2009,12:00:00 AM,Monday March 09 2009,9/3/09 0:00:00,00min 00sec,00'00"
+2009/03/14,2009-03-14,14-Mar-2009,03/14/09,2009-03-14T00:00:00.000000Z,Sat Mar 14 00:00:00 2009,12:00:00 AM,Saturday March 14 2009,14/3/09 0:00:00,00min 00sec,00'00"
+2009/03/22,2009-03-22,22-Mar-2009,03/22/09,2009-03-22T00:00:00.000000Z,Sun Mar 22 00:00:00 2009,12:00:00 AM,Sunday March 22 2009,22/3/09 0:00:00,00min 00sec,00'00"

@@ -8,7 +8,7 @@ WITH table_0 AS (
 )
 SELECT
   d,
-  formatDateTime(d, '%Y/%m/%d') AS d_str
+  formatDateTimeInJodaSyntax(d, 'yyyy/MM/dd') AS d_str
 FROM
   table_0
 
