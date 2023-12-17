@@ -336,7 +336,7 @@ impl DialectHandler for DuckDbDialect {
                 (Numeric::Minute, Pad::Zero) => "%M",
                 (Numeric::Second, Pad::Zero) => "%S",
                 (Numeric::Nanosecond, Pad::Zero) => "%f", // Microseconds
-                _ => unimplemented!("Unsupported chrono numeric item: {:?}", item),
+                _ => bail!("Unsupported chrono item"),
             }
             .to_string(),
             Item::Fixed(fixed) => match fixed {
@@ -346,12 +346,12 @@ impl DialectHandler for DuckDbDialect {
                 Fixed::LongWeekdayName => "%A",
                 Fixed::UpperAmPm => "%p",
                 Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%fZ",
-                _ => unimplemented!("Unsupported chrono fixed item: {:?}", item),
+                _ => bail!("Unsupported chrono item"),
             }
             .to_string(),
             Item::Literal(literal) => literal.replace('\'', "''"),
             Item::Space(spaces) => spaces.to_string(),
-            item => unimplemented!("Unsupported chrono item: {:?}", item),
+            _ => bail!("Unsupported chrono item"),
         })
     }
 }
