@@ -345,7 +345,7 @@ impl DialectHandler for DuckDbDialect {
                 Fixed::ShortWeekdayName => "%a",
                 Fixed::LongWeekdayName => "%A",
                 Fixed::UpperAmPm => "%p",
-                Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%f%z:00",
+                Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%fZ",
                 _ => unimplemented!("Unsupported chrono fixed item: {:?}", item),
             }
             .to_string(),
