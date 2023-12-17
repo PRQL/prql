@@ -1,4 +1,5 @@
-#[cfg(feature = "test-dbs")]
+#![cfg(any(feature = "test-dbs", feature = "test-dbs-external"))]
+
 pub mod duckdb;
 
 #[cfg(feature = "test-dbs-external")]
@@ -10,7 +11,6 @@ pub mod mysql;
 #[cfg(feature = "test-dbs-external")]
 pub mod postgres;
 
-#[cfg(feature = "test-dbs")]
 pub mod sqlite;
 
 use anyhow::Result;
