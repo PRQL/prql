@@ -41,10 +41,8 @@ pub struct ConnectionCfg {
 impl DbConnection {
     pub fn new(cfg: ConnectionCfg) -> Option<DbConnection> {
         let protocol = match &cfg.protocol {
-            #[cfg(feature = "test-dbs")]
             DbProtocol::DuckDb => protocol::duckdb::init(),
 
-            #[cfg(feature = "test-dbs")]
             DbProtocol::SQLite => protocol::sqlite::init(),
 
             #[cfg(feature = "test-dbs-external")]
