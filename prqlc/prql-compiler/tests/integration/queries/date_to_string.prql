@@ -20,4 +20,5 @@ select {
     d10 = (invoice_date | date.to_string "%-Hh %Mmin"),
     d11 = (invoice_date | date.to_string "%M'%S\""),
     d12 = (invoice_date | date.to_string "%M''\"\"'\""),
+    d13 = (invoice_date | date.to_string "100%% in %d days"),
 }

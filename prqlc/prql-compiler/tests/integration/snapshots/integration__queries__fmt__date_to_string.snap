@@ -1,6 +1,6 @@
 ---
 source: prqlc/prql-compiler/tests/integration/queries.rs
-expression: "# generic:skip\n# glaredb:skip\n# sqlite:skip\n# clickhouse:skip\n# mssql:skip\n# mysql:skip\n# postgres:skip\nfrom invoices\ntake 20\nselect {\n    d1 = (invoice_date | date.to_string \"%Y/%m/%d\"),\n    d2 = (invoice_date | date.to_string \"%F\"),\n    d3 = (invoice_date | date.to_string \"%D\"),\n    d4 = (invoice_date | date.to_string \"%H:%M:%S.%f\"),\n    d5 = (invoice_date | date.to_string \"%r\"),\n    d6 = (invoice_date | date.to_string \"%A %B %-d %Y\"),\n    d7 = (invoice_date | date.to_string \"%a, %-d %b %Y at %I:%M:%S %p\"),\n    d8 = (invoice_date | date.to_string \"%+\"),\n    d9 = (invoice_date | date.to_string \"%-d/%-m/%y\"),\n    d10 = (invoice_date | date.to_string \"%-Hh %Mmin\"),\n    d11 = (invoice_date | date.to_string \"%M'%S\\\"\"),\n    d12 = (invoice_date | date.to_string \"%M''\\\"\\\"'\\\"\"),\n}\n"
+expression: "# generic:skip\n# glaredb:skip\n# sqlite:skip\n# clickhouse:skip\n# mssql:skip\n# mysql:skip\n# postgres:skip\nfrom invoices\ntake 20\nselect {\n    d1 = (invoice_date | date.to_string \"%Y/%m/%d\"),\n    d2 = (invoice_date | date.to_string \"%F\"),\n    d3 = (invoice_date | date.to_string \"%D\"),\n    d4 = (invoice_date | date.to_string \"%H:%M:%S.%f\"),\n    d5 = (invoice_date | date.to_string \"%r\"),\n    d6 = (invoice_date | date.to_string \"%A %B %-d %Y\"),\n    d7 = (invoice_date | date.to_string \"%a, %-d %b %Y at %I:%M:%S %p\"),\n    d8 = (invoice_date | date.to_string \"%+\"),\n    d9 = (invoice_date | date.to_string \"%-d/%-m/%y\"),\n    d10 = (invoice_date | date.to_string \"%-Hh %Mmin\"),\n    d11 = (invoice_date | date.to_string \"%M'%S\\\"\"),\n    d12 = (invoice_date | date.to_string \"%M''\\\"\\\"'\\\"\"),\n    d13 = (invoice_date | date.to_string \"100%% in %d days\"),\n}\n"
 input_file: prqlc/prql-compiler/tests/integration/queries/date_to_string.prql
 ---
 from invoices
@@ -18,5 +18,6 @@ select {
   d10 = (invoice_date | date.to_string "%-Hh %Mmin"),
   d11 = (invoice_date | date.to_string ""%M'%S"""),
   d12 = (invoice_date | date.to_string """%M''""'""""),
+  d13 = (invoice_date | date.to_string "100%% in %d days"),
 }
 

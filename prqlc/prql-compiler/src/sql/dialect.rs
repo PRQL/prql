@@ -373,7 +373,7 @@ impl DialectHandler for DuckDbDialect {
             Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
             Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
             Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%fZ".to_string(),
-            Item::Literal(literal) => literal.replace('\'', "''"),
+            Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
             Item::Space(spaces) => spaces.to_string(),
             _ => unreachable!("only supported chrono items by PRQL are translated"),
         })
