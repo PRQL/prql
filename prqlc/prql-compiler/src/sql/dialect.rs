@@ -322,31 +322,38 @@ impl DialectHandler for DuckDbDialect {
 
     // https://duckdb.org/docs/sql/functions/dateformat
     fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
-        Ok(match item {
-            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y",
-            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y",
-            Item::Numeric(Numeric::Month, Pad::None) => "%-m",
-            Item::Numeric(Numeric::Month, Pad::Zero) => "%m",
-            Item::Numeric(Numeric::Day, Pad::None) => "%-d",
-            Item::Numeric(Numeric::Day, Pad::Zero) => "%d",
-            Item::Numeric(Numeric::Hour, Pad::None) => "%-H",
-            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H",
-            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I",
-            Item::Numeric(Numeric::Minute, Pad::None) => "%-M",
-            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M",
-            Item::Numeric(Numeric::Second, Pad::Zero) => "%S",
-            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f",
-            Item::Fixed(Fixed::ShortMonthName) => "%b",
-            Item::Fixed(Fixed::LongMonthName) => "%B",
-            Item::Fixed(Fixed::ShortWeekdayName) => "%a",
-            Item::Fixed(Fixed::LongWeekdayName) => "%A",
-            Item::Fixed(Fixed::UpperAmPm) => "%p",
-            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%f%z:00",
-            Item::Literal(literal) => literal,
-            Item::Space(spaces) => spaces,
+        Ok(match &item {
+            Item::Numeric(numeric, pad) => match (numeric, pad) {
+                (Numeric::Year, Pad::Zero) => "%Y",
+                (Numeric::YearMod100, Pad::Zero) => "%y",
+                (Numeric::Month, Pad::None) => "%-m",
+                (Numeric::Month, Pad::Zero) => "%m",
+                (Numeric::Day, Pad::None) => "%-d",
+                (Numeric::Day, Pad::Zero) => "%d",
+                (Numeric::Hour, Pad::None) => "%-H",
+                (Numeric::Hour, Pad::Zero) => "%H",
+                (Numeric::Hour12, Pad::Zero) => "%I",
+                (Numeric::Minute, Pad::None) => "%-M",
+                (Numeric::Minute, Pad::Zero) => "%M",
+                (Numeric::Second, Pad::Zero) => "%S",
+                (Numeric::Nanosecond, Pad::Zero) => "%f", // Microseconds
+                _ => unimplemented!("Unsupported chrono numeric item: {:?}", item),
+            }
+            .to_string(),
+            Item::Fixed(fixed) => match fixed {
+                Fixed::ShortMonthName => "%b",
+                Fixed::LongMonthName => "%B",
+                Fixed::ShortWeekdayName => "%a",
+                Fixed::LongWeekdayName => "%A",
+                Fixed::UpperAmPm => "%p",
+                Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%f%z:00",
+                _ => unimplemented!("Unsupported chrono fixed item: {:?}", item),
+            }
+            .to_string(),
+            Item::Literal(literal) => literal.replace('\'', "''"),
+            Item::Space(spaces) => spaces.to_string(),
             item => unimplemented!("Unsupported chrono item: {:?}", item),
-        }
-        .to_string())
+        })
     }
 }
 

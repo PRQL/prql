@@ -18,5 +18,6 @@ select {
     d8 = (invoice_date | date.to_string "%+"),
     d9 = (invoice_date | date.to_string "%-d/%-m/%y"),
     d10 = (invoice_date | date.to_string "%-Hh %-Mmin"),
-    d11 = (invoice_date | date.to_string "%-M'%S\"")
+    d11 = (invoice_date | date.to_string "%-M'%S\""),
+    d12 = (invoice_date | date.to_string "%-M''\"\"'\""),
 }
