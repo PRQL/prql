@@ -2,7 +2,7 @@
 # glaredb:skip
 # sqlite:skip
 # clickhouse:skip
-# mssql:skip
+# mssql:test
 from invoices
 take 20
 select {

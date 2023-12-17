@@ -250,6 +250,12 @@ module mssql {
     let length = column -> s"LEN({column:0})"
   }
 
+  # Date functions
+  module date {
+    # https://learn.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql
+    let to_string = format column -> s"FORMAT({column:0}, {format:0})"
+  }
+
   let regex_search = text pattern -> null
 }
 
