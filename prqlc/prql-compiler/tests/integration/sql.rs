@@ -214,6 +214,7 @@ FROM
 #[rstest]
 #[case::duckdb(sql::Dialect::DuckDb, "strftime(invoice_date, '%d/%m/%Y')")]
 #[case::postgres(sql::Dialect::Postgres, "TO_CHAR(invoice_date, 'DD/MM/YYYY')")]
+#[case::mysql(sql::Dialect::MySql, "DATE_FORMAT(invoice_date, '%d/%m/%Y')")]
 fn date_to_string_operator(
     #[case] dialect: sql::Dialect,
     #[case] expected_date_to_string: &'static str,

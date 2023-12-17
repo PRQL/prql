@@ -3,7 +3,6 @@
 # sqlite:skip
 # clickhouse:skip
 # mssql:skip
-# mysql:skip
 from invoices
 take 20
 select {

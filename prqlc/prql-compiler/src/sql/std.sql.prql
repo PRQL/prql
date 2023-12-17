@@ -263,6 +263,12 @@ module mysql {
   @{binding_strength=100}
   let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
 
+  # Date functions
+  module date {
+    # https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html
+    let to_string = format column -> s"DATE_FORMAT({column:0}, {format:0})"
+  }
+
   # 'c' for case-sensitive
   let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"
 }
