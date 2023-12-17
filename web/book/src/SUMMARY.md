@@ -33,6 +33,8 @@
   - [Ranges](./reference/syntax/ranges.md)
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
+  - [Date & time](./reference/syntax/date-time/index.md)
+    - [Format specifiers](./reference/syntax/date-time/format-specifiers.md)
 
 - [Declarations]()
   <!-- I don't know what to call this section. -->

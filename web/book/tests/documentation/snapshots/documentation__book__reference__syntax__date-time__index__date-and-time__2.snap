@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "prql target:sql.mysql\n\nfrom invoices\nselect {\n  invoice_date | date.to_string \"%d/%m/%Y\"\n}\n"
+---
+SELECT
+  DATE_FORMAT(invoice_date, '%d/%m/%Y')
+FROM
+  invoices
+
