@@ -17,7 +17,7 @@ select {
     d7 = (invoice_date | date.to_string "%a, %-d %b %Y at %I:%M:%S %p"),
     d8 = (invoice_date | date.to_string "%+"),
     d9 = (invoice_date | date.to_string "%-d/%-m/%y"),
-    d10 = (invoice_date | date.to_string "%-Hh %-Mmin"),
-    d11 = (invoice_date | date.to_string "%-M'%S\""),
-    d12 = (invoice_date | date.to_string "%-M''\"\"'\""),
+    d10 = (invoice_date | date.to_string "%-Hh %Mmin"),
+    d11 = (invoice_date | date.to_string "%M'%S\""),
+    d12 = (invoice_date | date.to_string "%M''\"\"'\""),
 }

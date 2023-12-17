@@ -333,7 +333,6 @@ impl DialectHandler for DuckDbDialect {
                 (Numeric::Hour, Pad::None) => "%-H",
                 (Numeric::Hour, Pad::Zero) => "%H",
                 (Numeric::Hour12, Pad::Zero) => "%I",
-                (Numeric::Minute, Pad::None) => "%-M",
                 (Numeric::Minute, Pad::Zero) => "%M",
                 (Numeric::Second, Pad::Zero) => "%S",
                 (Numeric::Nanosecond, Pad::Zero) => "%f", // Microseconds
