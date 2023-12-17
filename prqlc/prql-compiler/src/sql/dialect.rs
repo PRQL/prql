@@ -216,6 +216,44 @@ impl DialectHandler for PostgresDialect {
     fn supports_distinct_on(&self) -> bool {
         true
     }
+
+    // https://www.postgresql.org/docs/current/functions-formatting.html
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "YYYY".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "YY".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "FMMM".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "MM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "FMDD".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "DD".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "FMHH24".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "HH24".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "HH12".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "MI".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "SS".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "US".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "Mon".to_string(),
+            // By default long names are blank-padded to 9 chars so we need to use FM prefix
+            Item::Fixed(Fixed::LongMonthName) => "FMMonth".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "Dy".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "FMDay".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.USZ".to_string(),
+            Item::Literal(literal) => {
+                // literals are split at every non alphanumeric character
+                if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    // If the literal contains alphanumeric characters, we need to quote it
+                    // to avoid it being interpreted as a pattern understood by Postgres.
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text
+                    format!("\"{}\"", literal)
+                } else {
+                    literal.replace('\'', "''").replace('"', "\\\"")
+                }
+            }
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
+    }
 }
 
 impl DialectHandler for GlareDbDialect {

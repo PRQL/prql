@@ -287,6 +287,12 @@ module postgres {
     let substring = offset length column -> s"SUBSTR({column:0}, {offset:0}, {length:0})"
   }
 
+  # Date functions
+  module date {
+    # https://www.postgresql.org/docs/current/functions-formatting.html
+    let to_string = format column -> s"TO_CHAR({column:0}, {format:0})"
+  }
+
   @{binding_strength=9}
   let regex_search = text pattern -> s"{text} ~ {pattern}"
 }

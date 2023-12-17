@@ -4,7 +4,6 @@
 # clickhouse:skip
 # mssql:skip
 # mysql:skip
-# postgres:skip
 from invoices
 take 20
 select {
