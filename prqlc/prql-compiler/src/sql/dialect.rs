@@ -130,6 +130,33 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
+/// All the chrono items supported by PRQL
+fn is_supported_chrono_item(item: &Item) -> bool {
+    matches!(
+        item,
+        Item::Numeric(Numeric::Year, Pad::Zero)
+            | Item::Numeric(Numeric::YearMod100, Pad::Zero)
+            | Item::Numeric(Numeric::Month, Pad::None)
+            | Item::Numeric(Numeric::Month, Pad::Zero)
+            | Item::Numeric(Numeric::Day, Pad::None)
+            | Item::Numeric(Numeric::Day, Pad::Zero)
+            | Item::Numeric(Numeric::Hour, Pad::None)
+            | Item::Numeric(Numeric::Hour, Pad::Zero)
+            | Item::Numeric(Numeric::Hour12, Pad::Zero)
+            | Item::Numeric(Numeric::Minute, Pad::Zero)
+            | Item::Numeric(Numeric::Second, Pad::Zero)
+            | Item::Numeric(Numeric::Nanosecond, Pad::Zero)
+            | Item::Fixed(Fixed::ShortMonthName)
+            | Item::Fixed(Fixed::LongMonthName)
+            | Item::Fixed(Fixed::ShortWeekdayName)
+            | Item::Fixed(Fixed::LongWeekdayName)
+            | Item::Fixed(Fixed::UpperAmPm)
+            | Item::Fixed(Fixed::RFC3339)
+            | Item::Literal(_)
+            | Item::Space(_)
+    )
+}
+
 pub(super) trait DialectHandler: Any + Debug {
     fn use_top(&self) -> bool {
         false
@@ -185,12 +212,17 @@ pub(super) trait DialectHandler: Any + Debug {
     /// (see https://docs.rs/chrono/latest/chrono/format/strftime/index.html)
     fn translate_prql_date_format(&self, prql_date_format: &str) -> Result<String> {
         Ok(StrftimeItems::new(prql_date_format)
-            .map(|item| self.translate_chrono_item(item))
+            .map(|item| {
+                if !is_supported_chrono_item(&item) {
+                    bail!("PRQL doesn't support this date format item")
+                }
+                self.translate_chrono_item(&item)
+            })
             .collect::<Result<Vec<_>>>()?
             .join(""))
     }
 
-    fn translate_chrono_item(&self, _item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, _item: &Item) -> Result<String> {
         bail!("Date formatting is not yet supported for this dialect")
     }
 }
@@ -203,7 +235,7 @@ impl dyn DialectHandler {
 }
 
 impl DialectHandler for GenericDialect {
-    fn translate_chrono_item(&self, _item: Item) -> Result<String> {
+    fn translate_chrono_item(&self, _item: &Item) -> Result<String> {
         bail!("Date formatting requires a dialect")
     }
 }
@@ -321,37 +353,29 @@ impl DialectHandler for DuckDbDialect {
     }
 
     // https://duckdb.org/docs/sql/functions/dateformat
-    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
-        Ok(match &item {
-            Item::Numeric(numeric, pad) => match (numeric, pad) {
-                (Numeric::Year, Pad::Zero) => "%Y",
-                (Numeric::YearMod100, Pad::Zero) => "%y",
-                (Numeric::Month, Pad::None) => "%-m",
-                (Numeric::Month, Pad::Zero) => "%m",
-                (Numeric::Day, Pad::None) => "%-d",
-                (Numeric::Day, Pad::Zero) => "%d",
-                (Numeric::Hour, Pad::None) => "%-H",
-                (Numeric::Hour, Pad::Zero) => "%H",
-                (Numeric::Hour12, Pad::Zero) => "%I",
-                (Numeric::Minute, Pad::Zero) => "%M",
-                (Numeric::Second, Pad::Zero) => "%S",
-                (Numeric::Nanosecond, Pad::Zero) => "%f", // Microseconds
-                _ => bail!("Unsupported chrono item"),
-            }
-            .to_string(),
-            Item::Fixed(fixed) => match fixed {
-                Fixed::ShortMonthName => "%b",
-                Fixed::LongMonthName => "%B",
-                Fixed::ShortWeekdayName => "%a",
-                Fixed::LongWeekdayName => "%A",
-                Fixed::UpperAmPm => "%p",
-                Fixed::RFC3339 => "%Y-%m-%dT%H:%M:%S.%fZ",
-                _ => bail!("Unsupported chrono item"),
-            }
-            .to_string(),
+    fn translate_chrono_item<'a>(&self, item: &Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "%-m".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "%m".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "%-d".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "%d".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "%-H".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "%S".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%fZ".to_string(),
             Item::Literal(literal) => literal.replace('\'', "''"),
             Item::Space(spaces) => spaces.to_string(),
-            _ => bail!("Unsupported chrono item"),
+            _ => unreachable!("only supported chrono items by PRQL are translated"),
         })
     }
 }
