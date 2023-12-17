@@ -104,6 +104,9 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
                 "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
+                "std.date.to_string" => {
+                    return Ok(process_date_to_string(&expr, name, args, ctx)?.into())
+                }
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr.into()),
                     None => {
@@ -172,6 +175,48 @@ fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
             negated: false,
         }),
         _ => panic!("args to `std.array_in` must be a column ref and an array"),
+    }
+}
+
+/// Translates PRQL date format (based on `chrono` crate) to dialect specific date format
+/// For now only date format as string literal is supported
+fn process_date_to_string(
+    expr: &Expr,
+    op_name: &str,
+    args: &[Expr],
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    if let [date_format_exp @ Expr {
+        kind: ExprKind::Literal(Literal::String(date_format)),
+        ..
+    }, col_expr] = args
+    {
+        let expr = Expr {
+            kind: ExprKind::Operator {
+                name: op_name.to_string(),
+                args: vec![
+                    Expr {
+                        kind: ExprKind::Literal(Literal::String(
+                            ctx.dialect
+                                .translate_prql_date_format(date_format)
+                                .map_err(|e| {
+                                    Error::new_simple(e).with_span(date_format_exp.span)
+                                })?,
+                        )),
+                        span: date_format_exp.span,
+                    },
+                    col_expr.clone(),
+                ],
+            },
+            ..expr.clone()
+        };
+        Ok(super::operators::translate_operator_expr(expr, ctx)?.into_ast())
+    } else {
+        Err(
+            Error::new_simple("`std.date.to_string` only supports a string literal as format")
+                .with_span(expr.span)
+                .into(),
+        )
     }
 }
 

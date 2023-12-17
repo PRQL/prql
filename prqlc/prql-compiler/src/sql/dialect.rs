@@ -11,9 +11,10 @@
 //!
 //! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
 //! constructs. The upside is much less complex translator.
-
+use anyhow::{bail, Result};
 use core::fmt::Debug;
 
+use chrono::format::{Fixed, Item, Numeric, Pad, StrftimeItems};
 use serde::{Deserialize, Serialize};
 use std::any::{Any, TypeId};
 use strum::VariantNames;
@@ -178,6 +179,20 @@ pub(super) trait DialectHandler: Any + Debug {
     fn supports_distinct_on(&self) -> bool {
         false
     }
+
+    /// Get the date format for the given dialect
+    /// PRQL uses the same format as `chrono` crate
+    /// (see https://docs.rs/chrono/latest/chrono/format/strftime/index.html)
+    fn translate_prql_date_format(&self, prql_date_format: &str) -> Result<String> {
+        Ok(StrftimeItems::new(prql_date_format)
+            .map(|item| self.translate_chrono_item(item))
+            .collect::<Result<Vec<_>>>()?
+            .join(""))
+    }
+
+    fn translate_chrono_item(&self, _item: Item) -> Result<String> {
+        bail!("Date formatting is not yet supported for this dialect")
+    }
 }
 
 impl dyn DialectHandler {
@@ -187,7 +202,11 @@ impl dyn DialectHandler {
     }
 }
 
-impl DialectHandler for GenericDialect {}
+impl DialectHandler for GenericDialect {
+    fn translate_chrono_item(&self, _item: Item) -> Result<String> {
+        bail!("Date formatting requires a dialect")
+    }
+}
 
 impl DialectHandler for PostgresDialect {
     fn requires_quotes_intervals(&self) -> bool {
@@ -299,6 +318,35 @@ impl DialectHandler for DuckDbDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
+    }
+
+    // https://duckdb.org/docs/sql/functions/dateformat
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y",
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y",
+            Item::Numeric(Numeric::Month, Pad::None) => "%-m",
+            Item::Numeric(Numeric::Month, Pad::Zero) => "%m",
+            Item::Numeric(Numeric::Day, Pad::None) => "%-d",
+            Item::Numeric(Numeric::Day, Pad::Zero) => "%d",
+            Item::Numeric(Numeric::Hour, Pad::None) => "%-H",
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H",
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I",
+            Item::Numeric(Numeric::Minute, Pad::None) => "%-M",
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M",
+            Item::Numeric(Numeric::Second, Pad::Zero) => "%S",
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f",
+            Item::Fixed(Fixed::ShortMonthName) => "%b",
+            Item::Fixed(Fixed::LongMonthName) => "%B",
+            Item::Fixed(Fixed::ShortWeekdayName) => "%a",
+            Item::Fixed(Fixed::LongWeekdayName) => "%A",
+            Item::Fixed(Fixed::UpperAmPm) => "%p",
+            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%f%z:00",
+            Item::Literal(literal) => literal,
+            Item::Space(spaces) => spaces,
+            item => unimplemented!("Unsupported chrono item: {:?}", item),
+        }
+        .to_string())
     }
 }
 

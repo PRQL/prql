@@ -2,7 +2,6 @@
 //! It's also fine to put errors by the things that they're testing.
 //! See also [test_bad_error_messages.rs](test_bad_error_messages.rs) for error
 //! messages which need to be improved.
-
 use super::sql::compile;
 use insta::assert_display_snapshot;
 
@@ -264,6 +263,59 @@ fn test_ambiguous_inference() {
        │            ╰── Ambiguous name
        │
        │ Help: could be any of: a.x, b.x
+    ───╯
+    "###);
+}
+
+#[test]
+fn date_to_string_generic() {
+    assert_display_snapshot!(compile(r#"
+  from [{d = @2021-01-01}]
+  derive {
+    d_str = d | date.to_string "%Y/%m/%d"
+  }"#).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:32]
+       │
+     4 │     d_str = d | date.to_string "%Y/%m/%d"
+       │                                ─────┬────
+       │                                     ╰────── Date formatting requires a dialect
+    ───╯
+    "###);
+}
+
+#[test]
+fn date_to_string_not_supported_dialect() {
+    assert_display_snapshot!(compile(r#"
+  prql target:sql.bigquery
+
+  from [{d = @2021-01-01}]
+  derive {
+    d_str = d | date.to_string "%Y/%m/%d"
+  }"#).unwrap_err(), @r###"
+    Error:
+       ╭─[:6:32]
+       │
+     6 │     d_str = d | date.to_string "%Y/%m/%d"
+       │                                ─────┬────
+       │                                     ╰────── Date formatting is not yet supported for this dialect
+    ───╯
+    "###);
+}
+
+#[test]
+fn date_to_string_with_column_format() {
+    assert_display_snapshot!(compile(r#"
+  from dates_to_display
+  select {my_date, my_format}
+  select {std.date.to_string my_date my_format}
+  "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:11]
+       │
+     4 │   select {std.date.to_string my_date my_format}
+       │           ──────────────────┬─────────────────
+       │                             ╰─────────────────── `std.date.to_string` only supports a string literal as format
     ───╯
     "###);
 }

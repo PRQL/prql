@@ -18,6 +18,9 @@ mod compile {
     fn run(prql_path: &Path) {
         let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
         let prql = fs::read_to_string(prql_path).unwrap();
+        if prql.contains("generic:skip") {
+            return;
+        }
 
         let target = Target::Sql(Some(Dialect::Generic));
         let options = Options::default().no_signature().with_target(target);

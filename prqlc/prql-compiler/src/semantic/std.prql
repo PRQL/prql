@@ -229,6 +229,11 @@ module string {
   let ends_with = suffix<text> column -> <bool> internal std.string.ends_with
 }
 
+## Date functions
+module date {
+  let to_string = format<text> column -> <text> internal std.date.to_string
+}
+
 ## File-reading functions, primarily for DuckDB
 let read_parquet = source<text> -> <relation> internal std.read_parquet
 let read_csv = source<text> -> <relation> internal std.read_csv
