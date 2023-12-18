@@ -489,11 +489,8 @@ pub fn is_super_type_of(superset: &Ty, subset: &Ty) -> bool {
 }
 
 pub fn is_sub_type_of_array(ty: &Ty) -> bool {
-    match &ty.kind {
-        TyKind::Array(_) => true,
-        TyKind::Union(elements) => elements.iter().any(|(_, e)| is_sub_type_of_array(e)),
-        _ => false,
-    }
+    let array = TyKind::Array(Box::new(Ty::new(TyKind::Any)));
+    is_super_type_of_kind(&array, &ty.kind)
 }
 
 fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
