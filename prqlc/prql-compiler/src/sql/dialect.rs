@@ -334,7 +334,7 @@ impl DialectHandler for DuckDbDialect {
             Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I".to_string(),
             Item::Numeric(Numeric::Minute, Pad::Zero) => "%M".to_string(),
             Item::Numeric(Numeric::Second, Pad::Zero) => "%S".to_string(),
-            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f".to_string(), // Microseconds
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%n".to_string(),
             Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
             Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
             Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
