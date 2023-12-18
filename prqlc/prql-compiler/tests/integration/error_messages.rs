@@ -319,3 +319,22 @@ fn date_to_string_with_column_format() {
     ───╯
     "###);
 }
+
+#[test]
+fn date_to_string_unsupported_chrono_item() {
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.duckdb
+  
+    from [{d = @2021-01-01}]
+    derive {
+      d_str = d | date.to_string "%_j"
+    }"#).unwrap_err(), @r###"
+    Error:
+       ╭─[:6:34]
+       │
+     6 │       d_str = d | date.to_string "%_j"
+       │                                  ──┬──
+       │                                    ╰──── PRQL doesn't support this format specifier
+    ───╯
+    "###);
+}

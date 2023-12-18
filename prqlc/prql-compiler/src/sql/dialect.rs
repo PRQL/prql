@@ -323,30 +323,28 @@ impl DialectHandler for DuckDbDialect {
     // https://duckdb.org/docs/sql/functions/dateformat
     fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
         Ok(match item {
-            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y",
-            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y",
-            Item::Numeric(Numeric::Month, Pad::None) => "%-m",
-            Item::Numeric(Numeric::Month, Pad::Zero) => "%m",
-            Item::Numeric(Numeric::Day, Pad::None) => "%-d",
-            Item::Numeric(Numeric::Day, Pad::Zero) => "%d",
-            Item::Numeric(Numeric::Hour, Pad::None) => "%-H",
-            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H",
-            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I",
-            Item::Numeric(Numeric::Minute, Pad::None) => "%-M",
-            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M",
-            Item::Numeric(Numeric::Second, Pad::Zero) => "%S",
-            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f",
-            Item::Fixed(Fixed::ShortMonthName) => "%b",
-            Item::Fixed(Fixed::LongMonthName) => "%B",
-            Item::Fixed(Fixed::ShortWeekdayName) => "%a",
-            Item::Fixed(Fixed::LongWeekdayName) => "%A",
-            Item::Fixed(Fixed::UpperAmPm) => "%p",
-            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%f%z:00",
-            Item::Literal(literal) => literal,
-            Item::Space(spaces) => spaces,
-            item => unimplemented!("Unsupported chrono item: {:?}", item),
-        }
-        .to_string())
+            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "%-m".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "%m".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "%-d".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "%d".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "%-H".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "%M".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "%S".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "%B".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "%A".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%fZ".to_string(),
+            Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
     }
 }
 

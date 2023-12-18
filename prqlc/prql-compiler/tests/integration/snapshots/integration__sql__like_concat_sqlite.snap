@@ -1,9 +1,0 @@
----
-source: prqlc/prql-compiler/tests/integration/sql.rs
-expression: "\n  SELECT\n    name LIKE '%' || 'pika' || '%' AS name_ends_with\n  FROM\n    employees\n  "
----
-SELECT
-  name LIKE '%' || 'pika' || '%' AS name_ends_with
-FROM
-  employees
-

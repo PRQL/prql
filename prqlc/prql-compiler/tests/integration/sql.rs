@@ -199,16 +199,15 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
   "#;
     let expected = format!(
         r#"
-  SELECT
-    name {expected_like} AS name_ends_with
-  FROM
-    employees
-  "#
+SELECT
+  name {expected_like} AS name_ends_with
+FROM
+  employees
+"#
     );
-    assert_snapshot!(
-        format!("like_concat_{}", dialect),
+    assert_eq!(
         compile_with_sql_dialect(query, dialect).unwrap(),
-        &expected
+        expected.trim_start()
     )
 }
 
@@ -219,22 +218,21 @@ fn date_to_string_operator(
     #[case] expected_date_to_string: &'static str,
 ) {
     let query = r#"
-    from [{d = @2021-01-01}]
-    derive {
-      d_str = d | date.to_string "%Y/%m/%d"
+    from invoices
+    select {
+      invoice_date = invoice_date | date.to_string "%d/%m/%Y"
     }"#;
     let expected = format!(
         r#"
-    SELECT
-      {expected_date_to_string} AS invoice_date_str
-    FROM
-      invoices
-    "#
+SELECT
+  {expected_date_to_string} AS invoice_date
+FROM
+  invoices
+"#
     );
-    assert_snapshot!(
-        format!("date_to_string_{}", dialect),
+    assert_eq!(
         compile_with_sql_dialect(query, dialect).unwrap(),
-        &expected
+        expected.trim_start()
     )
 }
 
