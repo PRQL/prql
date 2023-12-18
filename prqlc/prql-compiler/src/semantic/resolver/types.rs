@@ -91,10 +91,10 @@ impl Resolver<'_> {
             }
 
             ExprKind::All { within, except } => {
-                let within_ty = Resolver::infer_type(within)?.unwrap();
-                let except_ty = Resolver::infer_type(except)?.unwrap();
+                let base = Box::new(Resolver::infer_type(within)?.unwrap());
+                let exclude = Box::new(Resolver::infer_type(except)?.unwrap());
 
-                type_difference(within_ty, &except_ty).kind
+                normalize_type(Ty::new(TyKind::Difference { base, exclude })).kind
             }
 
             _ => return Ok(None),
@@ -240,70 +240,218 @@ pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
     TyKind::Tuple(res)
 }
 
-fn type_difference(left: Ty, right: &Ty) -> Ty {
-    let kind = match left.kind {
-        TyKind::Union(variants) => TyKind::Union(
-            variants
-                .into_iter()
-                .map(|(name, ty)| {
-                    let ty = type_difference(ty, right);
-                    (name, ty)
-                })
-                .collect(),
-        ),
-        TyKind::Tuple(fields) => {
-            let TyKind::Tuple(right_fields) = &right.kind else {
-                return Ty {
-                    kind: TyKind::Tuple(fields),
-                    ..left
-                };
-            };
-            let right_fields: HashMap<&String, &Option<Ty>> = right_fields
-                .iter()
-                .flat_map(|field| match field {
-                    TupleField::Single(Some(name), ty) => Some((name, ty)),
-                    _ => None,
-                })
-                .collect();
+/// Sink type difference operators down in the type expression,
+/// float unions operators up, simplify type expression.
+///
+/// For more info, read web/book/src/reference/spec/type-system.md
+fn normalize_type(ty: Ty) -> Ty {
+    match ty.kind {
+        TyKind::Union(variants) => {
+            let kind = TyKind::Union(
+                // A | () = A
+                variants
+                    .into_iter()
+                    .map(|(name, t)| (name, normalize_type(t)))
+                    .filter(|(_, t)| t.is_never())
+                    .collect(),
+            );
+            Ty { kind, ..ty }
+        }
 
-            let mut res = Vec::new();
-            for field in fields {
-                match field {
-                    TupleField::Single(Some(name), Some(ty)) => {
-                        if let Some(right_field) = right_fields.get(&name) {
-                            let right_tuple =
-                                right_field.as_ref().map_or(false, |x| x.kind.is_tuple());
+        TyKind::Difference { base, exclude } => {
+            let (base, exclude) = match (*base, *exclude) {
+                // (A | B) - C = (A - C) | (B - C)
+                (
+                    Ty {
+                        kind: TyKind::Union(variants),
+                        name,
+                        span,
+                    },
+                    c,
+                ) => {
+                    let kind = TyKind::Union(
+                        variants
+                            .into_iter()
+                            .map(|(name, ty)| {
+                                (
+                                    name,
+                                    Ty::new(TyKind::Difference {
+                                        base: Box::new(ty),
+                                        exclude: Box::new(c.clone()),
+                                    }),
+                                )
+                            })
+                            .collect(),
+                    );
+                    return normalize_type(Ty { kind, name, span });
+                }
+                // (A - B) - C = A - (B | C)
+                (
+                    Ty {
+                        kind:
+                            TyKind::Difference {
+                                base: a,
+                                exclude: b,
+                            },
+                        ..
+                    },
+                    c,
+                ) => {
+                    let kind = TyKind::Difference {
+                        base: a,
+                        exclude: Box::new(union_and_flatten(*b, c)),
+                    };
+                    return normalize_type(Ty { kind, ..ty });
+                }
 
-                            if right_tuple {
-                                // recursively erase selection
-                                let ty = type_difference(ty, right_field.as_ref().unwrap());
-                                res.push(TupleField::Single(Some(name), Some(ty)))
-                            } else {
-                                // erase completely
+                // A - (B - C) =
+                // = A & not (B & not C)
+                // = A & (not B | C)
+                // = (A & not B) | (A & C)
+                // = (A - B) | (A & C)
+                (
+                    a,
+                    Ty {
+                        kind:
+                            TyKind::Difference {
+                                base: b,
+                                exclude: c,
+                            },
+                        ..
+                    },
+                ) => {
+                    let first = Ty::new(TyKind::Difference {
+                        base: Box::new(a.clone()),
+                        exclude: b,
+                    });
+                    let second = type_intersection(a, *c);
+                    let kind = TyKind::Union(vec![(None, first), (None, second)]);
+                    return normalize_type(Ty { kind, ..ty });
+                }
+
+                // [A] - [B] = [A - B]
+                (
+                    Ty {
+                        kind: TyKind::Array(base),
+                        ..
+                    },
+                    Ty {
+                        kind: TyKind::Array(exclude),
+                        ..
+                    },
+                ) => {
+                    let item = Ty::new(TyKind::Difference { base, exclude });
+                    let kind = TyKind::Array(Box::new(item));
+                    return normalize_type(Ty { kind, ..ty });
+                }
+                // [A] - non-array = [A]
+                (
+                    Ty {
+                        kind: TyKind::Array(item),
+                        ..
+                    },
+                    _,
+                ) => {
+                    return normalize_type(Ty {
+                        kind: TyKind::Array(item),
+                        ..ty
+                    });
+                }
+                // non-array - [B] = non-array
+                (
+                    base,
+                    Ty {
+                        kind: TyKind::Array(_),
+                        ..
+                    },
+                ) => {
+                    return normalize_type(base);
+                }
+
+                // {A, B} - {C, D} = {A - C, B - D}
+                (
+                    Ty {
+                        kind: TyKind::Tuple(base_fields),
+                        ..
+                    },
+                    Ty {
+                        kind: TyKind::Tuple(exclude_fields),
+                        ..
+                    },
+                ) => {
+                    let exclude_fields: HashMap<&String, &Option<Ty>> = exclude_fields
+                        .iter()
+                        .flat_map(|field| match field {
+                            TupleField::Single(Some(name), ty) => Some((name, ty)),
+                            _ => None,
+                        })
+                        .collect();
+
+                    let mut res = Vec::new();
+                    for field in base_fields {
+                        // TODO: this whole block should be redone - I'm not sure it fully correct.
+                        match field {
+                            TupleField::Single(Some(name), Some(ty)) => {
+                                if let Some(right_field) = exclude_fields.get(&name) {
+                                    let right_tuple =
+                                        right_field.as_ref().map_or(false, |x| x.kind.is_tuple());
+
+                                    if right_tuple {
+                                        // recursively erase selection
+                                        let ty = Ty::new(TyKind::Difference {
+                                            base: Box::new(ty),
+                                            exclude: Box::new((*right_field).clone().unwrap()),
+                                        });
+                                        let ty = normalize_type(ty);
+                                        res.push(TupleField::Single(Some(name), Some(ty)))
+                                    } else {
+                                        // erase completely
+                                    }
+                                } else {
+                                    res.push(TupleField::Single(Some(name), Some(ty)))
+                                }
                             }
-                        } else {
-                            res.push(TupleField::Single(Some(name), Some(ty)))
+                            TupleField::Single(Some(name), None) => {
+                                if exclude_fields.get(&name).is_some() {
+                                    // TODO: I'm not sure what should happen in this case
+                                    continue;
+                                } else {
+                                    res.push(TupleField::Single(Some(name), None))
+                                }
+                            }
+                            TupleField::Single(None, ty) => {
+                                res.push(TupleField::Single(None, ty));
+                            }
+                            TupleField::Wildcard(_) => res.push(field),
                         }
                     }
-                    TupleField::Single(Some(name), None) => {
-                        if right_fields.get(&name).is_some() {
-                            // TODO: I'm not sure what should happen in this case
-                            continue;
-                        } else {
-                            res.push(TupleField::Single(Some(name), None))
-                        }
+                    return Ty {
+                        kind: TyKind::Tuple(res),
+                        ..ty
+                    };
+                }
+
+                // noop
+                (a, b) => (a, b),
+            };
+
+            let base = Box::new(normalize_type(base));
+            let exclude = Box::new(normalize_type(exclude));
+
+            // A - (A | B) = ()
+            if let TyKind::Union(excluded) = &exclude.kind {
+                for (_, e) in excluded {
+                    if base.as_ref() == e {
+                        return Ty::never();
                     }
-                    TupleField::Single(None, ty) => {
-                        res.push(TupleField::Single(None, ty));
-                    }
-                    TupleField::Wildcard(_) => res.push(field),
                 }
             }
-            TyKind::Tuple(res)
+            let kind = TyKind::Difference { base, exclude };
+            Ty { kind, ..ty }
         }
-        _ => return left,
-    };
-    Ty { kind, ..left }
+
+        kind => Ty { kind, ..ty },
+    }
 }
 
 fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {
@@ -588,33 +736,48 @@ fn maybe_type_intersection(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
 }
 
 pub fn type_intersection(a: Ty, b: Ty) -> Ty {
-    match (&a.kind, &b.kind) {
-        (a_kind, b_kind) if a_kind == b_kind => a,
+    match (a.kind, b.kind) {
+        (TyKind::Any, b_kind) => Ty { kind: b_kind, ..b },
+        (a_kind, TyKind::Any) => Ty { kind: a_kind, ..a },
 
-        (TyKind::Any, _) => b,
-        (_, TyKind::Any) => a,
-
-        (TyKind::Union(_), _) => type_intersection_with_union(a, b),
-        (_, TyKind::Union(_)) => type_intersection_with_union(b, a),
-
-        (TyKind::Tuple(_), TyKind::Tuple(_)) => {
-            let a = a.kind.into_tuple().unwrap();
-            let b = b.kind.into_tuple().unwrap();
-
-            type_intersection_of_tuples(a, b)
+        // union
+        (TyKind::Union(a_variants), b_kind) => {
+            let b = Ty { kind: b_kind, ..b };
+            type_intersection_with_union(a_variants, b)
+        }
+        (a_kind, TyKind::Union(b_variants)) => {
+            let a = Ty { kind: a_kind, ..a };
+            type_intersection_with_union(b_variants, a)
         }
 
-        (TyKind::Array(_), TyKind::Array(_)) => {
-            let a = a.kind.into_array().unwrap();
-            let b = b.kind.into_array().unwrap();
+        // difference
+        (TyKind::Difference { base, exclude }, b_kind) => {
+            let b = Ty { kind: b_kind, ..b };
+            let base = Box::new(type_intersection(*base, b));
+            Ty::new(TyKind::Difference { base, exclude })
+        }
+        (a_kind, TyKind::Difference { base, exclude }) => {
+            let a = Ty { kind: a_kind, ..a };
+            let base = Box::new(type_intersection(a, *base));
+            Ty::new(TyKind::Difference { base, exclude })
+        }
+
+        (a_kind, b_kind) if a_kind == b_kind => Ty { kind: a_kind, ..a },
+
+        // tuple
+        (TyKind::Tuple(a_fields), TyKind::Tuple(b_fields)) => {
+            type_intersection_of_tuples(a_fields, b_fields)
+        }
+
+        // array
+        (TyKind::Array(a), TyKind::Array(b)) => {
             Ty::new(TyKind::Array(Box::new(type_intersection(*a, *b))))
         }
 
         _ => Ty::never(),
     }
 }
-fn type_intersection_with_union(union: Ty, b: Ty) -> Ty {
-    let variants = union.kind.into_union().unwrap();
+fn type_intersection_with_union(variants: Vec<(Option<String>, Ty)>, b: Ty) -> Ty {
     let variants = variants
         .into_iter()
         .map(|(name, variant)| {
@@ -669,4 +832,23 @@ fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
     }
 
     Ty::new(TyKind::Tuple(fields))
+}
+
+/// Converts:
+/// - A, B into A | B and
+/// - A, B | C into A | B | C and
+/// - A | B, C into A | B | C.
+fn union_and_flatten(a: Ty, b: Ty) -> Ty {
+    let mut variants = Vec::with_capacity(2);
+    if let TyKind::Union(v) = a.kind {
+        variants.extend(v)
+    } else {
+        variants.push((None, a));
+    }
+    if let TyKind::Union(v) = b.kind {
+        variants.extend(v)
+    } else {
+        variants.push((None, b));
+    }
+    Ty::new(TyKind::Union(variants))
 }

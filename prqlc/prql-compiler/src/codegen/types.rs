@@ -68,6 +68,11 @@ impl WriteSource for TyKind {
                 Some(r)
             }
             Any => Some("anytype".to_string()),
+            Difference { base, exclude } => {
+                let base = base.write(opt.clone())?;
+                let exclude = exclude.write(opt.clone())?;
+                Some(format!("{base} - {exclude}"))
+            }
         }
     }
 }
