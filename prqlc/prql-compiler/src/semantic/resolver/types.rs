@@ -9,7 +9,6 @@ use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 
-use crate::semantic::write_pl;
 use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
@@ -438,25 +437,6 @@ where
         e = e.push_hint(format!("Type `{expected_name}` expands to `{expanded}`"));
     }
     e
-}
-
-#[allow(dead_code)]
-fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
-    let err = Error::new(Reason::Expected {
-        who: Some(write_pl(*call.name.clone())),
-        expected: format!("{} arguments", expected_len),
-        found: format!("{}", passed_len),
-    });
-    if passed_len >= 2 {
-        err.push_hint(format!(
-            "if you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            write_pl(*call.name.clone()),
-            call.args[0],
-            call.args[1]
-        ))
-    } else {
-        err
-    }
 }
 
 /// Analogous to [crate::ir::pl::Lineage::rename()]
