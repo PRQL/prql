@@ -15,7 +15,7 @@ Since all RDBMS have different ways to format dates and times, PRQL **requires a
 ```
 
 ```admonish info
-For now the supported DBs are: DuckDB, MySQL, Postgres and MSSQL.
+For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and Postgres.
 ```
 
 ```prql

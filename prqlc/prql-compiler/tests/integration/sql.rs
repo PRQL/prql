@@ -212,6 +212,10 @@ FROM
 }
 
 #[rstest]
+#[case::clickhouse(
+    sql::Dialect::ClickHouse,
+    "formatDateTimeInJodaSyntax(invoice_date, 'dd/MM/yyyy')"
+)]
 #[case::duckdb(sql::Dialect::DuckDb, "strftime(invoice_date, '%d/%m/%Y')")]
 #[case::postgres(sql::Dialect::Postgres, "TO_CHAR(invoice_date, 'DD/MM/YYYY')")]
 #[case::mssql(sql::Dialect::MsSql, "FORMAT(invoice_date, 'dd/MM/yyyy')")]

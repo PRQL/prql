@@ -319,7 +319,7 @@ impl DialectHandler for MsSqlDialect {
                 // literals are split at every non alphanumeric character
                 if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
                     // If the literal contains alphanumeric characters, we need to quote it
-                    // to avoid it being interpreted as a pattern understood by Postgres.
+                    // to avoid it being interpreted as a pattern understood by MSSQL.
                     // We hence need to put it in double quotes to force it to be interpreted as literal text
                     format!("\"{}\"", literal)
                 } else {
@@ -381,6 +381,43 @@ impl DialectHandler for ClickHouseDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
+    }
+
+    // https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#formatDateTimeInJodaSyntax
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "yyyy".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "yy".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "M".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "MM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "d".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "dd".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "H".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "HH".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "hh".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "mm".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "ss".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "SSSSSS".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "MMM".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "MMMM".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "EEE".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "EEEE".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "aa".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'".to_string(),
+            Item::Literal(literal) => {
+                // literals are split at every non alphanumeric character
+                if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    // If the literal contains alphanumeric characters, we need to quote it
+                    // to avoid it being interpreted as a pattern understood by Clickhouse.
+                    // Clickhouse uses backticks around
+                    format!("'{}'", literal)
+                } else {
+                    literal.replace('\'', "\\'\\'")
+                }
+            }
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
     }
 }
 

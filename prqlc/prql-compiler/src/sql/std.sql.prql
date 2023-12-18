@@ -201,6 +201,12 @@ module clickhouse {
   @{binding_strength=11}
   let div_i = l r -> s"({l} DIV {r})"
 
+  # Date functions
+  module date {
+    # https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions
+    let to_string = format column -> s"formatDateTimeInJodaSyntax({column:0}, {format:0})"
+  }
+
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 
   let read_csv = source -> s"file({source:0}, 'CSV')"

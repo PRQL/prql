@@ -1,7 +1,6 @@
 # generic:skip
 # glaredb:skip
 # sqlite:skip
-# clickhouse:skip
 # mssql:test
 from invoices
 take 20
