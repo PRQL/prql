@@ -30,7 +30,7 @@ Here is the list of the specifiers currently supported:
 | `%p`  | `AM`                          | `AM` or `PM` in 12-hour clocks.                                  |
 | `%M`  | `34`                          | Minute number (00-59), zero-padded to 2 digits.                  |
 | `%S`  | `60`                          | Second number (00-59), zero-padded to 2 digits.                  |
-| `%f`  | `264900`                      | Number of microseconds since last whole second                   |
+| `%f`  | `264900`                      | Number of microseconds since last whole second{footnote: this is different from chrono, for which `%f` represents nanoseconds}                   |
 | `%R`  | `00:34`                       | Hour-minute format. Same as `%H:%M`.                             |
 | `%T`  | `00:34:60`                    | Hour-minute-second format. Same as `%H:%M:%S`.                   |
 | `%X`  | `00:34:60`                    | Locale's time representation (e.g., 23:13:48).                   |
