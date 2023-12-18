@@ -334,7 +334,7 @@ fn date_to_string_unsupported_chrono_item() {
        │
      6 │       d_str = d | date.to_string "%_j"
        │                                  ──┬──
-       │                                    ╰──── PRQL doesn't support this date format item
+       │                                    ╰──── PRQL doesn't support this format specifier
     ───╯
     "###);
 }
