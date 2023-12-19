@@ -92,13 +92,13 @@ produces.
 
 ```prql
 # dollars displays a numeric value as dollars with commas
-let dollars = d -> s"""printf("$%,d",{d})"""
+let dollars = d -> s"""printf('$%,d',{d})"""
 
 # percent_diff computes the amount (percent) the new differs from old
 let percent_diff = old new -> 100.0*( new - old ) / old
 
 # format_percent prints a floating point number with "%"
-let format_percent = v -> s'printf("%1.1f%", {v})'
+let format_percent = v -> s"printf('%1.1f%', {v})"
 
 # Step 1: First calculate important columns
 from PropertyData
@@ -110,15 +110,15 @@ select {
 }
 
 # Step 2: Sort the resulting table by pct_change
-sort [-pct_change]
+sort {-pct_change}
 
 # Step 3: Format the column headings and contents
-select [
+select {
     Map, Lot,
     Appraisal2020 = (dollars App_Total2020),
    `Appraisal 2021` = (dollars App_Total2021),
    `Percent Change` = (format_percent pct_change),
-]
+}
 take 20
 ```
 
