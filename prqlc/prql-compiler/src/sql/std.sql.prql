@@ -130,7 +130,7 @@ let div_i = l r -> s"FLOOR(ABS({l:11} / {r:12})) * SIGN({l:0}) * SIGN({r:0})"
 # We have a simple float division by default, but it can be overridden by
 # dialects.
 # Note that this uses `12` for the RHS binding strength, which is one more than
-# binding strength of divison. That's because we don't use associativity here,
+# binding strength of division. That's because we don't use associativity here,
 # and so we need to make sure that the RHS is parenthesized when the binding
 # strengths are equal; e.g. in `a / (b / c)`.
 @{binding_strength=11}
