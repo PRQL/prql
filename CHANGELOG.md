@@ -21,8 +21,8 @@
   `length`, `substring`, `replace`. Utility functions `starts_with`, `contains`
   and `ends_with` are also available.\
   Those functions are in the `string` module (@PrettyWood, #3913)
-- Formatting a date to a string is now available for Clickhouse, DuckDB, MySQL,
-  MSSQL and Postgres. A new `date` module has been added with the `to_string`
+- Formatting a date to a text is now available for Clickhouse, DuckDB, MySQL,
+  MSSQL and Postgres. A new `date` module has been added with the `to_text`
   function (@PrettyWood, #3951, #3954 & #3955)
 
 **Fixes**:

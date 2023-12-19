@@ -3,10 +3,10 @@
 We already know that PRQL uses the `@2020-01-01` syntax to declare dates. To
 manipulate those dates, PRQL has a `date` module with some useful functions
 
-### `to_string`
+### `to_text`
 
-This function allows to convert a date into a string. Since there are many
-possible date representations, `to_string` takes a `format` parameter that
+This function allows to convert a date into a text. Since there are many
+possible date representations, `to_text` takes a `format` parameter that
 describes thanks to [specifiers](./format-specifiers.md) how the date or
 timestamp should be structured.
 
@@ -23,7 +23,7 @@ prql target:sql.duckdb
 
 from invoices
 select {
-  invoice_date | date.to_string "%d/%m/%Y"
+  invoice_date | date.to_text "%d/%m/%Y"
 }
 ```
 
@@ -32,7 +32,7 @@ prql target:sql.postgres
 
 from invoices
 select {
-  invoice_date | date.to_string "%d/%m/%Y"
+  invoice_date | date.to_text "%d/%m/%Y"
 }
 ```
 
@@ -41,6 +41,6 @@ prql target:sql.mysql
 
 from invoices
 select {
-  invoice_date | date.to_string "%d/%m/%Y"
+  invoice_date | date.to_text "%d/%m/%Y"
 }
 ```

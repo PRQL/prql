@@ -220,19 +220,19 @@ FROM
 #[case::postgres(sql::Dialect::Postgres, "TO_CHAR(invoice_date, 'DD/MM/YYYY')")]
 #[case::mssql(sql::Dialect::MsSql, "FORMAT(invoice_date, 'dd/MM/yyyy')")]
 #[case::mysql(sql::Dialect::MySql, "DATE_FORMAT(invoice_date, '%d/%m/%Y')")]
-fn date_to_string_operator(
+fn date_to_text_operator(
     #[case] dialect: sql::Dialect,
-    #[case] expected_date_to_string: &'static str,
+    #[case] expected_date_to_text: &'static str,
 ) {
     let query = r#"
     from invoices
     select {
-      invoice_date = invoice_date | date.to_string "%d/%m/%Y"
+      invoice_date = invoice_date | date.to_text "%d/%m/%Y"
     }"#;
     let expected = format!(
         r#"
 SELECT
-  {expected_date_to_string} AS invoice_date
+  {expected_date_to_text} AS invoice_date
 FROM
   invoices
 "#
