@@ -1386,6 +1386,24 @@ fn test_op_precedence() {
               Integer: 4
         "###);
 
+    assert_yaml_snapshot!(parse_expr(r#"1 / (3 * 4)"#).unwrap(), @r###"
+    ---
+    Binary:
+      left:
+        Literal:
+          Integer: 1
+      op: DivFloat
+      right:
+        Binary:
+          left:
+            Literal:
+              Integer: 3
+          op: Mul
+          right:
+            Literal:
+              Integer: 4
+    "###);
+
     assert_yaml_snapshot!(parse_expr(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r###"
         ---
         Binary:

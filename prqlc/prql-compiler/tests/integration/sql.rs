@@ -247,11 +247,30 @@ fn json_of_test() {
 }
 
 #[test]
+fn test_precedence_again() {
+    assert_display_snapshot!((compile(r###"
+    from artists
+    derive {
+      p2 = x / (y * z), # needs parentheses
+      p1 = a - (b + c), # needs parentheses
+    }
+    "###).unwrap()), @r###"
+    SELECT
+      *,
+      x / (y * z) AS p2,
+      a - (b + c) AS p1
+    FROM
+      artists
+    "###);
+}
+
+#[test]
 fn test_precedence() {
     assert_display_snapshot!((compile(r###"
     from artists
     derive {
       p1 = a - (b + c), # needs parentheses
+      p2 = a / (b * c), # needs parentheses
       np1 = a + (b - c), # no parentheses
       np2 = (a + b) - c, # no parentheses
     }
@@ -259,6 +278,7 @@ fn test_precedence() {
     SELECT
       *,
       a - (b + c) AS p1,
+      a / (b * c) AS p2,
       a + b - c AS np1,
       a + b - c AS np2
     FROM
@@ -275,8 +295,8 @@ fn test_precedence() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      (temp_f - 32) / 1.8 AS temp_c,
-      (temp_f - 32) / 1.8 * 9 / 5 AS temp_f,
+      (temp_f - 32) / (1.8) AS temp_c,
+      (temp_f - 32) / (1.8) * 9 / (5) AS temp_f,
       temp_x + 9 - 5 AS temp_z
     FROM
       x
@@ -356,7 +376,7 @@ fn test_precedence() {
       c + a - b,
       c - d - (a - b),
       c + d + a - b,
-      a / b * c,
+      a / (b * c),
       y - z AS x,
       -(y - z)
     FROM
@@ -2966,7 +2986,7 @@ fn test_casting() {
       CAST(a AS int) + 10 AS b,
       CAST(a AS int) - 10 AS c,
       CAST(a AS float) * 10 AS d,
-      CAST(a AS float) / 10 AS e
+      CAST(a AS float) / (10) AS e
     FROM
       x
     "###

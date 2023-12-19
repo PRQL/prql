@@ -935,7 +935,7 @@ impl SQLExpression for BinaryOperator {
     fn associativity(&self) -> Associativity {
         use BinaryOperator::*;
         match self {
-            Minus | Divide => Associativity::Left,
+            Minus | Divide | Modulo => Associativity::Left,
             _ => Associativity::Both,
         }
     }
