@@ -26,10 +26,14 @@
 
 - Fix an issue with arithmetic precedence (@max-sixty, #3846)
 - `+` and `-` can be used after a cast (@PrettyWood, #3923)
+- The [Lezer](https://lezer.codemirror.net/) grammar had plenty of improvements
+  and fixes. (@vanillajonathan)
 
 **Documentation**:
 
 **Web**:
+
+- The Playground now uses [Vite](https://vitejs.dev/). (@vanillajonathan)
 
 **Integrations**:
 
