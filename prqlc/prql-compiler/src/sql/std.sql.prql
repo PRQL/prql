@@ -125,14 +125,19 @@ let read_csv = source -> s"read_csv({source:0})"
 let mul = l r -> null
 
 @{binding_strength=100}
-let div_i = l r -> s"FLOOR(ABS({l:11} / {r:11})) * SIGN({l:0}) * SIGN({r:0})"
+let div_i = l r -> s"FLOOR(ABS({l:11} / {r:12})) * SIGN({l:0}) * SIGN({r:0})"
 
-# We have a simple float division by default, but it can be overridden by dialects.
+# We have a simple float division by default, but it can be overridden by
+# dialects.
+# Note that this uses `12` for the RHS binding strength, which is one more than
+# binding strength of divison. That's because we don't use associativity here,
+# and so we need to make sure that the RHS is parenthesized when the binding
+# strengths are equal; e.g. in `a / (b / c)`.
 @{binding_strength=11}
-let div_f = l r -> s"{l} / ({r})"
+let div_f = l r -> s"{l} / {r:12}"
 
 @{binding_strength=11}
-let mod = l r -> s"{l} % ({r})"
+let mod = l r -> s"{l} % {r:12}"
 
 @{binding_strength=10}
 let add = l r -> null
@@ -176,12 +181,12 @@ let not = l -> s"NOT {l}"
 
 module ansi {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / ({r}))"
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
 }
 
 module bigquery {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / ({r}))"
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
   # Mathematical functions
   module math {
@@ -196,10 +201,10 @@ module bigquery {
 module clickhouse {
   # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions#divide
   @{binding_strength=11}
-  let div_f = l r -> s"({l} / ({r}))"
+  let div_f = l r -> s"({l} / {r:12})"
 
   @{binding_strength=11}
-  let div_i = l r -> s"({l} DIV {r})"
+  let div_i = l r -> s"({l} DIV {r:12})"
 
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 
@@ -210,10 +215,10 @@ module clickhouse {
 
 module duckdb {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} / ({r}))"
+  let div_f = l r -> s"({l} / {r:12})"
 
   @{binding_strength=11}
-  let div_i = l r -> s"TRUNC({l:11} / {r:11})"
+  let div_i = l r -> s"TRUNC({l:11} / {r:12})"
 
   # String functions
   module string {
@@ -234,7 +239,7 @@ module duckdb {
 
 module mssql {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / ({r}))"
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
   # Mathematical functions
   module math {
@@ -255,10 +260,10 @@ module mssql {
 
 module mysql {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} / ({r}))"
+  let div_f = l r -> s"({l} / {r:12})"
 
   @{binding_strength=11}
-  let div_i = l r -> s"({l} DIV ({r}))"
+  let div_i = l r -> s"({l} DIV {r:12})"
 
   @{binding_strength=100}
   let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
@@ -269,10 +274,10 @@ module mysql {
 
 module postgres {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / ({r}))"
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
   @{binding_strength=100}
-  let div_i = l r -> s"TRUNC({l:11} / ({r:11}))"
+  let div_i = l r -> s"TRUNC({l:11} / {r:12})"
 
   # Mathematical functions
   module math {
@@ -293,10 +298,10 @@ module postgres {
 
 module glaredb {
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / ({r}))"
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
   @{binding_strength=100}
-  let div_i = l r -> s"TRUNC({l:11} / ({r:11}))"
+  let div_i = l r -> s"TRUNC({l:11} / {r:12})"
 
   # Mathematical functions
   module math {
@@ -324,10 +329,10 @@ module sqlite {
   let concat_array = column -> s"GROUP_CONCAT({column:0}, '')"
 
   @{binding_strength=11}
-  let div_f = l r -> s"({l} * 1.0 / ({r}))"
+  let div_f = l r -> s"({l} * 1.0 / {r:12})"
 
   @{binding_strength=100}
-  let div_i = l r -> s"ROUND(ABS({l:11} / {r:11}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
+  let div_i = l r -> s"ROUND(ABS({l:11} / {r:12}) - 0.5) * SIGN({l:0}) * SIGN({r:0})"
 
   # String functions
   module string {
@@ -345,5 +350,5 @@ module sqlite {
 module snowflake {
   # https://docs.snowflake.com/en/sql-reference/operators-arithmetic#division
   @{binding_strength=11}
-  let div_f = l r -> s"({l} / ({r}))"
+  let div_f = l r -> s"({l} / {r:12})"
 }

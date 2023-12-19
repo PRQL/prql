@@ -8,8 +8,8 @@ WITH table_0 AS (
     5 AS y
 )
 SELECT
-  (x / (y)) AS quotient,
-  (x DIV (y)) AS int_quotient
+  (x / y) AS quotient,
+  (x DIV y) AS int_quotient
 FROM
   table_0
 
