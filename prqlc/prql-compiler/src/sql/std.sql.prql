@@ -201,6 +201,12 @@ module clickhouse {
   @{binding_strength=11}
   let div_i = l r -> s"({l} DIV {r})"
 
+  # Date functions
+  module date {
+    # https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions
+    let to_text = format column -> s"formatDateTimeInJodaSyntax({column:0}, {format:0})"
+  }
+
   let regex_search = text pattern -> s"match({text:0}, {pattern:0})"
 
   let read_csv = source -> s"file({source:0}, 'CSV')"
@@ -224,7 +230,7 @@ module duckdb {
   # Date functions
   module date {
     # https://duckdb.org/docs/sql/functions/dateformat
-    let to_string = format column -> s"strftime({column:0}, {format:0})"
+    let to_text = format column -> s"strftime({column:0}, {format:0})"
   }
 
   let regex_search = text pattern -> s"REGEXP_MATCHES({text:0}, {pattern:0})"
@@ -250,6 +256,12 @@ module mssql {
     let length = column -> s"LEN({column:0})"
   }
 
+  # Date functions
+  module date {
+    # https://learn.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql
+    let to_text = format column -> s"FORMAT({column:0}, {format:0})"
+  }
+
   let regex_search = text pattern -> null
 }
 
@@ -262,6 +274,12 @@ module mysql {
 
   @{binding_strength=100}
   let mod = l r -> s"ROUND(MOD({l:0}, {r:0}))"
+
+  # Date functions
+  module date {
+    # https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html
+    let to_text = format column -> s"DATE_FORMAT({column:0}, {format:0})"
+  }
 
   # 'c' for case-sensitive
   let regex_search = text pattern -> s"REGEXP_LIKE({text:0}, {pattern:0}, 'c')"
@@ -285,6 +303,12 @@ module postgres {
   module string {
     # Postgres: https://www.postgresql.org/docs/7.4/functions-string.html
     let substring = offset length column -> s"SUBSTR({column:0}, {offset:0}, {length:0})"
+  }
+
+  # Date functions
+  module date {
+    # https://www.postgresql.org/docs/current/functions-formatting.html
+    let to_text = format column -> s"TO_CHAR({column:0}, {format:0})"
   }
 
   @{binding_strength=9}

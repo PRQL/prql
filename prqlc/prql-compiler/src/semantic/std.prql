@@ -231,7 +231,7 @@ module string {
 
 ## Date functions
 module date {
-  let to_string = format<text> column -> <text> internal std.date.to_string
+  let to_text = format<text> column -> <text> internal std.date.to_text
 }
 
 ## File-reading functions, primarily for DuckDB
