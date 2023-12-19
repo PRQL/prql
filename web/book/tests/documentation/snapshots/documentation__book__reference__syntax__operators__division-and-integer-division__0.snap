@@ -13,7 +13,7 @@ WITH table_0 AS (
     -2 AS b
 )
 SELECT
-  (a * 1.0 / b) AS div_out,
+  (a * 1.0 / (b)) AS div_out,
   ROUND(ABS(a / b) - 0.5) * SIGN(a) * SIGN(b) AS int_div_out
 FROM
   table_0

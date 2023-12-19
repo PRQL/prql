@@ -4,7 +4,7 @@ expression: "let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8\nlet interp =
 ---
 SELECT
   *,
-  ((temp_c - 32) / 1.8 - 0) / (100 - 0) AS boiling_proportion
+  ((temp_c - 32) / (1.8) - 0) / ((100 - 0)) AS boiling_proportion
 FROM
   kettles
 
