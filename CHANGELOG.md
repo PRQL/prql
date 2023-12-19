@@ -8,7 +8,7 @@
 - _Breaking_: `round` is now in the `math` module and needs to be called via
   `math.round`. See #3928
 - _Breaking_: `lower` and `upper` are now in the `text` module and need to be
-  called via `text.lower` and `text.upper`. See #3913
+  called via `text.lower` and `text.upper`. See #3913, #3973
 
 **Features**:
 
