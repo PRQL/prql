@@ -1,6 +1,9 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.11.0 — 2023-12-19
+
+0.11.0 introduces a `string` & `math` module with lots of standard functions,
+fixes some bugs, and contains lots of internal improvements to our compiler.
 
 **Language**:
 
