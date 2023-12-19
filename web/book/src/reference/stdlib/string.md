@@ -1,6 +1,6 @@
 # Text functions
 
-These are all the functions defined in the `string` module
+These are all the functions defined in the `string` module:
 
 | function    | parameters             | description                                                                   |
 | ----------- | ---------------------- | ----------------------------------------------------------------------------- |

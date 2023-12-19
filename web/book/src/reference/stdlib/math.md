@@ -1,6 +1,6 @@
 # Mathematical functions
 
-These are all the functions defined in the `math` module
+These are all the functions defined in the `math` module:
 
 | function | parameters | description                        |
 | -------- | ---------- | ---------------------------------- |
