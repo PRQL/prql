@@ -4,7 +4,7 @@ expression: "let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8\n\nfrom citie
 ---
 SELECT
   *,
-  (temp_f - 32) / 1.8 AS temp_c
+  (temp_f - 32) / (1.8) AS temp_c
 FROM
   cities
 
