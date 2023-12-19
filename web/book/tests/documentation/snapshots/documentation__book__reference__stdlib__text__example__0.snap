@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nselect {\n  last_name | string.lower | string.starts_with(\"a\"),\n  title | string.replace \"manager\" \"chief\"\n}\n"
+expression: "from employees\nselect {\n  last_name | text.lower | text.starts_with(\"a\"),\n  title | text.replace \"manager\" \"chief\"\n}\n"
 ---
 SELECT
   LOWER(last_name) LIKE CONCAT('a', '%'),
