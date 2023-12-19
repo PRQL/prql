@@ -89,7 +89,10 @@ pub(super) fn translate_operator(
                 let arg = translate_operand(
                     arg,
                     false,
-                    required_strength,
+                    // for recursive calls, we increase the binding strength of sub-expressions
+                    // so that a / (b / c), translated as Expr { Expr a, /, Expr { Expr b, /, Expr c } }
+                    // is translated as a / (b / c) instead of a / b / c
+                    required_strength + 1,
                     super::gen_expr::Associativity::Both,
                     ctx,
                 )?;

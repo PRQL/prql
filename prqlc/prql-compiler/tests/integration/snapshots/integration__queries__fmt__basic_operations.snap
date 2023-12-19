@@ -1,0 +1,13 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# mssql:test\nfrom [{\n  x=0\n}]\nderive {\n  a = 10 - (10 - 2),\n  b = 10 - (10 + 2),\n  c = 10 / (10 / 2),\n  d = 10 / (10 * 2),\n}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/basic_operations.prql
+---
+from [{x = 0}]
+derive {
+  a = 10 - (10 - 2),
+  b = 10 - (10 + 2),
+  c = 10 / (10 / 2),
+  d = 10 / (10 * 2),
+}
+

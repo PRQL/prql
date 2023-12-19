@@ -276,7 +276,7 @@ fn test_precedence() {
     SELECT
       *,
       (temp_f - 32) / 1.8 AS temp_c,
-      (temp_f - 32) / 1.8 * 9 / 5 AS temp_f,
+      ((temp_f - 32) / 1.8 * 9) / 5 AS temp_f,
       temp_x + 9 - 5 AS temp_z
     FROM
       x
@@ -319,7 +319,7 @@ fn test_precedence() {
       a > 0 AS gtz,
       NOT a > 0 AS ltz,
       NOT a > 0
-      AND NOT NOT a > 0 AS zero,
+      AND NOT (NOT a > 0) AS zero,
       NOT a = b AS is_not_equal,
       NOT a > b AS is_not_gt,
       (NOT a) IS NULL AS negated_is_null_1,
@@ -356,7 +356,7 @@ fn test_precedence() {
       c + a - b,
       c - d - (a - b),
       c + d + a - b,
-      a / b * c,
+      a / (b * c),
       y - z AS x,
       -(y - z)
     FROM
@@ -1028,6 +1028,27 @@ fn test_numbers() {
       5.0 AS z
     FROM
       numbers
+    "###);
+}
+
+#[test]
+fn test_parentheses() {
+    assert_display_snapshot!((compile(r#"
+    from foo
+    derive {
+      a = 10 - (10 - 2),
+      b = 10 - (10 + 2),
+      c = 10 / (10 / 2),
+      d = 10 / (10 * 2),
+    }"#).unwrap()), @r###"
+    SELECT
+      *,
+      10 - (10 - 2) AS a,
+      10 - (10 + 2) AS b,
+      10 / (10 / 2) AS c,
+      10 / (10 * 2) AS d
+    FROM
+      foo
     "###);
 }
 

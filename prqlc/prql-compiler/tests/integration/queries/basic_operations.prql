@@ -1,0 +1,12 @@
+# mssql:test
+# sqlite:skip
+# mysql:skip
+from [{
+  x=0
+}]
+derive {
+  a = 10 - (10 - 2),
+  b = 10 - (10 + 2),
+  c = 10 / (10 / 2),
+  d = 10 / (10 * 2),
+}
