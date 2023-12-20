@@ -14,7 +14,7 @@ proc_macro = true
 test = false
 
 [dependencies]
-prql-compiler = {path = "../prql-compiler", default-features = false, version = "0.11.0" }
+prql-compiler = {path = "../prql-compiler", default-features = false, version = "0.11.1" }
 syn = "2.0.41"
 
 [package.metadata.release]
