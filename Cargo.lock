@@ -2984,8 +2984,10 @@ name = "prqlc-ast"
 version = "0.11.1"
 dependencies = [
  "enum-as-inner",
+ "insta",
  "semver",
  "serde",
+ "serde_json",
  "strum 0.25.0",
 ]
 
