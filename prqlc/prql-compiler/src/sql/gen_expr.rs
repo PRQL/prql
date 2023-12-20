@@ -104,8 +104,8 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
                 }
                 "std.concat" => return Ok(process_concat(&expr, ctx)?.into()),
                 "std.array_in" => return Ok(process_array_in(args, ctx)?.into()),
-                "std.date.to_string" => {
-                    return Ok(process_date_to_string(&expr, name, args, ctx)?.into())
+                "std.date.to_text" => {
+                    return Ok(process_date_to_text(&expr, name, args, ctx)?.into())
                 }
                 _ => match try_into_between(expr.clone(), ctx)? {
                     Some(between_expr) => return Ok(between_expr.into()),
@@ -180,7 +180,7 @@ fn process_array_in(args: &[Expr], ctx: &mut Context) -> Result<sql_ast::Expr> {
 
 /// Translates PRQL date format (based on `chrono` crate) to dialect specific date format
 /// For now only date format as string literal is supported
-fn process_date_to_string(
+fn process_date_to_text(
     expr: &Expr,
     op_name: &str,
     args: &[Expr],
@@ -213,7 +213,7 @@ fn process_date_to_string(
         Ok(super::operators::translate_operator_expr(expr, ctx)?.into_ast())
     } else {
         Err(
-            Error::new_simple("`std.date.to_string` only supports a string literal as format")
+            Error::new_simple("`std.date.to_text` only supports a string literal as format")
                 .with_span(expr.span)
                 .into(),
         )
@@ -935,7 +935,7 @@ impl SQLExpression for BinaryOperator {
     fn associativity(&self) -> Associativity {
         use BinaryOperator::*;
         match self {
-            Minus | Divide => Associativity::Left,
+            Minus | Divide | Modulo => Associativity::Left,
             _ => Associativity::Both,
         }
     }

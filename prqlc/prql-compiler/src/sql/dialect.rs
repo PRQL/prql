@@ -216,6 +216,44 @@ impl DialectHandler for PostgresDialect {
     fn supports_distinct_on(&self) -> bool {
         true
     }
+
+    // https://www.postgresql.org/docs/current/functions-formatting.html
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "YYYY".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "YY".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "FMMM".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "MM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "FMDD".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "DD".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "FMHH24".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "HH24".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "HH12".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "MI".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "SS".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "US".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "Mon".to_string(),
+            // By default long names are blank-padded to 9 chars so we need to use FM prefix
+            Item::Fixed(Fixed::LongMonthName) => "FMMonth".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "Dy".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "FMDay".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "AM".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "YYYY-MM-DD\"T\"HH24:MI:SS.USZ".to_string(),
+            Item::Literal(literal) => {
+                // literals are split at every non alphanumeric character
+                if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    // If the literal contains alphanumeric characters, we need to quote it
+                    // to avoid it being interpreted as a pattern understood by Postgres.
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text
+                    format!("\"{}\"", literal)
+                } else {
+                    literal.replace('\'', "''").replace('"', "\\\"")
+                }
+            }
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
+    }
 }
 
 impl DialectHandler for GlareDbDialect {
@@ -255,6 +293,47 @@ impl DialectHandler for MsSqlDialect {
     fn set_ops_distinct(&self) -> bool {
         false
     }
+
+    // https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "yyyy".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "yy".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "M".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "MM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "d".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "dd".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "H".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "HH".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "hh".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "mm".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "ss".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "ffffff".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "MMM".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "MMMM".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "ddd".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "dddd".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "tt".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'".to_string(),
+            Item::Literal(literal) => {
+                // literals are split at every non alphanumeric character
+                if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    // If the literal contains alphanumeric characters, we need to quote it
+                    // to avoid it being interpreted as a pattern understood by MSSQL.
+                    // We hence need to put it in double quotes to force it to be interpreted as literal text
+                    format!("\"{}\"", literal)
+                } else {
+                    // MSSQL uses single quotes around
+                    literal
+                        .replace('"', "\\\"")
+                        .replace('\'', "\"\'\"")
+                        .replace('%', "\\%")
+                }
+            }
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
+    }
 }
 
 impl DialectHandler for MySqlDialect {
@@ -266,6 +345,33 @@ impl DialectHandler for MySqlDialect {
         // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
         true
     }
+
+    // https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "%Y".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "%y".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "%c".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "%m".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "%e".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "%d".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "%k".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "%H".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "%I".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "%i".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "%S".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "%f".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "%b".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "%M".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "%a".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "%W".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "%p".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%i:%S.%fZ".to_string(),
+            Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
+    }
 }
 
 impl DialectHandler for ClickHouseDialect {
@@ -275,6 +381,43 @@ impl DialectHandler for ClickHouseDialect {
 
     fn supports_distinct_on(&self) -> bool {
         true
+    }
+
+    // https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#formatDateTimeInJodaSyntax
+    fn translate_chrono_item<'a>(&self, item: Item) -> Result<String> {
+        Ok(match item {
+            Item::Numeric(Numeric::Year, Pad::Zero) => "yyyy".to_string(),
+            Item::Numeric(Numeric::YearMod100, Pad::Zero) => "yy".to_string(),
+            Item::Numeric(Numeric::Month, Pad::None) => "M".to_string(),
+            Item::Numeric(Numeric::Month, Pad::Zero) => "MM".to_string(),
+            Item::Numeric(Numeric::Day, Pad::None) => "d".to_string(),
+            Item::Numeric(Numeric::Day, Pad::Zero) => "dd".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::None) => "H".to_string(),
+            Item::Numeric(Numeric::Hour, Pad::Zero) => "HH".to_string(),
+            Item::Numeric(Numeric::Hour12, Pad::Zero) => "hh".to_string(),
+            Item::Numeric(Numeric::Minute, Pad::Zero) => "mm".to_string(),
+            Item::Numeric(Numeric::Second, Pad::Zero) => "ss".to_string(),
+            Item::Numeric(Numeric::Nanosecond, Pad::Zero) => "SSSSSS".to_string(), // Microseconds
+            Item::Fixed(Fixed::ShortMonthName) => "MMM".to_string(),
+            Item::Fixed(Fixed::LongMonthName) => "MMMM".to_string(),
+            Item::Fixed(Fixed::ShortWeekdayName) => "EEE".to_string(),
+            Item::Fixed(Fixed::LongWeekdayName) => "EEEE".to_string(),
+            Item::Fixed(Fixed::UpperAmPm) => "aa".to_string(),
+            Item::Fixed(Fixed::RFC3339) => "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'".to_string(),
+            Item::Literal(literal) => {
+                // literals are split at every non alphanumeric character
+                if literal.chars().any(|c| c.is_ascii_alphanumeric()) {
+                    // If the literal contains alphanumeric characters, we need to quote it
+                    // to avoid it being interpreted as a pattern understood by Clickhouse.
+                    // Clickhouse uses backticks around
+                    format!("'{}'", literal)
+                } else {
+                    literal.replace('\'', "\\'\\'")
+                }
+            }
+            Item::Space(spaces) => spaces.to_string(),
+            _ => bail!("PRQL doesn't support this format specifier"),
+        })
     }
 }
 

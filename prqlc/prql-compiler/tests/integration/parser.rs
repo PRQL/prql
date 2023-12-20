@@ -770,7 +770,7 @@ fn test_filter() {
     "###);
 
     assert_yaml_snapshot!(
-        parse_single(r#"filter (string.upper country) == "USA""#).unwrap(), @r###"
+        parse_single(r#"filter (text.upper country) == "USA""#).unwrap(), @r###"
     ---
     - VarDef:
         kind: Main
@@ -786,7 +786,7 @@ fn test_filter() {
                     FuncCall:
                       name:
                         Ident:
-                          - string
+                          - text
                           - upper
                       args:
                         - Ident:
@@ -795,7 +795,7 @@ fn test_filter() {
                   right:
                     Literal:
                       String: USA
-      span: "0:0-38"
+      span: "0:0-36"
     "###
     );
 }
@@ -1385,6 +1385,24 @@ fn test_op_precedence() {
             Literal:
               Integer: 4
         "###);
+
+    assert_yaml_snapshot!(parse_expr(r#"1 / (3 * 4)"#).unwrap(), @r###"
+    ---
+    Binary:
+      left:
+        Literal:
+          Integer: 1
+      op: DivFloat
+      right:
+        Binary:
+          left:
+            Literal:
+              Integer: 3
+          op: Mul
+          right:
+            Literal:
+              Integer: 4
+    "###);
 
     assert_yaml_snapshot!(parse_expr(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r###"
         ---
