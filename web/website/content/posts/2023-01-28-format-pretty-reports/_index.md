@@ -56,10 +56,10 @@ Use a PRQL _alias_ to assign each column a nice name. This becomes its column
 heading. The examples above might be:
 
 ```prql
-select [
+select {
     Appraisal2020 = (dollars App_Total2020),
    `Appraisal 2021` = (dollars App_Total2021),
-]
+}
 ```
 
 Note how the second example puts the column heading in backticks to preserve
