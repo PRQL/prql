@@ -1,14 +1,21 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.11.0 — 2023-12-19
+
+0.11.0 introduces new `date`, `string` & `math` modules with lots of standard
+functions, including a new `date.to_text` function. It contains a few bugs
+fixes, and lots of internal improvements to the compiler.
+
+This release has 119 commits from 9 contributors. Selected changes:
 
 **Language**:
 
-- _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
+- _Breaking_: `group`'s `by` columns are now excluded from the partition.
+  (#3490)
 - _Breaking_: `round` is now in the `math` module and needs to be called via
-  `math.round`. See #3928
-- _Breaking_: `lower` and `upper` are now in the `string` module and need to be
-  called via `string.lower` and `string.upper`. See #3913
+  `math.round`. (#3928)
+- _Breaking_: `lower` and `upper` are now in the `text` module and need to be
+  called via `text.lower` and `text.upper`. (#3913, #3973)
 
 **Features**:
 
@@ -18,18 +25,25 @@
   `cos`, `acos`, `sin`, `asin`, `tan`, `atan`, `pow` and `round`.\
   Those functions are in the `math` module (@PrettyWood, #3909, #3916 & 3928)
 - Most standard string functions are now supported: `ltrim`, `rtrim`, `trim`,
-  `length`, `substring`, `replace`. Utility functions `starts_with`, `contains`
+  `length`, `extract`, `replace`. Utility functions `starts_with`, `contains`
   and `ends_with` are also available.\
-  Those functions are in the `string` module (@PrettyWood, #3913)
+  Those functions are in the `text` module (@PrettyWood, #3913, #3973)
+- Formatting a date to a text is now available for Clickhouse, DuckDB, MySQL,
+  MSSQL and Postgres. A new `date` module has been added with the `to_text`
+  function (@PrettyWood, #3951, #3954 & #3955)
 
 **Fixes**:
 
 - Fix an issue with arithmetic precedence (@max-sixty, #3846)
 - `+` and `-` can be used after a cast (@PrettyWood, #3923)
+- The [Lezer](https://lezer.codemirror.net/) grammar had plenty of improvements
+  and fixes. (@vanillajonathan)
 
 **Documentation**:
 
 **Web**:
+
+- The Playground now uses [Vite](https://vitejs.dev/). (@vanillajonathan)
 
 **Integrations**:
 

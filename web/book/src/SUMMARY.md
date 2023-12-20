@@ -58,6 +58,9 @@
     - [Window](./reference/stdlib/transforms/window.md)
 
   - [Aggregation functions]()
+  - [Date functions](./reference/stdlib/date.md)
+  - [Mathematical functions](./reference/stdlib/math.md)
+  - [Text functions](./reference/stdlib/text.md)
 
 - [Specification](./reference/spec/README.md)
 

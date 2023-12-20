@@ -50,7 +50,7 @@ fn test_stdlib() {
 }
 
 #[test]
-fn test_stdlib_math() {
+fn test_stdlib_math_module() {
     assert_snapshot!(compile(r#"
     from employees
     select {
@@ -100,7 +100,7 @@ fn test_stdlib_math() {
 }
 
 #[test]
-fn test_stdlib_math_mssql() {
+fn test_stdlib_math_module_mssql() {
     assert_snapshot!(compile(r#"
   prql target:sql.mssql
 
@@ -152,23 +152,23 @@ fn test_stdlib_math_mssql() {
 }
 
 #[test]
-fn test_stdlib_string() {
+fn test_stdlib_text_module() {
     assert_snapshot!(compile(r#"
     from employees
     select {
-      name_lower = name | string.lower,
-      name_upper = name | string.upper,
-      name_ltrim = name | string.ltrim,
-      name_rtrim = name | string.rtrim,
-      name_trim = name | string.trim,
-      name_length = name | string.length,
-      name_substring = name | string.substring 3 5,
-      name_replace = name | string.replace "pika" "chu",
-      name_starts_with = name | string.starts_with "pika",
-      name_contains = name | string.contains "pika",
-      name_ends_with = name | string.ends_with "pika",
+      name_lower = name | text.lower,
+      name_upper = name | text.upper,
+      name_ltrim = name | text.ltrim,
+      name_rtrim = name | text.rtrim,
+      name_trim = name | text.trim,
+      name_length = name | text.length,
+      name_extract = name | text.extract 3 5,
+      name_replace = name | text.replace "pika" "chu",
+      name_starts_with = name | text.starts_with "pika",
+      name_contains = name | text.contains "pika",
+      name_ends_with = name | text.ends_with "pika",
     }
-    "#).unwrap(), @r#"
+    "#).unwrap(), @r###"
     SELECT
       LOWER(name) AS name_lower,
       UPPER(name) AS name_upper,
@@ -176,14 +176,14 @@ fn test_stdlib_string() {
       RTRIM(name) AS name_rtrim,
       TRIM(name) AS name_trim,
       CHAR_LENGTH(name) AS name_length,
-      SUBSTRING(name, 3, 5) AS name_substring,
+      SUBSTRING(name, 3, 5) AS name_extract,
       REPLACE(name, 'pika', 'chu') AS name_replace,
       name LIKE CONCAT('pika', '%') AS name_starts_with,
       name LIKE CONCAT('%', 'pika', '%') AS name_contains,
       name LIKE CONCAT('%', 'pika') AS name_ends_with
     FROM
       employees
-    "#
+    "###
     );
 }
 
@@ -194,7 +194,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let query = r#"
   from employees
   select {
-    name_ends_with = name | string.contains "pika",
+    name_ends_with = name | text.contains "pika",
   }
   "#;
     let expected = format!(
@@ -212,20 +212,27 @@ FROM
 }
 
 #[rstest]
+#[case::clickhouse(
+    sql::Dialect::ClickHouse,
+    "formatDateTimeInJodaSyntax(invoice_date, 'dd/MM/yyyy')"
+)]
 #[case::duckdb(sql::Dialect::DuckDb, "strftime(invoice_date, '%d/%m/%Y')")]
-fn date_to_string_operator(
+#[case::postgres(sql::Dialect::Postgres, "TO_CHAR(invoice_date, 'DD/MM/YYYY')")]
+#[case::mssql(sql::Dialect::MsSql, "FORMAT(invoice_date, 'dd/MM/yyyy')")]
+#[case::mysql(sql::Dialect::MySql, "DATE_FORMAT(invoice_date, '%d/%m/%Y')")]
+fn date_to_text_operator(
     #[case] dialect: sql::Dialect,
-    #[case] expected_date_to_string: &'static str,
+    #[case] expected_date_to_text: &'static str,
 ) {
     let query = r#"
     from invoices
     select {
-      invoice_date = invoice_date | date.to_string "%d/%m/%Y"
+      invoice_date = invoice_date | date.to_text "%d/%m/%Y"
     }"#;
     let expected = format!(
         r#"
 SELECT
-  {expected_date_to_string} AS invoice_date
+  {expected_date_to_text} AS invoice_date
 FROM
   invoices
 "#
@@ -247,11 +254,36 @@ fn json_of_test() {
 }
 
 #[test]
+fn test_precedence_division() {
+    assert_display_snapshot!((compile(r###"
+    from artists
+    derive {
+      p1 = a - (b + c), # needs parentheses
+      p2 = x / (y * z), # needs parentheses
+      np1 = x / y / z, # doesn't need parentheses
+      p3 = x / (y / z), # needs parentheses
+      np4 = (x / y) / z, # doesn't need parentheses
+    }
+    "###).unwrap()), @r###"
+    SELECT
+      *,
+      a - (b + c) AS p1,
+      x / (y * z) AS p2,
+      x / y / z AS np1,
+      x / (y / z) AS p3,
+      x / y / z AS np4
+    FROM
+      artists
+    "###);
+}
+
+#[test]
 fn test_precedence() {
     assert_display_snapshot!((compile(r###"
     from artists
     derive {
       p1 = a - (b + c), # needs parentheses
+      p2 = a / (b * c), # needs parentheses
       np1 = a + (b - c), # no parentheses
       np2 = (a + b) - c, # no parentheses
     }
@@ -259,6 +291,7 @@ fn test_precedence() {
     SELECT
       *,
       a - (b + c) AS p1,
+      a / (b * c) AS p2,
       a + b - c AS np1,
       a + b - c AS np2
     FROM
@@ -356,7 +389,7 @@ fn test_precedence() {
       c + a - b,
       c - d - (a - b),
       c + d + a - b,
-      a / b * c,
+      a / (b * c),
       y - z AS x,
       -(y - z)
     FROM
@@ -3887,7 +3920,7 @@ fn prql_version() {
     "#).unwrap(),@r###"
     SELECT
       *,
-      '0.10.2' AS y
+      '0.11.0' AS y
     FROM
       x
     "###);
@@ -3899,7 +3932,7 @@ fn shortest_prql_version() {
     assert_display_snapshot!(compile(r#"[{version = prql_version}]"#).unwrap(),@r###"
     WITH table_0 AS (
       SELECT
-        '0.10.2' AS version
+        '0.11.0' AS version
     )
     SELECT
       version
@@ -4095,7 +4128,7 @@ fn test_datetime_parsing() {
 fn test_lower() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {lower_name = (name | string.lower)}
+    derive {lower_name = (name | text.lower)}
     "#).unwrap(),
         @r###"
     SELECT
@@ -4111,7 +4144,7 @@ fn test_lower() {
 fn test_upper() {
     assert_display_snapshot!(compile(r#"
     from test_tables
-    derive {upper_name = string.upper name}
+    derive {upper_name = text.upper name}
     select {upper_name}
     "#).unwrap(),
         @r###"

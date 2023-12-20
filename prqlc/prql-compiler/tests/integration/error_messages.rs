@@ -268,73 +268,73 @@ fn test_ambiguous_inference() {
 }
 
 #[test]
-fn date_to_string_generic() {
+fn date_to_text_generic() {
     assert_display_snapshot!(compile(r#"
   from [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_string "%Y/%m/%d"
+    d_str = d | date.to_text "%Y/%m/%d"
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:4:32]
+       ╭─[:4:30]
        │
-     4 │     d_str = d | date.to_string "%Y/%m/%d"
-       │                                ─────┬────
-       │                                     ╰────── Date formatting requires a dialect
+     4 │     d_str = d | date.to_text "%Y/%m/%d"
+       │                              ─────┬────
+       │                                   ╰────── Date formatting requires a dialect
     ───╯
     "###);
 }
 
 #[test]
-fn date_to_string_not_supported_dialect() {
+fn date_to_text_not_supported_dialect() {
     assert_display_snapshot!(compile(r#"
   prql target:sql.bigquery
 
   from [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_string "%Y/%m/%d"
+    d_str = d | date.to_text "%Y/%m/%d"
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:32]
+       ╭─[:6:30]
        │
-     6 │     d_str = d | date.to_string "%Y/%m/%d"
-       │                                ─────┬────
-       │                                     ╰────── Date formatting is not yet supported for this dialect
+     6 │     d_str = d | date.to_text "%Y/%m/%d"
+       │                              ─────┬────
+       │                                   ╰────── Date formatting is not yet supported for this dialect
     ───╯
     "###);
 }
 
 #[test]
-fn date_to_string_with_column_format() {
+fn date_to_text_with_column_format() {
     assert_display_snapshot!(compile(r#"
   from dates_to_display
   select {my_date, my_format}
-  select {std.date.to_string my_date my_format}
+  select {std.date.to_text my_date my_format}
   "#).unwrap_err(), @r###"
     Error:
        ╭─[:4:11]
        │
-     4 │   select {std.date.to_string my_date my_format}
-       │           ──────────────────┬─────────────────
-       │                             ╰─────────────────── `std.date.to_string` only supports a string literal as format
+     4 │   select {std.date.to_text my_date my_format}
+       │           ─────────────────┬────────────────
+       │                            ╰────────────────── `std.date.to_text` only supports a string literal as format
     ───╯
     "###);
 }
 
 #[test]
-fn date_to_string_unsupported_chrono_item() {
+fn date_to_text_unsupported_chrono_item() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.duckdb
   
     from [{d = @2021-01-01}]
     derive {
-      d_str = d | date.to_string "%_j"
+      d_str = d | date.to_text "%_j"
     }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:34]
+       ╭─[:6:32]
        │
-     6 │       d_str = d | date.to_string "%_j"
-       │                                  ──┬──
-       │                                    ╰──── PRQL doesn't support this format specifier
+     6 │       d_str = d | date.to_text "%_j"
+       │                                ──┬──
+       │                                  ╰──── PRQL doesn't support this format specifier
     ───╯
     "###);
 }
