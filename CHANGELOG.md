@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## 0.11.1 — [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.11.0 — 2023-12-19
 
 0.11.0 introduces new `date`, `string` & `math` modules with lots of standard
@@ -39,13 +57,9 @@ This release has 119 commits from 9 contributors. Selected changes:
 - The [Lezer](https://lezer.codemirror.net/) grammar had plenty of improvements
   and fixes. (@vanillajonathan)
 
-**Documentation**:
-
 **Web**:
 
 - The Playground now uses [Vite](https://vitejs.dev/). (@vanillajonathan)
-
-**Integrations**:
 
 **Internal changes**:
 
