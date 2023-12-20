@@ -92,7 +92,6 @@ impl<'de> Deserialize<'de> for Span {
 #[cfg(test)]
 mod test {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_span_serde() {
