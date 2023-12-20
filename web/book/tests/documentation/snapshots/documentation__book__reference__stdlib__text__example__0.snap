@@ -1,0 +1,10 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from employees\nselect {\n  last_name | text.lower | text.starts_with(\"a\"),\n  title | text.replace \"manager\" \"chief\"\n}\n"
+---
+SELECT
+  LOWER(last_name) LIKE CONCAT('a', '%'),
+  REPLACE(title, 'manager', 'chief')
+FROM
+  employees
+

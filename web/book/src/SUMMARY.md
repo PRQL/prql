@@ -33,8 +33,6 @@
   - [Ranges](./reference/syntax/ranges.md)
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
-  - [Date & time](./reference/syntax/date-time/index.md)
-    - [Format specifiers](./reference/syntax/date-time/format-specifiers.md)
 
 - [Declarations]()
   <!-- I don't know what to call this section. -->
@@ -60,6 +58,9 @@
     - [Window](./reference/stdlib/transforms/window.md)
 
   - [Aggregation functions]()
+  - [Date functions](./reference/stdlib/date.md)
+  - [Mathematical functions](./reference/stdlib/math.md)
+  - [Text functions](./reference/stdlib/text.md)
 
 - [Specification](./reference/spec/README.md)
 
