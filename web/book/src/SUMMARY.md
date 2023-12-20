@@ -60,7 +60,7 @@
   - [Aggregation functions]()
   - [Date functions](./reference/stdlib/date.md)
   - [Mathematical functions](./reference/stdlib/math.md)
-  - [Text functions](./reference/stdlib/string.md)
+  - [Text functions](./reference/stdlib/text.md)
 
 - [Specification](./reference/spec/README.md)
 

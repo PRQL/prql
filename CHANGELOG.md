@@ -7,8 +7,8 @@
 - _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
 - _Breaking_: `round` is now in the `math` module and needs to be called via
   `math.round`. See #3928
-- _Breaking_: `lower` and `upper` are now in the `string` module and need to be
-  called via `string.lower` and `string.upper`. See #3913
+- _Breaking_: `lower` and `upper` are now in the `text` module and need to be
+  called via `text.lower` and `text.upper`. See #3913, #3973
 
 **Features**:
 
@@ -18,9 +18,9 @@
   `cos`, `acos`, `sin`, `asin`, `tan`, `atan`, `pow` and `round`.\
   Those functions are in the `math` module (@PrettyWood, #3909, #3916 & 3928)
 - Most standard string functions are now supported: `ltrim`, `rtrim`, `trim`,
-  `length`, `substring`, `replace`. Utility functions `starts_with`, `contains`
+  `length`, `extract`, `replace`. Utility functions `starts_with`, `contains`
   and `ends_with` are also available.\
-  Those functions are in the `string` module (@PrettyWood, #3913)
+  Those functions are in the `text` module (@PrettyWood, #3913, #3973)
 - Formatting a date to a text is now available for Clickhouse, DuckDB, MySQL,
   MSSQL and Postgres. A new `date` module has been added with the `to_text`
   function (@PrettyWood, #3951, #3954 & #3955)
