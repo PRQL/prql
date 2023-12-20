@@ -20,7 +20,7 @@
 
 ## 0.11.0 — 2023-12-19
 
-0.11.0 introduces new `date`, `string` & `math` modules with lots of standard
+0.11.0 introduces new `date`, `text` & `math` modules with lots of standard
 functions, including a new `date.to_text` function. It contains a few bugs
 fixes, and lots of internal improvements to the compiler.
 
