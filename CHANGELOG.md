@@ -2,16 +2,20 @@
 
 ## 0.11.0 — 2023-12-19
 
-0.11.0 introduces a `string` & `math` module with lots of standard functions,
-fixes some bugs, and contains lots of internal improvements to our compiler.
+0.11.0 introduces new `date`, `string` & `math` modules with lots of standard
+functions, including a new `date.to_text` function. It contains a few bugs
+fixes, and lots of internal improvements to the compiler.
+
+This release has 119 commits from 9 contributors. Selected changes:
 
 **Language**:
 
-- _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
+- _Breaking_: `group`'s `by` columns are now excluded from the partition.
+  (#3490)
 - _Breaking_: `round` is now in the `math` module and needs to be called via
-  `math.round`. See #3928
+  `math.round`. (#3928)
 - _Breaking_: `lower` and `upper` are now in the `text` module and need to be
-  called via `text.lower` and `text.upper`. See #3913, #3973
+  called via `text.lower` and `text.upper`. (#3913, #3973)
 
 **Features**:
 
