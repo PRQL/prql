@@ -1087,7 +1087,7 @@ fn test_ranges() {
 }
 
 #[test]
-fn test_in_values() {
+fn test_in_values_01() {
     assert_display_snapshot!((compile(r#"
     from employees
     filter (title | in ["Sales Manager", "Sales Support Agent"])
@@ -1101,6 +1101,46 @@ fn test_in_values() {
       title IN ('Sales Manager', 'Sales Support Agent')
       AND employee_id IN (1, 2, 5)
     "#);
+}
+
+#[test]
+#[ignore] // unimplemented, column ref type resolution required
+fn test_in_values_02() {
+    assert_display_snapshot!((compile(r#"
+    let allowed_titles = ["Sales Manager", "Sales Support Agent"]
+
+    from employees
+    derive {allowed_ids = [1, 2, 5]}
+    filter (title | in allowed_titles)
+    filter (title | in allowed_ids)
+    "#).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      title IN ('Sales Manager', 'Sales Support Agent')
+    "###);
+}
+
+#[test]
+#[ignore] // unimplemented, column ref type resolution required
+fn test_in_values_03() {
+    assert_display_snapshot!((compile(r#"
+    from employees
+    derive allowed_titles = case [
+        is_guest => ["Sales Manager"],
+        true => ["Sales Manager", "Sales Support Agent"],
+    ]
+    filter (title | in allowed_titles)
+    "#).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      title IN ('Sales Manager', 'Sales Support Agent')
+    "###);
 }
 
 #[test]

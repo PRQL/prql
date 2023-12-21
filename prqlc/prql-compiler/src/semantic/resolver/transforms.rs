@@ -238,10 +238,10 @@ impl Resolver<'_> {
 
                 let [pattern, value] = unpack::<2>(func.args);
 
-                if let ExprKind::Array(in_values) = pattern.kind {
+                if pattern.ty.as_ref().map_or(false, |x| x.kind.is_array()) {
                     return Ok(Expr::new(ExprKind::RqOperator {
                         name: "std.array_in".to_string(),
-                        args: vec![value, Expr::new(ExprKind::Array(in_values))],
+                        args: vec![value, pattern],
                     }));
                 }
 
