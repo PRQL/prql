@@ -1,0 +1,78 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# Compute the 3 longest songs for each genre and sort by genre\n# mssql:test\nfrom tracks\nselect {genre_id,milliseconds}\ngroup {genre_id} (\n  sort {-milliseconds}\n  take 3\n)\njoin genres (==genre_id)\nselect {name, milliseconds}\nsort {+name,-milliseconds}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/group_sort_limit_take_3.prql
+---
+Alternative,672773
+Alternative,414474
+Alternative,384497
+Alternative & Punk,558602
+Alternative & Punk,548336
+Alternative & Punk,518556
+Blues,589531
+Blues,528692
+Blues,505521
+Bossa Nova,409965
+Bossa Nova,392437
+Bossa Nova,244297
+Classical,596519
+Classical,582029
+Classical,567494
+Comedy,2541875
+Comedy,2519436
+Comedy,1814855
+Drama,5088838
+Drama,2780416
+Drama,2698791
+Easy Listening,292075
+Easy Listening,275879
+Easy Listening,266605
+Electronica/Dance,529684
+Electronica/Dance,422321
+Electronica/Dance,385697
+Heavy Metal,516649
+Heavy Metal,508107
+Heavy Metal,441782
+Hip Hop/Rap,410409
+Hip Hop/Rap,315637
+Hip Hop/Rap,239908
+Jazz,907520
+Jazz,843964
+Jazz,807392
+Latin,543007
+Latin,526132
+Latin,482429
+Metal,816509
+Metal,789472
+Metal,671712
+Opera,174813
+Pop,663426
+Pop,409906
+Pop,315960
+R&B/Soul,418293
+R&B/Soul,341629
+R&B/Soul,340218
+Reggae,366733
+Reggae,353671
+Reggae,341498
+Rock,1612329
+Rock,1196094
+Rock,1116734
+Rock And Roll,163265
+Rock And Roll,161123
+Rock And Roll,147591
+Sci Fi & Fantasy,2960293
+Sci Fi & Fantasy,2956998
+Sci Fi & Fantasy,2956081
+Science Fiction,2713755
+Science Fiction,2627961
+Science Fiction,2626376
+Soundtrack,383764
+Soundtrack,340767
+Soundtrack,330266
+TV Shows,5286953
+TV Shows,2825166
+TV Shows,2782333
+World,300605
+World,285837
+World,284107
