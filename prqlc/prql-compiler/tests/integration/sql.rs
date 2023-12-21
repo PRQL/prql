@@ -1844,7 +1844,12 @@ fn test_take_mssql() {
     SELECT
       *
     FROM
-      tracks OFFSET 2 ROWS
+      tracks
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 2 ROWS
     FETCH FIRST
       3 ROWS ONLY
     "###);
@@ -1858,7 +1863,12 @@ fn test_take_mssql() {
     SELECT
       *
     FROM
-      tracks OFFSET 0 ROWS
+      tracks
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 0 ROWS
     FETCH FIRST
       5 ROWS ONLY
     "###);
@@ -2927,7 +2937,12 @@ fn test_targets() {
       "FirstName",
       "last name"
     FROM
-      "Employees" OFFSET 0 ROWS
+      "Employees"
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 0 ROWS
     FETCH FIRST
       3 ROWS ONLY
     "###);
@@ -4015,7 +4030,12 @@ fn test_header() {
     SELECT
       *
     FROM
-      a OFFSET 0 ROWS
+      a
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 0 ROWS
     FETCH FIRST
       5 ROWS ONLY
     "###);

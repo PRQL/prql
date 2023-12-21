@@ -7,7 +7,7 @@ SELECT
 FROM
   employees
 ORDER BY
-  age
+  age OFFSET 0 ROWS
 FETCH FIRST
   10 ROWS ONLY
 
