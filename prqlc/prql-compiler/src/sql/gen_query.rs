@@ -154,19 +154,23 @@ fn translate_select_pipeline(
     let offset = take.start.map(|s| s - 1).unwrap_or(0);
     let limit = take.end.map(|e| e - offset);
 
-    let offset = if offset == 0 {
+    let mut offset = if offset == 0 {
         None
     } else {
         let kind = ExprKind::Literal(Literal::Integer(offset));
         let expr = Expr { kind, span: None };
         Some(sqlparser::ast::Offset {
             value: translate_expr(expr, ctx)?.into_ast(),
-            rows: sqlparser::ast::OffsetRows::None,
+            rows: if ctx.dialect.use_fetch() {
+                sqlparser::ast::OffsetRows::Rows
+            } else {
+                sqlparser::ast::OffsetRows::None
+            },
         })
     };
 
     // Use sorting from the frame
-    let order_by = order_by
+    let mut order_by: Vec<sql_ast::OrderByExpr> = order_by
         .last()
         .map(|sorts| {
             sorts
@@ -177,11 +181,34 @@ fn translate_select_pipeline(
         .transpose()?
         .unwrap_or_default();
 
-    let (top, limit) = if ctx.dialect.use_top() {
-        (limit.map(|l| top_of_i64(l, ctx)), None)
+    let (fetch, limit) = if ctx.dialect.use_fetch() {
+        (limit.map(|l| fetch_of_i64(l, ctx)), None)
     } else {
         (None, limit.map(expr_of_i64))
     };
+
+    // If we have a FETCH we need to make sure that:
+    // - we have an OFFSET (set to 0)
+    // - we have an ORDER BY (see https://stackoverflow.com/a/44919325)
+    if fetch.is_some() {
+        if offset.is_none() {
+            let kind = ExprKind::Literal(Literal::Integer(0));
+            let expr = Expr { kind, span: None };
+            offset = Some(sqlparser::ast::Offset {
+                value: translate_expr(expr, ctx)?.into_ast(),
+                rows: sqlparser::ast::OffsetRows::Rows,
+            })
+        }
+        if order_by.is_empty() {
+            order_by.push(sql_ast::OrderByExpr {
+                expr: sql_ast::Expr::Value(sql_ast::Value::Placeholder(
+                    "(SELECT NULL)".to_string(),
+                )),
+                asc: None,
+                nulls_first: None,
+            });
+        }
+    }
 
     ctx.pop_query();
 
@@ -189,9 +216,9 @@ fn translate_select_pipeline(
         order_by,
         limit,
         offset,
+        fetch,
         ..default_query(SetExpr::Select(Box::new(Select {
             distinct,
-            top,
             projection,
             from,
             selection: where_,

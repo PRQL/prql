@@ -131,7 +131,7 @@ pub(super) enum ColumnExclude {
 }
 
 pub(super) trait DialectHandler: Any + Debug {
-    fn use_top(&self) -> bool {
+    fn use_fetch(&self) -> bool {
         false
     }
 
@@ -281,7 +281,7 @@ impl DialectHandler for SQLiteDialect {
 }
 
 impl DialectHandler for MsSqlDialect {
-    fn use_top(&self) -> bool {
+    fn use_fetch(&self) -> bool {
         true
     }
 

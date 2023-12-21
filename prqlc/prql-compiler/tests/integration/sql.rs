@@ -1834,6 +1834,59 @@ fn test_take() {
 }
 
 #[test]
+fn test_take_mssql() {
+    assert_display_snapshot!((compile(r#"
+    prql target:sql.mssql
+
+    from tracks
+    take 3..5
+    "#).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      tracks
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 2 ROWS
+    FETCH FIRST
+      3 ROWS ONLY
+    "###);
+
+    assert_display_snapshot!((compile(r#"
+    prql target:sql.mssql
+
+    from tracks
+    take ..5
+    "#).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      tracks
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 0 ROWS
+    FETCH FIRST
+      5 ROWS ONLY
+    "###);
+
+    assert_display_snapshot!((compile(r#"
+    prql target:sql.mssql
+
+    from tracks
+    take 3..
+    "#).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      tracks OFFSET 2 ROWS
+    "###);
+}
+
+#[test]
 fn test_distinct_01() {
     // window functions cannot materialize into where statement: CTE is needed
     assert_display_snapshot!((compile(r###"
@@ -2881,10 +2934,17 @@ fn test_targets() {
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
-      TOP (3) "FirstName",
+      "FirstName",
       "last name"
     FROM
       "Employees"
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 0 ROWS
+    FETCH FIRST
+      3 ROWS ONLY
     "###);
 
     // MySQL
@@ -3968,9 +4028,16 @@ fn test_header() {
     take 5
     "#).as_str()).unwrap(),@r###"
     SELECT
-      TOP (5) *
+      *
     FROM
       a
+    ORDER BY
+      (
+        SELECT
+          NULL
+      ) OFFSET 0 ROWS
+    FETCH FIRST
+      5 ROWS ONLY
     "###);
 }
 #[test]

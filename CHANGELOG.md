@@ -10,6 +10,8 @@
 
 - Do not compile to `DISTINCT ON` when `take n` is used with `group` for the
   targets `clickhouse`, `duckdb` and `postgres`. (@PrettyWood, #3988)
+- Fix `take` n rows for `mssql` dialect by switching from TOP to FETCH
+  (@PrettyWood, #3994)
 
 **Documentation**:
 

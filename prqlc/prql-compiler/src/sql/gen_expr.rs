@@ -4,8 +4,8 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
-    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr,
-    ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
+    ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use std::cmp::Ordering;
 
@@ -605,10 +605,10 @@ pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
     ))
 }
 
-pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
+pub(super) fn fetch_of_i64(take: i64, ctx: &mut Context) -> Fetch {
     let kind = ExprKind::Literal(Literal::Integer(take));
     let expr = Expr { kind, span: None };
-    Top {
+    Fetch {
         quantity: Some(translate_expr(expr, ctx).unwrap().into_ast()),
         with_ties: false,
         percent: false,
