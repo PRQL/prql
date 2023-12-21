@@ -398,19 +398,24 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+      - run: ./.github/workflows/scripts/set_version.sh
       - uses: baptiste0928/cargo-install@v2
         with:
-          crate: cargo-tarpaulin
-      - run: ./.github/workflows/scripts/set_version.sh
-        shell: bash
+          crate: grcov
+      - run: rustup component add llvm-tools-preview
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
       - run:
-          cargo tarpaulin --skip-clean --all-targets --features=test-dbs
-          --out=xml
+          # https://github.com/mozilla/grcov#generate-a-coverage-report-from-coverage-artifacts
+          CARGO_INCREMENTAL=0 RUSTFLAGS='-Cinstrument-coverage'
+          LLVM_PROFILE_FILE='cargo-test-%p-%m.profraw' cargo test --all-targets
+          --features=test-dbs
+      - run:
+          grcov . -s . --binary-path ./target/debug/ -t cobertura --branch
+          --ignore-not-existing -o cobertura.xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
       - name: Upload code coverage results
