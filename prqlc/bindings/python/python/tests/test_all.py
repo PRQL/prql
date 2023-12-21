@@ -49,7 +49,9 @@ def test_compile_options() -> None:
     """
     query_mssql = "prql target:sql.mssql\nfrom a | take 3"
 
-    assert prql.compile(query_mssql).startswith("SELECT\n  TOP (3) *\nFROM\n  a")
+    assert prql.compile(query_mssql).startswith(
+        "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
+    )
 
     options_with_known_target = prql.CompileOptions(
         format=False, signature_comment=False, target="sql.sqlite"
@@ -61,16 +63,20 @@ def test_compile_options() -> None:
 
     options_without_target = prql.CompileOptions(format=False, signature_comment=False)
     assert (
-        prql.compile(query_mssql, options_without_target) == "SELECT TOP (3) * FROM a"
+        prql.compile(query_mssql, options_without_target)
+        == "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY"
     )
 
     options_with_any_target = prql.CompileOptions(
         format=False, signature_comment=False, target="sql.any"
     )
     assert (
-        prql.compile(query_mssql, options_with_any_target) == "SELECT TOP (3) * FROM a"
+        prql.compile(query_mssql, options_with_any_target)
+        == "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY"
     )
 
     options_default = prql.CompileOptions()
     res = prql.compile(query_mssql, options_default)
-    assert res.startswith("SELECT\n  TOP (3)")
+    assert res.startswith(
+        "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
+    )
