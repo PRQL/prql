@@ -9,7 +9,6 @@ use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 
-use crate::semantic::write_pl;
 use crate::{Error, Reason, WithErrorInfo};
 
 use super::Resolver;
@@ -440,25 +439,6 @@ where
     e
 }
 
-#[allow(dead_code)]
-fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
-    let err = Error::new(Reason::Expected {
-        who: Some(write_pl(*call.name.clone())),
-        expected: format!("{} arguments", expected_len),
-        found: format!("{}", passed_len),
-    });
-    if passed_len >= 2 {
-        err.push_hint(format!(
-            "if you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            write_pl(*call.name.clone()),
-            call.args[0],
-            call.args[1]
-        ))
-    } else {
-        err
-    }
-}
-
 /// Analogous to [crate::ir::pl::Lineage::rename()]
 pub fn rename_relation(ty_kind: &mut TyKind, alias: String) {
     if let TyKind::Array(items_ty) = ty_kind {
@@ -509,11 +489,8 @@ pub fn is_super_type_of(superset: &Ty, subset: &Ty) -> bool {
 }
 
 pub fn is_sub_type_of_array(ty: &Ty) -> bool {
-    match &ty.kind {
-        TyKind::Array(_) => true,
-        TyKind::Union(elements) => elements.iter().any(|(_, e)| is_sub_type_of_array(e)),
-        _ => false,
-    }
+    let array = TyKind::Array(Box::new(Ty::new(TyKind::Any)));
+    is_super_type_of_kind(&array, &ty.kind)
 }
 
 fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
