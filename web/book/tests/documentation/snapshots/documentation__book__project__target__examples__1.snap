@@ -3,9 +3,11 @@ source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.mssql\n\nfrom employees\nsort age\ntake 10\n"
 ---
 SELECT
-  TOP (10) *
+  *
 FROM
   employees
 ORDER BY
   age
+FETCH FIRST
+  10 ROWS ONLY
 

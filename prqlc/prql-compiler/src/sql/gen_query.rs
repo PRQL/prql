@@ -161,7 +161,11 @@ fn translate_select_pipeline(
         let expr = Expr { kind, span: None };
         Some(sqlparser::ast::Offset {
             value: translate_expr(expr, ctx)?.into_ast(),
-            rows: sqlparser::ast::OffsetRows::None,
+            rows: if ctx.dialect.use_fetch() {
+                sqlparser::ast::OffsetRows::Rows
+            } else {
+                sqlparser::ast::OffsetRows::None
+            },
         })
     };
 
@@ -177,8 +181,8 @@ fn translate_select_pipeline(
         .transpose()?
         .unwrap_or_default();
 
-    let (top, limit) = if ctx.dialect.use_top() {
-        (limit.map(|l| top_of_i64(l, ctx)), None)
+    let (fetch, limit) = if ctx.dialect.use_fetch() {
+        (limit.map(|l| fetch_of_i64(l, ctx)), None)
     } else {
         (None, limit.map(expr_of_i64))
     };
@@ -189,9 +193,9 @@ fn translate_select_pipeline(
         order_by,
         limit,
         offset,
+        fetch,
         ..default_query(SetExpr::Select(Box::new(Select {
             distinct,
-            top,
             projection,
             from,
             selection: where_,

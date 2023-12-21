@@ -7,8 +7,10 @@ prql: |
   take 10
 sql: |
   SELECT
-    TOP (10) *
+    *
   FROM
     employees
   ORDER BY
     age
+  FETCH
+    FIRST 10 ROWS ONLY

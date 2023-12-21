@@ -1,0 +1,8 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# mssql:skip\nfrom tracks\ntake 3..5\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/take.prql
+---
+3,Fast As a Shark,3,2,1,F. Baltes, S. Kaufman, U. Dirkscneider & W. Hoffman,230619,3990994,0.99
+4,Restless and Wild,3,2,1,F. Baltes, R.A. Smith-Diesel, S. Kaufman, U. Dirkscneider & W. Hoffman,252051,4331779,0.99
+5,Princess of the Dawn,3,2,1,Deaffy & R.A. Smith-Diesel,375418,6290521,0.99
