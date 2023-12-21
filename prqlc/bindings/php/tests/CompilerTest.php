@@ -48,7 +48,10 @@ final class CompilerTest extends TestCase
         $actual = $prql->compile("from employees | take 10", $options);
         $this->assertCount(0, $actual->messages);
 
-        $this->assertEquals("SELECT TOP (10) * FROM employees", $actual->output);
+        $this->assertEquals(
+            "SELECT * FROM employees ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+            $actual->output
+        );
     }
 
     public function testOtherFunctions(): void

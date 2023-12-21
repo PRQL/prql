@@ -46,7 +46,10 @@ describe("prql-js", () => {
       opts.signature_comment = false;
 
       const res = prql.compile("from a | take 10", opts);
-      assert.equal(res, "SELECT TOP (10) * FROM a");
+      assert.equal(
+        res,
+        "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+      );
     });
 
     it("CompileOptions should be preferred and should ignore target in header", () => {
@@ -59,7 +62,11 @@ describe("prql-js", () => {
         "prql target:sql.sqlite\nfrom a | take 10",
         opts,
       );
-      assert(res.includes("SELECT TOP (10) * FROM a"));
+      assert(
+        res.includes(
+          "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+        ),
+      );
       assert(res.includes("target:sql.mssql"));
     });
   });
@@ -88,8 +95,7 @@ describe("prql-js", () => {
 
       opts.target = "sql.any";
       const res = prql.compile("prql target:sql.mssql\nfrom a | take 1", opts);
-
-      assert(res.includes("TOP (1)"));
+      assert(res.includes("1 ROWS ONLY"));
     });
   });
 
