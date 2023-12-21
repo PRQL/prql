@@ -8,6 +8,9 @@
 
 **Fixes**:
 
+- Fix `take` n rows for `mssql` dialect by switching from TOP to FETCH
+  (@PrettyWood, #3994)
+
 **Documentation**:
 
 **Web**:
