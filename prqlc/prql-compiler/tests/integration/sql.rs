@@ -2111,6 +2111,68 @@ fn test_distinct_on_04() {
 }
 
 #[test]
+fn test_group_take_n_01() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.postgres
+
+    from employees
+    group department (
+      sort age
+      take 2
+    )
+    "###).unwrap()), @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY department
+          ORDER BY
+            age
+        ) AS _expr_0
+      FROM
+        employees
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    WHERE
+      _expr_0 <= 2
+    "###);
+}
+
+#[test]
+fn test_group_take_n_02() {
+    assert_display_snapshot!((compile(r###"
+    prql target:sql.postgres
+
+    from employees
+    group department (
+      sort age
+      take 2..
+    )
+    "###).unwrap()),  @r###"
+    WITH table_0 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY department
+          ORDER BY
+            age
+        ) AS _expr_0
+      FROM
+        employees
+    )
+    SELECT
+      *
+    FROM
+      table_0
+    WHERE
+      _expr_0 >= 2
+    "###);
+}
+
+#[test]
 fn test_join() {
     assert_display_snapshot!((compile(r###"
     from x
