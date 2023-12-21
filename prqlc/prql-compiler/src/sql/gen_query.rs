@@ -196,11 +196,7 @@ fn translate_select_pipeline(
             let expr = Expr { kind, span: None };
             offset = Some(sqlparser::ast::Offset {
                 value: translate_expr(expr, ctx)?.into_ast(),
-                rows: if ctx.dialect.use_fetch() {
-                    sqlparser::ast::OffsetRows::Rows
-                } else {
-                    sqlparser::ast::OffsetRows::None
-                },
+                rows: sqlparser::ast::OffsetRows::Rows,
             })
         }
         if order_by.is_empty() {
