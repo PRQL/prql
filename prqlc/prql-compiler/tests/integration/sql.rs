@@ -1858,7 +1858,7 @@ fn test_take_mssql() {
     SELECT
       *
     FROM
-      tracks
+      tracks OFFSET 0 ROWS
     FETCH FIRST
       5 ROWS ONLY
     "###);
@@ -2865,7 +2865,7 @@ fn test_targets() {
       "FirstName",
       "last name"
     FROM
-      "Employees"
+      "Employees" OFFSET 0 ROWS
     FETCH FIRST
       3 ROWS ONLY
     "###);
@@ -3953,7 +3953,7 @@ fn test_header() {
     SELECT
       *
     FROM
-      a
+      a OFFSET 0 ROWS
     FETCH FIRST
       5 ROWS ONLY
     "###);
