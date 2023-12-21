@@ -173,8 +173,8 @@ pub(in crate::sql) fn distinct(
                     // DISTINCT
 
                     res.push(SqlTransform::Distinct);
-                } else if ctx.dialect.supports_distinct_on() {
-                    // DISTINCT ON
+                } else if ctx.dialect.supports_distinct_on() && range_int.end.unwrap_or(1) == 1 {
+                    // DISTINCT ON (only if we want to select one row per group)
 
                     let sort = if sort.is_empty() {
                         vec![]

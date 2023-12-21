@@ -1,0 +1,30 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# Compute the longest song for each genre and sort by genre\n# mssql:test\nfrom tracks\nselect {genre_id,milliseconds}\ngroup {genre_id} (\n  sort {-milliseconds}\n  take 1\n)\njoin genres (==genre_id)\nselect {name, milliseconds}\nsort {+name,-milliseconds}\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/group_sort_limit_take_1.prql
+---
+Alternative,672773
+Alternative & Punk,558602
+Blues,589531
+Bossa Nova,409965
+Classical,596519
+Comedy,2541875
+Drama,5088838
+Easy Listening,292075
+Electronica/Dance,529684
+Heavy Metal,516649
+Hip Hop/Rap,410409
+Jazz,907520
+Latin,543007
+Metal,816509
+Opera,174813
+Pop,663426
+R&B/Soul,418293
+Reggae,366733
+Rock,1612329
+Rock And Roll,163265
+Sci Fi & Fantasy,2960293
+Science Fiction,2713755
+Soundtrack,383764
+TV Shows,5286953
+World,300605

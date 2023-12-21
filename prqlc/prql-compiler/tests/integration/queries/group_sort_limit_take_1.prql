@@ -1,0 +1,11 @@
+# Compute the longest song for each genre and sort by genre
+# mssql:test
+from tracks
+select {genre_id,milliseconds}
+group {genre_id} (
+  sort {-milliseconds}
+  take 1
+)
+join genres (==genre_id)
+select {name, milliseconds}
+sort {+name,-milliseconds}

@@ -8,6 +8,9 @@
 
 **Fixes**:
 
+- Do not compile to `DISTINCT ON` when `take n` is used with `group` for the
+  targets `clickhouse`, `duckdb` and `postgres`. (@PrettyWood, #3988)
+
 **Documentation**:
 
 **Web**:
