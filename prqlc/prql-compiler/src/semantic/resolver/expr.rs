@@ -197,27 +197,6 @@ impl PlFold for Resolver<'_> {
                 }
             }
 
-            ExprKind::Array(exprs) => {
-                let mut exprs = self.fold_exprs(exprs)?;
-
-                // validate that all elements have the same type
-                let mut expected_ty: Option<&Ty> = None;
-                for expr in &mut exprs {
-                    if expr.ty.is_some() {
-                        if expected_ty.is_some() {
-                            let who = || Some("array".to_string());
-                            self.validate_expr_type(expr, expected_ty, &who)?;
-                        }
-                        expected_ty = expr.ty.as_ref();
-                    }
-                }
-
-                Expr {
-                    kind: ExprKind::Array(exprs),
-                    ..node
-                }
-            }
-
             item => Expr {
                 kind: fold_expr_kind(self, item)?,
                 ..node
