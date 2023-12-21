@@ -225,9 +225,9 @@ select [1.4, false, "foo"]
 
 ### Normalization
 
-Say we have a type expression E, composed of possibly many operators.
-To minimize this expression, we employ process of normalization,
-which is meant to take advantage of the following equalities:
+Say we have a type expression E, composed of possibly many operators. To
+minimize this expression, we employ process of normalization, which is meant to
+take advantage of the following equalities:
 
 ```
 A & A = A
@@ -242,8 +242,8 @@ A | () = A
 ```
 
 We can see that intersection and difference are the main simplifying operations,
-which is why the normalization 'sinks them into the expression',
-to maximize the number of their interactions.
+which is why the normalization 'sinks them into the expression', to maximize the
+number of their interactions.
 
 Rules for normalization during intersection:
 
