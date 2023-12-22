@@ -68,12 +68,15 @@ impl Resolver<'_> {
                 ty_tuple_kind(ty_fields)
             }
             ExprKind::Array(items) => {
-                let mut intersection = None;
+                let mut variants = Vec::with_capacity(items.len());
                 for item in items {
                     let item_ty = Resolver::infer_type(item)?;
-                    intersection = maybe_type_intersection(intersection, item_ty);
+                    if let Some(item_ty) = item_ty {
+                        variants.push((None, item_ty));
+                    }
                 }
-                let items_ty = intersection.unwrap_or_else(|| Ty::new(TyKind::Any));
+                let items_ty = Ty::new(TyKind::Union(variants));
+                let items_ty = normalize_type(items_ty);
                 TyKind::Array(Box::new(items_ty))
             }
 
