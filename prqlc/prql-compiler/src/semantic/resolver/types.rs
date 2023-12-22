@@ -68,25 +68,15 @@ impl Resolver<'_> {
                 ty_tuple_kind(ty_fields)
             }
             ExprKind::Array(items) => {
-                let mut intersection = None;
+                let mut variants = Vec::with_capacity(items.len());
                 for item in items {
                     let item_ty = Resolver::infer_type(item)?;
-
                     if let Some(item_ty) = item_ty {
-                        if let Some(intersection) = &intersection {
-                            if intersection != &item_ty {
-                                // TODO: compute type intersection instead
-                                return Ok(None);
-                            }
-                        } else {
-                            intersection = Some(item_ty);
-                        }
+                        variants.push((None, item_ty));
                     }
                 }
-                let Some(items_ty) = intersection else {
-                    // TODO: return Array(Infer) instead of Infer
-                    return Ok(None);
-                };
+                let items_ty = Ty::new(TyKind::Union(variants));
+                let items_ty = normalize_type(items_ty);
                 TyKind::Array(Box::new(items_ty))
             }
 
@@ -638,11 +628,14 @@ where
     F: Fn() -> Option<String>,
 {
     fn display_ty(ty: &Ty) -> String {
-        if ty.name.is_none() && ty.kind.is_tuple() {
-            "a tuple".to_string()
-        } else {
-            format!("type `{}`", write_ty(ty))
+        if ty.name.is_none() {
+            if let TyKind::Tuple(fields) = &ty.kind {
+                if fields.len() == 1 && fields[0].is_wildcard() {
+                    return "a tuple".to_string();
+                }
+            }
         }
+        format!("type `{}`", write_ty(ty))
     }
 
     let who = who();
@@ -913,6 +906,7 @@ fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
             }
             (Some((a_name, a_ty)), Some((b_name, b_ty))) => {
                 let name = match (a_name, b_name) {
+                    (Some(a), Some(b)) if a == b => Some(a),
                     (None, None) | (Some(_), Some(_)) => None,
                     (None, Some(n)) | (Some(n), None) => Some(n),
                 };

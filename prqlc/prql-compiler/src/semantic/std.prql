@@ -73,7 +73,7 @@ let from = func
   -> <relation> internal from
 
 let select = func
-  columns <scalar || tuple>
+  columns <anytype>
   tbl <relation>
   -> <relation> internal select
 
@@ -83,17 +83,17 @@ let filter = func
   -> <relation> internal filter
 
 let derive = func
-  columns <scalar || tuple>
+  columns <anytype>
   tbl <relation>
   -> <relation> internal derive
 
 let aggregate = func
-  columns <scalar || tuple>
+  columns <anytype>
   tbl <relation>
   -> <relation> internal aggregate
 
 let sort = func
-  by <scalar || tuple>
+  by <anytype>
   tbl <relation>
   -> <relation> internal sort
 

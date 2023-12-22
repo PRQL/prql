@@ -6,6 +6,9 @@
 
 **Features**:
 
+- Infer the type of array literals to be the union of types of its items.
+  (@aljazerzen, #3989)
+
 **Fixes**:
 
 - Do not compile to `DISTINCT ON` when `take n` is used with `group` for the

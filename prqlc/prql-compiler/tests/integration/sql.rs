@@ -4454,20 +4454,15 @@ fn test_into() {
 }
 
 #[test]
-fn test_array() {
-    assert_display_snapshot!(compile(r#"
+fn test_array_01() {
+    compile(
+        r#"
     let a = [1, 2, false]
-    "#).unwrap_err(),
-        @r###"
-    Error:
-       ╭─[:2:20]
-       │
-     2 │     let a = [1, 2, false]
-       │                    ──┬──
-       │                      ╰──── array expected type `int`, but found type `bool`
-    ───╯
-    "###
-    );
+
+    from x
+    "#,
+    )
+    .unwrap();
 
     assert_snapshot!(compile(r#"
     let my_relation = [
@@ -4504,6 +4499,30 @@ fn test_array() {
       b
     "###
     );
+}
+
+#[test]
+fn test_array_02() {
+    assert_snapshot!(compile(r#"
+    from [
+      {x = null},
+      {x = '1'},
+    ]
+    "#)
+    .unwrap(), @r###"
+    WITH table_0 AS (
+      SELECT
+        NULL AS x
+      UNION
+      ALL
+      SELECT
+        '1' AS x
+    )
+    SELECT
+      x
+    FROM
+      table_0
+    "###);
 }
 
 #[test]

@@ -53,14 +53,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "2:4225-4230"
+                      span: "2:4193-4198"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "2:4234-4238"
+                      span: "2:4202-4206"
                       name: ~
-              span: "2:4225-4238"
+              span: "2:4193-4206"
               name: ~
         ty:
           kind:
@@ -72,14 +72,14 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "2:4225-4230"
+                            span: "2:4193-4198"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "2:4234-4238"
+                            span: "2:4202-4206"
                             name: ~
-                    span: "2:4225-4238"
+                    span: "2:4193-4206"
                     name: ~
           span: ~
           name: ~
@@ -146,7 +146,7 @@ TransformCall:
                           name: ~
                   span: "2:2042-2053"
                   name: tuple
-          span: "2:3052-3067"
+          span: "2:3020-3035"
           name: ~
     ty:
       kind:
@@ -209,7 +209,7 @@ TransformCall:
                                 name: ~
                         span: "2:2042-2053"
                         name: tuple
-                span: "2:3052-3067"
+                span: "2:3020-3035"
                 name: ~
       span: ~
       name: ~
@@ -276,7 +276,7 @@ ty:
                                 name: ~
                         span: "2:2042-2053"
                         name: tuple
-                span: "2:3052-3067"
+                span: "2:3020-3035"
                 name: ~
           - Single:
               - ~
@@ -285,14 +285,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "2:4225-4230"
+                        span: "2:4193-4198"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "2:4234-4238"
+                        span: "2:4202-4206"
                         name: ~
-                span: "2:4225-4238"
+                span: "2:4193-4206"
                 name: ~
       span: ~
       name: ~
