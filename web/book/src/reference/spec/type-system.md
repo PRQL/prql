@@ -236,7 +236,7 @@ A & B = (), where:
  - A and B are primitive, singleton, tuple or array
  - and A != B
 
-A - (A | B) = (), where
+A - (A | B) = ()
 
 A | () = A
 ```
