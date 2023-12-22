@@ -308,7 +308,7 @@ impl Resolver<'_> {
             let expects_func = param
                 .ty
                 .as_ref()
-                .map(|t| t.is_function())
+                .map(|t| t.kind.is_function())
                 .unwrap_or_default();
             if !expects_func && arg.kind.is_func() {
                 return Ok(Err(arg));
