@@ -169,7 +169,7 @@ impl Resolver<'_> {
 
         // A temporary hack for allowing calling window functions from within
         // aggregate and derive.
-        if expected.kind.is_array() && !found.is_function() {
+        if expected.kind.is_array() && !found.kind.is_function() {
             return Ok(());
         }
 
@@ -543,7 +543,7 @@ where
     F: Fn() -> Option<String>,
 {
     fn display_ty(ty: &Ty) -> String {
-        if ty.name.is_none() && ty.is_tuple() {
+        if ty.name.is_none() && ty.kind.is_tuple() {
             "a tuple".to_string()
         } else {
             format!("type `{}`", write_ty(ty))
@@ -562,7 +562,7 @@ where
         found: display_ty(found_ty),
     });
 
-    if found_ty.is_function() && !expected.is_function() {
+    if found_ty.kind.is_function() && !expected.kind.is_function() {
         let found = found_ty.kind.as_function().unwrap();
         let func_name = if let Some(func) = found {
             func.name_hint.as_ref()
@@ -576,7 +576,7 @@ where
         e = e.push_hint(format!("Have you forgotten an argument {to_what}?"));
     }
 
-    if is_join && found_ty.is_tuple() && !expected.is_tuple() {
+    if is_join && found_ty.kind.is_tuple() && !expected.kind.is_tuple() {
         e = e.push_hint("Try using `(...)` instead of `{...}`");
     }
 

@@ -453,7 +453,7 @@ impl Resolver<'_> {
 
     /// Wraps non-tuple Exprs into a singleton Tuple.
     pub(super) fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
-        let is_tuple_ty = expr.ty.as_ref().unwrap().is_tuple() && !(expr.kind.is_all());
+        let is_tuple_ty = expr.ty.as_ref().unwrap().kind.is_tuple() && !expr.kind.is_all();
         Ok(if is_tuple_ty {
             // a helpful check for a common anti-pattern
             if let Some(alias) = expr.alias {
@@ -872,7 +872,7 @@ impl Lineage {
         }
 
         // special case: include a tuple
-        if expr.ty.as_ref().map_or(false, |x| x.is_tuple()) && expr.kind.is_ident() {
+        if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && expr.kind.is_ident() {
             // this ident is a tuple, which means it much point to an input
             let input_id = expr.target_id.unwrap();
 

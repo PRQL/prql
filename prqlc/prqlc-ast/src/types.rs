@@ -128,14 +128,6 @@ impl Ty {
             _ => false,
         }
     }
-
-    pub fn is_function(&self) -> bool {
-        matches!(self.kind, TyKind::Function(_))
-    }
-
-    pub fn is_tuple(&self) -> bool {
-        matches!(self.kind, TyKind::Tuple(_))
-    }
 }
 
 impl TupleField {

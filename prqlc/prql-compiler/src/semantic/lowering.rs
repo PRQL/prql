@@ -642,7 +642,7 @@ impl Lowerer {
 
     fn declare_as_columns(&mut self, exprs: pl::Expr, is_aggregation: bool) -> Result<Vec<CId>> {
         // special case: reference to a tuple that is a relational input
-        if exprs.ty.as_ref().map_or(false, |x| x.is_tuple()) && exprs.kind.is_ident() {
+        if exprs.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && exprs.kind.is_ident() {
             // return all contained columns
             let input_id = exprs.target_id.as_ref().unwrap();
             let id_mapping = self.node_mapping.get(input_id).unwrap();
@@ -701,7 +701,7 @@ impl Lowerer {
 
             let id = e.target_id.unwrap();
             match e.kind {
-                pl::ExprKind::Ident(_) if e.ty.as_ref().map_or(false, |x| x.is_tuple()) => {
+                pl::ExprKind::Ident(_) if e.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) => {
                     res.extend(self.find_selected_all(e, None).with_span(except.span)?);
                 }
                 pl::ExprKind::Ident(ident) => {
@@ -796,7 +796,7 @@ impl Lowerer {
             pl::ExprKind::Ident(ident) => {
                 log::debug!("lowering ident {ident} (target {:?})", expr.target_id);
 
-                if expr.ty.as_ref().map_or(false, |x| x.is_tuple()) {
+                if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) {
                     // special case: tuple ref
                     let expr = pl::Expr {
                         kind: pl::ExprKind::Ident(ident),
