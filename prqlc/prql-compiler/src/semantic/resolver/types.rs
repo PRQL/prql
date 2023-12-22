@@ -247,15 +247,75 @@ pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
 fn normalize_type(ty: Ty) -> Ty {
     match ty.kind {
         TyKind::Union(variants) => {
-            let kind = TyKind::Union(
-                // A | () = A
-                variants
-                    .into_iter()
-                    .map(|(name, t)| (name, normalize_type(t)))
-                    .filter(|(_, t)| t.is_never())
-                    .collect(),
-            );
-            Ty { kind, ..ty }
+            // A | () = A
+            // A | A | B = A | B
+            let mut res: Vec<(_, Ty)> = Vec::with_capacity(variants.len());
+
+            let mut array_variants = Vec::new();
+            let mut tuple_variants = Vec::new();
+
+            for (variant_name, variant_ty) in variants {
+                let variant_ty = normalize_type(variant_ty);
+
+                // skip never
+                if variant_ty.is_never() {
+                    continue;
+                }
+
+                // handle array variants separately
+                if let TyKind::Array(item) = variant_ty.kind {
+                    array_variants.push((None, *item));
+                    continue;
+                }
+                // handle tuple variants separately
+                if let TyKind::Tuple(fields) = variant_ty.kind {
+                    tuple_variants.push(fields);
+                    continue;
+                }
+
+                // skip duplicates
+                for (_, ty) in &res {
+                    let intersection = type_intersection(ty.clone(), variant_ty.clone());
+                    if &intersection == ty {
+                        // this type is already fully included by another type
+                        continue;
+                    }
+                }
+
+                res.push((variant_name, variant_ty));
+            }
+
+            match array_variants.len() {
+                2.. => {
+                    let item_ty = Ty::new(TyKind::Union(array_variants));
+                    res.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
+                }
+                1 => {
+                    let item_ty = array_variants.into_iter().next().unwrap().1;
+                    res.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
+                }
+                _ => {}
+            }
+
+            match tuple_variants.len() {
+                2.. => {
+                    res.push((None, union_of_tuples(tuple_variants)));
+                }
+                1 => {
+                    let fields = tuple_variants.into_iter().next().unwrap();
+                    res.push((None, Ty::new(TyKind::Tuple(fields))));
+                }
+                _ => {}
+            }
+
+            if res.len() == 1 {
+                res.into_iter().next().unwrap().1
+            } else {
+                Ty {
+                    kind: TyKind::Union(res),
+                    ..ty
+                }
+            }
         }
 
         TyKind::Difference { base, exclude } => {
@@ -452,6 +512,41 @@ fn normalize_type(ty: Ty) -> Ty {
 
         kind => Ty { kind, ..ty },
     }
+}
+
+fn union_of_tuples(tuple_variants: Vec<Vec<TupleField>>) -> Ty {
+    let mut fields = Vec::<TupleField>::new();
+    let mut has_wildcard = false;
+
+    for tuple_variant in tuple_variants {
+        for field in tuple_variant {
+            match field {
+                TupleField::Single(Some(name), ty) => {
+                    // find by name
+                    let existing = fields.iter_mut().find_map(|f| match f {
+                        TupleField::Single(n, t) if n.as_ref() == Some(&name) => Some(t),
+                        _ => None,
+                    });
+                    if let Some(existing) = existing {
+                        // union with the existing
+                        *existing = maybe_union(existing.take(), ty);
+                    } else {
+                        // push
+                        fields.push(TupleField::Single(Some(name), ty));
+                    }
+                }
+                TupleField::Single(None, ty) => {
+                    // push
+                    fields.push(TupleField::Single(None, ty));
+                }
+                TupleField::Wildcard(_) => has_wildcard = true,
+            }
+        }
+    }
+    if has_wildcard {
+        fields.push(TupleField::Wildcard(None));
+    }
+    Ty::new(TyKind::Tuple(fields))
 }
 
 fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {
@@ -851,4 +946,11 @@ fn union_and_flatten(a: Ty, b: Ty) -> Ty {
         variants.push((None, b));
     }
     Ty::new(TyKind::Union(variants))
+}
+
+fn maybe_union(a: Option<Ty>, b: Option<Ty>) -> Option<Ty> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(Ty::new(TyKind::Union(vec![(None, a), (None, b)]))),
+        (None, x) | (x, None) => x,
+    }
 }
