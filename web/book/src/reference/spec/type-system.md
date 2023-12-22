@@ -223,6 +223,62 @@ of entries, which can be of different types. Thus, it is a tuple.
 select [1.4, false, "foo"]
 ```
 
+### Normalization
+
+Say we have a type expression E, composed of possibly many operators. To
+minimize this expression, we employ process of normalization, which is meant to
+take advantage of the following equalities:
+
+```
+A & A = A
+
+A & B = (), where:
+ - A and B are primitive, singleton, tuple or array
+ - and A != B
+
+A - (A | B) = ()
+
+A | () = A
+```
+
+We can see that intersection and difference are the main simplifying operations,
+which is why the normalization 'sinks them into the expression', to maximize the
+number of their interactions.
+
+Rules for normalization during intersection:
+
+```
+(A | B)      & C            = (A & C) | (B & C)
+A            & (B | C)      = (A & B) | (A & C)
+
+(A - B)      & C            = (A & C) - B
+A            & (B - C)      = (A & B) - C
+
+{A, B}       & {C, D}       = {A & C, B & D}
+[A]          & [B]          = [A & B]
+
+A            & A            = A
+A            & B            = never
+```
+
+Rules for normalization during difference:
+
+```
+(A | B)      - C            = (A - C) | (B - C)
+(A - B)      - C            = A - (B | C)
+
+{A, B}       - {C, D}       = {A - C, B - D}
+{A, B}       - C            = {A, B}
+A            - {B, C}       = A
+
+[A]          - [B]          = [A - B]
+[A]          - B            = [A]
+A            - [B]          = A
+
+A            - (B - C)      = A & not (B & not C) = A & (not B | C) = (A & not B) | (A & C) = (A - B) | (A & C)
+A            - (A | B)      = ()
+```
+
 ## Physical layout
 
 _Logical type_ is user-facing the notion of a type that is the building block of

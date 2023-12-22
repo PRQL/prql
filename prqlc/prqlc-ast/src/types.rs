@@ -42,6 +42,9 @@ pub enum TyKind {
     /// Type of every possible value. Super type of all other types.
     /// The breaker of chains. Mother of types.
     Any,
+
+    /// Type that is the largest subtype of `base` while not a subtype of `exclude`.
+    Difference { base: Box<Ty>, exclude: Box<Ty> },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -99,6 +102,10 @@ impl Ty {
 
     pub fn never() -> Self {
         Ty::new(TyKind::Union(Vec::new()))
+    }
+
+    pub fn is_never(&self) -> bool {
+        self.kind.as_union().map_or(false, |x| x.is_empty())
     }
 
     pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
