@@ -16,7 +16,7 @@ repos:
         # https://github.com/crate-ci/typos/issues/347
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.7
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         additional_dependencies:
@@ -28,6 +28,11 @@ repos:
     rev: v0.1.8
     hooks:
       - id: ruff
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v17.0.6
+    hooks:
+      - id: clang-format
+        types: [c, c++]
   - repo: https://github.com/psf/black
     rev: 23.12.0
     hooks:
@@ -54,13 +59,13 @@ repos:
     hooks:
       - id: markdown-link-check
         name: markdown-link-check-local
-        files: \.md$
+        types: [markdown]
         args: ["--config=.config/.markdown-link-check-local.json"]
         # To run across everything (see nightly.yaml for more details)
       - id: markdown-link-check
         name: markdown-link-check-all
         stages: [manual]
-        files: \.md$
+        types: [markdown]
         args: ["--config=.config/.markdown-link-check-all.json"]
   - repo: local
     hooks:
