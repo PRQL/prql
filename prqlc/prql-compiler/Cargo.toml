@@ -22,7 +22,7 @@ test-dbs-external = ["duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "ru
 prqlc-ast = {path = "../prqlc-ast", version = "0.11.1" }
 prqlc-parser = {path = "../prqlc-parser", version = "0.11.1" }
 
-anstream = {version = "0.6.5", features = ["auto"]}
+anstream = {version = "0.3.2", features = ["auto"]}
 anyhow = {version = "1.0.75", features = ["backtrace"]}
 ariadne = "0.3.0"
 chrono = "0.4"
