@@ -5,7 +5,7 @@ name = "prqlc"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version.workspace = true
+rust-version = "1.70.0"
 version.workspace = true
 
 # Required for `cargo-msrv`, which doesn't yet support workspaces
