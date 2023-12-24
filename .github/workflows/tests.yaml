@@ -419,7 +419,7 @@ jobs:
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
       - name: Upload code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: cobertura.xml

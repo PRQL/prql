@@ -93,7 +93,7 @@ jobs:
       contents: write
     steps:
       - name: Download a Build Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: prqlc-${{ matrix.target }}
       - name: Copy files into .deb package
@@ -126,9 +126,9 @@ jobs:
 
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: artifact-deb
+          name: prqlc-deb-${{ matrix.target }}
           path: |
             ./*.deb
       - name: Release
@@ -150,7 +150,7 @@ jobs:
       contents: write
     steps:
       - name: Download a Build Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: prqlc-${{ matrix.target }}
       - name: Copy files into .rpm package
@@ -185,9 +185,9 @@ jobs:
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
           license: Apache-2.0
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: artifact-rpm
+          name: prqlc-rpm-${{ matrix.target }}
           path: |
             ./*.rpm
             !./*-debuginfo-*.rpm
@@ -244,9 +244,10 @@ jobs:
     needs: [build-python-wheels]
     if: github.event_name == 'release'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          name: wheels-*
+          merge-multiple: true
       - name: Publish to PyPI
         uses: messense/maturin-action@v1
         env:
