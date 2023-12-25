@@ -10,6 +10,9 @@ This release has 16 commits from 6 contributors. Selected changes:
 
 - Infer the type of array literals to be the union of types of its items.
   (@aljazerzen, #3989)
+- `prql` module is added and the `prql_version` function is renamed to the
+  `prql.version` function. The old `prql_version` function is deprecated and
+  will be removed in the future release. (@eitsupi, #4006)
 
 **Fixes**:
 
