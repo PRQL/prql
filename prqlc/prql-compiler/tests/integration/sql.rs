@@ -4085,7 +4085,7 @@ fn test_header_target_error() {
 fn prql_version() {
     assert_display_snapshot!(compile(r#"
     from x
-    derive y = std.prql_version
+    derive y = std.prql.version
     "#).unwrap(),@r###"
     SELECT
       *,
@@ -4098,7 +4098,7 @@ fn prql_version() {
 #[test]
 
 fn shortest_prql_version() {
-    assert_display_snapshot!(compile(r#"[{version = prql_version}]"#).unwrap(),@r###"
+    assert_display_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
     WITH table_0 AS (
       SELECT
         '0.11.1' AS version

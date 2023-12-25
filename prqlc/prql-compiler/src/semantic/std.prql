@@ -240,5 +240,9 @@ let read_csv = source<text> -> <relation> internal std.read_csv
 
 
 ## PRQL compiler functions
+module `prql` {
+  let version = -> <text> internal prql_version
+}
 
+# Deprecated, will be removed in 0.12.0
 let prql_version = -> <text> internal prql_version
