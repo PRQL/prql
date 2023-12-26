@@ -1,13 +1,18 @@
 # PRQL Changelog
 
-## 0.11.1 — [unreleased]
+## 0.11.1 — 2023-12-26
 
-**Language**:
+0.11.1 fixes a couple of small bugs; it comes a few days after 0.11.
+
+This release has 16 commits from 6 contributors. Selected changes:
 
 **Features**:
 
 - Infer the type of array literals to be the union of types of its items.
   (@aljazerzen, #3989)
+- `prql` module is added and the `prql_version` function is renamed to the
+  `prql.version` function. The old `prql_version` function is deprecated and
+  will be removed in the future release. (@eitsupi, #4006)
 
 **Fixes**:
 
@@ -15,16 +20,6 @@
   targets `clickhouse`, `duckdb` and `postgres`. (@PrettyWood, #3988)
 - Fix `take` n rows for `mssql` dialect by switching from TOP to FETCH
   (@PrettyWood, #3994)
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
-
-**New Contributors**:
 
 ## 0.11.0 — 2023-12-19
 
