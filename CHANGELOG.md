@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.11.1 — 2023-12-23
+## 0.11.1 — 2023-12-26
 
 0.11.1 fixes a couple of small bugs; it comes a few days after 0.11.
 
