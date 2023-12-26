@@ -457,9 +457,10 @@ Currently we release in a semi-automated way:
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
        maintainers have access to this page.}}, copy the changelog entry into the
    release description{{footnote: Unfortunately GitHub's markdown parser
-        interprets linebreaks as newlines. I haven't found a better way of editing
-        the markdown to look reasonable than manually editing the text.}}, enter
-   the tag to be created, and hit "Publish".
+        interprets linebreaks as newlines. I haven't found a better way of
+        editing the markdown to look reasonable than manually editing the text
+        or asking LLM to help.}}, enter the tag to be created, and hit
+   "Publish".
 
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
