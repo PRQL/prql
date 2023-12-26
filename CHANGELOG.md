@@ -1,5 +1,23 @@
 # PRQL Changelog
 
+## 0.11.2 — [unreleased]
+
+**Language**:
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.11.1 — 2023-12-26
 
 0.11.1 fixes a couple of small bugs; it comes a few days after 0.11.
