@@ -377,6 +377,20 @@ impl<T: Sized + Serialize> SourceTree<T> {
         self.sources.insert(path.clone(), content);
         self.source_ids.insert(last_id + 1, path);
     }
+
+    pub fn map<F, U: Sized + Serialize>(self, f: F) -> SourceTree<U>
+    where
+        F: Fn(T) -> U,
+    {
+        SourceTree {
+            sources: self
+                .sources
+                .into_iter()
+                .map(|(path, val)| (path, f(val)))
+                .collect(),
+            source_ids: self.source_ids,
+        }
+    }
 }
 
 impl<S: ToString> From<S> for SourceTree {

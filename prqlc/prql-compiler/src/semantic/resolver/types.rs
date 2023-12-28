@@ -234,7 +234,7 @@ pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
 /// float unions operators up, simplify type expression.
 ///
 /// For more info, read web/book/src/reference/spec/type-system.md
-fn normalize_type(ty: Ty) -> Ty {
+pub(crate) fn normalize_type(ty: Ty) -> Ty {
     match ty.kind {
         TyKind::Union(variants) => {
             // A | () = A

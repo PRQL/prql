@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
-
 use crate::WithErrorInfo;
 use prqlc_ast::{TupleField, Ty, TyKind};
 
@@ -39,7 +38,8 @@ impl super::Resolver<'_> {
                         Ty::new(Literal::Null)
                     };
 
-                    let mut ty = fold_type_opt(self, Some(value))?.unwrap();
+                    let ty = fold_type_opt(self, Some(value))?.unwrap();
+                    let mut ty = super::types::normalize_type(ty);
                     ty.name = Some(ident.name.clone());
 
                     let decl = DeclKind::Ty(ty);
