@@ -17,7 +17,7 @@ test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 ansi-to-html = "0.2.1"
-anyhow = "1.0.75"
+anyhow = "1.0.76"
 itertools = "0.12.0"
 mdbook = {version = "0.4.36", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"

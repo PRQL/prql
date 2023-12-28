@@ -96,12 +96,13 @@ This has two roles, one of which is implemented:
   feature for PRQL 1.0.
 
 The version of the compiler currently in use can be called using the special
-function `std.prql_version` in PRQL.
+function `std.prql.version` in PRQL.
 
 ```prql
-[{version = prql_version}]
+[{version = prql.version}]
 ```
 
 ```admonish note
-This function `std.prql_version` may be replaced in the future by something like `prql.version`.
+This function was renamed from `std.prql_version` to `prql.version` in PRQL 0.11.1.
+`std.prql_version` will be removed in PRQL 0.12.0.
 ```

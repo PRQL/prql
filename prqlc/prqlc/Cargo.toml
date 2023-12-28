@@ -16,7 +16,7 @@ name = "prqlc"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anstream = {version = "0.3.2", features = ["auto"]}
-anyhow = {version = "1.0.75"}
+anyhow = {version = "1.0.76"}
 ariadne = "0.3.0"
 # Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
 atty = "0.2.14"
@@ -33,7 +33,7 @@ prqlc-ast = {path = '../prqlc-ast', version = "0.11.1" }
 regex = {version = "1.10.2", features = ["std", "unicode"]}
 serde = "1"
 serde_json = "1.0.108"
-serde_yaml = "0.9.27"
+serde_yaml = "0.9.29"
 walkdir = "2.4.0"
 
 # Not direct dependencies, but pinning because of bugs in previous versions. Can

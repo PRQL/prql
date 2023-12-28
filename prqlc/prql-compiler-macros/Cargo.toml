@@ -15,7 +15,7 @@ test = false
 
 [dependencies]
 prql-compiler = {path = "../prql-compiler", default-features = false, version = "0.11.1" }
-syn = "2.0.41"
+syn = "2.0.43"
 
 [package.metadata.release]
 tag-name = "{{version}}"
