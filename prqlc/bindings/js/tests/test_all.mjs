@@ -1,6 +1,7 @@
-const assert = require("assert");
-const expect = require("chai").expect;
-const prql = require("../dist/node");
+import assert from "assert";
+import { expect } from "chai";
+import prql from "../dist/node/prql_js.js";
+
 const employee_prql = `from employees
 join salaries (==emp_no)
 group {employees.emp_no, employees.gender} (
