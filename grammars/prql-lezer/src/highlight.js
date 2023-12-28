@@ -2,7 +2,7 @@ import { styleTags, tags as t } from "@lezer/highlight";
 
 export const prqlHighlight = styleTags({
   "CallExpression/Identifier": t.function(t.variableName),
-  "module": t.moduleKeyword,
+  module: t.moduleKeyword,
   let: t.definitionKeyword,
   case: t.controlKeyword,
   in: t.operatorKeyword,
