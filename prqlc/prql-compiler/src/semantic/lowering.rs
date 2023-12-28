@@ -970,7 +970,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
     fn bound_display(bound: Option<Option<&i64>>) -> String {
         bound
             .map(|x| x.map(|l| l.to_string()).unwrap_or_else(|| "?".to_string()))
-            .unwrap_or_else(|| "".to_string())
+            .unwrap_or_default()
     }
 
     let start = bound_as_int(&range.start);
