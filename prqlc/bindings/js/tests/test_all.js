@@ -1,6 +1,7 @@
-const assert = require("assert");
-const expect = require("chai").expect;
-const prql = require("../dist/node");
+import assert from "assert";
+import { expect } from "chai";
+import prql from "../dist/node";
+
 const employee_prql = `from employees
 join salaries (==emp_no)
 group {employees.emp_no, employees.gender} (
@@ -29,13 +30,13 @@ describe("prql-js", () => {
       const sql = prql.compile(employee_prql);
       assert(
         sql.trim().toLowerCase().startsWith("with") ||
-          sql.trim().toLowerCase().startsWith("select"),
+          sql.trim().toLowerCase().startsWith("select")
       );
     });
 
     it("should throw an error on invalid prql", () => {
       expect(() =>
-        prql.compile("Mississippi has four Ss and four Is."),
+        prql.compile("Mississippi has four Ss and four Is.")
       ).to.throw("Error");
     });
 
@@ -48,7 +49,7 @@ describe("prql-js", () => {
       const res = prql.compile("from a | take 10", opts);
       assert.equal(
         res,
-        "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+        "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY"
       );
     });
 
@@ -60,12 +61,12 @@ describe("prql-js", () => {
 
       const res = prql.compile(
         "prql target:sql.sqlite\nfrom a | take 10",
-        opts,
+        opts
       );
       assert(
         res.includes(
-          "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
-        ),
+          "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY"
+        )
       );
       assert(res.includes("target:sql.mssql"));
     });
