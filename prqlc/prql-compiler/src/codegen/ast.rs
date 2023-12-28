@@ -346,9 +346,9 @@ impl WriteSource for Stmt {
             StmtKind::TypeDef(type_def) => {
                 r += opt.consume(&format!("type {}", type_def.name))?;
 
-                if let Some(value) = &type_def.value {
+                if let Some(ty) = &type_def.value {
                     r += opt.consume(" = ")?;
-                    r += &value.write(opt)?;
+                    r += &ty.kind.write(opt)?;
                 }
                 r += "\n";
             }

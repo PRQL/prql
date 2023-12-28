@@ -4,4 +4,5 @@ mod dbs;
 mod error_messages;
 mod parser;
 mod queries;
+mod resolving;
 mod sql;
