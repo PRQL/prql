@@ -252,7 +252,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
 
                 // A | A | B = A | B
                 // skip duplicates
-                let already_included = res.iter().any(|(_, r)| is_super_type_of(&r, &variant_ty));
+                let already_included = res.iter().any(|(_, r)| is_super_type_of(r, &variant_ty));
                 if already_included {
                     continue;
                 }
