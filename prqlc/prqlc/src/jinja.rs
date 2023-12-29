@@ -143,7 +143,7 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
 
 #[cfg(test)]
 mod test {
-    use super::Span;
+    use super::{post_process, pre_process, Span};
 
     #[test]
     fn test_find_span() {
@@ -173,5 +173,45 @@ mod test {
             r#"line 2 col 21
         some text line 3 col 31"#
         );
+    }
+
+    #[test]
+    fn test_pre_process() {
+        let src = r###"from in_process = {{ source('salesforce', 'in_process') }}"###;
+        let (pre_proc_text, ctx) = pre_process(src).unwrap();
+        insta::assert_yaml_snapshot!(pre_proc_text, @r###"
+        ---
+        from in_process = _jinja_0
+        "###);
+        insta::assert_yaml_snapshot!(ctx.anchor_map["_jinja_0"], @r###"
+        ---
+        " {{ source('salesforce', 'in_process') }}"
+        "###);
+    }
+
+    #[test]
+    fn test_post_process() {
+        let src = r###"from in_process = {{ source('salesforce', 'in_process') }}"###;
+        let (pre_proc_text, ctx) = pre_process(src).unwrap();
+        let post_proc_text = post_process(&pre_proc_text, ctx);
+        insta::assert_yaml_snapshot!(post_proc_text, @r###"
+        ---
+        "from in_process =  {{ source('salesforce', 'in_process') }}"
+        "###);
+    }
+
+    #[test]
+    fn test_config_interpolation() {
+        let src = r###"{{ config(materialized = "table") }}\nfrom in_process = {{ source('salesforce', 'in_process') }}"###;
+        let (pre_proc_text, ctx) = pre_process(src).unwrap();
+        insta::assert_yaml_snapshot!(ctx.header, @r###"
+        ---
+        - "{{ config(materialized = \"table\") }}"
+        "###);
+        let post_proc_text = post_process(&pre_proc_text, ctx);
+        insta::assert_yaml_snapshot!(post_proc_text, @r###"
+        ---
+        "{{ config(materialized = \"table\") }}\n\\nfrom in_process =  {{ source('salesforce', 'in_process') }}"
+        "###);
     }
 }
