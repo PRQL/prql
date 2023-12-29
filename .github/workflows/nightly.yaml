@@ -62,10 +62,15 @@ jobs:
 
   update-rust-toolchain:
     runs-on: ubuntu-latest
-    # See notes in `cargo-audit` for why we disable on forks and dependabot.
-    if:
-      ${{ github.event.pull_request.head.repo.fork == false && github.actor !=
-      'dependabot[bot]' }}
+    # Currently turned off, as I can't get the token to work correctly in this
+    # workflow, despite it working well in other workflows... Contributions
+    # welcome
+    # https://github.com/PRQL/prql/actions/runs/7351852156/job/20017282449#step:3:14
+    if: false
+    # # See notes in `cargo-audit` for why we disable on forks and dependabot.
+    # if:
+    #   ${{ github.event.pull_request.head.repo.fork == false && github.actor !=
+    #   'dependabot[bot]' }}
 
     # Note that this doesn't change the minimum supported version, only the
     # default to run on. The minimum is defined by Cargo.toml's metadata.msrv
