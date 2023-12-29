@@ -391,10 +391,6 @@ jobs:
   measure-code-cov:
     runs-on: ubuntu-latest
     needs: rules
-    # TODO: Would be great to have this running on every PR, but
-    # waiting on https://github.com/PRQL/prql/issues/2870. We could enable it
-    # but not block merging on it?
-    if: needs.rules.outputs.main == 'true'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
