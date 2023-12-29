@@ -5,8 +5,9 @@ extensions:
 filenames: []
 metadata:
   author: vanillajonathan
-  description: PRQL is a modern language for transforming data — a simple,
-    powerful, pipelined SQL replacement
+  description:
+    PRQL is a modern language for transforming data — a simple, powerful,
+    pipelined SQL replacement
   distributionURL: https://coteditor.com
   lastModified: 2023-12-29
   license: Same as CotEditor
