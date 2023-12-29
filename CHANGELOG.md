@@ -14,6 +14,9 @@
 
 **Integrations**:
 
+- Add syntax highlight file for CotEditor.
+  (@vanillajonathan)
+
 **Internal changes**:
 
 **New Contributors**:
