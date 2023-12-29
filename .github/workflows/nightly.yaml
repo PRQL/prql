@@ -20,8 +20,11 @@ jobs:
     # We also disable on dependabot, since dependabot doesn't have permissions
     # even when running on the main repo. Would be better if we could only run
     # when we know we have permissions. But this will do...
+    #
+    # Note also that we seem to need `== false` rather than just a `!` prefix
+    # once we combine with another expression (but not confident)
     if:
-      ${{ !github.event.pull_request.head.repo.fork && !github.actor ==
+      ${{ github.event.pull_request.head.repo.fork == false && github.actor !=
       'dependabot[bot]' }}
     permissions:
       actions: read
@@ -61,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     # See notes in `cargo-audit` for why we disable on forks and dependabot.
     if:
-      ${{ !github.event.pull_request.head.repo.fork && !github.actor ==
+      ${{ github.event.pull_request.head.repo.fork == false && github.actor !=
       'dependabot[bot]' }}
 
     # Note that this doesn't change the minimum supported version, only the
