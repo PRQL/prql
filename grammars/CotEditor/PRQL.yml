@@ -1,109 +1,111 @@
-kind: "code"
+---
+kind: code
 extensions:
-- keyString: "prql"
+  - keyString: prql
 filenames: []
 metadata:
-  author: "vanillajonathan"
-  description: "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement"
-  distributionURL: "https://coteditor.com"
-  lastModified: "2023-12-29"
-  license: "Same as CotEditor"
-  version: "0.0.1"
+  author: vanillajonathan
+  description: PRQL is a modern language for transforming data — a simple,
+    powerful, pipelined SQL replacement
+  distributionURL: https://coteditor.com
+  lastModified: 2023-12-29
+  license: Same as CotEditor
+  version: 0.0.1
 outlineMenu: []
 attributes:
-- beginString: "@{\w+(=\w+)?}"
-  regularExpression: true
+  - beginString: "@{\\w+(=\\w+)?}"
+    regularExpression: true
 keywords:
-- beginString: "aggregate"
-- beginString: "derive"
-- beginString: "filter"
-- beginString: "from"
-- beginString: "group"
-- beginString: "join"
-- beginString: "select"
-- beginString: "sort"
-- beginString: "take"
-- beginString: "window"
-- beginString: "case"
-- beginString: "let"
-- beginString: "module"
-- beginString: "prql"
+  - beginString: aggregate
+  - beginString: derive
+  - beginString: filter
+  - beginString: from
+  - beginString: group
+  - beginString: join
+  - beginString: select
+  - beginString: sort
+  - beginString: take
+  - beginString: window
+  - beginString: case
+  - beginString: let
+  - beginString: module
+  - beginString: prql
 commands:
-- beginString: "abs"
-- beginString: "any"
-- beginString: "average"
-- beginString: "concat_array"
-- beginString: "count"
-- beginString: "every"
-- beginString: "min"
-- beginString: "max"
-- beginString: "stddev"
-- beginString: "sum"
-- beginString: "read_csv"
-- beginString: "read_parquet"
-- beginString: "all"
-- beginString: "map"
-- beginString: "zip"
-- beginString: "from_text"
-- beginString: "lower"
-- beginString: "upper"
-- beginString: "lead"
-- beginString: "lag"
-- beginString: "first"
-- beginString: "last"
-- beginString: "rank"
-- beginString: "rank_dense"
-- beginString: "row_number"
+  - beginString: abs
+  - beginString: any
+  - beginString: average
+  - beginString: concat_array
+  - beginString: count
+  - beginString: every
+  - beginString: min
+  - beginString: max
+  - beginString: stddev
+  - beginString: sum
+  - beginString: read_csv
+  - beginString: read_parquet
+  - beginString: all
+  - beginString: map
+  - beginString: zip
+  - beginString: from_text
+  - beginString: lower
+  - beginString: upper
+  - beginString: lead
+  - beginString: lag
+  - beginString: first
+  - beginString: last
+  - beginString: rank
+  - beginString: rank_dense
+  - beginString: row_number
 types:
-- beginString: "bool"
-- beginString: "float"
-- beginString: "int"
-- beginString: "int8"
-- beginString: "int16"
-- beginString: "int32"
-- beginString: "int64"
-- beginString: "int128"
-- beginString: "time"
-- beginString: "timestamp"
-- beginString: "text"
-- beginString: "date"
-- beginString: "math"
+  - beginString: bool
+  - beginString: float
+  - beginString: int
+  - beginString: int8
+  - beginString: int16
+  - beginString: int32
+  - beginString: int64
+  - beginString: int128
+  - beginString: time
+  - beginString: timestamp
+  - beginString: text
+  - beginString: date
+  - beginString: math
 variables: []
 values:
-- beginString: "true"
-- beginString: "false"
-- beginString: "null"
+  - beginString: "true"
+  - beginString: "false"
+  - beginString: "null"
 numbers:
-- beginString: "((?<!\\w)|[-+])(?:\\.[0-9][0-9_]*|[0-9][0-9_]*\\.|[0-9]+\\.[0-9][0-9_]*|[0-9][0-9_]*)(e[+-]?[0-9][0-9_]*)?[jl]?"
-  ignoreCase: true
-  regularExpression: true
-  description: "decimal"
-- beginString: "\\b0b[01][01_]*l?"
-  ignoreCase: true
-  regularExpression: true
-  description: "binary"
-- beginString: "\\b0o[0-7][0-7_]*l?"
-  ignoreCase: true
-  regularExpression: true
-  description: "octal"
-- beginString: "\\b0x[0-9a-f][0-9a-f_]*l?"
-  ignoreCase: true
-  regularExpression: true
-  description: "hexadecimal"
+  - beginString: ((?<!\w)|[-+])(?:\.[0-9][0-9_]*|[0-9][0-9_]*\.|[0-9]+\.[0-9][0-9_]*|[0-9][0-9_]*)(e[+-]?[0-9][0-9_]*)?[jl]?
+    ignoreCase: true
+    regularExpression: true
+    description: decimal
+  - beginString: \b0b[01][01_]*l?
+    ignoreCase: true
+    regularExpression: true
+    description: binary
+  - beginString: \b0o[0-7][0-7_]*l?
+    ignoreCase: true
+    regularExpression: true
+    description: octal
+  - beginString: \b0x[0-9a-f][0-9a-f_]*l?
+    ignoreCase: true
+    regularExpression: true
+    description: hexadecimal
 strings:
-- beginString: "\""
-  endString: "\""
-- beginString: "\"\"\""
-  endString: "\"\"\""
-- beginString: "'"
-  endString: "'"
-- beginString: "'''"
-  endString: "'''"
-- beginString: "\\b(r|f|s|)['\"]"
-  ignoreCase: true
-  regularExpression: true
-- beginString: "`"
-  endString: "`"
+  - beginString: '"'
+    endString: '"'
+  - beginString: '"""'
+    endString: '"""'
+  - beginString: "'"
+    endString: "'"
+  - beginString: "'''"
+    endString: "'''"
+  - beginString: \b(r|f|s|)['"]
+    ignoreCase: true
+    regularExpression: true
+  - beginString: "`"
+    endString: "`"
 characters: []
 comments: []
 commentDelimiters:
