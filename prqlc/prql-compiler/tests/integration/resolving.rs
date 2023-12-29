@@ -37,7 +37,6 @@ fn resolve_basic() {
 }
 
 #[test]
-#[ignore]
 fn resolve_types_01() {
     assert_snapshot!(resolve(r#"
     type A = int || int
@@ -57,7 +56,6 @@ fn resolve_types_02() {
 }
 
 #[test]
-#[ignore]
 fn resolve_types_03() {
     assert_snapshot!(resolve(r#"
     type A = {a = int, bool} || {b = text, float}

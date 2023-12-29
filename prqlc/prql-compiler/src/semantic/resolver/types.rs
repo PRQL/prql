@@ -237,65 +237,27 @@ pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
 pub(crate) fn normalize_type(ty: Ty) -> Ty {
     match ty.kind {
         TyKind::Union(variants) => {
-            // A | () = A
-            // A | A | B = A | B
-            let mut res: Vec<(_, Ty)> = Vec::with_capacity(variants.len());
+            let variants = sink_union_into_array_and_tuple(variants);
 
-            let mut array_variants = Vec::new();
-            let mut tuple_variants = Vec::new();
+            let mut res: Vec<(_, Ty)> = Vec::with_capacity(variants.len());
 
             for (variant_name, variant_ty) in variants {
                 let variant_ty = normalize_type(variant_ty);
 
+                // A | () = A
                 // skip never
                 if variant_ty.is_never() {
                     continue;
                 }
 
-                // handle array variants separately
-                if let TyKind::Array(item) = variant_ty.kind {
-                    array_variants.push((None, *item));
-                    continue;
-                }
-                // handle tuple variants separately
-                if let TyKind::Tuple(fields) = variant_ty.kind {
-                    tuple_variants.push(fields);
-                    continue;
-                }
-
+                // A | A | B = A | B
                 // skip duplicates
-                for (_, ty) in &res {
-                    let intersection = type_intersection(ty.clone(), variant_ty.clone());
-                    if &intersection == ty {
-                        // this type is already fully included by another type
-                        continue;
-                    }
+                let already_included = res.iter().any(|(_, r)| is_super_type_of(r, &variant_ty));
+                if already_included {
+                    continue;
                 }
 
                 res.push((variant_name, variant_ty));
-            }
-
-            match array_variants.len() {
-                2.. => {
-                    let item_ty = Ty::new(TyKind::Union(array_variants));
-                    res.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
-                }
-                1 => {
-                    let item_ty = array_variants.into_iter().next().unwrap().1;
-                    res.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
-                }
-                _ => {}
-            }
-
-            match tuple_variants.len() {
-                2.. => {
-                    res.push((None, union_of_tuples(tuple_variants)));
-                }
-                1 => {
-                    let fields = tuple_variants.into_iter().next().unwrap();
-                    res.push((None, Ty::new(TyKind::Tuple(fields))));
-                }
-                _ => {}
             }
 
             if res.len() == 1 {
@@ -500,8 +462,63 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
             Ty { kind, ..ty }
         }
 
+        TyKind::Array(items_ty) => Ty {
+            kind: TyKind::Array(Box::new(normalize_type(*items_ty))),
+            ..ty
+        },
+
         kind => Ty { kind, ..ty },
     }
+}
+
+/// Sinks union into arrays and tuples.
+/// [A] || [B] -> [A || B]
+/// {a = A, B} || {c = C, D} -> {a = A, c = C, B || D}
+fn sink_union_into_array_and_tuple(
+    variants: Vec<(Option<String>, Ty)>,
+) -> Vec<(Option<String>, Ty)> {
+    let mut remaining = Vec::with_capacity(variants.len());
+
+    let mut array_variants = Vec::new();
+    let mut tuple_variants = Vec::new();
+    for (variant_name, variant_ty) in variants {
+        // handle array variants separately
+        if let TyKind::Array(item) = variant_ty.kind {
+            array_variants.push((None, *item));
+            continue;
+        }
+        // handle tuple variants separately
+        if let TyKind::Tuple(fields) = variant_ty.kind {
+            tuple_variants.push(fields);
+            continue;
+        }
+        remaining.push((variant_name, variant_ty));
+    }
+
+    match array_variants.len() {
+        2.. => {
+            let item_ty = Ty::new(TyKind::Union(array_variants));
+            remaining.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
+        }
+        1 => {
+            let item_ty = array_variants.into_iter().next().unwrap().1;
+            remaining.push((None, Ty::new(TyKind::Array(Box::new(item_ty)))));
+        }
+        _ => {}
+    }
+
+    match tuple_variants.len() {
+        2.. => {
+            remaining.push((None, union_of_tuples(tuple_variants)));
+        }
+        1 => {
+            let fields = tuple_variants.into_iter().next().unwrap();
+            remaining.push((None, Ty::new(TyKind::Tuple(fields))));
+        }
+        _ => {}
+    }
+
+    remaining
 }
 
 fn union_of_tuples(tuple_variants: Vec<Vec<TupleField>>) -> Ty {
