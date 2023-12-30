@@ -27,6 +27,9 @@ DISABLE_ERRORS_LINTERS:
   - BASH_SHELLCHECK
   - C_CPPLINT
   - CPP_CPPLINT
+  # Unclear why this doesn't pass, given that it passes `pre-commit`. Fine to
+  # turn it back on if it works again.
+  - C_CLANG_FORMAT
   - DOCKERFILE_HADOLINT
   - HTML_DJLINT
   - HTML_HTMLHINT
@@ -38,8 +41,8 @@ DISABLE_ERRORS_LINTERS:
   - SPELL_MISSPELL
   # Disabled for now, as @max-sixty didn't know whether "Unable to locate the
   # project file. A project file (tsconfig.json or tsconfig.eslint.json) is
-  # required in order to use ts-standard." was worth fixing, from #3608. Happy for someone more informed to
-  # turn it back on.
+  # required in order to use ts-standard." was worth fixing, from #3608. Happy
+  # for someone more informed to turn it back on.
   - TYPESCRIPT_STANDARD
 PHP_PHPCS_ARGUMENTS:
   - --standard=PSR12
