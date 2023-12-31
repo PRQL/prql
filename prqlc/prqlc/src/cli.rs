@@ -3,8 +3,8 @@ use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
-use clio::has_extension;
 use clio::Output;
+use clio::{has_extension};
 use itertools::Itertools;
 use prqlc_ast::stmt::StmtKind;
 use std::collections::HashMap;
@@ -202,23 +202,27 @@ impl Command {
             Command::Format { input } => {
                 let sources = read_files(input)?;
 
-                if sources.sources.len() != 1 {
-                    let paths = sources
-                        .sources
-                        .keys()
-                        .map(|x| format!("`{}`", x.display()))
-                        .sorted()
-                        .join(", ");
-                    bail!(
-                        "Currently `fmt` only works with a single source, but found multiple sources: {paths:?}"
-                    )
+                for (path, source) in sources.sources {
+                    let ast = prql_to_pl(&source)?;
+
+                    // If we're writing to stdout (though could this be nicer?
+                    // We're discarding many of the benefits of Clio here...)
+                    if path.as_os_str() == "" {
+                        let mut output: Output = Output::new(input.path())?;
+                        output.write_all(&pl_to_prql(ast)?.into_bytes())?;
+                        break;
+                    }
+
+                    let path_str = path.to_str().ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Path contains invalid Unicode",
+                        )
+                    })?;
+                    let mut output: Output = Output::new(path_str)?;
+
+                    output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 }
-                let (_, source) = sources.sources.into_iter().next().unwrap();
-
-                let ast = prql_to_pl(&source)?;
-
-                let mut output: Output = Output::new(input.path())?;
-                output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 Ok(())
             }
             Command::ShellCompletion { shell } => {
