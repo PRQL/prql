@@ -318,6 +318,25 @@ tasks:
     cmds:
       - cargo insta test --accept --lib -- --quiet
 
+  test-rust-coverage:
+    desc: Run tests with instrumentation for code coverage
+    env:
+      # https://github.com/mozilla/grcov#generate-a-coverage-report-from-coverage-artifacts
+      CARGO_INCREMENTAL: 0
+      RUSTFLAGS: "-Cinstrument-coverage"
+      LLVM_PROFILE_FILE: "cargo-test-%p-%m.profraw"
+      # Use a different target dir so we don't poison the cache
+      CARGO_TARGET_DIR: "./target-cov"
+    cmds:
+      # Setup
+      - cargo install grcov
+      - rustup component add llvm-tools-preview
+
+      # Run
+      - cargo test --all-targets --features=test-dbs
+      - grcov . -s . --binary-path ./target-cov/debug/ -t lcov --branch
+        --ignore-not-existing -o lcov.info
+
   build-web:
     desc:
       Build the web products for distribution - Website, Book, and Playground.
