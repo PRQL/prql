@@ -324,6 +324,7 @@ fn format() {
     ----- stderr -----
     "###);
 
+    // FIXME: not good tests, since they don't actually test that the code was formatted...
     // Single file
     assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
     success: true
