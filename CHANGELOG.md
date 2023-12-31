@@ -6,6 +6,8 @@
 
 **Features**:
 
+- `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
+
 **Fixes**:
 
 **Documentation**:
