@@ -313,6 +313,7 @@ fn compile_project() {
 
 #[test]
 fn format() {
+    // stdin
     assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
     success: true
     exit_code: 0
@@ -323,7 +324,17 @@ fn format() {
     ----- stderr -----
     "###);
 
+    // Single file
     assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+
+    ----- stderr -----
+    "###);
+
+    // Project
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().to_str().unwrap()]), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
