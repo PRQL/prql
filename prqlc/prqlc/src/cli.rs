@@ -1,4 +1,5 @@
 use anstream::eprintln;
+use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
@@ -213,12 +214,9 @@ impl Command {
                         break;
                     }
 
-                    let path_str = path.to_str().ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            "Path contains invalid Unicode",
-                        )
-                    })?;
+                    let path_str = path
+                        .to_str()
+                        .ok_or_else(|| anyhow!("Path `{}` is not valid UTF-8", path.display()))?;
                     let mut output: Output = Output::new(path_str)?;
 
                     output.write_all(&pl_to_prql(ast)?.into_bytes())?;
