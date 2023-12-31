@@ -322,6 +322,14 @@ fn format() {
 
     ----- stderr -----
     "###);
+
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+
+    ----- stderr -----
+    "###);
 }
 
 #[test]
