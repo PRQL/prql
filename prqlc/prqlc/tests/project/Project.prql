@@ -1,8 +1,7 @@
-
 let favorite_artists = [
-    {artist_id = 120, last_listen = @2023-05-18},
-    {artist_id = 7, last_listen = @2023-05-16},
+  {artist_id = 120, last_listen = @2023-05-18},
+  {artist_id = 7, last_listen = @2023-05-16},
 ]
 
 favorite_artists
-join artists.input side:left (==artist_id)
+join side:left artists.input (==artist_id)

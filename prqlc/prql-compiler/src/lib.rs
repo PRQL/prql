@@ -338,13 +338,18 @@ pub mod json {
 }
 
 /// All paths are relative to the project root.
+// We use `SourceTree` to represent both a single file (including a "file" piped
+// from stdin), and a collection of files. (Possibly this could be implemented
+// as a Trait with a Struct for each type, which would use structure over values
+// (i.e. `Option<PathBuf>` below signifies whether it's a project or not). But
+// waiting until it's necessary before splitting it out.)
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct SourceTree<T: Sized + Serialize = String> {
     /// Mapping from file ids into their contents.
     pub sources: HashMap<PathBuf, T>,
-
     /// Index of source ids to paths. Used to keep [error::Span] lean.
     source_ids: HashMap<u16, PathBuf>,
+    pub root: Option<PathBuf>,
 }
 
 impl<T: Sized + Serialize> SourceTree<T> {
@@ -352,10 +357,11 @@ impl<T: Sized + Serialize> SourceTree<T> {
         SourceTree {
             sources: [(path.clone(), content)].into(),
             source_ids: [(1, path)].into(),
+            root: None,
         }
     }
 
-    pub fn new<I>(iter: I) -> Self
+    pub fn new<I>(iter: I, root: Option<PathBuf>) -> Self
     where
         I: IntoIterator<Item = (PathBuf, T)>,
     {
@@ -363,6 +369,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
         let mut res = SourceTree {
             sources: HashMap::new(),
             source_ids: HashMap::new(),
+            root,
         };
 
         for (path, content) in iter {
@@ -389,6 +396,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
                 .map(|(path, val)| (path, f(val)))
                 .collect(),
             source_ids: self.source_ids,
+            root: self.root,
         }
     }
 }

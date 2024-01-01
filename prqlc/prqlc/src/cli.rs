@@ -202,6 +202,7 @@ impl Command {
             // always writes to the same output.
             Command::Format { input } => {
                 let sources = read_files(input)?;
+                let root = sources.root;
 
                 for (path, source) in sources.sources {
                     let ast = prql_to_pl(&source)?;
@@ -214,9 +215,12 @@ impl Command {
                         break;
                     }
 
-                    let path_str = path
-                        .to_str()
-                        .ok_or_else(|| anyhow!("Path `{}` is not valid UTF-8", path.display()))?;
+                    let path_buf = root
+                        .as_ref()
+                        .map_or_else(|| path.clone(), |root| root.join(&path));
+                    let path_str = path_buf.to_str().ok_or_else(|| {
+                        anyhow!("Path `{}` is not valid UTF-8", path_buf.display())
+                    })?;
                     let mut output: Output = Output::new(path_str)?;
 
                     output.write_all(&pl_to_prql(ast)?.into_bytes())?;
@@ -501,6 +505,7 @@ fn drop_module_def(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, name: &str) {
 }
 
 fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
+    // Should this function move to a SourceTree constructor?
     let root = input.path();
 
     let mut sources = HashMap::new();
@@ -512,7 +517,7 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
 
         sources.insert(path, file_contents);
     }
-    Ok(SourceTree::new(sources))
+    Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
 fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String {
@@ -616,13 +621,16 @@ sort full
                 format: true,
                 target: "sql.any".to_string(),
             },
-            &mut SourceTree::new([
-                ("Project.prql".into(), "orders.x | select y".to_string()),
-                (
-                    "orders.prql".into(),
-                    "let x = (from z | select {y, u})".to_string(),
-                ),
-            ]),
+            &mut SourceTree::new(
+                [
+                    ("Project.prql".into(), "orders.x | select y".to_string()),
+                    (
+                        "orders.prql".into(),
+                        "let x = (from z | select {y, u})".to_string(),
+                    ),
+                ],
+                None,
+            ),
             "main",
         )
         .unwrap();
@@ -679,6 +687,7 @@ sort full
             span: 1:0-17
         source_ids:
           1: ''
+        root: null
         "###);
     }
     #[test]
