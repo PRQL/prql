@@ -64,6 +64,7 @@ pub fn compose_module_tree(
         let mut source_tree = SourceTree {
             sources: Default::default(),
             source_ids: tree.source_ids.clone(),
+            root: None,
         };
         load_std_lib(&mut source_tree);
         let ast = crate::parser::parse(&source_tree).unwrap();

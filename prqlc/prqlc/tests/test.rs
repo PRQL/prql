@@ -313,12 +313,36 @@ fn compile_project() {
 
 #[test]
 fn format() {
+    // stdin
     assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
     from tracks
     take 20
+
+    ----- stderr -----
+    "###);
+
+    // TODO: not good tests, since they don't actually test that the code was
+    // formatted (though we would see the files changed after running the tests
+    // if they weren't formatted). Ideally we would have a simulated
+    // environment, like a fixture.
+
+    // Single file
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+
+    ----- stderr -----
+    "###);
+
+    // Project
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().to_str().unwrap()]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
 
     ----- stderr -----
     "###);
