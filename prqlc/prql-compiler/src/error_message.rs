@@ -260,6 +260,7 @@ impl<'a> FileTreeCache<'a> {
 }
 
 impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
+    type Storage = String;
     fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
         let file_contents = match self.file_tree.sources.get(id) {
             Some(v) => v,
@@ -269,7 +270,7 @@ impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
         Ok(self
             .cache
             .entry(id.clone())
-            .or_insert_with(|| Source::from(file_contents)))
+            .or_insert_with(|| Source::from(file_contents.to_string())))
     }
 
     fn display<'b>(&self, id: &'b PathBuf) -> Option<Box<dyn fmt::Display + 'b>> {
