@@ -1,4 +1,4 @@
-use anstream::{adapter::strip_str, eprintln, println, ColorChoice};
+use anstream::{eprintln, println, ColorChoice};
 use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
@@ -491,36 +491,9 @@ impl Command {
             _ => unreachable!(),
         };
 
-        // Somewhat awkward way to strip a string of color codes. We're writing
-        // to a stream, but not an anstream stream. Could we instead integrate
-        // more closely with anstream?
-        let out = String::from_utf8(data.into())
-            .map(|x| strip_colors(&x))
-            .map_err(|_| {
-                std::io::Error::new(std::io::ErrorKind::InvalidData, "Output is not valid UTF-8")
-            })?;
-
-        output.write_all(out.into_bytes().as_ref())?;
+        output.write_all(data)?;
 
         Ok(())
-    }
-}
-
-// Vendored from `prql-compiler`; will hopefully be replaced by anstream streams.
-fn should_use_color() -> bool {
-    match ColorChoice::global() {
-        ColorChoice::Auto => true,
-        ColorChoice::Always => true,
-        ColorChoice::AlwaysAnsi => true,
-        ColorChoice::Never => false,
-    }
-}
-// Vendored from `prql-compiler`; will hopefully be replaced by anstream streams.
-pub fn strip_colors(s: &str) -> String {
-    if !should_use_color() {
-        strip_str(s).to_string()
-    } else {
-        s.to_string()
     }
 }
 
