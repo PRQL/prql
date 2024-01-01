@@ -1,11 +1,10 @@
 use anstream::{adapter::strip_str, eprintln, println, ColorChoice};
+use anyhow::bail;
 use anyhow::Result;
-use anyhow::{anyhow, bail};
 use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
-use colorchoice_clap::Color;
 use itertools::Itertools;
 use prqlc_ast::stmt::StmtKind;
 use std::collections::HashMap;
