@@ -17,7 +17,7 @@ name = "prqlc"
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anstream = {version = "0.6.5", features = ["auto"]}
 anyhow = {version = "1.0.76"}
-ariadne = {version = "0.3.0", features = ["auto-color"]}
+ariadne = {version = "0.4.0", features = ["auto-color"]}
 # Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
 atty = "0.2.14"
 clap = {version = "4.4.11", features = ["derive", "env", "wrap_help"]}
