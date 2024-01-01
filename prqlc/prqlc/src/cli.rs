@@ -1,4 +1,4 @@
-use anstream::eprintln;
+use anstream::{eprintln, println};
 use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Result;

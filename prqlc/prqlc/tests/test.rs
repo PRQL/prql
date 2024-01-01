@@ -349,6 +349,84 @@ fn format() {
 }
 
 #[test]
+fn debug() {
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "resolve"])
+        .pass_stdin("from tracks"));
+
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "expand-pl"])
+        .pass_stdin("from tracks"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    let main = from tracks
+
+    ----- stderr -----
+    "###);
+
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "eval"])
+        .pass_stdin("2 + 2"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    # 
+
+    ## main
+    4
+
+
+    ----- stderr -----
+    "###);
+}
+
+#[test]
+fn preprocess() {
+    assert_cmd_snapshot!(prqlc_command().args(["sql:preprocess"]).pass_stdin("from tracks | take 20"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    [
+        From(
+            RIId(
+                0,
+            ),
+        ),
+        Super(
+            Take(
+                Take {
+                    range: Range {
+                        start: None,
+                        end: Some(
+                            Expr {
+                                kind: Literal(
+                                    Integer(
+                                        20,
+                                    ),
+                                ),
+                                span: None,
+                            },
+                        ),
+                    },
+                    partition: [],
+                    sort: [],
+                },
+            ),
+        ),
+        Super(
+            Select(
+                [
+                    column-0,
+                ],
+            ),
+        ),
+    ]
+    ----- stderr -----
+    "###);
+}
+
+#[test]
 fn shell_completion() {
     for shell in ["bash", "fish", "powershell", "zsh"].iter() {
         assert_cmd_snapshot!(prqlc_command().args(["shell-completion", shell]));
@@ -376,6 +454,7 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
         // output color for our snapshot tests. And it seems to override the
         // `--color=never` flag.
         .env_remove("CLICOLOR_FORCE")
+        .env("NO_COLOR", "1")
         .args(["--color=never"])
         // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
         .env_remove("RUST_BACKTRACE")

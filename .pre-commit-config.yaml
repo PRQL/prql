@@ -8,9 +8,9 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
         # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
-        exclude: '.*\.rs$'
+        exclude: '.*\.(rs|snap)$'
   - repo: https://github.com/crate-ci/typos
-    rev: v1.16.25
+    rev: v1.16.26
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347

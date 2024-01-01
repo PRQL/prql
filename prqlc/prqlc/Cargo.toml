@@ -17,7 +17,7 @@ name = "prqlc"
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anstream = {version = "0.6.5", features = ["auto"]}
 anyhow = {version = "1.0.76"}
-ariadne = "0.3.0"
+ariadne = {version = "0.3.0", features = ["auto-color"]}
 # Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
 atty = "0.2.14"
 clap = {version = "4.4.11", features = ["derive", "env", "wrap_help"]}
@@ -28,8 +28,8 @@ colorchoice-clap = "1.0.0"
 env_logger = {version = "0.10.1", features = ["color"]}
 itertools = "0.12.0"
 notify = "6.1.1"
-prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.11.2" }
-prqlc-ast = {path = '../prqlc-ast', version = "0.11.2" }
+prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.11.2"}
+prqlc-ast = {path = '../prqlc-ast', version = "0.11.2"}
 regex = {version = "1.10.2", features = ["std", "unicode"]}
 serde = "1"
 serde_json = "1.0.108"
