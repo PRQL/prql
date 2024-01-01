@@ -490,10 +490,7 @@ impl Command {
             ) => io_args.output.clone(),
             _ => unreachable!(),
         };
-
-        output.write_all(data)?;
-
-        Ok(())
+        output.write_all(data)
     }
 }
 
