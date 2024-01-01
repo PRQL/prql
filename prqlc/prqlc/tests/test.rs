@@ -430,6 +430,7 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
         // output color for our snapshot tests. And it seems to override the
         // `--color=never` flag.
         .env_remove("CLICOLOR_FORCE")
+        .env("NO_COLOR", "1")
         .args(["--color=never"])
         // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
         .env_remove("RUST_BACKTRACE")
