@@ -525,26 +525,38 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
 
-    let mut printed_lines = 0;
+    // Not sure this is the nicest construction. Some of this was added in the
+    // upgrade from ariande 0.3.0 to 0.4.0 and possibly there are more elegant
+    // ways to build the output. (Though `.get_line_text` seems to be the only
+    // method to get actual text out of a `Source`...)
+    let mut printed_lines_count = 0;
     let mut result = Vec::new();
     for (span, frame) in frames {
-        let line = source.get_line_range(&Range::from(span)).end - 1;
+        let line_len = source.get_line_range(&Range::from(span)).end - 1;
 
-        while printed_lines < line {
-            result.push(lines[printed_lines].chars().collect());
-            printed_lines += 1;
+        while printed_lines_count < line_len {
+            result.push(
+                source
+                    .get_line_text(source.line(printed_lines_count).unwrap())
+                    .unwrap()
+                    .to_string(),
+            );
+            printed_lines_count += 1;
         }
 
-        if printed_lines >= lines.len() {
+        if printed_lines_count >= lines.len() {
             break;
         }
-        let chars: String = lines[printed_lines].chars().collect();
-        printed_lines += 1;
+        let chars: String = source
+            .get_line_text(source.line(printed_lines_count).unwrap())
+            .unwrap()
+            .to_string();
+        printed_lines_count += 1;
 
         result.push(format!("{chars:width$} # {frame}"));
     }
-    for line in lines.iter().skip(printed_lines) {
-        result.push(line.chars().collect());
+    for line in lines.iter().skip(printed_lines_count) {
+        result.push(source.get_line_text(line.to_owned()).unwrap().to_string());
     }
 
     result.into_iter().join("\n") + "\n"
