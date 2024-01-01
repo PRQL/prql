@@ -1,4 +1,4 @@
-use anstream::{eprintln, println, ColorChoice};
+use anstream::{eprintln, println};
 use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
