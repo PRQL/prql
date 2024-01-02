@@ -404,7 +404,7 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
-      - run: cargo llvm-cov run --codecov --output-path=codecov.json
+      - run: cargo llvm-cov --output-path=codecov.json --features=test-dbs
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
