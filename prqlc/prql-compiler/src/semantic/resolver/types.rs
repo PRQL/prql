@@ -244,13 +244,13 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
             for (variant_name, variant_ty) in variants {
                 let variant_ty = normalize_type(variant_ty);
 
-                // A | () = A
+                // (A || ()) = A
                 // skip never
-                if variant_ty.is_never() {
+                if variant_ty.is_never() && variant_name.is_none() {
                     continue;
                 }
 
-                // A | A | B = A | B
+                // (A || A || B) = A || B
                 // skip duplicates
                 let already_included = res.iter().any(|(_, r)| is_super_type_of(r, &variant_ty));
                 if already_included {
@@ -272,7 +272,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
 
         TyKind::Difference { base, exclude } => {
             let (base, exclude) = match (*base, *exclude) {
-                // (A | B) - C = (A - C) | (B - C)
+                // (A || B) - C = (A - C) || (B - C)
                 (
                     Ty {
                         kind: TyKind::Union(variants),
@@ -297,7 +297,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
                     );
                     return normalize_type(Ty { kind, name, span });
                 }
-                // (A - B) - C = A - (B | C)
+                // (A - B) - C = A - (B || C)
                 (
                     Ty {
                         kind:
@@ -318,9 +318,9 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
 
                 // A - (B - C) =
                 // = A & not (B & not C)
-                // = A & (not B | C)
-                // = (A & not B) | (A & C)
-                // = (A - B) | (A & C)
+                // = A & (not B || C)
+                // = (A & not B) || (A & C)
+                // = (A - B) || (A & C)
                 (
                     a,
                     Ty {
@@ -450,7 +450,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
             let base = Box::new(normalize_type(base));
             let exclude = Box::new(normalize_type(exclude));
 
-            // A - (A | B) = ()
+            // A - (A || B) = ()
             if let TyKind::Union(excluded) = &exclude.kind {
                 for (_, e) in excluded {
                     if base.as_ref() == e {

@@ -46,12 +46,11 @@ fn resolve_types_01() {
 }
 
 #[test]
-#[ignore]
 fn resolve_types_02() {
     assert_snapshot!(resolve(r#"
-    type A = A || ()
+    type A = int || ()
     "#).unwrap(), @r###"
-    type A = A
+    type A = int
     "###)
 }
 
@@ -62,4 +61,24 @@ fn resolve_types_03() {
     "#).unwrap(), @r###"
     type A = {a = int, bool, b = text, float}
     "###)
+}
+
+#[test]
+fn resolve_types_04() {
+    assert_snapshot!(resolve(
+        r#"
+    type Status = (
+        Paid = () ||
+        Unpaid = float ||
+        Canceled = {reason = text, cancelled_at = timestamp} ||
+    )
+    "#,
+    )
+    .unwrap(), @r###"
+    type Status = (
+      Paid = () ||
+      Unpaid = float ||
+      {reason = text, cancelled_at = timestamp} ||
+    )
+    "###);
 }

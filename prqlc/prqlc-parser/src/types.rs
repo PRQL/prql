@@ -81,6 +81,28 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = PError> {
             .map(TyKind::Tuple)
             .labelled("tuple");
 
+        let union_parenthesized = ident_part()
+            .then_ignore(ctrl('='))
+            .or_not()
+            .then(nested_type_expr.clone())
+            .padded_by(new_line().repeated())
+            .separated_by(just(Token::Or))
+            .allow_trailing()
+            .then_ignore(new_line().repeated())
+            .delimited_by(ctrl('('), ctrl(')'))
+            .recover_with(nested_delimiters(
+                Token::Control('('),
+                Token::Control(')'),
+                [
+                    (Token::Control('{'), Token::Control('}')),
+                    (Token::Control('('), Token::Control(')')),
+                    (Token::Control('['), Token::Control(']')),
+                ],
+                |_| vec![],
+            ))
+            .map(TyKind::Union)
+            .labelled("union");
+
         let array = nested_type_expr
             .map(Box::new)
             .padded_by(new_line().repeated())
@@ -98,7 +120,7 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = PError> {
             .map(TyKind::Array)
             .labelled("array");
 
-        let term = choice((basic, ident, func, tuple, array))
+        let term = choice((basic, ident, func, tuple, array, union_parenthesized))
             .map_with_span(into_ty)
             .boxed();
 

@@ -1,0 +1,9 @@
+---
+source: prqlc/prql-compiler/tests/integration/resolving.rs
+expression: "resolve(r#\"\n    type Status = (\n        Paid = () ||\n        Unpaid = float ||\n        Canceled = {reason = text, cancelled_at = timestamp} ||\n    )\n    \"#).unwrap()"
+---
+type Status = 
+  float ||
+  {reason = text, cancelled_at = timestamp} ||
+
+
