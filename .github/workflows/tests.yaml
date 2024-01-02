@@ -404,18 +404,22 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
       - run:
-          cargo llvm-cov --codecov --output-path=codecov.json
+          # Checking why coverage went down; so matching the coverage output.
+          # cargo llvm-cov --codecov --output-path=codecov.json --features=test-dbs
+          cargo llvm-cov --cobertura --output-path=cobertura.xml
           --features=test-dbs
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
-          files: codecov.json
+          # files: codecov.json
+          files: cobertura.xml
           fail_ci_if_error: true
       - name: Upload code coverage results
         uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
-          path: codecov.json
+          # path: codecov.json
+          path: cobertura.xml
 
   test-grammars:
     # Currently tests lezer grammars. We could split that out into a separate
