@@ -26,6 +26,7 @@
           cargo-release
           pkg-config
           openssl
+          cargo-llvm-cov
 
           # actions
           go-task
