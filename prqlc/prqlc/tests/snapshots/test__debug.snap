@@ -7,10 +7,10 @@ info:
     - debug
     - resolve
   env:
-    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
-    NO_COLOR: "1"
+    RUST_BACKTRACE: ""
     RUST_LOG: ""
+    NO_COLOR: "1"
   stdin: from tracks
 ---
 success: true

@@ -813,8 +813,8 @@ pub(super) fn translate_operand(
 ///    parentheses are not required. Some examples of when parentheses are not required:
 ///    - `(a - b) - c` & `(a + b) - c` — as opposed to `a - (b - c)`
 ///    - `a + (b - c)` & `a + (b + c)` — as opposed to `a - (b + c)` & `a - (b - c)`
-///         
-///       
+///
+///
 //
 // If it were possible to evaluate this with less context that would be
 // preferable, but it's not clear how to do that. (For example, even if we

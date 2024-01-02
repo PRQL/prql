@@ -38,7 +38,7 @@ impl WriteSource for TyKind {
             Ident(ident) => ident.write(opt),
             Primitive(prim) => Some(prim.to_string()),
             Union(variants) => {
-                let parenthesize = 
+                let parenthesize =
                     // never must be parenthesized
                     variants.is_empty() ||
                     // named union must be parenthesized

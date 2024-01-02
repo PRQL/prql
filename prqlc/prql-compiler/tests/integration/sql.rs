@@ -318,7 +318,7 @@ fn test_precedence() {
     assert_display_snapshot!((compile(r###"
     from numbers
     derive {
-      sum_1 = a + b, 
+      sum_1 = a + b,
       sum_2 = add a b,
       g = -a
     }

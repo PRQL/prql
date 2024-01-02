@@ -27,7 +27,7 @@ fn parse_interpolate() {
     let span_base = ParserSpan::new(0, 0..0);
 
     assert_debug_snapshot!(
-        parse("concat({a})".to_string(), span_base).unwrap(), 
+        parse("concat({a})".to_string(), span_base).unwrap(),
     @r###"
     [
         String(
@@ -55,7 +55,7 @@ fn parse_interpolate() {
     "###);
 
     assert_debug_snapshot!(
-        parse("print('{{hello}}')".to_string(), span_base).unwrap(), 
+        parse("print('{{hello}}')".to_string(), span_base).unwrap(),
     @r###"
     [
         String(
@@ -65,7 +65,7 @@ fn parse_interpolate() {
     "###);
 
     assert_debug_snapshot!(
-        parse("concat('{{', a, '}}')".to_string(), span_base).unwrap(), 
+        parse("concat('{{', a, '}}')".to_string(), span_base).unwrap(),
     @r###"
     [
         String(
@@ -75,7 +75,7 @@ fn parse_interpolate() {
     "###);
 
     assert_debug_snapshot!(
-        parse("concat('{{', {a}, '}}')".to_string(), span_base).unwrap(), 
+        parse("concat('{{', {a}, '}}')".to_string(), span_base).unwrap(),
     @r###"
     [
         String(
