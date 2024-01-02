@@ -17,7 +17,7 @@ tasks:
     cmds:
       - cmd: |
           # remove trailing whitespace
-          rg '\s+$' --files-with-matches --glob '!*.rs' . \
+          rg '\s+$' --files-with-matches --glob '!*.{rs,snap}' . \
           | xargs -I _ sh -c "echo Removing trailing whitespace from _ && sd '[\t ]+$' '' _"
 
       - cmd: |

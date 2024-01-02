@@ -324,7 +324,7 @@ fn date_to_text_with_column_format() {
 fn date_to_text_unsupported_chrono_item() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.duckdb
-  
+
     from [{d = @2021-01-01}]
     derive {
       d_str = d | date.to_text "%_j"
