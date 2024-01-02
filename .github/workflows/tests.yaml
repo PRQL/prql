@@ -397,28 +397,24 @@ jobs:
       - run: ./.github/workflows/scripts/set_version.sh
       - uses: baptiste0928/cargo-install@v2
         with:
-          crate: grcov
-      - run: rustup component add llvm-tools-preview
+          crate: cargo-llvm-cov
+      # - run: rustup component add llvm-tools-preview
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
-      - run:
-          # https://github.com/mozilla/grcov#generate-a-coverage-report-from-coverage-artifacts
-          CARGO_INCREMENTAL=0 RUSTFLAGS='-Cinstrument-coverage'
-          LLVM_PROFILE_FILE='cargo-test-%p-%m.profraw' cargo test --all-targets
-          --features=test-dbs
-      - run:
-          grcov . -s . --binary-path ./target/debug/ -t cobertura --branch
-          --ignore-not-existing -o cobertura.xml
+      - run: cargo llvm-cov run --codecov --output-path=codecov.json
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
+        with:
+          files: codecov.json
+          fail_ci_if_error: true
       - name: Upload code coverage results
         uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
-          path: cobertura.xml
+          path: codecov.json
 
   test-grammars:
     # Currently tests lezer grammars. We could split that out into a separate

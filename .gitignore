@@ -36,4 +36,5 @@ _*.sql
 *.my.csv
 
 cobertura.xml
+codecov.json
 .envrc
