@@ -4959,3 +4959,22 @@ fn test_table_declarations() {
       10
     "###);
 }
+
+#[test]
+fn test_param_declarations() {
+    assert_display_snapshot!(compile(
+        r###"
+    let a <int>
+
+    from x | filter b == a
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      x
+    WHERE
+      b = $a
+    "###);
+}

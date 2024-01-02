@@ -379,6 +379,7 @@ impl WriteSource for Stmt {
                         }
                         _ => {
                             r += &val.write(opt)?;
+                            r += "\n";
                         }
                     }
 
@@ -525,6 +526,19 @@ mod test {
     }
 
     #[test]
+    fn test_binary() {
+        assert_is_formatted(r#"let a = 5 * (4 + 3) ?? (5 / 2) // 2 == 1 and true"#);
+
+        // TODO: associativity is not handled correctly
+        // assert_is_formatted(r#"let a = 5 / 2 / 2"#);
+    }
+
+    #[test]
+    fn test_func() {
+        assert_is_formatted(r#"let a = func x y:false -> x and y"#);
+    }
+
+    #[test]
     fn test_simple() {
         assert_is_formatted(
             r#"
@@ -553,15 +567,73 @@ group {title, country} (aggregate {
     fn test_range() {
         assert_is_formatted(
             r#"
-from foo
-is_negative = -100..0
+let negative = -100..0
 "#,
         );
 
         assert_is_formatted(
             r#"
-from foo
-is_negative = -(100..0)
+let negative = -(100..0)
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let negative = -100..
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let negative = ..-100
+"#,
+        );
+    }
+
+    #[test]
+    fn test_annotation() {
+        assert_is_formatted(
+            r#"
+@deprecated
+module hello {
+}
+"#,
+        );
+    }
+
+    #[test]
+    fn test_var_def() {
+        assert_is_formatted(
+            r#"
+let a
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let a <int>
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let a = 5
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+5
+into a
+"#,
+        );
+    }
+
+    #[test]
+    fn test_query_def() {
+        assert_is_formatted(
+            r#"
+prql version:"^0.9" target:sql.sqlite
 "#,
         );
     }
