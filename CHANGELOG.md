@@ -17,6 +17,8 @@
 **Integrations**:
 
 - Add syntax highlight file for CotEditor. (@vanillajonathan)
+- [sloc](https://github.com/flosse/sloc), a source lines of code counter now has
+  support for `.prql` files. (@vanillajonathan)
 
 **Internal changes**:
 
