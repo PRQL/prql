@@ -398,7 +398,6 @@ jobs:
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-llvm-cov
-      # - run: rustup component add llvm-tools-preview
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
