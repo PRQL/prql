@@ -4,9 +4,9 @@ use once_cell::sync::Lazy;
 
 use prqlc_ast::expr::*;
 use prqlc_ast::stmt::*;
+use regex::Regex;
 
 use crate::codegen::SeparatedExprs;
-use crate::utils::VALID_IDENT;
 
 use super::{WriteOpt, WriteSource};
 
@@ -136,10 +136,15 @@ impl WriteSource for ExprKind {
                 Some(r)
             }
             Func(c) => {
-                let mut r = String::new();
+                let mut r = "func ".to_string();
                 for param in &c.params {
                     r += opt.consume(&write_ident_part(&param.name))?;
                     r += opt.consume(" ")?;
+                    if let Some(ty) = &param.ty {
+                        let ty = ty.write_between("<", ">", opt.clone())?;
+                        r += opt.consume(&ty)?;
+                        r += opt.consume(" ")?;
+                    }
                 }
                 for param in &c.named_params {
                     r += opt.consume(&write_ident_part(&param.name))?;
@@ -148,6 +153,12 @@ impl WriteSource for ExprKind {
                     r += opt.consume(" ")?;
                 }
                 r += opt.consume("-> ")?;
+
+                if let Some(ty) = &c.return_ty {
+                    let ty = ty.write_between("<", ">", opt.clone())?;
+                    r += opt.consume(&ty)?;
+                    r += opt.consume(" ")?;
+                }
 
                 // try a single line
                 if let Some(body) = c.body.write(opt.clone()) {
@@ -263,8 +274,14 @@ pub static KEYWORDS: Lazy<HashSet<&str>> = Lazy::new(|| {
     ])
 });
 
+pub static VALID_PRQL_IDENT: Lazy<Regex> = Lazy::new(|| {
+    // Pomsky expression (regex is to Pomsky what SQL is to PRQL):
+    // ^ ('*' | [ascii_alpha '_$'] [ascii_alpha ascii_digit '_$']* ) $
+    Regex::new(r"^(?:\*|[a-zA-Z_$][a-zA-Z0-9_$]*)$").unwrap()
+});
+
 pub fn write_ident_part(s: &str) -> String {
-    if VALID_IDENT.is_match(s) && !KEYWORDS.contains(s) {
+    if VALID_PRQL_IDENT.is_match(s) && !KEYWORDS.contains(s) {
         s.to_string()
     } else {
         format!("`{}`", s)

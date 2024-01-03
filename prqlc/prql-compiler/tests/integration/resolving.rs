@@ -27,12 +27,25 @@ fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
 }
 
 #[test]
-fn resolve_basic() {
+fn resolve_basic_01() {
     assert_snapshot!(resolve(r#"
     from x
     select {a, b}
     "#).unwrap(), @r###"
     let main <[{a = ?, b = ?}]> = `(Select ...)`
+    "###)
+}
+
+#[test]
+fn resolve_function_01() {
+    assert_snapshot!(resolve(r#"
+    let my_func = func param_1 <param_1_type> -> <Ret_ty> (
+      param_1 + 1
+    )
+    "#).unwrap(), @r###"
+    let my_func = func param_1 <param_1_type> -> <Ret_ty> (
+      std.add param_1 1
+    )
     "###)
 }
 

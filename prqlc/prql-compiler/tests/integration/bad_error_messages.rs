@@ -154,7 +154,7 @@ fn test_hint_missing_args() {
        │
      3 │     select {film_id, lag film_id}
        │                      ─────┬─────
-       │                           ╰─────── unexpected `(offset column -> internal std.lag) film_id`
+       │                           ╰─────── unexpected `(func offset <int> column <array> -> internal std.lag) film_id`
        │
        │ Help: this is probably a 'bad type' error (we are working on that)
     ───╯
