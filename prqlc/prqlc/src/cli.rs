@@ -1,4 +1,5 @@
-use anstream::eprintln;
+use anstream::{eprintln, println};
+use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Result;
 use ariadne::Source;
@@ -201,24 +202,29 @@ impl Command {
             // always writes to the same output.
             Command::Format { input } => {
                 let sources = read_files(input)?;
+                let root = sources.root;
 
-                if sources.sources.len() != 1 {
-                    let paths = sources
-                        .sources
-                        .keys()
-                        .map(|x| format!("`{}`", x.display()))
-                        .sorted()
-                        .join(", ");
-                    bail!(
-                        "Currently `fmt` only works with a single source, but found multiple sources: {paths:?}"
-                    )
+                for (path, source) in sources.sources {
+                    let ast = prql_to_pl(&source)?;
+
+                    // If we're writing to stdout (though could this be nicer?
+                    // We're discarding many of the benefits of Clio here...)
+                    if path.as_os_str() == "" {
+                        let mut output: Output = Output::new(input.path())?;
+                        output.write_all(&pl_to_prql(ast)?.into_bytes())?;
+                        break;
+                    }
+
+                    let path_buf = root
+                        .as_ref()
+                        .map_or_else(|| path.clone(), |root| root.join(&path));
+                    let path_str = path_buf.to_str().ok_or_else(|| {
+                        anyhow!("Path `{}` is not valid UTF-8", path_buf.display())
+                    })?;
+                    let mut output: Output = Output::new(path_str)?;
+
+                    output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 }
-                let (_, source) = sources.sources.into_iter().next().unwrap();
-
-                let ast = prql_to_pl(&source)?;
-
-                let mut output: Output = Output::new(input.path())?;
-                output.write_all(&pl_to_prql(ast)?.into_bytes())?;
                 Ok(())
             }
             Command::ShellCompletion { shell } => {
@@ -499,6 +505,7 @@ fn drop_module_def(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, name: &str) {
 }
 
 fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
+    // Should this function move to a SourceTree constructor?
     let root = input.path();
 
     let mut sources = HashMap::new();
@@ -510,7 +517,7 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
 
         sources.insert(path, file_contents);
     }
-    Ok(SourceTree::new(sources))
+    Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
 fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String {
@@ -518,26 +525,38 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
 
-    let mut printed_lines = 0;
+    // Not sure this is the nicest construction. Some of this was added in the
+    // upgrade from ariande 0.3.0 to 0.4.0 and possibly there are more elegant
+    // ways to build the output. (Though `.get_line_text` seems to be the only
+    // method to get actual text out of a `Source`...)
+    let mut printed_lines_count = 0;
     let mut result = Vec::new();
     for (span, frame) in frames {
-        let line = source.get_line_range(&Range::from(span)).end - 1;
+        let line_len = source.get_line_range(&Range::from(span)).end - 1;
 
-        while printed_lines < line {
-            result.push(lines[printed_lines].chars().collect());
-            printed_lines += 1;
+        while printed_lines_count < line_len {
+            result.push(
+                source
+                    .get_line_text(source.line(printed_lines_count).unwrap())
+                    .unwrap()
+                    .to_string(),
+            );
+            printed_lines_count += 1;
         }
 
-        if printed_lines >= lines.len() {
+        if printed_lines_count >= lines.len() {
             break;
         }
-        let chars: String = lines[printed_lines].chars().collect();
-        printed_lines += 1;
+        let chars: String = source
+            .get_line_text(source.line(printed_lines_count).unwrap())
+            .unwrap()
+            .to_string();
+        printed_lines_count += 1;
 
         result.push(format!("{chars:width$} # {frame}"));
     }
-    for line in lines.iter().skip(printed_lines) {
-        result.push(line.chars().collect());
+    for line in lines.iter().skip(printed_lines_count) {
+        result.push(source.get_line_text(line.to_owned()).unwrap().to_string());
     }
 
     result.into_iter().join("\n") + "\n"
@@ -614,13 +633,16 @@ sort full
                 format: true,
                 target: "sql.any".to_string(),
             },
-            &mut SourceTree::new([
-                ("Project.prql".into(), "orders.x | select y".to_string()),
-                (
-                    "orders.prql".into(),
-                    "let x = (from z | select {y, u})".to_string(),
-                ),
-            ]),
+            &mut SourceTree::new(
+                [
+                    ("Project.prql".into(), "orders.x | select y".to_string()),
+                    (
+                        "orders.prql".into(),
+                        "let x = (from z | select {y, u})".to_string(),
+                    ),
+                ],
+                None,
+            ),
             "main",
         )
         .unwrap();
@@ -677,6 +699,7 @@ sort full
             span: 1:0-17
         source_ids:
           1: ''
+        root: null
         "###);
     }
     #[test]

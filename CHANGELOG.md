@@ -6,6 +6,8 @@
 
 **Features**:
 
+- `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
+
 **Fixes**:
 
 **Documentation**:
@@ -15,6 +17,8 @@
 **Integrations**:
 
 - Add syntax highlight file for CotEditor. (@vanillajonathan)
+- [sloc](https://github.com/flosse/sloc), a source lines of code counter now has
+  support for `.prql` files. (@vanillajonathan)
 
 **Internal changes**:
 

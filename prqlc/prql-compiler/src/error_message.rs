@@ -207,19 +207,9 @@ impl ErrorMessage {
 
         let mut out = Vec::new();
         report.finish().write(cache, &mut out).ok()?;
-
-        // Strip colors, for external libraries which don't yet strip
-        // themselves, and for insta snapshot tests. This will respond to
-        // environment variables such as `CLI_COLOR`. Eventually we can remove
-        // this, always pass colors back, and the consuming library can strip
-        // (including insta https://github.com/mitsuhiko/insta/issues/378).
-        String::from_utf8(out).ok().map(|x| {
-            if !should_use_color() {
-                strip_str(&x).to_string()
-            } else {
-                x
-            }
-        })
+        String::from_utf8(out)
+            .ok()
+            .map(|x| strip_colors(x.as_str()))
     }
 
     fn compose_location(&self, source: &Source) -> Option<SourceLocation> {
@@ -243,6 +233,19 @@ fn should_use_color() -> bool {
     }
 }
 
+/// Strip colors, for external libraries which don't yet strip themselves, and
+/// for insta snapshot tests. This will respond to environment variables such as
+/// `CLI_COLOR`. Eventually we can remove this, always pass colors back, and the
+/// consuming library can strip (including insta
+/// https://github.com/mitsuhiko/insta/issues/378).
+pub fn strip_colors(s: &str) -> String {
+    if !should_use_color() {
+        strip_str(s).to_string()
+    } else {
+        s.to_string()
+    }
+}
+
 struct FileTreeCache<'a> {
     file_tree: &'a SourceTree,
     cache: HashMap<PathBuf, Source>,
@@ -257,6 +260,7 @@ impl<'a> FileTreeCache<'a> {
 }
 
 impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
+    type Storage = String;
     fn fetch(&mut self, id: &PathBuf) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
         let file_contents = match self.file_tree.sources.get(id) {
             Some(v) => v,
@@ -266,7 +270,7 @@ impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
         Ok(self
             .cache
             .entry(id.clone())
-            .or_insert_with(|| Source::from(file_contents)))
+            .or_insert_with(|| Source::from(file_contents.to_string())))
     }
 
     fn display<'b>(&self, id: &'b PathBuf) -> Option<Box<dyn fmt::Display + 'b>> {

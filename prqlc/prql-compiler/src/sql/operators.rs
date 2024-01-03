@@ -17,10 +17,13 @@ use crate::{Error, WithErrorInfo};
 static STD: Lazy<decl::Module> = Lazy::new(load_std_sql);
 
 fn load_std_sql() -> decl::Module {
-    let std_lib = crate::SourceTree::new([(
-        PathBuf::from("std.prql"),
-        include_str!("./std.sql.prql").to_string(),
-    )]);
+    let std_lib = crate::SourceTree::new(
+        [(
+            PathBuf::from("std.prql"),
+            include_str!("./std.sql.prql").to_string(),
+        )],
+        None,
+    );
     let ast = crate::parser::parse(&std_lib).unwrap();
 
     let options = semantic::ResolverOptions {};

@@ -313,6 +313,7 @@ fn compile_project() {
 
 #[test]
 fn format() {
+    // stdin
     assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
     success: true
     exit_code: 0
@@ -320,6 +321,107 @@ fn format() {
     from tracks
     take 20
 
+    ----- stderr -----
+    "###);
+
+    // TODO: not good tests, since they don't actually test that the code was
+    // formatted (though we would see the files changed after running the tests
+    // if they weren't formatted). Ideally we would have a simulated
+    // environment, like a fixture.
+
+    // Single file
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+
+    ----- stderr -----
+    "###);
+
+    // Project
+    assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().to_str().unwrap()]), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+
+    ----- stderr -----
+    "###);
+}
+
+#[test]
+fn debug() {
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "resolve"])
+        .pass_stdin("from tracks"));
+
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "expand-pl"])
+        .pass_stdin("from tracks"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    let main = from tracks
+
+    ----- stderr -----
+    "###);
+
+    assert_cmd_snapshot!(prqlc_command()
+        .args(["debug", "eval"])
+        .pass_stdin("2 + 2"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    # 
+
+    ## main
+    4
+
+
+    ----- stderr -----
+    "###);
+}
+
+#[test]
+fn preprocess() {
+    assert_cmd_snapshot!(prqlc_command().args(["sql:preprocess"]).pass_stdin("from tracks | take 20"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    [
+        From(
+            RIId(
+                0,
+            ),
+        ),
+        Super(
+            Take(
+                Take {
+                    range: Range {
+                        start: None,
+                        end: Some(
+                            Expr {
+                                kind: Literal(
+                                    Integer(
+                                        20,
+                                    ),
+                                ),
+                                span: None,
+                            },
+                        ),
+                    },
+                    partition: [],
+                    sort: [],
+                },
+            ),
+        ),
+        Super(
+            Select(
+                [
+                    column-0,
+                ],
+            ),
+        ),
+    ]
     ----- stderr -----
     "###);
 }
@@ -352,6 +454,7 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
         // output color for our snapshot tests. And it seems to override the
         // `--color=never` flag.
         .env_remove("CLICOLOR_FORCE")
+        .env("NO_COLOR", "1")
         .args(["--color=never"])
         // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
         .env_remove("RUST_BACKTRACE")

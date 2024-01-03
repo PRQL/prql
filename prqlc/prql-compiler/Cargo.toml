@@ -23,8 +23,8 @@ prqlc-ast = {path = "../prqlc-ast", version = "0.11.2" }
 prqlc-parser = {path = "../prqlc-parser", version = "0.11.2" }
 
 anstream = {version = "0.6.5", features = ["auto"]}
-anyhow = {version = "1.0.76", features = ["backtrace"]}
-ariadne = "0.3.0"
+anyhow = {version = "1.0.78", features = ["backtrace"]}
+ariadne = "0.4.0"
 chrono = "0.4"
 csv = "1.3.0"
 enum-as-inner = "0.6.0"
@@ -35,7 +35,7 @@ regex = "1.10.2"
 semver = {version = "1.0.20", features = ["serde"]}
 # We could put `serde` behind a feature if we wanted to reduce the size of prql-compiler.
 serde = {version = "1.0.193", features = ["derive"]}
-serde_json = "1.0.108"
+serde_json = "1.0.109"
 sqlformat = "0.2.3"
 sqlparser = {version = "0.41.0", features = ["serde"]}
 strum = {version = "0.25.0", features = ["std", "derive"]}
@@ -60,7 +60,7 @@ tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 cfg-if = "1.0"
 insta = {version = "1.34", features = ["colors", "yaml"]}
 rstest = "0.18.2"
-similar = {version = "2.3.0"}
+similar = {version = "2.4.0"}
 similar-asserts = "1.5.0"
 test_each_file = "0.3.0"
 

@@ -29,7 +29,7 @@ vars:
     rust-lang.rust-analyzer
   cargo_crates: >
     bacon cargo-audit cargo-insta cargo-release default-target mdbook
-    mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
+    mdbook-admonish mdbook-footnote mdbook-toc nextest wasm-bindgen-cli wasm-opt
     wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
