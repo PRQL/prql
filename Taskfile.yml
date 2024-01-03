@@ -28,9 +28,9 @@ vars:
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
   cargo_crates: >
-    bacon cargo-audit cargo-insta cargo-release default-target mdbook
-    mdbook-admonish mdbook-footnote mdbook-toc nextest wasm-bindgen-cli wasm-opt
-    wasm-pack
+    bacon cargo-audit cargo-insta cargo-llvm-cov cargo-release default-target
+    mdbook mdbook-admonish mdbook-footnote mdbook-toc nextest wasm-bindgen-cli
+    wasm-opt wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -68,6 +68,7 @@ tasks:
       - task: install-pre-commit
       - task: install-npm-dependencies
       - pre-commit install-hooks
+      - rustup component add llvm-tools-preview
       - cmd: |
           echo "
           🟢 Setup complete! ✅🚀"
@@ -321,21 +322,9 @@ tasks:
   test-rust-coverage:
     desc: Run tests with instrumentation for code coverage
     env:
-      # https://github.com/mozilla/grcov#generate-a-coverage-report-from-coverage-artifacts
-      CARGO_INCREMENTAL: 0
-      RUSTFLAGS: "-Cinstrument-coverage"
-      LLVM_PROFILE_FILE: "cargo-test-%p-%m.profraw"
-      # Use a different target dir so we don't poison the cache
       CARGO_TARGET_DIR: "./target-cov"
     cmds:
-      # Setup
-      - cargo install grcov
-      - rustup component add llvm-tools-preview
-
-      # Run
-      - cargo test --all-targets --features=test-dbs
-      - grcov . -s . --binary-path ./target-cov/debug/ -t lcov --branch
-        --ignore-not-existing -o lcov.info
+      - cargo llvm-cov  --lcov --output-path lcov.info --features=test-dbs
 
   build-web:
     desc:
