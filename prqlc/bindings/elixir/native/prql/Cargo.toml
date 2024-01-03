@@ -18,6 +18,6 @@ path = "src/lib.rs"
 test = false
 
 # See Readme for details on Mac
-[target.'cfg(not(any(target_family="wasm", target_os = "macos", tarpaulin)))'.dependencies]
-prql-compiler = {path = "../../../../prql-compiler", default-features = false, version = "0.11.2" }
+[target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
+prql-compiler = {path = "../../../../prql-compiler", default-features = false, version = "0.11.2"}
 rustler = "0.30.0"
