@@ -320,8 +320,14 @@ tasks:
       - cargo insta test --accept --lib -- --quiet
 
   test-rust-coverage:
-    desc: Run tests with instrumentation for code coverage
+    desc: Run tests with instrumentation for code coverage.
+    summary:
+      Run tests with instrumentation for code coverage. This works with VS
+      Code's [Coverage
+      Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
+      extension.
     env:
+      # Use a different target dir so we don't poison the cache
       CARGO_TARGET_DIR: "./target-cov"
     cmds:
       - cargo llvm-cov  --lcov --output-path lcov.info --features=test-dbs
