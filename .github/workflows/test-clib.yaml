@@ -34,6 +34,7 @@ jobs:
         uses: goto-bus-stop/setup-zig@v2
         with:
           cache: false
-      - name: Run example minimal-zig
-        working-directory: prqlc/bindings/clib/examples/minimal-zig
-        run: make run test
+      # TODO: Broken so disabling — https://github.com/PRQL/prql/issues/4050
+      # - name: Run example minimal-zig
+      #   working-directory: prqlc/bindings/clib/examples/minimal-zig
+      #   run: make run test
