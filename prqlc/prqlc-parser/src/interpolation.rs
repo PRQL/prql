@@ -8,9 +8,11 @@ use super::common::{into_expr, PError};
 use super::lexer::*;
 use super::span::ParserSpan;
 
+use prqlc_ast::expr::InterpolateItem;
+
 /// Parses interpolated strings
 pub fn parse(string: String, span_base: ParserSpan) -> Result<Vec<InterpolateItem>, Vec<PError>> {
-    let res = parser(span_base).parse(string);
+    let res = parser(span_base).parse(dbg!(string));
 
     match res {
         Ok(items) => Ok(items),
