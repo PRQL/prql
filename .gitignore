@@ -1,11 +1,12 @@
 .DS_Store
 
 dist
-target/
+target*/
 *.out
 *.log
 
 lcov.info
+*.profraw
 
 **/.vscode/settings.json
 **/.vscode/launch.json
