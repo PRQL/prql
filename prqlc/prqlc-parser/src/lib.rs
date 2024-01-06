@@ -14,6 +14,7 @@ use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
 use lexer::Token;
+use lexer::{TokenSpan, TokenStream};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -45,6 +46,14 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     } else {
         Err(errors)
     }
+}
+
+pub fn lex_source(source: &str) -> Result<TokenStream, Vec<Error>> {
+    lexer::lexer().parse(source).map(TokenStream).map_err(|e| {
+        e.into_iter()
+            .map(|x| convert_lexer_error(source, x, 0))
+            .collect()
+    })
 }
 
 mod common {
@@ -104,13 +113,13 @@ mod common {
 }
 
 fn prepare_stream(
-    tokens: Vec<(Token, std::ops::Range<usize>)>,
+    tokens: Vec<TokenSpan>,
     source: &str,
     source_id: u16,
 ) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |(t, s)| (t, ParserSpan::new(source_id, s)));
+        .map(move |TokenSpan(t, s)| (t, ParserSpan::new(source_id, s)));
     let len = source.chars().count();
     let eoi = ParserSpan(Span {
         start: len,

@@ -1,0 +1,16 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/group_sort_limit_take.prql
+---
+
+ from tracks 
+ select { genre_id , milliseconds } 
+ group { genre_id } ( 
+ sort { - milliseconds } 
+ take 3 
+ ) 
+ join genres ( == genre_id ) 
+ select { name , milliseconds } 
+ sort { + name , - milliseconds } 
+ 

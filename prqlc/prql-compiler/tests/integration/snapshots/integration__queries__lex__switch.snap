@@ -1,0 +1,15 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/switch.prql
+---
+
+ from tracks 
+ sort milliseconds 
+ select display = keyword case [ 
+ composer != null => composer , 
+ genre_id < 17 => "no composer" , 
+ true => f"unknown composer" 
+ ] 
+ take 10 
+ 

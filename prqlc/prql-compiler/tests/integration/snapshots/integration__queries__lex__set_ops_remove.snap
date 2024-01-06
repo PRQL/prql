@@ -1,0 +1,13 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/set_ops_remove.prql
+---
+
+ keyword let distinct = rel -> ( from t = _param . rel | group { t . * } ( take 1 ) ) 
+ 
+ from_text format : json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }' 
+ distinct 
+ remove ( from_text format : json '{ "columns": ["a"], "data": [[1], [2]] }' ) 
+ sort a 
+ 

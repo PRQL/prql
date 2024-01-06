@@ -1,0 +1,12 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/group_all.prql
+---
+
+ from a = albums 
+ take 10 
+ join tracks ( == album_id ) 
+ group { a . album_id , a . title } ( aggregate price = ( sum tracks . unit_price | math . round 2 ) ) 
+ sort album_id 
+ 

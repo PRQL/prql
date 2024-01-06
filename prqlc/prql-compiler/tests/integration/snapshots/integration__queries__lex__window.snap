@@ -1,0 +1,20 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/window.prql
+---
+
+ from tracks 
+ group genre_id ( 
+ sort milliseconds 
+ derive { 
+ num = row_number this , 
+ total = count this , 
+ last_val = last track_id , 
+ } 
+ take 10 
+ ) 
+ sort { genre_id , milliseconds } 
+ select { track_id , genre_id , num , total , last_val } 
+ filter genre_id >= 22 
+ 

@@ -1,0 +1,10 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/take.prql
+---
+
+ from tracks 
+ sort { + track_id } 
+ take 3 '..' 5 
+ 

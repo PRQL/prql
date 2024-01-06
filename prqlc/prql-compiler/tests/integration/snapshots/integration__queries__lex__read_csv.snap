@@ -1,0 +1,9 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/read_csv.prql
+---
+
+ from ( read_csv "data_file_root/media_types.csv" ) 
+ sort media_type_id 
+ 

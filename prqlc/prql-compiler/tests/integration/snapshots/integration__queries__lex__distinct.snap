@@ -1,0 +1,11 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/distinct.prql
+---
+
+ from tracks 
+ select { album_id , genre_id } 
+ group tracks . * ( take 1 ) 
+ sort tracks . * 
+ 

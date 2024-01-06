@@ -39,7 +39,7 @@ pub enum Token {
     Annotate, // @
 }
 
-pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
+pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
     let whitespace = filter(|x: &char| x.is_inline_whitespace())
         .repeated()
         .at_least(1)
@@ -122,7 +122,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
-        .map_with_span(|tok, span| (tok, span));
+        .map_with_span(TokenSpan);
 
     let line_wrap = newline
         .then(
@@ -140,13 +140,10 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let ignored = choice((comment, whitespace, line_wrap)).repeated();
 
-    choice((
-        range,
-        ignored.ignore_then(token.map_with_span(|tok, span| (tok, span))),
-    ))
-    .repeated()
-    .then_ignore(ignored)
-    .then_ignore(end())
+    choice((range, ignored.ignore_then(token.map_with_span(TokenSpan))))
+        .repeated()
+        .then_ignore(ignored)
+        .then_ignore(end())
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -462,17 +459,18 @@ impl std::cmp::Eq for Token {}
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::NewLine => write!(f, "new line"),
-            Token::Ident(arg0) => {
-                if arg0.is_empty() {
+            Token::NewLine => writeln!(f),
+            Token::Ident(s) => {
+                if s.is_empty() {
+                    // FYI this shows up in errors
                     write!(f, "an identifier")
                 } else {
-                    write!(f, "`{arg0}`")
+                    write!(f, "{s}")
                 }
             }
-            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Token::Literal(arg0) => write!(f, "{}", arg0),
-            Token::Control(arg0) => write!(f, "{arg0}"),
+            Token::Keyword(s) => write!(f, "keyword {s}"),
+            Token::Literal(lit) => write!(f, "{}", lit),
+            Token::Control(c) => write!(f, "{c}"),
 
             Token::ArrowThin => f.write_str("->"),
             Token::ArrowFat => f.write_str("=>"),
@@ -506,71 +504,41 @@ impl std::fmt::Display for Token {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct TokenSpan(pub Token, pub std::ops::Range<usize>);
+
+impl std::fmt::Display for TokenSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{} ", self.0)
+    }
+}
+
+pub struct TokenStream(pub Vec<TokenSpan>);
+
+impl std::fmt::Display for TokenStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for token in &self.0 {
+            write!(f, "{}", token)?;
+        }
+        Ok(())
+    }
+}
+
 #[test]
 fn test_line_wrap() {
-    use insta::assert_debug_snapshot;
+    use insta::assert_display_snapshot;
 
     // (TODO: is there a terser way of writing our lexer output?)
-    assert_debug_snapshot!(lexer().parse(r"5 +
+    assert_display_snapshot!(TokenStream(lexer().parse(r"5 +
     \ 3 "
-        ).unwrap(), @r###"
-    [
-        (
-            Literal(
-                Integer(
-                    5,
-                ),
-            ),
-            0..1,
-        ),
-        (
-            Control(
-                '+',
-            ),
-            2..3,
-        ),
-        (
-            Literal(
-                Integer(
-                    3,
-                ),
-            ),
-            10..11,
-        ),
-    ]
-    "###);
+        ).unwrap()), @"5+3");
 
     // Comments get skipped over
-    assert_debug_snapshot!(lexer().parse(r"5 +
+    assert_display_snapshot!(TokenStream(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
-        ).unwrap(), @r###"
-    [
-        (
-            Literal(
-                Integer(
-                    5,
-                ),
-            ),
-            0..1,
-        ),
-        (
-            Control(
-                '+',
-            ),
-            2..3,
-        ),
-        (
-            Literal(
-                Integer(
-                    3,
-                ),
-            ),
-            47..48,
-        ),
-    ]
-    "###);
+        ).unwrap()), @"5+3");
 }
 
 #[test]

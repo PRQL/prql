@@ -1,0 +1,15 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/genre_counts.prql
+---
+
+ keyword let genre_count = ( 
+ from genres 
+ aggregate { a = count name } 
+ ) 
+ 
+ from genre_count 
+ filter a > 0 
+ select a = - a 
+ 

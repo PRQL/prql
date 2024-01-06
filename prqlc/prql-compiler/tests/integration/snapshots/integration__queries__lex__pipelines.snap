@@ -1,0 +1,15 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/pipelines.prql
+---
+
+ 
+ from tracks 
+ 
+ filter ( name ~= "Love" ) 
+ filter ( ( milliseconds / 1000 / 60 ) | in 3 '..' 4 ) 
+ sort track_id 
+ take 1 '..' 15 
+ select { name , composer } 
+ 
