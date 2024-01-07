@@ -3,10 +3,51 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/group_all.prql
 ---
-
- from a = albums 
- take 10 
- join tracks ( == album_id ) 
- group { a . album_id , a . title } ( aggregate price = ( sum tracks . unit_price | math . round 2 ) ) 
- sort album_id 
- 
+TokenStream (
+  12..13: NewLine,
+  13..17: Ident("from"),
+  18..19: Ident("a"),
+  19..20: Control('='),
+  20..26: Ident("albums"),
+  26..27: NewLine,
+  27..31: Ident("take"),
+  32..34: Literal(Integer(10)),
+  34..35: NewLine,
+  35..39: Ident("join"),
+  40..46: Ident("tracks"),
+  47..48: Control('('),
+  48..50: Eq,
+  50..58: Ident("album_id"),
+  58..59: Control(')'),
+  59..60: NewLine,
+  60..65: Ident("group"),
+  66..67: Control('{'),
+  67..68: Ident("a"),
+  68..69: Control('.'),
+  69..77: Ident("album_id"),
+  77..78: Control(','),
+  79..80: Ident("a"),
+  80..81: Control('.'),
+  81..86: Ident("title"),
+  86..87: Control('}'),
+  88..89: Control('('),
+  89..98: Ident("aggregate"),
+  99..104: Ident("price"),
+  105..106: Control('='),
+  107..108: Control('('),
+  108..111: Ident("sum"),
+  112..118: Ident("tracks"),
+  118..119: Control('.'),
+  119..129: Ident("unit_price"),
+  130..131: Control('|'),
+  132..136: Ident("math"),
+  136..137: Control('.'),
+  137..142: Ident("round"),
+  143..144: Literal(Integer(2)),
+  144..145: Control(')'),
+  145..146: Control(')'),
+  146..147: NewLine,
+  147..151: Ident("sort"),
+  152..160: Ident("album_id"),
+  160..161: NewLine,
+)

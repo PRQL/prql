@@ -3,11 +3,52 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/set_ops_remove.prql
 ---
-
- keyword let distinct = rel -> ( from t = _param . rel | group { t . * } ( take 1 ) ) 
- 
- from_text format : json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }' 
- distinct 
- remove ( from_text format : json '{ "columns": ["a"], "data": [[1], [2]] }' ) 
- sort a 
- 
+TokenStream (
+  12..13: NewLine,
+  13..16: Keyword("let"),
+  17..25: Ident("distinct"),
+  26..27: Control('='),
+  28..31: Ident("rel"),
+  32..34: ArrowThin,
+  35..36: Control('('),
+  36..40: Ident("from"),
+  41..42: Ident("t"),
+  43..44: Control('='),
+  45..51: Ident("_param"),
+  51..52: Control('.'),
+  52..55: Ident("rel"),
+  56..57: Control('|'),
+  58..63: Ident("group"),
+  64..65: Control('{'),
+  65..66: Ident("t"),
+  66..67: Control('.'),
+  67..68: Control('*'),
+  68..69: Control('}'),
+  70..71: Control('('),
+  71..75: Ident("take"),
+  76..77: Literal(Integer(1)),
+  77..78: Control(')'),
+  78..79: Control(')'),
+  79..80: NewLine,
+  80..81: NewLine,
+  81..90: Ident("from_text"),
+  91..97: Ident("format"),
+  97..98: Control(':'),
+  98..102: Ident("json"),
+  103..155: Literal(String("{ \"columns\": [\"a\"], \"data\": [[1], [2], [2], [3]] }")),
+  155..156: NewLine,
+  156..164: Ident("distinct"),
+  164..165: NewLine,
+  165..171: Ident("remove"),
+  172..173: Control('('),
+  173..182: Ident("from_text"),
+  183..189: Ident("format"),
+  189..190: Control(':'),
+  190..194: Ident("json"),
+  195..237: Literal(String("{ \"columns\": [\"a\"], \"data\": [[1], [2]] }")),
+  237..238: Control(')'),
+  238..239: NewLine,
+  239..243: Ident("sort"),
+  244..245: Ident("a"),
+  245..246: NewLine,
+)

@@ -2,7 +2,8 @@
 use std::path::Path;
 use std::{env, fs};
 
-use insta::{assert_display_snapshot, assert_snapshot, with_settings};
+use insta::assert_debug_snapshot;
+use insta::{assert_snapshot, with_settings};
 
 use prql_compiler::sql::Dialect;
 use prql_compiler::{Options, Target};
@@ -20,8 +21,7 @@ mod lex {
         let tokens = prqlc_parser::lex_source(&prql).unwrap();
 
         with_settings!({ input_file => prql_path }, {
-            // assert_display_snapshot!(test_name, tokens, &prql)
-            assert_display_snapshot!(test_name, tokens )
+            assert_debug_snapshot!(test_name, tokens)
         });
     }
 }

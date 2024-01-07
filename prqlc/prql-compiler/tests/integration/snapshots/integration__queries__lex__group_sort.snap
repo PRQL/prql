@@ -3,15 +3,51 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/group_sort.prql
 ---
-
- from tracks 
- derive d = album_id + 1 
- group d ( 
- aggregate { 
- n1 = ( track_id | sum ) , 
- } 
- ) 
- sort d 
- take 10 
- select { d1 = d , n1 } 
- 
+TokenStream (
+  12..13: NewLine,
+  13..17: Ident("from"),
+  18..24: Ident("tracks"),
+  24..25: NewLine,
+  25..31: Ident("derive"),
+  32..33: Ident("d"),
+  34..35: Control('='),
+  36..44: Ident("album_id"),
+  45..46: Control('+'),
+  47..48: Literal(Integer(1)),
+  48..49: NewLine,
+  49..54: Ident("group"),
+  55..56: Ident("d"),
+  57..58: Control('('),
+  58..59: NewLine,
+  63..72: Ident("aggregate"),
+  73..74: Control('{'),
+  74..75: NewLine,
+  83..85: Ident("n1"),
+  86..87: Control('='),
+  88..89: Control('('),
+  89..97: Ident("track_id"),
+  98..99: Control('|'),
+  100..103: Ident("sum"),
+  103..104: Control(')'),
+  104..105: Control(','),
+  105..106: NewLine,
+  110..111: Control('}'),
+  111..112: NewLine,
+  112..113: Control(')'),
+  113..114: NewLine,
+  114..118: Ident("sort"),
+  119..120: Ident("d"),
+  120..121: NewLine,
+  121..125: Ident("take"),
+  126..128: Literal(Integer(10)),
+  128..129: NewLine,
+  129..135: Ident("select"),
+  136..137: Control('{'),
+  138..140: Ident("d1"),
+  141..142: Control('='),
+  143..144: Ident("d"),
+  144..145: Control(','),
+  146..148: Ident("n1"),
+  149..150: Control('}'),
+  150..151: NewLine,
+)
