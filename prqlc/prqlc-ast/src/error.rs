@@ -1,5 +1,4 @@
 //! Error message produced by the compiler.
-// Should be in some prql_common crate, but until we need that, it can reside here.
 
 use std::fmt::Debug;
 
@@ -59,11 +58,6 @@ impl Error {
     pub fn new_simple<S: ToString>(reason: S) -> Self {
         Error::new(Reason::Simple(reason.to_string()))
     }
-
-    pub fn with_code(mut self, code: &'static str) -> Self {
-        self.code = Some(code);
-        self
-    }
 }
 
 impl std::fmt::Display for Reason {
@@ -103,5 +97,84 @@ impl std::fmt::Display for Error {
 impl std::fmt::Display for Errors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self, f)
+    }
+}
+
+pub trait WithErrorInfo: Sized {
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self;
+
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
+
+    fn with_span(self, span: Option<Span>) -> Self;
+    fn with_code(self, code: &'static str) -> Self;
+}
+
+impl WithErrorInfo for Error {
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
+        self.hints = hints.into_iter().map(|x| x.into()).collect();
+        self
+    }
+
+    fn with_span(mut self, span: Option<Span>) -> Self {
+        self.span = span;
+        self
+    }
+
+    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
+        self.hints.push(hint.into());
+        self
+    }
+
+    fn with_code(mut self, code: &'static str) -> Self {
+        self.code = Some(code);
+        self
+    }
+}
+
+#[cfg(feature = "anyhow")]
+impl WithErrorInfo for anyhow::Error {
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
+        self.downcast_ref::<Error>()
+            .map(|e| e.clone().push_hint(hint).into())
+            .unwrap_or(self)
+    }
+
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
+        self.downcast_ref::<Error>()
+            .map(|e| e.clone().with_hints(hints).into())
+            .unwrap_or(self)
+    }
+
+    // Add a span of an expression onto the error. We need this implementation
+    // because we often pass `anyhow::Error`, and still want to try adding a
+    // span. So we need to try downcasting it to our error type first, and that
+    // fails, we return the original error.
+    fn with_span(self, span: Option<Span>) -> Self {
+        self.downcast_ref::<Error>()
+            .map(|e| e.clone().with_span(span).into())
+            .unwrap_or(self)
+    }
+    fn with_code(self, code: &'static str) -> Self {
+        self.downcast_ref::<Error>()
+            .map(|e| e.clone().with_code(code).into())
+            .unwrap_or(self)
+    }
+}
+
+impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
+    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
+        self.map_err(|e| e.with_hints(hints))
+    }
+
+    fn with_span(self, span: Option<Span>) -> Self {
+        self.map_err(|e| e.with_span(span))
+    }
+
+    fn with_code(self, code: &'static str) -> Self {
+        self.map_err(|e| e.with_code(code))
+    }
+
+    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
+        self.map_err(|e| e.push_hint(hint))
     }
 }

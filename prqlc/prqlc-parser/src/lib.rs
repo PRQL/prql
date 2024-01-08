@@ -8,8 +8,8 @@ mod types;
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
 
-use prqlc_ast::error::Error;
 use prqlc_ast::error::Reason;
+use prqlc_ast::error::{Error, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
@@ -121,8 +121,8 @@ fn prepare_stream(
 }
 
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
-    // TODO: is there a neater way of taking a span? We want to take it based on
-    // the chars, not the bytes, so can't just index into the str.
+    // We want to slice based on the chars, not the bytes, so can't just index
+    // into the str.
     let found = source
         .chars()
         .skip(e.span().start)
@@ -134,9 +134,7 @@ fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: 
         source_id,
     });
 
-    let mut e = Error::new(Reason::Unexpected { found });
-    e.span = span;
-    e
+    Error::new(Reason::Unexpected { found }).with_span(span)
 }
 
 fn convert_parser_error(e: common::PError) -> Error {
@@ -151,9 +149,7 @@ fn convert_parser_error(e: common::PError) -> Error {
         }
     }
 
-    let mut e = construct_parser_error(e);
-    e.span = Some(*span);
-    e
+    construct_parser_error(e).with_span(Some(*span))
 }
 
 fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
