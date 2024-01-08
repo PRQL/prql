@@ -239,21 +239,26 @@ mod tests {
 
     #[test]
     fn test_anyhow_error_integration() {
-        let err: anyhow::Error = Error::new_simple("An anyhow error")
+        use anyhow::Error as AnyhowError;
+
+        let err = AnyhowError::new(Error::new_simple("simple message"))
             .push_hint("Hint for anyhow")
-            .into();
+            .with_code("E001")
+            .with_span(None);
 
         assert_debug_snapshot!(err, @r###"
         Error {
             kind: Error,
             span: None,
             reason: Simple(
-                "An anyhow error",
+                "simple message",
             ),
             hints: [
                 "Hint for anyhow",
             ],
-            code: None,
+            code: Some(
+                "E001",
+            ),
         }
         "###);
     }
