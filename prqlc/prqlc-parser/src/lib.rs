@@ -181,9 +181,6 @@ fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
         .all(|t| matches!(t, None | Some(Token::NewLine)));
     let expected: Vec<String> = e
         .expected()
-        // TODO: could we collapse this into a `filter_map`? (though semantically
-        // identical)
-        //
         // Only include whitespace if we're _only_ expecting whitespace
         .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
         .cloned()
@@ -223,4 +220,38 @@ fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
             "Expected {expected}, but didn't find anything before the end."
         ))),
     }
+}
+
+#[test]
+fn test_lex_source() {
+    use insta::assert_debug_snapshot;
+
+    assert_debug_snapshot!(lex_source("5 + 3"), @r###"
+    Ok(
+        TokenStream (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          4..5: Literal(Integer(3)),
+        ),
+    )
+    "###);
+
+    // Something that will generate an error
+    assert_debug_snapshot!(lex_source("^"), @r###"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-1,
+                ),
+                reason: Unexpected {
+                    found: "^",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "###);
 }
