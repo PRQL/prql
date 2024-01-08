@@ -8,8 +8,9 @@ info:
     - bash
   env:
     CLICOLOR_FORCE: ""
-    RUST_LOG: ""
+    NO_COLOR: "1"
     RUST_BACKTRACE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -836,7 +837,11 @@ _prqlc() {
     esac
 }
 
-complete -F _prqlc -o nosort -o bashdefault -o default prqlc
+if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
+    complete -F _prqlc -o nosort -o bashdefault -o default prqlc
+else
+    complete -F _prqlc -o bashdefault -o default prqlc
+fi
 
 ----- stderr -----
 

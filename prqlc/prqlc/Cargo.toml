@@ -16,11 +16,11 @@ name = "prqlc"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anstream = {version = "0.6.5", features = ["auto"]}
-anyhow = {version = "1.0.78"}
+anyhow = {version = "1.0.79"}
 ariadne = {version = "0.4.0", features = ["auto-color"]}
 # Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
 atty = "0.2.14"
-clap = {version = "4.4.12", features = ["derive", "env", "wrap_help"]}
+clap = {version = "4.4.14", features = ["derive", "env", "wrap_help"]}
 clap_complete_command = "0.5.1"
 clio = {version = "0.3.3", features = ['clap-parse']}
 color-eyre = "0.6.2"
@@ -32,13 +32,13 @@ prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version =
 prqlc-ast = {path = '../prqlc-ast', version = "0.11.2"}
 regex = {version = "1.10.2", features = ["std", "unicode"]}
 serde = "1"
-serde_json = "1.0.109"
-serde_yaml = "0.9.29"
+serde_json = "1.0.111"
+serde_yaml = "0.9.30"
 walkdir = "2.4.0"
 
 # Not direct dependencies, but pinning because of bugs in previous versions. Can
 # remove when dependencies no longer use it. (If CI passes, it can be removed.)
-clap_complete = "4.4.5"
+clap_complete = "4.4.6"
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
