@@ -178,3 +178,83 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
         self.map_err(|e| e.push_hint(hint))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use insta::assert_debug_snapshot;
+
+    #[test]
+    fn test_simple_error() {
+        let err = Error::new_simple("A simple error message")
+            .push_hint("First hint")
+            .push_hint("Second hint")
+            .with_code("E001");
+
+        assert_debug_snapshot!(err, @r###"
+        Error {
+            kind: Error,
+            span: None,
+            reason: Simple(
+                "A simple error message",
+            ),
+            hints: [
+                "First hint",
+                "Second hint",
+            ],
+            code: Some(
+                "E001",
+            ),
+        }
+        "###);
+    }
+
+    #[test]
+    fn test_complex_error() {
+        let err = Error::new(Reason::Expected {
+            who: Some("Test".to_string()),
+            expected: "expected_value".to_string(),
+            found: "found_value".to_string(),
+        })
+        .with_code("E002");
+
+        assert_debug_snapshot!(err, @r###"
+        Error {
+            kind: Error,
+            span: None,
+            reason: Expected {
+                who: Some(
+                    "Test",
+                ),
+                expected: "expected_value",
+                found: "found_value",
+            },
+            hints: [],
+            code: Some(
+                "E002",
+            ),
+        }
+        "###);
+    }
+
+    #[test]
+    fn test_anyhow_error_integration() {
+        let err: anyhow::Error = Error::new_simple("An anyhow error")
+            .push_hint("Hint for anyhow")
+            .into();
+
+        assert_debug_snapshot!(err, @r###"
+        Error {
+            kind: Error,
+            span: None,
+            reason: Simple(
+                "An anyhow error",
+            ),
+            hints: [
+                "Hint for anyhow",
+            ],
+            code: None,
+        }
+        "###);
+    }
+}

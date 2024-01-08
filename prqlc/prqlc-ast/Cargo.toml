@@ -10,7 +10,6 @@ version.workspace = true
 
 [lib]
 doctest = false
-test = false
 
 [dependencies]
 anyhow = {version = "1.0", optional = true}
