@@ -296,7 +296,8 @@ tasks:
     #   - "**/*.lock"
     #   - "**/*.snap"
     cmds:
-      - cargo insta test --accept --features=test-dbs --unreferenced=auto
+      - cargo insta test --accept --features=default,test-dbs
+        --unreferenced=auto
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
@@ -330,7 +331,8 @@ tasks:
       # Use a different target dir so we don't poison the cache
       CARGO_TARGET_DIR: "./target-cov"
     cmds:
-      - cargo llvm-cov  --lcov --output-path lcov.info --features=test-dbs
+      - cargo llvm-cov  --lcov --output-path lcov.info
+        --features=default,test-dbs
 
   build-web:
     desc:

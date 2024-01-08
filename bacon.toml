@@ -4,10 +4,10 @@ default_job = "clippy"
 
 # PRQL additions
 [jobs.test]
-command = ['cargo', 'insta', 'test', "--color=always", "--features=test-dbs", "--unreferenced=auto"]
+command = ['cargo', 'insta', 'test', "--color=always", "--features=default,test-dbs", "--unreferenced=auto"]
 
 [jobs.test-accept]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=test-dbs", "--unreferenced=auto"]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=default,test-dbs", "--unreferenced=auto"]
 watch = ["*"]
 
 [jobs.test-accept-fast]
@@ -43,8 +43,8 @@ need_stdout = false
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
-need_stdout = false
+command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"] 
+need_stdout = false 
 on_success = "back" # so that we don't open the browser at each change
 
 # You may define here keybindings that would be specific to

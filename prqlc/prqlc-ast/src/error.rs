@@ -182,15 +182,49 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use insta::assert_debug_snapshot;
+    use insta::{assert_debug_snapshot, assert_display_snapshot};
+
+    // Helper function to create a simple Error object
+    fn create_simple_error() -> Error {
+        Error::new_simple("A simple error message")
+            .push_hint("take a hint")
+            .with_code("E001")
+    }
+
+    #[test]
+    fn display() {
+        assert_display_snapshot!(create_simple_error(),
+            @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
+        );
+
+        let errors = Errors(vec![create_simple_error()]);
+        assert_display_snapshot!(errors,
+            @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
+        );
+        assert_debug_snapshot!(errors, @r###"
+        Errors(
+            [
+                Error {
+                    kind: Error,
+                    span: None,
+                    reason: Simple(
+                        "A simple error message",
+                    ),
+                    hints: [
+                        "take a hint",
+                    ],
+                    code: Some(
+                        "E001",
+                    ),
+                },
+            ],
+        )
+        "###)
+    }
 
     #[test]
     fn test_simple_error() {
-        let err = Error::new_simple("A simple error message")
-            .push_hint("First hint")
-            .push_hint("Second hint")
-            .with_code("E001");
-
+        let err = create_simple_error();
         assert_debug_snapshot!(err, @r###"
         Error {
             kind: Error,
@@ -199,8 +233,7 @@ mod tests {
                 "A simple error message",
             ),
             hints: [
-                "First hint",
-                "Second hint",
+                "take a hint",
             ],
             code: Some(
                 "E001",
@@ -211,14 +244,13 @@ mod tests {
 
     #[test]
     fn test_complex_error() {
-        let err = Error::new(Reason::Expected {
+        assert_debug_snapshot!(
+        Error::new(Reason::Expected {
             who: Some("Test".to_string()),
             expected: "expected_value".to_string(),
             found: "found_value".to_string(),
         })
-        .with_code("E002");
-
-        assert_debug_snapshot!(err, @r###"
+        .with_code("E002"), @r###"
         Error {
             kind: Error,
             span: None,
@@ -238,15 +270,43 @@ mod tests {
     }
 
     #[test]
+    fn test_simple_error_with_result() {
+        let result: Result<(), Error> = Err(Error::new_simple("A simple error message"))
+            .with_hints(vec!["Take a hint"])
+            .push_hint("Take another hint")
+            .with_code("E001");
+        assert_debug_snapshot!(result, @r###"
+        Err(
+            Error {
+                kind: Error,
+                span: None,
+                reason: Simple(
+                    "A simple error message",
+                ),
+                hints: [
+                    "Take a hint",
+                    "Take another hint",
+                ],
+                code: Some(
+                    "E001",
+                ),
+            },
+        )
+        "###);
+    }
+
+    #[cfg(feature = "anyhow")]
+    #[test]
     fn test_anyhow_error_integration() {
         use anyhow::Error as AnyhowError;
 
-        let err = AnyhowError::new(Error::new_simple("simple message"))
+        assert_debug_snapshot!(
+            AnyhowError::new(Error::new_simple("simple message"))
             .push_hint("Hint for anyhow")
+            .with_hints(vec!["Replace hint for anyhow"])
             .with_code("E001")
-            .with_span(None);
-
-        assert_debug_snapshot!(err, @r###"
+            .with_span(None), 
+            @r###"
         Error {
             kind: Error,
             span: None,
@@ -254,7 +314,7 @@ mod tests {
                 "simple message",
             ),
             hints: [
-                "Hint for anyhow",
+                "Replace hint for anyhow",
             ],
             code: Some(
                 "E001",
