@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+ Copyright (C) 2024 The PRQL Project
+
+ https://prql-lang.org/
+ https://github.com/PRQL/prql
+
+-->
+<language id="prql" name="PRQL" version="2.0" _section="Source">
+  <metadata>
+    <property name="mimetypes">application/x.prql;application/prs.prql;application/vnd.prql</property>
+    <property name="globs">*.prql</property>
+    <property name="line-comment-start">#</property>
+    <property name="suggested-suffix">.prql</property>
+  </metadata>
+
+  <styles>
+    <style id="base-n-integer"  name="Base-N number"     map-to="def:base-n-integer"/>
+    <style id="boolean"         name="Boolean value"     map-to="def:boolean"/>
+    <style id="built-in-object" name="Built-in object"   map-to="def:builtin"/>
+    <style id="comment"         name="Comment"           map-to="def:comment"/>
+    <style id="declaration"     name="Declarations"      map-to="def:type"/>
+    <style id="escaped-char"    name="Escaped Character" map-to="def:special-char"/>
+    <style id="floating-point"  name="Floating Point"    map-to="def:floating-point"/>
+    <style id="string"          name="String"            map-to="def:string"/>
+    <style id="keyword"         name="Keyword"           map-to="def:keyword"/>
+    <style id="function"        name="Function"          map-to="def:function"/>
+    <style id="decimal"         name="Decimal"           map-to="def:decimal"/>
+    <style id="type"            name="Data Type"         map-to="def:type"/>
+    <style id="f-string-curly-braces" name="f-string curly braces" map-to="def:special-char"/>
+    <style id="unicode-bdi"    name="Unicode BDI"       map-to="def:error"/>
+  </styles>
+
+  <definitions>
+
+    <context id="boolean" style-ref="boolean">
+      <keyword>false</keyword>
+      <keyword>true</keyword>
+    </context>
+
+    <context id="declarations" style-ref="declaration">
+      <keyword>let</keyword>
+    </context>
+
+    <context id="unicode-bdi" style-ref="unicode-bdi">
+      <match>(\u202A|\u202B|\u202D|\u202E|\u2066|\u2067|\u2068|\u202C|\u2069)</match>
+    </context>
+
+    <context id="illegal-string" style-ref="unicode-bdi">
+      <match>\b[^frs:][\"\']</match>
+    </context>
+
+    <context id="psql-datatypes" style-ref="type">
+      <keyword>bool</keyword>
+      <keyword>float</keyword>
+      <keyword>int</keyword>
+      <keyword>int8</keyword>
+      <keyword>int16</keyword>
+      <keyword>int32</keyword>
+      <keyword>int64</keyword>
+      <keyword>int128</keyword>
+      <keyword>text</keyword>
+      <keyword>date</keyword>
+      <keyword>time</keyword>
+      <keyword>timestamp</keyword>
+    </context>
+
+    <context id="integer-literals" style-ref="decimal">
+      <match>\b[0-9_]+(?![Ee][\+\-]?[0-9]*)\b</match>
+    </context>
+
+    <context id="number-literals" style-ref="floating-point">
+      <match>(?&lt;![\w\.])(([0-9]+\.[0-9]*|\.[0-9]+)([Ee][\+\-]?[0-9]*)?|([0-9]+[Ee][\+\-]?[0-9]*))(?![\w\.])</match>
+    </context>
+
+    <context id="null" style-ref="decimal">
+      <keyword>null</keyword>
+    </context>
+
+    <context id="block-comment" style-ref="comment" class="comment" end-at-line-end="true" class-disabled="no-spell-check">
+      <start>#!</start>
+      <include>
+        <context ref="def:in-line-comment"/>
+      </include>
+    </context>
+
+    <context id="line-comment" style-ref="comment" end-at-line-end="true" class="comment" class-disabled="no-spell-check">
+      <start>#</start>
+      <include>
+        <context ref="def:in-line-comment"/>
+      </include>
+    </context>
+
+    <context id="built-in-object" style-ref="built-in-object">
+      <keyword>date</keyword>
+      <keyword>math</keyword>
+      <keyword>prql</keyword>
+    </context>
+
+    <!-- https://prql-lang.org/book/reference/stdlib/ -->
+    <context id="aggregate-functions" style-ref="function">
+      <keyword>any</keyword>
+      <keyword>average</keyword>
+      <keyword>concat_array</keyword>
+      <keyword>count</keyword>
+      <keyword>every</keyword>
+      <keyword>max|min</keyword>
+      <keyword>stddev</keyword>
+      <keyword>sum</keyword>
+    </context>
+
+    <context id="file-reading-functions" style-ref="function">
+      <keyword>read_csv</keyword>
+      <keyword>read_parquet</keyword>
+    </context>
+
+    <context id="list-functions" style-ref="function">
+      <keyword>all</keyword>
+      <keyword>map</keyword>
+      <keyword>zip</keyword>
+      <keyword>_eq</keyword>
+      <keyword>_is_null</keyword>
+    </context>
+
+    <context id="misc-functions" style-ref="function">
+      <keyword>from_text</keyword>
+    </context>
+
+    <context id="text-functions" style-ref="function">
+      <keyword>contains</keyword>
+      <keyword>ends_with</keyword>
+      <keyword>extract</keyword>
+      <keyword>length</keyword>
+      <keyword>lower</keyword>
+      <keyword>ltrim</keyword>
+      <keyword>replace</keyword>
+      <keyword>rtrim</keyword>
+      <keyword>starts_with</keyword>
+      <keyword>trim</keyword>
+      <keyword>upper</keyword>
+    </context>
+
+    <context id="window-functions" style-ref="function">
+      <keyword>lag|lead</keyword>
+      <keyword>first|last</keyword>
+      <keyword>rank</keyword>
+      <keyword>rank_dense</keyword>
+      <keyword>row_number</keyword>
+    </context>
+
+    <context id="transform-type-definitions" style-ref="function">
+      <keyword>aggregate</keyword>
+      <keyword>derive</keyword>
+      <keyword>filter</keyword>
+      <keyword>from</keyword>
+      <keyword>group</keyword>
+      <keyword>join</keyword>
+      <keyword>select</keyword>
+      <keyword>sort</keyword>
+      <keyword>take</keyword>
+      <keyword>window</keyword>
+    </context>
+
+    <context id="date-functions" style-ref="function">
+      <keyword>to_text</keyword>
+    </context>
+
+    <context id="math-functions" style-ref="function">
+      <keyword>abs</keyword>
+      <keyword>acos</keyword>
+      <keyword>asin</keyword>
+      <keyword>atan</keyword>
+      <keyword>ceil</keyword>
+      <keyword>cos</keyword>
+      <keyword>degrees</keyword>
+      <keyword>exp</keyword>
+      <keyword>floor</keyword>
+      <keyword>ln</keyword>
+      <keyword>log</keyword>
+      <keyword>log10</keyword>
+      <keyword>pi</keyword>
+      <keyword>pow</keyword>
+      <keyword>radians</keyword>
+      <keyword>round</keyword>
+      <keyword>sin</keyword>
+      <keyword>sqrt</keyword>
+      <keyword>tan</keyword>
+    </context>
+
+    <define-regex id="identifier" extended="true">
+      (?&gt; (?: _ | \%{def:unicode-xid-start} ) \%{def:unicode-xid-continue}* )
+    </define-regex>
+    <define-regex id="number">[1-9][0-9]*</define-regex>
+
+    <!-- https://prql-lang.org/book/reference/syntax/strings.html -->
+    <context id="escaped-char" style-ref="escaped-char" extend-parent="true">
+      <match extended="true">
+        \\(                   # leading backslash
+        [\\'"bfnrt]         | # single escaped char
+        u{[0-9A-Fa-f]{1,6}} | # \u{hhhhhh} - unicode character
+        x[0-9A-Fa-f]{1,2}   | # \xhh - character with hex value hh
+        )
+      </match>
+    </context>
+
+    <context id="curly-braces" extend-parent="true">
+      <start>\{</start>
+      <end>\}</end>
+      <include>
+        <context ref="prql"/>
+        <context ref="curly-braces"/>
+      </include>
+    </context>
+
+    <context id="f-string-curly-braces" extend-parent="false" class-disabled="string">
+      <start>(\{)</start>
+      <end>(\})</end>
+      <include>
+        <context ref="prql"/>
+        <context ref="curly-braces"/>
+        <context sub-pattern="1" where="start" style-ref="f-string-curly-braces"/>
+        <context sub-pattern="1" where="end" style-ref="f-string-curly-braces"/>
+      </include>
+    </context>
+
+    <context id="escaped-curly-brace" style-ref="escaped-char" extend-parent="true">
+      <match>\{\{</match>
+    </context>
+
+    <context id="double-quoted-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>"</start>
+      <end>"</end>
+      <include>
+        <context ref="escaped-char"/>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="single-quoted-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>'</start>
+      <end>'</end>
+      <include>
+        <context ref="escaped-char"/>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="double-quoted-triple-string" style-ref="string" class="string" class-disabled="no-spell-check">
+      <start>"""</start>
+      <end>"""</end>
+      <include>
+        <context ref="escaped-char"/>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="single-quoted-triple-string" style-ref="string" class="string" class-disabled="no-spell-check">
+      <start>'''</start>
+      <end>'''</end>
+      <include>
+        <context ref="escaped-char"/>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="double-quoted-f-string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>(f")</start>
+      <end>(")</end>
+      <include>
+        <context ref="escaped-curly-brace"/>
+        <context ref="f-string-curly-braces"/>
+        <context ref="escaped-char"/>
+        <context ref="def:line-continue"/>
+        <context style-ref="string" extend-parent="false" class="string">
+          <match>.</match>
+        </context>
+        <context sub-pattern="1" where="start" style-ref="string"/>
+        <context sub-pattern="1" where="end" style-ref="string"/>
+      </include>
+    </context>
+
+    <context id="single-quoted-f-string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>(f')</start>
+      <end>(')</end>
+      <include>
+        <context ref="escaped-curly-brace"/>
+        <context ref="f-string-curly-braces"/>
+        <context ref="escaped-char"/>
+        <context ref="def:line-continue"/>
+        <context style-ref="string" extend-parent="false" class="string">
+          <match>.</match>
+        </context>
+        <context sub-pattern="1" where="start" style-ref="string"/>
+        <context sub-pattern="1" where="end" style-ref="string"/>
+      </include>
+    </context>
+
+    <context id="double-quoted-r-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>r"</start>
+      <end>"</end>
+      <include>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="single-quoted-r-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>r'</start>
+      <end>r'</end>
+      <include>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="double-quoted-s-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>s"</start>
+      <end>"</end>
+      <include>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="single-quoted-s-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>s'</start>
+      <end>'</end>
+      <include>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="dimension" style-ref="floating-point">
+      <prefix>\%{number}</prefix>
+      <keyword>microseconds</keyword>
+      <keyword>milliseconds</keyword>
+      <keyword>seconds</keyword>
+      <keyword>minutes</keyword>
+      <keyword>hours</keyword>
+      <keyword>days</keyword>
+      <keyword>weeks</keyword>
+      <keyword>months</keyword>
+      <keyword>years</keyword>
+    </context>
+
+    <context id="prql" class="no-spell-check">
+      <include>
+        <context ref="boolean"/>
+
+        <context id="binary" style-ref="base-n-integer">
+          <match>(?&lt;![\w\.])0[bB](_?[0-1])+(?![\w\.])</match>
+        </context>
+
+        <context id="octal" style-ref="base-n-integer">
+          <match>(?&lt;![\w\.])0[oO](_?[0-7])+(?![\w\.])</match>
+        </context>
+
+        <context id="hex" style-ref="base-n-integer">
+          <match>(?&lt;![\w\.])0[xX](_?[0-9A-Fa-f])+(?![\w\.])</match>
+        </context>
+
+        <context ref="declarations"/>
+        <context ref="dimension"/>
+        <context ref="double-quoted-triple-string"/>
+        <context ref="single-quoted-triple-string"/>
+        <context ref="double-quoted-f-string"/>
+        <context ref="single-quoted-f-string"/>
+        <context ref="double-quoted-r-string"/>
+        <context ref="single-quoted-r-string"/>
+        <context ref="double-quoted-s-string"/>
+        <context ref="single-quoted-s-string"/>
+        <context ref="double-quoted-string"/>
+        <context ref="single-quoted-string"/>
+        <context ref="psql-datatypes"/>
+        <context ref="number-literals"/>
+        <context ref="integer-literals"/>
+        <context ref="null"/>
+        <context ref="block-comment"/>
+        <context ref="line-comment"/>
+        <context ref="built-in-object"/>
+        <context ref="aggregate-functions"/>
+        <context ref="date-functions"/>
+        <context ref="file-reading-functions"/>
+        <context ref="list-functions"/>
+        <context ref="math-functions"/>
+        <context ref="misc-functions"/>
+        <context ref="text-functions"/>
+        <context ref="transform-type-definitions"/>
+        <context ref="unicode-bdi"/>
+        <context ref="illegal-string"/>
+        <context ref="window-functions"/>
+      </include>
+    </context>
+
+  </definitions>
+</language>
