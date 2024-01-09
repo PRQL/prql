@@ -354,7 +354,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```sh
   task test-rust
   # or
-  cargo insta test --accept --features=test-dbs
+  cargo insta test --accept --features=default,test-dbs
   ```
 
   More details on running with external databases are in the

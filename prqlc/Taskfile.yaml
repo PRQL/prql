@@ -58,7 +58,7 @@ tasks:
           {{.packages_bindings}} -- -D warnings
 
       - cmd:
-          cargo test --package prql-compiler --features=test-dbs
+          cargo test --package prql-compiler --features=default,test-dbs
           --test=integration -- queries::results
 
   pull-request:

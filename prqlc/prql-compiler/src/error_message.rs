@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
 use crate::SourceTree;
+pub use prqlc_ast::error::WithErrorInfo;
 use prqlc_ast::error::*;
 
 pub use crate::ir::Span;
@@ -278,68 +279,5 @@ impl<'a> Cache<PathBuf> for FileTreeCache<'a> {
             Some(s) => Some(Box::new(s)),
             None => None,
         }
-    }
-}
-
-pub trait WithErrorInfo: Sized {
-    fn push_hint<S: Into<String>>(self, hint: S) -> Self;
-
-    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
-
-    fn with_span(self, span: Option<Span>) -> Self;
-}
-
-impl WithErrorInfo for crate::Error {
-    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
-        self.hints = hints.into_iter().map(|x| x.into()).collect();
-        self
-    }
-
-    fn with_span(mut self, span: Option<Span>) -> Self {
-        self.span = span;
-        self
-    }
-
-    fn push_hint<S: Into<String>>(mut self, hint: S) -> Self {
-        self.hints.push(hint.into());
-        self
-    }
-}
-
-impl WithErrorInfo for anyhow::Error {
-    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
-        self.downcast_ref::<crate::Error>()
-            .map(|e| e.clone().push_hint(hint).into())
-            .unwrap_or(self)
-    }
-
-    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
-        self.downcast_ref::<crate::Error>()
-            .map(|e| e.clone().with_hints(hints).into())
-            .unwrap_or(self)
-    }
-
-    // Add a span of an expression onto the error. We need this implementation
-    // because we often pass `anyhow::Error`, and still want to try adding a
-    // span. So we need to try downcasting it to our error type first, and that
-    // fails, we return the original error.
-    fn with_span(self, span: Option<Span>) -> Self {
-        self.downcast_ref::<crate::Error>()
-            .map(|e| e.clone().with_span(span).into())
-            .unwrap_or(self)
-    }
-}
-
-impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
-    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
-        self.map_err(|e| e.with_hints(hints))
-    }
-
-    fn with_span(self, span: Option<Span>) -> Self {
-        self.map_err(|e| e.with_span(span))
-    }
-
-    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
-        self.map_err(|e| e.push_hint(hint))
     }
 }
