@@ -18,9 +18,12 @@ nox.options.reuse_existing_virtualenvs = False
 def _install_prql_python(session: Session) -> None:
     session.install(
         "-v",
-        "--no-index",
+        # We'd like to prevent `prql_python` from being installed from PyPI, but we do
+        # want to install its dependencies from there, and currently there's no way in
+        # plain pip of doing that (https://github.com/pypa/pip/issues/11440).
+        # "--no-index",
         f"--find-links={Path('..', '..', '..', 'target', 'python')}",
-        "prql_python",
+        "prql_python[test]",
     )
 
 
@@ -29,7 +32,6 @@ def tests(session: Session) -> None:
     """Run the test suite with pytest."""
     print("CWD", os.getcwd())
     _install_prql_python(session)
-    session.install("-v", "-r", "requirements.txt")
     session.run("pytest", str(Path("python", "tests")))
 
 
@@ -37,5 +39,4 @@ def tests(session: Session) -> None:
 def typing(session: Session) -> None:
     """Check types with mypy"""
     _install_prql_python(session)
-    session.install("mypy==1.4.0")
     session.run("mypy")
