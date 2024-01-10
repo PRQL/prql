@@ -36,12 +36,6 @@ ignore = [
   "E731",
 ]
 
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = [
-  "pytest.*",
-]
-
 [tool.mypy]
 files = "."
 show_error_codes = true
@@ -50,4 +44,7 @@ warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
-module = "nox.*"
+module = [
+  "pytest.*",
+  "nox.*",
+]
