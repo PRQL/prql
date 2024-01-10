@@ -1,0 +1,43 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/switch.prql
+---
+TokenVec (
+  88..89: NewLine,
+  89..93: Ident("from"),
+  94..100: Ident("tracks"),
+  100..101: NewLine,
+  101..105: Ident("sort"),
+  106..118: Ident("milliseconds"),
+  118..119: NewLine,
+  119..125: Ident("select"),
+  126..133: Ident("display"),
+  134..135: Control('='),
+  136..140: Keyword("case"),
+  141..142: Control('['),
+  142..143: NewLine,
+  147..155: Ident("composer"),
+  156..158: Ne,
+  159..163: Literal(Null),
+  164..166: ArrowFat,
+  167..175: Ident("composer"),
+  175..176: Control(','),
+  176..177: NewLine,
+  181..189: Ident("genre_id"),
+  190..191: Control('<'),
+  192..194: Literal(Integer(17)),
+  195..197: ArrowFat,
+  198..211: Literal(String("no composer")),
+  211..212: Control(','),
+  212..213: NewLine,
+  217..221: Literal(Boolean(true)),
+  222..224: ArrowFat,
+  225..244: Interpolation('f', "unknown composer"),
+  244..245: NewLine,
+  245..246: Control(']'),
+  246..247: NewLine,
+  247..251: Ident("take"),
+  252..254: Literal(Integer(10)),
+  254..255: NewLine,
+)

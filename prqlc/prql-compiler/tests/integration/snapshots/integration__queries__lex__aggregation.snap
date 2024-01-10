@@ -1,0 +1,38 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/aggregation.prql
+---
+TokenVec (
+  101..102: NewLine,
+  102..106: Ident("from"),
+  107..113: Ident("tracks"),
+  113..114: NewLine,
+  114..120: Ident("filter"),
+  121..129: Ident("genre_id"),
+  130..132: Eq,
+  133..136: Literal(Integer(100)),
+  136..137: NewLine,
+  137..143: Ident("derive"),
+  144..154: Ident("empty_name"),
+  155..156: Control('='),
+  157..161: Ident("name"),
+  162..164: Eq,
+  165..167: Literal(String("")),
+  167..168: NewLine,
+  168..177: Ident("aggregate"),
+  178..179: Control('{'),
+  179..182: Ident("sum"),
+  183..191: Ident("track_id"),
+  191..192: Control(','),
+  193..205: Ident("concat_array"),
+  206..210: Ident("name"),
+  210..211: Control(','),
+  212..215: Ident("all"),
+  216..226: Ident("empty_name"),
+  226..227: Control(','),
+  228..231: Ident("any"),
+  232..242: Ident("empty_name"),
+  242..243: Control('}'),
+  243..244: NewLine,
+)

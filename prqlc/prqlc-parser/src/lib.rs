@@ -14,6 +14,7 @@ use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
 use lexer::Token;
+use lexer::{TokenSpan, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -45,6 +46,14 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     } else {
         Err(errors)
     }
+}
+
+pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
+    lexer::lexer().parse(source).map(TokenVec).map_err(|e| {
+        e.into_iter()
+            .map(|x| convert_lexer_error(source, x, 0))
+            .collect()
+    })
 }
 
 mod common {
@@ -104,13 +113,13 @@ mod common {
 }
 
 fn prepare_stream(
-    tokens: Vec<(Token, std::ops::Range<usize>)>,
+    tokens: Vec<TokenSpan>,
     source: &str,
     source_id: u16,
 ) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |(t, s)| (t, ParserSpan::new(source_id, s)));
+        .map(move |TokenSpan(t, s)| (t, ParserSpan::new(source_id, s)));
     let len = source.chars().count();
     let eoi = ParserSpan(Span {
         start: len,
@@ -168,9 +177,6 @@ fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
         .all(|t| matches!(t, None | Some(Token::NewLine)));
     let expected: Vec<String> = e
         .expected()
-        // TODO: could we collapse this into a `filter_map`? (though semantically
-        // identical)
-        //
         // Only include whitespace if we're _only_ expecting whitespace
         .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
         .cloned()
@@ -210,4 +216,38 @@ fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
             "Expected {expected}, but didn't find anything before the end."
         ))),
     }
+}
+
+#[test]
+fn test_lex_source() {
+    use insta::assert_debug_snapshot;
+
+    assert_debug_snapshot!(lex_source("5 + 3"), @r###"
+    Ok(
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          4..5: Literal(Integer(3)),
+        ),
+    )
+    "###);
+
+    // Something that will generate an error
+    assert_debug_snapshot!(lex_source("^"), @r###"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-1,
+                ),
+                reason: Unexpected {
+                    found: "^",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "###);
 }

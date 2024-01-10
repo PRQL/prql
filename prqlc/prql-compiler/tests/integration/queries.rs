@@ -2,11 +2,29 @@
 use std::path::Path;
 use std::{env, fs};
 
+use insta::assert_debug_snapshot;
 use insta::{assert_snapshot, with_settings};
 
 use prql_compiler::sql::Dialect;
 use prql_compiler::{Options, Target};
 use test_each_file::test_each_path;
+
+mod lex {
+    use super::*;
+
+    test_each_path! { in "./prqlc/prql-compiler/tests/integration/queries" => run }
+
+    fn run(prql_path: &Path) {
+        let test_name = prql_path.file_stem().unwrap().to_str().unwrap();
+        let prql = fs::read_to_string(prql_path).unwrap();
+
+        let tokens = prqlc_parser::lex_source(&prql).unwrap();
+
+        with_settings!({ input_file => prql_path }, {
+            assert_debug_snapshot!(test_name, tokens)
+        });
+    }
+}
 
 mod compile {
     use super::*;

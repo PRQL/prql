@@ -1,0 +1,17 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/read_csv.prql
+---
+TokenVec (
+  42..43: NewLine,
+  43..47: Ident("from"),
+  48..49: Control('('),
+  49..57: Ident("read_csv"),
+  58..90: Literal(String("data_file_root/media_types.csv")),
+  90..91: Control(')'),
+  91..92: NewLine,
+  92..96: Ident("sort"),
+  97..110: Ident("media_type_id"),
+  110..111: NewLine,
+)
