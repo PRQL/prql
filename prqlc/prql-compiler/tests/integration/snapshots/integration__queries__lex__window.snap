@@ -3,7 +3,7 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/window.prql
 ---
-TokenStream (
+TokenVec (
   337..338: NewLine,
   338..342: Ident("from"),
   343..349: Ident("tracks"),

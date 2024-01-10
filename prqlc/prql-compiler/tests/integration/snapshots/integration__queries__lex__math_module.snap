@@ -3,7 +3,7 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/math_module.prql
 ---
-TokenStream (
+TokenVec (
   81..82: NewLine,
   82..86: Ident("from"),
   87..95: Ident("invoices"),

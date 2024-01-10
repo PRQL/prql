@@ -3,7 +3,7 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/group_sort_limit_take.prql
 ---
-TokenStream (
+TokenVec (
   75..76: NewLine,
   76..80: Ident("from"),
   81..87: Ident("tracks"),

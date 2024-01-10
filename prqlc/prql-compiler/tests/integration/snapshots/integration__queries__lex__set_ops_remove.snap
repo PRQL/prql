@@ -3,7 +3,7 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/set_ops_remove.prql
 ---
-TokenStream (
+TokenVec (
   12..13: NewLine,
   13..16: Keyword("let"),
   17..25: Ident("distinct"),

@@ -14,7 +14,7 @@ use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
 use lexer::Token;
-use lexer::{TokenSpan, TokenStream};
+use lexer::{TokenSpan, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -48,8 +48,8 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     }
 }
 
-pub fn lex_source(source: &str) -> Result<TokenStream, Vec<Error>> {
-    lexer::lexer().parse(source).map(TokenStream).map_err(|e| {
+pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
+    lexer::lexer().parse(source).map(TokenVec).map_err(|e| {
         e.into_iter()
             .map(|x| convert_lexer_error(source, x, 0))
             .collect()
@@ -228,7 +228,7 @@ fn test_lex_source() {
 
     assert_debug_snapshot!(lex_source("5 + 3"), @r###"
     Ok(
-        TokenStream (
+        TokenVec (
           0..1: Literal(Integer(5)),
           2..3: Control('+'),
           4..5: Literal(Integer(3)),

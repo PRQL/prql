@@ -3,7 +3,7 @@ source: prqlc/prql-compiler/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prql-compiler/tests/integration/queries/genre_counts.prql
 ---
-TokenStream (
+TokenVec (
   116..117: NewLine,
   117..120: Keyword("let"),
   121..132: Ident("genre_count"),

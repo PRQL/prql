@@ -459,7 +459,7 @@ impl std::cmp::Eq for Token {}
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::NewLine => writeln!(f),
+            Token::NewLine => write!(f, "new line"),
             Token::Ident(s) => {
                 if s.is_empty() {
                     // FYI this shows up in errors
@@ -507,31 +507,17 @@ impl std::fmt::Display for Token {
 #[derive(PartialEq, Eq, Hash)]
 pub struct TokenSpan(pub Token, pub std::ops::Range<usize>);
 
-impl std::fmt::Display for TokenSpan {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{} ", self.0)
-    }
-}
 impl std::fmt::Debug for TokenSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}..{}: {:?}", self.1.start, self.1.end, self.0)
     }
 }
 
-pub struct TokenStream(pub Vec<TokenSpan>);
+pub struct TokenVec(pub Vec<TokenSpan>);
 
-impl std::fmt::Display for TokenStream {
+impl std::fmt::Debug for TokenVec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for token in &self.0 {
-            write!(f, "{}", token)?;
-        }
-        Ok(())
-    }
-}
-
-impl std::fmt::Debug for TokenStream {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        writeln!(f, "TokenStream (")?;
+        writeln!(f, "TokenVec (")?;
         for token in self.0.iter() {
             writeln!(f, "  {:?},", token)?;
         }
@@ -541,19 +527,30 @@ impl std::fmt::Debug for TokenStream {
 
 #[test]
 fn test_line_wrap() {
-    use insta::assert_display_snapshot;
-
+    use insta::assert_debug_snapshot;
     // (TODO: is there a terser way of writing our lexer output?)
-    assert_display_snapshot!(TokenStream(lexer().parse(r"5 +
+    assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
-        ).unwrap()), @"5 + 3 ");
+        ).unwrap()), @r###"
+    TokenVec (
+      0..1: Literal(Integer(5)),
+      2..3: Control('+'),
+      10..11: Literal(Integer(3)),
+    )
+    "###);
 
     // Comments get skipped over
-    assert_display_snapshot!(TokenStream(lexer().parse(r"5 +
+    assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
-        ).unwrap()), @"5 + 3 ");
+        ).unwrap()), @r###"
+    TokenVec (
+      0..1: Literal(Integer(5)),
+      2..3: Control('+'),
+      47..48: Literal(Integer(3)),
+    )
+    "###);
 }
 
 #[test]
@@ -581,15 +578,14 @@ fn numbers() {
 
 #[test]
 fn debug_display() {
-    use insta::{assert_debug_snapshot, assert_display_snapshot};
-    assert_debug_snapshot!(TokenStream(lexer().parse("5 + 3").unwrap()), @r###"
-    TokenStream (
+    use insta::assert_debug_snapshot;
+    assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
+    TokenVec (
       0..1: Literal(Integer(5)),
       2..3: Control('+'),
       4..5: Literal(Integer(3)),
     )
     "###);
-    assert_display_snapshot!(TokenStream(lexer().parse("5 + 3").unwrap()), @"5 + 3 ");
 }
 
 #[test]
