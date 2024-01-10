@@ -11,28 +11,24 @@ runs:
   using: composite
   steps:
     # There's benefit from caching here, because the maturin action uses a container.
-    - uses: messense/maturin-action@v1
+    - uses: PyO3/maturin-action@v1
       if: inputs.target == 'source'
       with:
         command: sdist
         args: -o target/python -m prqlc/bindings/python/Cargo.toml
-    - uses: messense/maturin-action@v1
+    - uses: PyO3/maturin-action@v1
       if: runner.os == 'Linux' && inputs.target != 'source'
       with:
         target: ${{ inputs.target }}
         manylinux: auto
         command: build
         args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
-    - uses: messense/maturin-action@v1
+    - uses: PyO3/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
         args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
-    - name: Add targets for MacOS universal
-      if: runner.os == 'macOS' && inputs.target != 'source'
-      shell: bash
-      run: rustup target add aarch64-apple-darwin
-    - uses: messense/maturin-action@v1
+    - uses: PyO3/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
