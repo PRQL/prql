@@ -70,3 +70,14 @@ updates:
     package-ecosystem: "github-actions"
     schedule:
       interval: "daily"
+
+  - package-ecosystem: pip
+    directory: "prqlc/bindings/python"
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "chore: "
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
