@@ -7,7 +7,7 @@ import nox
 from nox.sessions import Session
 
 VERSIONS: List[str] = [
-    "3.7",
+    "3.8",
     "3.11",
 ]
 
