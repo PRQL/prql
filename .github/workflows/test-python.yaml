@@ -31,7 +31,7 @@ jobs:
           path: target/python
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.7"
+          python-version: "3.8"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -42,9 +42,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .nox
-          key:
-            nox-${{ hashFiles('prql-python/noxfile.py') }}-${{
-            hashFiles('prql-python/requirements.txt') }}
+          key: nox-${{ hashFiles('prqlc/bindings/python/pyproject.toml') }}
       - name: Run tests and typing
         shell: bash
         run: nox -s tests typing -f prqlc/bindings/python/noxfile.py

@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "maturin"
-requires = ["maturin>=0.13,<0.14"]
+requires = ["maturin>=1.0,<2.0"]
 
 [project]
 classifiers = [
@@ -9,7 +9,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 name = "prql-python"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 
 [tool.maturin]
 # This is required because of https://github.com/PyO3/pyo3/pull/2135. Instead of
@@ -21,6 +21,12 @@ requires-python = ">=3.7"
 
 features = ["pyo3/extension-module"]
 
+[project.optional-dependencies]
+test = [
+  "pytest >= 7",
+  "mypy == 1.8.0",
+]
+
 [tool.ruff]
 fix = true
 ignore = [
@@ -28,12 +34,6 @@ ignore = [
   "E5", #
   # No lambdas — too strict
   "E731",
-]
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = [
-  "pytest.*",
 ]
 
 [tool.mypy]
@@ -44,4 +44,7 @@ warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
-module = "nox.*"
+module = [
+  "pytest.*",
+  "nox.*",
+]

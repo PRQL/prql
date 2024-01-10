@@ -10,7 +10,7 @@ inputs:
 runs:
   using: composite
   steps:
-    # There's no point caching here, because the maturin action uses a container.
+    # There's benefit from caching here, because the maturin action uses a container.
     - uses: messense/maturin-action@v1
       if: inputs.target == 'source'
       with:
@@ -28,12 +28,16 @@ runs:
       with:
         command: build
         args: --release -o target/python -m prqlc/bindings/python/Cargo.toml
+    - name: Add targets for MacOS universal
+      if: runner.os == 'macOS' && inputs.target != 'source'
+      shell: bash
+      run: rustup target add aarch64-apple-darwin
     - uses: messense/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
         args:
-          --release -o target/python --universal2 -m
+          --release -o target/python --target=universal2-apple-darwin -m
           prqlc/bindings/python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v3
