@@ -33,7 +33,7 @@ runs:
       with:
         command: build
         args:
-          --release -o target/python --target=universal2-apple-darwin -m
+          --release -o target/python --target universal2-apple-darwin -m
           prqlc/bindings/python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v3
