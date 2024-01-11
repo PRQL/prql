@@ -128,7 +128,6 @@ fn compile_help() {
     "###);
 }
 
-#[cfg(not(windows))] // This is back to causing a SO on Windows since https://github.com/PRQL/prql/pull/3786
 #[test]
 fn long_query() {
     assert_cmd_snapshot!(prqlc_command()
