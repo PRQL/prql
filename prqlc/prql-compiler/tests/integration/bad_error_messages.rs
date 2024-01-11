@@ -192,6 +192,6 @@ fn nested_groups() {
       )
     )
     "###).unwrap_err(), @r###"
-    Error: Internal compiler error. If we don't track this in a GitHub issue yet, please report it!
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
     "###);
 }

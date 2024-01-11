@@ -943,11 +943,11 @@ impl Lowerer {
                 if let Some((cid, _)) = input_columns.get(&name) {
                     *cid
                 } else {
-                    return Err(Error::new(Reason::Bug).into());
+                    panic!("cannot find cid by id={id} and name={name:?}");
                 }
             }
             None => {
-                return Err(Error::new(Reason::Bug).into());
+                return Err(Error::new(Reason::Bug { issue: Some(3870) }))?;
             }
         };
 

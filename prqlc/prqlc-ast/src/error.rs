@@ -42,7 +42,9 @@ pub enum Reason {
         name: String,
         namespace: String,
     },
-    Bug,
+    Bug {
+        issue: Option<i32>,
+    },
 }
 
 impl Error {
@@ -77,7 +79,14 @@ impl std::fmt::Display for Reason {
             }
             Reason::Unexpected { found } => write!(f, "unexpected {found}"),
             Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
-            Reason::Bug => f.write_str("Internal compiler error. If we don't track this in a GitHub issue yet, please report it!"),
+            Reason::Bug { issue } => match issue {
+                Some(issue) => write!(
+                    f,
+                    "internal compiler error; tracked at https://github.com/PRQL/prql/issues/{}",
+                    issue
+                ),
+                None => write!(f, "internal compiler error"),
+            },
         }
     }
 }
