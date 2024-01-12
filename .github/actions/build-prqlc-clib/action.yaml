@@ -69,8 +69,8 @@ runs:
         export ARTIFACT_NAME="prqlc-clib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc-clib/README.md .
-        tar czf "../../../${ARTIFACT_NAME}" prqlc-clib ../../../LICENSE README.md
+        # cp ../../../prqlc/prqlc-clib/README.md .
+        tar czf "../../../${ARTIFACT_NAME}" prqlc-clib ../../../LICENSE # README.md
 
     - name: Create artifact for Windows
       shell: bash
@@ -79,8 +79,8 @@ runs:
         export ARTIFACT_NAME="prqlc-clib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc-clib/README.md .
-        7z a "../../../${ARTIFACT_NAME}" prqlc-clib.exe ../../../LICENSE README.md
+        # cp ../../../prqlc/prqlc-clib/README.md .
+        7z a "../../../${ARTIFACT_NAME}" prqlc-clib.exe ../../../LICENSE # README.md
 
     - name: Upload prqlc-clib
       uses: actions/upload-artifact@v3
