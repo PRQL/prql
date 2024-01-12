@@ -19,6 +19,26 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
 }
 
+/// Very similar to `compile` but returns the JSON representation of an error.
+/// If we can implement this functionality in `compile`, we should do that and
+/// remove this function.
+// More discussion at https://github.com/PRQL/prql/issues/4061. It's a
+// copy-paste of `compile` except for the final `.map_err`.
+#[pyfunction]
+pub fn prql_to_sql(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
+    let options = options.map(convert_options).transpose();
+
+    options
+        .and_then(|opts| {
+            Ok(prql_query)
+                .and_then(prql_compiler::prql_to_pl)
+                .and_then(prql_compiler::pl_to_rq)
+                .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
+        })
+        .map_err(|e| e.composed(&prql_query.into()))
+        .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_json())))
+}
+
 #[pyfunction]
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     Ok(prql_query)
@@ -51,6 +71,7 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
     m.add_function(wrap_pyfunction!(get_targets, m)?)?;
+    m.add_function(wrap_pyfunction!(prql_to_sql, m)?)?;
     m.add_class::<CompileOptions>()?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

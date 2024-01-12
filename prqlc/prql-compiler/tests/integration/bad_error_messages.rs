@@ -175,3 +175,23 @@ fn test_relation_literal_contains_literals() {
     ───╯
     "###)
 }
+
+#[test]
+fn nested_groups() {
+    // Nested `group` gives a very abstract & internally-focused error message
+    assert_display_snapshot!(compile(r###"
+    from inv=invoices
+    join item=invoice_items (==invoice_id)
+
+    group { inv.billing_city } (
+
+      group { item.name } (
+        aggregate {
+          ct1 = count inv.name,
+        }
+      )
+    )
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+    "###);
+}

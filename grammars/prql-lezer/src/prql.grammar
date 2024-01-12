@@ -16,9 +16,11 @@
 
 @skip { space | Comment | Docblock | wrappedLine }
 
-statements { newline* QueryDefinition? Annotation? VariableDeclaration* pipelineStatement? end }
+statements { newline* QueryDefinition? Module? Annotation? VariableDeclaration* pipelineStatement? end? }
 
 QueryDefinition { @specialize<identPart, "prql"> NamedArg+ newline+ }
+
+Module { kw<"module"> Identifier "{" statements "}" }
 
 pipelineStatement { Pipeline (~ambigNewline newline+ | end)}
 
@@ -165,8 +167,6 @@ LambdaParam { identPart TypeDefinition? (":" expression)? }
   Comment { "#" ![\n]* }
   @precedence { Docblock, Comment }
 
-  //op_bin_only { "*" | "/" | "//" | "%" | "!=" | ">=" | "<=" | "~=" | ">" | "<" | "??" | "&&" | "||" }
-  //op_unary { "-" | "+" | "==" }
   end { @eof }
   lineWrap { "\\" }
   wrappedLine { newline+ (Comment newline+)* lineWrap }

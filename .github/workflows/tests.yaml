@@ -169,7 +169,7 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            features: test-dbs-external
+            features: default,test-dbs-external
           # Only run wasm on ubuntu, given it's the same rust target. (There is a
           # possibility of having a failure on just one platform, but it's quite
           # unlikely. If we do observe this, we can expand, or introduce a
@@ -177,7 +177,7 @@ jobs:
           # using runners & cache space)
           - target: wasm32-unknown-unknown
             os: ubuntu-latest
-            features: ""
+            features: default
     with:
       os: ubuntu-latest
       target: ${{ matrix.target }}
@@ -410,13 +410,22 @@ jobs:
           #
           # cargo llvm-cov --codecov --output-path=codecov.json --features=test-dbs
           cargo llvm-cov --cobertura --output-path=cobertura.xml
-          --features=test-dbs
+          --features=default,test-dbs
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
           # files: codecov.json
           files: cobertura.xml
           fail_ci_if_error: true
+          # This isn't strictly necessary, but as discussed in
+          # https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954,
+          # without this the upload has a fairly high failure rate. That also
+          # suggests copying the token into the repo in plain text to ensure it
+          # doesn't also fail on forks. The only thing the token allows is
+          # uploading coverage, so there's no material security risk. (The token
+          # is at https://app.codecov.io/gh/PRQL/prql/settings if we need to do
+          # that.)
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload code coverage results
         uses: actions/upload-artifact@v3
         with:
@@ -598,7 +607,7 @@ jobs:
           # Match the features with the available caches from tests
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            features: ""
+            features: default
           # TODO: Until we have tests for these, we don't have a cache for them.
           # If we can add tests, then re-enable them. They run on `release.yaml`
           # regardless.
@@ -609,10 +618,10 @@ jobs:
           #   target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-            features: test-dbs
+            features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            features: ""
+            features: default
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4

@@ -946,7 +946,9 @@ impl Lowerer {
                     panic!("cannot find cid by id={id} and name={name:?}");
                 }
             }
-            None => panic!("cannot find cid by id={id}"),
+            None => {
+                return Err(Error::new(Reason::Bug { issue: Some(3870) }))?;
+            }
         };
 
         Ok(cid)

@@ -1,4 +1,5 @@
 import prql_python as prql
+import pytest
 
 
 def test_all() -> None:
@@ -41,6 +42,9 @@ def test_all() -> None:
 
     assert prql.compile(prql_query)
     assert prql.compile(prql_query, options)
+
+    with pytest.raises(Exception, match=r'{"inner"'):
+        prql.prql_to_sql("^")
 
 
 def test_compile_options() -> None:

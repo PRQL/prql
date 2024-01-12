@@ -1,0 +1,27 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prql-compiler/tests/integration/queries/constants_only.prql
+---
+TokenVec (
+  0..4: Ident("from"),
+  5..11: Ident("genres"),
+  11..12: NewLine,
+  12..16: Ident("take"),
+  17..19: Literal(Integer(10)),
+  19..20: NewLine,
+  20..26: Ident("filter"),
+  27..31: Literal(Boolean(true)),
+  31..32: NewLine,
+  32..36: Ident("take"),
+  37..39: Literal(Integer(20)),
+  39..40: NewLine,
+  40..46: Ident("filter"),
+  47..51: Literal(Boolean(true)),
+  51..52: NewLine,
+  52..58: Ident("select"),
+  59..60: Ident("d"),
+  61..62: Control('='),
+  63..65: Literal(Integer(10)),
+  65..66: NewLine,
+)

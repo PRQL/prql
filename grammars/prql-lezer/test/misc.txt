@@ -177,3 +177,13 @@ let		foo		=		(foo 1)
 ==>
 
 Query(VariableDeclaration(let,VariableName,Equals,NestedPipeline(Pipeline(CallExpression(Identifier,ArgList(Integer))))))
+
+# Module
+
+module foo {
+  let x = -> s"foo()"
+}
+
+==>
+
+Query(Module(module,Identifier,VariableDeclaration(let,VariableName,Equals,Lambda(SString))))
