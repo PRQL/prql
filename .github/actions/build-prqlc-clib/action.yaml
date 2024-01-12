@@ -1,0 +1,93 @@
+name: build-prqlc
+description: >
+  Build prqlc
+inputs:
+  target:
+    description: Build target
+    required: true
+  profile:
+    description: Build profile option; `dev` or `release`.
+    required: true
+  features:
+    description: Features to enable
+    default: ""
+outputs:
+  artifact-name:
+    description: The name of the artifact
+    value: ${{ steps.echo-artifact-name.outputs.artifact-name }}
+
+runs:
+  using: composite
+  steps:
+    - run: rustup target add ${{ inputs.target }}
+      shell: bash
+
+    - run: ./.github/workflows/scripts/set_version.sh
+      shell: bash
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        # Share cache with `test-rust`, except for `musl` targets.
+        save-if:
+          ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
+          'musl') }}
+        shared-key: rust-${{ inputs.target }}
+        prefix-key: ${{ env.version }}
+
+    - if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y musl-tools
+
+    - if: runner.os == 'Windows' && inputs.profile == 'release'
+      shell: bash
+      run: |
+        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
+
+    - if: inputs.target == 'aarch64-unknown-linux-musl'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+        echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
+        echo 'CC=aarch64-linux-gnu-gcc' >>"$GITHUB_ENV"
+
+    - name: cargo build
+      uses: richb-hanover/cargo@v1.1.0
+      with:
+        command: build
+        args:
+          --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
+          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
+          && '--package=prqlc-clib' || '--all-targets' }}
+
+    - name: Create artifact for Linux and macOS
+      shell: bash
+      if: runner.os != 'Windows'
+      run: |
+        export ARTIFACT_NAME="prqlc-clib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
+        echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
+        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
+        cp ../../../prqlc/prqlc-clib/README.md .
+        tar czf "../../../${ARTIFACT_NAME}" prqlc-clib ../../../LICENSE README.md
+
+    - name: Create artifact for Windows
+      shell: bash
+      if: runner.os == 'Windows'
+      run: |
+        export ARTIFACT_NAME="prqlc-clib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
+        echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
+        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
+        cp ../../../prqlc/prqlc-clib/README.md .
+        7z a "../../../${ARTIFACT_NAME}" prqlc-clib.exe ../../../LICENSE README.md
+
+    - name: Upload prqlc-clib
+      uses: actions/upload-artifact@v3
+      with:
+        name: prqlc-${{ inputs.target }}
+        path: ${{ env.ARTIFACT_NAME }}
+
+    - id: echo-artifact-name
+      shell: bash
+      run: echo "artifact-name=${{ env.ARTIFACT_NAME }}" >>"$GITHUB_OUTPUT"
