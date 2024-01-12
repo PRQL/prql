@@ -8,6 +8,10 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+# This means we can build with `--features=default`, which can make builds more generic
+[features]
+default = []
+
 [lib]
 crate_type = ["staticlib", "cdylib"]
 doctest = false
