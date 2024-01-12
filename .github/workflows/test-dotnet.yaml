@@ -6,20 +6,54 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: 🏗 Build prqlc-clib
-        run: cargo build --package prqlc-clib
+        run: cargo build --package prqlc-clib --release
+      - name: 🔢 Set version
+        shell: bash
+        run: ./.github/workflows/scripts/set_version.sh
+      - name: 🐜 Debug CI/CD (version + target/release)
+        shell: pwsh
+        run: |
+          Write-Host "Version: $env:version"
+          Get-ChildItem ./target/release/
       - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 7
-      - name: 🧪 Build and test
-        working-directory: prqlc/bindings
-        run: |
-          dotnet build dotnet
-          cp ../../target/debug/libprqlc_lib.* dotnet/PrqlCompiler/bin/Debug/net*/
-          cp ../../target/debug/libprqlc_lib.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
-          dotnet test dotnet
+          dotnet-version: |
+            6
+            7
+      - name: 🛠️ Build
+        working-directory: prqlc/bindings/dotnet
+        shell: cmd
+        run:
+          dotnet build prql-net.sln -p:version="%version%" -c Release
+          /p:ContinuousIntegrationBuild=true --nologo
+      - name: 🧪 Test
+        working-directory: prqlc/bindings/dotnet
+        shell: cmd
+        run:
+          dotnet test PrqlCompiler.tests\PrqlCompiler.Tests.csproj -c release
+          --runtime win-x64 --logger GitHubActions /p:CI=true --nologo
+      - name: 📦 Package
+        working-directory: prqlc/bindings/dotnet
+        shell: cmd
+        run:
+          dotnet pack PrqlCompiler -p:version="%version%" -c Release
+          --include-symbols /p:CI=true --no-build --nologo
+      - name: 🍱 Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: nuget-packages
+          path: |
+            prqlc/bindings/dotnet/PrqlCompiler/bin/Release/*.nupkg
+            prqlc/bindings/dotnet/PrqlCompiler/bin/Release/*.snupkg
+      # - name: 🚚 Publish
+      #   working-directory: prqlc/bindings/dotnet
+      #   run: |
+      #     dotnet nuget push PrqlCompiler/bin/Release/*.nupkg -k $NUGET_AUTH_TOKEN -s https://api.nuget.org/v3/index.json
+      #   env:
+      #     NUGET_AUTH_TOKEN: ${{ secrets.NUGET_TOKEN }}

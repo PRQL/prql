@@ -1,39 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageId>Prql.Compiler</PackageId>
-    <PackageVersion>0.1.0</PackageVersion>
-    <Title>PRQL Compiler</Title>
-    <Authors>PRQL</Authors>
-    <Copyright>Copyright © The PRQL Project 2023</Copyright>
-    <Description>.NET bindings for the PRQL compiler. PRQL is a modern language for transforming data</Description>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://prql-lang.org/</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>prql;sql</PackageTags>
-    <RepositoryUrl>https://github.com/PRQL/prql</RepositoryUrl>
-  </PropertyGroup>
-
   <ItemGroup>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="libprqlc_lib.dll">
+    <None Include="..\..\..\..\target\release\prqlc_lib.dll">
+      <Visible>false</Visible>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="libprqlc_lib.dylib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="libprqlc_lib.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>\runtimes\win-x64\native</PackagePath>
+      <Link>%(FileName)%(Extension)</Link>
     </None>
   </ItemGroup>
 

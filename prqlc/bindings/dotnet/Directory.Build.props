@@ -1,0 +1,71 @@
+<Project>
+	<PropertyGroup>
+		<!-- By default every project is packable except Tests projects-->
+		<IsPackable>true</IsPackable>
+		<IsPackable Condition="$(MSBuildProjectName.EndsWith('Tests'))">false</IsPackable>
+		<DebugType>portable</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+		<Platform>AnyCPU</Platform>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<PropertyGroup>
+		<Id>Prql.Compiler</Id>
+		<PackageIcon>prql-logo.png</PackageIcon>
+		<Title>PRQL Compiler</Title>
+		<Authors>PRQL</Authors>
+		<Copyright>Copyright © The PRQL Project 2023</Copyright>
+		<Description>.NET bindings for the PRQL compiler. PRQL is a modern language for transforming data</Description>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<PackageProjectUrl>https://prql-lang.org/</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>prql;sql</PackageTags>
+		<RepositoryUrl>https://github.com/PRQL/prql</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<RequireLicenseAcceptance>false</RequireLicenseAcceptance>
+		<SymbolPackageFormat Condition=" '$(DebugType)' != 'embedded' ">snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+
+	<ItemGroup>
+      <None Include="..\prql-logo.png">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+      <None Include="..\README.md">
+		<Pack>True</Pack>
+		<PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
+
+	<PropertyGroup>
+		<!-- disable warning when XML comments are missing -->
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release' AND $(IsPackable) == true">
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+		<WarningLevel>5</WarningLevel>
+		<LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+		<WarningLevel>5</WarningLevel>
+		<LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+</Project>
