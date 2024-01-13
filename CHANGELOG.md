@@ -23,6 +23,11 @@
 
 **Internal changes**:
 
+- _Breaking_ The `prqlc-clib` crate was renamed to `prqlc-c`, and associated
+  artifacts were renamed. We're trying to make names consistent (ideally for the
+  final time!), and have a plan to rename some other bindings. (@max-sixty,
+  #4077)
+
 **New Contributors**:
 
 ## 0.11.1 — 2023-12-26

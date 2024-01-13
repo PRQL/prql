@@ -18,7 +18,6 @@ default = []
 # https://github.com/rust-lang/rust/issues/59302
 crate_type = ["staticlib", "cdylib"]
 doctest = false
-# name = "prqlc_c"
 test = false
 
 [dependencies]
