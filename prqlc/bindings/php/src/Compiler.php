@@ -48,7 +48,7 @@ final class Compiler
             $lib_path = __DIR__ . '/../lib';
         }
 
-        $header = $lib_path . '/libprqlc_c.h';
+        $header = $lib_path . '/prqlc.h';
 
         if (PHP_OS_FAMILY === 'Windows') {
             $library = $lib_path . "\libprqlc_c.dll";

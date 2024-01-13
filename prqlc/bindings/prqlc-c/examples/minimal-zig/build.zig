@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
     });
     exe.addIncludePath(.{ .path = "src" });
     exe.addLibraryPath(.{ .path = "c" });
-    exe.installHeader("c/libprqlc_c.h", "libprqlc_c.h");
+    exe.installHeader("c/prqlc.h", "prqlc.h");
     exe.linkSystemLibraryName("prqlc_lib");
     exe.linkLibC();
 
@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) void {
     });
     unit_tests.addIncludePath(.{ .path = "src" });
     unit_tests.addLibraryPath(.{ .path = "c" });
-    unit_tests.installHeader("c/libprqlc_c.h", "libprqlc_c.h");
+    unit_tests.installHeader("c/prqlc.h", "prqlc.h");
     unit_tests.linkSystemLibraryName("prqlc_lib");
     unit_tests.linkLibC();
 

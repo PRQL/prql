@@ -53,7 +53,7 @@ There is a `task build-php` script that:
 
 - runs cargo to build `libprqlc_c`,
 - copies `libprqlc_c.*` into `lib`,
-- copies `libprqlc_c.h` into `lib`.
+- copies `prqlc.h` into `lib`.
 
 ### Tests
 

@@ -92,7 +92,7 @@ func ToJSON(prql string) (string, error) {
 
 ### Headers
 
-The C & C++ header files `libprqlc_c.h` & `libprqlc_c.hpp` were generated using
+The C & C++ header files `prqlc.h` & `prqlc.hpp` were generated using
 [cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
 
 ```sh
