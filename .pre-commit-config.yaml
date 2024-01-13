@@ -32,7 +32,7 @@ repos:
     rev: v17.0.6
     hooks:
       - id: clang-format
-        types: [c, c++]
+        types_or: [c, c++]
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
