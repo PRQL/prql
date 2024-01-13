@@ -34,7 +34,7 @@ repos:
     rev: v17.0.6
     hooks:
       - id: clang-format
-        types: [c, c++]
+        types_or: [c, c++]
   - repo: https://github.com/r0x0d/pre-commit-rust
     rev: v1.0.1
     hooks:
