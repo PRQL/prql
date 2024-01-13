@@ -1,0 +1,16 @@
+[package]
+name = "compile-files"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "compile-files"
+test = false
+
+[build-dependencies]
+prql-compiler = {path = '../../../prql-compiler'}
