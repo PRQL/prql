@@ -46,3 +46,11 @@ Nascent bindings are in development, and may not yet fully work.
 
 - [.NET](./dotnet.md)
 - [PHP](./php.md)
+
+## Naming
+
+Over time, we're trying to move to a consistent naming scheme:
+
+- Crates are named `prqlc-$lang`.
+- Where possible, packages are published to each language's package repository
+  as `prqlc`.
