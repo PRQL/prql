@@ -1,6 +1,10 @@
-name: build-prqlc
+name: build-prqlc-clib
 description: >
-  Build prqlc
+  A version of `build-prqlc` for the C bindings.
+
+  Note that this is quite open to change, including names and which files we
+  package. Contributions and/or suggestions are welcome.
+
 inputs:
   target:
     description: Build target
@@ -70,7 +74,7 @@ runs:
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
-        tar czf "../../../${ARTIFACT_NAME}" libprqlc_lib*
+        tar czf "../../../${ARTIFACT_NAME}" *prqlc_lib*
 
     - name: Create artifact for Windows
       shell: bash
@@ -80,7 +84,7 @@ runs:
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
-        7z a "../../../${ARTIFACT_NAME}" libprqlc_lib*
+        7z a "../../../${ARTIFACT_NAME}" *prqlc_lib*
 
     - name: Upload prqlc-clib
       uses: actions/upload-artifact@v3
