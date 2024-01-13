@@ -346,7 +346,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept
   ```
 
-- **[Database integration tests](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration/dbs)**
+- **[Database integration tests](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/tests/integration/dbs)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
   in-process tests can be run locally with:
@@ -358,7 +358,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```
 
   More details on running with external databases are in the
-  [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration/dbs).
+  [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/tests/integration/dbs).
 
 ```admonish note
 Integration tests use DuckDB, and so require a clang compiler to compile

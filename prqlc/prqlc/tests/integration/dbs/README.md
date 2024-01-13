@@ -19,7 +19,7 @@ ClickHouse and GlareDB are tested — we use `docker compose`:
 1. Run `docker compose up` (may take a while on the first time):
 
    ```sh
-   cd prql-compiler/tests/integration
+   cd prqlc/prqlc/tests/integration
    docker compose up
    ```
 
