@@ -415,7 +415,7 @@ tasks:
   build-php:
     - cargo build --package prqlc-c --release
     - mkdir -p prqlc/bindings/php/lib/
-    - cp target/release/libprqlc_c.* prqlc/bindings/prqlc-c/libprqlc_c.h
+    - cp target/release/libprqlc_c.* prqlc/bindings/prqlc-c/prqlc.h
       prqlc/bindings/php/lib/
     - cd prqlc/bindings/php && composer install
 
