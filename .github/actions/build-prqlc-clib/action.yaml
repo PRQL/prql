@@ -85,7 +85,7 @@ runs:
     - name: Upload prqlc-clib
       uses: actions/upload-artifact@v3
       with:
-        name: prqlc-${{ inputs.target }}
+        name: libprqlc_lib-${{ inputs.target }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name
