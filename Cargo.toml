@@ -32,8 +32,8 @@ opt-level = "s"
 # Remove all symbols.
 strip = "symbols"
 
-[profile.release.package.prqlc-c]
-# Remove all debug symbols (linker needs some of them)
+[profile.release.package.prqlc-clib]
+# Remove some debug symbols (linker needs some of them)
 strip = "debuginfo"
 
 # Insta runs faster this way, ref https://insta.rs/docs/quickstart/
