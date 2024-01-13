@@ -641,7 +641,7 @@ jobs:
   build-prqlc-clib:
     runs-on: ${{ matrix.os }}
     needs: rules
-    if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
+    if: needs.rules.outputs.main == 'true'
     strategy:
       fail-fast: false
       matrix:
