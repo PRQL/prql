@@ -423,7 +423,6 @@ tasks:
     desc: Build the C header for the C bindings.
     dir: prqlc/bindings/prqlc-c
     cmds:
-      - cargo install --locked cbindgen
       - cbindgen --crate prqlc-c --output prqlc.h
       - cbindgen --crate prqlc-c --lang C++ --output prqlc.hpp
 
