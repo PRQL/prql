@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) void {
     unit_tests.addIncludePath(.{ .path = "src" });
     unit_tests.addLibraryPath(.{ .path = "c" });
     unit_tests.installHeader("c/prqlc.h", "prqlc.h");
-    unit_tests.linkSystemLibraryName("prqlc");
+    unit_tests.linkSystemLibraryName("prqlc_c");
     unit_tests.linkLibC();
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
