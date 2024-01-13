@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(.{ .path = "src" });
     exe.addLibraryPath(.{ .path = "c" });
     exe.installHeader("c/prqlc.h", "prqlc.h");
-    exe.linkSystemLibraryName("prqlc_lib");
+    exe.linkSystemLibraryName("prqlc_c");
     exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
