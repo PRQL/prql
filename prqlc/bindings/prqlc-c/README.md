@@ -3,7 +3,7 @@
 ## Description
 
 This module compiles PRQL as a library (both `.a` and `.so` are generated). This
-allows embedding in languages that support FFI - looking at Golang.
+allows embedding in languages that support FFI — for example, Golang.
 
 ## Linking
 
@@ -90,17 +90,13 @@ func ToJSON(prql string) (string, error) {
 
 ## Development
 
-### C header file
+### Headers
 
-The C header file `libprqlc_lib.h` was generated using
-[cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
+The C & C++ header files `libprqlc_lib.h` & `libprqlc_lib.hpp` were generated
+using [cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
 
-    cargo install --force cbindgen
-    cbindgen --crate prqlc-c --output libprqlc_lib.h
+```sh
+task build-prqlc-c-header
+```
 
-### C++ header file
-
-The C++ header file `libprqlc_lib.hpp` was generated using cbindgen. To generate
-a new one run:
-
-    cbindgen --crate prqlc-c --lang C++ --output libprqlc_lib.hpp
+...or copy & paste the commands from the Taskfile.
