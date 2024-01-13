@@ -88,7 +88,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prqlc-clib
+      - uses: ./.github/actions/build-prqlc-c
         id: build-artifact
         with:
           target: ${{ matrix.target }}

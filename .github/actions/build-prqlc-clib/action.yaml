@@ -1,4 +1,4 @@
-name: build-prqlc-clib
+name: build-prqlc-c
 description: >
   A version of `build-prqlc` for the C bindings.
 
@@ -64,7 +64,7 @@ runs:
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
           --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
-          && '--package=prqlc-clib' || '--all-targets' }}
+          && '--package=prqlc-c' || '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
@@ -86,7 +86,7 @@ runs:
         ls -al
         7z a "../../../${ARTIFACT_NAME}" *prqlc_lib*
 
-    - name: Upload prqlc-clib
+    - name: Upload prqlc-c
       uses: actions/upload-artifact@v3
       with:
         name: prqlc_lib-${{ inputs.target }}

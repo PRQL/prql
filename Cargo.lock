@@ -3014,7 +3014,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "prqlc-clib"
+name = "prqlc-c"
 version = "0.11.2"
 dependencies = [
  "libc",

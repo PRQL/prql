@@ -1,11 +1,11 @@
-name: test-clib
+name: test-prqlc-c
 
 on:
   workflow_call:
   workflow_dispatch:
 
 jobs:
-  test-clib:
+  test-c:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
@@ -22,12 +22,12 @@ jobs:
         with:
           command: build
           # Currently requires a release build; would be useful to allow a debug build.
-          args: --release --package prqlc-clib
+          args: --release --package prqlc-c
       - name: Run example minimal-c
-        working-directory: prqlc/bindings/clib/examples/minimal-c
+        working-directory: prqlc/bindings/prqlc-c/examples/minimal-c
         run: make run
       - name: Run example minimal-cpp
-        working-directory: prqlc/bindings/clib/examples/minimal-cpp
+        working-directory: prqlc/bindings/prqlc-c/examples/minimal-cpp
         run: make run
 
       - name: 🔧 Setup Zig
@@ -37,5 +37,5 @@ jobs:
           # Pinned version — https://github.com/PRQL/prql/issues/4050
           version: 0.11.0
       - name: Run example minimal-zig
-        working-directory: prqlc/bindings/clib/examples/minimal-zig
+        working-directory: prqlc/bindings/prqlc-c/examples/minimal-zig
         run: make run test

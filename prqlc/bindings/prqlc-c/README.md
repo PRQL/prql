@@ -96,11 +96,11 @@ The C header file `libprqlc_lib.h` was generated using
 [cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
 
     cargo install --force cbindgen
-    cbindgen --crate prqlc-clib --output libprqlc_lib.h
+    cbindgen --crate prqlc-c --output libprqlc_lib.h
 
 ### C++ header file
 
 The C++ header file `libprqlc_lib.hpp` was generated using cbindgen. To generate
 a new one run:
 
-    cbindgen --crate prqlc-clib --lang C++ --output libprqlc_lib.hpp
+    cbindgen --crate prqlc-c --lang C++ --output libprqlc_lib.hpp
