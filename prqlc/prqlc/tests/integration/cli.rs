@@ -237,12 +237,47 @@ fn compile_project() {
     ]);
 
     assert_cmd_snapshot!(cmd, @r###"
-    success: false
-    exit_code: 1
+    success: true
+    exit_code: 0
     ----- stdout -----
+    WITH table_1 AS (
+      SELECT
+        120 AS artist_id,
+        DATE '2023-05-18' AS last_listen
+      UNION
+      ALL
+      SELECT
+        7 AS artist_id,
+        DATE '2023-05-16' AS last_listen
+    ),
+    favorite_artists AS (
+      SELECT
+        artist_id,
+        last_listen
+      FROM
+        table_1
+    ),
+    table_0 AS (
+      SELECT
+        *
+      FROM
+        read_parquet('artists.parquet')
+    ),
+    input AS (
+      SELECT
+        *
+      FROM
+        table_0
+    )
+    SELECT
+      favorite_artists.artist_id,
+      favorite_artists.last_listen,
+      input.*
+    FROM
+      favorite_artists
+      LEFT JOIN input ON favorite_artists.artist_id = input.artist_id
 
     ----- stderr -----
-    IO error for operation on /Users/maximilian/workspace/prql/prqlc/prqlc/tests/project: No such file or directory (os error 2)
     "###);
 
     assert_cmd_snapshot!(prqlc_command()
@@ -253,12 +288,26 @@ fn compile_project() {
         "-",
         "favorite_artists",
     ]), @r###"
-    success: false
-    exit_code: 1
+    success: true
+    exit_code: 0
     ----- stdout -----
+    WITH table_0 AS (
+      SELECT
+        120 AS artist_id,
+        DATE '2023-05-18' AS last_listen
+      UNION
+      ALL
+      SELECT
+        7 AS artist_id,
+        DATE '2023-05-16' AS last_listen
+    )
+    SELECT
+      artist_id,
+      last_listen
+    FROM
+      table_0
 
     ----- stderr -----
-    IO error for operation on /Users/maximilian/workspace/prql/prqlc/prqlc/tests/project: No such file or directory (os error 2)
     "###);
 }
 
@@ -282,22 +331,20 @@ fn format() {
 
     // Single file
     assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().join("artists.prql").to_str().unwrap()]), @r###"
-    success: false
-    exit_code: 1
+    success: true
+    exit_code: 0
     ----- stdout -----
 
     ----- stderr -----
-    IO error for operation on /Users/maximilian/workspace/prql/prqlc/prqlc/tests/project/artists.prql: No such file or directory (os error 2)
     "###);
 
     // Project
     assert_cmd_snapshot!(prqlc_command().args(["fmt", project_path().to_str().unwrap()]), @r###"
-    success: false
-    exit_code: 1
+    success: true
+    exit_code: 0
     ----- stdout -----
 
     ----- stderr -----
-    IO error for operation on /Users/maximilian/workspace/prql/prqlc/prqlc/tests/project: No such file or directory (os error 2)
     "###);
 }
 
@@ -392,7 +439,7 @@ fn project_path() -> PathBuf {
         // We canonicalize so that it doesn't matter where the cwd is.
         .canonicalize()
         .unwrap()
-        .join("tests/project")
+        .join("tests/integration/project")
 }
 
 fn prqlc_command() -> Command {
