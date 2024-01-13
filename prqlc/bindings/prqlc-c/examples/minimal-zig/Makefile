@@ -8,8 +8,8 @@ build-prql:
 
 build:
 	mkdir -p c/
-	cp ${PRQL_PROJECT}/prqlc/bindings/prqlc-c/libprqlc_lib.h c/
-	cp ${PRQL_PROJECT}/target/release/libprqlc_lib.* c/
+	cp ${PRQL_PROJECT}/prqlc/bindings/prqlc-c/libprqlc_c.h c/
+	cp ${PRQL_PROJECT}/target/release/libprqlc_c.* c/
 	zig build
 
 test: build

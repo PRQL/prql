@@ -11,7 +11,7 @@ build: main.c build-prql
 	gcc main.c -o main.out \
 		-I${PRQL_PROJECT}/prqlc/bindings/prqlc-c \
 		-L${PRQL_PROJECT}/target/release \
-		${PRQL_PROJECT}/target/release/libprqlc_lib.a \
+		${PRQL_PROJECT}/target/release/libprqlc_c.a \
 		-pthread -ldl -lm
 
 valgrind: build

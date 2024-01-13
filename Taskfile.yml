@@ -415,7 +415,7 @@ tasks:
   build-php:
     - cargo build --package prqlc-c --release
     - mkdir -p prqlc/bindings/php/lib/
-    - cp target/release/libprqlc_lib.* prqlc/bindings/prqlc-c/libprqlc_lib.h
+    - cp target/release/libprqlc_c.* prqlc/bindings/prqlc-c/libprqlc_c.h
       prqlc/bindings/php/lib/
     - cd prqlc/bindings/php && composer install
 
@@ -423,9 +423,9 @@ tasks:
     desc: Build the C header for the C bindings.
     dir: prqlc/bindings/prqlc-c
     cmds:
-      - cargo install --force cbindgen
-      - cbindgen --crate prqlc-c --output libprqlc_lib.h
-      - cbindgen --crate prqlc-c --lang C++ --output libprqlc_lib.hpp
+      - cargo install --locked cbindgen
+      - cbindgen --crate prqlc-c --output prqlc.h
+      - cbindgen --crate prqlc-c --lang C++ --output prqlc.hpp
 
   test-php:
     dir: prqlc/bindings/php

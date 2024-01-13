@@ -51,9 +51,9 @@ This will pull-in ext-ffi extension, because it's declared in `composer.json`.
 
 There is a `task build-php` script that:
 
-- runs cargo to build `libprqlc_lib`,
-- copies `libprqlc_lib.*` into `lib`,
-- copies `libprqlc_lib.h` into `lib`.
+- runs cargo to build `libprqlc_c`,
+- copies `libprqlc_c.*` into `lib`,
+- copies `libprqlc_c.h` into `lib`.
 
 ### Tests
 

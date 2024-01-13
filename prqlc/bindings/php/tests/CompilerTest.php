@@ -17,16 +17,16 @@ final class CompilerTest extends TestCase
 
     public function testPrqlLibraryFileExists(): void
     {
-        $fileExists = file_exists("lib/libprqlc_lib.so")
-                  || file_exists("lib/libprqlc_lib.dylib")
-                  || file_exists("lib/libprqlc_lib.dll");
+        $fileExists = file_exists("lib/libprqlc_c.so")
+                  || file_exists("lib/libprqlc_c.dylib")
+                  || file_exists("lib/libprqlc_c.dll");
 
         $this->assertTrue($fileExists);
     }
 
     public function testPrqlHeaderFileExists(): void
     {
-        $this->assertFileExists("lib/libprqlc_lib.h");
+        $this->assertFileExists("lib/libprqlc_c.h");
     }
 
     public function testInvalidQuery(): void

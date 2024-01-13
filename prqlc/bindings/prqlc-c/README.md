@@ -12,7 +12,7 @@ See [examples/minimal-c/Makefile](examples/minimal-c/Makefile).
 Copy the `.a` and `.so` files in a convenient place and add the following
 compile flags to Go (cgo):
 
-`CGO_LDFLAGS="-L/path/to/libprqlc_lib.a -lprqlc -pthread -ldl" go build`
+`CGO_LDFLAGS="-L/path/to/libprqlc_c.a -lprqlc -pthread -ldl" go build`
 
 ## Examples
 
@@ -92,8 +92,8 @@ func ToJSON(prql string) (string, error) {
 
 ### Headers
 
-The C & C++ header files `libprqlc_lib.h` & `libprqlc_lib.hpp` were generated
-using [cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
+The C & C++ header files `libprqlc_c.h` & `libprqlc_c.hpp` were generated using
+[cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
 
 ```sh
 task build-prqlc-c-header

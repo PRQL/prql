@@ -4,7 +4,7 @@
  * PRQL compiler bindings.
  *
  * This library requires the PHP FFI extension.
- * It also requires the libprqlc_lib library.
+ * It also requires the libprqlc_c library.
  *
  * PHP version 8.0
  *
@@ -48,14 +48,14 @@ final class Compiler
             $lib_path = __DIR__ . '/../lib';
         }
 
-        $header = $lib_path . '/libprqlc_lib.h';
+        $header = $lib_path . '/libprqlc_c.h';
 
         if (PHP_OS_FAMILY === 'Windows') {
-            $library = $lib_path . "\libprqlc_lib.dll";
+            $library = $lib_path . "\libprqlc_c.dll";
         } elseif (PHP_OS_FAMILY === 'Darwin') {
-            $library = $lib_path . '/libprqlc_lib.dylib';
+            $library = $lib_path . '/libprqlc_c.dylib';
         } else {
-            $library = $lib_path . '/libprqlc_lib.so';
+            $library = $lib_path . '/libprqlc_c.so';
         }
 
         $header_source = file_get_contents($header, false, null, 0, 1024 * 1024);
