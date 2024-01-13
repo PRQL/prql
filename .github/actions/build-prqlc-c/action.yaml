@@ -74,7 +74,7 @@ runs:
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
-        tar czf "../../../${ARTIFACT_NAME}" *prqlc_lib*
+        tar czf "../../../${ARTIFACT_NAME}" *prqlc_c*
 
     - name: Create artifact for Windows
       shell: bash
@@ -84,7 +84,7 @@ runs:
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
-        7z a "../../../${ARTIFACT_NAME}" *prqlc_lib*
+        7z a "../../../${ARTIFACT_NAME}" *prqlc_c*
 
     - name: Upload prqlc-c
       uses: actions/upload-artifact@v3
