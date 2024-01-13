@@ -11,13 +11,7 @@ version.workspace = true
 # Required for `cargo-msrv`, which doesn't yet support workspaces
 metadata.msrv = "1.70.0"
 
-# [[bin]]
-# name = "prqlc"
-
 [features]
-default = ["cli"]
-# Technically tokio could be limited to external tests, but its types are in
-# signatures which would require lots of conditional compilation.
 cli = [
   "atty",
   "clap_complete_command",
@@ -32,6 +26,9 @@ cli = [
   "serde_yaml",
   "walkdir",
 ]
+default = ["cli"]
+# Technically tokio could be limited to external tests, but its types are in
+# signatures which would require lots of conditional compilation.
 test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
 test-dbs-external = ["duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 

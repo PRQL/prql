@@ -1,3 +1,6 @@
+# The canonical location of this crate has been moved to prqlc, we maintain this
+# facade to avoid any breaking changes to dependents.
+
 [package]
 description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
 name = "prql-compiler"
@@ -11,4 +14,4 @@ version.workspace = true
 metadata.msrv = "1.70.0"
 
 [dependencies]
-prqlc = {path = "../prqlc", version = "0.11.2"}
+prqlc = {path = "../prqlc", version = "0.11.2", default-features = false}

@@ -61,8 +61,8 @@ jobs:
         with:
           command: test
           args: >
-            --no-run --locked --target=${{ inputs.target }} --features=${{
-            inputs.features }}
+            --no-run --locked --target=${{ inputs.target }}
+            --no-default-features --features=${{ inputs.features }}
       - name: Free up disk space
         # https://github.com/actions/runner-images/issues/2840
         run: ./.github/workflows/scripts/util_free_space.sh
@@ -94,9 +94,10 @@ jobs:
           # - Unreferenced snapshots - `--unreferenced=auto` when testing on
           #   linux & with `test-dbs` feature.
           args: >
-            test --target=${{ inputs.target }} --features=${{ inputs.features }}
-            ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
-            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+            test --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }} ${{ contains(inputs.features,
+            'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
+            '--unreferenced=auto' || '' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -105,8 +106,8 @@ jobs:
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           #
           args: >
-            --all-targets --target=${{ inputs.target }} --features=${{
-            inputs.features }} -- -D warnings
+            --all-targets --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }} -- -D warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -125,8 +126,9 @@ jobs:
           # Only run with deps on nightly, since it's much slower, and so far™
           # we haven't seen any errors.
           args:
-            --target=${{ inputs.target }} --features=${{ inputs.features }} ${{
-            inputs.nightly != 'true' && '--no-deps' || '' }}
+            --target=${{ inputs.target }} --no-default-features --features=${{
+            inputs.features }} ${{ inputs.nightly != 'true' && '--no-deps' || ''
+            }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
@@ -137,5 +139,5 @@ jobs:
         with:
           command: build
           args:
-            --all-targets --target=${{ inputs.target }} --features=${{
-            inputs.features }}
+            --all-targets --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }}
