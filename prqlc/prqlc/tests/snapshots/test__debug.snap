@@ -1,0 +1,216 @@
+---
+source: prqlc/prqlc/tests/test.rs
+info:
+  program: prqlc
+  args:
+    - "--color=never"
+    - debug
+    - resolve
+  env:
+    RUST_LOG: ""
+    RUST_BACKTRACE: ""
+    CLICOLOR_FORCE: ""
+    NO_COLOR: "1"
+  stdin: from tracks
+---
+success: true
+exit_code: 0
+----- stdout -----
+Module {
+    redirects: [
+        "this",
+        "that",
+        "_param",
+        "std",
+    ],
+    names: {
+        "_param": Decl {
+            declared_at: None,
+            kind: LayeredModules(
+                [],
+            ),
+            order: 0,
+            annotations: [],
+        },
+        "default_db": Decl {
+            declared_at: None,
+            kind: Module(
+                Module {
+                    names: {
+                        "_infer": Decl {
+                            declared_at: None,
+                            kind: Infer(
+                                TableDecl(
+                                    TableDecl {
+                                        ty: Some(
+                                            Ty {
+                                                kind: Array(
+                                                    Ty {
+                                                        kind: Tuple(
+                                                            [
+                                                                Wildcard(
+                                                                    None,
+                                                                ),
+                                                            ],
+                                                        ),
+                                                        span: None,
+                                                        name: None,
+                                                    },
+                                                ),
+                                                span: None,
+                                                name: None,
+                                            },
+                                        ),
+                                        expr: LocalTable,
+                                    },
+                                ),
+                            ),
+                            order: 0,
+                            annotations: [],
+                        },
+                        "_infer_module": Decl {
+                            declared_at: None,
+                            kind: Infer(
+                                Module(
+                                    Module {
+                                        names: {},
+                                    },
+                                ),
+                            ),
+                            order: 0,
+                            annotations: [],
+                        },
+                        "tracks": Decl {
+                            declared_at: None,
+                            kind: TableDecl(
+                                TableDecl {
+                                    ty: Some(
+                                        Ty {
+                                            kind: Array(
+                                                Ty {
+                                                    kind: Tuple(
+                                                        [
+                                                            Wildcard(
+                                                                None,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    span: None,
+                                                    name: None,
+                                                },
+                                            ),
+                                            span: None,
+                                            name: None,
+                                        },
+                                    ),
+                                    expr: LocalTable,
+                                },
+                            ),
+                            order: 0,
+                            annotations: [],
+                        },
+                    },
+                },
+            ),
+            order: 0,
+            annotations: [],
+        },
+        "main": Decl {
+            declared_at: Some(
+                112,
+            ),
+            kind: TableDecl(
+                TableDecl {
+                    ty: Some(
+                        Ty {
+                            kind: Array(
+                                Ty {
+                                    kind: Tuple(
+                                        [
+                                            Wildcard(
+                                                None,
+                                            ),
+                                        ],
+                                    ),
+                                    span: None,
+                                    name: None,
+                                },
+                            ),
+                            span: None,
+                            name: None,
+                        },
+                    ),
+                    expr: RelationVar(
+                        Expr {
+                            span: 0:0-11,
+                            kind: Ident(
+                                Ident {
+                                    path: [
+                                        "default_db",
+                                    ],
+                                    name: "tracks",
+                                },
+                            ),
+                            id: 115,
+                            ty: [{*..}],
+                            lineage: Lineage {
+                                columns: [
+                                    All {
+                                        input_id: 115,
+                                        except: {},
+                                    },
+                                ],
+                                inputs: [
+                                    LineageInput {
+                                        id: 115,
+                                        name: "tracks",
+                                        table: Ident {
+                                            path: [
+                                                "default_db",
+                                            ],
+                                            name: "tracks",
+                                        },
+                                    },
+                                ],
+                                prev_columns: [],
+                            },
+                        },
+                    ),
+                },
+            ),
+            order: 0,
+            annotations: [],
+        },
+        "std": Decl {
+            declared_at: Some(
+                0,
+            ),
+            kind: Module(
+                Module {
+                    names: "... 77 entries ...",
+                },
+            ),
+            order: 0,
+            annotations: [],
+        },
+    },
+}
+Info: 
+   ╭─[:1:1]
+   │
+ 1 │ from tracks
+   │ ─────┬─────  
+   │      ╰─────── [default_db.tracks] table 
+───╯
+module default_db {
+  let _infer = internal infer
+
+  let _infer_module = internal infer
+
+  let tracks <[{*..}]> = internal local_table
+}
+
+let main <[{*..}]> = default_db.tracks
+
+----- stderr -----
+

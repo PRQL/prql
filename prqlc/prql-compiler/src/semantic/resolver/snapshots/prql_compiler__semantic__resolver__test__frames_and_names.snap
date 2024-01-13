@@ -1,0 +1,34 @@
+---
+source: prqlc/prql-compiler/src/semantic/resolver/mod.rs
+expression: "resolve_lineage(r#\"\n            from orders\n            select {customer_no, gross, tax, gross - tax}\n            take 20\n            \"#).unwrap()"
+---
+columns:
+  - Single:
+      name:
+        - orders
+        - customer_no
+      target_id: 122
+      target_name: ~
+  - Single:
+      name:
+        - orders
+        - gross
+      target_id: 123
+      target_name: ~
+  - Single:
+      name:
+        - orders
+        - tax
+      target_id: 124
+      target_name: ~
+  - Single:
+      name: ~
+      target_id: 125
+      target_name: ~
+inputs:
+  - id: 121
+    name: orders
+    table:
+      - default_db
+      - orders
+

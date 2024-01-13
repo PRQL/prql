@@ -1,0 +1,42 @@
+---
+source: prqlc/prql-compiler/src/semantic/resolver/mod.rs
+expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
+---
+- RqOperator:
+    name: std.sub
+    args:
+      - Ident:
+          - this
+          - employees
+          - gross_salary
+      - Ident:
+          - this
+          - employees
+          - tax
+  alias: net_salary
+  ty:
+    kind:
+      Union:
+        - - ~
+          - kind:
+              Primitive: Int
+            span: "2:970-973"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Float
+            span: "2:977-982"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Timestamp
+            span: "2:986-995"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Date
+            span: "2:999-1003"
+            name: ~
+    span: "2:970-1003"
+    name: ~
+
