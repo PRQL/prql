@@ -70,7 +70,7 @@ runs:
       shell: bash
       if: runner.os != 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc_lib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
+        export ARTIFACT_NAME="prqlc_c-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
@@ -80,7 +80,7 @@ runs:
       shell: bash
       if: runner.os == 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc_lib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
+        export ARTIFACT_NAME="prqlc_c-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
         ls -al
@@ -89,7 +89,7 @@ runs:
     - name: Upload prqlc-c
       uses: actions/upload-artifact@v3
       with:
-        name: prqlc_lib-${{ inputs.target }}
+        name: prqlc_c-${{ inputs.target }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name
