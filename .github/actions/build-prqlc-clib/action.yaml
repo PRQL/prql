@@ -1,9 +1,10 @@
-name: build-prqlc
+name: build-prqlc-clib
 description: >
-  Build prqlc
+  A version of `build-prqlc` for the C bindings.
 
-  Note that much of this is copy/pasted into build-prqlc-clib, so changes here
-  should generally be copied into that file.
+  Note that this is quite open to change, including names and which files we
+  package. Contributions and/or suggestions are welcome.
+
 inputs:
   target:
     description: Build target
@@ -60,41 +61,35 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
-        # We previously had `--package=prqlc` for all, but this caches much
-        # worse than just building the whole workspace.
-        # https://github.com/PRQL/prql/issues/3098, so we just build the whole
-        # workspace — except for the `musl` target, which can't build the whole
-        # workspace. (This is overly complicated and would be great to simplify,
-        # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
           --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
-          && '--package=prqlc' || '--all-targets' }}
+          && '--package=prqlc-clib' || '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
       if: runner.os != 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
+        export ARTIFACT_NAME="prqlc_lib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc/README.md .
-        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE README.md
+        ls -al
+        tar czf "../../../${ARTIFACT_NAME}" *prqlc_lib*
 
     - name: Create artifact for Windows
       shell: bash
       if: runner.os == 'Windows'
       run: |
-        export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
+        export ARTIFACT_NAME="prqlc_lib-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.zip"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
         cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc/README.md .
-        7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE README.md
+        ls -al
+        7z a "../../../${ARTIFACT_NAME}" *prqlc_lib*
 
-    - name: Upload prqlc
+    - name: Upload prqlc-clib
       uses: actions/upload-artifact@v3
       with:
-        name: prqlc-${{ inputs.target }}
+        name: prqlc_lib-${{ inputs.target }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name

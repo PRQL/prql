@@ -638,6 +638,40 @@ jobs:
       RUSTFLAGS: "-C debuginfo=0"
       RUSTDOCFLAGS: "-Dwarnings"
 
+  build-prqlc-clib:
+    runs-on: ${{ matrix.os }}
+    needs: rules
+    if: needs.rules.outputs.rust == 'true' || needs.rules.outputs.main == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Match the features with the available caches from tests
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            features: default
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            features: default,test-dbs
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            features: default
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/build-prqlc-clib
+        with:
+          target: ${{ matrix.target }}
+          profile: dev
+          features: ${{ matrix.features }}
+    # These are the same env variables as in `test-rust.yaml`. Custom actions
+    # don't allow setting env variables for the whole job, so we do it here.
+    env:
+      CARGO_TERM_COLOR: always
+      CLICOLOR_FORCE: 1
+      RUSTFLAGS: "-C debuginfo=0"
+      RUSTDOCFLAGS: "-Dwarnings"
+
   create-issue-on-nightly-failure:
     runs-on: ubuntu-latest
     needs:

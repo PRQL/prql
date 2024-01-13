@@ -8,7 +8,14 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+# This means we can build with `--features=default`, which can make builds more generic
+[features]
+default = []
+
 [lib]
+# We produce both of these at the moment, but could consider refining this. ref
+# https://github.com/rust-lang/cargo/issues/8607 &
+# https://github.com/rust-lang/rust/issues/59302
 crate_type = ["staticlib", "cdylib"]
 doctest = false
 name = "prqlc_lib"
