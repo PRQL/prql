@@ -13,8 +13,10 @@ version.workspace = true
 default = []
 
 [lib]
+# We produce both of these at the moment, but could consider refining this. ref
+# https://github.com/rust-lang/cargo/issues/8607 &
+# https://github.com/rust-lang/rust/issues/59302
 crate_type = ["staticlib", "cdylib"]
-# crate_type = ["cdylib"]
 doctest = false
 name = "prqlc_lib"
 test = false
