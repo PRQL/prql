@@ -1,15 +1,6 @@
-// We put all the code apart from a facade in `lib.rs` so we can easily disable
-// its compilation for wasm targets.
-//
-// We still want to allow compilation for wasm, because we compile the whole
-// workspace for wasm in our tests.
+#![cfg(not(target_family = "wasm"))]
 
-#[cfg(not(target_family = "wasm"))]
-pub mod cli;
-
-#[cfg(not(target_family = "wasm"))]
 mod jinja;
-#[cfg(not(target_family = "wasm"))]
 mod watch;
 
 use anstream::{eprintln, println};
