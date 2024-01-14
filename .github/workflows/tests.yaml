@@ -170,11 +170,10 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             features: default,test-dbs-external
-          # Only run wasm on ubuntu, given it's the same rust target. (There is a
-          # possibility of having a failure on just one platform, but it's quite
-          # unlikely. If we do observe this, we can expand, or introduce a
-          # `test-actually-all.yaml` which accounts for these corner cases without
-          # using runners & cache space)
+          # Only run wasm on ubuntu, given it's the same rust target. (There is
+          # a possibility of having a failure on just one platform, but it's
+          # quite unlikely. If we do observe this, we can add those tests them
+          # to nightly.
           - target: wasm32-unknown-unknown
             os: ubuntu-latest
             features: default
