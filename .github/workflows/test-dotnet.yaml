@@ -10,8 +10,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - name: 🏗 Build prqlc-clib
-        run: cargo build --package prqlc-clib
+      - name: 🏗 Build prqlc-c
+        run: cargo build --package prqlc-c
       - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -20,6 +20,6 @@ jobs:
         working-directory: prqlc/bindings
         run: |
           dotnet build dotnet
-          cp ../../target/debug/libprqlc_lib.* dotnet/PrqlCompiler/bin/Debug/net*/
-          cp ../../target/debug/libprqlc_lib.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+          cp ../../target/debug/libprqlc_c.* dotnet/PrqlCompiler/bin/Debug/net*/
+          cp ../../target/debug/libprqlc_c.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
           dotnet test dotnet

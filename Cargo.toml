@@ -1,9 +1,9 @@
 [workspace]
 members = [
-  "prqlc/bindings/clib",
   "prqlc/bindings/elixir/native/prql",
   "prqlc/bindings/java",
   "prqlc/bindings/js",
+  "prqlc/bindings/prqlc-c",
   "prqlc/bindings/python",
   "prqlc/prql-compiler-macros",
   "prqlc/prql-compiler",
@@ -28,7 +28,7 @@ version = "0.11.2"
 # since compiler is fast enough as it is (for now).
 opt-level = "s"
 
-[profile.release.package.prqlc-clib]
+[profile.release.package.prqlc-c]
 # Remove some debug symbols (linker needs some of them)
 strip = "debuginfo"
 

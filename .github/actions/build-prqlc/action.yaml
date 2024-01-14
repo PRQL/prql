@@ -2,7 +2,7 @@ name: build-prqlc
 description: >
   Build prqlc
 
-  Note that much of this is copy/pasted into build-prqlc-clib, so changes here
+  Note that much of this is copy/pasted into build-prqlc-c, so changes here
   should generally be copied into that file.
 inputs:
   target:

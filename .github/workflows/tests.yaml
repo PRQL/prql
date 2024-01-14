@@ -70,7 +70,7 @@ jobs:
               - web/book/**
             dotnet:
               - prqlc/bindings/prql-dotnet/**
-              - prqlc/bindings/clib/**
+              - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-dotnet.yaml
             devcontainer-push:
               - .devcontainer/**/*Dockerfile
@@ -83,18 +83,18 @@ jobs:
               - grammars/**
             elixir:
               - prqlc/bindings/elixir/**
-              - prqlc/bindings/clib/**
+              - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-elixir.yaml
             java:
               - prqlc/bindings/java/**
-              - prqlc/bindings/clib/**
+              - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-java.yaml
             js:
               - prqlc/bindings/js/**
               - .github/workflows/test-js.yaml
-            clib:
-              - prqlc/bindings/clib/**
-              - .github/workflows/test-clib.yaml
+            prqlc-c:
+              - prqlc/bindings/prqlc-c/**
+              - .github/workflows/test-prqlc-c.yaml
             main:
               - "**/Cargo.*"
               - .github/**
@@ -106,7 +106,7 @@ jobs:
               - .cargo/**
             php:
               - prqlc/bindings/php/**
-              - prqlc/bindings/clib/**
+              - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-php.yaml
             python:
               - prqlc/bindings/python/**
@@ -245,10 +245,10 @@ jobs:
         == 'true') && '["ubuntu-latest", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
-  test-clib:
+  test-prqlc-c:
     needs: rules
     if: needs.rules.outputs.lib == 'true' || needs.rules.outputs.main == 'true'
-    uses: ./.github/workflows/test-clib.yaml
+    uses: ./.github/workflows/test-prqlc-c.yaml
 
   test-taskfile:
     needs: rules
@@ -544,7 +544,7 @@ jobs:
       - test-java
       - test-js
       - test-grammars
-      - test-clib
+      - test-prqlc-c
       - test-php
       - test-python
       - test-rust
@@ -587,7 +587,7 @@ jobs:
               "test-elixir",
               "test-java",
               "test-js",
-              "test-clib",
+              "test-prqlc-c",
               "test-grammars",
               "test-php",
               "test-python",
@@ -638,7 +638,7 @@ jobs:
       RUSTFLAGS: "-C debuginfo=0"
       RUSTDOCFLAGS: "-Dwarnings"
 
-  build-prqlc-clib:
+  build-prqlc-c:
     runs-on: ${{ matrix.os }}
     needs: rules
     if: needs.rules.outputs.main == 'true'
@@ -659,7 +659,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prqlc-clib
+      - uses: ./.github/actions/build-prqlc-c
         with:
           target: ${{ matrix.target }}
           profile: dev

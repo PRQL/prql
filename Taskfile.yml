@@ -28,9 +28,9 @@ vars:
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
   cargo_crates: >
-    bacon cargo-audit cargo-insta cargo-llvm-cov cargo-release default-target
-    mdbook mdbook-admonish mdbook-footnote mdbook-toc nextest wasm-bindgen-cli
-    wasm-opt wasm-pack
+    bacon cbindgen cargo-audit cargo-insta cargo-llvm-cov cargo-release
+    default-target mdbook mdbook-admonish mdbook-footnote mdbook-toc nextest
+    wasm-bindgen-cli wasm-opt wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -413,11 +413,18 @@ tasks:
       - ../../prqlc/bindings/**/*.rs
 
   build-php:
-    - cargo build --package prqlc-clib --release
+    - cargo build --package prqlc-c --release
     - mkdir -p prqlc/bindings/php/lib/
-    - cp target/release/libprqlc_lib.* prqlc/bindings/clib/libprqlc_lib.h
+    - cp target/release/libprqlc_c.* prqlc/bindings/prqlc-c/prqlc.h
       prqlc/bindings/php/lib/
     - cd prqlc/bindings/php && composer install
+
+  build-prqlc-c-header:
+    desc: Build the C header for the C bindings.
+    dir: prqlc/bindings/prqlc-c
+    cmds:
+      - cbindgen --crate prqlc-c --output prqlc.h
+      - cbindgen --crate prqlc-c --lang C++ --output prqlc.hpp
 
   test-php:
     dir: prqlc/bindings/php
