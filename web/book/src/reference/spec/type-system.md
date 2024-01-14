@@ -90,7 +90,7 @@ SQL row translates to a tuple, and a relation translates to an array of tuples.
 Composability also leads to a minimal type system, which does not differentiate
 between tuples, objects and structs. A single product type is enough.
 
-**No subtyping** - avoid super types and interitance.
+**No subtyping** - avoid super types and inheritance.
 
 Subtyping is a natural extension to a type system, where a type can be a super
 type of some other type. This is base mechanism for Object Oriented Programming,
