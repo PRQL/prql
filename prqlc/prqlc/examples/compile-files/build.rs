@@ -1,4 +1,4 @@
-use prql_compiler::{compile, Options};
+use prqlc::{compile, Options};
 use std::{env, fs, path::Path};
 
 fn main() {

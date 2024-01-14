@@ -2883,7 +2883,7 @@ dependencies = [
 name = "prql-compiler-macros"
 version = "0.11.2"
 dependencies = [
- "prql-compiler",
+ "prqlc",
  "syn 2.0.48",
 ]
 
