@@ -51,8 +51,7 @@ In practical terms, we want for a user to be able to:
 
   For example, translate PRQL's datetime operations to use TEXT in SQLite.
 
-  As of now, prql-compiler already does a good job of automatically doing this
-  mapping.
+  As of now, prqlc already does a good job of automatically doing this mapping.
 
 Example of the mapping between PTS and two STSs:
 
