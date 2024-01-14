@@ -63,8 +63,9 @@ runs:
         command: build
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
-          && '--package=prqlc-c' || '--all-targets' }}
+          --no-default-features --features=${{ inputs.features }} ${{
+          contains(inputs.target, 'musl') && '--package=prqlc-c' ||
+          '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash

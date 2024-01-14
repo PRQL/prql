@@ -237,7 +237,7 @@ tasks:
   build-each-crate:
     summary: |
       Builds each crates individually. This is helpful for caching, since often
-      we'll want to run `cargo build -p prql-compiler`, and the dependencies can have
+      we'll want to run `cargo build -p prqlc`, and the dependencies can have
       different features for that relative to `cargo build`.
     vars:
       PACKAGES:
@@ -300,7 +300,7 @@ tasks:
         --unreferenced=auto
 
   test-rust-fast:
-    desc: Test prql-compiler's unit tests.
+    desc: Test prqlc's unit tests.
     summary: |
       Test only unit tests, including accepting snapshots.
 

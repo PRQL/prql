@@ -170,11 +170,10 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             features: default,test-dbs-external
-          # Only run wasm on ubuntu, given it's the same rust target. (There is a
-          # possibility of having a failure on just one platform, but it's quite
-          # unlikely. If we do observe this, we can expand, or introduce a
-          # `test-actually-all.yaml` which accounts for these corner cases without
-          # using runners & cache space)
+          # Only run wasm on ubuntu, given it's the same rust target. (There is
+          # a possibility of having a failure on just one platform, but it's
+          # quite unlikely. If we do observe this, we can add those tests them
+          # to nightly.
           - target: wasm32-unknown-unknown
             os: ubuntu-latest
             features: default
@@ -296,10 +295,14 @@ jobs:
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
-            features: test-dbs
+            features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             # We'd like to reenable integration tests on Windows, ref https://github.com/wangfenjin/duckdb-rs/issues/179.
+            features: default
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            # One test with no features
             features: ""
           # Note that we run wasm in the standard `test-rust` job.
 
@@ -410,7 +413,7 @@ jobs:
           #
           # cargo llvm-cov --codecov --output-path=codecov.json --features=test-dbs
           cargo llvm-cov --cobertura --output-path=cobertura.xml
-          --features=default,test-dbs
+          --no-default-features --features=default,test-dbs
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
@@ -494,13 +497,10 @@ jobs:
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
-        # `prqlc/prql-compiler/Cargo.toml` (and `prqlc/prqlc/Cargo.toml` below), because of
+        # `prqlc/prqlc/Cargo.toml`, because of
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version — prqlc
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
-        working-directory: prqlc/prql-compiler
-        run: cargo msrv verify
-      - name: Verify minimum rust version — prqlc CLI
         working-directory: prqlc/prqlc
         run: cargo msrv verify
 

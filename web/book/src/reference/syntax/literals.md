@@ -128,7 +128,7 @@ Here's a larger list of date and time examples:
   timezone
 
 ```admonish note
-Currently prql-compiler does not parse or validate any of the datetime strings
+Currently prqlc does not parse or validate any of the datetime strings
 and will pass them to the database engine without adjustment. This might be
 refined in the future to aid in compatibility across databases. We'll always
 support the canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format

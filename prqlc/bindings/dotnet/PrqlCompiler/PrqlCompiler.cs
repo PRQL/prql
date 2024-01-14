@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Prql.Compiler
 {
     /// <summary>
-    /// The PRQL compiler transpiles RPQL queries.
+    /// The PRQL compiler transpiles PRQL queries.
     /// </summary>
     public static class PrqlCompiler
     {

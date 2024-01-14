@@ -1,16 +1,16 @@
 [workspace]
 members = [
-  "prqlc/prqlc-ast",
-  "prqlc/prqlc-parser",
-  "prqlc/prql-compiler",
-  "prqlc/prql-compiler-macros",
-  "prqlc/prqlc",
-  "prqlc/prql-compiler/examples/compile-files", # An example
   "prqlc/bindings/elixir/native/prql",
   "prqlc/bindings/java",
   "prqlc/bindings/js",
   "prqlc/bindings/prqlc-c",
   "prqlc/bindings/python",
+  "prqlc/prql-compiler-macros",
+  "prqlc/prql-compiler",
+  "prqlc/prqlc-ast",
+  "prqlc/prqlc-parser",
+  "prqlc/prqlc",
+  "prqlc/prqlc/examples/compile-files", # An example
   "web/book", # The book / docs
 ]
 resolver = "2"
@@ -28,11 +28,7 @@ version = "0.11.2"
 # since compiler is fast enough as it is (for now).
 opt-level = "s"
 
-[profile.release.package.prqlc]
-# Remove all symbols.
-strip = "symbols"
-
-[profile.release.package.prqlc-clib]
+[profile.release.package.prqlc-c]
 # Remove some debug symbols (linker needs some of them)
 strip = "debuginfo"
 

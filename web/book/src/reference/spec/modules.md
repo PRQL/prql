@@ -214,7 +214,7 @@ module mod_b {
 
 ## Compiler interface
 
-`prql-compiler` provides two interfaces for compiling files.
+`prqlc` provides two interfaces for compiling files.
 
 **Multi-file interface** requires three arguments:
 

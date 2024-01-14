@@ -6,9 +6,9 @@ mod book;
 mod readme;
 mod website;
 
-use ::prql_compiler::Options;
+use ::prqlc::Options;
 
-fn compile(prql: &str) -> Result<String, prql_compiler::ErrorMessages> {
+fn compile(prql: &str) -> Result<String, prqlc::ErrorMessages> {
     anstream::ColorChoice::Never.write_global();
-    prql_compiler::compile(prql, &Options::default().no_signature())
+    prqlc::compile(prql, &Options::default().no_signature())
 }
