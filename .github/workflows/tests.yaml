@@ -302,6 +302,7 @@ jobs:
             features: default
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            # One test with no features
             features: ""
           # Note that we run wasm in the standard `test-rust` job.
 
