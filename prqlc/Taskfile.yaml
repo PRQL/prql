@@ -6,10 +6,9 @@ includes:
     dir: ./bindings/python
 
 vars:
-  packages_core: -p prqlc-ast -p prqlc-parser -p prql-compiler -p prqlc
+  packages_core: -p prqlc-ast -p prqlc-parser -p prqlc
   packages_addon: -p prql-compiler-macros -p compile-files
-  packages_bindings:
-    -p prql -p prql-java -p prql-js -p prqlc-clib -p prql-python
+  packages_bindings: -p prql -p prql-java -p prql-js -p prqlc-c -p prql-python
 
 tasks:
   fmt:
@@ -58,7 +57,7 @@ tasks:
           {{.packages_bindings}} -- -D warnings
 
       - cmd:
-          cargo test --package prql-compiler --features=default,test-dbs
+          cargo test --package prqlc --features=default,test-dbs
           --test=integration -- queries::results
 
   pull-request:

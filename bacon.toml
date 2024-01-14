@@ -11,7 +11,7 @@ command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=d
 watch = ["*"]
 
 [jobs.test-accept-fast]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prqlc", "--lib"]
 watch = ["*"]
 
 # Standard tasks

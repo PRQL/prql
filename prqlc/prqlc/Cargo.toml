@@ -1,5 +1,5 @@
 [package]
-description = "CLI for the PRQL compiler"
+description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
 name = "prqlc"
 
 edition.workspace = true
@@ -11,42 +11,115 @@ version.workspace = true
 # Required for `cargo-msrv`, which doesn't yet support workspaces
 metadata.msrv = "1.70.0"
 
-[[bin]]
-name = "prqlc"
-
 [features]
-default = []
+cli = [
+  "atty",
+  "clap_complete_command",
+  "clap_complete",
+  "clap",
+  "clio",
+  "color-eyre",
+  "colorchoice-clap",
+  "env_logger",
+  "minijinja",
+  "notify",
+  "serde_yaml",
+  "walkdir",
+]
+default = ["cli"]
+# Technically tokio could be limited to external tests, but its types are in
+# signatures which would require lots of conditional compilation.
+test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
+test-dbs-external = ["duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
+
+[dependencies]
+prqlc-ast = {path = "../prqlc-ast", version = "0.11.2"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.11.2"}
+
+anstream = {version = "0.6.5", features = ["auto"]}
+anyhow = {version = "1.0.79", features = ["backtrace"]}
+ariadne = "0.4.0"
+chrono = "0.4"
+csv = "1.3.0"
+enum-as-inner = "0.6.0"
+itertools = "0.12.0"
+log = "0.4.20"
+once_cell = "1.19.0"
+regex = "1.10.2"
+semver = {version = "1.0.21", features = ["serde"]}
+# We could put `serde` behind a feature if we wanted to reduce the size of prqlc.
+serde = {version = "1.0.195", features = ["derive"]}
+serde_json = "1.0.111"
+sqlformat = "0.2.3"
+sqlparser = {version = "0.41.0", features = ["serde"]}
+strum = {version = "0.25.0", features = ["std", "derive"]}
+strum_macros = "0.25.3"
+
+serde_yaml = {version = "0.9", optional = true}
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-anstream = {version = "0.6.5", features = ["auto"]}
-anyhow = {version = "1.0.79"}
-ariadne = {version = "0.4.0", features = ["auto-color"]}
-# Remove when https://github.com/PRQL/prql/issues/3228 is resolved.
-atty = "0.2.14"
-clap = {version = "4.4.14", features = ["derive", "env", "wrap_help"]}
-clap_complete_command = "0.5.1"
-clio = {version = "0.3.3", features = ['clap-parse']}
-color-eyre = "0.6.2"
-colorchoice-clap = "1.0.0"
-env_logger = {version = "0.10.1", features = ["color"]}
-itertools = "0.12.0"
-notify = "6.1.1"
-prql-compiler = {path = '../prql-compiler', features = ["serde_yaml"], version = "0.11.2"}
-prqlc-ast = {path = '../prqlc-ast', version = "0.11.2"}
-regex = {version = "1.10.2", features = ["std", "unicode"]}
-serde = "1"
-serde_json = "1.0.111"
-serde_yaml = "0.9.30"
-walkdir = "2.4.0"
+
+# unique dependencies from the CLI, marked as optional and included in the 'cli'
+# feature
+atty = {version = "0.2.14", optional = true}
+clap = {version = "4.4.14", features = ["derive", "env", "wrap_help"], optional = true}
+clap_complete_command = {version = "0.5.1", optional = true}
+clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
+color-eyre = {version = "0.6.2", optional = true}
+colorchoice-clap = {version = "1.0.0", optional = true}
+env_logger = {version = "0.10.1", features = ["color"], optional = true}
+notify = {version = "6.1.1", optional = true}
+serde_yaml = {version = "0.9.30", optional = true}
+walkdir = {version = "2.4.0", optional = true}
 
 # Not direct dependencies, but pinning because of bugs in previous versions. Can
 # remove when dependencies no longer use it. (If CI passes, it can be removed.)
-clap_complete = "4.4.6"
+clap_complete = {version = "4.4.6", optional = true}
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.
-minijinja = {version = "=0.31.0", features = ["unstable_machinery"]}
+minijinja = {version = "=0.31.0", features = ["unstable_machinery"], optional = true}
+
+# For integration tests. These are gated by the `test-dbs` and `test-dbs-external` features,
+# rather than dev-dependencies, because dev-dependencies can't be optional.
+duckdb = {version = "0.9.2", optional = true, features = ["bundled", "chrono"]}
+glob = {version = "0.3.1", optional = true}
+mysql = {version = "24", optional = true}
+pg_bigdecimal = {version = "0.1", optional = true}
+postgres = {version = "0.19", optional = true}
+rusqlite = {version = "0.30.0", optional = true, features = ["bundled", "csvtab"]}
+tiberius = {version = "0.12.2", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
+tokio = {version = "1", optional = true, features = ["full"]}
+tokio-util = {version = "0.7", optional = true, features = ["compat"]}
+
+[dev-dependencies]
+cfg-if = "1.0"
+insta = {version = "1.34", features = ["colors", "yaml"]}
+insta-cmd = {version = "0.4.0"}
+rstest = "0.18.2"
+similar = {version = "2.4.0"}
+similar-asserts = "1.5.0"
+test_each_file = "0.3.0"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
-insta-cmd = "0.4.0"
+criterion = {version = "0.5.1"}
+
+[[bench]]
+harness = false
+name = "bench"
+
+# Putting these pre-release replacements in the workspace root causes it to
+# refer to the path relative to `prqlc`, so we choose this crate out of
+# default.
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../../web/book/src/project/target.md"
+replace = 'prql version:"{{version}}"'
+search = 'prql version:"[\d.]+"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../../CHANGELOG.md"
+replace = "# PRQL Changelog\n\n## [unreleased]\n\n**Language**:\n\n**Features**:\n\n**Fixes**:\n\n**Documentation**:\n\n**Web**:\n\n**Integrations**:\n\n**Internal changes**:\n\n**New Contributors**:\n\n"
+search = "# PRQL Changelog\n\n"
