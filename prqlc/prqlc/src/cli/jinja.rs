@@ -7,7 +7,7 @@
 //! Jinja+PRQL -> Jinja+SQL -> SQL -> execution
 //! ```
 //!
-//! But because prql-compiler does not (and should not) know how to handle Jinja,
+//! But because prqlc does not (and should not) know how to handle Jinja,
 //! we have to extract the interpolations, replace them something that is valid PRQL,
 //! compile the query and inject interpolations back in.
 //!

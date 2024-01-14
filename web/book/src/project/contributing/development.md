@@ -14,17 +14,17 @@ editing, and testing PRQL's compiler code in two minutes:
   cargo install cargo-insta
   ```
 
-- That's it! Running the unit tests for the `prql-compiler` crate after cloning
-  the repo should complete successfully:
+- That's it! Running the unit tests for the `prqlc` crate after cloning the repo
+  should complete successfully:
 
   ```sh
-  cargo test --package prql-compiler --lib
+  cargo test --package prqlc --lib
   ```
 
   ...or, to run tests and update the test snapshots:
 
   ```sh
-  cargo insta test --accept --package prql-compiler --lib
+  cargo insta test --accept --package prqlc --lib
   ```
 
   There's more context on our tests in [How we test](#how-we-test) below.
@@ -302,7 +302,7 @@ Our tests, from the bottom of the pyramid to the top:
   ```sh
   task test-rust-fast
   # or
-  cargo insta test --accept --package prql-compiler --lib
+  cargo insta test --accept --package prqlc --lib
   # or, to run on every change:
   task -w test-rust-fast
   ```
@@ -316,7 +316,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prqlc --lib
     ```
 
     Breaking this down:
@@ -329,8 +329,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot
       library, and writes any results immediately. I rely on git to track
       changes, so I run with `--accept`, but YMMV.
-    - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
-      tells it to only run the tests for `prql-compiler` rather than the other
+    - `-p prqlc --lib` is passed to cargo by `insta`; `-p prqlc`
+      tells it to only run the tests for `prqlc` rather than the other
       crates, and `--lib` to only run the unit tests rather than the integration
       tests, which are slower.
     - Note that we don't want to re-run on _any_ file changing, because we can

@@ -333,7 +333,7 @@ impl Command {
 
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
-                // promote it to the `prql-compiler` crate.
+                // promote it to the `prqlc` crate.
                 let stmts = prql_to_pl(&source)?;
 
                 // resolve

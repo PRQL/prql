@@ -106,7 +106,7 @@ fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationCol
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
         if !requirement.matches(&COMPILER_VERSION) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by the prql-compiler. Please upgrade the compiler.").into());
+            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler.").into());
         }
     }
     Ok(())

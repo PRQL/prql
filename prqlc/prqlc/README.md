@@ -166,12 +166,12 @@ tools.
 ## Library
 
 For more usage examples and the library documentation, check out the
-[`prql-compiler` documentation](https://docs.rs/prql-compiler/).
+[`prqlc` documentation](https://docs.rs/prql-compiler/).
 
 ### Library installation
 
 ```shell
-cargo add prql-compiler
+cargo add prqlc
 ```
 
 ### Examples

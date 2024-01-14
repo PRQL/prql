@@ -11,7 +11,7 @@ command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=d
 watch = ["*"]
 
 [jobs.test-accept-fast]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prqlc", "--lib"]
 watch = ["*"]
 
 # Standard tasks
@@ -43,8 +43,8 @@ need_stdout = false
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
-need_stdout = false
+command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"] 
+need_stdout = false 
 on_success = "back" # so that we don't open the browser at each change
 
 # You may define here keybindings that would be specific to

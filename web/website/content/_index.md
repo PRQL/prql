@@ -201,18 +201,18 @@ bindings_section:
   sections:
     - link: https://pypi.org/project/prql-python
       label: "prql-python"
-      text: Python bindings for prql-compiler.
+      text: Python bindings for prqlc.
 
     - link: https://www.npmjs.com/package/prql-js
       label: "prql-js"
-      text: "JavaScript bindings for prql-compiler."
+      text: "JavaScript bindings for prqlc."
 
     - link: https://CRAN.R-project.org/package=prqlr
       label: "prqlr"
-      text: "R bindings for prql-compiler."
+      text: "R bindings for prqlc."
 
-    - link: "https://crates.io/crates/prql-compiler"
-      label: "prql-compiler"
+    - link: "https://crates.io/crates/prqlc"
+      label: "prqlc"
       text: |
         Compiler implementation, written in Rust. Compile, format & annotate PRQL queries.
 

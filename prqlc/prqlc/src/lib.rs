@@ -54,7 +54,7 @@
 //!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
-//!     For compiling whole files (`.prql` to `.sql`), call `prql-compiler`
+//!     For compiling whole files (`.prql` to `.sql`), call `prqlc`
 //!     from `build.rs`.
 //!     See [this example project](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/examples/compile-files).
 //!
@@ -79,7 +79,7 @@
 //! debuginfo symbols from our parser. They can be removed by adding the
 //! following to `Cargo.toml`, reducing the contribution to around 7MB:
 //! ```toml
-//! [profile.release.package.prql-compiler]
+//! [profile.release.package.prqlc]
 //! strip = "debuginfo"
 //! ```
 
@@ -110,9 +110,8 @@ use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
 use utils::IdGenerator;
 
-pub static COMPILER_VERSION: Lazy<Version> = Lazy::new(|| {
-    Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prql-compiler version number")
-});
+pub static COMPILER_VERSION: Lazy<Version> =
+    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
 /// Compile a PRQL string into a SQL string.
 ///

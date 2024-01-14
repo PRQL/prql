@@ -21,7 +21,7 @@ anyhow = "1.0.79"
 itertools = "0.12.0"
 mdbook = {version = "0.4.36", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
-prql-compiler = {path = "../../prqlc/prql-compiler", default-features = false}
+prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.9.3", default-features = false}
 pulldown-cmark-to-cmark = "11.0.2"
 strum = {version = "0.25.0", features = ["std", "derive"]}

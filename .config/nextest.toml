@@ -1,12 +1,12 @@
 [profile.default]
-failure-output = "final"
-slow-timeout = { period = "500ms", terminate-after = 4 }
 fail-fast = false
+failure-output = "final"
+slow-timeout = {period = "500ms", terminate-after = 4}
 
 [[profile.default.overrides]]
-filter = 'test(prql-compiler::queries::results::)'
+filter = 'test(prqlc::queries::results::)'
+slow-timeout = {period = "2s", terminate-after = 4}
 test-group = 'test-dbs'
-slow-timeout = { period = "2s", terminate-after = 4 }
 
 [test-groups.test-dbs]
 # test-dbs runs database setup when the connection is established,
@@ -18,8 +18,8 @@ max-threads = 1
 
 [[profile.default.overrides]]
 filter = 'package(mdbook-prql)'
+slow-timeout = {period = "4s", terminate-after = 2}
 test-group = 'docs-mdbook'
-slow-timeout = { period = "4s", terminate-after = 2 }
 
 [test-groups.docs-mdbook]
 max-threads = 'num-cpus'

@@ -839,7 +839,7 @@ dependencies = [
 name = "compile-files"
 version = "0.11.2"
 dependencies = [
- "prql-compiler",
+ "prqlc",
 ]
 
 [[package]]
@@ -2172,7 +2172,7 @@ dependencies = [
  "log",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
- "prql-compiler",
+ "prqlc",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "regex",
