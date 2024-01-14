@@ -1,4 +1,4 @@
-#![cfg(not(target_family = "wasm"))]
+#![cfg(all(not(target_family = "wasm"), feature = "cli"))]
 
 use insta_cmd::assert_cmd_snapshot;
 use insta_cmd::get_cargo_bin;
