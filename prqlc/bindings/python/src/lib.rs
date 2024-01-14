@@ -37,10 +37,18 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
 }
 
 #[pyfunction]
-pub fn rq_to_sql(rq_json: &str) -> PyResult<String> {
+pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<String> {
     Ok(rq_json)
         .and_then(prql_compiler::json::to_rq)
-        .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default()))
+        .and_then(|x| {
+            prql_compiler::rq_to_sql(
+                x,
+                &options
+                    .map(convert_options)
+                    .transpose()?
+                    .unwrap_or_default(),
+            )
+        })
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -137,5 +145,26 @@ mod test {
           age BETWEEN 20 AND 30
         "###
         );
+    }
+
+    #[test]
+    fn parse_pipeline() {
+        let opts = Some(CompileOptions {
+            format: true,
+            target: "sql.any".to_string(),
+            signature_comment: false,
+        });
+
+        let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
+        assert_snapshot!(
+             prql_to_pl(prql).and_then(|x| pl_to_rq(x.as_str())).and_then(|x|rq_to_sql(x.as_str(), opts)).unwrap(), @r###"
+        SELECT
+          name,
+          id
+        FROM
+          artists
+        WHERE
+          id IN (1, 2, 3)
+        "###);
     }
 }
