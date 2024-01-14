@@ -9,7 +9,7 @@ members = [
   "prqlc/bindings/elixir/native/prql",
   "prqlc/bindings/java",
   "prqlc/bindings/js",
-  "prqlc/bindings/clib",
+  "prqlc/bindings/prqlc-c",
   "prqlc/bindings/python",
   "web/book", # The book / docs
 ]

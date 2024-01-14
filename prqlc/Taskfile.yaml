@@ -8,8 +8,7 @@ includes:
 vars:
   packages_core: -p prqlc-ast -p prqlc-parser -p prql-compiler -p prqlc
   packages_addon: -p prql-compiler-macros -p compile-files
-  packages_bindings:
-    -p prql -p prql-java -p prql-js -p prqlc-clib -p prql-python
+  packages_bindings: -p prql -p prql-java -p prql-js -p prqlc-c -p prql-python
 
 tasks:
   fmt:
