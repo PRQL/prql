@@ -7,8 +7,9 @@ vars:
 
 tasks:
   run:
-    cmds:
+    deps:
       - task: build
+    cmds:
       - ./zig-out/bin/minimal-zig
 
   build-prql:
