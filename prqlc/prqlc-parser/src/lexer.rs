@@ -525,11 +525,15 @@ impl std::fmt::Debug for TokenVec {
     }
 }
 
-#[test]
-fn test_line_wrap() {
+#[cfg(test)]
+mod test {
+    use super::*;
     use insta::assert_debug_snapshot;
-    // (TODO: is there a terser way of writing our lexer output?)
-    assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
+    use insta::assert_snapshot;
+
+    #[test]
+    fn line_wrap() {
+        assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
         ).unwrap()), @r###"
     TokenVec (
@@ -539,8 +543,8 @@ fn test_line_wrap() {
     )
     "###);
 
-    // Comments get skipped over
-    assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
+        // Comments get skipped over
+        assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
@@ -551,76 +555,74 @@ fn test_line_wrap() {
       47..48: Literal(Integer(3)),
     )
     "###);
-}
+    }
 
-#[test]
-fn numbers() {
-    // Binary notation
-    assert_eq!(
-        literal().parse("0b1111000011110000").unwrap(),
-        Literal::Integer(61680)
-    );
-    assert_eq!(
-        literal().parse("0b_1111000011110000").unwrap(),
-        Literal::Integer(61680)
-    );
+    #[test]
+    fn numbers() {
+        // Binary notation
+        assert_eq!(
+            literal().parse("0b1111000011110000").unwrap(),
+            Literal::Integer(61680)
+        );
+        assert_eq!(
+            literal().parse("0b_1111000011110000").unwrap(),
+            Literal::Integer(61680)
+        );
 
-    // Hexadecimal notation
-    assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
-    assert_eq!(
-        literal().parse("0x_deadbeef").unwrap(),
-        Literal::Integer(3735928559)
-    );
+        // Hexadecimal notation
+        assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
+        assert_eq!(
+            literal().parse("0x_deadbeef").unwrap(),
+            Literal::Integer(3735928559)
+        );
 
-    // Octal notation
-    assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
-}
+        // Octal notation
+        assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
+    }
 
-#[test]
-fn debug_display() {
-    use insta::assert_debug_snapshot;
-    assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
+    #[test]
+    fn debug_display() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
     TokenVec (
       0..1: Literal(Integer(5)),
       2..3: Control('+'),
       4..5: Literal(Integer(3)),
     )
     "###);
-}
+    }
 
-#[test]
-fn quotes() {
-    use insta::assert_snapshot;
+    #[test]
+    fn quotes() {
+        // All these are valid & equal.
+        assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
 
-    // All these are valid & equal.
-    assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
+        // An even number is interpreted as a closed string (and the remainder is unparsed)
+        assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
 
-    // An even number is interpreted as a closed string (and the remainder is unparsed)
-    assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
+        // When not escaping, we take the inner string between the three quotes
+        assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
 
-    // When not escaping, we take the inner string between the three quotes
-    assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
+        assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
 
-    assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
+        // Escape each inner quote depending on the outer quote
+        assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
+        assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
 
-    // Escape each inner quote depending on the outer quote
-    assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
-    assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
+        assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
 
-    assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
+        // An empty input should fail
+        quoted_string(false).parse(r#""#).unwrap_err();
 
-    // An empty input should fail
-    quoted_string(false).parse(r#""#).unwrap_err();
+        // An even number of quotes is an empty string
+        assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
 
-    // An even number of quotes is an empty string
-    assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
+        // Hex escape
+        assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
 
-    // Hex escape
-    assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
-
-    // Unicode escape
-    assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
+        // Unicode escape
+        assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
+    }
 }
