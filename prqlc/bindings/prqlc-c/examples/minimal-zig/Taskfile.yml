@@ -26,8 +26,9 @@ tasks:
 
   test:
     desc: "Run tests"
-    cmds:
+    deps:
       - task: build
+    cmds:
       - zig build test
 
   default:
