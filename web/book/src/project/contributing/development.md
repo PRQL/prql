@@ -129,7 +129,7 @@ To load the shell:
 
    For non-NixOS users:
 
-   ```
+   ```sh
    mkdir -p ~/.config/nix/
    tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
    ```
@@ -138,13 +138,13 @@ To load the shell:
 
 3. Run:
 
-   ```
+   ```sh
    nix develop
    ```
 
    If you want "web" or "full" shell, run:
 
-   ```
+   ```sh
    nix develop .#web
    ```
 
@@ -153,7 +153,7 @@ the shell when you enter this repo. The easiest way is to also install
 [direnv-nix](https://github.com/nix-community/nix-direnv) and configure your
 `.envrc` with:
 
-```
+```sh
 # .envrc
 use flake .#full
 ```
