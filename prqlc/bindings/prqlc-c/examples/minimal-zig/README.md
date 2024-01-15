@@ -2,6 +2,4 @@
 
 A minimal example for using prql-lib with Zig.
 
-# How to run
-
-    make run
+Run with `task zig` from the root of the repo.
