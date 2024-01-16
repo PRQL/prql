@@ -30,6 +30,9 @@ jobs:
         working-directory: prqlc/bindings/prqlc-c/examples/minimal-cpp
         run: make run
 
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: 🔧 Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
