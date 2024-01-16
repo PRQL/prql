@@ -3,6 +3,8 @@ mod interpolation;
 mod lexer;
 mod span;
 mod stmt;
+#[cfg(test)]
+mod test;
 mod types;
 
 use chumsky::error::SimpleReason;
