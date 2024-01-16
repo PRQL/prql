@@ -234,6 +234,7 @@ tasks:
       # features themselves and so require recompiling. This is only useful for
       # caching.
       - cargo build --all-targets
+      - cargo doc
       - task: build-web
       - task: build-each-crate
 
