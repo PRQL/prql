@@ -16,6 +16,8 @@ pub enum Token {
     Param(String),
 
     Range {
+        /// Whether the left side of the range is bound by the previous token
+        /// (but it's not contained in this token)
         bind_left: bool,
         bind_right: bool,
     },
@@ -39,12 +41,16 @@ pub enum Token {
     Annotate, // @
 }
 
+/// Lex chars to tokens until the end of the input
 pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
-    let whitespace = filter(|x: &char| x.is_inline_whitespace())
+    lex_token()
         .repeated()
-        .at_least(1)
-        .ignored();
+        .then_ignore(ignored())
+        .then_ignore(end())
+}
 
+/// Lex chars to a single token
+pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     let control_multi = choice((
         just("->").to(Token::ArrowThin),
         just("=>").to(Token::ArrowFat),
@@ -109,41 +115,55 @@ pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let comment = just('#')
-        .then(newline.not().repeated())
-        .separated_by(newline.then(whitespace.or_not()))
-        .at_least(1)
-        .ignored();
-
-    let range = (whitespace.or_not())
+    let range = (whitespace().or_not())
         .then_ignore(just(".."))
-        .then(whitespace.or_not())
+        .then(whitespace().or_not())
         .map(|(left, right)| Token::Range {
+            // If there was no whitespace before (after), then we mark the range
+            // as bound on the left (right).
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
         .map_with_span(TokenSpan);
 
-    let line_wrap = newline
+    choice((range, ignored().ignore_then(token.map_with_span(TokenSpan))))
+}
+
+fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
+    choice((comment(), whitespace(), line_wrap()))
+        .repeated()
+        .ignored()
+}
+
+fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
+    filter(|x: &char| x.is_inline_whitespace())
+        .repeated()
+        .at_least(1)
+        .ignored()
+}
+
+fn line_wrap() -> impl Parser<char, (), Error = Cheap<char>> {
+    newline()
         .then(
             // We can optionally have an empty line, or a line with a comment,
             // between the initial line and the continued line
-            whitespace
+            whitespace()
                 .or_not()
-                .then(comment.or_not())
-                .then(newline)
+                .then(comment().or_not())
+                .then(newline())
                 .repeated(),
         )
-        .then(whitespace.repeated())
+        .then(whitespace().repeated())
         .then(just('\\'))
-        .ignored();
+        .ignored()
+}
 
-    let ignored = choice((comment, whitespace, line_wrap)).repeated();
-
-    choice((range, ignored.ignore_then(token.map_with_span(TokenSpan))))
-        .repeated()
-        .then_ignore(ignored)
-        .then_ignore(end())
+fn comment() -> impl Parser<char, (), Error = Cheap<char>> {
+    just('#')
+        .then(newline().not().repeated())
+        .separated_by(newline().then(whitespace().or_not()))
+        .at_least(1)
+        .ignored()
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -624,5 +644,38 @@ mod test {
 
         // Unicode escape
         assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
+    }
+
+    #[test]
+    fn range() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("1..2").unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(1)),
+          1..3: Range { bind_left: true, bind_right: true },
+          3..4: Literal(Integer(2)),
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("..2").unwrap()), @r###"
+        TokenVec (
+          0..2: Range { bind_left: true, bind_right: true },
+          2..3: Literal(Integer(2)),
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("1..").unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(1)),
+          1..3: Range { bind_left: true, bind_right: true },
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("in ..5").unwrap()), @r###"
+        TokenVec (
+          0..2: Ident("in"),
+          2..5: Range { bind_left: false, bind_right: true },
+          5..6: Literal(Integer(5)),
+        )
+        "###);
     }
 }
