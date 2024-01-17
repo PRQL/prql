@@ -18,6 +18,9 @@ includes:
   prqlc:
     taskfile: ./prqlc
     dir: ./prqlc
+  zig:
+    taskfile: ./prqlc/bindings/prqlc-c/examples/minimal-zig
+    dir: ./prqlc/bindings/prqlc-c/examples/minimal-zig
 
 vars:
   # Keep in sync with .vscode/extensions.json
@@ -231,6 +234,7 @@ tasks:
       # features themselves and so require recompiling. This is only useful for
       # caching.
       - cargo build --all-targets
+      - cargo doc
       - task: build-web
       - task: build-each-crate
 
