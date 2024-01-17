@@ -94,47 +94,51 @@ impl Resolver<'_> {
             }
         } else {
             // base case: materialize
-            log::debug!("stack_push for {}", closure.as_debug_name());
-
-            let (func_env, body) = env_of_closure(closure);
-
-            self.root_mod.module.stack_push(NS_PARAM, func_env);
-
-            // fold again, to resolve inner variables & functions
-            let body = self.fold_expr(body)?;
-
-            // remove param decls
-            log::debug!("stack_pop: {:?}", body.id);
-            let func_env = self.root_mod.module.stack_pop(NS_PARAM).unwrap();
-
-            if let ExprKind::Func(mut inner_closure) = body.kind {
-                // body couldn't been resolved - construct a closure to be evaluated later
-
-                inner_closure.env = func_env.into_exprs();
-
-                let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
-                let missing = missing.to_vec();
-                inner_closure.params = got.to_vec();
-
-                Expr::new(ExprKind::Func(Box::new(Func {
-                    name_hint: None,
-                    args: vec![],
-                    params: missing,
-                    named_params: vec![],
-                    body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
-                    return_ty: None,
-                    env: HashMap::new(),
-                })))
-            } else {
-                // resolved, return result
-                body
-            }
+            self.materialize_function(closure)?
         };
 
         // pop the env
         self.root_mod.module.stack_pop(NS_PARAM).unwrap();
 
         Ok(Expr { span, ..res })
+    }
+
+    fn materialize_function(&mut self, closure: Box<Func>) -> Result<Expr> {
+        log::debug!("stack_push for {}", closure.as_debug_name());
+
+        let (func_env, body) = env_of_closure(closure);
+
+        self.root_mod.module.stack_push(NS_PARAM, func_env);
+
+        // fold again, to resolve inner variables & functions
+        let body = self.fold_expr(body)?;
+
+        // remove param decls
+        log::debug!("stack_pop: {:?}", body.id);
+        let func_env = self.root_mod.module.stack_pop(NS_PARAM).unwrap();
+
+        Ok(if let ExprKind::Func(mut inner_closure) = body.kind {
+            // body couldn't been resolved - construct a closure to be evaluated later
+
+            inner_closure.env = func_env.into_exprs();
+
+            let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
+            let missing = missing.to_vec();
+            inner_closure.params = got.to_vec();
+
+            Expr::new(ExprKind::Func(Box::new(Func {
+                name_hint: None,
+                args: vec![],
+                params: missing,
+                named_params: vec![],
+                body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
+                return_ty: None,
+                env: HashMap::new(),
+            })))
+        } else {
+            // resolved, return result
+            body
+        })
     }
 
     pub fn fold_function_types(&mut self, mut closure: Box<Func>) -> Result<Box<Func>> {

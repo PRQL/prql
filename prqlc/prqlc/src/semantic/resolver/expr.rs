@@ -1,7 +1,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{TupleField, Ty, TyKind};
+use prqlc_ast::{Span, TupleField, Ty, TyKind};
 
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
@@ -202,7 +202,20 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        let mut r = Box::new(self.static_eval(r)?);
+        self.finish_expr_resolve(Box::new(r), id, alias, span)
+    }
+}
+
+impl Resolver<'_> {
+    fn finish_expr_resolve(
+        &mut self,
+        expr: Box<Expr>,
+        id: usize,
+        alias: Box<Option<String>>,
+        span: Box<Option<Span>>,
+    ) -> Result<Expr> {
+        let mut r = Box::new(self.static_eval(*expr)?);
+
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(*alias);
         r.span = r.span.or(*span);
@@ -235,9 +248,7 @@ impl PlFold for Resolver<'_> {
         }
         Ok(*r)
     }
-}
 
-impl Resolver<'_> {
     pub fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
         let except = self.coerce_into_tuple(expr)?;
