@@ -1,26 +1,26 @@
 # Type system
 
+> Status: under development
+
 > The type system determines the allowed values of a term.
->
-> -- Wikipedia
 
 ## Purpose
 
-Each of the SQL DBMSs has their own type system. Thanks to SQL standard, they
-are very similar, but have key differences. For example, SQLite does not have a
-type for date or time or timestamps, but it has functions for handling date and
-time that take ISO 8601 strings or integers that represent Unix timestamps. So
-it does support most of what is possible to do with dates in other dialects,
-even though it stores data with a different physical layout and uses different
-functions to achieve that.
+Each of the SQL DBMSs has their own type system. Thanks to the SQL standard,
+they are very similar, but have key differences regardless. For example, SQLite
+does not have a type for date or time or timestamps, but it has functions for
+handling date and time that take ISO 8601 strings or integers that represent
+Unix timestamps. So it does support most of what is possible to do with dates in
+other dialects, even though it stores data with a different physical layout and
+uses different functions to achieve that.
 
-PRQL's task is to define common description of _data formats_, just as how it
+PRQL's task is to define it's own description of _data formats_, just as how it
 already defines common _data transformations_.
 
-We believe this should best be done in two steps:
+This is done in two steps:
 
 1. Define PRQL's Type System (PTS), following principles we think a relational
-   language should have (and not focus on what existing SQL DBMSs have).
+   language should have (and not fixate on what existing SQL DBMSs have).
 
 2. Define a mapping between SQL Type System (STS) and PTS, for each of the
    DBMSs. Ideally we'd want that to be a bijection, so each type in PTS would be
@@ -46,8 +46,8 @@ In practical terms, we want for a user to be able to:
   For now, this mapping is manual, but should be documented and may be
   automated.
 
-- ... use any PRQL feature in their database. Here we are mapping back from PTS
-  into STS. Note that STS may have changed to a different dialect.
+- ... use any PRQL feature in their database. Here we are mapping from PTS into
+  an arbitrary STS.
 
   For example, translate PRQL's datetime operations to use TEXT in SQLite.
 
@@ -82,14 +82,32 @@ arrays for rows.
 PRQL's type system should also be able to express relations as composed from
 primitive types, but have only one idiomatic way of doing so.
 
-In practice this means that builtin types include only primitives (int, text,
-bool, float), tuple (for product), enum (for sum) and array (for repeating).
+In practice, this means that builtin types include only primitives (int, text,
+bool, float), tuple (for product), enum (for sum) and array (for repeating). An
+SQL row translates to a tuple, and a relation translates to an array of tuples.
 
-An SQL row would translate to tuple, and a relation would translate to an array
-of tuples.
+Composability also leads to a minimal type system, which does not differentiate
+between tuples, objects and structs. A single product type is enough.
 
-I would also strive for the type system to be minimal - don't differentiate
-between tuples, objects and structs. Choose one and stick to it.
+**No subtyping** - avoid super types and inheritance.
+
+Subtyping is a natural extension to a type system, where a type can be a super
+type of some other type. This is base mechanism for Object Oriented Programming,
+but is also present in most dynamically types languages. For example, a type
+`number` might be super type of `int` and `float`.
+
+PTS does not have subtyping, because it requires dynamic dispatch and because it
+adds unnecessary complexity to generic type arguments.
+
+Dynamic dispatch, is a mechanism that would be able, for example, to call
+appropriate `to_string` function for each element of an array of `number`. This
+array contains both elements of type `int` and type `float`, with different
+`to_string` implementations.
+
+<!--
+> This segment was part of initial type system proposal.
+> I still do believe it would be useful and possible to implement,
+> but it should be updated to latest TS changes.
 
 **Type constraints** - constrain a type with a predicate. For example, have a
 type of `int64`s that are equal or greater than 10. Postgres
@@ -107,176 +125,84 @@ derive is_red = switch [color == 'red' => true, color == 'green' => false]
 It should be possible to infer that `color` is of type `text`, but only when
 equal to `'red'` or `'green'`. This means that the second switch covers all
 possible cases and `is_red` cannot be `null`.
+-->
 
-## Theory
+## Definition
 
 > For any undefined terms used in this section, refer to set theory and
 > mathematical definitions in general.
 
-A "type of a variable" is a "set of all possible values of that variable". This
-means that terms "type" and "set" are equivalent in this context.
+A "type of a variable" is a "set of all possible values of that variable".
 
-Types (sets) can be expressions. For example, a union of two types is a type
-itself. This means a type expression is equivalent to any other expression whose
-type is a "set of sets".
+### Primitives
 
-So let's introduce a "set" as a PRQL expression construct (alongside existing
-idents, literals, ranges and so on). For now, it does not need any special
-syntax. Because sets are normal expressions, existing syntax can be repurposed
-to define operations on sets:
+At the moment of writing, PRQL defines following primitive types: `int`,
+`float`, `bool`, `text`, `date`, `time` and `timestamp`. New primitive types
+will be added in the future and some of existing types might be split into
+smaller subsets (see section "Splitting primitives").
 
-- Binary operation `or` of two sets represents a union of those two sets:
+### Tuples
 
-  ```
-  let number = int or float
-  ```
+Tuple type is a product type.
 
-  With algebraic types, this is named "a sum type".
+It contains n ordered fields, where n is known at compile-time. Each field has a
+type itself and an optional name. Fields are not necessarily of the same type.
 
-- Literals can be coerced into a singleton set (i.e. `false` is converted into a
-  set with only one element `false`):
+In other languages, similar constructs are named record, struct, tuple, named
+tuple or (data)class.
 
-  ```
-  let int_or_null = int or null
-  ```
+```
+type my_row = {id = int, bool, name = str}
+```
 
-- A list of set expressions can be coerced into a set of tuples, where entries
-  of the tuples correspond to elements of the set expressions in the list:
+### Arrays
 
-  ```
-  let my_row = [id = int, bool, name = str]
-  ```
+Array is a container type that contains n ordered fields, where n is not known
+at compile-time. All fields are of the same type and cannot be named.
 
-- An array of set expressions with exactly one entry can be coerced into a set
-  of arrays of that set expression:
+```
+type array_of_int = [int]
+```
 
-  ```
-  let array_of_int = {int} # proposed syntax for arrays
-  ```
+### Functions
 
-- A function that takes set as params and returns a set is converted into a set
-  of functions.
+```
+type floor_signature = func float -> int
+```
 
-  ```
-  let floor_signature = (float -> int)
-  # using a proposed syntax for lambda functions
-  ```
+### Union
 
-Module `std` defines built-in sets `int`, `float`, `bool`, `text` and `set`.
-Other built-in sets will be added in the future.
+```
+type status = (
+  paid = () ||
+  unpaid = float ||
+  {reason = text, cancelled_at = timestamp} ||
+)
+```
+
+This is "a sum type".
 
 ## Type annotations
 
-Let's extend the syntax for declaration of variable `a`, whose value can be
-computed by evaluating `x`, with a type annotation:
+Variable annotations and function parameters may specify type annotations:
 
 ```
 let a <t> = x
 ```
 
-This extended syntax applies following assertions:
-
-- `t` can be evaluated statically (at compile time),
-- `t` can be coerced into a set,
-- value of `x` (and `a`) must be an element of `t`. This assertion must be
-  possible to evaluate statically.
-
-Similar rules apply to type annotations of return types of functions and
-function parameter definitions.
-
-## Type definitions
-
-As shown, types can be defined by defining expressions and coercing them to set
-expressions by using `< >`.
-
-But similar to how both `func` and `let` can be used to define functions (when
-we introduce lambda function syntax), let's also introduce syntactic sugar for
-type definitions:
+The value of `x` (and thus `a`) must be an element of `t`.
 
 ```
-# these two are equivalent
-let my_type <set> = set_expr
-type my_type = set_expr
+let my_func = func x <t> -> y
 ```
 
-## Container types
-
-> Terminology is under discussion
-
-**Tuple** is the only product type in PTS. It contains n ordered fields, where n
-is known at compile-time. Each field has a type itself and an optional name.
-Fields are not necessarily of the same type.
-
-In other languages, similar constructs are named record, struct, tuple, named
-tuple or (data)class.
-
-**Array** is a container type that contains n ordered fields, where n is not
-known at compile-time. All fields are of the same type and cannot be named.
-
-**Relation** is an array of tuples.
-
-The first argument of transforms `select` and `derive` contains a known number
-of entries, which can be of different types. Thus, it is a tuple.
+The value of argument supplied to `x` must be an element of `t`.
 
 ```
-select [1.4, false, "foo"]
+let my_func = func x -> <t> y
 ```
 
-### Normalization
-
-Say we have a type expression E, composed of possibly many operators. To
-minimize this expression, we employ process of normalization, which is meant to
-take advantage of the following equalities:
-
-```
-A & A = A
-
-A & B = (), where:
- - A and B are primitive, singleton, tuple or array
- - and A != B
-
-A - (A | B) = ()
-
-A | () = A
-```
-
-We can see that intersection and difference are the main simplifying operations,
-which is why the normalization 'sinks them into the expression', to maximize the
-number of their interactions.
-
-Rules for normalization during intersection:
-
-```
-(A | B)      & C            = (A & C) | (B & C)
-A            & (B | C)      = (A & B) | (A & C)
-
-(A - B)      & C            = (A & C) - B
-A            & (B - C)      = (A & B) - C
-
-{A, B}       & {C, D}       = {A & C, B & D}
-[A]          & [B]          = [A & B]
-
-A            & A            = A
-A            & B            = never
-```
-
-Rules for normalization during difference:
-
-```
-(A | B)      - C            = (A - C) | (B - C)
-(A - B)      - C            = A - (B | C)
-
-{A, B}       - {C, D}       = {A - C, B - D}
-{A, B}       - C            = {A, B}
-A            - {B, C}       = A
-
-[A]          - [B]          = [A - B]
-[A]          - B            = [A]
-A            - [B]          = A
-
-A            - (B - C)      = A & not (B & not C) = A & (not B | C) = (A & not B) | (A & C) = (A - B) | (A & C)
-A            - (A | B)      = ()
-```
+The value of function body `y` must be an element of `t`.
 
 ## Physical layout
 
@@ -294,13 +220,13 @@ dependent on representation of that type in the target STS.
 PTS logical type  --->  STS logical type  ---> STS physical layout
 ```
 
-Note that STS types do not have a single physical layout. Postgres has a logical
-(pseudo)type `anyelement`, which is a super type of any data type. It can be
-used as a function parameter type, but does not have a single physical layout so
-it cannot be used in a column declaration.
+Note that not all STS types do not have a single physical layout. Postgres has a
+logical (pseudo)type `anyelement`, which is a super type of any data type. It
+can be used as a function parameter type, but does not have a single physical
+layout so it cannot be used in a column declaration.
 
 For now, PRQL does not define physical layouts of any type. It is not needed
-since PRQL is not used for DDL (see section "Built-in primitives") or does not
+since PRQL is not used for DDL (see section "Splitting primitives") or does not
 support raw access to underlying memory.
 
 As a consequence, results of a PRQL query cannot be robustly compared across
@@ -309,52 +235,38 @@ DBMSs, since the physical layout of the result will vary.
 In the future, PRQL may define a common physical layout of types, probably using
 Apache Arrow.
 
-<!-- ## Enums
-
-```
-# user-defined enum
-type open
-type pending
-type closed
-type status = open or pending or closed
-``` -->
-
 ## Examples
 
 ```
-type my_relation = {[
+type my_relation = [{
 	id = int,
 	title = text,
 	age = int
-]}
+}]
 
-type invoices = {[
+type invoices = [{
     invoice_id = int64,
     issued_at = timestamp,
-    labels = {text}
+    labels = [text]
 
     #[repr(json)]
     items = [{
         article_id = int64,
         count = int16 where x -> x >= 1,
     }],
-    paid_by_user_id = int64 or null,
-    status = status,
-]}
+    paid_by_user_id = (int64 || null),
+}]
 ```
 
 ## Appendix
 
-### Built-in primitives
+### Splitting primitives
 
 This document mentions `int32` and `int64` as distinct types, but there is no
 need for that in the initial implementation. The built-in `int` can associate
 with all operations on integers and translate PRQL to valid SQL regardless of
-the size of the integer. Later, `int` cam be replaced by:
-
-```
-type int = int8 || int16 || int32 || int64
-```
+the size of the integer. Later, `int` cam be replaced by `int8`, `int16`,
+`int32`, `int64`.
 
 The general rule for "when to make a distinction between types" would be "as
 soon as the types carry different information and we find an operation that

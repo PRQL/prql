@@ -13,6 +13,7 @@ const TRANSFORMS = [
   "union",
   "window",
 ];
+const MODULES = ["date", "math", "text"];
 const BUILTIN_FUNCTIONS = ["case"]; // "in", "as"
 const KEYWORDS = ["let", "prql"];
 const LITERALS = ["null", "true", "false"];
@@ -21,7 +22,13 @@ const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
   // defaultToken: 'invalid',
 
-  keywords: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS, ...LITERALS],
+  keywords: [
+    ...TRANSFORMS,
+    ...MODULES,
+    ...BUILTIN_FUNCTIONS,
+    ...KEYWORDS,
+    ...LITERALS,
+  ],
 
   operators: [
     "+",

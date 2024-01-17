@@ -17,6 +17,8 @@ pub enum Token {
     Param(String),
 
     Range {
+        /// Whether the left side of the range is bound by the previous token
+        /// (but it's not contained in this token)
         bind_left: bool,
         bind_right: bool,
     },
@@ -46,18 +48,16 @@ pub enum InterpolateItem {
     Expr(Vec<Token>, Option<String>),
 }
 
-/// Lex tokens until the end of the input
+/// Lex chars to tokens until the end of the input
 pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
-    lex_token().repeated().then_ignore(end())
+    lex_token()
+        .repeated()
+        .then_ignore(ignored())
+        .then_ignore(end())
 }
 
-/// Lex a single token
+/// Lex chars to a single token
 pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
-    let whitespace = filter(|x: &char| x.is_inline_whitespace())
-        .repeated()
-        .at_least(1)
-        .ignored();
-
     let control_multi = choice((
         just("->").to(Token::ArrowThin),
         just("=>").to(Token::ArrowFat),
@@ -120,43 +120,55 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     // .recover_with(skip_then_retry_until([]).skip_start());
     ;
 
-    let comment = just('#')
-        .then(newline.not().repeated())
-        .separated_by(newline.then(whitespace.or_not()))
-        .at_least(1)
-        .ignored();
-
-    let range = (whitespace.or_not())
+    let range = (whitespace().or_not())
         .then_ignore(just(".."))
-        .then(whitespace.or_not())
+        .then(whitespace().or_not())
         .map(|(left, right)| Token::Range {
+            // If there was no whitespace before (after), then we mark the range
+            // as bound on the left (right).
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
         .map_with_span(TokenSpan);
 
-    let line_wrap = newline
+    choice((range, ignored().ignore_then(token.map_with_span(TokenSpan))))
+}
+
+fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
+    choice((comment(), whitespace(), line_wrap()))
+        .repeated()
+        .ignored()
+}
+
+fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
+    filter(|x: &char| x.is_inline_whitespace())
+        .repeated()
+        .at_least(1)
+        .ignored()
+}
+
+fn line_wrap() -> impl Parser<char, (), Error = Cheap<char>> {
+    newline()
         .then(
             // We can optionally have an empty line, or a line with a comment,
             // between the initial line and the continued line
-            whitespace
+            whitespace()
                 .or_not()
-                .then(comment.or_not())
-                .then(newline)
+                .then(comment().or_not())
+                .then(newline())
                 .repeated(),
         )
-        .then(whitespace.repeated())
+        .then(whitespace().repeated())
         .then(just('\\'))
-        .ignored();
+        .ignored()
+}
 
-    let ignored = choice((comment, whitespace, line_wrap)).repeated();
-
-    choice((
-        range,
-        ignored
-            .ignore_then(token.map_with_span(TokenSpan))
-            .then_ignore(ignored),
-    ))
+fn comment() -> impl Parser<char, (), Error = Cheap<char>> {
+    just('#')
+        .then(newline().not().repeated())
+        .separated_by(newline().then(whitespace().or_not()))
+        .at_least(1)
+        .ignored()
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -632,41 +644,15 @@ impl std::fmt::Debug for TokenVec {
         write!(f, ")")
     }
 }
-
-#[test]
-fn interpolate_item_display() {
-    use insta::assert_display_snapshot;
-
-    assert_display_snapshot!(InterpolateItem::String("hello".to_string()), @"hello");
-    assert_display_snapshot!(Token::Ident("hello".to_string()), @"hello");
-    assert_display_snapshot!(
-        InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
-        @"{hello}"
-    );
-    assert_display_snapshot!(
-        InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], Some("s".to_string())),
-        @"{hello:s}"
-    );
-}
-
-#[test]
-fn test_lexer() {
+#[cfg(test)]
+mod test {
+    use super::*;
     use insta::assert_debug_snapshot;
+    use insta::assert_snapshot;
 
-    assert_debug_snapshot!(lex_token().repeated().parse(r"{test}").unwrap(), @r###"
-    [
-        0..1: Control('{'),
-        1..5: Ident("test"),
-        5..6: Control('}'),
-    ]
-    "###);
-}
-
-#[test]
-fn test_line_wrap() {
-    use insta::assert_debug_snapshot;
-    // (TODO: is there a terser way of writing our lexer output?)
-    assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
+    #[test]
+    fn line_wrap() {
+        assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
         ).unwrap()), @r###"
     TokenVec (
@@ -676,8 +662,8 @@ fn test_line_wrap() {
     )
     "###);
 
-    // Comments get skipped over
-    assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
+        // Comments get skipped over
+        assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
@@ -688,85 +674,143 @@ fn test_line_wrap() {
       47..48: Literal(Integer(3)),
     )
     "###);
-}
+    }
 
-#[test]
-fn numbers() {
-    // Binary notation
-    assert_eq!(
-        literal().parse("0b1111000011110000").unwrap(),
-        Literal::Integer(61680)
-    );
-    assert_eq!(
-        literal().parse("0b_1111000011110000").unwrap(),
-        Literal::Integer(61680)
-    );
+    #[test]
+    fn numbers() {
+        // Binary notation
+        assert_eq!(
+            literal().parse("0b1111000011110000").unwrap(),
+            Literal::Integer(61680)
+        );
+        assert_eq!(
+            literal().parse("0b_1111000011110000").unwrap(),
+            Literal::Integer(61680)
+        );
 
-    // Hexadecimal notation
-    assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
-    assert_eq!(
-        literal().parse("0x_deadbeef").unwrap(),
-        Literal::Integer(3735928559)
-    );
+        // Hexadecimal notation
+        assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
+        assert_eq!(
+            literal().parse("0x_deadbeef").unwrap(),
+            Literal::Integer(3735928559)
+        );
 
-    // Octal notation
-    assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
-}
+        // Octal notation
+        assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
+    }
 
-#[test]
-fn debug_display() {
-    use insta::assert_debug_snapshot;
-    assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
+    #[test]
+    fn debug_display() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
     TokenVec (
       0..1: Literal(Integer(5)),
       2..3: Control('+'),
       4..5: Literal(Integer(3)),
     )
     "###);
-}
+    }
 
-#[test]
-fn quotes() {
-    use insta::assert_snapshot;
+    #[test]
+    fn quotes() {
+        // All these are valid & equal.
+        assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
 
-    // All these are valid & equal.
-    assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
+        // An even number is interpreted as a closed string (and the remainder is unparsed)
+        assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
 
-    // An even number is interpreted as a closed string (and the remainder is unparsed)
-    assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
+        // When not escaping, we take the inner string between the three quotes
+        assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
 
-    // When not escaping, we take the inner string between the three quotes
-    assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
+        assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
 
-    assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
+        // Escape each inner quote depending on the outer quote
+        assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
+        assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
 
-    // Escape each inner quote depending on the outer quote
-    assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
-    assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
+        assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
 
-    assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
+        // An empty input should fail
+        quoted_string(false).parse(r#""#).unwrap_err();
 
-    // An empty input should fail
-    quoted_string(false).parse(r#""#).unwrap_err();
+        // An even number of quotes is an empty string
+        assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
 
-    // An even number of quotes is an empty string
-    assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
+        // Hex escape
+        assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
 
-    // Hex escape
-    assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
+        // Unicode escape
+        assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
+    }
 
-    // Unicode escape
-    assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
-}
+    #[test]
+    fn range() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("1..2").unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(1)),
+          1..3: Range { bind_left: true, bind_right: true },
+          3..4: Literal(Integer(2)),
+        )
+        "###);
 
-#[test]
-fn test_interpolated_expr() {
-    use insta::assert_debug_snapshot;
+        assert_debug_snapshot!(TokenVec(lexer().parse("..2").unwrap()), @r###"
+        TokenVec (
+          0..2: Range { bind_left: true, bind_right: true },
+          2..3: Literal(Integer(2)),
+        )
+        "###);
 
-    assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello}"), @r###"
+        assert_debug_snapshot!(TokenVec(lexer().parse("1..").unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(1)),
+          1..3: Range { bind_left: true, bind_right: true },
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("in ..5").unwrap()), @r###"
+        TokenVec (
+          0..2: Ident("in"),
+          2..5: Range { bind_left: false, bind_right: true },
+          5..6: Literal(Integer(5)),
+        )
+        "###);
+    }
+
+    #[test]
+    fn interpolate_item_display() {
+        use insta::assert_display_snapshot;
+
+        assert_display_snapshot!(InterpolateItem::String("hello".to_string()), @"hello");
+        assert_display_snapshot!(Token::Ident("hello".to_string()), @"hello");
+        assert_display_snapshot!(
+            InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
+            @"{hello}"
+        );
+        assert_display_snapshot!(
+            InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], Some("s".to_string())),
+            @"{hello:s}"
+        );
+    }
+
+    #[test]
+    fn test_lexer() {
+        use insta::assert_debug_snapshot;
+
+        assert_debug_snapshot!(lex_token().repeated().parse(r"{test}").unwrap(), @r###"
+    [
+        0..1: Control('{'),
+        1..5: Ident("test"),
+        5..6: Control('}'),
+    ]
+    "###);
+    }
+    #[test]
+    fn test_interpolated_expr() {
+        use insta::assert_debug_snapshot;
+
+        assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello}"), @r###"
     (
         Some(
             Expr(
@@ -782,7 +826,7 @@ fn test_interpolated_expr() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello + 5}"), @r###"
+        assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello + 5}"), @r###"
     (
         Some(
             Expr(
@@ -806,7 +850,7 @@ fn test_interpolated_expr() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello}{foo}"), @r###"
+        assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello}{foo}"), @r###"
     (
         Some(
             Expr(
@@ -821,15 +865,15 @@ fn test_interpolated_expr() {
         [],
     )
     "###);
-}
+    }
 
-#[test]
-fn interpolate() {
-    use insta::assert_debug_snapshot;
+    #[test]
+    fn interpolate() {
+        use insta::assert_debug_snapshot;
 
-    let interpolated_string = interpolated_string(&'"', false);
+        let interpolated_string = interpolated_string(&'"', false);
 
-    assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello + 5}""#), @r###"
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello + 5}""#), @r###"
     (
         Some(
             [
@@ -855,7 +899,7 @@ fn interpolate() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""hello""#), @r###"
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""hello""#), @r###"
     (
         Some(
             [
@@ -868,7 +912,7 @@ fn interpolate() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_string.parse(r#""{hello}world""#).unwrap(), @r###"
+        assert_debug_snapshot!(interpolated_string.parse(r#""{hello}world""#).unwrap(), @r###"
     [
         Expr(
             [
@@ -884,7 +928,7 @@ fn interpolate() {
     ]
     "###);
 
-    assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello}{world}""#), @r###"
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello}{world}""#), @r###"
     (
         Some(
             [
@@ -910,7 +954,7 @@ fn interpolate() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello}world""#), @r###"
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello}world""#), @r###"
     (
         Some(
             [
@@ -931,7 +975,7 @@ fn interpolate() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello + 5}world""#), @r###"
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello + 5}world""#), @r###"
     (
         Some(
             [
@@ -960,7 +1004,7 @@ fn interpolate() {
     )
     "###);
 
-    assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""print('{{hello}}')""#), @r###"
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""print('{{hello}}')""#), @r###"
     (
         Some(
             [
@@ -972,13 +1016,13 @@ fn interpolate() {
         [],
     )
     "###);
-}
+    }
 
-#[test]
-fn test_interpolate_lex() {
-    use insta::assert_debug_snapshot;
+    #[test]
+    fn test_interpolate_lex() {
+        use insta::assert_debug_snapshot;
 
-    assert_debug_snapshot!(lexer().parse_recovery_verbose(r#"s"hello{world}""#), @r###"
+        assert_debug_snapshot!(lexer().parse_recovery_verbose(r#"s"hello{world}""#), @r###"
     (
         Some(
             [
@@ -989,7 +1033,7 @@ fn test_interpolate_lex() {
     )
     "###);
 
-    assert_debug_snapshot!(lexer().parse_recovery_verbose(r#"s"hello{{world}}""#), @r###"
+        assert_debug_snapshot!(lexer().parse_recovery_verbose(r#"s"hello{{world}}""#), @r###"
     (
         Some(
             [
@@ -999,49 +1043,50 @@ fn test_interpolate_lex() {
         [],
     )
     "###);
-}
-
-#[test]
-fn test_interpolated_display() {
-    use insta::assert_display_snapshot;
-
-    fn roundtrip(s: &str) -> String {
-        let parsed = interpolation().parse(s).unwrap();
-        parsed.to_string()
     }
 
-    assert_display_snapshot!(roundtrip(r#"s"{hello}world""#), @r###"s"{hello}world""###);
+    #[test]
+    fn test_interpolated_display() {
+        use insta::assert_display_snapshot;
 
-    assert_display_snapshot!(
-        InterpolateItem::String("hello".to_string()),
-        @"hello"
-    );
+        fn roundtrip(s: &str) -> String {
+            let parsed = interpolation().parse(s).unwrap();
+            parsed.to_string()
+        }
 
-    assert_display_snapshot!(
-        InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
-        @"{hello}"
-    );
+        assert_display_snapshot!(roundtrip(r#"s"{hello}world""#), @r###"s"{hello}world""###);
 
-    assert_display_snapshot!(
-        InterpolateItem::Expr(
-            vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
-            None
-        )
-        ,
-        @"{hello+3}"
-    );
+        assert_display_snapshot!(
+            InterpolateItem::String("hello".to_string()),
+            @"hello"
+        );
 
-    assert_display_snapshot!(
-        InterpolateItem::Expr(
-            vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
-            Some("fmt".to_string())
-        )
-        ,
-        @"{hello+3:fmt}"
-    );
+        assert_display_snapshot!(
+            InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
+            @"{hello}"
+        );
 
-    assert_display_snapshot!(
-        InterpolateItem::String("a{bracket}".to_string()),
-        @"a{{bracket}}"
-    );
+        assert_display_snapshot!(
+            InterpolateItem::Expr(
+                vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
+                None
+            )
+            ,
+            @"{hello+3}"
+        );
+
+        assert_display_snapshot!(
+            InterpolateItem::Expr(
+                vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
+                Some("fmt".to_string())
+            )
+            ,
+            @"{hello+3:fmt}"
+        );
+
+        assert_display_snapshot!(
+            InterpolateItem::String("a{bracket}".to_string()),
+            @"a{{bracket}}"
+        );
+    }
 }

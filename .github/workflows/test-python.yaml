@@ -39,7 +39,7 @@ jobs:
         run: pipx install nox
         shell: bash
       - name: Cache Nox
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .nox
           key: nox-${{ hashFiles('prqlc/bindings/python/pyproject.toml') }}

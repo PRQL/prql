@@ -43,7 +43,7 @@ jobs:
       grammars: ${{ steps.changes.outputs.grammars }}
       java: ${{ steps.changes.outputs.java }}
       js: ${{ steps.changes.outputs.js }}
-      lib: ${{ steps.changes.outputs.lib }}
+      prqlc-c: ${{ steps.changes.outputs.prqlc-c }}
       # Run tests such as rust tests for all-OSs, and bindings tests on ubuntu.
       # Somewhat a tradeoff between coverage and ensuring our CI queues stay
       # short.
@@ -247,7 +247,9 @@ jobs:
 
   test-prqlc-c:
     needs: rules
-    if: needs.rules.outputs.lib == 'true' || needs.rules.outputs.main == 'true'
+    if:
+      needs.rules.outputs.prqlc-c == 'true' || needs.rules.outputs.main ==
+      'true'
     uses: ./.github/workflows/test-prqlc-c.yaml
 
   test-taskfile:
