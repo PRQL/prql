@@ -8,6 +8,7 @@ pub struct Span {
     pub start: usize,
     pub end: usize,
 
+    /// Key to the path of the source, whose value in stored in [crate::SourceTree].
     pub source_id: u16,
 }
 
