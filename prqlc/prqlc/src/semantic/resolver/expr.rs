@@ -63,10 +63,10 @@ impl PlFold for Resolver<'_> {
         }
 
         let id = self.id.gen();
-        let alias = node.alias.clone();
-        let span = node.span;
+        let alias = Box::new(node.alias.clone());
+        let span = Box::new(node.span);
 
-        if let Some(span) = span {
+        if let Some(span) = *span {
             self.root_mod.span_map.insert(id, span);
         }
 
@@ -139,7 +139,7 @@ impl PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(span)
+                        .with_span(*span)
                         .into());
                     }
 
@@ -167,17 +167,17 @@ impl PlFold for Resolver<'_> {
                 self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let name = self.fold_expr(*name)?;
+                let name = Box::new(self.fold_expr(*name)?);
                 self.in_func_call_name = old;
 
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, span)?
+                self.fold_function(func, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(closure, span)?,
+            ExprKind::Func(closure) => self.fold_function(closure, *span)?,
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -202,10 +202,10 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        let mut r = self.static_eval(r)?;
+        let mut r = Box::new(self.static_eval(r)?);
         r.id = r.id.or(Some(id));
-        r.alias = r.alias.or(alias);
-        r.span = r.span.or(span);
+        r.alias = r.alias.or(*alias);
+        r.span = r.span.or(*span);
 
         if r.ty.is_none() {
             r.ty = Resolver::infer_type(&r)?;
@@ -233,7 +233,7 @@ impl PlFold for Resolver<'_> {
                 }
             }
         }
-        Ok(r)
+        Ok(*r)
     }
 }
 
