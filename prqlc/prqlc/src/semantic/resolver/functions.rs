@@ -15,7 +15,7 @@ use crate::{Error, Span, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn fold_function(&mut self, closure: Func, span: Option<Span>) -> Result<Expr> {
+    pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
         let closure = self.fold_function_types(closure)?;
 
         log::debug!(
@@ -36,7 +36,7 @@ impl Resolver<'_> {
 
         let enough_args = closure.args.len() == closure.params.len();
         if !enough_args {
-            return Ok(expr_of_func(closure, span));
+            return Ok(*expr_of_func(closure, span));
         }
 
         // make sure named args are pushed into params
@@ -49,10 +49,10 @@ impl Resolver<'_> {
         // push the env
         let closure_env = Module::from_exprs(closure.env);
         self.root_mod.module.stack_push(NS_PARAM, closure_env);
-        let closure = Func {
+        let closure = Box::new(Func {
             env: HashMap::new(),
-            ..closure
-        };
+            ..*closure
+        });
 
         if log::log_enabled!(log::Level::Debug) {
             let name = closure
@@ -66,7 +66,7 @@ impl Resolver<'_> {
         let closure = match res {
             Ok(func) => func,
             Err(func) => {
-                return Ok(expr_of_func(func, span));
+                return Ok(*expr_of_func(func, span));
             }
         };
 
@@ -137,7 +137,7 @@ impl Resolver<'_> {
         Ok(Expr { span, ..res })
     }
 
-    pub fn fold_function_types(&mut self, mut closure: Func) -> Result<Func> {
+    pub fn fold_function_types(&mut self, mut closure: Box<Func>) -> Result<Box<Func>> {
         closure.params = closure
             .params
             .into_iter()
@@ -154,10 +154,10 @@ impl Resolver<'_> {
 
     pub fn apply_args_to_closure(
         &mut self,
-        mut closure: Func,
+        mut closure: Box<Func>,
         args: Vec<Expr>,
         mut named_args: HashMap<String, Expr>,
-    ) -> Result<Func> {
+    ) -> Result<Box<Func>> {
         // named arguments are consumed only by the first function
 
         // named
@@ -184,11 +184,14 @@ impl Resolver<'_> {
     }
 
     /// Resolves function arguments. Will return `Err(func)` is partial application is required.
-    fn resolve_function_args(&mut self, to_resolve: Func) -> Result<Result<Func, Func>> {
-        let mut closure = Func {
+    fn resolve_function_args(
+        &mut self,
+        to_resolve: Box<Func>,
+    ) -> Result<Result<Box<Func>, Box<Func>>> {
+        let mut closure = Box::new(Func {
             args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
-            ..to_resolve
-        };
+            ..*to_resolve
+        });
         let mut partial_application_position = None;
 
         let func_name = &closure.name_hint;
@@ -342,7 +345,7 @@ impl Resolver<'_> {
     }
 }
 
-fn extract_partial_application(mut func: Func, position: usize) -> Func {
+fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func> {
     // Input:
     // Func {
     //     params: [x, y, z],
@@ -393,10 +396,10 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
     arg_func.args.push(substitute_arg);
 
     // set the arg func body to the parent func
-    Func {
+    Box::new(Func {
         name_hint: None,
         return_ty: None,
-        body: Box::new(Expr::new(func)),
+        body: Box::new(Expr::new(ExprKind::Func(func))),
         params: vec![FuncParam {
             name: param_name,
             ty: None,
@@ -405,10 +408,10 @@ fn extract_partial_application(mut func: Func, position: usize) -> Func {
         named_params: Default::default(),
         args: Default::default(),
         env: Default::default(),
-    }
+    })
 }
 
-fn env_of_closure(closure: Func) -> (Module, Expr) {
+fn env_of_closure(closure: Box<Func>) -> (Module, Expr) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {
@@ -424,7 +427,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr) {
     (func_env, *closure.body)
 }
 
-pub fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
+pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
     let ty = TyFunc {
         args: func
             .params
@@ -436,9 +439,9 @@ pub fn expr_of_func(func: Func, span: Option<Span>) -> Expr {
         name_hint: func.name_hint.clone(),
     };
 
-    Expr {
+    Box::new(Expr {
         ty: Some(Ty::new(ty)),
         span,
-        ..Expr::new(ExprKind::Func(Box::new(func)))
-    }
+        ..Expr::new(ExprKind::Func(func))
+    })
 }

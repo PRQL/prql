@@ -23,7 +23,7 @@ use super::Resolver;
 
 impl Resolver<'_> {
     /// try to convert function call with enough args into transform
-    pub fn resolve_special_func(&mut self, func: Func, needs_window: bool) -> Result<Expr> {
+    pub fn resolve_special_func(&mut self, func: Box<Func>, needs_window: bool) -> Result<Expr> {
         let internal_name = func.body.kind.into_internal().unwrap();
 
         let (kind, input) = match internal_name.as_str() {
@@ -623,7 +623,7 @@ impl Resolver<'_> {
         })?;
 
         // construct the function back
-        let func = Func {
+        let func = Box::new(Func {
             name_hint: None,
             body: Box::new(pipeline),
             return_ty: None,
@@ -637,8 +637,8 @@ impl Resolver<'_> {
             named_params: vec![],
 
             env: Default::default(),
-        };
-        Ok(expr_of_func(func, span))
+        });
+        Ok(*expr_of_func(func, span))
     }
 }
 
