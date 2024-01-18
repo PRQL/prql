@@ -594,6 +594,18 @@ mod test {
           47..48: Literal(Integer(3)),
         )
         "###);
+
+        // Check display, for the test coverage (use `assert_eq` because the
+        // line-break doesn't work well with snapshots)
+        assert_eq!(
+            format!(
+                "{}",
+                Token::LineWrap(vec![Token::Comment(" a comment".to_string())])
+            ),
+            r#"
+\ # a comment
+"#
+        );
     }
 
     #[test]
