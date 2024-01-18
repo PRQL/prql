@@ -4,7 +4,13 @@ expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
 ---
 TokenVec (
-  0..56: Comment(" generic:skip\n glaredb:skip\n sqlite:skip\n mssql:test"),
+  0..14: Comment(" generic:skip"),
+  14..15: NewLine,
+  15..29: Comment(" glaredb:skip"),
+  29..30: NewLine,
+  30..43: Comment(" sqlite:skip"),
+  43..44: NewLine,
+  44..56: Comment(" mssql:test"),
   56..57: NewLine,
   57..61: Ident("from"),
   62..70: Ident("invoices"),

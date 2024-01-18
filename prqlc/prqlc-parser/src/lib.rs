@@ -33,14 +33,14 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
 
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
-    let without_comments: Option<_> = tokens.map(|tokens| {
+    let semantic_only: Option<_> = tokens.map(|tokens| {
         tokens
             .into_iter()
-            .filter(|TokenSpan(t, _)| !matches!(t, Token::Comment(_)))
+            .filter(|TokenSpan(t, _)| !matches!(t, Token::Comment(_) | Token::LineWrap))
     });
 
-    let ast = if let Some(without_comments) = without_comments {
-        let stream = prepare_stream(without_comments, source, source_id);
+    let ast = if let Some(semantic_only) = semantic_only {
+        let stream = prepare_stream(semantic_only, source, source_id);
 
         let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
@@ -122,6 +122,8 @@ mod common {
     }
 }
 
+/// Convert the output of the lexer into the input of the parser. Requires
+/// supplying the original source code.
 fn prepare_stream(
     tokens: impl Iterator<Item = TokenSpan>,
     source: &str,

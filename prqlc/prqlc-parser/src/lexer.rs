@@ -40,7 +40,9 @@ pub enum Token {
     // Pow,         // **
     Annotate, // @
 
+    // Aesthetics only
     Comment(String),
+    LineWrap,
 }
 
 /// Lex chars to tokens until the end of the input
@@ -98,15 +100,9 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
-    // I think declaring this and then cloning will be more performant than
-    // calling the function on each invocation.
-    // https://github.com/zesterer/chumsky/issues/501 would allow us to avoid
-    // this, and let us split up this giant function without sacrificing
-    // performance.
-    let newline = newline();
-
     let token = choice((
-        newline.to(Token::NewLine),
+        line_wrap(),
+        newline().to(Token::NewLine),
         control_multi,
         interpolation,
         param,
@@ -133,7 +129,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
 }
 
 fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
-    choice((whitespace(), line_wrap())).repeated().ignored()
+    whitespace().repeated().ignored()
 }
 
 fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
@@ -143,28 +139,19 @@ fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
         .ignored()
 }
 
-fn line_wrap() -> impl Parser<char, (), Error = Cheap<char>> {
+fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
     newline()
-        .then(
-            // We can optionally have an empty line, or a line with a comment,
-            // between the initial line and the continued line
-            whitespace()
-                .or_not()
-                .then(comment().or_not())
-                .then(newline())
-                .repeated(),
-        )
         .then(whitespace().repeated())
         .then(just('\\'))
-        .ignored()
+        .to(Token::LineWrap)
 }
 
 fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
-    let comment_line = just('#').ignore_then(newline().not().repeated().collect::<String>());
+    let comment_line = just('#')
+        .ignore_then(newline().not().repeated().collect::<String>())
+        .map(Token::Comment);
 
     comment_line
-        .chain(newline().ignore_then(comment_line).repeated())
-        .map(|lines: Vec<String>| Token::Comment(lines.join("\n")))
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -527,6 +514,7 @@ impl std::fmt::Display for Token {
                 }
                 Ok(())
             }
+            Token::LineWrap => write!(f, "/n\\ "),
         }
     }
 }
@@ -564,12 +552,13 @@ mod test {
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
         ).unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      10..11: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..9: LineWrap,
+          10..11: Literal(Integer(3)),
+        )
+        "###);
 
         // Comments get skipped over
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
@@ -577,12 +566,17 @@ mod test {
    # comment with whitespace
   \ 3 "
         ).unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      47..48: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..4: NewLine,
+          4..13: Comment(" comment"),
+          13..14: NewLine,
+          17..42: Comment(" comment with whitespace"),
+          42..46: LineWrap,
+          47..48: Literal(Integer(3)),
+        )
+        "###);
     }
 
     #[test]
