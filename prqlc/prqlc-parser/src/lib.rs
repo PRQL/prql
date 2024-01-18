@@ -36,7 +36,7 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     let semantic_only: Option<_> = tokens.map(|tokens| {
         tokens
             .into_iter()
-            .filter(|TokenSpan(t, _)| !matches!(t, Token::Comment(_) | Token::LineWrap))
+            .filter(|TokenSpan(t, _)| !matches!(t, Token::Comment(_) | Token::LineWrap(_)))
     });
 
     let ast = if let Some(semantic_only) = semantic_only {

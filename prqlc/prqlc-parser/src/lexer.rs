@@ -42,7 +42,20 @@ pub enum Token {
 
     // Aesthetics only
     Comment(String),
-    LineWrap,
+    /// Vec contains comments between the newline and the line wrap
+    // Currently we include the comments with the LineWrap token. This isn't
+    // ideal, but I'm not sure of an easy way of having them be separate.
+    // - The line wrap span technically include the comments — on a newline,
+    //   we need to look ahead to _after_ the comments to see if there's a
+    //   line wrap, and exclude the newline if there is.
+    // - We can only pass one token back
+    //
+    // Alternatives:
+    // - Post-process the stream, removing the newline prior to a line wrap.
+    //   But requires a whole extra pass.
+    // - Change the functionality. But it's very nice to be able to comment
+    //   something out and have line-wraps still work.
+    LineWrap(Vec<Token>),
 }
 
 /// Lex chars to tokens until the end of the input
@@ -141,9 +154,16 @@ fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
 
 fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
     newline()
-        .then(whitespace().repeated())
-        .then(just('\\'))
-        .to(Token::LineWrap)
+        .ignore_then(
+            whitespace()
+                .repeated()
+                .ignore_then(comment())
+                .then_ignore(newline())
+                .repeated(),
+        )
+        .then_ignore(whitespace().repeated())
+        .then_ignore(just('\\'))
+        .map(Token::LineWrap)
 }
 
 fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
@@ -512,7 +532,13 @@ impl std::fmt::Display for Token {
                 }
                 Ok(())
             }
-            Token::LineWrap => write!(f, "/n\\ "),
+            Token::LineWrap(comments) => {
+                write!(f, "\n\\ ")?;
+                for comment in comments {
+                    write!(f, "{}", comment)?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -553,12 +579,12 @@ mod test {
         TokenVec (
           0..1: Literal(Integer(5)),
           2..3: Control('+'),
-          3..9: LineWrap,
+          3..9: LineWrap([]),
           10..11: Literal(Integer(3)),
         )
         "###);
 
-        // Comments get skipped over
+        // Comments are included; no newline after the comments
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
@@ -567,11 +593,7 @@ mod test {
         TokenVec (
           0..1: Literal(Integer(5)),
           2..3: Control('+'),
-          3..4: NewLine,
-          4..13: Comment(" comment"),
-          13..14: NewLine,
-          17..42: Comment(" comment with whitespace"),
-          42..46: LineWrap,
+          3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
           47..48: Literal(Integer(3)),
         )
         "###);
