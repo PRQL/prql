@@ -40,7 +40,22 @@ pub enum Token {
     // Pow,         // **
     Annotate, // @
 
+    // Aesthetics only
     Comment(String),
+    /// Vec contains comments between the newline and the line wrap
+    // Currently we include the comments with the LineWrap token. This isn't
+    // ideal, but I'm not sure of an easy way of having them be separate.
+    // - The line wrap span technically include the comments — on a newline,
+    //   we need to look ahead to _after_ the comments to see if there's a
+    //   line wrap, and exclude the newline if there is.
+    // - We can only pass one token back
+    //
+    // Alternatives:
+    // - Post-process the stream, removing the newline prior to a line wrap.
+    //   But requires a whole extra pass.
+    // - Change the functionality. But it's very nice to be able to comment
+    //   something out and have line-wraps still work.
+    LineWrap(Vec<Token>),
 }
 
 /// Lex chars to tokens until the end of the input
@@ -98,15 +113,9 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
-    // I think declaring this and then cloning will be more performant than
-    // calling the function on each invocation.
-    // https://github.com/zesterer/chumsky/issues/501 would allow us to avoid
-    // this, and let us split up this giant function without sacrificing
-    // performance.
-    let newline = newline();
-
     let token = choice((
-        newline.to(Token::NewLine),
+        line_wrap(),
+        newline().to(Token::NewLine),
         control_multi,
         interpolation,
         param,
@@ -133,7 +142,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
 }
 
 fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
-    choice((whitespace(), line_wrap())).repeated().ignored()
+    whitespace().repeated().ignored()
 }
 
 fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
@@ -143,28 +152,24 @@ fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
         .ignored()
 }
 
-fn line_wrap() -> impl Parser<char, (), Error = Cheap<char>> {
+fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
     newline()
-        .then(
-            // We can optionally have an empty line, or a line with a comment,
-            // between the initial line and the continued line
+        .ignore_then(
             whitespace()
-                .or_not()
-                .then(comment().or_not())
-                .then(newline())
+                .repeated()
+                .ignore_then(comment())
+                .then_ignore(newline())
                 .repeated(),
         )
-        .then(whitespace().repeated())
-        .then(just('\\'))
-        .ignored()
+        .then_ignore(whitespace().repeated())
+        .then_ignore(just('\\'))
+        .map(Token::LineWrap)
 }
 
 fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
-    let comment_line = just('#').ignore_then(newline().not().repeated().collect::<String>());
-
-    comment_line
-        .chain(newline().ignore_then(comment_line).repeated())
-        .map(|lines: Vec<String>| Token::Comment(lines.join("\n")))
+    just('#')
+        .ignore_then(newline().not().repeated().collect::<String>())
+        .map(Token::Comment)
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -522,8 +527,12 @@ impl std::fmt::Display for Token {
                 write!(f, "{c}\"{}\"", s)
             }
             Token::Comment(s) => {
-                for line in s.lines() {
-                    writeln!(f, "#{}", line)?
+                writeln!(f, "#{}", s)
+            }
+            Token::LineWrap(comments) => {
+                write!(f, "\n\\ ")?;
+                for comment in comments {
+                    write!(f, "{}", comment)?;
                 }
                 Ok(())
             }
@@ -564,25 +573,39 @@ mod test {
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
         ).unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      10..11: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..9: LineWrap([]),
+          10..11: Literal(Integer(3)),
+        )
+        "###);
 
-        // Comments get skipped over
+        // Comments are included; no newline after the comments
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
         ).unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      47..48: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
+          47..48: Literal(Integer(3)),
+        )
+        "###);
+
+        // Check display, for the test coverage (use `assert_eq` because the
+        // line-break doesn't work well with snapshots)
+        assert_eq!(
+            format!(
+                "{}",
+                Token::LineWrap(vec![Token::Comment(" a comment".to_string())])
+            ),
+            r#"
+\ # a comment
+"#
+        );
     }
 
     #[test]
@@ -620,14 +643,17 @@ mod test {
     }
 
     #[test]
-    fn test_single_line_comment() {
+    fn comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("# comment\n# second line").unwrap()), @r###"
+        TokenVec (
+          0..9: Comment(" comment"),
+          9..10: NewLine,
+          10..23: Comment(" second line"),
+        )
+        "###);
+
         assert_display_snapshot!(Token::Comment(" This is a single-line comment".to_string()), @r###"
         # This is a single-line comment
-        "###);
-        assert_display_snapshot!(Token::Comment(" This is a\n multi-line\n comment".to_string()), @r###"
-        # This is a
-        # multi-line
-        # comment
         "###);
     }
 

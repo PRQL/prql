@@ -4,7 +4,9 @@ expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
 ---
 TokenVec (
-  0..116: Comment(" clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n mssql:test"),
+  0..103: Comment(" clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)"),
+  103..104: NewLine,
+  104..116: Comment(" mssql:test"),
   116..117: NewLine,
   117..120: Keyword("let"),
   121..132: Ident("genre_count"),

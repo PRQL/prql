@@ -4,7 +4,11 @@ expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
 TokenVec (
-  0..42: Comment(" sqlite:skip\n postgres:skip\n mysql:skip"),
+  0..13: Comment(" sqlite:skip"),
+  13..14: NewLine,
+  14..29: Comment(" postgres:skip"),
+  29..30: NewLine,
+  30..42: Comment(" mysql:skip"),
   42..43: NewLine,
   43..47: Ident("from"),
   48..49: Control('('),

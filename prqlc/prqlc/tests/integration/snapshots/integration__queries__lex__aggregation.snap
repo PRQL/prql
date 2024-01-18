@@ -4,7 +4,13 @@ expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/aggregation.prql
 ---
 TokenVec (
-  0..101: Comment(" mssql:skip\n mysql:skip\n clickhouse:skip\n glaredb:skip (the string_agg function is not supported)"),
+  0..12: Comment(" mssql:skip"),
+  12..13: NewLine,
+  13..25: Comment(" mysql:skip"),
+  25..26: NewLine,
+  26..43: Comment(" clickhouse:skip"),
+  43..44: NewLine,
+  44..101: Comment(" glaredb:skip (the string_agg function is not supported)"),
   101..102: NewLine,
   102..106: Ident("from"),
   107..113: Ident("tracks"),

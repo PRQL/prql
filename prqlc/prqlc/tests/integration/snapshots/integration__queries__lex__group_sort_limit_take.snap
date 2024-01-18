@@ -4,7 +4,9 @@ expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/group_sort_limit_take.prql
 ---
 TokenVec (
-  0..75: Comment(" Compute the 3 longest songs for each genre and sort by genre\n mssql:test"),
+  0..62: Comment(" Compute the 3 longest songs for each genre and sort by genre"),
+  62..63: NewLine,
+  63..75: Comment(" mssql:test"),
   75..76: NewLine,
   76..80: Ident("from"),
   81..87: Ident("tracks"),
