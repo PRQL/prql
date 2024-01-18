@@ -147,11 +147,9 @@ fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
 }
 
 fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
-    let comment_line = just('#')
+    just('#')
         .ignore_then(newline().not().repeated().collect::<String>())
-        .map(Token::Comment);
-
-    comment_line
+        .map(Token::Comment)
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
