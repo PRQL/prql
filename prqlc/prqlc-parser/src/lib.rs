@@ -124,7 +124,6 @@ mod common {
 
 fn prepare_stream(
     tokens: impl Iterator<Item = TokenSpan>,
-
     source: &str,
     source_id: u16,
 ) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {

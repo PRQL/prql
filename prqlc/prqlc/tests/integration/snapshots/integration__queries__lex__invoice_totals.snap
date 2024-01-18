@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/invoice_totals.prql
+input_file: prqlc/prqlc/tests/integration/queries/invoice_totals.prql
 ---
 TokenVec (
+  0..56: Comment(" clickhouse:skip (clickhouse doesn't have lag function)"),
   56..57: NewLine,
   57..61: Ident("from"),
   62..63: Ident("i"),

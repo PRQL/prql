@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/sort.prql
+input_file: prqlc/prqlc/tests/integration/queries/sort.prql
 ---
 TokenVec (
+  0..12: Comment(" mssql:test"),
   12..13: NewLine,
   13..17: Ident("from"),
   18..19: Ident("e"),
@@ -23,6 +24,7 @@ TokenVec (
   89..90: Control('}'),
   90..91: NewLine,
   91..92: NewLine,
+  92..144: Comment(" joining may use HashMerge, which can undo ORDER BY"),
   144..145: NewLine,
   145..149: Ident("join"),
   150..157: Ident("manager"),

@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/set_ops_remove.prql
+input_file: prqlc/prqlc/tests/integration/queries/set_ops_remove.prql
 ---
 TokenVec (
+  0..12: Comment(" mssql:test"),
   12..13: NewLine,
   13..16: Keyword("let"),
   17..25: Ident("distinct"),
