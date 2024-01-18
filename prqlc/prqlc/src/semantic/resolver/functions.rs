@@ -103,10 +103,11 @@ impl Resolver<'_> {
         Ok(Expr { span, ..res })
     }
 
+    #[allow(clippy::boxed_local)]
     fn materialize_function(&mut self, closure: Box<Func>) -> Result<Expr> {
         log::debug!("stack_push for {}", closure.as_debug_name());
 
-        let (func_env, body) = env_of_closure(closure);
+        let (func_env, body) = env_of_closure(*closure);
 
         self.root_mod.module.stack_push(NS_PARAM, func_env);
 
@@ -190,7 +191,7 @@ impl Resolver<'_> {
     /// Resolves function arguments. Will return `Err(func)` is partial application is required.
     fn resolve_function_args(
         &mut self,
-        to_resolve: Box<Func>,
+        #[allow(clippy::boxed_local)] to_resolve: Box<Func>,
     ) -> Result<Result<Box<Func>, Box<Func>>> {
         let mut closure = Box::new(Func {
             args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
@@ -415,7 +416,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
     })
 }
 
-fn env_of_closure(closure: Box<Func>) -> (Module, Expr) {
+fn env_of_closure(closure: Func) -> (Module, Expr) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {

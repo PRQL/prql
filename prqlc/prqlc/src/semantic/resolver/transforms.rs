@@ -23,6 +23,7 @@ use super::Resolver;
 
 impl Resolver<'_> {
     /// try to convert function call with enough args into transform
+    #[allow(clippy::boxed_local)]
     pub fn resolve_special_func(&mut self, func: Box<Func>, needs_window: bool) -> Result<Expr> {
         let internal_name = func.body.kind.into_internal().unwrap();
 
