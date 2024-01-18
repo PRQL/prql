@@ -527,10 +527,7 @@ impl std::fmt::Display for Token {
                 write!(f, "{c}\"{}\"", s)
             }
             Token::Comment(s) => {
-                for line in s.lines() {
-                    writeln!(f, "#{}", line)?
-                }
-                Ok(())
+                writeln!(f, "#{}", s)
             }
             Token::LineWrap(comments) => {
                 write!(f, "\n\\ ")?;
@@ -634,14 +631,17 @@ mod test {
     }
 
     #[test]
-    fn test_single_line_comment() {
+    fn comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("# comment\n# second line").unwrap()), @r###"
+        TokenVec (
+          0..9: Comment(" comment"),
+          9..10: NewLine,
+          10..23: Comment(" second line"),
+        )
+        "###);
+
         assert_display_snapshot!(Token::Comment(" This is a single-line comment".to_string()), @r###"
         # This is a single-line comment
-        "###);
-        assert_display_snapshot!(Token::Comment(" This is a\n multi-line\n comment".to_string()), @r###"
-        # This is a
-        # multi-line
-        # comment
         "###);
     }
 
