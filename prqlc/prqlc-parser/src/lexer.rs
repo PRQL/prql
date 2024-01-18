@@ -39,6 +39,8 @@ pub enum Token {
     DivInt,      // //
     // Pow,         // **
     Annotate, // @
+
+    Comment(String),
 }
 
 /// Lex chars to tokens until the end of the input
@@ -112,6 +114,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
         literal,
         keyword,
         ident,
+        comment(),
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
@@ -130,9 +133,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
 }
 
 fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
-    choice((comment(), whitespace(), line_wrap()))
-        .repeated()
-        .ignored()
+    choice((whitespace(), line_wrap())).repeated().ignored()
 }
 
 fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
@@ -158,12 +159,12 @@ fn line_wrap() -> impl Parser<char, (), Error = Cheap<char>> {
         .ignored()
 }
 
-fn comment() -> impl Parser<char, (), Error = Cheap<char>> {
-    just('#')
-        .then(newline().not().repeated())
-        .separated_by(newline().then(whitespace().or_not()))
-        .at_least(1)
-        .ignored()
+fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
+    let comment_line = just('#').ignore_then(newline().not().repeated().collect::<String>());
+
+    comment_line
+        .chain(newline().ignore_then(comment_line).repeated())
+        .map(|lines: Vec<String>| Token::Comment(lines.join("\n")))
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -520,11 +521,17 @@ impl std::fmt::Display for Token {
             Token::Interpolation(c, s) => {
                 write!(f, "{c}\"{}\"", s)
             }
+            Token::Comment(s) => {
+                for line in s.lines() {
+                    writeln!(f, "# {}", line)?
+                }
+                Ok(())
+            }
         }
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TokenSpan(pub Token, pub std::ops::Range<usize>);
 
 impl std::fmt::Debug for TokenSpan {
@@ -549,6 +556,7 @@ impl std::fmt::Debug for TokenVec {
 mod test {
     use super::*;
     use insta::assert_debug_snapshot;
+    use insta::assert_display_snapshot;
     use insta::assert_snapshot;
 
     #[test]
@@ -609,6 +617,16 @@ mod test {
       4..5: Literal(Integer(3)),
     )
     "###);
+    }
+
+    #[test]
+    fn test_single_line_comment() {
+        assert_display_snapshot!(Token::Comment("This is a single-line comment".to_string()), @"# This is a single-line comment");
+        assert_display_snapshot!(Token::Comment("This is a\nmulti-line\ncomment".to_string()), @r###"
+        # This is a
+        # multi-line
+        # comment
+        "###);
     }
 
     #[test]
