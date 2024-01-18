@@ -621,13 +621,13 @@ mod test {
 
     #[test]
     fn test_single_line_comment() {
-        assert_display_snapshot!(Token::Comment("This is a single-line comment".to_string()), @r###"
-        #This is a single-line comment
+        assert_display_snapshot!(Token::Comment(" This is a single-line comment".to_string()), @r###"
+        # This is a single-line comment
         "###);
-        assert_display_snapshot!(Token::Comment("This is a\nmulti-line\ncomment".to_string()), @r###"
-        #This is a
-        #multi-line
-        #comment
+        assert_display_snapshot!(Token::Comment(" This is a\n multi-line\n comment".to_string()), @r###"
+        # This is a
+        # multi-line
+        # comment
         "###);
     }
 
