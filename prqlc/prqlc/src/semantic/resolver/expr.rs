@@ -1,7 +1,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{TupleField, Ty, TyKind};
+use prqlc_ast::{Span, TupleField, Ty, TyKind};
 
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
@@ -63,10 +63,10 @@ impl PlFold for Resolver<'_> {
         }
 
         let id = self.id.gen();
-        let alias = node.alias.clone();
-        let span = node.span;
+        let alias = Box::new(node.alias.clone());
+        let span = Box::new(node.span);
 
-        if let Some(span) = span {
+        if let Some(span) = *span {
             self.root_mod.span_map.insert(id, span);
         }
 
@@ -108,9 +108,9 @@ impl PlFold for Resolver<'_> {
 
                     DeclKind::Expr(expr) => match &expr.kind {
                         ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(*closure.clone())?;
+                            let closure = self.fold_function_types(closure.clone())?;
 
-                            let expr = Expr::new(ExprKind::Func(Box::new(closure)));
+                            let expr = Expr::new(ExprKind::Func(closure));
 
                             if self.in_func_call_name {
                                 expr
@@ -139,7 +139,7 @@ impl PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(span)
+                        .with_span(*span)
                         .into());
                     }
 
@@ -167,17 +167,17 @@ impl PlFold for Resolver<'_> {
                 self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let name = self.fold_expr(*name)?;
+                let name = Box::new(self.fold_expr(*name)?);
                 self.in_func_call_name = old;
 
-                let func = *name.try_cast(|n| n.into_func(), None, "a function")?;
+                let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, span)?
+                self.fold_function(func, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(*closure, span)?,
+            ExprKind::Func(closure) => self.fold_function(closure, *span)?,
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -202,7 +202,20 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        let mut r = self.static_eval(r)?;
+        self.finish_expr_resolve(r, id, *alias, *span)
+    }
+}
+
+impl Resolver<'_> {
+    fn finish_expr_resolve(
+        &mut self,
+        expr: Expr,
+        id: usize,
+        alias: Option<String>,
+        span: Option<Span>,
+    ) -> Result<Expr> {
+        let mut r = Box::new(self.static_eval(expr)?);
+
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);
         r.span = r.span.or(span);
@@ -233,11 +246,9 @@ impl PlFold for Resolver<'_> {
                 }
             }
         }
-        Ok(r)
+        Ok(*r)
     }
-}
 
-impl Resolver<'_> {
     pub fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
         let except = self.coerce_into_tuple(expr)?;
