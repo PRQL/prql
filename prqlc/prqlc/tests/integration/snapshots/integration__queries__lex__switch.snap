@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/switch.prql
+input_file: prqlc/prqlc/tests/integration/queries/switch.prql
 ---
 TokenVec (
+  0..88: Comment(" glaredb:skip (May be a bag of String type conversion for Postgres Client)\n mssql:test"),
   88..89: NewLine,
   89..93: Ident("from"),
   94..100: Ident("tracks"),

@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/window.prql
+input_file: prqlc/prqlc/tests/integration/queries/window.prql
 ---
 TokenVec (
+  0..337: Comment(" mssql:skip Conversion(\"cannot interpret I64(Some(1)) as an i32 value\")', connection.rs:200:34\n duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)\n clickhouse:skip problems with DISTINCT ON\n postgres:skip problems with DISTINCT ON"),
   337..338: NewLine,
   338..342: Ident("from"),
   343..349: Ident("tracks"),

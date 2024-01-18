@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/date_to_text.prql
+input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
 ---
 TokenVec (
+  0..56: Comment(" generic:skip\n glaredb:skip\n sqlite:skip\n mssql:test"),
   56..57: NewLine,
   57..61: Ident("from"),
   62..70: Ident("invoices"),

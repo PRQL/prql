@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/pipelines.prql
+input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 ---
 TokenVec (
+  0..164: Comment(" sqlite:skip (Only works on Sqlite implementations which have the extension\n installed\n https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)"),
   164..165: NewLine,
   165..166: NewLine,
   166..170: Ident("from"),

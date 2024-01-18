@@ -1,9 +1,10 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
-input_file: prqlc/prql-compiler/tests/integration/queries/genre_counts.prql
+input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
 ---
 TokenVec (
+  0..116: Comment(" clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n mssql:test"),
   116..117: NewLine,
   117..120: Keyword("let"),
   121..132: Ident("genre_count"),
