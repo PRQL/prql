@@ -202,23 +202,23 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        self.finish_expr_resolve(Box::new(r), id, alias, span)
+        self.finish_expr_resolve(r, id, *alias, *span)
     }
 }
 
 impl Resolver<'_> {
     fn finish_expr_resolve(
         &mut self,
-        expr: Box<Expr>,
+        expr: Expr,
         id: usize,
-        alias: Box<Option<String>>,
-        span: Box<Option<Span>>,
+        alias: Option<String>,
+        span: Option<Span>,
     ) -> Result<Expr> {
-        let mut r = Box::new(self.static_eval(*expr)?);
+        let mut r = Box::new(self.static_eval(expr)?);
 
         r.id = r.id.or(Some(id));
-        r.alias = r.alias.or(*alias);
-        r.span = r.span.or(*span);
+        r.alias = r.alias.or(alias);
+        r.span = r.span.or(span);
 
         if r.ty.is_none() {
             r.ty = Resolver::infer_type(&r)?;
