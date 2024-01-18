@@ -1,4 +1,6 @@
 # clickhouse:skip (clickhouse doesn't have lag function)
+
+#! Calculate a number of metrics about the sales of tracks in each city.
 from i=invoices
 join ii=invoice_items (==invoice_id)
 derive {

@@ -42,6 +42,7 @@ pub enum Token {
 
     // Aesthetics only
     Comment(String),
+    DocComment(String),
     /// Vec contains comments between the newline and the line wrap
     // Currently we include the comments with the LineWrap token. This isn't
     // ideal, but I'm not sure of an easy way of having them be separate.
@@ -167,9 +168,20 @@ fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
 }
 
 fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
-    just('#')
-        .ignore_then(newline().not().repeated().collect::<String>())
-        .map(Token::Comment)
+    just('#').ignore_then(choice((
+        just('!').ignore_then(
+            newline()
+                .not()
+                .repeated()
+                .collect::<String>()
+                .map(Token::DocComment),
+        ),
+        newline()
+            .not()
+            .repeated()
+            .collect::<String>()
+            .map(Token::Comment),
+    )))
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -529,6 +541,9 @@ impl std::fmt::Display for Token {
             Token::Comment(s) => {
                 writeln!(f, "#{}", s)
             }
+            Token::DocComment(s) => {
+                writeln!(f, "#!{}", s)
+            }
             Token::LineWrap(comments) => {
                 write!(f, "\n\\ ")?;
                 for comment in comments {
@@ -654,6 +669,15 @@ mod test {
 
         assert_display_snapshot!(Token::Comment(" This is a single-line comment".to_string()), @r###"
         # This is a single-line comment
+        "###);
+    }
+
+    #[test]
+    fn doc_comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("#! docs").unwrap()), @r###"
+        TokenVec (
+          0..7: DocComment(" docs"),
+        )
         "###);
     }
 
