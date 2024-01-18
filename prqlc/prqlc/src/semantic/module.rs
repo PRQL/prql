@@ -183,6 +183,14 @@ impl Module {
 
         log::trace!("lookup: {ident}");
 
+        use std::backtrace;
+        let bt = backtrace::Backtrace::capture();
+        let len = bt.frames().len();
+        log::trace!("{}", len);
+        if len >= 120 {
+            log::trace!("{:?}\n", bt);
+        }
+
         let mut res = HashSet::new();
 
         res.extend(lookup_in(self, ident.clone()));

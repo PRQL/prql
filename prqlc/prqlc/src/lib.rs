@@ -82,7 +82,7 @@
 //! [profile.release.package.prqlc]
 //! strip = "debuginfo"
 //! ```
-
+#![feature(backtrace_frames)]
 #![forbid(unsafe_code)]
 // Our error type is 128 bytes, because it contains 5 strings & an Enum, which
 // is exactly the default warning level. Given we're not that performance
@@ -485,5 +485,52 @@ mod tests {
             .into_iter()
             .map(|name| Target::from_str(&name))
             .collect();
+    }
+
+    #[test]
+    fn long_query_inline() {
+        env_logger::builder().format_timestamp(None).init();
+        compile(
+            r#"
+let long_query = (
+  from employees
+  filter gross_cost > 0
+  group {title} (
+      aggregate {
+          ct = count this,
+      }
+  )
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+  sort ct
+  filter ct > 200
+  take 20
+)
+from long_query
+  "#,
+        )
+        .unwrap();
     }
 }
