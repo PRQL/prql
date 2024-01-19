@@ -14,8 +14,7 @@ metadata.msrv = "1.70.0"
 [features]
 cli = [
   "atty",
-  "clap_complete_command",
-  "clap_complete",
+  "clap_complete_command", # "clap_complete",
   "clap",
   "clio",
   "color-eyre",
@@ -71,10 +70,6 @@ env_logger = {version = "0.10.1", features = ["color"], optional = true}
 notify = {version = "6.1.1", optional = true}
 serde_yaml = {version = "0.9.30", optional = true}
 walkdir = {version = "2.4.0", optional = true}
-
-# Not direct dependencies, but pinning because of bugs in previous versions. Can
-# remove when dependencies no longer use it. (If CI passes, it can be removed.)
-clap_complete = {version = "4.4.6", optional = true}
 
 # We use minijinja just for the Jinja lexer, which is not part of the
 # public interface which is covered by semver guarantees.

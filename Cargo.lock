@@ -2926,7 +2926,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "clap 4.4.17",
- "clap_complete",
  "clap_complete_command",
  "clio",
  "color-eyre",
