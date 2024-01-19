@@ -34,9 +34,12 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
     let semantic_only: Option<_> = tokens.map(|tokens| {
-        tokens
-            .into_iter()
-            .filter(|TokenSpan(t, _)| !matches!(t, Token::Comment(_) | Token::LineWrap(_)))
+        tokens.into_iter().filter(|TokenSpan(t, _)| {
+            !matches!(
+                t,
+                Token::Comment(_) | Token::LineWrap(_) | Token::DocComment(_)
+            )
+        })
     });
 
     let ast = if let Some(semantic_only) = semantic_only {

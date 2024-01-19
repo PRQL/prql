@@ -335,7 +335,7 @@ tasks:
       # Use a different target dir so we don't poison the cache
       CARGO_TARGET_DIR: "./target-cov"
     cmds:
-      - cargo llvm-cov  --lcov --output-path lcov.info
+      - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs
 
   build-web:
