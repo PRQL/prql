@@ -14,7 +14,7 @@ metadata.msrv = "1.70.0"
 [features]
 cli = [
   "atty",
-  "clap_complete_command", # "clap_complete",
+  "clap_complete_command",
   "clap",
   "clio",
   "color-eyre",
