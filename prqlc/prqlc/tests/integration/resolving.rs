@@ -95,3 +95,24 @@ fn resolve_types_04() {
     )
     "###);
 }
+
+#[test]
+fn resolve_generics_01() {
+    assert_snapshot!(resolve(
+        r#"
+    let add_one = func <A: int | float> a <A> -> <A> a + 1
+        
+    let my_int = add_one 1
+    let my_float = add_one 1.0
+    "#,
+    )
+    .unwrap(), @r###"
+    let add_one = func <A: int | float> a <A> -> <A> (
+      std.add a 1
+    )
+
+    let my_float <float> = `(std.add ...)`
+
+    let my_int <int> = `(std.add ...)`
+    "###);
+}

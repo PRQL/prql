@@ -108,7 +108,7 @@ impl PlFold for Resolver<'_> {
 
                     DeclKind::Expr(expr) => match &expr.kind {
                         ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(closure.clone())?;
+                            let closure = self.fold_function_types(closure.clone(), id)?;
 
                             let expr = Expr::new(ExprKind::Func(closure));
 
@@ -174,10 +174,10 @@ impl PlFold for Resolver<'_> {
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, *span)?
+                self.fold_function(func, id, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(closure, *span)?,
+            ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;

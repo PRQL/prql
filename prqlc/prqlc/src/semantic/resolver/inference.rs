@@ -62,14 +62,13 @@ impl Resolver<'_> {
         Ok(())
     }
 
-    /// Converts a identifier that points to a table declaration to a frame of that table.
+    /// Converts a identifier that points to a table declaration to lineage of that table.
     pub fn lineage_of_table_decl(
         &mut self,
         table_fq: &Ident,
         input_name: String,
         input_id: usize,
     ) -> Lineage {
-        let id = input_id;
         let table_decl = self.root_mod.module.get(table_fq).unwrap();
         let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
@@ -78,7 +77,7 @@ impl Resolver<'_> {
 
         let mut instance_frame = Lineage {
             inputs: vec![LineageInput {
-                id,
+                id: input_id,
                 name: input_name.clone(),
                 table: table_fq.clone(),
             }],
@@ -99,7 +98,7 @@ impl Resolver<'_> {
                     name: col_name
                         .clone()
                         .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                    target_id: id,
+                    target_id: input_id,
                     target_name: col_name.clone(),
                 },
             };
