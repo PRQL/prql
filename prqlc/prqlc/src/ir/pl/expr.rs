@@ -14,7 +14,7 @@ use super::{Lineage, TransformCall};
 // The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 
 /// Expr is anything that has a value and thus a type.
-/// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
+/// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
     #[serde(flatten)]

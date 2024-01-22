@@ -24,10 +24,10 @@ impl Expr {
     }
 }
 
-// The following code is tested by the tests_misc crate to match expr.rs in prql_compiler.
+// The following code is tested by the tests_misc crate to match expr.rs in prqlc.
 
 /// Expr is anything that has a value and thus a type.
-/// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
+/// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
     #[serde(flatten)]
