@@ -25,10 +25,19 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
         let module_def = keyword("module")
             .ignore_then(ident_part())
             .then(module_contents.delimited_by(ctrl('{'), ctrl('}')))
-            .map(|(name, stmts)| (Vec::new(), StmtKind::ModuleDef(ModuleDef { name, stmts })))
+            .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
             .labelled("module definition");
 
-        choice((type_def(), var_def(), module_def))
+        let annotation = just(Token::Annotate)
+            .ignore_then(expr())
+            .then_ignore(new_line().repeated())
+            .map(|expr| Annotation {
+                expr: Box::new(expr),
+            });
+
+        annotation
+            .repeated()
+            .then(choice((type_def(), var_def(), module_def)))
             .map_with_span(into_stmt)
             .separated_by(new_line().repeated().at_least(1))
             .allow_leading()
@@ -94,14 +103,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> {
-    let annotation = just(Token::Annotate)
-        .ignore_then(expr())
-        .then_ignore(new_line().repeated())
-        .map(|expr| Annotation {
-            expr: Box::new(expr),
-        });
-
+fn var_def() -> impl Parser<Token, StmtKind, Error = PError> {
     let let_ = keyword("let")
         .ignore_then(ident_part())
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
@@ -137,13 +139,13 @@ fn var_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> 
         })
         .labelled("variable definition");
 
-    annotation.repeated().then(let_.or(main_or_into))
+    let_.or(main_or_into)
 }
 
-fn type_def() -> impl Parser<Token, (Vec<Annotation>, StmtKind), Error = PError> {
+fn type_def() -> impl Parser<Token, StmtKind, Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
         .then(ctrl('=').ignore_then(type_expr()).or_not())
-        .map(|(name, value)| (Vec::new(), StmtKind::TypeDef(TypeDef { name, value })))
+        .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }))
         .labelled("type definition")
 }
