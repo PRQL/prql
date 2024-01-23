@@ -20,12 +20,12 @@ $$ language plprql
 ```
 
 You can also pass PRQL code to the `prql` function. For example:
- 
+
  ```
  select prql('from rounds | filter match_id == 1, 'rounds_cursor');
  ```
 
-For more information on the extension, see the [PL/PRQL repository](https://github.com/kaspermarstal/plprql). 
+For more information on the extension, see the [PL/PRQL repository](https://github.com/kaspermarstal/plprql).
 
 # Getting started
 On Ubuntu, follow these steps to install PL/PRQL from source:
@@ -36,13 +36,13 @@ On Ubuntu, follow these steps to install PL/PRQL from source:
     cargo install --locked --version=0.11.2 cargo-pgrx
     ```
 
-    The version of `cargo-pgrx` must match the version of `pgrx` in `Cargo.toml`. 
+    The version of `cargo-pgrx` must match the version of `pgrx` in `Cargo.toml`.
 
 2. Initialize `pgrx` for your system.
    ```cmd
    cargo pgrx init --pg16 <PG16>
    ```
-   where `<PG16>` is the path to your system installation's `pg_config` tool (typically `/usr/bin/pg_config`). Supported versions are PostgreSQL v12-16. You can also run `cargo pgrx init` and have `pgrx` download, install, and compile PostgreSQL v12-16. These installations are managed by `pgrx` and used for development and testing. Individual `pgrx` installations can be installed using e.g. `cargo pgrx init --pg16 download`. 
+   where `<PG16>` is the path to your system installation's `pg_config` tool (typically `/usr/bin/pg_config`). Supported versions are PostgreSQL v12-16. You can also run `cargo pgrx init` and have `pgrx` download, install, and compile PostgreSQL v12-16. These installations are managed by `pgrx` and used for development and testing. Individual `pgrx` installations can be installed using e.g. `cargo pgrx init --pg16 download`.
 
 3. Clone this repository and `cd` into root directory.
 
@@ -50,19 +50,19 @@ On Ubuntu, follow these steps to install PL/PRQL from source:
     git clone https://github.com/kaspermarstal/plprql
     cd plprql
     ```
-   
+
 4. Install the extension to the PostgreSQL specified by
    the `pg_config` currently on your `$PATH`.
    ```cmd
    cargo pgrx install --release
    ```
    You can target a specific PostgreSQL installation by providing the path of another `pg_config` using the `-c` flag.
-   
+
 5. Fire up PostgreSQL and start writing functions right away!
    ```cmd
    $ cargo pgrx run pg16
    psql> create extension plprql;
-   psql> create function match_stats(int) 
+   psql> create function match_stats(int)
          returns table(total_kills real, total_deaths real) as $$
            from rounds
            filter match_id == $1
@@ -74,7 +74,7 @@ On Ubuntu, follow these steps to install PL/PRQL from source:
    psql> select match_stats(1);
    ```
 
-## Running Tests 
+## Running Tests
 You can run tests using `cargo pgrx test`. To run tests for all supported versions of PostgreSQL, run
 
 ```cmd
