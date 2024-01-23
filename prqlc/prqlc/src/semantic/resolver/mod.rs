@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ir::decl::RootModule;
 use crate::utils::IdGenerator;
 
@@ -25,6 +27,8 @@ pub struct Resolver<'a> {
     pub id: IdGenerator<usize>,
 
     pub options: ResolverOptions,
+
+    pub generics: HashMap<(usize, String), Vec<prqlc_ast::Ty>>,
 }
 
 #[derive(Default, Clone)]
@@ -39,6 +43,7 @@ impl Resolver<'_> {
             default_namespace: None,
             in_func_call_name: false,
             id: IdGenerator::new(),
+            generics: Default::default(),
         }
     }
 }

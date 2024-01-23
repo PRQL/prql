@@ -6,17 +6,22 @@ use itertools::{Itertools, Position};
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use prqlc_ast::{Ty, TyFunc};
+use prqlc_ast::{Ty, TyFunc, TyKind};
 
 use crate::semantic::resolver::types;
-use crate::semantic::{NS_PARAM, NS_THAT, NS_THIS};
+use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};
 
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
-        let closure = self.fold_function_types(closure)?;
+    pub fn fold_function(
+        &mut self,
+        closure: Box<Func>,
+        id: usize,
+        span: Option<Span>,
+    ) -> Result<Expr> {
+        let closure = self.fold_function_types(closure, id)?;
 
         log::debug!(
             "func {} {}/{} params",
@@ -63,12 +68,14 @@ impl Resolver<'_> {
         }
         let res = self.resolve_function_args(closure)?;
 
-        let closure = match res {
+        let mut closure = match res {
             Ok(func) => func,
             Err(func) => {
                 return Ok(*expr_of_func(func, span));
             }
         };
+
+        closure.return_ty = self.resolve_generic_args_opt(closure.return_ty)?;
 
         let needs_window = (closure.params.last())
             .and_then(|p| p.ty.as_ref())
@@ -107,7 +114,7 @@ impl Resolver<'_> {
     fn materialize_function(&mut self, closure: Box<Func>) -> Result<Expr> {
         log::debug!("stack_push for {}", closure.as_debug_name());
 
-        let (func_env, body) = env_of_closure(*closure);
+        let (func_env, body, return_ty) = env_of_closure(*closure);
 
         self.root_mod.module.stack_push(NS_PARAM, func_env);
 
@@ -131,19 +138,50 @@ impl Resolver<'_> {
                 name_hint: None,
                 args: vec![],
                 params: missing,
-                named_params: vec![],
                 body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
-                return_ty: None,
-                env: HashMap::new(),
+
+                // these don't matter
+                named_params: Default::default(),
+                return_ty: Default::default(),
+                env: Default::default(),
+                generic_type_params: Default::default(),
             })))
         } else {
             // resolved, return result
+
+            // make sure to use the resolved type
+            let mut body = body;
+            if let Some(ret_ty) = *return_ty {
+                body.ty = Some(ret_ty);
+            }
+
             body
         })
     }
 
-    pub fn fold_function_types(&mut self, mut closure: Box<Func>) -> Result<Box<Func>> {
-        closure.params = closure
+    /// Folds function types, so they are resolved to material types, ready for type checking.
+    /// Requires id of the function call node, so it can be used to generic type arguments.
+    pub fn fold_function_types(&mut self, mut func: Box<Func>, id: usize) -> Result<Box<Func>> {
+        // prepare generic arguments
+        for generic_param in &func.generic_type_params {
+            // fold the domain
+            let domain: Vec<Ty> = generic_param
+                .domain
+                .iter()
+                .map(|t| self.fold_type(t.clone()))
+                .try_collect()?;
+
+            // register the generic type param in the resolver
+            let generic_id = (id, generic_param.name.clone());
+            self.generics.insert(generic_id.clone(), domain);
+
+            // insert _generic.name declaration
+            let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
+            let decl = Decl::from(DeclKind::Ty(Ty::new(TyKind::GenericArg(generic_id))));
+            self.root_mod.module.insert(ident, decl).unwrap();
+        }
+
+        func.params = func
             .params
             .into_iter()
             .map(|p| -> Result<_> {
@@ -153,8 +191,10 @@ impl Resolver<'_> {
                 })
             })
             .try_collect()?;
-        closure.return_ty = fold_type_opt(self, closure.return_ty)?;
-        Ok(closure)
+        func.return_ty = fold_type_opt(self, func.return_ty)?;
+
+        self.root_mod.module.names.remove(NS_GENERIC);
+        Ok(func)
     }
 
     pub fn apply_args_to_closure(
@@ -413,10 +453,11 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
         named_params: Default::default(),
         args: Default::default(),
         env: Default::default(),
+        generic_type_params: Default::default(),
     })
 }
 
-fn env_of_closure(closure: Func) -> (Module, Expr) {
+fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
     let mut func_env = Module::default();
 
     for (param, arg) in zip(closure.params, closure.args) {
@@ -429,7 +470,7 @@ fn env_of_closure(closure: Func) -> (Module, Expr) {
         func_env.names.insert(param_name.to_string(), v);
     }
 
-    (func_env, *closure.body)
+    (func_env, *closure.body, Box::new(closure.return_ty))
 }
 
 pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {

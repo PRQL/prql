@@ -350,7 +350,11 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                 base: Box::new(fold.fold_type(*base)?),
                 exclude: Box::new(fold.fold_type(*exclude)?),
             },
-            TyKind::Any | TyKind::Ident(_) | TyKind::Primitive(_) | TyKind::Singleton(_) => ty.kind,
+            TyKind::Any
+            | TyKind::Ident(_)
+            | TyKind::Primitive(_)
+            | TyKind::Singleton(_)
+            | TyKind::GenericArg(_) => ty.kind,
         },
         span: ty.span,
         name: ty.name,

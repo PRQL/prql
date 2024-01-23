@@ -207,6 +207,8 @@ pub const NS_INFER: &str = "_infer";
 // implies we can infer new module declarations in the containing module
 pub const NS_INFER_MODULE: &str = "_infer_module";
 
+pub const NS_GENERIC: &str = "_generic";
+
 impl Stmt {
     pub fn new(kind: StmtKind) -> Stmt {
         Stmt {

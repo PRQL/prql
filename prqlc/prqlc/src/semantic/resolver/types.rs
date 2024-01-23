@@ -3,7 +3,7 @@ use std::iter::zip;
 
 use anyhow::Result;
 use itertools::Itertools;
-use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyKind};
+use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
 
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
@@ -164,24 +164,22 @@ impl Resolver<'_> {
         }
 
         // if type is a generic, infer the constraint
-        // TODO
-        if false {
-            // This case will happen when variable is for example an `int || timestamp`, but the
-            // expected type is just `int`. If the variable allows it, we infer that the
-            // variable is actually just `int`.
+        if let TyKind::GenericArg(generic_id) = &expected.kind {
+            let domain = std::mem::take(self.generics.get_mut(generic_id).unwrap());
 
-            // This if prevents variables of for example type `int || timestamp` to be inferred
-            // as `text`.
-            let is_found_above = is_super_type_of(found, expected);
-            if is_found_above {
-                restrict_type(found, expected.clone());
+            let (new_domain, _rejected): (Vec<_>, _) = domain
+                .into_iter()
+                .partition(|possible_type| is_super_type_of(possible_type, found));
 
-                // propagate the inference to table declarations
-                // if let Some(instance_of) = &found.instance_of {
-                //     self.push_type_info(instance_of, expected.clone())
-                // }
-                return Ok(());
+            if new_domain.is_empty() {
+                return Err(Error::new_simple(
+                    "this argument does not match any of the generic types",
+                ));
             }
+
+            // infer the new constraint
+            *self.generics.get_mut(generic_id).unwrap() = new_domain;
+            return Ok(());
         }
 
         Err(compose_type_error(found, expected, who))
@@ -209,6 +207,63 @@ impl Resolver<'_> {
                 panic!("declaration {decl} is not able to have a type")
             }
         }
+    }
+
+    pub fn resolve_generic_args(&mut self, mut ty: Ty) -> Result<Ty, Error> {
+        ty.kind = match ty.kind {
+            // the meaningful part
+            TyKind::GenericArg(id) => {
+                let domain = self.generics.remove(&id).unwrap();
+
+                if domain.len() > 1 {
+                    return Err(Error::new_simple(
+                        "cannot determine the type of generic arg",
+                    ));
+                }
+                // there will always be at least one, since we will never restrict to an empty domain
+                return Ok(domain.into_iter().next().unwrap());
+            }
+
+            // recurse into container types
+            // this could probably be implemented with folding, but I don't want another full fold impl
+            TyKind::Tuple(fields) => TyKind::Tuple(
+                fields
+                    .into_iter()
+                    .map(|field| -> Result<_, Error> {
+                        Ok(match field {
+                            TupleField::Single(name, ty) => {
+                                TupleField::Single(name, self.resolve_generic_args_opt(ty)?)
+                            }
+                            TupleField::Wildcard(ty) => {
+                                TupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
+                            }
+                        })
+                    })
+                    .try_collect()?,
+            ),
+            TyKind::Array(ty) => TyKind::Array(Box::new(self.resolve_generic_args(*ty)?)),
+            TyKind::Function(func) => TyKind::Function(
+                func.map(|f| -> Result<_, Error> {
+                    Ok(TyFunc {
+                        args: f
+                            .args
+                            .into_iter()
+                            .map(|a| self.resolve_generic_args_opt(a))
+                            .try_collect()?,
+                        return_ty: Box::new(self.resolve_generic_args_opt(*f.return_ty)?),
+                        name_hint: f.name_hint,
+                    })
+                })
+                .transpose()?,
+            ),
+
+            _ => ty.kind,
+        };
+        Ok(ty)
+    }
+
+    pub fn resolve_generic_args_opt(&mut self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
+        ty.map(|x| self.resolve_generic_args(x)).transpose()
     }
 }
 

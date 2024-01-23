@@ -7,10 +7,10 @@ info:
     - debug
     - resolve
   env:
-    RUST_LOG: ""
     CLICOLOR_FORCE: ""
-    RUST_BACKTRACE: ""
+    RUST_LOG: ""
     NO_COLOR: "1"
+    RUST_BACKTRACE: ""
   stdin: from tracks
 ---
 success: true
@@ -22,6 +22,7 @@ Module {
         "that",
         "_param",
         "std",
+        "_generic",
     ],
     names: {
         "_param": Decl {

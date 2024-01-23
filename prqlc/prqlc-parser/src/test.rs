@@ -1065,6 +1065,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-26"
     "###);
     assert_yaml_snapshot!(parse_single("let identity = x ->  x\n").unwrap()
@@ -1083,6 +1084,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-22"
     "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  (x + 1)\n").unwrap()
@@ -1107,6 +1109,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-28"
     "###);
     assert_yaml_snapshot!(parse_single("let plus_one = x ->  x + 1\n").unwrap()
@@ -1131,6 +1134,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-26"
     "###);
 
@@ -1174,6 +1178,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-51"
     "###);
 
@@ -1192,6 +1197,7 @@ fn test_function() {
               - name: return_constant
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-28"
     "###);
 
@@ -1217,6 +1223,7 @@ fn test_function() {
               - name: X
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-28"
     "###);
 
@@ -1273,6 +1280,7 @@ fn test_function() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:13-147"
     "###);
 
@@ -1301,6 +1309,7 @@ fn test_function() {
                 default_value:
                   Ident:
                     - a
+            generic_type_params: []
       span: "0:0-27"
     "###);
 }
@@ -1686,6 +1695,7 @@ fn test_inline_pipeline() {
               - name: x
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:0-37"
     "###);
 }
@@ -2417,6 +2427,7 @@ fn test_annotation() {
               - name: b
                 default_value: ~
             named_params: []
+            generic_type_params: []
       span: "0:9-61"
       annotations:
         - expr:

@@ -137,6 +137,23 @@ impl WriteSource for ExprKind {
             }
             Func(c) => {
                 let mut r = "func ".to_string();
+                if !c.generic_type_params.is_empty() {
+                    r += opt.consume("<")?;
+                    for generic_param in &c.generic_type_params {
+                        r += opt.consume(&write_ident_part(&generic_param.name))?;
+                        r += opt.consume(": ")?;
+                        r += &opt.consume(
+                            SeparatedExprs {
+                                exprs: &generic_param.domain,
+                                inline: " | ",
+                                line_end: "|",
+                            }
+                            .write(opt.clone())?,
+                        )?;
+                    }
+                    r += opt.consume("> ")?;
+                }
+
                 for param in &c.params {
                     r += opt.consume(&write_ident_part(&param.name))?;
                     r += opt.consume(" ")?;
