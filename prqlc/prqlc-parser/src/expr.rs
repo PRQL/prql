@@ -451,9 +451,9 @@ fn operator_unary() -> impl Parser<Token, UnOp, Error = PError> {
         .or(ctrl('!').to(UnOp::Not))
         .or(just(Token::Eq).to(UnOp::EqSelf))
 }
-// fn operator_pow() -> impl Parser<Token, BinOp, Error = PError> {
-//     just(Token::Pow).to(BinOp::Pow)
-// }
+fn operator_pow() -> impl Parser<Token, BinOp, Error = PError> {
+    just(Token::Pow).to(BinOp::Pow)
+}
 fn operator_mul() -> impl Parser<Token, BinOp, Error = PError> {
     (just(Token::DivInt).to(BinOp::DivInt))
         .or(ctrl('*').to(BinOp::Mul))
