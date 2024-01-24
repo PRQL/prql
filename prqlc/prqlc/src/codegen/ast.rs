@@ -346,20 +346,31 @@ impl WriteSource for Stmt {
                 r += "\n";
             }
             StmtKind::VarDef(var_def) => match var_def.kind {
-                VarDefKind::Let => {
+                _ if var_def.value.is_none() || var_def.ty.is_some() => {
                     let typ = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
                     } else {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}= ", var_def.name, typ))?;
+                    r += opt.consume(&format!("let {} {}", var_def.name, typ))?;
 
-                    r += &var_def.value.write(opt)?;
+                    if let Some(val) = &var_def.value {
+                        r += opt.consume("= ")?;
+                        r += &val.write(opt)?;
+                    }
+                    r += "\n";
+                }
+
+                VarDefKind::Let => {
+                    r += opt.consume(&format!("let {} = ", var_def.name))?;
+
+                    r += &var_def.value.as_ref().unwrap().write(opt)?;
                     r += "\n";
                 }
                 VarDefKind::Into | VarDefKind::Main => {
-                    match &var_def.value.kind {
+                    let val = var_def.value.as_ref().unwrap();
+                    match &val.kind {
                         ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
                                 r += &expr.write(opt.clone())?;
@@ -367,7 +378,7 @@ impl WriteSource for Stmt {
                             }
                         }
                         _ => {
-                            r += &var_def.value.write(opt)?;
+                            r += &val.write(opt)?;
                         }
                     }
 
@@ -433,14 +444,13 @@ impl WriteSource for SwitchCase {
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
-    use similar_asserts::assert_eq;
 
     use super::*;
 
+    #[track_caller]
     fn assert_is_formatted(input: &str) {
-        let stmt = format_single_stmt(input);
-
-        assert_eq!(input.trim(), stmt.trim());
+        let formatted = format_single_stmt(input);
+        similar_asserts::assert_eq!(input.trim(), formatted.trim());
     }
 
     fn format_single_stmt(query: &str) -> String {
@@ -511,7 +521,7 @@ mod test {
         assert_is_formatted(r#"sort {-duration}"#);
 
         assert_is_formatted(r#"select a = -b"#);
-        assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#)
+        assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#);
     }
 
     #[test]

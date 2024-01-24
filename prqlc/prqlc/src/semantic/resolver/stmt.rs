@@ -80,20 +80,35 @@ impl super::Resolver<'_> {
                 ]))));
             }
 
-            if let ExprKind::Func(closure) = &mut def.value.kind {
+            if let Some(ExprKind::Func(closure)) = def.value.as_mut().map(|x| &mut x.kind) {
                 if closure.name_hint.is_none() {
                     closure.name_hint = Some(ident.clone());
                 }
             }
 
-            let expected_ty = fold_type_opt(self, def.ty)?;
-            if expected_ty.is_some() {
-                let who = || Some(stmt_name.clone());
-                self.validate_expr_type(&mut def.value, expected_ty.as_ref(), &who)?;
-            }
+            let decl = match def.value {
+                Some(mut def_value) => {
+                    // var value is provided
 
-            let decl = prepare_expr_decl(def.value);
+                    // validate type
+                    let expected_ty = fold_type_opt(self, def.ty)?;
+                    if expected_ty.is_some() {
+                        let who = || Some(stmt_name.clone());
+                        self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
+                    }
 
+                    // prepare declaration (includes a special case for tables)
+                    prepare_expr_decl(def_value)
+                }
+                None => {
+                    // var value is not provided
+
+                    // treat this var as a param
+                    let expr = Box::new(Expr::new(ExprKind::Param(ident.to_string())));
+
+                    DeclKind::Expr(expr)
+                }
+            };
             self.root_mod
                 .declare(ident, decl, stmt.id, stmt.annotations)
                 .with_span(stmt.span)?;

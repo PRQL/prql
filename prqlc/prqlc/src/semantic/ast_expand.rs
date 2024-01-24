@@ -239,7 +239,7 @@ fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
         StmtKind::QueryDef(v) => pl::StmtKind::QueryDef(v),
         StmtKind::VarDef(v) => pl::StmtKind::VarDef(pl::VarDef {
             name: v.name,
-            value: expand_expr_box(v.value)?,
+            value: v.value.map(expand_expr_box).transpose()?,
             ty: v.ty,
         }),
         StmtKind::TypeDef(v) => pl::StmtKind::TypeDef(pl::TypeDef {
@@ -391,7 +391,7 @@ fn restrict_stmt(stmt: pl::Stmt) -> Stmt {
         pl::StmtKind::VarDef(def) => StmtKind::VarDef(prqlc_ast::VarDef {
             kind: VarDefKind::Let,
             name: def.name,
-            value: restrict_expr_box(def.value),
+            value: def.value.map(restrict_expr_box),
             ty: def.ty,
         }),
         pl::StmtKind::TypeDef(def) => StmtKind::TypeDef(prqlc_ast::TypeDef {
@@ -450,14 +450,14 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
         decl::DeclKind::TableDecl(table_decl) => StmtKind::VarDef(VarDef {
             kind: VarDefKind::Let,
             name: name.clone(),
-            value: Box::new(match table_decl.expr {
+            value: Some(Box::new(match table_decl.expr {
                 decl::TableExpr::RelationVar(expr) => restrict_expr(*expr),
                 decl::TableExpr::LocalTable => Expr::new(ExprKind::Internal("local_table".into())),
                 decl::TableExpr::None => {
                     Expr::new(ExprKind::Internal("literal_tracker".to_string()))
                 }
                 decl::TableExpr::Param(id) => Expr::new(ExprKind::Param(id)),
-            }),
+            })),
             ty: table_decl.ty,
         }),
 
@@ -471,7 +471,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             kind: VarDefKind::Let,
             name,
             ty: expr.ty.take(),
-            value: restrict_expr_box(expr),
+            value: Some(restrict_expr_box(expr)),
         }),
         decl::DeclKind::Ty(ty) => StmtKind::TypeDef(TypeDef {
             name,
@@ -486,7 +486,7 @@ fn new_internal_stmt(name: String, internal: String) -> StmtKind {
     StmtKind::VarDef(VarDef {
         kind: VarDefKind::Let,
         name,
-        value: Box::new(Expr::new(ExprKind::Internal(internal))),
+        value: Some(Box::new(Expr::new(ExprKind::Internal(internal)))),
         ty: None,
     })
 }

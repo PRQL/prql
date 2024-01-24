@@ -361,7 +361,7 @@ impl Command {
                         if let StmtKind::VarDef(def) = stmt.kind {
                             res += &format!("## {}\n", def.name);
 
-                            let val = semantic::eval(*def.value)
+                            let val = semantic::eval(*def.value.unwrap())
                                 .map_err(downcast)
                                 .map_err(|e| e.composed(sources))?;
                             res += &semantic::write_pl(val);

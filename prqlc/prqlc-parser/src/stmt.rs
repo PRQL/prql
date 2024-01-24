@@ -107,8 +107,7 @@ fn var_def() -> impl Parser<Token, StmtKind, Error = PError> {
     let let_ = keyword("let")
         .ignore_then(ident_part())
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
-        .then_ignore(ctrl('='))
-        .then(expr_call().map(Box::new))
+        .then(ctrl('=').ignore_then(expr_call()).map(Box::new).or_not())
         .map(|((name, ty), value)| {
             StmtKind::VarDef(VarDef {
                 name,
@@ -133,7 +132,7 @@ fn var_def() -> impl Parser<Token, StmtKind, Error = PError> {
             StmtKind::VarDef(VarDef {
                 name,
                 kind,
-                value,
+                value: Some(value),
                 ty: None,
             })
         })

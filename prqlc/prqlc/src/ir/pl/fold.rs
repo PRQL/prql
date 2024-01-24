@@ -128,7 +128,7 @@ fn fold_module_def<F: ?Sized + PlFold>(fold: &mut F, module_def: ModuleDef) -> R
 pub fn fold_var_def<F: ?Sized + PlFold>(fold: &mut F, var_def: VarDef) -> Result<VarDef> {
     Ok(VarDef {
         name: var_def.name,
-        value: Box::new(fold.fold_expr(*var_def.value)?),
+        value: fold_optional_box(fold, var_def.value)?,
         ty: var_def.ty.map(|x| fold.fold_type(x)).transpose()?,
     })
 }
