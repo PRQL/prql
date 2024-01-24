@@ -21,9 +21,9 @@ $$ language plprql
 
 You can also pass PRQL code to the `prql` function. For example:
 
- ```
- select prql('from rounds | filter match_id == 1, 'rounds_cursor');
- ```
+```sql
+select prql('from rounds | filter match_id == 1, 'rounds_cursor');
+```
 
 For more information on the extension, see the [PL/PRQL repository](https://github.com/kaspermarstal/plprql).
 
