@@ -28,11 +28,6 @@ impl Resolver<'_> {
         let internal_name = func.body.kind.into_internal().unwrap();
 
         let (kind, input) = match internal_name.as_str() {
-            "from" => {
-                let [source] = unpack::<1>(func.args);
-
-                return Ok(source);
-            }
             "select" => {
                 let [assigns, tbl] = unpack::<2>(func.args);
 

@@ -12,11 +12,14 @@ TransformCall:
         Array:
           kind:
             Tuple:
-              - Wildcard: ~
-          span: ~
-          name: ~
-      span: ~
-      name: ~
+              - Wildcard:
+                  kind: Any
+                  span: "2:2043-2050"
+                  name: ~
+          span: "2:2042-2053"
+          name: tuple
+      span: "2:2158-2165"
+      name: relation
     lineage:
       columns:
         - All:
@@ -53,14 +56,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "2:4193-4198"
+                      span: "2:4186-4191"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "2:4202-4206"
+                      span: "2:4195-4199"
                       name: ~
-              span: "2:4193-4206"
+              span: "2:4186-4199"
               name: ~
         ty:
           kind:
@@ -72,14 +75,14 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "2:4193-4198"
+                            span: "2:4186-4191"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "2:4202-4206"
+                            span: "2:4195-4199"
                             name: ~
-                    span: "2:4193-4206"
+                    span: "2:4186-4199"
                     name: ~
           span: ~
           name: ~
@@ -146,7 +149,7 @@ TransformCall:
                           name: ~
                   span: "2:2042-2053"
                   name: tuple
-          span: "2:3020-3035"
+          span: "2:3013-3028"
           name: ~
     ty:
       kind:
@@ -209,7 +212,7 @@ TransformCall:
                                 name: ~
                         span: "2:2042-2053"
                         name: tuple
-                span: "2:3020-3035"
+                span: "2:3013-3028"
                 name: ~
       span: ~
       name: ~
@@ -276,7 +279,7 @@ ty:
                                 name: ~
                         span: "2:2042-2053"
                         name: tuple
-                span: "2:3020-3035"
+                span: "2:3013-3028"
                 name: ~
           - Single:
               - ~
@@ -285,14 +288,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "2:4193-4198"
+                        span: "2:4186-4191"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "2:4202-4206"
+                        span: "2:4195-4199"
                         name: ~
-                span: "2:4193-4206"
+                span: "2:4186-4199"
                 name: ~
       span: ~
       name: ~
@@ -304,11 +307,11 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 119
+        target_id: 120
         target_name: ~
     - Single:
         name: ~
-        target_id: 135
+        target_id: 136
         target_name: ~
   inputs:
     - id: 118

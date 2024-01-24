@@ -7,23 +7,23 @@ columns:
       name:
         - orders
         - customer_no
-      target_id: 122
-      target_name: ~
-  - Single:
-      name:
-        - orders
-        - gross
       target_id: 123
       target_name: ~
   - Single:
       name:
         - orders
-        - tax
+        - gross
       target_id: 124
       target_name: ~
   - Single:
-      name: ~
+      name:
+        - orders
+        - tax
       target_id: 125
+      target_name: ~
+  - Single:
+      name: ~
+      target_id: 126
       target_name: ~
 inputs:
   - id: 121
