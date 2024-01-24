@@ -112,15 +112,29 @@ impl std::fmt::Display for Errors {
 }
 
 pub trait WithErrorInfo: Sized {
+    fn span(&self) -> Option<&Span>;
+
     fn push_hint<S: Into<String>>(self, hint: S) -> Self;
 
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self;
 
     fn with_span(self, span: Option<Span>) -> Self;
     fn with_code(self, code: &'static str) -> Self;
+
+    fn with_span_if_not_exists(self, span: Option<Span>) -> Self {
+        if self.span().is_none() {
+            self.with_span(span)
+        } else {
+            self
+        }
+    }
 }
 
 impl WithErrorInfo for Error {
+    fn span(&self) -> Option<&Span> {
+        self.span.as_ref()
+    }
+
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(mut self, hints: I) -> Self {
         self.hints = hints.into_iter().map(|x| x.into()).collect();
         self
@@ -144,6 +158,10 @@ impl WithErrorInfo for Error {
 
 #[cfg(feature = "anyhow")]
 impl WithErrorInfo for anyhow::Error {
+    fn span(&self) -> Option<&Span> {
+        self.downcast_ref::<Error>().and_then(|e| e.span.as_ref())
+    }
+
     fn push_hint<S: Into<String>>(self, hint: S) -> Self {
         self.downcast_ref::<Error>()
             .map(|e| e.clone().push_hint(hint).into())
@@ -173,6 +191,10 @@ impl WithErrorInfo for anyhow::Error {
 }
 
 impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
+    fn span(&self) -> Option<&Span> {
+        self.as_ref().err().and_then(|x| x.span())
+    }
+
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
         self.map_err(|e| e.with_hints(hints))
     }

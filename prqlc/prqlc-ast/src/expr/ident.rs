@@ -67,10 +67,18 @@ impl Ident {
             .all(|(prefix_component, self_component)| prefix_component == self_component)
     }
 
+    pub fn starts_with_path<S: AsRef<str>>(&self, prefix: &[S]) -> bool {
+        if prefix.len() > self.path.len() + 1 {
+            return false;
+        }
+        prefix
+            .iter()
+            .zip(self.iter())
+            .all(|(prefix_component, self_component)| prefix_component.as_ref() == self_component)
+    }
+
     pub fn starts_with_part(&self, prefix: &str) -> bool {
-        self.iter()
-            .next()
-            .map_or(false, |self_component| self_component == prefix)
+        self.starts_with_path(&[prefix])
     }
 }
 

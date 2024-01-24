@@ -27,10 +27,13 @@ use crate::{Error, Reason, SourceTree};
 pub fn resolve_and_lower(
     file_tree: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
     main_path: &[String],
+    database_module_path: Option<&[String]>,
 ) -> Result<RelationalQuery> {
     let root_mod = resolve(file_tree, Default::default())?;
 
-    let (query, _) = lowering::lower_to_ir(root_mod, main_path)?;
+    let default_db = [NS_DEFAULT_DB.to_string()];
+    let database_module_path = database_module_path.unwrap_or(&default_db);
+    let (query, _) = lowering::lower_to_ir(root_mod, main_path, database_module_path)?;
     Ok(query)
 }
 
@@ -284,7 +287,7 @@ pub mod test {
 
     pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery> {
         let source_tree = query.into();
-        resolve_and_lower(parse(&source_tree)?, &[])
+        resolve_and_lower(parse(&source_tree)?, &[], None)
     }
 
     pub fn parse_and_resolve(query: &str) -> Result<RootModule> {

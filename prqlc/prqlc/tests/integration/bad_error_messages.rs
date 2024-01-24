@@ -192,6 +192,14 @@ fn nested_groups() {
       )
     )
     "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+    Error:
+        ╭─[:2:5]
+        │
+      2 │ ╭─▶     from inv=invoices
+        ┆ ┆
+     12 │ ├─▶     )
+        │ │
+        │ ╰─────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+    ────╯
     "###);
 }

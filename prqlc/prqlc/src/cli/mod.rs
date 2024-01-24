@@ -12,6 +12,7 @@ use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
+use prqlc::semantic::NS_DEFAULT_DB;
 use prqlc_ast::stmt::StmtKind;
 use std::collections::HashMap;
 use std::env;
@@ -376,7 +377,7 @@ impl Command {
                 semantic::load_std_lib(sources);
 
                 let ast = prql_to_pl_tree(sources)?;
-                let ir = pl_to_rq_tree(ast, &main_path)?;
+                let ir = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
 
                 match format {
                     Format::Json => serde_json::to_string_pretty(&ir)?.into_bytes(),
@@ -397,7 +398,7 @@ impl Command {
                     .with_format(*format);
 
                 prql_to_pl_tree(sources)
-                    .and_then(|pl| pl_to_rq_tree(pl, &main_path))
+                    .and_then(|pl| pl_to_rq_tree(pl, &main_path, &[NS_DEFAULT_DB.to_string()]))
                     .and_then(|rq| rq_to_sql(rq, &opts))
                     .map_err(|e| e.composed(sources))?
                     .as_bytes()
@@ -408,7 +409,7 @@ impl Command {
                 semantic::load_std_lib(sources);
 
                 let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, &main_path)?;
+                let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
                 let srq = prqlc::sql::internal::preprocess(rq)?;
                 format!("{srq:#?}").as_bytes().to_vec()
             }
@@ -416,7 +417,7 @@ impl Command {
                 semantic::load_std_lib(sources);
 
                 let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, &main_path)?;
+                let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
                 let srq = prqlc::sql::internal::anchor(rq)?;
 
                 let json = serde_json::to_string_pretty(&srq)?;

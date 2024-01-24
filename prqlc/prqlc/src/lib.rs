@@ -143,7 +143,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     semantic::load_std_lib(&mut sources);
 
     parser::parse(&sources)
-        .and_then(|ast| semantic::resolve_and_lower(ast, &[]))
+        .and_then(|ast| semantic::resolve_and_lower(ast, &[], None))
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error_message::downcast)
         .map_err(|e| e.composed(&prql.into()))
@@ -269,6 +269,7 @@ impl Options {
 pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
+// TODO: rename this to `prql_to_pl_simple`
 pub fn prql_to_pl(prql: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
@@ -288,17 +289,20 @@ pub fn prql_to_pl_tree(
 }
 
 /// Perform semantic analysis and convert PL to RQ.
+// TODO: rename this to `pl_to_rq_simple`
 pub fn pl_to_rq(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     let source_tree = SourceTree::single(PathBuf::new(), pl);
-    semantic::resolve_and_lower(source_tree, &[]).map_err(error_message::downcast)
+    semantic::resolve_and_lower(source_tree, &[], None).map_err(error_message::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
     pl: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
     main_path: &[String],
+    database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    semantic::resolve_and_lower(pl, main_path).map_err(error_message::downcast)
+    semantic::resolve_and_lower(pl, main_path, Some(database_module_path))
+        .map_err(error_message::downcast)
 }
 
 /// Generate SQL from RQ.

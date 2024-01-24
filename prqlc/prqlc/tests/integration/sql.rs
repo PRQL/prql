@@ -2273,7 +2273,7 @@ fn test_from_json() {
     prqlc::semantic::load_std_lib(&mut source_tree);
 
     let sql_from_prql = Ok(prqlc::prql_to_pl_tree(&source_tree).unwrap())
-        .and_then(|ast| prqlc::semantic::resolve_and_lower(ast, &[]))
+        .and_then(|ast| prqlc::semantic::resolve_and_lower(ast, &[], None))
         .and_then(|rq| sql::compile(rq, &Options::default()))
         .unwrap();
 
@@ -4935,13 +4935,15 @@ fn test_group_exclude() {
 fn test_table_declarations() {
     assert_display_snapshot!(compile(
         r###"
-    module my_schema {
-      let my_table <[{ id = int, a = text }]>
+    module default_db {
+      module my_schema {
+        let my_table <[{ id = int, a = text }]>
+      }
+
+      let another_table <[{ id = int, b = text }]>
     }
 
-    let another_table <[{ id = int, b = text }]>
-
-    my_schema.my_table | join another_table (==id) | take 10
+    from my_schema.my_table | join another_table (==id) | take 10
         "###,
     )
     .unwrap(), @r###"
