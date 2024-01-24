@@ -4930,3 +4930,30 @@ fn test_group_exclude() {
     //   x
     // "###);
 }
+
+#[test]
+fn test_table_declarations() {
+    assert_display_snapshot!(compile(
+        r###"
+    module my_schema {
+      let my_table <[{ id = int, a = text }]>
+    }
+
+    let another_table <[{ id = int, b = text }]>
+
+    my_schema.my_table | join another_table (==id) | take 10
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      my_table.id,
+      my_table.a,
+      another_table.id,
+      another_table.b
+    FROM
+      my_schema.my_table
+      JOIN another_table ON my_table.id = another_table.id
+    LIMIT
+      10
+    "###);
+}

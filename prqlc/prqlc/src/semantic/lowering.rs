@@ -79,8 +79,8 @@ fn extern_ref_to_relation(
         let (_, remainder) = fq_ident.clone().pop_front();
         remainder.unwrap()
     } else {
-        // tables that are not from default_db
-        todo!()
+        // tables that are not from default_db: use full name
+        fq_ident.clone()
     };
 
     // put wildcards last

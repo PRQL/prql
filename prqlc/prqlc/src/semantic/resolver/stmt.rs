@@ -86,27 +86,36 @@ impl super::Resolver<'_> {
                 }
             }
 
+            let expected_ty = fold_type_opt(self, def.ty)?;
+
             let decl = match def.value {
                 Some(mut def_value) => {
                     // var value is provided
 
                     // validate type
-                    let expected_ty = fold_type_opt(self, def.ty)?;
                     if expected_ty.is_some() {
                         let who = || Some(stmt_name.clone());
                         self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
                     }
 
-                    // prepare declaration (includes a special case for tables)
                     prepare_expr_decl(def_value)
                 }
                 None => {
                     // var value is not provided
 
-                    // treat this var as a param
-                    let expr = Box::new(Expr::new(ExprKind::Param(ident.to_string())));
-
-                    DeclKind::Expr(expr)
+                    // is this a relation?
+                    if expected_ty.as_ref().map_or(false, |t| t.is_relation()) {
+                        // treat this var as a TableDecl
+                        DeclKind::TableDecl(TableDecl {
+                            ty: expected_ty,
+                            expr: TableExpr::LocalTable,
+                        })
+                    } else {
+                        // treat this var as a param
+                        let mut expr = Box::new(Expr::new(ExprKind::Param(stmt_name.clone())));
+                        expr.ty = expected_ty;
+                        DeclKind::Expr(expr)
+                    }
                 }
             };
             self.root_mod
