@@ -96,6 +96,7 @@
   - [VS Code](./project/integrations/vscode.md)
   - [Rill](./project/integrations/rill.md)
   - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
+  - [PostgreSQL](./project/integrations/postgresql.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
 
