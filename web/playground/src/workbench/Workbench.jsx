@@ -155,7 +155,7 @@ class Workbench extends React.Component {
       if (!filename.endsWith(".prql")) {
         filename += ".prql";
       }
-      
+
       this.setState({
         filename,
         prql: "",
