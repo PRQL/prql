@@ -16,8 +16,9 @@ pub use self::resolver::ResolverOptions;
 pub use eval::eval;
 pub use lowering::lower_to_ir;
 
+use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
-use crate::ir::pl::{self, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::pl::{self, Expr, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::WithErrorInfo;
 use crate::{Error, Reason, SourceTree};
@@ -188,6 +189,24 @@ fn path_starts_with_uppercase(p: &&PathBuf) -> bool {
         .and_then(|x| x.as_os_str().to_str())
         .and_then(|x| x.chars().next())
         .map_or(false, |x| x.is_uppercase())
+}
+
+pub fn static_eval(expr: Expr, root_mod: &mut RootModule) -> Result<ConstExpr> {
+    let mut resolver = Resolver::new(root_mod, ResolverOptions::default());
+
+    resolver.static_eval_to_constant(expr)
+}
+
+pub fn is_ident_or_func_call(expr: &pl::Expr, name: &prqlc_ast::Ident) -> bool {
+    match &expr.kind {
+        pl::ExprKind::Ident(i) if i == name => true,
+        pl::ExprKind::FuncCall(pl::FuncCall { name: n_expr, .. })
+            if n_expr.kind.as_ident().map_or(false, |i| i == name) =>
+        {
+            true
+        }
+        _ => false,
+    }
 }
 
 pub const NS_STD: &str = "std";

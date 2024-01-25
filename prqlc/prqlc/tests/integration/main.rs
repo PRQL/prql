@@ -6,3 +6,4 @@ mod error_messages;
 mod queries;
 mod resolving;
 mod sql;
+mod static_eval;

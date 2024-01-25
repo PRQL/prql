@@ -214,7 +214,7 @@ impl Resolver<'_> {
         alias: Option<String>,
         span: Option<Span>,
     ) -> Result<Expr> {
-        let mut r = Box::new(self.static_eval(expr)?);
+        let mut r = Box::new(self.maybe_static_eval(expr)?);
 
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);

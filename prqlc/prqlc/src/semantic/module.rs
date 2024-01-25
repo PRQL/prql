@@ -396,6 +396,33 @@ impl Module {
 
         res
     }
+
+    /// Recursively finds all declarations with an annotation that has a specific name.
+    pub fn find_by_annotation_name(&self, annotation_name: &Ident) -> Vec<Ident> {
+        let mut res = Vec::new();
+
+        for (name, decl) in &self.names {
+            if let DeclKind::Module(module) = &decl.kind {
+                let nested = module.find_by_annotation_name(annotation_name);
+                res.extend(nested.into_iter().map(|x| x.prepend(vec![name.clone()])));
+            }
+
+            let has_annotation = decl_has_annotation(decl, annotation_name);
+            if has_annotation {
+                res.push(Ident::from_name(name));
+            }
+        }
+        res
+    }
+}
+
+fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
+    for ann in &decl.annotations {
+        if super::is_ident_or_func_call(&ann.expr, annotation_name) {
+            return true;
+        }
+    }
+    false
 }
 
 type HintAndSpan = (Option<String>, Option<Span>);
@@ -488,6 +515,11 @@ impl RootModule {
     /// Finds all main pipelines.
     pub fn find_mains(&self) -> Vec<Ident> {
         self.module.find_by_suffix(NS_MAIN)
+    }
+
+    /// Finds declarations that are annotated with a specific name.
+    pub fn find_by_annotation_name(&self, annotation_name: &Ident) -> Vec<Ident> {
+        self.module.find_by_annotation_name(annotation_name)
     }
 }
 

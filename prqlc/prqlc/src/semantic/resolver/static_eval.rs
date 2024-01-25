@@ -1,23 +1,32 @@
 //! Static analysis - compile time expression evaluation
 
 use anyhow::Result;
+use itertools::Itertools;
+use prqlc_ast::error::{Error, WithErrorInfo};
 
-use crate::ir::pl::{Expr, ExprKind, Literal};
+use crate::ir::constant::{ConstExpr, ConstExprKind};
+use crate::ir::pl::{Expr, ExprKind, Literal, PlFold};
 
 impl super::Resolver<'_> {
-    pub fn static_eval(&mut self, expr: Expr) -> Result<Expr> {
+    /// Tries to simplify this expression (and not child expressions) to a constant.
+    pub fn maybe_static_eval(&mut self, expr: Expr) -> Result<Expr> {
         Ok(match &expr.kind {
             ExprKind::RqOperator { .. } => {
                 let id = expr.id;
                 let span = expr.span;
-                let res = static_eval_rq_operator(expr);
-                Expr { id, span, ..res }
+                let expr = static_eval_rq_operator(expr);
+                Expr { id, span, ..expr }
             }
 
             ExprKind::Case(_) => static_eval_case(expr),
 
             _ => expr,
         })
+    }
+
+    /// Simplify an expression to a constant, recursively.
+    pub fn static_eval_to_constant(&mut self, expr: Expr) -> Result<ConstExpr> {
+        StaticEvaluator::run(expr, self)
     }
 }
 
@@ -117,4 +126,42 @@ fn static_eval_case(mut expr: Expr) -> Expr {
 
     expr.kind = ExprKind::Case(res);
     expr
+}
+
+struct StaticEvaluator<'a, 'b> {
+    resolver: &'a mut super::Resolver<'b>,
+}
+
+impl<'a, 'b> StaticEvaluator<'a, 'b> {
+    fn run(expr: Expr, resolver: &'a mut super::Resolver<'b>) -> Result<ConstExpr> {
+        let expr = StaticEvaluator { resolver }.fold_expr(expr)?;
+        Ok(restrict_to_const(expr)?)
+    }
+}
+
+impl PlFold for StaticEvaluator<'_, '_> {
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        self.resolver.maybe_static_eval(expr)
+    }
+}
+
+fn restrict_to_const(expr: Expr) -> Result<ConstExpr, Error> {
+    let kind = match expr.kind {
+        ExprKind::Literal(lit) => ConstExprKind::Literal(lit),
+        ExprKind::Tuple(fields) => {
+            ConstExprKind::Tuple(fields.into_iter().map(restrict_to_const).try_collect()?)
+        }
+        ExprKind::Array(items) => {
+            ConstExprKind::Array(items.into_iter().map(restrict_to_const).try_collect()?)
+        }
+        _ => {
+            // everything else is not a constant
+            return Err(Error::new_simple("not a constant").with_span(expr.span));
+        }
+    };
+    Ok(ConstExpr {
+        span: expr.span,
+        kind,
+    })
 }
