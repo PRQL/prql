@@ -9,7 +9,7 @@ pub struct ProjectTree {
 
     pub sources: HashMap<PathBuf, String>,
 
-    pub pipelines: HashMap<Ident, String>,
+    pub exprs: HashMap<Ident, String>,
 
     pub data: HashSet<PathBuf>,
 }

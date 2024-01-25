@@ -13,6 +13,7 @@ use anyhow::Result;
 
 #[cfg(feature = "clap")]
 use clap::{Parser, Subcommand};
+use prqlc::ir::pl::Ident;
 
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct Command {
@@ -25,12 +26,13 @@ pub enum Action {
     /// Read the project
     Discover(DiscoverParams),
 
-    /// Discover, compile, execute and print
-    Print(PrintParams),
+    /// Discover, compile, execute
+    Execute(ExecuteParams),
 }
 
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct DiscoverParams {
+    /// Path to the project directory
     #[cfg_attr(feature = "clap", arg(default_value = "."))]
     project_path: PathBuf,
 }
@@ -43,19 +45,36 @@ pub fn discover(params: DiscoverParams) -> Result<()> {
 }
 
 #[cfg_attr(feature = "clap", derive(Parser))]
-pub struct PrintParams {
+pub struct ExecuteParams {
     #[cfg_attr(feature = "clap", command(flatten))]
     discover: DiscoverParams,
+
+    /// Only execute the expression with this path.
+    expression_path: Option<String>,
 }
 
-pub fn run(params: PrintParams) -> Result<()> {
+pub fn execute(params: ExecuteParams) -> Result<Vec<(Ident, execute::Relation)>> {
     let mut project = discover::read_project(params.discover.project_path)?;
 
     let database_module = compile::compile(&mut project)?;
 
-    for pipeline_ident in project.pipelines.keys() {
-        execute::execute(&project, &database_module, pipeline_ident)?;
+    let mut res = Vec::new();
+    if let Some(expression_path) = params.expression_path {
+        // specified expression
+
+        let expr_ident = Ident::from_path(expression_path.split(".").collect());
+
+        let rel = execute::execute(&project, &database_module, &expr_ident)?;
+        res.push((expr_ident.clone(), rel));
+    } else {
+        // all expressions
+
+        for expr_ident in project.exprs.keys() {
+            let rel = execute::execute(&project, &database_module, expr_ident)?;
+
+            res.push((expr_ident.clone(), rel));
+        }
     }
 
-    Ok(())
+    Ok(res)
 }

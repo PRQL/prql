@@ -6,7 +6,7 @@ vars:
 tasks:
   run:
     cmds:
-      - cmd: cargo run --package lutra -- print example-project
+      - cmd: cargo run --package lutra -- execute example-project
 
   fmt:
     desc: Format prqlc source files

@@ -45,7 +45,7 @@ fn parse_and_compile(
         (rq, root_module) = semantic::lower_to_ir(root_module, &main_path, &database_module.path)?;
         let sql = prqlc::rq_to_sql(rq, &options)?;
 
-        project.pipelines.insert(main_ident, sql);
+        project.exprs.insert(main_ident, sql);
     }
     Ok(database_module)
 }

@@ -1,10 +1,15 @@
 use anyhow::Result;
-use connectorx::prelude::*;
-use prqlc::ir::pl::Ident;
+use prqlc::{ir::pl::Ident, Error};
 
 use crate::{compile::DatabaseModule, project::ProjectTree};
 
-pub fn execute(project: &ProjectTree, db: &DatabaseModule, pipeline_ident: &Ident) -> Result<()> {
+pub type Relation = Vec<arrow::record_batch::RecordBatch>;
+
+pub fn execute(
+    project: &ProjectTree,
+    db: &DatabaseModule,
+    pipeline_ident: &Ident,
+) -> Result<Relation> {
     log::info!("executing {pipeline_ident}");
 
     // convert relative to absolute path
@@ -13,29 +18,18 @@ pub fn execute(project: &ProjectTree, db: &DatabaseModule, pipeline_ident: &Iden
     let sqlite_file_abs = sqlite_file_abs.as_os_str().to_str().unwrap();
 
     // init SQLite
-    let source = SQLiteSource::new(sqlite_file_abs, 10)?;
+    let mut sqlite_conn = rusqlite::Connection::open(sqlite_file_abs)?;
 
-    let pipeline = &project.pipelines[pipeline_ident];
+    let Some(pipeline) = project.exprs.get(pipeline_ident) else {
+        return Err(
+            Error::new_simple(format!("cannot find expression: `{pipeline_ident}`")).into(),
+        );
+    };
     log::debug!("executing sql: {pipeline}");
 
-    let mut destination = Arrow2Destination::new();
-    let dispatcher = Dispatcher::<SQLiteSource, Arrow2Destination, SQLiteArrow2Transport>::new(
-        source,
-        &mut destination,
-        &[pipeline.as_str()],
-        None,
-    );
+    let batches = connector_arrow::query_one(&mut sqlite_conn, pipeline)?;
 
-    let res = dispatcher.run();
-    if let Err(err) = res {
-        println!("{err:?}");
-        return Err(err.into());
-    }
-
-    let arrow = destination.polars()?;
-    println!("{pipeline_ident}:\n{arrow}");
-
-    Ok(())
+    Ok(batches)
 }
 
 /*

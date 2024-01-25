@@ -8,7 +8,7 @@ fn main() {
     let action = Command::parse();
 
     let res = match action.command {
-        Action::Print(cmd) => lutra::run(cmd),
+        Action::Execute(cmd) => execute_and_print(cmd),
         Action::Discover(cmd) => lutra::discover(cmd),
     };
 
@@ -21,6 +21,18 @@ fn main() {
             std::process::exit(1);
         }
     }
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn execute_and_print(cmd: lutra::ExecuteParams) -> anyhow::Result<()> {
+    let relations = lutra::execute(cmd)?;
+
+    for (ident, relation) in relations {
+        let rel_display = arrow::util::pretty::pretty_format_batches(&relation)?;
+
+        println!("{ident}:\n{rel_display}");
+    }
+    Ok(())
 }
 
 #[cfg(target_family = "wasm")]
