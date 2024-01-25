@@ -1,10 +1,15 @@
 # PostgreSQL
 
-PL/PRQL is a PostgreSQL extension that lets you write functions with PRQL. For example:
+PL/PRQL is a PostgreSQL extension that lets you write functions with PRQL. 
 
+PL/PRQL functions serve as intermediaries, compiling the user's PRQL code into SQL statements that PostgreSQL executes. The extension is based on the [pgrx](https://github.com/pgcentralfoundation/pgrx) for developing PostgreSQL extensions in Rust. This framework manages the interaction with PostgreSQL's internal APIs, type conversions, and other function hooks necessary to integrate PRQL with PostgreSQL.
+
+
+## Examples
+PL/PRQL functions are defined using the `plprql` language specifier:
 ```sql
-create function player_stats(int) returns table(player text, kd_ratio real) as $$
-  from rounds
+create function match_stats(int) returns table(player text, kd_ratio float) as $$
+  from matches
   filter match_id == $1
   group player (
     aggregate {
@@ -15,72 +20,30 @@ create function player_stats(int) returns table(player text, kd_ratio real) as $
   filter total_deaths > 0
   derive kd_ratio = total_kills / total_deaths
   select { player, kd_ratio }
-$$ language plprql
+$$ language plprql;
 
+select * from match_stats(1001)
+    
+ player  | kd_ratio 
+---------+----------
+ Player1 |    0.625
+ Player2 |      1.6
+(2 rows)
 ```
 
-You can also pass PRQL code to the `prql` function. For example:
-
+You can also run PRQL directly with the `prql` function which is useful for custom SQL in ORMs:
+ 
 ```sql
-select prql('from rounds | filter match_id == 1, 'rounds_cursor');
+select prql('from matches | filter player == ''Player1''', 'player1_cursor');
+
+fetch 2 from player1_cursor;
+
+ id | match_id | round | player  | kills | deaths 
+----+----------+-------+---------+-------+--------
+  1 |     1001 |     1 | Player1 |     4 |      1
+  3 |     1001 |     2 | Player1 |     1 |      7
+(2 rows)
 ```
 
-For more information on the extension, see the [PL/PRQL repository](https://github.com/kaspermarstal/plprql).
-
-# Getting started
-On Ubuntu, follow these steps to install PL/PRQL from source:
-
-1. Install `cargo-pgrx`.
-
-    ```cmd
-    cargo install --locked --version=0.11.2 cargo-pgrx
-    ```
-
-    The version of `cargo-pgrx` must match the version of `pgrx` in `Cargo.toml`.
-
-2. Initialize `pgrx` for your system.
-   ```cmd
-   cargo pgrx init --pg16 <PG16>
-   ```
-   where `<PG16>` is the path to your system installation's `pg_config` tool (typically `/usr/bin/pg_config`). Supported versions are PostgreSQL v12-16. You can also run `cargo pgrx init` and have `pgrx` download, install, and compile PostgreSQL v12-16. These installations are managed by `pgrx` and used for development and testing. Individual `pgrx` installations can be installed using e.g. `cargo pgrx init --pg16 download`.
-
-3. Clone this repository and `cd` into root directory.
-
-    ```cmd
-    git clone https://github.com/kaspermarstal/plprql
-    cd plprql
-    ```
-
-4. Install the extension to the PostgreSQL specified by
-   the `pg_config` currently on your `$PATH`.
-   ```cmd
-   cargo pgrx install --release
-   ```
-   You can target a specific PostgreSQL installation by providing the path of another `pg_config` using the `-c` flag.
-
-5. Fire up PostgreSQL and start writing functions right away!
-   ```cmd
-   $ cargo pgrx run pg16
-   psql> create extension plprql;
-   psql> create function match_stats(int)
-         returns table(total_kills real, total_deaths real) as $$
-           from rounds
-           filter match_id == $1
-           aggregate {
-             total_kills = sum kills,
-             total_deaths = sum deaths
-           }
-         $$ language plprql
-   psql> select match_stats(1);
-   ```
-
-## Running Tests
-You can run tests using `cargo pgrx test`. To run tests for all supported versions of PostgreSQL, run
-
-```cmd
-cargo pgrx test pg16
-cargo pgrx test pg15
-cargo pgrx test pg14
-cargo pgrx test pg13
-cargo pgrx test pg12
-```
+## Getting Started
+For installation instructions and more information on the extension, see the [PL/PRQL repository](https://github.com/kaspermarstal/plprql).
