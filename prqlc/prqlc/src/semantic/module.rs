@@ -422,7 +422,7 @@ fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 type HintAndSpan = (Option<String>, Option<Span>);

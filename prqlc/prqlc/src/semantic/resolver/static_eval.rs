@@ -35,16 +35,12 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
     match name.as_str() {
         "std.not" => {
             if let ExprKind::Literal(Literal::Boolean(val)) = &args[0].kind {
-                return Expr::new(Literal::Boolean(!val)).into();
+                return Expr::new(Literal::Boolean(!val));
             }
         }
         "std.neg" => match &args[0].kind {
-            ExprKind::Literal(Literal::Integer(val)) => {
-                return Expr::new(Literal::Integer(-val)).into()
-            }
-            ExprKind::Literal(Literal::Float(val)) => {
-                return Expr::new(Literal::Float(-val)).into()
-            }
+            ExprKind::Literal(Literal::Integer(val)) => return Expr::new(Literal::Integer(-val)),
+            ExprKind::Literal(Literal::Float(val)) => return Expr::new(Literal::Float(-val)),
             _ => (),
         },
 
@@ -54,7 +50,7 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
             {
                 // don't eval comparisons between different types of literals
                 if left.as_ref() == right.as_ref() {
-                    return Expr::new(Literal::Boolean(left == right)).into();
+                    return Expr::new(Literal::Boolean(left == right));
                 }
             }
         }
@@ -64,7 +60,7 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
             {
                 // don't eval comparisons between different types of literals
                 if left.as_ref() == right.as_ref() {
-                    return Expr::new(Literal::Boolean(left != right)).into();
+                    return Expr::new(Literal::Boolean(left != right));
                 }
             }
         }
@@ -74,7 +70,7 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
                 ExprKind::Literal(Literal::Boolean(right)),
             ) = (&args[0].kind, &args[1].kind)
             {
-                return Expr::new(Literal::Boolean(*left && *right)).into();
+                return Expr::new(Literal::Boolean(*left && *right));
             }
         }
         "std.or" => {
@@ -83,12 +79,12 @@ fn static_eval_rq_operator(mut expr: Expr) -> Expr {
                 ExprKind::Literal(Literal::Boolean(right)),
             ) = (&args[0].kind, &args[1].kind)
             {
-                return Expr::new(Literal::Boolean(*left || *right)).into();
+                return Expr::new(Literal::Boolean(*left || *right));
             }
         }
         "std.coalesce" => {
             if let ExprKind::Literal(Literal::Null) = &args[0].kind {
-                return args.remove(1).into();
+                return args.remove(1);
             }
         }
 
@@ -115,7 +111,7 @@ fn static_eval_case(mut expr: Expr) -> Expr {
         }
     }
     if res.is_empty() {
-        return Expr::new(Literal::Null).into();
+        return Expr::new(Literal::Null);
     }
 
     if res.len() == 1 {
@@ -129,7 +125,7 @@ fn static_eval_case(mut expr: Expr) -> Expr {
     }
 
     expr.kind = ExprKind::Case(res);
-    expr.into()
+    expr
 }
 
 struct StaticEvaluator<'a, 'b> {
@@ -161,9 +157,7 @@ fn restrict_to_const(expr: Expr) -> Result<ConstExpr, Error> {
         }
         _ => {
             // everything else is not a constant
-            return Err(Error::new_simple("not a constant")
-                .with_span(expr.span)
-                .into());
+            return Err(Error::new_simple("not a constant").with_span(expr.span));
         }
     };
     Ok(ConstExpr {
