@@ -110,8 +110,10 @@ pub fn compose_module_tree(
         let path = os_path_to_prql_path(path)?;
         sources.push((path, stmts));
     }
-    sources.sort_unstable_by_key(|(path, _)| path.join("."));
-    sources.reverse();
+
+    // ad-hoc sorting to get std to the last place
+    // TODO: this should be figured out using references between modules and toposort
+    sources.sort_by_key(|(path, _)| (path != &["std"], path.join(".")));
 
     // insert all sources into root module
     let mut root = prqlc_ast::stmt::ModuleDef {

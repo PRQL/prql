@@ -1,0 +1,22 @@
+[package]
+name = "lutra"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["cli"]
+cli = ["clap"]
+
+[[bin]]
+name = "lutra"
+path = "src/cli.rs"
+required-features = ["cli"]
+
+[dependencies]
+anyhow = "1.0.71"
+clap = { version = "4.2.7", features = ["derive"], optional = true }
+connectorx = { version = "^0.3", features = ["dst_arrow2", "src_sqlite"] }
+env_logger = "0.10.0"
+log = "0.4.17"
+prql-compiler = { path = "../prqlc/prql-compiler" }
+walkdir = "2.3.3"

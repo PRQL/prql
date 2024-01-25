@@ -11,6 +11,7 @@ members = [
   "prqlc/prqlc-parser",
   "prqlc/prqlc",
   "prqlc/prqlc/examples/compile-files", # An example
+  "lutra",
   "web/book", # The book / docs
 ]
 resolver = "2"

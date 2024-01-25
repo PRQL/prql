@@ -1,0 +1,19 @@
+
+## This module is configured to pull data from an SQLite chinook.db database
+@(lutra.sqlite {file="chinook.db"})
+module chinook {
+  let artists <[{artist_id = int, name = text}]>
+
+  let genres <[{genre_id = int, name = text}]>
+}
+
+let favourite_artists = [
+  {artist_id = 120, last_listen = @2023-05-18},
+  {artist_id = 7, last_listen = @2023-05-16},
+]
+
+from favourite_artists
+join input = (from chinook.artists | select {artist_id, name}) side:left (==artist_id)
+derive aid = favourite_artists.artist_id * 2
+select {aid, input.name, favourite_artists.last_listen}
+sort {-aid}
