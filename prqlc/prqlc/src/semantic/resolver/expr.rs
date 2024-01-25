@@ -44,10 +44,10 @@ impl PlFold for Resolver<'_> {
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
-        let value = if matches!(var_def.value.kind, ExprKind::Func(_)) {
-            var_def.value
-        } else {
-            Box::new(flatten::Flattener::fold(self.fold_expr(*var_def.value)?))
+        let value = match var_def.value {
+            Some(value) if matches!(value.kind, ExprKind::Func(_)) => Some(value),
+            Some(value) => Some(Box::new(flatten::Flattener::fold(self.fold_expr(*value)?))),
+            None => None,
         };
 
         Ok(VarDef {

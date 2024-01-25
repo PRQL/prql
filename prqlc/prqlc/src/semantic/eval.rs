@@ -460,7 +460,7 @@ mod test {
 
     fn eval(source: &str) -> Result<String> {
         let stmts = crate::prql_to_pl(source)?.into_iter().exactly_one()?;
-        let expr = stmts.kind.into_var_def().unwrap().value;
+        let expr = stmts.kind.into_var_def().unwrap().value.unwrap();
 
         let value = super::eval(*expr)?;
 

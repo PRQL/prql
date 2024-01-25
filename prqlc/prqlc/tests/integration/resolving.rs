@@ -97,6 +97,19 @@ fn resolve_types_04() {
 }
 
 #[test]
+fn resolve_types_05() {
+    // TODO: this is very strange, it should only be allowed in std
+    assert_snapshot!(resolve(
+        r#"
+    type A
+    "#,
+    )
+    .unwrap(), @r###"
+    type A = null
+    "###);
+}
+
+#[test]
 fn resolve_generics_01() {
     assert_snapshot!(resolve(
         r#"

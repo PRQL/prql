@@ -2273,7 +2273,7 @@ fn test_from_json() {
     prqlc::semantic::load_std_lib(&mut source_tree);
 
     let sql_from_prql = Ok(prqlc::prql_to_pl_tree(&source_tree).unwrap())
-        .and_then(|ast| prqlc::semantic::resolve_and_lower(ast, &[]))
+        .and_then(|ast| prqlc::semantic::resolve_and_lower(ast, &[], None))
         .and_then(|rq| sql::compile(rq, &Options::default()))
         .unwrap();
 
@@ -4929,4 +4929,52 @@ fn test_group_exclude() {
     // FROM
     //   x
     // "###);
+}
+
+#[test]
+fn test_table_declarations() {
+    assert_display_snapshot!(compile(
+        r###"
+    module default_db {
+      module my_schema {
+        let my_table <[{ id = int, a = text }]>
+      }
+
+      let another_table <[{ id = int, b = text }]>
+    }
+
+    from my_schema.my_table | join another_table (==id) | take 10
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      my_table.id,
+      my_table.a,
+      another_table.id,
+      another_table.b
+    FROM
+      my_schema.my_table
+      JOIN another_table ON my_table.id = another_table.id
+    LIMIT
+      10
+    "###);
+}
+
+#[test]
+fn test_param_declarations() {
+    assert_display_snapshot!(compile(
+        r###"
+    let a <int>
+
+    from x | filter b == a
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      x
+    WHERE
+      b = $a
+    "###);
 }

@@ -10,7 +10,7 @@ fn static_eval(prql_source: &str) -> ConstExpr {
     let stmts = stmts_tree.sources.values().next().unwrap();
     let stmt = stmts.iter().next().unwrap();
     let var_def: &VarDef = stmt.kind.as_var_def().unwrap();
-    let expr: Expr = var_def.value.as_ref().clone();
+    let expr: Expr = *var_def.value.as_ref().unwrap().clone();
 
     let expr = prqlc::semantic::ast_expand::expand_expr(expr).unwrap();
 

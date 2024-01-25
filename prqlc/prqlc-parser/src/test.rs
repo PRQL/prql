@@ -16,7 +16,7 @@ fn parse_expr(source: &str) -> Result<Expr, Vec<Error>> {
 
     let stmts = parse_single(&source)?;
     let stmt = stmts.into_iter().exactly_one().unwrap();
-    Ok(*stmt.kind.into_var_def().unwrap().value)
+    Ok(*stmt.kind.into_var_def().unwrap().value.unwrap())
 }
 
 #[test]
