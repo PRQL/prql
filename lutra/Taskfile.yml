@@ -1,5 +1,10 @@
 version: "3"
 
+includes:
+  bindings-python:
+    taskfile: ./bindings/python
+    dir: ./bindings/python
+
 vars:
   packages: -p lutra
 

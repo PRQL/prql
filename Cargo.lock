@@ -181,6 +181,7 @@ dependencies = [
  "arrow-schema",
  "arrow-select",
  "arrow-string",
+ "pyo3",
 ]
 
 [[package]]
@@ -2181,6 +2182,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "lutra-python"
+version = "0.11.2"
+dependencies = [
+ "arrow",
+ "insta",
+ "itertools 0.12.1",
+ "lutra",
+ "pyo3",
+ "pyo3-build-config",
+]
+
+[[package]]
 name = "md-5"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3108,6 +3121,7 @@ version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a89dc7a5850d0e983be1ec2a463a171d20990487c3cfcd68b5363f1ee3d6fe0"
 dependencies = [
+ "anyhow",
  "cfg-if",
  "indoc",
  "libc",
