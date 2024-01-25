@@ -24,13 +24,13 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
         - - ~
           - kind:
               Primitive: Int
-            span: "2:4128-4131"
+            span: "2:4121-4124"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "2:4135-4140"
+            span: "2:4128-4133"
             name: ~
-    span: "2:4128-4140"
+    span: "2:4121-4133"
     name: ~
 

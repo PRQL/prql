@@ -70,7 +70,7 @@ type transform = func relation -> relation
 ## Relational transforms
 let from = func
   `default_db.source` <relation>
-  -> <relation> internal from
+  -> <relation> source
 
 let select = func
   columns <anytype>
