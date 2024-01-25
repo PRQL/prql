@@ -59,6 +59,7 @@ impl super::Resolver<'_> {
                             redirects: Vec::new(),
                             shadowed: None,
                         }),
+                        annotations: stmt.annotations,
                         ..Default::default()
                     };
                     let ident = Ident::from_path(self.current_module_path.clone());
