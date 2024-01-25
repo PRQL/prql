@@ -95,7 +95,7 @@ class Workbench extends React.Component {
       this.monaco.editor.setModelMarkers(
         this.editor.getModel(),
         "prql",
-        monacoErrors,
+        monacoErrors
       );
       return;
     }
@@ -149,6 +149,27 @@ class Workbench extends React.Component {
     ]);
   }
 
+  new_query() {
+    let filename = prompt(`Enter a name for your new query`);
+    if (filename) {
+      if (!filename.endsWith(".prql")) {
+        filename += ".prql";
+      }
+      
+      this.setState({
+        filename,
+        prql: "",
+        output: null,
+        outputTab: "arrow",
+        prqlError: null,
+        duckdbError: null,
+      });
+      if (this.editor) {
+        this.editor.setValue("");
+      }
+    }
+  }
+
   rename() {
     let filename = prompt(`New name for ${this.state.filename}`);
     if (filename) {
@@ -174,6 +195,9 @@ class Workbench extends React.Component {
               </button>
               <button className="action" onClick={() => this.save()}>
                 Save
+              </button>
+              <button className="action" onClick={() => this.new_query()}>
+                New Query
               </button>
             </div>
             <Editor
