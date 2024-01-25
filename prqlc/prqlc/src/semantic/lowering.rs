@@ -62,12 +62,8 @@ pub fn lower_to_ir(
     for (fq_ident, (table, declared_at)) in tables {
         let is_main = fq_ident == main_ident;
 
-        let span = declared_at
-            .and_then(|id| l.root_mod.span_map.get(&id))
-            .cloned();
-
         l.lower_table_decl(table, fq_ident)
-            .with_span_if_not_exists(span)?;
+            .map_err(with_span_if_not_exists(|| get_span_of_id(&l, declared_at)))?;
 
         if is_main {
             let main_table = l.table_buffer.pop().unwrap();
@@ -1131,5 +1127,27 @@ impl PlFold for TableDepsCollector {
             _ => expr.kind,
         };
         Ok(expr)
+    }
+}
+
+fn get_span_of_id(l: &Lowerer, id: Option<usize>) -> Option<Span> {
+    id.and_then(|id| l.root_mod.span_map.get(&id)).cloned()
+}
+
+fn with_span_if_not_exists<'a, F>(get_span: F) -> impl FnOnce(anyhow::Error) -> anyhow::Error + 'a
+where
+    F: FnOnce() -> Option<Span> + 'a,
+{
+    move |e| {
+        let e = match e.downcast::<Error>() {
+            Ok(e) => e,
+            Err(e) => return e,
+        };
+
+        if e.span.is_some() {
+            return e.into();
+        }
+
+        e.with_span(get_span()).into()
     }
 }
