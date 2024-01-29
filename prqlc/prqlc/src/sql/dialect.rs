@@ -39,7 +39,7 @@ use strum::VariantNames;
     strum::EnumIter,
     strum::EnumMessage,
     strum::EnumString,
-    strum::EnumVariantNames,
+    strum::VariantNames,
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum Dialect {
