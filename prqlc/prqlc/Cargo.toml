@@ -55,8 +55,6 @@ sqlparser = {version = "0.43.1", features = ["serde"]}
 strum = {version = "0.25.0", features = ["std", "derive"]}
 strum_macros = "0.25.3"
 
-serde_yaml = {version = "0.9", optional = true}
-
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
