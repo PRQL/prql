@@ -2180,7 +2180,7 @@ dependencies = [
  "serde_yaml",
  "similar-asserts",
  "strum 0.26.1",
- "strum_macros 0.25.3",
+ "strum_macros 0.26.1",
  "walkdir",
 ]
 
@@ -2961,7 +2961,7 @@ dependencies = [
  "sqlformat",
  "sqlparser",
  "strum 0.26.1",
- "strum_macros 0.25.3",
+ "strum_macros 0.26.1",
  "test_each_file",
  "tiberius",
  "tokio",
