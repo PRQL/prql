@@ -1,0 +1,11 @@
+[package]
+name = "prql-doc"
+version = "0.1.0"
+authors = ["PRQL Developers"]
+edition = "2021"
+
+[dependencies]
+prqlc = {path = "../prqlc", version = "0.11.2"}
+prqlc-ast = {path = "../prqlc-ast", version = "0.11.2"}
+
+[workspace]
