@@ -417,7 +417,7 @@ jobs:
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           # files: codecov.json
           files: cobertura.xml
