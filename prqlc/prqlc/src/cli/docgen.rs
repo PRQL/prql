@@ -137,19 +137,14 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
 
         if let Some(expr) = &var_def.value {
             match &expr.kind {
-                ExprKind::Func(boxfn) => {
+                ExprKind::Func(func) => {
                     docs.push_str("  <h4 class=\"h6\">Parameters</h4>\n");
                     docs.push_str("  <ul>\n");
-                    for param in &boxfn.params {
+                    for param in &func.params {
                         docs.push_str(&format!("    <li><var>{}</var></li>\n", param.name));
                     }
                     docs.push_str("  </ul>\n");
-                }
-                _ => (),
-            }
 
-            match &expr.kind {
-                ExprKind::Func(func) => {
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("  <h4 class=\"h6\">Returns</h4>\n");
                         match &return_ty.kind {
@@ -173,7 +168,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                             _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
                     }
-                }
+                },
+                ExprKind::Pipeline(_) => {
+                    docs.push_str("  <p>There is a pipeline.</p>\n");
+                },
                 _ => (),
             }
         }
