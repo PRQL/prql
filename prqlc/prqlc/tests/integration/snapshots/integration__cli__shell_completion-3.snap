@@ -8,8 +8,8 @@ info:
     - powershell
   env:
     NO_COLOR: "1"
-    CLICOLOR_FORCE: ""
     RUST_BACKTRACE: ""
+    CLICOLOR_FORCE: ""
     RUST_LOG: ""
 ---
 success: true
@@ -47,6 +47,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
             [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate HTML documentation')
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
             [CompletionResult]::new('sql:preprocess', 'sql:preprocess', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess SRQ')
             [CompletionResult]::new('sql:anchor', 'sql:anchor', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess & anchor SRQ')
@@ -145,6 +146,12 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         'prqlc;debug;help;help' {
             break
         }
+        'prqlc;doc' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
         'prqlc;resolve' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
@@ -200,6 +207,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
             [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate HTML documentation')
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
             [CompletionResult]::new('sql:preprocess', 'sql:preprocess', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess SRQ')
             [CompletionResult]::new('sql:anchor', 'sql:anchor', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess & anchor SRQ')
@@ -240,6 +248,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;debug;ast' {
+            break
+        }
+        'prqlc;help;doc' {
             break
         }
         'prqlc;help;resolve' {

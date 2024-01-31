@@ -1,5 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 
+mod docgen;
 mod jinja;
 mod watch;
 
@@ -92,6 +93,10 @@ enum Command {
 
     #[command(subcommand)]
     Debug(DebugCommand),
+
+    /// Generate HTML documentation
+    #[command(name = "doc")]
+    GenerateDocs(IoArgs),
 
     /// Parse, resolve & lower into RQ
     Resolve {
@@ -373,6 +378,14 @@ impl Command {
 
                 res.into_bytes()
             }
+            Command::GenerateDocs(_) => {
+                let stmts = prql_to_pl_tree(sources)?;
+
+                let stmts = stmts.sources.values().next().unwrap().to_vec();
+                let out = docgen::generate_html_docs(stmts).into_bytes();
+
+                out
+            }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);
 
@@ -440,10 +453,11 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{Collect, Debug, GenerateDocs, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
         let io_args = match self {
             Parse { io_args, .. }
             | Collect(io_args)
+            | GenerateDocs(io_args)
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLPreprocess(io_args)
@@ -480,10 +494,11 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{Collect, Debug, GenerateDocs, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
         let mut output = match self {
             Parse { io_args, .. }
             | Collect(io_args)
+            | GenerateDocs(io_args)
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
             | SQLAnchor { io_args, .. }

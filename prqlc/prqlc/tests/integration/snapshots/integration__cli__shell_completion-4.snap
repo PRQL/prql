@@ -7,10 +7,10 @@ info:
     - shell-completion
     - zsh
   env:
-    RUST_BACKTRACE: ""
-    CLICOLOR_FORCE: ""
     NO_COLOR: "1"
+    CLICOLOR_FORCE: ""
     RUST_LOG: ""
+    RUST_BACKTRACE: ""
 ---
 success: true
 exit_code: 0
@@ -181,6 +181,16 @@ esac
     ;;
 esac
 ;;
+(doc)
+_arguments "${_arguments_options[@]}" \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'-h[Print help]' \
+'--help[Print help]' \
+'::input:_files' \
+'::output:_files' \
+'::main_path -- Identifier of the main pipeline:' \
+&& ret=0
+;;
 (resolve)
 _arguments "${_arguments_options[@]}" \
 '--format=[]:FORMAT:(json yaml)' \
@@ -312,6 +322,10 @@ _arguments "${_arguments_options[@]}" \
     ;;
 esac
 ;;
+(doc)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
 (resolve)
 _arguments "${_arguments_options[@]}" \
 && ret=0
@@ -360,6 +374,7 @@ _prqlc_commands() {
 'fmt:Parse & generate PRQL code back' \
 'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
+'doc:Generate HTML documentation' \
 'resolve:Parse, resolve & lower into RQ' \
 'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
 'sql:anchor:Parse, resolve, lower into RQ & preprocess & anchor SRQ' \
@@ -444,6 +459,16 @@ _prqlc__help__debug_commands() {
     )
     _describe -t commands 'prqlc help debug commands' commands "$@"
 }
+(( $+functions[_prqlc__doc_commands] )) ||
+_prqlc__doc_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc doc commands' commands "$@"
+}
+(( $+functions[_prqlc__help__doc_commands] )) ||
+_prqlc__help__doc_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help doc commands' commands "$@"
+}
 (( $+functions[_prqlc__debug__eval_commands] )) ||
 _prqlc__debug__eval_commands() {
     local commands; commands=()
@@ -508,6 +533,7 @@ _prqlc__help_commands() {
 'fmt:Parse & generate PRQL code back' \
 'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
+'doc:Generate HTML documentation' \
 'resolve:Parse, resolve & lower into RQ' \
 'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
 'sql:anchor:Parse, resolve, lower into RQ & preprocess & anchor SRQ' \
