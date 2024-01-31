@@ -453,7 +453,9 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::{Collect, Debug, GenerateDocs, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{
+            Collect, Debug, GenerateDocs, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+        };
         let io_args = match self {
             Parse { io_args, .. }
             | Collect(io_args)
@@ -494,7 +496,9 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{Collect, Debug, GenerateDocs, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{
+            Collect, Debug, GenerateDocs, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+        };
         let mut output = match self {
             Parse { io_args, .. }
             | Collect(io_args)
