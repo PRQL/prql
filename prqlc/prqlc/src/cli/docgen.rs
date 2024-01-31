@@ -168,10 +168,10 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                             _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
                     }
-                },
+                }
                 ExprKind::Pipeline(_) => {
                     docs.push_str("  <p>There is a pipeline.</p>\n");
-                },
+                }
                 _ => (),
             }
         }
