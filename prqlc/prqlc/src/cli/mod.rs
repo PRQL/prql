@@ -382,9 +382,7 @@ impl Command {
                 let stmts = prql_to_pl_tree(sources)?;
 
                 let stmts = stmts.sources.values().next().unwrap().to_vec();
-                let out = docgen::generate_html_docs(stmts).into_bytes();
-
-                out
+                docgen::generate_html_docs(stmts).into_bytes()
             }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);

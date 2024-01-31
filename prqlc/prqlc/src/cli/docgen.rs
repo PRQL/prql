@@ -1,4 +1,4 @@
-use prqlc::{prql_to_pl, ErrorMessages};
+//use prqlc::{prql_to_pl, ErrorMessages};
 use prqlc_ast::{stmt::StmtKind, ExprKind, Stmt, TyKind, VarDefKind};
 
 // pub fn generate_docs(prql: &str) -> Result<String, ErrorMessages> {
