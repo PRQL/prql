@@ -170,8 +170,7 @@ pub fn generate_html_docs(stmts: Vec<Stmt>) -> String {
                                 }
                                 docs.push_str("  </ul>\n");
                             }
-                            _ => docs
-                                .push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
+                            _ => docs.push_str("  <p class=\"text-danger\">Not implemented</p>\n"),
                         }
                     }
                 }
