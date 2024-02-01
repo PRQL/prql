@@ -202,6 +202,15 @@ For more detail, check out the docs in the
 
 {{</ faq >}}
 
+{{< faq "Can PRQL write to databases?" >}}
+
+PRQL is focused on analytical queries, so we don't currently support writing or
+modifying data in databases. However, PRQL queries can be used to generate SQL
+statements that write to databases. For example, surround the SQL output of a
+PRQL query in `CREATE OR REPLACE TABLE foo AS (...)`.
+
+{{</ faq >}}
+
 {{< faq "Is it 'PRQL' or 'prql' or 'Prql'?" >}}
 
 It's `PRQL`, since it's a backronym! We name the repo and some libraries `prql`
