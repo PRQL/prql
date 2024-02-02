@@ -93,7 +93,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: rustup override set nightly-2023-11-22
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in
