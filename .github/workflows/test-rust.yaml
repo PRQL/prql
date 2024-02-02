@@ -38,11 +38,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
       - run: rustup target add ${{ inputs.target }}
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-bindgen-cli
         if: inputs.target == 'wasm32-unknown-unknown'
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-insta
       - run: ./.github/workflows/scripts/set_version.sh
