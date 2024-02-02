@@ -372,11 +372,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
       # the link checker
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: hyperlink
       - run: ./.github/workflows/scripts/set_version.sh
@@ -400,7 +400,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: ./.github/workflows/scripts/set_version.sh
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-llvm-cov
       - name: 💰 Cache
@@ -495,7 +495,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
@@ -514,10 +514,10 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: rustup toolchain add nightly
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-hack
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-minimal-versions
       - name: 💰 Cache
