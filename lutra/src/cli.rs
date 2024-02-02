@@ -1,7 +1,8 @@
-use clap::Parser;
-use lutra::{Action, Command};
-
+#[cfg(not(target_family = "wasm"))]
 fn main() {
+    use clap::Parser;
+    use lutra::{Action, Command};
+
     env_logger::builder().format_timestamp(None).init();
 
     let action = Command::parse();
@@ -20,4 +21,9 @@ fn main() {
             std::process::exit(1);
         }
     }
+}
+
+#[cfg(target_family = "wasm")]
+fn main() {
+    panic!("Crate was built for a wasm target.");
 }
