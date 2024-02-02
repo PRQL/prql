@@ -44,7 +44,7 @@ limit 2;
   3 |     1001 |     2 | Player1 |     1 |      7
 (2 rows)
 
--- Same as above, but returns cursor
+-- Same as above without the need for the static types, but returns cursor
 select prql('from matches | filter player == ''Player1''', 'player1_cursor');
 fetch 2 from player1_cursor;
 ```
