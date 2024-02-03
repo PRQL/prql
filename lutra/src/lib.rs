@@ -1,3 +1,7 @@
+// We could be a bit more selective if we wanted this to work with wasm, but at
+// the moment too many of the dependencies aren't compatible.
+#![cfg(not(target_family = "wasm"))]
+
 mod compile;
 mod discover;
 mod execute;
