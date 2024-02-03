@@ -84,7 +84,7 @@ glob = {version = "0.3.1", optional = true}
 mysql = {version = "24", optional = true}
 pg_bigdecimal = {version = "0.1.0", optional = true}
 postgres = {version = "0.19.7", optional = true}
-rusqlite = {version = "0.27.0", optional = true, features = ["bundled", "csvtab"]}
+rusqlite = {version = "0.25.0", optional = true, features = ["bundled", "csvtab"]}
 tiberius = {version = "0.12.2", optional = true, default-features = false, features = ["sql-browser-tokio", "bigdecimal", "time", "rustls", "tds73"]}
 tokio = {version = "1.36.0", optional = true, features = ["full"]}
 tokio-util = {version = "0.7", optional = true, features = ["compat"]}
