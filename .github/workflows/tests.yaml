@@ -525,8 +525,7 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Verify minimum rust version
-        run: cargo minimal-versions test
-      - run: cargo minimal-versions test --direct
+        run: cargo minimal-versions test --direct
 
   check-ok-to-merge:
     # This indicates to GitHub whether everything in this workflow has passed
