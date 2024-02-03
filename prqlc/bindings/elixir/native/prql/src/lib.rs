@@ -28,7 +28,7 @@ mod atoms {
 }
 
 /// Convert a `Result` from PRQL into a tuple in elixir `{:ok, binary()} | {:error, binary()}`
-fn to_result_tuple(result: Result<String, prql_compiler::ErrorMessages>) -> NifResult<Response> {
+fn to_result_tuple(result: Result<String, prqlc::ErrorMessages>) -> NifResult<Response> {
     match result {
         Ok(sql) => Ok(Response {
             status: atoms::ok(),
@@ -42,10 +42,10 @@ fn to_result_tuple(result: Result<String, prql_compiler::ErrorMessages>) -> NifR
 }
 
 /// Get the target from an atom. By default `Generic` SQL dialect will be used
-fn target_from_atom(a: Atom) -> prql_compiler::Target {
-    use prql_compiler::sql::Dialect::*;
+fn target_from_atom(a: Atom) -> prqlc::Target {
+    use prqlc::sql::Dialect::*;
 
-    prql_compiler::Target::Sql(Some(if a == atoms::ansi() {
+    prqlc::Target::Sql(Some(if a == atoms::ansi() {
         Ansi
     } else if a == atoms::bigquery() {
         BigQuery
@@ -70,10 +70,10 @@ fn target_from_atom(a: Atom) -> prql_compiler::Target {
     }))
 }
 
-impl From<CompileOptions> for prql_compiler::Options {
-    /// Get `prql_compiler::Options` options from `CompileOptions`
+impl From<CompileOptions> for prqlc::Options {
+    /// Get `prqlc::Options` options from `CompileOptions`
     fn from(o: CompileOptions) -> Self {
-        prql_compiler::Options {
+        prqlc::Options {
             format: o.format,
             target: target_from_atom(o.target),
             signature_comment: o.signature_comment,
@@ -101,7 +101,7 @@ pub struct CompileOptions {
     /// GitHub issue.
     ///
     /// If `None` is used, the `target` argument from the query header is used.
-    /// If it does not exist, [`prql_compiler::sql::Dialect::Generic`] is used.
+    /// If it does not exist, [`prqlc::sql::Dialect::Generic`] is used.
     pub target: Atom,
 
     /// Emits the compiler signature as a comment after generated SQL
@@ -122,7 +122,7 @@ pub struct Response {
 #[rustler::nif]
 /// compile a prql query into sql
 pub fn compile(prql_query: &str, options: CompileOptions) -> NifResult<Response> {
-    to_result_tuple(prql_compiler::compile(prql_query, &options.into()))
+    to_result_tuple(prqlc::compile(prql_query, &options.into()))
 }
 
 #[rustler::nif]
@@ -130,8 +130,8 @@ pub fn compile(prql_query: &str, options: CompileOptions) -> NifResult<Response>
 pub fn prql_to_pl(prql_query: &str) -> NifResult<Response> {
     to_result_tuple(
         Ok(prql_query)
-            .and_then(prql_compiler::prql_to_pl)
-            .and_then(prql_compiler::json::from_pl),
+            .and_then(prqlc::prql_to_pl)
+            .and_then(prqlc::json::from_pl),
     )
 }
 
@@ -140,9 +140,9 @@ pub fn prql_to_pl(prql_query: &str) -> NifResult<Response> {
 pub fn pl_to_rq(pl_json: &str) -> NifResult<Response> {
     to_result_tuple(
         Ok(pl_json)
-            .and_then(prql_compiler::json::to_pl)
-            .and_then(prql_compiler::pl_to_rq)
-            .and_then(prql_compiler::json::from_rq),
+            .and_then(prqlc::json::to_pl)
+            .and_then(prqlc::pl_to_rq)
+            .and_then(prqlc::json::from_rq),
     )
 }
 
@@ -151,10 +151,10 @@ pub fn pl_to_rq(pl_json: &str) -> NifResult<Response> {
 pub fn rq_to_sql(rq_json: &str) -> NifResult<Response> {
     to_result_tuple(
         Ok(rq_json)
-            .and_then(prql_compiler::json::to_rq)
+            .and_then(prqlc::json::to_rq)
             // Currently just using default options here; probably should pass
             // an argument from this func.
-            .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default())),
+            .and_then(|x| prqlc::rq_to_sql(x, &prqlc::Options::default())),
     )
 }
 

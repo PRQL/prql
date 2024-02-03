@@ -1,7 +1,7 @@
 use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jstring};
 use jni::JNIEnv;
-use prql_compiler::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
+use prqlc::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
 use std::str::FromStr;
 
 #[no_mangle]
@@ -30,7 +30,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         // TODO: add support for this
         color: false,
     };
-    let result = prql_compiler::compile(&prql_query, &opt);
+    let result = prqlc::compile(&prql_query, &opt);
     java_string_with_exception(result, &mut env)
 }
 
