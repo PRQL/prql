@@ -1,6 +1,6 @@
 [package]
 authors = ["Kasun Vithanage <kasvith.me@gmail.com>"]
-description = "Elixir NIF bindings for prql-compiler"
+description = "Elixir NIF bindings for prqlc"
 name = "prql"
 publish = false
 
