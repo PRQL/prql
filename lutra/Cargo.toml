@@ -23,5 +23,5 @@ clap = {version = "4.2.7", features = ["derive"], optional = true}
 connectorx = {version = "^0.3", features = ["dst_arrow2", "src_sqlite"]}
 env_logger = "0.10.0"
 log = "0.4.17"
-prqlc = {path = "../prqlc/prqlc"}
+prqlc = {path = "../prqlc/prqlc", default_features = false}
 walkdir = "2.3.3"
