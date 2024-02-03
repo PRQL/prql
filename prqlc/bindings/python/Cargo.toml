@@ -17,7 +17,7 @@ name = "prql_python"
 pyo3 = {version = "0.20.0", features = ["abi3-py37"]}
 
 [dependencies]
-prql-compiler = {path = "../../prql-compiler", default-features = false}
+prqlc = {path = "../../prqlc", default-features = false}
 
 [dev-dependencies]
 insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
