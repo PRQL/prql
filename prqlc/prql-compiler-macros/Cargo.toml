@@ -15,7 +15,7 @@ test = false
 
 [dependencies]
 prqlc = {path = "../prqlc", default-features = false, version = "0.11.2"}
-syn = "2.0.43"
+syn = "2.0.48"
 
 [package.metadata.release]
 tag-name = "{{version}}"
