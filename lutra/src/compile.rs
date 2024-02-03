@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use prql_compiler::ir::decl::RootModule;
-use prql_compiler::ir::pl::{Ident, Literal};
-use prql_compiler::semantic;
-use prql_compiler::sql::Dialect;
-use prql_compiler::{Error, Options, SourceTree, Target, WithErrorInfo};
+use prqlc::ir::decl::RootModule;
+use prqlc::ir::pl::{Ident, Literal};
+use prqlc::semantic;
+use prqlc::sql::Dialect;
+use prqlc::{Error, Options, SourceTree, Target, WithErrorInfo};
 
 use crate::project::ProjectTree;
 
@@ -14,7 +14,7 @@ pub fn compile(project: &mut ProjectTree) -> Result<DatabaseModule> {
     let source_tree = SourceTree::new(files, Some(project.path.clone()));
 
     let database_module = parse_and_compile(&source_tree, project)
-        .map_err(prql_compiler::downcast)
+        .map_err(prqlc::downcast)
         .map_err(|err| err.composed(&source_tree))?;
 
     Ok(database_module)
@@ -30,7 +30,7 @@ fn parse_and_compile(
         .no_signature();
 
     // parse and resolve
-    let ast_tree = prql_compiler::prql_to_pl_tree(source_tree)?;
+    let ast_tree = prqlc::prql_to_pl_tree(source_tree)?;
     let mut root_module = semantic::resolve(ast_tree, Default::default())?;
 
     // find the database module
@@ -43,7 +43,7 @@ fn parse_and_compile(
 
         let rq;
         (rq, root_module) = semantic::lower_to_ir(root_module, &main_path, &database_module.path)?;
-        let sql = prql_compiler::rq_to_sql(rq, &options)?;
+        let sql = prqlc::rq_to_sql(rq, &options)?;
 
         project.pipelines.insert(main_ident, sql);
     }
@@ -74,18 +74,18 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
     let annotation = decl
         .annotations
         .iter()
-        .find(|x| prql_compiler::semantic::is_ident_or_func_call(&x.expr, &lutra_sqlite))
+        .find(|x| prqlc::semantic::is_ident_or_func_call(&x.expr, &lutra_sqlite))
         .unwrap();
 
     // make sure that there is exactly one arg
     let arg = match &annotation.expr.kind {
-        prql_compiler::ir::pl::ExprKind::Ident(_) => {
+        prqlc::ir::pl::ExprKind::Ident(_) => {
             return Err(Error::new_simple("missing connection parameters")
                 .push_hint("add `{file='sqlite.db'}`")
                 .with_span(annotation.expr.span)
                 .into())
         }
-        prql_compiler::ir::pl::ExprKind::FuncCall(call) => {
+        prqlc::ir::pl::ExprKind::FuncCall(call) => {
             // TODO: maybe this should be checked by actual type-checker
             if call.args.len() != 1 {
                 return Err(Error::new_simple("expected exactly one argument")
@@ -97,16 +97,15 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
         _ => unreachable!(),
     };
 
-    let params = prql_compiler::semantic::static_eval(arg.clone(), root_module)?;
-    let prql_compiler::ir::constant::ConstExprKind::Tuple(params) = params.kind else {
+    let params = prqlc::semantic::static_eval(arg.clone(), root_module)?;
+    let prqlc::ir::constant::ConstExprKind::Tuple(params) = params.kind else {
         return Err(Error::new_simple("expected exactly one argument")
             .with_span(params.span)
             .into());
     };
 
     let file = params.into_iter().next().unwrap();
-    let prql_compiler::ir::constant::ConstExprKind::Literal(Literal::String(file_str)) = file.kind
-    else {
+    let prqlc::ir::constant::ConstExprKind::Literal(Literal::String(file_str)) = file.kind else {
         return Err(Error::new_simple("expected a string")
             .with_span(file.span)
             .into());

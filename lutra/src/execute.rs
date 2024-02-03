@@ -1,6 +1,6 @@
 use anyhow::Result;
 use connectorx::prelude::*;
-use prql_compiler::ir::pl::Ident;
+use prqlc::ir::pl::Ident;
 
 use crate::{compile::DatabaseModule, project::ProjectTree};
 

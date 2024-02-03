@@ -15,7 +15,7 @@ fn main() {
     match res {
         Ok(_) => {}
         Err(err) => {
-            let errors = prql_compiler::downcast(err);
+            let errors = prqlc::downcast(err);
 
             println!("{errors}");
             std::process::exit(1);

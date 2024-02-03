@@ -2305,7 +2305,7 @@ dependencies = [
  "connectorx",
  "env_logger",
  "log",
- "prql-compiler",
+ "prqlc",
  "walkdir",
 ]
 

@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use prql_compiler::ir::pl::Ident;
+use prqlc::ir::pl::Ident;
 
 #[derive(Debug, Default)]
 pub struct ProjectTree {
