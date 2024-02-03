@@ -3370,7 +3370,7 @@ dependencies = [
 name = "prql"
 version = "0.11.2"
 dependencies = [
- "prql-compiler",
+ "prqlc",
  "rustler",
 ]
 
@@ -3394,7 +3394,7 @@ name = "prql-java"
 version = "0.11.2"
 dependencies = [
  "jni",
- "prql-compiler",
+ "prqlc",
 ]
 
 [[package]]
@@ -3402,7 +3402,7 @@ name = "prql-js"
 version = "0.11.2"
 dependencies = [
  "console_error_panic_hook",
- "prql-compiler",
+ "prqlc",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -3412,7 +3412,7 @@ name = "prql-python"
 version = "0.11.2"
 dependencies = [
  "insta",
- "prql-compiler",
+ "prqlc",
  "pyo3",
  "pyo3-build-config",
 ]
@@ -3489,7 +3489,7 @@ name = "prqlc-c"
 version = "0.11.2"
 dependencies = [
  "libc",
- "prql-compiler",
+ "prqlc",
  "serde_json",
 ]
 

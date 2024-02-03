@@ -3,8 +3,8 @@
 extern crate libc;
 
 use libc::{c_char, size_t};
-use prql_compiler::ErrorMessages;
-use prql_compiler::Target;
+use prqlc::ErrorMessages;
+use prqlc::Target;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::str::FromStr;
@@ -33,9 +33,9 @@ pub unsafe extern "C" fn compile(
     let result = options
         .and_then(|opts| {
             Ok(prql_query.as_str())
-                .and_then(prql_compiler::prql_to_pl)
-                .and_then(prql_compiler::pl_to_rq)
-                .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
+                .and_then(prqlc::prql_to_pl)
+                .and_then(prqlc::pl_to_rq)
+                .and_then(|rq| prqlc::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
         .map_err(|e| e.composed(&prql_query.into()));
 
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn compile(
 }
 
 /// Build PL AST from a PRQL string. PL in documented in the
-/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/pl).
+/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prqlc/ir/pl).
 ///
 /// Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
 ///
@@ -59,14 +59,14 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
     let prql_query: String = c_str_to_string(prql_query);
 
     let result = Ok(prql_query.as_str())
-        .and_then(prql_compiler::prql_to_pl)
-        .and_then(prql_compiler::json::from_pl);
+        .and_then(prqlc::prql_to_pl)
+        .and_then(prqlc::json::from_pl);
     result_into_c_str(result)
 }
 
 /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
 /// PL and RQ are documented in the
-/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast).
+/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prqlc/ast).
 ///
 /// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out` buffer.
 ///
@@ -82,14 +82,14 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
     let pl_json: String = c_str_to_string(pl_json);
 
     let result = Ok(pl_json.as_str())
-        .and_then(prql_compiler::json::to_pl)
-        .and_then(prql_compiler::pl_to_rq)
-        .and_then(prql_compiler::json::from_rq);
+        .and_then(prqlc::json::to_pl)
+        .and_then(prqlc::pl_to_rq)
+        .and_then(prqlc::json::from_rq);
     result_into_c_str(result)
 }
 
 /// Convert RQ AST into an SQL string. RQ is documented in the
-/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/rq).
+/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prqlc/ir/rq).
 ///
 /// Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
 ///
@@ -111,8 +111,8 @@ pub unsafe extern "C" fn rq_to_sql(
 
     let result = options.and_then(|options| {
         Ok(rq_json.as_str())
-            .and_then(prql_compiler::json::to_rq)
-            .and_then(|x| prql_compiler::rq_to_sql(x, &options.unwrap_or_default()))
+            .and_then(prqlc::json::to_rq)
+            .and_then(|x| prqlc::rq_to_sql(x, &options.unwrap_or_default()))
     });
     result_into_c_str(result)
 }
@@ -158,7 +158,7 @@ pub enum MessageKind {
 ///
 /// Calling code is responsible for freeing all memory allocated
 /// for fields as well as strings.
-// Make sure to keep in sync with prql_compiler::ErrorMessage
+// Make sure to keep in sync with prqlc::ErrorMessage
 #[repr(C)]
 pub struct Message {
     /// Message kind. Currently only Error is implemented.
@@ -180,7 +180,7 @@ pub struct Message {
 
 /// Identifier of a location in source.
 /// Contains offsets in terms of chars.
-// Make sure to keep in sync with prql_compiler::Span
+// Make sure to keep in sync with prqlc::Span
 #[repr(C)]
 pub struct Span {
     pub start: size_t,
@@ -188,7 +188,7 @@ pub struct Span {
 }
 
 /// Location within a source file.
-// Make sure to keep in sync with prql_compiler::SourceLocation
+// Make sure to keep in sync with prqlc::SourceLocation
 #[repr(C)]
 pub struct SourceLocation {
     pub start_line: size_t,
@@ -289,14 +289,14 @@ fn convert_string(x: String) -> *const libc::c_char {
     CString::new(x).unwrap_or_default().into_raw()
 }
 
-fn convert_span(x: prql_compiler::Span) -> Span {
+fn convert_span(x: prqlc::Span) -> Span {
     Span {
         start: x.start,
         end: x.end,
     }
 }
 
-fn convert_source_location(x: prql_compiler::SourceLocation) -> SourceLocation {
+fn convert_source_location(x: prqlc::SourceLocation) -> SourceLocation {
     SourceLocation {
         start_line: x.start.0,
         start_col: x.start.1,
@@ -310,7 +310,7 @@ unsafe fn c_str_to_string(c_str: *const c_char) -> String {
     CStr::from_ptr(c_str).to_string_lossy().into_owned()
 }
 
-fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
+fn convert_options(o: &Options) -> Result<prqlc::Options, prqlc::ErrorMessages> {
     let target = if !o.target.is_null() {
         Some(unsafe { c_str_to_string(o.target) })
     } else {
@@ -321,9 +321,9 @@ fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler:
         .filter(|x| !x.is_empty())
         .unwrap_or("sql.any");
 
-    let target = Target::from_str(target).map_err(|e| prql_compiler::downcast(e.into()))?;
+    let target = Target::from_str(target).map_err(|e| prqlc::downcast(e.into()))?;
 
-    Ok(prql_compiler::Options {
+    Ok(prqlc::Options {
         format: o.format,
         target,
         signature_comment: o.signature_comment,

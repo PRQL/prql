@@ -14,16 +14,16 @@ crate-type = ["cdylib"]
 name = "prql_python"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-pyo3 = {version = "0.20.0", features = ["abi3-py37"]}
+pyo3 = {version = "0.20.2", features = ["abi3-py37"]}
 
 [dependencies]
-prql-compiler = {path = "../../prql-compiler", default-features = false}
+prqlc = {path = "../../prqlc", default-features = false}
 
 [dev-dependencies]
 insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
 
 [build-dependencies]
-pyo3-build-config = "0.20.0"
+pyo3-build-config = "0.20.2"
 
 [package.metadata.release]
 tag-name = "{{version}}"
