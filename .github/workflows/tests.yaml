@@ -513,7 +513,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup toolchain add nightly
+      - run: rustup override set nightly-2023-11-22
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-hack
@@ -526,6 +526,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Verify minimum rust version
         run: cargo minimal-versions test
+      - run: cargo minimal-versions test --direct
 
   check-ok-to-merge:
     # This indicates to GitHub whether everything in this workflow has passed
