@@ -31,22 +31,3 @@ pub fn execute(
 
     Ok(batches)
 }
-
-/*
-OBSOLETE
-/// Determine the path of the output parquet file.
-fn compose_output_path(pipeline_ident: &Ident, project: &ProjectTree) -> Result<String> {
-    let module_ident = pipeline_ident
-        .clone()
-        .pop()
-        .unwrap_or_else(|| Ident::from_name("_project"));
-    let mut output_path = project.path.clone();
-    for segment in module_ident.path {
-        output_path.push(segment)
-    }
-    output_path.push(format!("{}.main.parquet", module_ident.name));
-    let output_path = (output_path.into_os_string().into_string())
-        .map_err(|s| anyhow::anyhow!("invalid path {s:?}"))?;
-    Ok(output_path)
-}
-*/

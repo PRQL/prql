@@ -13,6 +13,7 @@ use anyhow::Result;
 
 #[cfg(feature = "clap")]
 use clap::{Parser, Subcommand};
+use project::ProjectTree;
 use prqlc::ir::pl::Ident;
 
 #[cfg_attr(feature = "clap", derive(Parser))]
@@ -34,23 +35,20 @@ pub enum Action {
 pub struct DiscoverParams {
     /// Path to the project directory
     #[cfg_attr(feature = "clap", arg(default_value = "."))]
-    project_path: PathBuf,
+    pub project_path: PathBuf,
 }
 
-pub fn discover(params: DiscoverParams) -> Result<()> {
-    let project = discover::read_project(params.project_path)?;
-
-    println!("{project}");
-    Ok(())
+pub fn discover(params: DiscoverParams) -> Result<ProjectTree> {
+    discover::read_project(params.project_path)
 }
 
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct ExecuteParams {
     #[cfg_attr(feature = "clap", command(flatten))]
-    discover: DiscoverParams,
+    pub discover: DiscoverParams,
 
     /// Only execute the expression with this path.
-    expression_path: Option<String>,
+    pub expression_path: Option<String>,
 }
 
 pub fn execute(params: ExecuteParams) -> Result<Vec<(Ident, execute::Relation)>> {

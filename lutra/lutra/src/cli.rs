@@ -1,3 +1,8 @@
+#[cfg(target_family = "wasm")]
+fn main() {
+    panic!("Crate was built for a wasm target.");
+}
+
 #[cfg(not(target_family = "wasm"))]
 fn main() {
     use clap::Parser;
@@ -8,8 +13,8 @@ fn main() {
     let action = Command::parse();
 
     let res = match action.command {
-        Action::Execute(cmd) => execute_and_print(cmd),
-        Action::Discover(cmd) => lutra::discover(cmd),
+        Action::Execute(cmd) => printing::execute_and_print(cmd),
+        Action::Discover(cmd) => printing::discover_and_print(cmd),
     };
 
     match res {
@@ -24,18 +29,22 @@ fn main() {
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn execute_and_print(cmd: lutra::ExecuteParams) -> anyhow::Result<()> {
-    let relations = lutra::execute(cmd)?;
+mod printing {
+    pub fn execute_and_print(cmd: lutra::ExecuteParams) -> anyhow::Result<()> {
+        let relations = lutra::execute(cmd)?;
 
-    for (ident, relation) in relations {
-        let rel_display = arrow::util::pretty::pretty_format_batches(&relation)?;
+        for (ident, relation) in relations {
+            let rel_display = arrow::util::pretty::pretty_format_batches(&relation)?;
 
-        println!("{ident}:\n{rel_display}");
+            println!("{ident}:\n{rel_display}");
+        }
+        Ok(())
     }
-    Ok(())
-}
 
-#[cfg(target_family = "wasm")]
-fn main() {
-    panic!("Crate was built for a wasm target.");
+    pub fn discover_and_print(cmd: lutra::DiscoverParams) -> anyhow::Result<()> {
+        let project = lutra::discover(cmd)?;
+
+        println!("{project}");
+        Ok(())
+    }
 }
