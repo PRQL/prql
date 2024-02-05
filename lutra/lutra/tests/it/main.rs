@@ -1,3 +1,5 @@
+#![cfg(not(target_family = "wasm"))]
+
 use std::{path::PathBuf, str::FromStr};
 
 use insta::{assert_debug_snapshot, assert_display_snapshot};
