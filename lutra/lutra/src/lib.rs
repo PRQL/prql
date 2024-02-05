@@ -62,7 +62,7 @@ pub fn execute(params: ExecuteParams) -> Result<Vec<(Ident, execute::Relation)>>
     if let Some(expression_path) = params.expression_path {
         // specified expression
 
-        let expr_ident = Ident::from_path(expression_path.split(".").collect());
+        let expr_ident = Ident::from_path(expression_path.split('.').collect());
 
         let rel = execute::execute(&project, &database_module, &expr_ident)?;
         res.push((expr_ident.clone(), rel));
