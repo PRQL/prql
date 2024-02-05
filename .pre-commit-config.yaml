@@ -10,7 +10,7 @@ repos:
         # rustfmt handles rust files, and in some snapshots we expect trailing spaces.
         exclude: '.*\.(rs|snap)$'
   - repo: https://github.com/crate-ci/typos
-    rev: v1.17.2
+    rev: v1.18.1
     hooks:
       - id: typos
         # https://github.com/crate-ci/typos/issues/347
@@ -27,7 +27,7 @@ repos:
         # Undo this on the next version of prettier; ref https://github.com/PRQL/prql/pull/4101
         stages: [manual]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.14
+    rev: v0.2.0
     hooks:
       - id: ruff
         args: [--fix]
