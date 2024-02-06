@@ -59,7 +59,7 @@ jobs:
             ${{ github.ref == 'refs/heads/web' || github.ref ==
             'refs/heads/main' }}
 
-      - uses: arduino/setup-task@v1
+      - uses: arduino/setup-task@v2
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 

@@ -277,7 +277,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Install Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
