@@ -2186,7 +2186,6 @@ name = "lutra-python"
 version = "0.11.2"
 dependencies = [
  "arrow",
- "insta",
  "itertools 0.12.1",
  "lutra",
  "pyo3",
