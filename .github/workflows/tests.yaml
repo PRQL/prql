@@ -396,6 +396,13 @@ jobs:
   measure-code-cov:
     runs-on: ubuntu-latest
     needs: rules
+    # Annoyingly, dependabot doesn't get the `${{ secrets.CODECOV_TOKEN }}`
+    # secret, but codecov expects one given it's not a forked PR. So to avoid
+    # failing, we skip this. (Ideally dependabot would either come from a fork
+    # and not be this special case...). If codecov.io either recognizes this
+    # case or stops requiring tokens while remaining reliable, we can remove
+    # this exception.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -582,6 +589,7 @@ jobs:
               "check-links-book",
               "check-links-markdown",
               "lint-megalinter",
+              "measure-code-cov",
               "nightly",
               "publish-web",
               "test-msrv",
