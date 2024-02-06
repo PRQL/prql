@@ -2,7 +2,6 @@ use arrow::{pyarrow::PyArrowType, record_batch::RecordBatch};
 use itertools::Itertools;
 use std::str::FromStr;
 
-use lutralib;
 use pyo3::prelude::*;
 
 #[pymodule]
