@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use anyhow::Result;
@@ -7,23 +8,27 @@ use prqlc::semantic;
 use prqlc::sql::Dialect;
 use prqlc::{Error, Options, SourceTree, Target, WithErrorInfo};
 
-use crate::project::ProjectTree;
+use crate::project::{DatabaseModule, ProjectCompiled, ProjectDiscovered, SqliteConnectionParams};
 
-pub fn compile(project: &mut ProjectTree) -> Result<DatabaseModule> {
+#[cfg_attr(feature = "clap", derive(clap::Parser))]
+#[derive(Default)]
+pub struct CompileParams {}
+
+pub fn compile(mut project: ProjectDiscovered, _: CompileParams) -> Result<ProjectCompiled> {
     let files = std::mem::take(&mut project.sources);
-    let source_tree = SourceTree::new(files, Some(project.path.clone()));
+    let source_tree = SourceTree::new(files, Some(project.root_path.clone()));
 
-    let database_module = parse_and_compile(&source_tree, project)
+    let res = parse_and_compile(&source_tree, project);
+
+    Ok(res
         .map_err(prqlc::downcast)
-        .map_err(|err| err.composed(&source_tree))?;
-
-    Ok(database_module)
+        .map_err(|err| err.composed(&source_tree))?)
 }
 
 fn parse_and_compile(
     source_tree: &SourceTree,
-    project: &mut ProjectTree,
-) -> Result<DatabaseModule> {
+    project: ProjectDiscovered,
+) -> Result<ProjectCompiled> {
     let options = Options::default()
         .with_target(Target::Sql(Some(Dialect::SQLite)))
         .no_format()
@@ -37,6 +42,7 @@ fn parse_and_compile(
     let database_module = find_database_module(&mut root_module)?;
 
     // compile all main queries
+    let mut queries = HashMap::new();
     let main_idents = root_module.find_mains();
     for main_ident in main_idents {
         let main_path: Vec<_> = main_ident.iter().cloned().collect();
@@ -45,9 +51,13 @@ fn parse_and_compile(
         (rq, root_module) = semantic::lower_to_ir(root_module, &main_path, &database_module.path)?;
         let sql = prqlc::rq_to_sql(rq, &options)?;
 
-        project.exprs.insert(main_ident, sql);
+        queries.insert(main_ident, sql);
     }
-    Ok(database_module)
+    Ok(ProjectCompiled {
+        inner: project,
+        queries,
+        database_module,
+    })
 }
 
 fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> {
@@ -124,13 +134,4 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
         path: db_module_fq.into_iter().collect(),
         connection_params: SqliteConnectionParams { file_relative },
     })
-}
-
-pub struct DatabaseModule {
-    pub path: Vec<String>,
-    pub connection_params: SqliteConnectionParams,
-}
-
-pub struct SqliteConnectionParams {
-    pub file_relative: std::path::PathBuf,
 }

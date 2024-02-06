@@ -2,14 +2,27 @@
 
 use std::{path::PathBuf, str::FromStr};
 
+use anyhow::Result;
+use arrow::record_batch::RecordBatch;
 use insta::{assert_debug_snapshot, assert_display_snapshot};
 use itertools::Itertools;
 use lutra::{DiscoverParams, ExecuteParams};
+use prqlc::ir::pl::Ident;
 
 fn example_project_params() -> DiscoverParams {
     DiscoverParams {
         project_path: PathBuf::from_str("../example-project").unwrap(),
     }
+}
+
+fn execute_example_project(
+    expression_path: Option<String>,
+) -> Result<Vec<(Ident, Vec<RecordBatch>)>> {
+    let project = lutra::discover(example_project_params())?;
+
+    let project = lutra::compile(project, Default::default())?;
+
+    lutra::execute(project, ExecuteParams { expression_path })
 }
 
 #[test]
@@ -27,12 +40,7 @@ fn test_discover() {
 
 #[test]
 fn test_execute() {
-    let params = ExecuteParams {
-        discover: example_project_params(),
-        expression_path: Some("main".to_string()),
-    };
-
-    let results = lutra::execute(params).unwrap();
+    let results = execute_example_project(Some("main".into())).unwrap();
     let (name, data) = results.into_iter().exactly_one().unwrap();
 
     assert_eq!(name.to_string(), "main");
@@ -49,12 +57,9 @@ fn test_execute() {
 
 #[test]
 fn test_missing() {
-    let params = ExecuteParams {
-        discover: example_project_params(),
-        expression_path: Some("non_existent".to_string()),
-    };
+    let error = execute_example_project(Some("non_existent".into())).unwrap_err();
 
-    assert_debug_snapshot!(lutra::execute(params).unwrap_err(), @r###"
+    assert_debug_snapshot!(error, @r###"
     Error {
         kind: Error,
         span: None,
