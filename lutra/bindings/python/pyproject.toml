@@ -5,6 +5,9 @@ requires = ["maturin>=1.0,<2.0"]
 [project]
 name = "lutra"
 requires-python = ">=3.8"
+dependencies = [
+  "pyarrow ~= 15.0.0",
+]
 
 [tool.maturin]
 # This is required because of https://github.com/PyO3/pyo3/pull/2135. Instead of
