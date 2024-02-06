@@ -1,6 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 
-mod docgen;
+mod docs_generator;
 mod jinja;
 mod watch;
 
@@ -94,7 +94,7 @@ enum Command {
     #[command(subcommand)]
     Debug(DebugCommand),
 
-    /// Generate HTML documentation
+    /// Generate Markdown documentation
     #[command(name = "doc")]
     GenerateDocs(IoArgs),
 
@@ -382,7 +382,7 @@ impl Command {
                 let stmts = prql_to_pl_tree(sources)?;
 
                 let stmts = stmts.sources.values().next().unwrap().to_vec();
-                docgen::generate_html_docs(stmts).into_bytes()
+                docs_generator::generate_markdown_docs(stmts).into_bytes()
             }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);
