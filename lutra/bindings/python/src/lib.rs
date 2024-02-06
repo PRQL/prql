@@ -18,15 +18,21 @@ pub fn execute_one(
     project_path: &str,
     expression_path: &str,
 ) -> PyResult<PyArrowType<RecordBatch>> {
-    let project_path = std::path::PathBuf::from_str(project_path)?;
-
-    let results = lutralib::execute(lutralib::ExecuteParams {
-        discover: lutralib::DiscoverParams { project_path },
+    // prepare params
+    let discover = lutralib::DiscoverParams {
+        project_path: std::path::PathBuf::from_str(project_path)?,
+    };
+    let execute = lutralib::ExecuteParams {
         expression_path: Some(expression_path.to_string()),
-    })?;
+    };
 
+    // run all stages
+    let project = lutralib::discover(discover)?;
+    let project = lutralib::compile(project, Default::default())?;
+    let results = lutralib::execute(project, execute)?;
+
+    // unwrap results
     let (_, relation) = results.into_iter().exactly_one().unwrap();
-
     let first_record_batch = relation.into_iter().next().unwrap();
 
     Ok(PyArrowType(first_record_batch))
