@@ -1,0 +1,48 @@
+[build-system]
+build-backend = "maturin"
+requires = ["maturin>=1.0,<2.0"]
+
+[project]
+name = "lutra"
+requires-python = ">=3.8"
+dependencies = [
+  "pyarrow ~= 15.0.0",
+]
+
+[tool.maturin]
+# This is required because of https://github.com/PyO3/pyo3/pull/2135. Instead of
+# the suggestions there to run tests with `--no-default-features`, we instead
+# disable by default and then enable in the build, given that we're going to be
+# testing more often than building.
+
+# When https://github.com/PyO3/pyo3/pull/2135 merges, we can remove this config.
+
+features = ["pyo3/extension-module"]
+
+[project.optional-dependencies]
+test = [
+  "pytest >= 7",
+  "mypy == 1.8.0",
+]
+
+[tool.ruff]
+fix = true
+ignore = [
+  # Line length — black handles
+  "E5", #
+  # No lambdas — too strict
+  "E731",
+]
+
+[tool.mypy]
+files = "."
+show_error_codes = true
+strict = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = [
+  "pytest.*",
+  "nox.*",
+]

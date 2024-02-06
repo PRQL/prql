@@ -1,7 +1,12 @@
 version: "3"
 
+includes:
+  bindings-python:
+    taskfile: ./bindings/python
+    dir: ./bindings/python
+
 vars:
-  packages: -p lutra
+  packages: -p lutra -p lutra-python
 
 tasks:
   run:
@@ -24,6 +29,8 @@ tasks:
           # no dbg
           rg 'dbg!' --glob '*.rs' . --no-heading
         ignore_error: true
+
+      - task: bindings-python:fmt
 
   test-fast:
     desc: A fast test used for feedback during development
