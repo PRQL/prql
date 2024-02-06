@@ -23,8 +23,6 @@ features = ["pyo3/extension-module"]
 test = [
   "pytest >= 7",
   "mypy == 1.8.0",
-  "pyarrow ~= 15.0.0",
-  "numpy ~= 1.26.3",
 ]
 
 [tool.ruff]
