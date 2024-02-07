@@ -6,7 +6,11 @@ use prqlc::Error;
 use crate::ProjectCompiled;
 
 /// Edit a source file such that the source of the declaration with id `decl_id` is now `new_source`.
-pub fn edit_source_file(project: &ProjectCompiled, decl_id: usize, new_source: String) -> Result<()> {
+pub fn edit_source_file(
+    project: &ProjectCompiled,
+    decl_id: usize,
+    new_source: String,
+) -> Result<()> {
     let span = project.root_module.span_map.get(&decl_id);
     let Some(span) = span else {
         // TODO: bad error message, we should not mention decl ids
