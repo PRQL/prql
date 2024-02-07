@@ -18,7 +18,7 @@ default = []
 # https://github.com/rust-lang/rust/issues/59302
 crate_type = ["staticlib", "cdylib"]
 doctest = false
-est = false
+test = false
 doc = false
 
 [dependencies]
