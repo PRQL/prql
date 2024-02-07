@@ -36,9 +36,9 @@ pub fn execute(project: ProjectCompiled, params: ExecuteParams) -> Result<Vec<(I
 fn execute_one(project: &ProjectCompiled, pipeline_ident: &Ident) -> Result<Relation> {
     log::info!("executing {pipeline_ident}");
     let db = &project.database_module;
-    let project_root = project.inner.root_path.as_path();
+    let project_root = project.sources.root.clone().unwrap();
 
-    let mut conn = crate::connection::open(db, project_root)?;
+    let mut conn = crate::connection::open(db, &project_root)?;
 
     let Some(pipeline) = project.queries.get(pipeline_ident) else {
         return Err(

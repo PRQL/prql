@@ -10,10 +10,10 @@ use crate::ProjectCompiled;
 #[cfg_attr(feature = "clap", derive(clap::Parser))]
 pub struct PullSchemaParams {}
 
-pub fn pull_schema(project: ProjectCompiled, _params: PullSchemaParams) -> Result<Vec<Stmt>> {
-    let project_root = project.inner.root_path.as_path();
+pub fn pull_schema(project: &ProjectCompiled, _params: PullSchemaParams) -> Result<Vec<Stmt>> {
+    let project_root = project.sources.root.clone().unwrap();
     let db = &project.database_module;
-    let mut conn = crate::connection::open(db, project_root)?;
+    let mut conn = crate::connection::open(db, &project_root)?;
 
     let mut defs = connector_arrow::api::Connection::get_relation_defs(&mut conn)?;
 

@@ -415,7 +415,7 @@ fn restrict_stmt(stmt: pl::Stmt) -> Stmt {
     }
 }
 
-fn restrict_annotation(value: pl::Annotation) -> Annotation {
+pub fn restrict_annotation(value: pl::Annotation) -> Annotation {
     Annotation {
         expr: restrict_expr_box(value.expr),
     }

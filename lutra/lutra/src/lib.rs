@@ -18,6 +18,7 @@
 mod compile;
 mod connection;
 mod discover;
+pub mod editing;
 mod execute;
 mod project;
 mod pull_schema;
