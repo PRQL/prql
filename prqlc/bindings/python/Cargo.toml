@@ -12,6 +12,8 @@ version.workspace = true
 [lib]
 crate-type = ["cdylib"]
 name = "prql_python"
+doctest = false
+doc = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 pyo3 = {version = "0.20.2", features = ["abi3-py37"]}

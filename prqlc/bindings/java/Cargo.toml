@@ -12,6 +12,7 @@ version.workspace = true
 crate_type = ["cdylib"]
 doctest = false
 test = false
+doc = false
 
 [dependencies]
 jni = "0.21.1"
