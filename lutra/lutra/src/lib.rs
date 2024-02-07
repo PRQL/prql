@@ -16,11 +16,14 @@
 #![cfg(not(target_family = "wasm"))]
 
 mod compile;
+mod connection;
 mod discover;
 mod execute;
 mod project;
+mod pull_schema;
 
 pub use compile::{compile, CompileParams};
 pub use discover::{discover, DiscoverParams};
 pub use execute::{execute, ExecuteParams};
 pub use project::{ProjectCompiled, ProjectDiscovered};
+pub use pull_schema::{pull_schema, PullSchemaParams};

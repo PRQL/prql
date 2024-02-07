@@ -15,6 +15,7 @@ fn main() {
     let res = match action.command {
         Action::Discover(cmd) => discover_and_print(cmd),
         Action::Execute(cmd) => execute_and_print(cmd),
+        Action::PullSchema(cmd) => pull_schema_and_print(cmd),
     };
 
     match res {
@@ -31,7 +32,7 @@ fn main() {
 #[cfg(not(target_family = "wasm"))]
 mod inner {
     use clap::{Parser, Subcommand};
-    use lutra::{CompileParams, DiscoverParams, ExecuteParams};
+    use lutra::{CompileParams, DiscoverParams, ExecuteParams, PullSchemaParams};
 
     #[derive(Parser)]
     pub struct Command {
@@ -46,6 +47,9 @@ mod inner {
 
         /// Discover, compile, execute
         Execute(ExecuteCommand),
+
+        /// Pull schema from data sources
+        PullSchema(PullSchemaCommand),
     }
 
     #[derive(clap::Parser)]
@@ -85,6 +89,31 @@ mod inner {
 
             println!("{ident}:\n{rel_display}");
         }
+        Ok(())
+    }
+
+    #[derive(clap::Parser)]
+    pub struct PullSchemaCommand {
+        #[clap(flatten)]
+        discover: DiscoverParams,
+
+        #[clap(flatten)]
+        compile: CompileParams,
+
+        #[clap(flatten)]
+        execute: PullSchemaParams,
+    }
+
+    pub fn pull_schema_and_print(cmd: PullSchemaCommand) -> anyhow::Result<()> {
+        let project = lutra::discover(cmd.discover)?;
+
+        let project = lutra::compile(project, cmd.compile)?;
+
+        let stmts = lutra::pull_schema(project, cmd.execute)?;
+
+        let prql_source = prqlc::pl_to_prql(stmts)?;
+
+        println!("{prql_source}");
         Ok(())
     }
 }

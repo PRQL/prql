@@ -102,6 +102,7 @@ mod utils;
 pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
 pub use ir::Span;
 pub use prqlc_ast::error::{Error, Errors, MessageKind, Reason};
+pub use prqlc_ast as ast;
 
 use once_cell::sync::Lazy;
 use semver::Version;
