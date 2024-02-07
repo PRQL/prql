@@ -19,6 +19,7 @@ default = []
 crate_type = ["staticlib", "cdylib"]
 doctest = false
 test = false
+doc = false
 
 [dependencies]
 libc = "0.2.153"

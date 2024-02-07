@@ -12,6 +12,7 @@ version.workspace = true
 [lib]
 crate-type = ["cdylib"]
 name = "lutra"
+doc = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 # we rename lutra to lutralib here, so we can define a function named lutra

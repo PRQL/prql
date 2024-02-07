@@ -13,6 +13,7 @@ version.workspace = true
 crate-type = ["cdylib", "rlib"]
 doctest = false
 test = false
+doc = false
 
 [features]
 default = ["console_error_panic_hook"]
