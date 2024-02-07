@@ -36,14 +36,9 @@ pub fn execute(project: ProjectCompiled, params: ExecuteParams) -> Result<Vec<(I
 fn execute_one(project: &ProjectCompiled, pipeline_ident: &Ident) -> Result<Relation> {
     log::info!("executing {pipeline_ident}");
     let db = &project.database_module;
+    let project_root = project.sources.root.clone().unwrap();
 
-    // convert relative to absolute path
-    let mut sqlite_file_abs = project.inner.root_path.clone();
-    sqlite_file_abs.push(&db.connection_params.file_relative);
-    let sqlite_file_abs = sqlite_file_abs.as_os_str().to_str().unwrap();
-
-    // init SQLite
-    let mut sqlite_conn = rusqlite::Connection::open(sqlite_file_abs)?;
+    let mut conn = crate::connection::open(db, &project_root)?;
 
     let Some(pipeline) = project.queries.get(pipeline_ident) else {
         return Err(
@@ -52,7 +47,7 @@ fn execute_one(project: &ProjectCompiled, pipeline_ident: &Ident) -> Result<Rela
     };
     log::debug!("executing sql: {pipeline}");
 
-    let batches = connector_arrow::query_one(&mut sqlite_conn, pipeline)?;
+    let batches = connector_arrow::query_one(&mut conn, pipeline)?;
 
     Ok(batches)
 }

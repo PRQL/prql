@@ -18,17 +18,17 @@ pub fn compile(mut project: ProjectDiscovered, _: CompileParams) -> Result<Proje
     let files = std::mem::take(&mut project.sources);
     let source_tree = SourceTree::new(files, Some(project.root_path.clone()));
 
-    let res = parse_and_compile(&source_tree, project);
+    let res = parse_and_compile(&source_tree);
 
-    Ok(res
+    let mut project = res
         .map_err(prqlc::downcast)
-        .map_err(|err| err.composed(&source_tree))?)
+        .map_err(|err| err.composed(&source_tree))?;
+
+    project.sources = source_tree;
+    Ok(project)
 }
 
-fn parse_and_compile(
-    source_tree: &SourceTree,
-    project: ProjectDiscovered,
-) -> Result<ProjectCompiled> {
+fn parse_and_compile(source_tree: &SourceTree) -> Result<ProjectCompiled> {
     let options = Options::default()
         .with_target(Target::Sql(Some(Dialect::SQLite)))
         .no_format()
@@ -54,9 +54,10 @@ fn parse_and_compile(
         queries.insert(main_ident, sql);
     }
     Ok(ProjectCompiled {
-        inner: project,
+        sources: SourceTree::default(), // placeholder
         queries,
         database_module,
+        root_module,
     })
 }
 
@@ -86,6 +87,8 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
         .iter()
         .find(|x| prqlc::semantic::is_ident_or_func_call(&x.expr, &lutra_sqlite))
         .unwrap();
+
+    let def_id = decl.declared_at;
 
     // make sure that there is exactly one arg
     let arg = match &annotation.expr.kind {
@@ -132,6 +135,7 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
 
     Ok(DatabaseModule {
         path: db_module_fq.into_iter().collect(),
+        def_id,
         connection_params: SqliteConnectionParams { file_relative },
     })
 }

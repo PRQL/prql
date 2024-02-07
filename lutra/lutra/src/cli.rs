@@ -15,6 +15,7 @@ fn main() {
     let res = match action.command {
         Action::Discover(cmd) => discover_and_print(cmd),
         Action::Execute(cmd) => execute_and_print(cmd),
+        Action::PullSchema(cmd) => pull_schema_and_print(cmd),
     };
 
     match res {
@@ -31,7 +32,7 @@ fn main() {
 #[cfg(not(target_family = "wasm"))]
 mod inner {
     use clap::{Parser, Subcommand};
-    use lutra::{CompileParams, DiscoverParams, ExecuteParams};
+    use lutra::{CompileParams, DiscoverParams, ExecuteParams, PullSchemaParams};
 
     #[derive(Parser)]
     pub struct Command {
@@ -46,6 +47,9 @@ mod inner {
 
         /// Discover, compile, execute
         Execute(ExecuteCommand),
+
+        /// Pull schema from data sources
+        PullSchema(PullSchemaCommand),
     }
 
     #[derive(clap::Parser)]
@@ -85,6 +89,61 @@ mod inner {
 
             println!("{ident}:\n{rel_display}");
         }
+        Ok(())
+    }
+
+    #[derive(clap::Parser)]
+    pub struct PullSchemaCommand {
+        #[clap(flatten)]
+        discover: DiscoverParams,
+
+        #[clap(flatten)]
+        compile: CompileParams,
+
+        #[clap(flatten)]
+        execute: PullSchemaParams,
+    }
+
+    pub fn pull_schema_and_print(cmd: PullSchemaCommand) -> anyhow::Result<()> {
+        let project = lutra::discover(cmd.discover)?;
+
+        let project = lutra::compile(project, cmd.compile)?;
+
+        let db_mod_decl_id = project.database_module.def_id.unwrap();
+
+        let stmts = lutra::pull_schema(&project, cmd.execute)?;
+
+        use prqlc::ast::*;
+
+        let db_mod_name = project.database_module.path.last().cloned();
+        let new_module_def = ModuleDef {
+            name: db_mod_name.unwrap_or_default(),
+            stmts,
+        };
+        let mut new_module_stmt = Stmt::new(StmtKind::ModuleDef(new_module_def));
+
+        // pull annotations and other metadata from the resolved module tree
+        // TODO: this is not a good idea, because we have to restrict PL back into AST
+        //   also, we'd have to pull back doc comments
+        //   ideally, we'd edit only the module contents, not the module itself
+        let db_mod_path = &project.database_module.path;
+        let root_mod = &project.root_module.module;
+        if !db_mod_path.is_empty() {
+            let i = Ident::from_path(db_mod_path.clone());
+            let database_mod_decl = root_mod.get(&i).unwrap();
+
+            new_module_stmt.annotations = database_mod_decl
+                .annotations
+                .clone()
+                .into_iter()
+                .map(prqlc::semantic::ast_expand::restrict_annotation)
+                .collect();
+        }
+
+        let new_source = prqlc::pl_to_prql(vec![new_module_stmt])?;
+
+        lutra::editing::edit_source_file(&project, db_mod_decl_id, new_source)?;
+
         Ok(())
     }
 }

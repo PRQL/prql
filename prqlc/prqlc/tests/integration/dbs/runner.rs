@@ -59,6 +59,10 @@ impl DbTestRunner for SQLiteTestRunner {
             protocol.query(q.as_str()).unwrap();
         }
     }
+
+    fn modify_ddl(&self, sql: String) -> String {
+        sql.replace("TIMESTAMP", "TEXT") // timestamps in chinook are stores as ISO8601
+    }
 }
 
 pub struct PostgresTestRunner;
