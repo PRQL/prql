@@ -1,2 +1,2 @@
 Please check the documentation of the
-[prqlc crate](https://docs.rs/prql-compiler/latest/prql_compiler/).
+[prqlc crate](https://docs.rs/prqlc/latest/prqlc/).
