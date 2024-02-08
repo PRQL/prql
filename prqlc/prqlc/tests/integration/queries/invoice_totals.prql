@@ -1,0 +1,34 @@
+# clickhouse:skip (clickhouse doesn't have lag function)
+
+#! Calculate a number of metrics about the sales of tracks in each city.
+from i=invoices
+join ii=invoice_items (==invoice_id)
+derive {
+    city = i.billing_city,
+    street = i.billing_address,
+}
+group {city, street} (
+    derive total = ii.unit_price * ii.quantity
+    aggregate {
+        num_orders = count_distinct i.invoice_id,
+        num_tracks = sum ii.quantity,
+        total_price = sum total,
+    }
+)
+group {city} (
+    sort street
+    window expanding:true (
+        derive {running_total_num_tracks = sum num_tracks}
+    )
+)
+sort {city, street}
+derive {num_tracks_last_week = lag 7 num_tracks}
+select {
+    city,
+    street,
+    num_orders,
+    num_tracks,
+    running_total_num_tracks,
+    num_tracks_last_week
+}
+take 20

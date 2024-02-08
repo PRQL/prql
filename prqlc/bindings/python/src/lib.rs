@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prql_compiler::{self, Target};
+use prqlc::{self, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -11,9 +11,9 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
     options
         .and_then(|opts| {
             Ok(prql_query)
-                .and_then(prql_compiler::prql_to_pl)
-                .and_then(prql_compiler::pl_to_rq)
-                .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
+                .and_then(prqlc::prql_to_pl)
+                .and_then(prqlc::pl_to_rq)
+                .and_then(|rq| prqlc::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
         .map_err(|e| e.composed(&prql_query.into()))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
@@ -22,25 +22,33 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
 #[pyfunction]
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     Ok(prql_query)
-        .and_then(prql_compiler::prql_to_pl)
-        .and_then(prql_compiler::json::from_pl)
+        .and_then(prqlc::prql_to_pl)
+        .and_then(prqlc::json::from_pl)
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
 pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     Ok(pl_json)
-        .and_then(prql_compiler::json::to_pl)
-        .and_then(prql_compiler::pl_to_rq)
-        .and_then(prql_compiler::json::from_rq)
+        .and_then(prqlc::json::to_pl)
+        .and_then(prqlc::pl_to_rq)
+        .and_then(prqlc::json::from_rq)
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
-pub fn rq_to_sql(rq_json: &str) -> PyResult<String> {
+pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<String> {
     Ok(rq_json)
-        .and_then(prql_compiler::json::to_rq)
-        .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default()))
+        .and_then(prqlc::json::to_rq)
+        .and_then(|x| {
+            prqlc::rq_to_sql(
+                x,
+                &options
+                    .map(convert_options)
+                    .transpose()?
+                    .unwrap_or_default(),
+            )
+        })
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -93,12 +101,10 @@ impl CompileOptions {
     }
 }
 
-fn convert_options(
-    o: CompileOptions,
-) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
-    let target = Target::from_str(&o.target).map_err(|e| prql_compiler::downcast(e.into()))?;
+fn convert_options(o: CompileOptions) -> Result<prqlc::Options, prqlc::ErrorMessages> {
+    let target = Target::from_str(&o.target).map_err(|e| prqlc::downcast(e.into()))?;
 
-    Ok(prql_compiler::Options {
+    Ok(prqlc::Options {
         format: o.format,
         target,
         signature_comment: o.signature_comment,
@@ -137,5 +143,26 @@ mod test {
           age BETWEEN 20 AND 30
         "###
         );
+    }
+
+    #[test]
+    fn parse_pipeline() {
+        let opts = Some(CompileOptions {
+            format: true,
+            target: "sql.any".to_string(),
+            signature_comment: false,
+        });
+
+        let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
+        assert_snapshot!(
+             prql_to_pl(prql).and_then(|x| pl_to_rq(x.as_str())).and_then(|x|rq_to_sql(x.as_str(), opts)).unwrap(), @r###"
+        SELECT
+          name,
+          id
+        FROM
+          artists
+        WHERE
+          id IN (1, 2, 3)
+        "###);
     }
 }

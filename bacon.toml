@@ -4,14 +4,14 @@ default_job = "clippy"
 
 # PRQL additions
 [jobs.test]
-command = ['cargo', 'insta', 'test', "--color=always", "--features=test-dbs", "--unreferenced=auto"]
+command = ['cargo', 'insta', 'test', "--color=always", "--features=default,test-dbs", "--unreferenced=auto"]
 
 [jobs.test-accept]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=test-dbs", "--unreferenced=auto"]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=default,test-dbs", "--unreferenced=auto"]
 watch = ["*"]
 
 [jobs.test-accept-fast]
-command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prql-compiler", "--lib"]
+command = ['cargo', 'insta', 'test', '--accept', "--color=always", "-p=prqlc", "--lib"]
 watch = ["*"]
 
 # Standard tasks

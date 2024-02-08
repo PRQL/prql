@@ -1,0 +1,17 @@
+[package]
+name = "compile-files"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "compile-files"
+test = false
+doc = false
+
+[build-dependencies]
+prqlc = {path = '../../../prqlc', default-features = false}

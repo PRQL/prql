@@ -3,17 +3,20 @@ mod interpolation;
 mod lexer;
 mod span;
 mod stmt;
+#[cfg(test)]
+mod test;
 mod types;
 
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
 
-use prqlc_ast::error::Error;
 use prqlc_ast::error::Reason;
+use prqlc_ast::error::{Error, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
 use lexer::Token;
+use lexer::{TokenSpan, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -28,8 +31,19 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
             .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
-    let ast = if let Some(tokens) = tokens {
-        let stream = prepare_stream(tokens, source, source_id);
+    // We don't want comments in the AST (but we do intend to use them as part of
+    // formatting)
+    let semantic_only: Option<_> = tokens.map(|tokens| {
+        tokens.into_iter().filter(|TokenSpan(t, _)| {
+            !matches!(
+                t,
+                Token::Comment(_) | Token::LineWrap(_) | Token::DocComment(_)
+            )
+        })
+    });
+
+    let ast = if let Some(semantic_only) = semantic_only {
+        let stream = prepare_stream(semantic_only, source, source_id);
 
         let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
@@ -45,6 +59,14 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     } else {
         Err(errors)
     }
+}
+
+pub fn lex_source(source: &str) -> Result<TokenVec, Vec<Error>> {
+    lexer::lexer().parse(source).map(TokenVec).map_err(|e| {
+        e.into_iter()
+            .map(|x| convert_lexer_error(source, x, 0))
+            .collect()
+    })
 }
 
 mod common {
@@ -103,14 +125,16 @@ mod common {
     }
 }
 
+/// Convert the output of the lexer into the input of the parser. Requires
+/// supplying the original source code.
 fn prepare_stream(
-    tokens: Vec<(Token, std::ops::Range<usize>)>,
+    tokens: impl Iterator<Item = TokenSpan>,
     source: &str,
     source_id: u16,
 ) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |(t, s)| (t, ParserSpan::new(source_id, s)));
+        .map(move |TokenSpan(t, s)| (t, ParserSpan::new(source_id, s)));
     let len = source.chars().count();
     let eoi = ParserSpan(Span {
         start: len,
@@ -121,8 +145,8 @@ fn prepare_stream(
 }
 
 fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
-    // TODO: is there a neater way of taking a span? We want to take it based on
-    // the chars, not the bytes, so can't just index into the str.
+    // We want to slice based on the chars, not the bytes, so can't just index
+    // into the str.
     let found = source
         .chars()
         .skip(e.span().start)
@@ -134,9 +158,7 @@ fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: 
         source_id,
     });
 
-    let mut e = Error::new(Reason::Unexpected { found });
-    e.span = span;
-    e
+    Error::new(Reason::Unexpected { found }).with_span(span)
 }
 
 fn convert_parser_error(e: common::PError) -> Error {
@@ -151,9 +173,7 @@ fn convert_parser_error(e: common::PError) -> Error {
         }
     }
 
-    let mut e = construct_parser_error(e);
-    e.span = Some(*span);
-    e
+    construct_parser_error(e).with_span(Some(*span))
 }
 
 fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
@@ -172,9 +192,6 @@ fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
         .all(|t| matches!(t, None | Some(Token::NewLine)));
     let expected: Vec<String> = e
         .expected()
-        // TODO: could we collapse this into a `filter_map`? (though semantically
-        // identical)
-        //
         // Only include whitespace if we're _only_ expecting whitespace
         .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
         .cloned()
@@ -214,4 +231,38 @@ fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
             "Expected {expected}, but didn't find anything before the end."
         ))),
     }
+}
+
+#[test]
+fn test_lex_source() {
+    use insta::assert_debug_snapshot;
+
+    assert_debug_snapshot!(lex_source("5 + 3"), @r###"
+    Ok(
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          4..5: Literal(Integer(3)),
+        ),
+    )
+    "###);
+
+    // Something that will generate an error
+    assert_debug_snapshot!(lex_source("^"), @r###"
+    Err(
+        [
+            Error {
+                kind: Error,
+                span: Some(
+                    0:0-1,
+                ),
+                reason: Unexpected {
+                    found: "^",
+                },
+                hints: [],
+                code: None,
+            },
+        ],
+    )
+    "###);
 }

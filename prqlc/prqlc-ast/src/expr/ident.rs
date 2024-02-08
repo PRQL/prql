@@ -27,6 +27,14 @@ impl Ident {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.path.len() + 1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        false
+    }
+
     /// Remove last part of the ident.
     /// Result will generally refer to the parent of this ident.
     pub fn pop(self) -> Option<Self> {
@@ -58,7 +66,7 @@ impl Ident {
     }
 
     pub fn starts_with(&self, prefix: &Ident) -> bool {
-        if prefix.path.len() > self.path.len() {
+        if prefix.len() > self.len() {
             return false;
         }
         prefix
@@ -67,10 +75,19 @@ impl Ident {
             .all(|(prefix_component, self_component)| prefix_component == self_component)
     }
 
+    pub fn starts_with_path<S: AsRef<str>>(&self, prefix: &[S]) -> bool {
+        // self is an I
+        if prefix.len() > self.len() {
+            return false;
+        }
+        prefix
+            .iter()
+            .zip(self.iter())
+            .all(|(prefix_component, self_component)| prefix_component.as_ref() == self_component)
+    }
+
     pub fn starts_with_part(&self, prefix: &str) -> bool {
-        self.iter()
-            .next()
-            .map_or(false, |self_component| self_component == prefix)
+        self.starts_with_path(&[prefix])
     }
 }
 
@@ -108,7 +125,7 @@ impl Serialize for Ident {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.path.len() + 1))?;
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
         for part in &self.path {
             seq.serialize_element(part)?;
         }

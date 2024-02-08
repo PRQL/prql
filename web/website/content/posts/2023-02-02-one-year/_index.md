@@ -68,8 +68,8 @@ want to fix that and put a spotlight on the amazing work that was done.
 ### Playground
 
 We have a [Playground](https://prql-lang.org/playground/) that can compile and
-execute PRQL queries in-browser. It's using prql-compiler and DuckDB, both
-compiled to WASM modules.
+execute PRQL queries in-browser. It's using prqlc and DuckDB, both compiled to
+WASM modules.
 
 ![PRQL Playground](URpCf29.png)
 
@@ -114,8 +114,8 @@ take_oldest 3
 
 ### Relational Query
 
-The design of prql-compiler strives to have a complexity bottleneck with an
-intermediate representation named
+The design of prqlc strives to have a complexity bottleneck with an intermediate
+representation named
 [Relation Query](https://docs.rs/prql-compiler/latest/prql-compiler/ast/rq/index.html)
 or RQ for short. Think of it as equivalent to a
 [Substrait plan](https://substrait.io/).
@@ -127,6 +127,6 @@ relations or dataframes.
 
 ![](GXLvoXn.png)
 
-> Note how prql-compiler inferred the structure of the table we are selecting
-> from. It knows that it must contain columns `billing_city` and `total`, but
-> also notes that there may be many other columns.
+> Note how prqlc inferred the structure of the table we are selecting from. It
+> knows that it must contain columns `billing_city` and `total`, but also notes
+> that there may be many other columns.

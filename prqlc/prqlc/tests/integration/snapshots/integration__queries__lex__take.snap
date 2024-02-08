@@ -1,0 +1,23 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: tokens
+input_file: prqlc/prqlc/tests/integration/queries/take.prql
+---
+TokenVec (
+  0..12: Comment(" mssql:test"),
+  12..13: NewLine,
+  13..17: Ident("from"),
+  18..24: Ident("tracks"),
+  24..25: NewLine,
+  25..29: Ident("sort"),
+  30..31: Control('{'),
+  31..32: Control('+'),
+  32..40: Ident("track_id"),
+  40..41: Control('}'),
+  41..42: NewLine,
+  42..46: Ident("take"),
+  47..48: Literal(Integer(3)),
+  48..50: Range { bind_left: true, bind_right: true },
+  50..51: Literal(Integer(5)),
+  51..52: NewLine,
+)

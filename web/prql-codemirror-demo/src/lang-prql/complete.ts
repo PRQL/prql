@@ -55,8 +55,6 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "_is_null",
       // misc-functions
       "from_text",
-      // string functions module
-      "string",
       // window-functions
       "lag",
       "lead",
@@ -65,8 +63,6 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "rank",
       "rank_dense",
       "row_number",
-      // Mathematical functions module
-      "math",
     ].map((n) => ({ label: n, type: "function" })),
   )
   .concat(
@@ -83,6 +79,7 @@ const globals: readonly Completion[] = ["false", "null", "true"]
       "window",
     ].map((n) => ({ label: n, type: "keyword" })),
   )
+  .concat(["date", "math", "text"].map((n) => ({ label: n, type: "module" })))
   .concat(["std"].map((n) => ({ label: n, type: "namespace" })));
 
 export const snippets: readonly Completion[] = [

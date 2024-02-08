@@ -1,0 +1,15 @@
+---
+source: prqlc/prql-compiler/tests/integration/queries.rs
+expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
+input_file: prqlc/prql-compiler/tests/integration/queries/group_all.prql
+---
+1,For Those About To Rock We Salute You,9.9
+2,Balls to the Wall,0.99
+3,Restless and Wild,2.97
+4,Let There Be Rock,7.92
+5,Big Ones,14.85
+6,Jagged Little Pill,12.87
+7,Facelift,11.88
+8,Warner 25 Anos,13.86
+9,Plays Metallica By Four Cellos,7.92
+10,Audioslave,13.86

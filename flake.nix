@@ -26,6 +26,7 @@
           cargo-release
           pkg-config
           openssl
+          cargo-llvm-cov
 
           # actions
           go-task
@@ -55,8 +56,9 @@
         ];
 
         bindings = with pkgs; [
-          # compiler bindings
+          # bindings
           python311
+          zlib
           maturin
           ruff
           black
@@ -74,6 +76,12 @@
         };
         devShells.full = pkgs.mkShell {
           buildInputs = essentials ++ web ++ bindings;
+
+          # needed for running wheels produced by Python maturin builds that are not manylinux
+          shellHook = ''
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath bindings}:$LD_LIBRARY_PATH"
+            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
+          '';
         };
       });
 }

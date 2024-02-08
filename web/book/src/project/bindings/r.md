@@ -1,6 +1,6 @@
 # R (prqlr)
 
-R bindings for `prql-compiler`.
+R bindings for `prqlc`.
 
 `prqlr` also includes `knitr` (R Markdown and Quarto) integration, which allows
 us to easily create documents with the PRQL conversion results embedded in.

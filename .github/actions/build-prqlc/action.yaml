@@ -1,6 +1,9 @@
 name: build-prqlc
 description: >
   Build prqlc
+
+  Note that much of this is copy/pasted into build-prqlc-c, so changes here
+  should generally be copied into that file.
 inputs:
   target:
     description: Build target
@@ -31,7 +34,7 @@ runs:
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
           'musl') }}
-        shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
+        shared-key: rust-${{ inputs.target }}
         prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
@@ -65,8 +68,9 @@ runs:
         # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
-          && '--package=prqlc' || '--all-targets' }}
+          --no-default-features --features=${{ inputs.features }} ${{
+          contains(inputs.target, 'musl') && '--package=prqlc' ||
+          '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash

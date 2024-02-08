@@ -16,6 +16,8 @@ pub enum Token {
     Param(String),
 
     Range {
+        /// Whether the left side of the range is bound by the previous token
+        /// (but it's not contained in this token)
         bind_left: bool,
         bind_right: bool,
     },
@@ -37,14 +39,36 @@ pub enum Token {
     DivInt,      // //
     // Pow,         // **
     Annotate, // @
+
+    // Aesthetics only
+    Comment(String),
+    DocComment(String),
+    /// Vec contains comments between the newline and the line wrap
+    // Currently we include the comments with the LineWrap token. This isn't
+    // ideal, but I'm not sure of an easy way of having them be separate.
+    // - The line wrap span technically include the comments — on a newline,
+    //   we need to look ahead to _after_ the comments to see if there's a
+    //   line wrap, and exclude the newline if there is.
+    // - We can only pass one token back
+    //
+    // Alternatives:
+    // - Post-process the stream, removing the newline prior to a line wrap.
+    //   But requires a whole extra pass.
+    // - Change the functionality. But it's very nice to be able to comment
+    //   something out and have line-wraps still work.
+    LineWrap(Vec<Token>),
 }
 
-pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
-    let whitespace = filter(|x: &char| x.is_inline_whitespace())
+/// Lex chars to tokens until the end of the input
+pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
+    lex_token()
         .repeated()
-        .at_least(1)
-        .ignored();
+        .then_ignore(ignored())
+        .then_ignore(end())
+}
 
+/// Lex chars to a single token
+pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     let control_multi = choice((
         just("->").to(Token::ArrowThin),
         just("=>").to(Token::ArrowFat),
@@ -90,15 +114,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
-    // I think declaring this and then cloning will be more performant than
-    // calling the function on each invocation.
-    // https://github.com/zesterer/chumsky/issues/501 would allow us to avoid
-    // this, and let us split up this giant function without sacrificing
-    // performance.
-    let newline = newline();
-
     let token = choice((
-        newline.to(Token::NewLine),
+        line_wrap(),
+        newline().to(Token::NewLine),
         control_multi,
         interpolation,
         param,
@@ -106,47 +124,64 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         literal,
         keyword,
         ident,
+        comment(),
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let comment = just('#')
-        .then(newline.not().repeated())
-        .separated_by(newline.then(whitespace.or_not()))
-        .at_least(1)
-        .ignored();
-
-    let range = (whitespace.or_not())
+    let range = (whitespace().or_not())
         .then_ignore(just(".."))
-        .then(whitespace.or_not())
+        .then(whitespace().or_not())
         .map(|(left, right)| Token::Range {
+            // If there was no whitespace before (after), then we mark the range
+            // as bound on the left (right).
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
-        .map_with_span(|tok, span| (tok, span));
+        .map_with_span(TokenSpan);
 
-    let line_wrap = newline
-        .then(
-            // We can optionally have an empty line, or a line with a comment,
-            // between the initial line and the continued line
-            whitespace
-                .or_not()
-                .then(comment.or_not())
-                .then(newline)
+    choice((range, ignored().ignore_then(token.map_with_span(TokenSpan))))
+}
+
+fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
+    whitespace().repeated().ignored()
+}
+
+fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
+    filter(|x: &char| x.is_inline_whitespace())
+        .repeated()
+        .at_least(1)
+        .ignored()
+}
+
+fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
+    newline()
+        .ignore_then(
+            whitespace()
+                .repeated()
+                .ignore_then(comment())
+                .then_ignore(newline())
                 .repeated(),
         )
-        .then(whitespace.repeated())
-        .then(just('\\'))
-        .ignored();
+        .then_ignore(whitespace().repeated())
+        .then_ignore(just('\\'))
+        .map(Token::LineWrap)
+}
 
-    let ignored = choice((comment, whitespace, line_wrap)).repeated();
-
-    choice((
-        range,
-        ignored.ignore_then(token.map_with_span(|tok, span| (tok, span))),
-    ))
-    .repeated()
-    .then_ignore(ignored)
-    .then_ignore(end())
+fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
+    just('#').ignore_then(choice((
+        just('!').ignore_then(
+            newline()
+                .not()
+                .repeated()
+                .collect::<String>()
+                .map(Token::DocComment),
+        ),
+        newline()
+            .not()
+            .repeated()
+            .collect::<String>()
+            .map(Token::Comment),
+    )))
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -463,16 +498,17 @@ impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Token::NewLine => write!(f, "new line"),
-            Token::Ident(arg0) => {
-                if arg0.is_empty() {
+            Token::Ident(s) => {
+                if s.is_empty() {
+                    // FYI this shows up in errors
                     write!(f, "an identifier")
                 } else {
-                    write!(f, "`{arg0}`")
+                    write!(f, "{s}")
                 }
             }
-            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Token::Literal(arg0) => write!(f, "{}", arg0),
-            Token::Control(arg0) => write!(f, "{arg0}"),
+            Token::Keyword(s) => write!(f, "keyword {s}"),
+            Token::Literal(lit) => write!(f, "{}", lit),
+            Token::Control(c) => write!(f, "{c}"),
 
             Token::ArrowThin => f.write_str("->"),
             Token::ArrowFat => f.write_str("=>"),
@@ -502,133 +538,214 @@ impl std::fmt::Display for Token {
             Token::Interpolation(c, s) => {
                 write!(f, "{c}\"{}\"", s)
             }
+            Token::Comment(s) => {
+                writeln!(f, "#{}", s)
+            }
+            Token::DocComment(s) => {
+                writeln!(f, "#!{}", s)
+            }
+            Token::LineWrap(comments) => {
+                write!(f, "\n\\ ")?;
+                for comment in comments {
+                    write!(f, "{}", comment)?;
+                }
+                Ok(())
+            }
         }
     }
 }
 
-#[test]
-fn test_line_wrap() {
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TokenSpan(pub Token, pub std::ops::Range<usize>);
+
+impl std::fmt::Debug for TokenSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}..{}: {:?}", self.1.start, self.1.end, self.0)
+    }
+}
+
+pub struct TokenVec(pub Vec<TokenSpan>);
+
+impl std::fmt::Debug for TokenVec {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "TokenVec (")?;
+        for token in self.0.iter() {
+            writeln!(f, "  {:?},", token)?;
+        }
+        write!(f, ")")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
     use insta::assert_debug_snapshot;
+    use insta::assert_display_snapshot;
+    use insta::assert_snapshot;
 
-    // (TODO: is there a terser way of writing our lexer output?)
-    assert_debug_snapshot!(lexer().parse(r"5 +
+    #[test]
+    fn line_wrap() {
+        assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
-        ).unwrap(), @r###"
-    [
-        (
-            Literal(
-                Integer(
-                    5,
-                ),
-            ),
-            0..1,
-        ),
-        (
-            Control(
-                '+',
-            ),
-            2..3,
-        ),
-        (
-            Literal(
-                Integer(
-                    3,
-                ),
-            ),
-            10..11,
-        ),
-    ]
-    "###);
+        ).unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..9: LineWrap([]),
+          10..11: Literal(Integer(3)),
+        )
+        "###);
 
-    // Comments get skipped over
-    assert_debug_snapshot!(lexer().parse(r"5 +
+        // Comments are included; no newline after the comments
+        assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
-        ).unwrap(), @r###"
-    [
-        (
-            Literal(
-                Integer(
-                    5,
-                ),
+        ).unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
+          47..48: Literal(Integer(3)),
+        )
+        "###);
+
+        // Check display, for the test coverage (use `assert_eq` because the
+        // line-break doesn't work well with snapshots)
+        assert_eq!(
+            format!(
+                "{}",
+                Token::LineWrap(vec![Token::Comment(" a comment".to_string())])
             ),
-            0..1,
-        ),
-        (
-            Control(
-                '+',
-            ),
-            2..3,
-        ),
-        (
-            Literal(
-                Integer(
-                    3,
-                ),
-            ),
-            47..48,
-        ),
-    ]
+            r#"
+\ # a comment
+"#
+        );
+    }
+
+    #[test]
+    fn numbers() {
+        // Binary notation
+        assert_eq!(
+            literal().parse("0b1111000011110000").unwrap(),
+            Literal::Integer(61680)
+        );
+        assert_eq!(
+            literal().parse("0b_1111000011110000").unwrap(),
+            Literal::Integer(61680)
+        );
+
+        // Hexadecimal notation
+        assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
+        assert_eq!(
+            literal().parse("0x_deadbeef").unwrap(),
+            Literal::Integer(3735928559)
+        );
+
+        // Octal notation
+        assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
+    }
+
+    #[test]
+    fn debug_display() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("5 + 3").unwrap()), @r###"
+    TokenVec (
+      0..1: Literal(Integer(5)),
+      2..3: Control('+'),
+      4..5: Literal(Integer(3)),
+    )
     "###);
-}
+    }
 
-#[test]
-fn numbers() {
-    // Binary notation
-    assert_eq!(
-        literal().parse("0b1111000011110000").unwrap(),
-        Literal::Integer(61680)
-    );
-    assert_eq!(
-        literal().parse("0b_1111000011110000").unwrap(),
-        Literal::Integer(61680)
-    );
+    #[test]
+    fn comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("# comment\n# second line").unwrap()), @r###"
+        TokenVec (
+          0..9: Comment(" comment"),
+          9..10: NewLine,
+          10..23: Comment(" second line"),
+        )
+        "###);
 
-    // Hexadecimal notation
-    assert_eq!(literal().parse("0xff").unwrap(), Literal::Integer(255));
-    assert_eq!(
-        literal().parse("0x_deadbeef").unwrap(),
-        Literal::Integer(3735928559)
-    );
+        assert_display_snapshot!(Token::Comment(" This is a single-line comment".to_string()), @r###"
+        # This is a single-line comment
+        "###);
+    }
 
-    // Octal notation
-    assert_eq!(literal().parse("0o777").unwrap(), Literal::Integer(511));
-}
+    #[test]
+    fn doc_comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("#! docs").unwrap()), @r###"
+        TokenVec (
+          0..7: DocComment(" docs"),
+        )
+        "###);
+    }
 
-#[test]
-fn quotes() {
-    use insta::assert_snapshot;
+    #[test]
+    fn quotes() {
+        // All these are valid & equal.
+        assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
+        assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
 
-    // All these are valid & equal.
-    assert_snapshot!(quoted_string(false).parse(r#"'aoeu'"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''aoeu'''"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''''aoeu'''''"#).unwrap(), @"aoeu");
-    assert_snapshot!(quoted_string(false).parse(r#"'''''''aoeu'''''''"#).unwrap(), @"aoeu");
+        // An even number is interpreted as a closed string (and the remainder is unparsed)
+        assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
 
-    // An even number is interpreted as a closed string (and the remainder is unparsed)
-    assert_snapshot!(quoted_string(false).parse(r#"''aoeu''"#).unwrap(), @"");
+        // When not escaping, we take the inner string between the three quotes
+        assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
 
-    // When not escaping, we take the inner string between the three quotes
-    assert_snapshot!(quoted_string(false).parse(r#""""\"hello\""""#).unwrap(), @r###"\"hello\"###);
+        assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
 
-    assert_snapshot!(quoted_string(true).parse(r#""""\"hello\"""""#).unwrap(), @r###""hello""###);
+        // Escape each inner quote depending on the outer quote
+        assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
+        assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
 
-    // Escape each inner quote depending on the outer quote
-    assert_snapshot!(quoted_string(true).parse(r#""\"hello\"""#).unwrap(), @r###""hello""###);
-    assert_snapshot!(quoted_string(true).parse(r"'\'hello\''").unwrap(), @"'hello'");
+        assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
 
-    assert_snapshot!(quoted_string(true).parse(r#"''"#).unwrap(), @"");
+        // An empty input should fail
+        quoted_string(false).parse(r#""#).unwrap_err();
 
-    // An empty input should fail
-    quoted_string(false).parse(r#""#).unwrap_err();
+        // An even number of quotes is an empty string
+        assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
 
-    // An even number of quotes is an empty string
-    assert_snapshot!(quoted_string(true).parse(r#"''''''"#).unwrap(), @"");
+        // Hex escape
+        assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
 
-    // Hex escape
-    assert_snapshot!(quoted_string(true).parse(r"'\x61\x62\x63'").unwrap(), @"abc");
+        // Unicode escape
+        assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
+    }
 
-    // Unicode escape
-    assert_snapshot!(quoted_string(true).parse(r"'\u{01f422}'").unwrap(), @"🐢");
+    #[test]
+    fn range() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("1..2").unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(1)),
+          1..3: Range { bind_left: true, bind_right: true },
+          3..4: Literal(Integer(2)),
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("..2").unwrap()), @r###"
+        TokenVec (
+          0..2: Range { bind_left: true, bind_right: true },
+          2..3: Literal(Integer(2)),
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("1..").unwrap()), @r###"
+        TokenVec (
+          0..1: Literal(Integer(1)),
+          1..3: Range { bind_left: true, bind_right: true },
+        )
+        "###);
+
+        assert_debug_snapshot!(TokenVec(lexer().parse("in ..5").unwrap()), @r###"
+        TokenVec (
+          0..2: Ident("in"),
+          2..5: Range { bind_left: false, bind_right: true },
+          5..6: Literal(Integer(5)),
+        )
+        "###);
+    }
 }

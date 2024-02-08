@@ -5,7 +5,7 @@ use itertools::Itertools;
 use mdbook::preprocess::Preprocessor;
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::{book::Book, BookItem};
-use prql_compiler::compile;
+use prqlc::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 
@@ -103,7 +103,7 @@ fn replace_examples(text: &str) -> Result<String> {
         };
 
         let prql = text.to_string();
-        let result = compile(&prql, &prql_compiler::Options::default().no_signature());
+        let result = compile(&prql, &prqlc::Options::default().no_signature());
 
         if lang_tags.contains(&LangTag::NoTest) {
             cmark_acc.push(Event::Html(table_of_prql_only(&prql).into()));

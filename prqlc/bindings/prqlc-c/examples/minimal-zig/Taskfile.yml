@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://json.schemastore.org/taskfile.json
+
+version: 3
+
+vars:
+  project_root: "../../../../.."
+
+tasks:
+  run:
+    deps:
+      - task: build
+    cmds:
+      - ./zig-out/bin/minimal-zig
+
+  build-prql:
+    desc: "Build prqlc-c"
+    cmds:
+      - cargo build --package prqlc-c --release
+      - mkdir -p c/
+      - cp {{.project_root}}/prqlc/bindings/prqlc-c/prqlc.h c/
+      - cp {{.project_root}}/target/release/libprqlc_c.* c/
+
+  build:
+    desc: "Build the project"
+    cmds:
+      - zig build
+
+  test:
+    desc: "Run tests"
+    deps:
+      - task: build
+    cmds:
+      - zig build test
+
+  default:
+    desc: "Build, run, test"
+    cmds:
+      - task: build-prql
+      - task: build
+      - task: run
+      - task: test
