@@ -79,7 +79,7 @@ since it relies on `brew`.
   ```
 
   ...and if that doesn't complete successfully, ensure we have Python >= 3.7, to
-  compile `prql-python`.
+  compile `prqlc-python`.
 
 - For more involved contributions, such as building the website, playground,
   book, or some release artifacts, we'll need some additional tools. But we
