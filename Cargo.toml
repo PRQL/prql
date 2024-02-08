@@ -4,7 +4,7 @@ members = [
   "prqlc/bindings/java",
   "prqlc/bindings/js",
   "prqlc/bindings/prqlc-c",
-  "prqlc/bindings/python",
+  "prqlc/bindings/prqlc-python",
   "prqlc/prql-compiler-macros",
   "prqlc/prql-compiler",
   "prqlc/prqlc-ast",

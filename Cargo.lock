@@ -2881,16 +2881,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prql-python"
-version = "0.11.3"
-dependencies = [
- "insta",
- "prqlc",
- "pyo3",
- "pyo3-build-config",
-]
-
-[[package]]
 name = "prqlc"
 version = "0.11.3"
 dependencies = [
@@ -2976,6 +2966,16 @@ dependencies = [
  "prqlc-ast",
  "semver",
  "stacker",
+]
+
+[[package]]
+name = "prqlc-python"
+version = "0.11.3"
+dependencies = [
+ "insta",
+ "prqlc",
+ "pyo3",
+ "pyo3-build-config",
 ]
 
 [[package]]

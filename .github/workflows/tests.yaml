@@ -109,7 +109,7 @@ jobs:
               - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-php.yaml
             python:
-              - prqlc/bindings/python/**
+              - prqlc/bindings/prqlc-python/**
               - .github/workflows/test-python.yaml
             rust:
               - "**/*.rs"

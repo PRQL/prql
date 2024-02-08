@@ -269,11 +269,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prql-python
+      - uses: ./.github/actions/build-prqlc-python
         with:
           target: ${{ matrix.target }}
 
-  publish-prql-python:
+  publish-prqlc-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'

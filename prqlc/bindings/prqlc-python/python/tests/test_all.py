@@ -1,4 +1,4 @@
-import prql_python as prql
+import prqlc
 
 
 def test_all() -> None:
@@ -11,18 +11,18 @@ def test_all() -> None:
 
     prql_query = "from employee"
 
-    res = prql.prql_to_pl(prql_query)
+    res = prqlc.prql_to_pl(prql_query)
     assert res is not None
 
-    res = prql.pl_to_rq(res)
+    res = prqlc.pl_to_rq(res)
     assert res is not None
 
-    res = prql.rq_to_sql(res)
+    res = prqlc.rq_to_sql(res)
     assert res is not None
 
-    assert len(prql.get_targets())
+    assert len(prqlc.get_targets())
 
-    assert prql.__version__ is not None
+    assert prqlc.__version__ is not None
 
     # Example from readme
     prql_query = """
@@ -35,12 +35,12 @@ def test_all() -> None:
         )
     """
 
-    options = prql.CompileOptions(
+    options = prqlc.CompileOptions(
         format=True, signature_comment=True, target="sql.postgres"
     )
 
-    assert prql.compile(prql_query)
-    assert prql.compile(prql_query, options)
+    assert prqlc.compile(prql_query)
+    assert prqlc.compile(prql_query, options)
 
 
 def test_compile_options() -> None:
@@ -49,34 +49,34 @@ def test_compile_options() -> None:
     """
     query_mssql = "prql target:sql.mssql\nfrom a | take 3"
 
-    assert prql.compile(query_mssql).startswith(
+    assert prqlc.compile(query_mssql).startswith(
         "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
     )
 
-    options_with_known_target = prql.CompileOptions(
+    options_with_known_target = prqlc.CompileOptions(
         format=False, signature_comment=False, target="sql.sqlite"
     )
     assert (
-        prql.compile(query_mssql, options_with_known_target)
+        prqlc.compile(query_mssql, options_with_known_target)
         == "SELECT * FROM a LIMIT 3"
     )
 
-    options_without_target = prql.CompileOptions(format=False, signature_comment=False)
+    options_without_target = prqlc.CompileOptions(format=False, signature_comment=False)
     assert (
-        prql.compile(query_mssql, options_without_target)
+        prqlc.compile(query_mssql, options_without_target)
         == "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY"
     )
 
-    options_with_any_target = prql.CompileOptions(
+    options_with_any_target = prqlc.CompileOptions(
         format=False, signature_comment=False, target="sql.any"
     )
     assert (
-        prql.compile(query_mssql, options_with_any_target)
+        prqlc.compile(query_mssql, options_with_any_target)
         == "SELECT * FROM a ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY"
     )
 
-    options_default = prql.CompileOptions()
-    res = prql.compile(query_mssql, options_default)
+    options_default = prqlc.CompileOptions()
+    res = prqlc.compile(query_mssql, options_default)
     assert res.startswith(
         "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
     )

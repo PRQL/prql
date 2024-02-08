@@ -8,7 +8,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-name = "prql-python"
+name = "prqlc"
 requires-python = ">=3.8"
 
 [tool.maturin]
@@ -20,6 +20,9 @@ requires-python = ">=3.8"
 # When https://github.com/PyO3/pyo3/pull/2135 merges, we can remove this config.
 
 features = ["pyo3/extension-module"]
+
+# The module is named `prqlc` rather than `prqlc-python`.
+module-name = "prqlc"
 
 [project.optional-dependencies]
 test = [
