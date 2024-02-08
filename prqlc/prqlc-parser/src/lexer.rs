@@ -37,8 +37,8 @@ pub enum Token {
     Or,          // ||
     Coalesce,    // ??
     DivInt,      // //
-    // Pow,         // **
-    Annotate, // @
+    Pow,         // **
+    Annotate,    // @
 
     // Aesthetics only
     Comment(String),
@@ -81,7 +81,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
         just("||").then_ignore(end_expr()).to(Token::Or),
         just("??").to(Token::Coalesce),
         just("//").to(Token::DivInt),
-        // just("**").to(Token::Pow),
+        just("**").to(Token::Pow),
         just("@").then(digits(1).not().rewind()).to(Token::Annotate),
     ));
 
@@ -521,7 +521,7 @@ impl std::fmt::Display for Token {
             Token::Or => f.write_str("||"),
             Token::Coalesce => f.write_str("??"),
             Token::DivInt => f.write_str("//"),
-            // Token::Pow => f.write_str("**"),
+            Token::Pow => f.write_str("**"),
             Token::Annotate => f.write_str("@{"),
 
             Token::Param(id) => write!(f, "${id}"),
