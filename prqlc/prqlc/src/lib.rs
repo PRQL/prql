@@ -101,6 +101,7 @@ mod utils;
 
 pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
 pub use ir::Span;
+pub use prqlc_ast as ast;
 pub use prqlc_ast::error::{Error, Errors, MessageKind, Reason};
 
 use once_cell::sync::Lazy;
@@ -348,11 +349,15 @@ pub mod json {
 // waiting until it's necessary before splitting it out.)
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct SourceTree<T: Sized + Serialize = String> {
-    /// Mapping from file ids into their contents.
+    /// Path to the root of the source tree.
+    pub root: Option<PathBuf>,
+
+    /// Mapping from file paths into into their contents.
+    /// Paths are relative to the root.
     pub sources: HashMap<PathBuf, T>,
+
     /// Index of source ids to paths. Used to keep [error::Span] lean.
     source_ids: HashMap<u16, PathBuf>,
-    pub root: Option<PathBuf>,
 }
 
 impl<T: Sized + Serialize> SourceTree<T> {
@@ -401,6 +406,10 @@ impl<T: Sized + Serialize> SourceTree<T> {
             source_ids: self.source_ids,
             root: self.root,
         }
+    }
+
+    pub fn get_path(&self, source_id: u16) -> Option<&PathBuf> {
+        self.source_ids.get(&source_id)
     }
 }
 

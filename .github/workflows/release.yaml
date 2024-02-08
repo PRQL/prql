@@ -269,11 +269,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prql-python
+      - uses: ./.github/actions/build-prqlc-python
         with:
           target: ${{ matrix.target }}
 
-  publish-prql-python:
+  publish-prqlc-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'
@@ -294,7 +294,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
 
@@ -321,7 +321,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
       # Currently, we can only check prqlc-ast which is not dependent other local crates with --dry-run.
