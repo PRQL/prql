@@ -1,6 +1,6 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](https://github.com/PRQL/prql/).
+JavaScript bindings for [`prqlc`](https://github.com/PRQL/prql/).
 
 ## Installation
 
