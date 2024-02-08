@@ -18,7 +18,7 @@ doctest = false
 anyhow = {version = "1.0.79", optional = true}
 enum-as-inner = "0.6.0"
 semver = {version = "1.0.21", features = ["serde"]}
-serde = {version = "1.0.196", features = ["derive"]}
+serde = {version = "1.0.193", features = ["derive"]}
 strum = {version = "0.26.1", features = ["std", "derive"]}
 
 [dev-dependencies]
