@@ -1,18 +1,21 @@
 # PRQL Changelog
 
-## 0.11.2 — [unreleased]
+## 0.11.2 — 2023-02-07
 
-**Language**:
+0.11.2 contains lots of internal changes, lots of syntax highlighting, and the
+beginning of `lutra`, a query runner.
+
+This release has 122 commits from 9 contributors. Selected changes:
 
 **Features**:
 
+- Initial implementation of `lutra`, a query runner. (@aljazerzen, #4182, #4174,
+  #4134)
 - `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
 
 **Fixes**:
 
-**Documentation**:
-
-**Web**:
+- Reduce stack memory usage (@aljazerzen, #4103)
 
 **Integrations**:
 
@@ -24,12 +27,20 @@
 
 **Internal changes**:
 
-- _Breaking_ The `prqlc-clib` crate was renamed to `prqlc-c`, and associated
-  artifacts were renamed. We're trying to make names consistent (ideally for the
-  final time!), and have a plan to rename some other bindings. (@max-sixty,
-  #4077)
+- `prql-compiler` has been renamed to `prqlc`, and we've established a more
+  consistent naming scheme. The existing crate will still be published,
+  re-exporting `prqlc`, so no dependencies will break. A future version will add
+  a deprecation warning.
+- The `prqlc-clib` crate was renamed to `prqlc-c`, and associated artifacts were
+  renamed. We're trying to make names consistent (ideally for the final time!),
+  and have a plan to rename some other bindings. (@max-sixty, #4077)
+- Add lots of whitespace items to the lexer, in preparation for the completion
+  of `prqlc fmt` (@max-sixty, #4109, #4105)
+- Table declarations (@aljazerzen, #4126)
 
 **New Contributors**:
+
+- @kaspermarstal, with #4124
 
 ## 0.11.1 — 2023-12-26
 
