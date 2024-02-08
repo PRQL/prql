@@ -469,7 +469,8 @@ Currently we release in a semi-automated way:
 5. Run
    `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
    to bump the versions and add a new Changelog section; then PR the resulting
-   commit.
+   commit. Currently we also require running `task test-rust` to update snapshot
+   tests which contain the version.
 
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.
