@@ -273,7 +273,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
 
-  publish-prql-python:
+  publish-prqlc-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'

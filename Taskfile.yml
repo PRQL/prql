@@ -281,8 +281,8 @@ tasks:
 
     cmds:
       # TODO:
-      # - Add `prql-python` tests.
-      # - We could add `prql-lib` here.
+      # - Add `prqlc-python` tests.
+      # - We could add `prqlc-c` here.
       # - We deliberately don't test some other bindings, such as `prql-php`,
       #   given they require more dependencies and aren't yet supported.
       - task: test-lint
