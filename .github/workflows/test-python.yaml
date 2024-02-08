@@ -42,7 +42,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .nox
-          key: nox-${{ hashFiles('prqlc/bindings/python/pyproject.toml') }}
+          key:
+            nox-${{ hashFiles('prqlc/bindings/prqlc-python/pyproject.toml') }}
       - name: Run tests and typing
         shell: bash
-        run: nox -s tests typing -f prqlc/bindings/python/noxfile.py
+        run: nox -s tests typing -f prqlc/bindings/prqlc-python/noxfile.py

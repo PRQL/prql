@@ -72,7 +72,7 @@ updates:
       interval: "daily"
 
   - package-ecosystem: pip
-    directory: "prqlc/bindings/python"
+    directory: "prqlc/bindings/prqlc-python"
     schedule:
       interval: daily
     commit-message:
