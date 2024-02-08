@@ -256,8 +256,8 @@ columns of a relation in function calls:
 
 All these queries can be simplified to an expression of relations and scalars.
 In PRQL, we call such expressions "Relational Queries" or RQ for short. It is an
-intermediate representation of the prql-compiler and can be translated to SQL
-and executed on basically any relational database.
+intermediate representation of prqlc and can be translated to SQL and executed
+on basically any relational database.
 
 This is the gist of how to express SQL queries with a functional language. At
 this stage a curious reader might ask "can PRQL express any SQL query?" to which
