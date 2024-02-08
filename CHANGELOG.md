@@ -28,7 +28,9 @@ This release has 122 commits from 9 contributors. Selected changes:
 **Internal changes**:
 
 - `prql-compiler` has been renamed to `prqlc`, and we've established a more
-  consistent naming scheme.
+  consistent naming scheme. The existing crate will still be published,
+  re-exporting `prqlc`, so no dependencies will break. A future version will add
+  a deprecation warning.
 - The `prqlc-clib` crate was renamed to `prqlc-c`, and associated artifacts were
   renamed. We're trying to make names consistent (ideally for the final time!),
   and have a plan to rename some other bindings. (@max-sixty, #4077)
@@ -37,6 +39,8 @@ This release has 122 commits from 9 contributors. Selected changes:
 - Table declarations (@aljazerzen, #4126)
 
 **New Contributors**:
+
+- @kaspermarstal, with #4124
 
 ## 0.11.1 — 2023-12-26
 
