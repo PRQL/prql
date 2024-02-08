@@ -38,7 +38,7 @@ runs:
           --release -o target/python --target universal2-apple-darwin -m
           prqlc/bindings/prqlc-python/Cargo.toml
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: target/python
