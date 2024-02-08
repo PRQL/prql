@@ -9,7 +9,7 @@ This release has 122 commits from 9 contributors. Selected changes:
 
 **Features**:
 
-- Initial implementation of `lutra`, a query runner. (@aljazerzen, #4182, $4174,
+- Initial implementation of `lutra`, a query runner. (@aljazerzen, #4182, #4174,
   #4134)
 - `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
 
