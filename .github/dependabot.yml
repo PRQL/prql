@@ -50,7 +50,7 @@ updates:
     commit-message:
       prefix: "chore: "
 
-  - directory: ".github/actions/build-prql-python"
+  - directory: ".github/actions/build-prqlc-python"
     commit-message:
       prefix: "chore: "
     package-ecosystem: "github-actions"

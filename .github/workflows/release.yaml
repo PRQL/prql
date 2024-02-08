@@ -269,7 +269,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prql-python
+      - uses: ./.github/actions/build-prqlc-python
         with:
           target: ${{ matrix.target }}
 
