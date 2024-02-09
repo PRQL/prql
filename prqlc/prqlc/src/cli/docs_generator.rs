@@ -195,6 +195,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         let var_def = stmt.kind.as_var_def().unwrap();
         docs.push_str(&format!("* [#{}]({})\n", var_def.name, var_def.name));
     }
+    docs.push_str("\n");
 
     if stmts
         .clone()
@@ -261,6 +262,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         //if let Some(docComment) = vardef.DocComment {
         //    docs.push_str(&format!("{docComment}\n"));
         //}
+        docs.push_str("\n");
 
         if let Some(expr) = &var_def.value {
             match &expr.kind {
@@ -269,6 +271,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                     for param in &func.params {
                         docs.push_str(&format!("* *{}*\n", param.name));
                     }
+                    docs.push_str("\n");
 
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("#### Returns\n");
@@ -301,4 +304,55 @@ Generated with [prqlc](https://prql-lang.org/) {}.
     }
 
     markdown.replacen("{{ content }}", &docs, 1)
+}
+
+#[cfg(test)]
+mod tests {
+    use insta_cmd::assert_cmd_snapshot;
+    use insta_cmd::get_cargo_bin;
+    use std::process::Command;
+
+    #[test]
+    fn preprocess() {
+        assert_cmd_snapshot!(prqlc_command().args(["doc"]).pass_stdin("let x = arg1 arg2 -> c"), @r###"
+        success: true
+        exit_code: 0
+        ----- stdout -----
+        # Documentation
+
+        ## Functions
+        * [#x](x)
+        
+        ### x
+
+        #### Parameters
+        * *arg1*
+        * *arg2*
+
+
+
+        Generated with [prqlc](https://prql-lang.org/) 0.11.2.
+
+        ----- stderr -----
+        "###);
+    }
+
+    fn prqlc_command() -> Command {
+        let mut cmd = Command::new(get_cargo_bin("prqlc"));
+        normalize_prqlc(&mut cmd);
+        cmd
+    }
+
+    fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
+        cmd
+            // We set `CLICOLOR_FORCE` in CI to force color output, but we don't want `prqlc` to
+            // output color for our snapshot tests. And it seems to override the
+            // `--color=never` flag.
+            .env_remove("CLICOLOR_FORCE")
+            .env("NO_COLOR", "1")
+            .args(["--color=never"])
+            // We don't want the tests to be affected by the user's `RUST_BACKTRACE` setting.
+            .env_remove("RUST_BACKTRACE")
+            .env_remove("RUST_LOG")
+    }
 }
