@@ -195,7 +195,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         let var_def = stmt.kind.as_var_def().unwrap();
         docs.push_str(&format!("* [#{}]({})\n", var_def.name, var_def.name));
     }
-    docs.push_str('\n');
+    docs.push('\n');
 
     if stmts
         .clone()
@@ -262,7 +262,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         //if let Some(docComment) = vardef.DocComment {
         //    docs.push_str(&format!("{docComment}\n"));
         //}
-        docs.push_str('\n');
+        docs.push('\n');
 
         if let Some(expr) = &var_def.value {
             match &expr.kind {
@@ -271,7 +271,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                     for param in &func.params {
                         docs.push_str(&format!("* *{}*\n", param.name));
                     }
-                    docs.push_str('\n');
+                    docs.push('\n');
 
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("#### Returns\n");
