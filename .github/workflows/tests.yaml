@@ -527,10 +527,12 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-minimal-versions
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          prefix-key: ${{ env.version }}
       - name: Verify minimum rust version
         run: cargo minimal-versions test --direct
 
