@@ -474,9 +474,7 @@ impl Command {
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args,
-            | Experimental(
-                ExperimentalCommand::GenerateDocs(io_args)
-            ) => io_args,
+            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -519,9 +517,7 @@ impl Command {
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args.output.clone(),
-            | Experimental(
-                ExperimentalCommand::GenerateDocs(io_args)
-            ) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)
