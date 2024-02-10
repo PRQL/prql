@@ -193,7 +193,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
         .filter(|stmt| matches!(stmt.kind, StmtKind::VarDef(_)))
     {
         let var_def = stmt.kind.as_var_def().unwrap();
-        docs.push_str(&format!("* [#{}]({})\n", var_def.name, var_def.name));
+        docs.push_str(&format!("* [{}](#{})\n", var_def.name, var_def.name));
     }
     docs.push('\n');
 
@@ -227,6 +227,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                 docs.push_str(&format!("* {}\n", type_def.name));
             }
         }
+        docs.push('\n');
     }
 
     if stmts
@@ -245,6 +246,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
             let module_def = stmt.kind.as_module_def().unwrap();
             docs.push_str(&format!("* {}\n", module_def.name));
         }
+        docs.push('\n');
     }
 
     for stmt in stmts
@@ -294,6 +296,7 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                             _ => docs.push_str("Not implemented\n"),
                         }
                     }
+                    docs.push('\n');
                 }
                 ExprKind::Pipeline(_) => {
                     docs.push_str("There is a pipeline.\n");
@@ -314,21 +317,89 @@ mod tests {
 
     #[test]
     fn generate_markdown_docs() {
-        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin("let x = arg1 arg2 -> c"), @r###"
+        let input = r"
+        let x = arg1 arg2 -> c
+        let fn_returns_array = -> <array> array
+        let fn_returns_bool = -> <bool> true
+        let fn_returns_float = -> <float> float
+        let fn_returns_int = -> <int> 0
+        let fn_returns_null = -> <null> null
+        let fn_returns_text = -> <text> 'text'
+
+        module foo {}
+
+        type user_id = int
+        ";
+
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin(input), @r###"
         success: true
         exit_code: 0
         ----- stdout -----
         # Documentation
 
         ## Functions
-        * [#x](x)
-        
+        * [x](#x)
+        * [fn_returns_array](#fn_returns_array)
+        * [fn_returns_bool](#fn_returns_bool)
+        * [fn_returns_float](#fn_returns_float)
+        * [fn_returns_int](#fn_returns_int)
+        * [fn_returns_null](#fn_returns_null)
+        * [fn_returns_text](#fn_returns_text)
+
+        ## Types
+        * `user_id` – Primitive(Int)
+
+        ## Modules
+        * foo
+
         ### x
 
         #### Parameters
         * *arg1*
         * *arg2*
 
+
+        ### fn_returns_array
+        
+        #### Parameters
+        
+        #### Returns
+        `array`
+
+        ### fn_returns_bool
+        
+        #### Parameters
+        
+        #### Returns
+        `bool`
+
+        ### fn_returns_float
+        
+        #### Parameters
+        
+        #### Returns
+        `float`
+
+        ### fn_returns_int
+        
+        #### Parameters
+        
+        #### Returns
+        `int`
+
+        ### fn_returns_null
+        
+        #### Parameters
+        
+        #### Returns
+        `null`
+
+        ### fn_returns_text
+        
+        #### Parameters
+        
+        #### Returns
+        `text`
 
 
         Generated with [prqlc](https://prql-lang.org/) 0.11.3.
