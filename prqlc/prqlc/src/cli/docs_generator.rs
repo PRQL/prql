@@ -402,6 +402,7 @@ mod tests {
         `text`
 
 
+
         Generated with [prqlc](https://prql-lang.org/) 0.11.3.
 
         ----- stderr -----
