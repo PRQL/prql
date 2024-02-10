@@ -7,10 +7,10 @@ info:
     - shell-completion
     - zsh
   env:
-    NO_COLOR: "1"
-    CLICOLOR_FORCE: ""
-    RUST_LOG: ""
     RUST_BACKTRACE: ""
+    RUST_LOG: ""
+    CLICOLOR_FORCE: ""
+    NO_COLOR: "1"
 ---
 success: true
 exit_code: 0
@@ -181,7 +181,22 @@ esac
     ;;
 esac
 ;;
-(doc)
+(experimental)
+_arguments "${_arguments_options[@]}" \
+'--color=[Controls when to use color]:WHEN:(auto always never)' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_prqlc__experimental_commands" \
+"*::: :->experimental" \
+&& ret=0
+
+    case $state in
+    (experimental)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:prqlc-experimental-command-$line[1]:"
+        case $line[1] in
+            (doc)
 _arguments "${_arguments_options[@]}" \
 '--color=[Controls when to use color]:WHEN:(auto always never)' \
 '-h[Print help]' \
@@ -190,6 +205,34 @@ _arguments "${_arguments_options[@]}" \
 '::output:_files' \
 '::main_path -- Identifier of the main pipeline:' \
 && ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+":: :_prqlc__experimental__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:prqlc-experimental-help-command-$line[1]:"
+        case $line[1] in
+            (doc)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
 ;;
 (resolve)
 _arguments "${_arguments_options[@]}" \
@@ -322,9 +365,25 @@ _arguments "${_arguments_options[@]}" \
     ;;
 esac
 ;;
-(doc)
+(experimental)
+_arguments "${_arguments_options[@]}" \
+":: :_prqlc__help__experimental_commands" \
+"*::: :->experimental" \
+&& ret=0
+
+    case $state in
+    (experimental)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:prqlc-help-experimental-command-$line[1]:"
+        case $line[1] in
+            (doc)
 _arguments "${_arguments_options[@]}" \
 && ret=0
+;;
+        esac
+    ;;
+esac
 ;;
 (resolve)
 _arguments "${_arguments_options[@]}" \
@@ -374,7 +433,7 @@ _prqlc_commands() {
 'fmt:Parse & generate PRQL code back' \
 'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
-'doc:Generate Markdown documentation' \
+'experimental:Experimental commands are prone to change' \
 'resolve:Parse, resolve & lower into RQ' \
 'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
 'sql:anchor:Parse, resolve, lower into RQ & preprocess & anchor SRQ' \
@@ -459,15 +518,20 @@ _prqlc__help__debug_commands() {
     )
     _describe -t commands 'prqlc help debug commands' commands "$@"
 }
-(( $+functions[_prqlc__doc_commands] )) ||
-_prqlc__doc_commands() {
+(( $+functions[_prqlc__experimental__doc_commands] )) ||
+_prqlc__experimental__doc_commands() {
     local commands; commands=()
-    _describe -t commands 'prqlc doc commands' commands "$@"
+    _describe -t commands 'prqlc experimental doc commands' commands "$@"
 }
-(( $+functions[_prqlc__help__doc_commands] )) ||
-_prqlc__help__doc_commands() {
+(( $+functions[_prqlc__experimental__help__doc_commands] )) ||
+_prqlc__experimental__help__doc_commands() {
     local commands; commands=()
-    _describe -t commands 'prqlc help doc commands' commands "$@"
+    _describe -t commands 'prqlc experimental help doc commands' commands "$@"
+}
+(( $+functions[_prqlc__help__experimental__doc_commands] )) ||
+_prqlc__help__experimental__doc_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc help experimental doc commands' commands "$@"
 }
 (( $+functions[_prqlc__debug__eval_commands] )) ||
 _prqlc__debug__eval_commands() {
@@ -499,6 +563,21 @@ _prqlc__help__debug__expand-pl_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc help debug expand-pl commands' commands "$@"
 }
+(( $+functions[_prqlc__experimental_commands] )) ||
+_prqlc__experimental_commands() {
+    local commands; commands=(
+'doc:Generate Markdown documentation' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'prqlc experimental commands' commands "$@"
+}
+(( $+functions[_prqlc__help__experimental_commands] )) ||
+_prqlc__help__experimental_commands() {
+    local commands; commands=(
+'doc:Generate Markdown documentation' \
+    )
+    _describe -t commands 'prqlc help experimental commands' commands "$@"
+}
 (( $+functions[_prqlc__fmt_commands] )) ||
 _prqlc__fmt_commands() {
     local commands; commands=()
@@ -526,6 +605,19 @@ _prqlc__debug__help__help_commands() {
     local commands; commands=()
     _describe -t commands 'prqlc debug help help commands' commands "$@"
 }
+(( $+functions[_prqlc__experimental__help_commands] )) ||
+_prqlc__experimental__help_commands() {
+    local commands; commands=(
+'doc:Generate Markdown documentation' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'prqlc experimental help commands' commands "$@"
+}
+(( $+functions[_prqlc__experimental__help__help_commands] )) ||
+_prqlc__experimental__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'prqlc experimental help help commands' commands "$@"
+}
 (( $+functions[_prqlc__help_commands] )) ||
 _prqlc__help_commands() {
     local commands; commands=(
@@ -533,7 +625,7 @@ _prqlc__help_commands() {
 'fmt:Parse & generate PRQL code back' \
 'collect:Parse the whole project and collect it into a single PRQL source file' \
 'debug:Commands for meant for debugging, prone to change' \
-'doc:Generate Markdown documentation' \
+'experimental:Experimental commands are prone to change' \
 'resolve:Parse, resolve & lower into RQ' \
 'sql:preprocess:Parse, resolve, lower into RQ & preprocess SRQ' \
 'sql:anchor:Parse, resolve, lower into RQ & preprocess & anchor SRQ' \
