@@ -1,5 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 
+mod docs_generator;
 mod jinja;
 mod watch;
 
@@ -93,6 +94,9 @@ enum Command {
     #[command(subcommand)]
     Debug(DebugCommand),
 
+    #[command(subcommand)]
+    Experimental(ExperimentalCommand),
+
     /// Parse, resolve & lower into RQ
     Resolve {
         #[command(flatten)]
@@ -173,6 +177,14 @@ pub enum DebugCommand {
 
     /// Print info about the AST data structure
     Ast,
+}
+
+/// Experimental commands are prone to change
+#[derive(Subcommand, Debug, Clone)]
+pub enum ExperimentalCommand {
+    /// Generate Markdown documentation
+    #[command(name = "doc")]
+    GenerateDocs(IoArgs),
 }
 
 #[derive(clap::Args, Default, Debug, Clone)]
@@ -373,6 +385,12 @@ impl Command {
 
                 res.into_bytes()
             }
+            Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
+                let stmts = prql_to_pl_tree(sources)?;
+
+                let stmts = stmts.sources.values().next().unwrap().to_vec();
+                docs_generator::generate_markdown_docs(stmts).into_bytes()
+            }
             Command::Resolve { format, .. } => {
                 semantic::load_std_lib(sources);
 
@@ -440,7 +458,9 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{
+            Collect, Debug, Experimental, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+        };
         let io_args = match self {
             Parse { io_args, .. }
             | Collect(io_args)
@@ -454,6 +474,7 @@ impl Command {
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args,
+            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -480,7 +501,9 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{
+            Collect, Debug, Experimental, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+        };
         let mut output = match self {
             Parse { io_args, .. }
             | Collect(io_args)
@@ -494,6 +517,7 @@ impl Command {
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)

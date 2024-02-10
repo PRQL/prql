@@ -20,6 +20,7 @@ fn help() {
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
+      experimental      Experimental commands are prone to change
       resolve           Parse, resolve & lower into RQ
       sql:preprocess    Parse, resolve, lower into RQ & preprocess SRQ
       sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor SRQ
