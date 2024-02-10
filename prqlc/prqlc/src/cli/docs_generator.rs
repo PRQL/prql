@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn generate_markdown_docs() {
-        assert_cmd_snapshot!(prqlc_command().args(["doc"]).pass_stdin("let x = arg1 arg2 -> c"), @r###"
+        assert_cmd_snapshot!(prqlc_command().args(["experimental", "doc"]).pass_stdin("let x = arg1 arg2 -> c"), @r###"
         success: true
         exit_code: 0
         ----- stdout -----
