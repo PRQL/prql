@@ -166,7 +166,7 @@ tools.
 ## Library
 
 For more usage examples and the library documentation, check out the
-[`prqlc` documentation](https://docs.rs/prql-compiler/).
+[`prqlc` documentation](https://docs.rs/prqlc/).
 
 ### Library installation
 

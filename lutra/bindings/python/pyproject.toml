@@ -3,12 +3,10 @@ build-backend = "maturin"
 requires = ["maturin>=1.0,<2.0"]
 
 [project]
-classifiers = [
-  "Programming Language :: Rust",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
+dependencies = [
+  "pyarrow ~= 15.0.0",
 ]
-name = "prql-python"
+name = "lutra"
 requires-python = ">=3.8"
 
 [tool.maturin]
@@ -20,6 +18,9 @@ requires-python = ">=3.8"
 # When https://github.com/PyO3/pyo3/pull/2135 merges, we can remove this config.
 
 features = ["pyo3/extension-module"]
+
+# The module is named `lutra` rather than `lutra-python`.
+module-name = "lutra"
 
 [project.optional-dependencies]
 test = [

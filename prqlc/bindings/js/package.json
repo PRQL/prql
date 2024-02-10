@@ -1,9 +1,9 @@
 {
   "browser": "dist/web/prql_js.js",
-  "description": "JavaScript bindings for prql-compiler",
+  "description": "JavaScript bindings for prqlc",
   "devDependencies": {
     "chai": "^5.0.0",
-    "mocha": "^10.0.0",
+    "mocha": "^10.3.0",
     "cross-env": "^7.0.3"
   },
   "files": [
@@ -35,5 +35,5 @@
     "test": "mocha tests"
   },
   "types": "dist/node/prql_js.d.ts",
-  "version": "0.11.2"
+  "version": "0.11.3"
 }

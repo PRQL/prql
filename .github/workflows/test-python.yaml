@@ -22,7 +22,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: Build wheel
-        uses: ./.github/actions/build-prql-python
+        uses: ./.github/actions/build-prqlc-python
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
       - uses: actions/download-artifact@v3
@@ -42,7 +42,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .nox
-          key: nox-${{ hashFiles('prqlc/bindings/python/pyproject.toml') }}
+          key:
+            nox-${{ hashFiles('prqlc/bindings/prqlc-python/pyproject.toml') }}
       - name: Run tests and typing
         shell: bash
-        run: nox -s tests typing -f prqlc/bindings/python/noxfile.py
+        run: nox -s tests typing -f prqlc/bindings/prqlc-python/noxfile.py

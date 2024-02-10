@@ -6,5 +6,25 @@
       "_comment_3": "So this excludes anything that's not a relative link to a file in our repo or a link to our file on the web.",
       "pattern": "^(?!https://github\\.com/(PRQL|prql)|https://prql-lang\\.org|https://raw\\.githubusercontent\\.com/(PRQL|prql)|[./]+|file://).*$"
     }
-  ]
+  ],
+  "httpHeaders": [
+    {
+      "headers": {
+        "Accept": "text/html"
+      },
+      "urls": ["https://crates.io"]
+    },
+    {
+      "_comment": "https://github.com/tcort/markdown-link-check/issues/109#issuecomment-1212575985",
+      "urls": [""],
+      "headers": {
+        "Accept-Encoding": "zstd;q=1, br;q=0.9, gzip;q=0.8, deflate;q=0.7, compress;q=0.6, *;q=0.1, identity;q=0"
+      }
+    }
+  ],
+  "_comment": "These four attempt to reduce CI failures; but low confidence on whether they're optimal",
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 5,
+  "fallbackRetryDelay": "30s"
 }

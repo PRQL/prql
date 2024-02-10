@@ -1,0 +1,38 @@
+[package]
+build = "build.rs"
+name = "prqlc-python"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+doc = false
+doctest = false
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+pyo3 = {version = "0.20.2", features = ["abi3-py37"]}
+
+[dependencies]
+# Renamed to avoid conflicts in lib.rs
+prqlc_lib = {package = "prqlc", path = "../../prqlc", default-features = false}
+
+[dev-dependencies]
+insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
+
+[build-dependencies]
+pyo3-build-config = "0.20.2"
+
+[package.metadata.release]
+tag-name = "{{version}}"
+tag-prefix = ""
+
+# We want the package to be named `prqlc`, but the crate is named `prqlc-python`
+# to avoid a conflict with other cargo artifacts. This option renames the
+# package to `prqlc`.
+[package.metadata.maturin]
+name = "prqlc"

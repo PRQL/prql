@@ -698,6 +698,7 @@ sort full
         .unwrap();
 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        root: null
         sources:
           '':
           - VarDef:
@@ -723,7 +724,6 @@ sort full
             span: 1:0-17
         source_ids:
           1: ''
-        root: null
         "###);
     }
     #[test]

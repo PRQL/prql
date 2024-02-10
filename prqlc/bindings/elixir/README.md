@@ -27,7 +27,7 @@ end
 
 We are in the early stages of developing Elixir bindings.
 
-We're using `Rustler` to provide Rust bindings for `prql-compiler`.
+We're using `Rustler` to provide Rust bindings for `prqlc`.
 
 Currently using the bindings in an Elixir project requires compiling the Rust
 crate from this repo:

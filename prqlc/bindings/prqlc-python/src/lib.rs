@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prql_compiler::{self, Target};
+use prqlc_lib::{self, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -11,9 +11,9 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
     options
         .and_then(|opts| {
             Ok(prql_query)
-                .and_then(prql_compiler::prql_to_pl)
-                .and_then(prql_compiler::pl_to_rq)
-                .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
+                .and_then(prqlc_lib::prql_to_pl)
+                .and_then(prqlc_lib::pl_to_rq)
+                .and_then(|rq| prqlc_lib::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
         .map_err(|e| e.composed(&prql_query.into()))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
@@ -22,26 +22,26 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
 #[pyfunction]
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     Ok(prql_query)
-        .and_then(prql_compiler::prql_to_pl)
-        .and_then(prql_compiler::json::from_pl)
+        .and_then(prqlc_lib::prql_to_pl)
+        .and_then(prqlc_lib::json::from_pl)
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
 pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     Ok(pl_json)
-        .and_then(prql_compiler::json::to_pl)
-        .and_then(prql_compiler::pl_to_rq)
-        .and_then(prql_compiler::json::from_rq)
+        .and_then(prqlc_lib::json::to_pl)
+        .and_then(prqlc_lib::pl_to_rq)
+        .and_then(prqlc_lib::json::from_rq)
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
 pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<String> {
     Ok(rq_json)
-        .and_then(prql_compiler::json::to_rq)
+        .and_then(prqlc_lib::json::to_rq)
         .and_then(|x| {
-            prql_compiler::rq_to_sql(
+            prqlc_lib::rq_to_sql(
                 x,
                 &options
                     .map(convert_options)
@@ -53,7 +53,7 @@ pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<Str
 }
 
 #[pymodule]
-fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
+fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
@@ -101,12 +101,10 @@ impl CompileOptions {
     }
 }
 
-fn convert_options(
-    o: CompileOptions,
-) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
-    let target = Target::from_str(&o.target).map_err(|e| prql_compiler::downcast(e.into()))?;
+fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
+    let target = Target::from_str(&o.target).map_err(|e| prqlc_lib::downcast(e.into()))?;
 
-    Ok(prql_compiler::Options {
+    Ok(prqlc_lib::Options {
         format: o.format,
         target,
         signature_comment: o.signature_comment,

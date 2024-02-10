@@ -21,6 +21,9 @@ includes:
   zig:
     taskfile: ./prqlc/bindings/prqlc-c/examples/minimal-zig
     dir: ./prqlc/bindings/prqlc-c/examples/minimal-zig
+  lutra:
+    taskfile: ./lutra
+    dir: ./lutra
 
 vars:
   # Keep in sync with .vscode/extensions.json
@@ -278,8 +281,8 @@ tasks:
 
     cmds:
       # TODO:
-      # - Add `prql-python` tests.
-      # - We could add `prql-lib` here.
+      # - Add `prqlc-python` tests.
+      # - We could add `prqlc-c` here.
       # - We deliberately don't test some other bindings, such as `prql-php`,
       #   given they require more dependencies and aren't yet supported.
       - task: test-lint
