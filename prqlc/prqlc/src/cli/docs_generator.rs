@@ -360,44 +360,44 @@ mod tests {
 
 
         ### fn_returns_array
-        
+
         #### Parameters
-        
+
         #### Returns
         `array`
 
         ### fn_returns_bool
-        
+
         #### Parameters
-        
+
         #### Returns
         `bool`
 
         ### fn_returns_float
-        
+
         #### Parameters
-        
+
         #### Returns
         `float`
 
         ### fn_returns_int
-        
+
         #### Parameters
-        
+
         #### Returns
         `int`
 
         ### fn_returns_null
-        
+
         #### Parameters
-        
+
         #### Returns
         `null`
 
         ### fn_returns_text
-        
+
         #### Parameters
-        
+
         #### Returns
         `text`
 
