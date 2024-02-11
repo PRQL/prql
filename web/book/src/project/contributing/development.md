@@ -441,10 +441,10 @@ Currently we release in a semi-automated way:
    produce a draft version at <https://github.com/PRQL/prql/releases/new>,
    including "New Contributors".
 
-   Use this script to generate the first line:
+   Use this script to generate a line introducing the enumerated changes:
 
    ```sh
-   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
+   echo "It has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
 2. If the current version is correct, then skip ahead. But if the version needs
