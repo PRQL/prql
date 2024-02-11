@@ -13,7 +13,7 @@ doctest = false
 
 [dependencies]
 itertools = "0.12.0"
-prqlc-ast = {path = "../prqlc-ast", version = "0.11.3" }
+prqlc-ast = {path = "../prqlc-ast", version = "0.11.4" }
 semver = {version = "1.0.21"}
 
 # Chumsky's default features have issues when running in wasm (though we only
