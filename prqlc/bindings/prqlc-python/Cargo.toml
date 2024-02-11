@@ -1,5 +1,6 @@
 [package]
 build = "build.rs"
+description = "Python bindings for prqlc"
 name = "prqlc-python"
 publish = false
 
