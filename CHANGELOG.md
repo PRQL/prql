@@ -22,7 +22,7 @@
 
 0.11.3 is a very small release, mostly a rename of the python bindings.
 
-This release has 13 commits from 4 contributors. Selected changes:
+The release has 13 commits from 4 contributors.
 
 **Internal changes**:
 
