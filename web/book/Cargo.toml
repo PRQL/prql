@@ -9,8 +9,8 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
-doctest = false
 doc = false
+doctest = false
 
 [[bin]]
 name = "mdbook-prql"
@@ -18,8 +18,8 @@ test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 ansi-to-html = "0.2.1"
-anyhow = "1.0.79"
-itertools = "0.12.0"
+anyhow = {workspace = true}
+itertools = {workspace = true}
 mdbook = {version = "0.4.36", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
@@ -31,8 +31,8 @@ strum_macros = "0.26.1"
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.6.11"}
 globset = "0.4.14"
-insta = {version = "1.34", features = ["colors", "glob"]}
-log = "0.4.20"
+insta = {workspace = true}
+log = {workspace = true}
 regex = "1.10.3"
 serde_json = "1.0.113"
 serde_yaml = "0.9.31"

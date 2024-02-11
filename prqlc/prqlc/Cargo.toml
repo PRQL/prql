@@ -32,8 +32,8 @@ test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
 test-dbs-external = ["duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
-prqlc-ast = {path = "../prqlc-ast", version = "0.11.3" }
-prqlc-parser = {path = "../prqlc-parser", version = "0.11.3" }
+prqlc-ast = {path = "../prqlc-ast", version = "0.11.3"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.11.3"}
 
 anstream = {version = "0.6.11", features = ["auto"]}
 anyhow = {version = "1.0.79", features = ["backtrace"]}
@@ -41,8 +41,8 @@ ariadne = "0.4.0"
 chrono = "0.4.33"
 csv = "1.3.0"
 enum-as-inner = "0.6.0"
-itertools = "0.12.0"
-log = "0.4.20"
+itertools = {workspace = true}
+log = {workspace = true}
 once_cell = "1.19.0"
 regex = "1.10.3"
 semver = {version = "1.0.21", features = ["serde"]}
@@ -91,8 +91,8 @@ tokio-util = {version = "0.7", optional = true, features = ["compat"]}
 
 [dev-dependencies]
 cfg-if = "1.0"
-insta = {version = "1.34", features = ["colors", "yaml"]}
-insta-cmd = {version = "0.4.0"}
+insta = {workspace = true}
+insta-cmd = {workspace = true}
 rstest = "0.18.2"
 similar = {version = "2.4.0"}
 similar-asserts = "1.5.0"
