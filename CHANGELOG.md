@@ -12,6 +12,18 @@ This release has 13 commits from 4 contributors. Selected changes:
   `prql-python` becomes a package published and importable as `prqlc`. The
   internal rust crate is named `prqlc-python`.
 
+## 0.11.3 — 2023-02-10
+
+0.11.3 is a very small release, mostly a rename of the python bindings.
+
+The release has 13 commits from 4 contributors.
+
+**Internal changes**:
+
+- As part of making our names more consistent, the python bindings are renamed.
+  `prql-python` becomes a package published and importable as `prqlc`. The
+  internal rust crate is named `prqlc-python`.
+
 ## 0.11.2 — 2023-02-07
 
 0.11.2 contains lots of internal changes, lots of syntax highlighting, and the

@@ -32,8 +32,8 @@ test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
 test-dbs-external = ["duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
-prqlc-ast = {path = "../prqlc-ast", version = "0.11.3"}
-prqlc-parser = {path = "../prqlc-parser", version = "0.11.3"}
+prqlc-ast = {path = "../prqlc-ast", version = "0.11.4"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.11.4"}
 
 anstream = {version = "0.6.11", features = ["auto"]}
 anyhow = {version = "1.0.79", features = ["backtrace"]}
