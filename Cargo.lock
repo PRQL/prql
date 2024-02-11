@@ -829,7 +829,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "prqlc",
 ]
@@ -2079,7 +2079,7 @@ dependencies = [
 
 [[package]]
 name = "lutra"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "anyhow",
  "arrow",
@@ -2096,7 +2096,7 @@ dependencies = [
 
 [[package]]
 name = "lutra-python"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "arrow",
  "itertools 0.12.1",
@@ -2157,7 +2157,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "ansi-to-html",
  "anstream",
@@ -2841,7 +2841,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "prqlc",
  "rustler",
@@ -2849,14 +2849,14 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "prqlc",
 ]
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "prqlc",
  "syn 2.0.48",
@@ -2864,7 +2864,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "jni",
  "prqlc",
@@ -2872,7 +2872,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "console_error_panic_hook",
  "prqlc",
@@ -2882,7 +2882,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "anstream",
  "anyhow",
@@ -2936,7 +2936,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-ast"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "anyhow",
  "enum-as-inner",
@@ -2949,7 +2949,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-c"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "libc",
  "prqlc",
@@ -2958,7 +2958,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-parser"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "chumsky",
  "insta",
@@ -2970,7 +2970,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc-python"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "insta",
  "prqlc",
