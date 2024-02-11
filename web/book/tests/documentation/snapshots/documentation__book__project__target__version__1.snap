@@ -4,7 +4,7 @@ expression: "[{version = prql.version}]\n"
 ---
 WITH table_0 AS (
   SELECT
-    '0.11.3' AS version
+    '0.11.4' AS version
 )
 SELECT
   version
