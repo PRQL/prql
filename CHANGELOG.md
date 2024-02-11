@@ -1,22 +1,16 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.11.3 — 2023-02-10
 
-**Language**:
+0.11.3 is a very small release, mostly a rename of the python bindings.
 
-**Features**:
-
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
+This release has 13 commits from 4 contributors. Selected changes:
 
 **Internal changes**:
 
-**New Contributors**:
+- As part of making our names more consistent, the python bindings are renamed.
+  `prql-python` becomes a package published and importable as `prqlc`. The
+  internal rust crate is named `prqlc-python`.
 
 ## 0.11.3 — 2023-02-10
 
