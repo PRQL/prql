@@ -273,7 +273,7 @@ impl Lowerer {
 
                 // pull columns from the table decl
                 let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.get(0).unwrap();
+                let input = frame.inputs.first().unwrap();
 
                 let table_decl = self.root_mod.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
@@ -307,7 +307,7 @@ impl Lowerer {
 
                 // pull columns from the table decl
                 let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.get(0).unwrap();
+                let input = frame.inputs.first().unwrap();
 
                 let table_decl = self.root_mod.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
