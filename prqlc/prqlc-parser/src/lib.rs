@@ -1,4 +1,5 @@
 mod expr;
+mod file_tree;
 mod interpolation;
 mod lexer;
 mod span;
@@ -6,7 +7,6 @@ mod stmt;
 #[cfg(test)]
 mod test;
 mod types;
-mod file_tree;
 
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};

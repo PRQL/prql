@@ -339,20 +339,20 @@ pub mod json {
 // (i.e. `Option<PathBuf>` below signifies whether it's a project or not). But
 // waiting until it's necessary before splitting it out.)
 #[derive(Debug, Clone, Default, Serialize)]
-pub struct SourceTree<T: Sized + Serialize = String> {
+pub struct SourceTree {
     /// Path to the root of the source tree.
     pub root: Option<PathBuf>,
 
     /// Mapping from file paths into into their contents.
     /// Paths are relative to the root.
-    pub sources: HashMap<PathBuf, T>,
+    pub sources: HashMap<PathBuf, String>,
 
     /// Index of source ids to paths. Used to keep [error::Span] lean.
     source_ids: HashMap<u16, PathBuf>,
 }
 
-impl<T: Sized + Serialize> SourceTree<T> {
-    pub fn single(path: PathBuf, content: T) -> Self {
+impl SourceTree {
+    pub fn single(path: PathBuf, content: String) -> Self {
         SourceTree {
             sources: [(path.clone(), content)].into(),
             source_ids: [(1, path)].into(),
@@ -362,7 +362,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
 
     pub fn new<I>(iter: I, root: Option<PathBuf>) -> Self
     where
-        I: IntoIterator<Item = (PathBuf, T)>,
+        I: IntoIterator<Item = (PathBuf, String)>,
     {
         let mut res = SourceTree {
             sources: HashMap::new(),
@@ -377,25 +377,10 @@ impl<T: Sized + Serialize> SourceTree<T> {
         res
     }
 
-    pub fn insert(&mut self, path: PathBuf, content: T) {
+    pub fn insert(&mut self, path: PathBuf, content: String) {
         let last_id = self.source_ids.keys().max().cloned().unwrap_or(0);
         self.sources.insert(path.clone(), content);
         self.source_ids.insert(last_id + 1, path);
-    }
-
-    pub fn map<F, U: Sized + Serialize>(self, f: F) -> SourceTree<U>
-    where
-        F: Fn(T) -> U,
-    {
-        SourceTree {
-            sources: self
-                .sources
-                .into_iter()
-                .map(|(path, val)| (path, f(val)))
-                .collect(),
-            source_ids: self.source_ids,
-            root: self.root,
-        }
     }
 
     pub fn get_path(&self, source_id: u16) -> Option<&PathBuf> {

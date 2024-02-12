@@ -1,13 +1,13 @@
 use anyhow::Result;
 use itertools::Itertools;
 use prqlc_ast::ModuleDef;
-use std::{collections::HashMap, path::Path};
 use std::path::PathBuf;
+use std::{collections::HashMap, path::Path};
 
 use crate::{Error, Errors, SourceTree, WithErrorInfo};
 use prqlc_ast::stmt::{Stmt, StmtKind};
 
-pub fn parse(file_tree: &SourceTree<String>) -> Result<ModuleDef> {
+pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef> {
     let source_files = linearize_tree(file_tree)?;
 
     // reverse the id->file_path map
@@ -47,7 +47,7 @@ struct SourceFile<'a> {
     content: &'a String,
 }
 
-fn linearize_tree(tree: &SourceTree<String>) -> Result<Vec<SourceFile>> {
+fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
     // find root
     let root_path;
 
