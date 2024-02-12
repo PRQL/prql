@@ -7,14 +7,9 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_BACKTRACE: ""
-    CLICOLOR_FORCE: ""
-<<<<<<< HEAD
-    NO_COLOR: "1"
-=======
-    RUST_BACKTRACE: ""
->>>>>>> 9846f7eb (refactor: convert source tree to module def during parsing)
     RUST_LOG: ""
+    CLICOLOR_FORCE: ""
+    RUST_BACKTRACE: ""
     NO_COLOR: "1"
 ---
 success: true

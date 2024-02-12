@@ -376,10 +376,9 @@ impl Command {
                 res.into_bytes()
             }
             Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
-                let stmts = prql_to_pl_tree(sources)?;
+                let module_ref = prql_to_pl_tree(sources)?;
 
-                let stmts = stmts.sources.values().next().unwrap().to_vec();
-                docs_generator::generate_markdown_docs(stmts).into_bytes()
+                docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
             }
             Command::Resolve { format, .. } => {
                 let ast = prql_to_pl_tree(sources)?;
