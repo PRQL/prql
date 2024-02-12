@@ -111,7 +111,7 @@ fn test_prql_examples_display_then_compile() -> Result<()> {
     let mut errs = Vec::new();
     for Example { name, tags, prql } in examples {
         let result = prql_to_pl(&prql)
-            .and_then(pl_to_prql)
+            .and_then(|x| pl_to_prql(&x))
             .and_then(|x| compile(&x));
 
         let should_succeed = !tags.contains(&LangTag::NoFmt);

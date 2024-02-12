@@ -458,6 +458,7 @@ mod test {
         use itertools::Itertools;
         let stmt = crate::prql_to_pl(query)
             .unwrap()
+            .stmts
             .into_iter()
             .exactly_one()
             .unwrap();

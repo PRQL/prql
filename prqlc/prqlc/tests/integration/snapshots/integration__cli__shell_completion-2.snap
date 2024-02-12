@@ -9,8 +9,13 @@ info:
   env:
     CLICOLOR_FORCE: ""
     NO_COLOR: "1"
+<<<<<<< HEAD
     RUST_BACKTRACE: ""
     RUST_LOG: ""
+=======
+    RUST_LOG: ""
+    RUST_BACKTRACE: ""
+>>>>>>> 9846f7eb (refactor: convert source tree to module def during parsing)
 ---
 success: true
 exit_code: 0

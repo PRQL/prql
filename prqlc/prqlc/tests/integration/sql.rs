@@ -246,11 +246,11 @@ FROM
 #[test]
 fn json_of_test() {
     let json = prqlc::prql_to_pl("from employees | take 10")
-        .and_then(prqlc::json::from_pl)
+        .and_then(|x| prqlc::json::from_pl(&x))
         .unwrap();
     // Since the AST is so in flux right now just test that the brackets are present
-    assert_eq!(json.chars().next().unwrap(), '[');
-    assert_eq!(json.chars().nth(json.len() - 1).unwrap(), ']');
+    assert_eq!(json.chars().next().unwrap(), '{');
+    assert_eq!(json.chars().nth(json.len() - 1).unwrap(), '}');
 }
 
 #[test]
@@ -2269,8 +2269,7 @@ fn test_from_json() {
     select {mng_name, managers.gender, salary_avg, salary_sd}
     "#;
 
-    let mut source_tree = SourceTree::from(original_prql);
-    prqlc::semantic::load_std_lib(&mut source_tree);
+    let source_tree = SourceTree::from(original_prql);
 
     let sql_from_prql = Ok(prqlc::prql_to_pl_tree(&source_tree).unwrap())
         .and_then(|ast| prqlc::semantic::resolve_and_lower(ast, &[], None))
@@ -2278,7 +2277,7 @@ fn test_from_json() {
         .unwrap();
 
     let sql_from_json = prqlc::prql_to_pl(original_prql)
-        .and_then(prqlc::json::from_pl)
+        .and_then(|x| prqlc::json::from_pl(&x))
         .and_then(|json| prqlc::json::to_pl(&json))
         .and_then(prqlc::pl_to_rq)
         .and_then(|rq| prqlc::rq_to_sql(rq, &Options::default()))

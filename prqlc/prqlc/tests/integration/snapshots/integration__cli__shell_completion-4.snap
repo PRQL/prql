@@ -10,6 +10,10 @@ info:
     RUST_BACKTRACE: ""
     RUST_LOG: ""
     CLICOLOR_FORCE: ""
+<<<<<<< HEAD
+=======
+    RUST_LOG: ""
+>>>>>>> 9846f7eb (refactor: convert source tree to module def during parsing)
     NO_COLOR: "1"
 ---
 success: true

@@ -459,8 +459,9 @@ mod test {
     use super::*;
 
     fn eval(source: &str) -> Result<String> {
-        let stmts = crate::prql_to_pl(source)?.into_iter().exactly_one()?;
-        let expr = stmts.kind.into_var_def().unwrap().value.unwrap();
+        let stmts = crate::prql_to_pl(source)?.stmts.into_iter();
+        let stmt = stmts.exactly_one().unwrap();
+        let expr = stmt.kind.into_var_def().unwrap().value.unwrap();
 
         let value = super::eval(*expr)?;
 

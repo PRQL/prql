@@ -9,8 +9,8 @@ info:
   env:
     RUST_LOG: ""
     NO_COLOR: "1"
-    RUST_BACKTRACE: ""
     CLICOLOR_FORCE: ""
+    RUST_BACKTRACE: ""
   stdin: from tracks
 ---
 success: true
@@ -143,7 +143,7 @@ Module {
                     ),
                     expr: RelationVar(
                         Expr {
-                            span: 0:0-11,
+                            span: 1:0-11,
                             kind: Ident(
                                 Ident {
                                     path: [

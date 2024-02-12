@@ -381,7 +381,14 @@ pub fn restrict_null_literal(expr: pl::Expr) -> Option<pl::Expr> {
     }
 }
 
-pub fn restrict_stmts(stmts: Vec<pl::Stmt>) -> Vec<Stmt> {
+pub fn restrict_module_def(def: pl::ModuleDef) -> ModuleDef {
+    ModuleDef {
+        name: def.name,
+        stmts: restrict_stmts(def.stmts),
+    }
+}
+
+fn restrict_stmts(stmts: Vec<pl::Stmt>) -> Vec<Stmt> {
     stmts.into_iter().map(restrict_stmt).collect()
 }
 
@@ -398,10 +405,7 @@ fn restrict_stmt(stmt: pl::Stmt) -> Stmt {
             name: def.name,
             value: def.value,
         }),
-        pl::StmtKind::ModuleDef(def) => StmtKind::ModuleDef(ModuleDef {
-            name: def.name,
-            stmts: restrict_stmts(def.stmts),
-        }),
+        pl::StmtKind::ModuleDef(def) => StmtKind::ModuleDef(restrict_module_def(def)),
     };
 
     Stmt {

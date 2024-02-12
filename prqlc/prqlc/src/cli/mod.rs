@@ -13,20 +13,18 @@ use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
-use prqlc::semantic::NS_DEFAULT_DB;
-use prqlc_ast::stmt::StmtKind;
 use std::collections::HashMap;
 use std::env;
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::ops::Range;
 use std::path::Path;
-use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
+use prqlc::ast::StmtKind;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
+use prqlc::semantic::NS_DEFAULT_DB;
 use prqlc::{downcast, Options, Target};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
@@ -225,7 +223,7 @@ impl Command {
                     // We're discarding many of the benefits of Clio here...)
                     if path.as_os_str() == "" {
                         let mut output: Output = Output::new(input.path())?;
-                        output.write_all(&pl_to_prql(ast)?.into_bytes())?;
+                        output.write_all(&pl_to_prql(&ast)?.into_bytes())?;
                         break;
                     }
 
@@ -237,7 +235,7 @@ impl Command {
                     })?;
                     let mut output: Output = Output::new(path_str)?;
 
-                    output.write_all(&pl_to_prql(ast)?.into_bytes())?;
+                    output.write_all(&pl_to_prql(&ast)?.into_bytes())?;
                 }
                 Ok(())
             }
@@ -290,24 +288,22 @@ impl Command {
                 }
             }
             Command::Collect(_) => {
-                let ast = prql_to_pl_tree(sources)?;
-                let mut root_module_def = prqlc::semantic::compose_module_tree(ast)?;
+                let mut root_module_def = prql_to_pl_tree(sources)?;
 
                 drop_module_def(&mut root_module_def.stmts, "std");
 
-                pl_to_prql(root_module_def.stmts)?.into_bytes()
+                pl_to_prql(&root_module_def)?.into_bytes()
             }
             Command::Debug(DebugCommand::ExpandPL(_)) => {
-                let ast = prql_to_pl_tree(sources)?;
-                let root_module_def = prqlc::semantic::compose_module_tree(ast)?;
+                let root_module_def = prql_to_pl_tree(sources)?;
 
                 let expanded = prqlc::semantic::ast_expand::expand_module_def(root_module_def)?;
 
-                let mut restricted = prqlc::semantic::ast_expand::restrict_stmts(expanded.stmts);
+                let mut restricted = prqlc::semantic::ast_expand::restrict_module_def(expanded);
 
-                drop_module_def(&mut restricted, "std");
+                drop_module_def(&mut restricted.stmts, "std");
 
-                pl_to_prql(restricted)?.into_bytes()
+                pl_to_prql(&restricted)?.into_bytes()
             }
             Command::Debug(DebugCommand::Resolve(_)) => {
                 let stmts = prql_to_pl_tree(sources)?;
@@ -328,7 +324,7 @@ impl Command {
                 // resolved PL, restricted back into AST
                 let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
                 drop_module_def(&mut root_module.stmts, "std");
-                out.extend(pl_to_prql(root_module.stmts)?.into_bytes());
+                out.extend(pl_to_prql(&root_module)?.into_bytes());
 
                 out
             }
@@ -347,11 +343,10 @@ impl Command {
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
                 // promote it to the `prqlc` crate.
-                let stmts = prql_to_pl(&source)?;
+                let root_mod = prql_to_pl(&source)?;
 
                 // resolve
-                let stmts = SourceTree::single(PathBuf::new(), stmts);
-                let ctx = semantic::resolve(stmts, Default::default())?;
+                let ctx = semantic::resolve(root_mod, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     collect_frames(*main.clone().into_relation_var().unwrap())
@@ -363,23 +358,18 @@ impl Command {
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
             Command::Debug(DebugCommand::Eval(_)) => {
-                let stmts = prql_to_pl_tree(sources)?;
+                let root_mod = prql_to_pl_tree(sources)?;
 
                 let mut res = String::new();
+                for stmt in root_mod.stmts {
+                    if let StmtKind::VarDef(def) = stmt.kind {
+                        res += &format!("## {}\n", def.name);
 
-                for (path, stmts) in stmts.sources {
-                    res += &format!("# {}\n\n", path.to_str().unwrap());
-
-                    for stmt in stmts {
-                        if let StmtKind::VarDef(def) = stmt.kind {
-                            res += &format!("## {}\n", def.name);
-
-                            let val = semantic::eval(*def.value.unwrap())
-                                .map_err(downcast)
-                                .map_err(|e| e.composed(sources))?;
-                            res += &semantic::write_pl(val);
-                            res += "\n\n";
-                        }
+                        let val = semantic::eval(*def.value.unwrap())
+                            .map_err(downcast)
+                            .map_err(|e| e.composed(sources))?;
+                        res += &semantic::write_pl(val);
+                        res += "\n\n";
                     }
                 }
 
@@ -392,8 +382,6 @@ impl Command {
                 docs_generator::generate_markdown_docs(stmts).into_bytes()
             }
             Command::Resolve { format, .. } => {
-                semantic::load_std_lib(sources);
-
                 let ast = prql_to_pl_tree(sources)?;
                 let ir = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
 
@@ -408,8 +396,6 @@ impl Command {
                 target,
                 ..
             } => {
-                semantic::load_std_lib(sources);
-
                 let opts = Options::default()
                     .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
                     .with_signature_comment(*signature_comment)
@@ -424,16 +410,12 @@ impl Command {
             }
 
             Command::SQLPreprocess { .. } => {
-                semantic::load_std_lib(sources);
-
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
                 let srq = prqlc::sql::internal::preprocess(rq)?;
                 format!("{srq:#?}").as_bytes().to_vec()
             }
             Command::SQLAnchor { format, .. } => {
-                semantic::load_std_lib(sources);
-
                 let ast = prql_to_pl_tree(sources)?;
                 let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
                 let srq = prqlc::sql::internal::anchor(rq)?;
@@ -698,32 +680,29 @@ sort full
         .unwrap();
 
         assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        root: null
-        sources:
-          '':
-          - VarDef:
-              kind: Main
-              name: main
-              value:
-                Pipeline:
-                  exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                        - from
-                      args:
-                      - Ident:
-                        - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                        - select
-                      args:
-                      - Ident:
-                        - y
-            span: 1:0-17
-        source_ids:
-          1: ''
+        name: Project
+        stmts:
+        - VarDef:
+            kind: Main
+            name: main
+            value:
+              Pipeline:
+                exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                      - from
+                    args:
+                    - Ident:
+                      - x
+                - FuncCall:
+                    name:
+                      Ident:
+                      - select
+                    args:
+                    - Ident:
+                      - y
+          span: 1:0-17
         "###);
     }
     #[test]

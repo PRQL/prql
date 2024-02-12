@@ -109,7 +109,6 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
-use utils::IdGenerator;
 
 pub static COMPILER_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
@@ -140,8 +139,7 @@ pub static COMPILER_VERSION: Lazy<Version> =
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
-    let mut sources = SourceTree::from(prql);
-    semantic::load_std_lib(&mut sources);
+    let sources = SourceTree::from(prql);
 
     parser::parse(&sources)
         .and_then(|ast| semantic::resolve_and_lower(ast, &[], None))
@@ -271,19 +269,13 @@ pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
 // TODO: rename this to `prql_to_pl_simple`
-pub fn prql_to_pl(prql: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
-    let sources = SourceTree::from(prql);
-
-    parser::parse(&sources)
-        .map(|x| x.sources.into_values().next().unwrap())
-        .map_err(error_message::downcast)
-        .map_err(|e| e.composed(&prql.into()))
+pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
+    let source_tree = SourceTree::from(prql);
+    prql_to_pl_tree(&source_tree)
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(
-    prql: &SourceTree,
-) -> Result<SourceTree<Vec<prqlc_ast::stmt::Stmt>>, ErrorMessages> {
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<prqlc_ast::ModuleDef, ErrorMessages> {
     parser::parse(prql)
         .map_err(error_message::downcast)
         .map_err(|e| e.composed(prql))
@@ -291,14 +283,13 @@ pub fn prql_to_pl_tree(
 
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
-pub fn pl_to_rq(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    let source_tree = SourceTree::single(PathBuf::new(), pl);
-    semantic::resolve_and_lower(source_tree, &[], None).map_err(error_message::downcast)
+pub fn pl_to_rq(pl: prqlc_ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
+    semantic::resolve_and_lower(pl, &[], None).map_err(error_message::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
+    pl: prqlc_ast::ModuleDef,
     main_path: &[String],
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
@@ -312,8 +303,8 @@ pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<Strin
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
-    Ok(codegen::WriteSource::write(&pl, codegen::WriteOpt::default()).unwrap())
+pub fn pl_to_prql(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+    Ok(codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap())
 }
 
 /// JSON serialization and deserialization functions
@@ -321,18 +312,18 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+        serde_json::to_string(pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
+    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON serialization
-    pub fn from_rq(rq: ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&rq).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn from_rq(rq: &ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
+        serde_json::to_string(rq).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
@@ -373,16 +364,15 @@ impl<T: Sized + Serialize> SourceTree<T> {
     where
         I: IntoIterator<Item = (PathBuf, T)>,
     {
-        let mut id_gen = IdGenerator::<usize>::new();
         let mut res = SourceTree {
             sources: HashMap::new(),
             source_ids: HashMap::new(),
             root,
         };
 
-        for (path, content) in iter {
+        for (index, (path, content)) in iter.into_iter().enumerate() {
             res.sources.insert(path.clone(), content);
-            res.source_ids.insert(id_gen.gen() as u16, path);
+            res.source_ids.insert((index + 1) as u16, path);
         }
         res
     }
@@ -415,7 +405,7 @@ impl<T: Sized + Serialize> SourceTree<T> {
 
 impl<S: ToString> From<S> for SourceTree {
     fn from(source: S) -> Self {
-        SourceTree::single(std::path::Path::new("").to_path_buf(), source.to_string())
+        SourceTree::single(PathBuf::from(""), source.to_string())
     }
 }
 

@@ -23,7 +23,7 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     Ok(prql_query)
         .and_then(prqlc_lib::prql_to_pl)
-        .and_then(prqlc_lib::json::from_pl)
+        .and_then(|x| prqlc_lib::json::from_pl(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -32,7 +32,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     Ok(pl_json)
         .and_then(prqlc_lib::json::to_pl)
         .and_then(prqlc_lib::pl_to_rq)
-        .and_then(prqlc_lib::json::from_rq)
+        .and_then(|x| prqlc_lib::json::from_rq(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 

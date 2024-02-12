@@ -7,10 +7,17 @@ info:
     - shell-completion
     - powershell
   env:
+<<<<<<< HEAD
     NO_COLOR: "1"
     CLICOLOR_FORCE: ""
     RUST_LOG: ""
     RUST_BACKTRACE: ""
+=======
+    RUST_BACKTRACE: ""
+    RUST_LOG: ""
+    CLICOLOR_FORCE: ""
+    NO_COLOR: "1"
+>>>>>>> 9846f7eb (refactor: convert source tree to module def during parsing)
 ---
 success: true
 exit_code: 0
