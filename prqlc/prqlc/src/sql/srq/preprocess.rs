@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use anyhow::Result;
 use itertools::Itertools;
 
+use crate::ast::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{
@@ -13,7 +14,6 @@ use crate::ir::rq::{
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
 use crate::{Error, WithErrorInfo};
-use prqlc_ast::expr::generic::{InterpolateItem, Range};
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;

@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use prqlc_ast::expr::*;
-use prqlc_ast::stmt::*;
+use crate::ast::*;
 use regex::Regex;
 
 use crate::codegen::SeparatedExprs;

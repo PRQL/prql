@@ -1,9 +1,8 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use prqlc_ast::{Span, Ty};
-
-pub use prqlc_ast::stmt::QueryDef;
+pub use crate::ast::stmt::QueryDef;
+use crate::ast::{Span, Ty};
 
 use super::expr::Expr;
 

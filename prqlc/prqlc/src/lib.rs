@@ -69,7 +69,7 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`prqlc_ast::expr::ExprKind::Literal`]
+//! * `serde_yaml`: adapts the `Serialize` implementation for [`crate::ast::expr::ExprKind::Literal`]
 //!   to `serde_yaml`, which doesn't support the serialization of nested enums
 //!
 //! ## Large binary sizes
@@ -99,10 +99,10 @@ pub mod semantic;
 pub mod sql;
 mod utils;
 
-pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
+pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
+pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
 pub use ir::Span;
 pub use prqlc_ast as ast;
-pub use prqlc_ast::error::{Error, Errors, MessageKind, Reason};
 
 use once_cell::sync::Lazy;
 use semver::Version;
@@ -275,7 +275,7 @@ pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<prqlc_ast::ModuleDef, ErrorMessages> {
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessages> {
     parser::parse(prql)
         .map_err(error_message::downcast)
         .map_err(|e| e.composed(prql))
@@ -283,13 +283,13 @@ pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<prqlc_ast::ModuleDef, ErrorM
 
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
-pub fn pl_to_rq(pl: prqlc_ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
+pub fn pl_to_rq(pl: ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, &[], None).map_err(error_message::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: prqlc_ast::ModuleDef,
+    pl: ast::ModuleDef,
     main_path: &[String],
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
@@ -396,9 +396,9 @@ impl<S: ToString> From<S> for SourceTree {
 
 #[cfg(test)]
 mod tests {
+    use crate::ast::expr::Ident;
     use crate::Target;
     use insta::assert_debug_snapshot;
-    use prqlc_ast::expr::Ident;
     use std::str::FromStr;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {

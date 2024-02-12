@@ -4,8 +4,8 @@ use enum_as_inner::EnumAsInner;
 
 use serde::{Deserialize, Serialize};
 
-use prqlc_ast::expr::generic;
-use prqlc_ast::{GenericTypeParam, Ident, Literal, Span, Ty};
+use crate::ast::generic;
+use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
 
 use crate::codegen::write_ty;
 

@@ -21,7 +21,7 @@ use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
 
-use prqlc::ast::StmtKind;
+use prqlc::ast;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
@@ -362,7 +362,7 @@ impl Command {
 
                 let mut res = String::new();
                 for stmt in root_mod.stmts {
-                    if let StmtKind::VarDef(def) = stmt.kind {
+                    if let ast::StmtKind::VarDef(def) = stmt.kind {
                         res += &format!("## {}\n", def.name);
 
                         let val = semantic::eval(*def.value.unwrap())
@@ -506,7 +506,7 @@ impl Command {
     }
 }
 
-fn drop_module_def(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, name: &str) {
+fn drop_module_def(stmts: &mut Vec<ast::stmt::Stmt>, name: &str) {
     stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
 }
 

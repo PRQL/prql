@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
-use prqlc_ast::Ty;
 use serde::{Deserialize, Serialize};
 
+use crate::ast::Ty;
 use crate::ir::generic::WindowKind;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Range};
 

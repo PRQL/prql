@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use prqlc_ast::expr::generic::Range;
+use crate::ast;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ColumnSort<T> {
@@ -18,7 +18,7 @@ pub enum SortDirection {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct WindowFrame<T> {
     pub kind: WindowKind,
-    pub range: prqlc_ast::expr::generic::Range<T>,
+    pub range: ast::generic::Range<T>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ impl<T> WindowFrame<T> {
             self,
             WindowFrame {
                 kind: WindowKind::Rows,
-                range: Range {
+                range: ast::generic::Range {
                     start: None,
                     end: None
                 }
@@ -46,7 +46,7 @@ impl<T> Default for WindowFrame<T> {
     fn default() -> Self {
         Self {
             kind: WindowKind::Rows,
-            range: Range::unbounded(),
+            range: ast::generic::Range::unbounded(),
         }
     }
 }

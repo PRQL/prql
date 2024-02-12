@@ -21,13 +21,13 @@ pub use self::fold::*;
 pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::utils::*;
-pub use prqlc_ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
+pub use crate::ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
 pub fn print_mem_sizes() {
+    use crate::ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
     use crate::ir::{decl, generic, pl, rq};
     use crate::sql::internal::SqlTransform;
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};
-    use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
 
     use std::mem::size_of;
 

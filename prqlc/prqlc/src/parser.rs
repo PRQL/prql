@@ -1,11 +1,10 @@
 use anyhow::Result;
 use itertools::Itertools;
-use prqlc_ast::ModuleDef;
 use std::path::PathBuf;
 use std::{collections::HashMap, path::Path};
 
+use crate::ast::{ModuleDef, Stmt, StmtKind};
 use crate::{Error, Errors, SourceTree, WithErrorInfo};
-use prqlc_ast::stmt::{Stmt, StmtKind};
 
 pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef> {
     let source_files = linearize_tree(file_tree)?;
@@ -106,11 +105,7 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
     Ok(sources)
 }
 
-fn insert_stmts_at_path(
-    module: &mut prqlc_ast::stmt::ModuleDef,
-    mut path: Vec<String>,
-    stmts: Vec<Stmt>,
-) {
+fn insert_stmts_at_path(module: &mut ModuleDef, mut path: Vec<String>, stmts: Vec<Stmt>) {
     if path.is_empty() {
         module.stmts.extend(stmts);
         return;
@@ -124,7 +119,7 @@ fn insert_stmts_at_path(
         sm
     } else {
         // insert new module def
-        let new_stmt = Stmt::new(StmtKind::ModuleDef(prqlc_ast::stmt::ModuleDef {
+        let new_stmt = Stmt::new(StmtKind::ModuleDef(ModuleDef {
             name: step,
             stmts: Vec::new(),
         }));
