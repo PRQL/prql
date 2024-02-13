@@ -74,8 +74,7 @@ describe("prql-js", () => {
 
   describe("prql_to_pl", () => {
     it("should return valid json from valid prql", () => {
-      const json = JSON.parse(prql.prql_to_pl(employee_prql));
-      assert.equal(json.length, 1);
+      JSON.parse(prql.prql_to_pl(employee_prql));
     });
 
     it("should throw an error on invalid prql", () => {

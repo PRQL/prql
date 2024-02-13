@@ -4,6 +4,7 @@ pub mod ast_expand;
 mod eval;
 mod lowering;
 mod module;
+mod pass1;
 pub mod reporting;
 mod resolver;
 
@@ -19,6 +20,7 @@ use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
 use crate::ir::pl::{self, Expr, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
+use crate::parser::is_mod_def_for;
 use crate::WithErrorInfo;
 use crate::{Error, Reason};
 
@@ -58,21 +60,15 @@ pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Res
 
 /// Preferred way of injecting std module.
 pub fn load_std_lib(module_tree: &mut ast::ModuleDef) {
-    if !module_tree
-        .stmts
-        .iter()
-        .any(|s| crate::parser::is_mod_def_for(s, NS_STD))
-    {
+    if !module_tree.stmts.iter().any(|s| is_mod_def_for(s, NS_STD)) {
         let std_source = include_str!("std.prql");
         match prqlc_parser::parse_source(std_source, 0) {
             Ok(stmts) => {
-                module_tree.stmts.insert(
-                    0,
-                    ast::Stmt::new(ast::StmtKind::ModuleDef(ast::ModuleDef {
-                        name: "std".to_string(),
-                        stmts,
-                    })),
-                );
+                let stmt = ast::Stmt::new(ast::StmtKind::ModuleDef(ast::ModuleDef {
+                    name: "std".to_string(),
+                    stmts,
+                }));
+                module_tree.stmts.insert(0, stmt);
             }
             Err(errs) => {
                 panic!("std.prql failed to compile:\n{errs:?}");
