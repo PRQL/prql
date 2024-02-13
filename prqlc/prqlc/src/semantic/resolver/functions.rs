@@ -4,10 +4,9 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::{Itertools, Position};
 
+use crate::ast::{Ty, TyFunc, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use prqlc_ast::{Ty, TyFunc, TyKind};
-
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};

@@ -3,14 +3,11 @@ use std::iter::zip;
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::error::Error;
-use prqlc_ast::Span;
-
 use super::ast_expand;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
-use crate::WithErrorInfo;
+use crate::{Error, Span, WithErrorInfo};
 
-pub fn eval(expr: prqlc_ast::expr::Expr) -> Result<Expr> {
+pub fn eval(expr: crate::ast::expr::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
 
     Evaluator::new().fold_expr(expr)
@@ -459,8 +456,9 @@ mod test {
     use super::*;
 
     fn eval(source: &str) -> Result<String> {
-        let stmts = crate::prql_to_pl(source)?.into_iter().exactly_one()?;
-        let expr = stmts.kind.into_var_def().unwrap().value.unwrap();
+        let stmts = crate::prql_to_pl(source)?.stmts.into_iter();
+        let stmt = stmts.exactly_one().unwrap();
+        let expr = stmt.kind.into_var_def().unwrap().value.unwrap();
 
         let value = super::eval(*expr)?;
 

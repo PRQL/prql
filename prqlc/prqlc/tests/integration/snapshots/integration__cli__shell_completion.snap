@@ -7,10 +7,10 @@ info:
     - shell-completion
     - bash
   env:
-    RUST_BACKTRACE: ""
-    CLICOLOR_FORCE: ""
-    NO_COLOR: "1"
     RUST_LOG: ""
+    CLICOLOR_FORCE: ""
+    RUST_BACKTRACE: ""
+    NO_COLOR: "1"
 ---
 success: true
 exit_code: 0

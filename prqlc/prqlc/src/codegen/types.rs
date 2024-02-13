@@ -1,5 +1,5 @@
+use crate::ast::*;
 use crate::codegen::SeparatedExprs;
-use prqlc_ast::*;
 
 use super::{WriteOpt, WriteSource};
 

@@ -10,9 +10,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::{collections::HashMap, io::stderr};
 
-use crate::SourceTree;
-pub use prqlc_ast::error::WithErrorInfo;
-use prqlc_ast::error::*;
+use crate::{Error, Errors, MessageKind, SourceTree};
 
 pub use crate::ir::Span;
 

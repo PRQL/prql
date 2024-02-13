@@ -28,7 +28,7 @@ pub struct Resolver<'a> {
 
     pub options: ResolverOptions,
 
-    pub generics: HashMap<(usize, String), Vec<prqlc_ast::Ty>>,
+    pub generics: HashMap<(usize, String), Vec<crate::ast::Ty>>,
 }
 
 #[derive(Default, Clone)]

@@ -5,8 +5,9 @@ use std::iter::zip;
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use prqlc_ast::TupleField;
 
+use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
+use crate::ast::TupleField;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
@@ -17,7 +18,6 @@ use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Span, WithErrorInfo};
-use prqlc_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:

@@ -371,8 +371,6 @@ fn debug() {
     success: true
     exit_code: 0
     ----- stdout -----
-    # 
-
     ## main
     4
 

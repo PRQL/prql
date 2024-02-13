@@ -61,7 +61,7 @@ mod fmt {
         let prql = fs::read_to_string(prql_path).unwrap();
 
         let pl = prqlc::prql_to_pl(&prql).unwrap();
-        let formatted = prqlc::pl_to_prql(pl).unwrap();
+        let formatted = prqlc::pl_to_prql(&pl).unwrap();
 
         with_settings!({ input_file => prql_path }, {
             assert_snapshot!(test_name, &formatted, &prql)

@@ -7,10 +7,10 @@ info:
     - shell-completion
     - powershell
   env:
-    NO_COLOR: "1"
     CLICOLOR_FORCE: ""
     RUST_LOG: ""
     RUST_BACKTRACE: ""
+    NO_COLOR: "1"
 ---
 success: true
 exit_code: 0

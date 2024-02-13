@@ -15,7 +15,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);
     drop_module_defs(&mut root_module.stmts, &["std", "default_db"]);
 
-    prqlc::pl_to_prql(root_module.stmts)
+    prqlc::pl_to_prql(&root_module)
 }
 
 fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
