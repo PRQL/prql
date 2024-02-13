@@ -10,7 +10,11 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef> {
     let source_files = linearize_tree(file_tree)?;
 
     // reverse the id->file_path map
-    let ids: HashMap<_, _> = file_tree.source_ids.iter().map(|(a, b)| (b, a)).collect();
+    let ids: HashMap<_, _> = file_tree
+        .source_ids
+        .iter()
+        .map(|(a, b)| (b.as_path(), a))
+        .collect();
 
     // init the root module def
     let mut root = ModuleDef {
@@ -41,9 +45,9 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef> {
 }
 
 struct SourceFile<'a> {
-    file_path: &'a PathBuf,
+    file_path: &'a Path,
     module_path: Vec<String>,
-    content: &'a String,
+    content: &'a str,
 }
 
 fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
