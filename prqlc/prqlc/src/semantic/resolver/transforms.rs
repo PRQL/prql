@@ -779,6 +779,17 @@ impl Lineage {
                 for expr in fields {
                     self.apply_assigns(expr, inline_refs);
                 }
+
+                // hack for making `x | select { y = this }` work
+                if let Some(alias) = &assigns.alias {
+                    if self.columns.len() == 1 {
+                        let col = self.columns.first().unwrap();
+                        if let LineageColumn::All { input_id, .. } = col {
+                            let input = self.inputs.iter_mut().find(|i| i.id == *input_id).unwrap();
+                            input.name = alias.clone();
+                        }
+                    }
+                }
             }
             _ => self.apply_assign(assigns, inline_refs),
         }
