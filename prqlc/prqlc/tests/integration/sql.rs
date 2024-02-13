@@ -4977,3 +4977,18 @@ fn test_param_declarations() {
       b = $a
     "###);
 }
+
+#[test]
+fn test_relation_aliasing() {
+    assert_display_snapshot!(compile(
+        r###"
+    from x | select {y = this} | select {y.hello}
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      hello
+    FROM
+      x
+    "###);
+}
