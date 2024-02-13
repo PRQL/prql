@@ -4,7 +4,6 @@ pub mod ast_expand;
 mod eval;
 mod lowering;
 mod module;
-mod pass1;
 pub mod reporting;
 mod resolver;
 
