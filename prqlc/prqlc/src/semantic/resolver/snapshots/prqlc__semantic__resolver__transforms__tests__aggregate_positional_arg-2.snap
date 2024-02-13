@@ -5,31 +5,28 @@ expression: expr
 TransformCall:
   input:
     Ident:
-      - default_db
+      - from
       - c_invoice
     ty:
       kind:
         Array:
           kind:
             Tuple:
-              - Wildcard:
-                  kind: Any
-                  span: "0:2043-2050"
-                  name: ~
-          span: "0:2042-2053"
-          name: tuple
-      span: "0:2158-2165"
-      name: relation
+              - Wildcard: ~
+          span: ~
+          name: ~
+      span: ~
+      name: ~
     lineage:
       columns:
         - All:
-            input_id: 118
+            input_id: 115
             except: []
       inputs:
-        - id: 118
+        - id: 115
           name: c_invoice
           table:
-            - default_db
+            - from
             - c_invoice
   kind:
     Aggregate:
@@ -56,14 +53,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "0:4186-4191"
+                      span: "0:4061-4066"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "0:4195-4199"
+                      span: "0:4070-4074"
                       name: ~
-              span: "0:4186-4199"
+              span: "0:4061-4074"
               name: ~
         ty:
           kind:
@@ -75,14 +72,14 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "0:4186-4191"
+                            span: "0:4061-4066"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "0:4195-4199"
+                            span: "0:4070-4074"
                             name: ~
-                    span: "0:4186-4199"
+                    span: "0:4061-4074"
                     name: ~
           span: ~
           name: ~
@@ -149,7 +146,7 @@ TransformCall:
                           name: ~
                   span: "0:2042-2053"
                   name: tuple
-          span: "0:3013-3028"
+          span: "0:2927-2942"
           name: ~
     ty:
       kind:
@@ -212,7 +209,7 @@ TransformCall:
                                 name: ~
                         span: "0:2042-2053"
                         name: tuple
-                span: "0:3013-3028"
+                span: "0:2927-2942"
                 name: ~
       span: ~
       name: ~
@@ -279,7 +276,7 @@ ty:
                                 name: ~
                         span: "0:2042-2053"
                         name: tuple
-                span: "0:3013-3028"
+                span: "0:2927-2942"
                 name: ~
           - Single:
               - ~
@@ -288,14 +285,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4186-4191"
+                        span: "0:4061-4066"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "0:4195-4199"
+                        span: "0:4070-4074"
                         name: ~
-                span: "0:4186-4199"
+                span: "0:4061-4074"
                 name: ~
       span: ~
       name: ~
@@ -307,16 +304,16 @@ lineage:
         name:
           - c_invoice
           - issued_at
-        target_id: 120
+        target_id: 116
         target_name: ~
     - Single:
         name: ~
-        target_id: 136
+        target_id: 132
         target_name: ~
   inputs:
-    - id: 118
+    - id: 115
       name: c_invoice
       table:
-        - default_db
+        - from
         - c_invoice
 

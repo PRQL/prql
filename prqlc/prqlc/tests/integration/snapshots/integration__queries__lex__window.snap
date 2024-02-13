@@ -13,6 +13,7 @@ TokenVec (
   296..337: Comment(" postgres:skip problems with DISTINCT ON"),
   337..338: NewLine,
   338..342: Ident("from"),
+  342..343: Control('.'),
   343..349: Ident("tracks"),
   349..350: NewLine,
   350..355: Ident("group"),

@@ -29,7 +29,7 @@ The main purpose of PRQL is to build queries that combine and transform data
 from relations such as the `invoices` table above. Here is the most basic query:
 
 ```prql no-eval
-from invoices
+from.invoices
 ```
 
 ```admonish note
@@ -53,7 +53,7 @@ the columns to pass through. _(Try it in the
 [Playground.](https://prql-lang.org/playground/))_
 
 ```prql no-eval
-from invoices
+from.invoices
 select { order_id, total }
 ```
 
@@ -62,7 +62,7 @@ ignored. In addition, we can assign any of the expressions to a _variable_ that
 becomes the name of the resulting column in the SQL output.
 
 ```prql no-eval
-from invoices
+from.invoices
 select {
   OrderID = invoice_id,
   Total = total,
@@ -81,7 +81,7 @@ To add columns to a relation, we can use `derive` function. Let's define a new
 column for Value Added Tax, set at 19% of the invoice total.
 
 ```prql no-eval
-from invoices
+from.invoices
 derive { VAT = total * 0.19 }
 ```
 
@@ -98,8 +98,8 @@ from two relations "side by side". To determine which rows from each relation
 should be joined, `join` has match criteria, written in `( ... )`.
 
 ```prql no-eval
-from invoices
-join customers ( ==customer_id )
+from.invoices
+join from.customers ( ==customer_id )
 ```
 
 This example "connects" the customer information from the `customers` relation
@@ -110,8 +110,9 @@ It is frequently useful to assign an alias to both relations being joined
 together so that each relation's columns can be referred to uniquely.
 
 ```prql no-eval
-from inv=invoices
-join cust=customers ( ==customer_id )
+from.invoices
+select {inv = this}
+join (from.customers | select {cust = this}) ( ==customer_id )
 ```
 
 In the example above, the alias `inv` represents the `invoices` relation and
@@ -131,8 +132,9 @@ at the end of the query. Each transform modifies the relation produced by the
 statement above to produce the desired result.
 
 ```prql no-eval
-from inv=invoices
-join cust=customers (==customer_id)
+from.invoices
+select {inv = this}
+join (from.customers | select {cust = this}) (==customer_id)
 derive { VAT = inv.total * 0.19 }
 select {
   OrderID = inv.invoice_id,

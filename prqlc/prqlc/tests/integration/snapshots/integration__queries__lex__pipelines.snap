@@ -12,6 +12,7 @@ TokenVec (
   164..165: NewLine,
   165..166: NewLine,
   166..170: Ident("from"),
+  170..171: Control('.'),
   171..177: Ident("tracks"),
   177..178: NewLine,
   178..179: NewLine,

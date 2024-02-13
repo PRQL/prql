@@ -101,7 +101,7 @@ let percent_diff = old new -> 100.0*( new - old ) / old
 let format_percent = v -> s"printf('%1.1f%', {v})"
 
 # Step 1: First calculate important columns
-from PropertyData
+from.PropertyData
 select {
     Map, Lot,
     App_Total2020,

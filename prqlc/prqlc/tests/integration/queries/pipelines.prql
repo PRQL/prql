@@ -2,7 +2,7 @@
 # installed
 # https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)
 
-from tracks
+from.tracks
 
 filter (name ~= "Love")
 filter ((milliseconds / 1000 / 60) | in 3..4)

@@ -9,6 +9,7 @@ TokenVec (
   13..81: Comment(" sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)"),
   81..82: NewLine,
   82..86: Ident("from"),
+  86..87: Control('.'),
   87..95: Ident("invoices"),
   95..96: NewLine,
   96..100: Ident("take"),

@@ -17,7 +17,7 @@ hello.world
 `this` refers to the current relation:
 
 ```prql
-from invoices
+from.invoices
 aggregate (
     count this
 )
@@ -27,22 +27,22 @@ Within a [`join`](../stdlib/transforms/join.md), `that` refers to the other
 table:
 
 ```prql
-from invoices
-join tracks (this.track_id==that.id)
+from.invoices
+join from.tracks (this.track_id==that.id)
 ```
 
 `this` can also be used to remove any column ambiguity. For example, currently
 using a bare `time` as a column name will fail, because it's also a type:
 
 ```prql error no-fmt
-from invoices
+from.invoices
 derive t = time
 ```
 
 But with `this.time`, we can remove the ambiguity:
 
 ```prql
-from invoices
+from.invoices
 derive t = this.time
 ```
 
@@ -56,21 +56,23 @@ quoting rules.
 
 ```prql
 prql target:sql.mysql
-from employees
+
+from.employees
 select `first name`
 ```
 
 ```prql
 prql target:sql.postgres
-from employees
+
+from.employees
 select `first name`
 ```
 
 ```prql
 prql target:sql.bigquery
 
-from `project-foo.dataset.table`
-join `project-bar.dataset.table` (==col_bax)
+from.`project-foo.dataset.table`
+join from.`project-bar.dataset.table` (==col_bax)
 ```
 
 ## Schemas & database names
@@ -78,7 +80,7 @@ join `project-bar.dataset.table` (==col_bax)
 Identifiers of database tables can be prefixed with schema and databases names.
 
 ```prql
-from my_database.chinook.albums
+from.my_database.chinook.albums
 ```
 
 Note that all of following identifiers will be treated as separate table
@@ -109,7 +111,7 @@ is, `std.from` is the same function as `from`. In the example below, the
 resulting query is the same as without the `std.` namespace:
 
 ```prql
-std.from my_table
+from.my_table
 std.select {from = my_table.a, take = my_table.b}
 std.take 3
 ```

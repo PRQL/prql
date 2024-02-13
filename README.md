@@ -26,7 +26,7 @@ since it compiles to SQL.
 PRQL can be as simple as:
 
 ```elm
-from tracks
+from.tracks
 filter artist == "Bob Marley"                 # Each line transforms the previous result
 aggregate {                                   # `aggregate` reduces each column to a value
   plays    = sum plays,
@@ -38,7 +38,7 @@ aggregate {                                   # `aggregate` reduces each column 
 Here's a fuller example of the language;
 
 ```elm
-from employees
+from.employees
 filter start_date > @2021-01-01               # Clear date syntax
 derive {                                      # `derive` adds columns / variables
   gross_salary = salary + (tax ?? 0),         # Terse coalesce

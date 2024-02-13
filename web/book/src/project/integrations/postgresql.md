@@ -9,7 +9,7 @@ PL/PRQL functions serve as intermediaries, compiling the user's PRQL code into S
 PL/PRQL functions are defined using the `plprql` language specifier:
 ```sql
 create function match_stats(int) returns table(player text, kd_ratio float) as $$
-  from matches
+  from.matches
   filter match_id == $1
   group player (
     aggregate {

@@ -165,7 +165,7 @@ mod test {
 
     #[test]
     fn test_end_with_new_line() {
-        let sql = compile("from a", &Options::default().no_signature()).unwrap();
+        let sql = compile("from.a", &Options::default().no_signature()).unwrap();
         assert_eq!(sql, "SELECT\n  *\nFROM\n  a\n")
     }
 }

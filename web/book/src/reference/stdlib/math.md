@@ -27,7 +27,7 @@ These are all the functions defined in the `math` module:
 ### Example
 
 ```prql
-from employees
+from.employees
 select {
   age_squared = age | math.pow 2
 }

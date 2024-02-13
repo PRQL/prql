@@ -54,7 +54,7 @@ When translating into an SQL statement which references only one table, there is
 no need to reference column names with table prefix.
 
 ```prql
-from employees
+from.employees
 select first_name
 ```
 
@@ -64,9 +64,9 @@ in multiple tables. Because of this, we have to use table prefixes for all
 column names.
 
 ```prql
-from employees
+from.employees
 derive {first_name, dept_id}
-join d=departments (==dept_id)
+join (from.departments | select {d = this}) (==dept_id)
 select {first_name, d.title}
 ```
 

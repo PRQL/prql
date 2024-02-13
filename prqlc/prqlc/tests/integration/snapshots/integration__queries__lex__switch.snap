@@ -9,6 +9,7 @@ TokenVec (
   76..88: Comment(" mssql:test"),
   88..89: NewLine,
   89..93: Ident("from"),
+  93..94: Control('.'),
   94..100: Ident("tracks"),
   100..101: NewLine,
   101..105: Ident("sort"),

@@ -62,7 +62,7 @@ const prqljs = require("prql-js");
 const prql = (string) => prqljs.compile(string[0] || "");
 
 const sql = prql`
-    from employees
+    from.employees
     select first_name
 `;
 console.log(sql);

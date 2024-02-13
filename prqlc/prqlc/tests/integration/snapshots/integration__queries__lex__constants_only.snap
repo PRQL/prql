@@ -5,6 +5,7 @@ input_file: prqlc/prqlc/tests/integration/queries/constants_only.prql
 ---
 TokenVec (
   0..4: Ident("from"),
+  4..5: Control('.'),
   5..11: Ident("genres"),
   11..12: NewLine,
   12..16: Ident("take"),

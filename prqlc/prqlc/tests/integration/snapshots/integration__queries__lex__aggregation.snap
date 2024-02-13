@@ -13,6 +13,7 @@ TokenVec (
   44..101: Comment(" glaredb:skip (the string_agg function is not supported)"),
   101..102: NewLine,
   102..106: Ident("from"),
+  106..107: Control('.'),
   107..113: Ident("tracks"),
   113..114: NewLine,
   114..120: Ident("filter"),

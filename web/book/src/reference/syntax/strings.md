@@ -4,7 +4,7 @@ String literals can use any matching odd number of either single or double
 quotes:
 
 ```prql
-from artists
+from.artists
 derive {
   single        =   'hello world',
   double        =   "hello world",
@@ -18,7 +18,7 @@ To quote a string containing quote characters, use the "other" type of quote, or
 use the escape character `\`, or use more quotes.
 
 ```prql
-from artists
+from.artists
 select {
   other   = '"hello world"',
   escaped = "\"hello world\"",
@@ -30,7 +30,7 @@ Strings can contain any escape character sequences defined by the
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
 ```prql
-from artists
+from.artists
 derive escapes = "\tXYZ\n \\ "                            # tab (\t), "XYZ", newline (\n), " ", \, " "
 derive world = "\u{0048}\u{0065}\u{006C}\u{006C}\u{006F}" # "Hello"
 derive hex = "\x48\x65\x6C\x6C\x6F"                       # "Hello"

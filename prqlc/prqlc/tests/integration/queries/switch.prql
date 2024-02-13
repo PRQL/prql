@@ -1,6 +1,6 @@
 # glaredb:skip (May be a bag of String type conversion for Postgres Client)
 # mssql:test
-from tracks
+from.tracks
 sort milliseconds
 select display = case [
     composer != null => composer,

@@ -62,9 +62,9 @@ module my_playlists {
         let movie_albums = (from albums | filter id == 3)
     }
 
-    from soundtracks.movie_albums
+    from.soundtracks.movie_albums
 }
-from my_playlists.soundtracks.movie_albums
+from.my_playlists.soundtracks.movie_albums
 ```
 
 If an identifier cannot be resolved relative to the current module, it tries to
@@ -82,7 +82,7 @@ module my_playlists {
     module upbeat_rock {
         let decl_3 = ...
 
-        from decl_1 | join soundtracks.decl2 | join decl_3
+        decl_1 | join soundtracks.decl2 | join decl_3
     }
 }
 ```
@@ -94,9 +94,9 @@ acquire an implicit name main.
 
 ```
 module my_playlists {
-    let bangers = (from tracks | take 10)
+    let bangers = (from.tracks | take 10)
 
-    from playlists | take 10
+    from.playlists | take 10
 }
 
 let album_titles = my_playlists.main
@@ -256,7 +256,8 @@ module project {
 	}
 
 	let main = (
-		from t = tracks
+		from.tracks
+		select {t = this}
 		select [track_id, title]
 	)
 }

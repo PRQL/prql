@@ -25,12 +25,12 @@ transforms. Most transforms can also take a single field, which will be
 converted into a tuple. These are equivalent:
 
 ```prql
-from employees
+from.employees
 select {first_name}
 ```
 
 ```prql
-from employees
+from.employees
 select first_name
 ```
 

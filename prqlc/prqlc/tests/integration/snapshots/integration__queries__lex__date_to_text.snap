@@ -13,6 +13,7 @@ TokenVec (
   44..56: Comment(" mssql:test"),
   56..57: NewLine,
   57..61: Ident("from"),
+  61..62: Control('.'),
   62..70: Ident("invoices"),
   70..71: NewLine,
   71..75: Ident("take"),

@@ -1,6 +1,6 @@
 # mssql:test
 # sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)
-from invoices
+from.invoices
 take 5
 select {
     total_original = total | math.round 2,

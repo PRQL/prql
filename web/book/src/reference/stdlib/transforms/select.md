@@ -15,12 +15,12 @@ select !{column}
 ## Examples
 
 ```prql
-from employees
+from.employees
 select name = f"{first_name} {last_name}"
 ```
 
 ```prql
-from employees
+from.employees
 select {
   name = f"{first_name} {last_name}",
   age_eoy = dob - @2022-12-31,
@@ -28,12 +28,13 @@ select {
 ```
 
 ```prql
-from employees
+from.employees
 select first_name
 ```
 
 ```prql
-from e=employees
+from.employees
+select {e = this}
 select {e.first_name, e.last_name}
 ```
 
@@ -52,18 +53,18 @@ Some examples:
 
 ```prql
 prql target:sql.bigquery
-from tracks
+from.tracks
 select !{milliseconds, bytes}
 ```
 
 ```prql
-from tracks
+from.tracks
 select {track_id, title, composer, bytes}
 select !{title, composer}
 ```
 
 ```prql
-from artists
+from.artists
 derive nick = name
 select !{artists.*}
 ```
@@ -73,6 +74,6 @@ different meaning:
 
 ```prql
 prql target:sql.bigquery
-from tracks
+from.tracks
 select !is_compilation
 ```

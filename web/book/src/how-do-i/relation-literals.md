@@ -12,7 +12,7 @@ Because relations (aka a table) in PRQL are just arrays of tuples, they can be
 expressed with array and tuple syntax:
 
 ```prql
-from [
+[
   {a=5, b=false},
   {a=6, b=true},
 ]
@@ -27,9 +27,9 @@ let my_artists = [
   {artist="James Brown"},
 ]
 
-from artists
+from.artists
 join my_artists (==artist)
-join albums (==artist_id)
+join from.albums (==artist_id)
 select {artists.artist_id, albums.title}
 ```
 

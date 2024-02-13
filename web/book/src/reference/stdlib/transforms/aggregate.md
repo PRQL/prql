@@ -20,7 +20,7 @@ process of filling out [std lib](../).
 ## Examples
 
 ```prql
-from employees
+from.employees
 aggregate {
   average salary,
   ct = count salary
@@ -28,7 +28,7 @@ aggregate {
 ```
 
 ```prql
-from employees
+from.employees
 group {title, country} (
   aggregate {
     average salary,
@@ -44,7 +44,7 @@ other transform except `aggregate`) will not trigger aggregation. By default,
 PRQL will interpret such attempts functions as window functions:
 
 ```prql
-from employees
+from.employees
 derive {avg_sal = average salary}
 ```
 

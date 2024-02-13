@@ -10,7 +10,7 @@ The `aggregate` transform takes a tuple to create one or more new columns that
 "distill down" data from all the rows.
 
 ```prql no-eval
-from invoices
+from.invoices
 aggregate { sum_of_orders = sum total }
 ```
 
@@ -22,7 +22,7 @@ expressions are contained in a tuple. `aggregate` discards all columns that are
 not present in the tuple.
 
 ```prql no-eval
-from invoices
+from.invoices
 aggregate {
     num_orders = count this,
     sum_of_orders = sum total,
@@ -39,7 +39,7 @@ Suppose we want to produce summaries of invoices _for each city_ in the table.
 We could create a query for each city, and aggregate its rows:
 
 ```prql no-eval
-from albums
+from.albums
 filter billing_city == "Oslo"
 aggregate { sum_of_orders = sum total }
 ```
@@ -56,7 +56,7 @@ same city) using information that's already in the table. It then applies a
 transform to each group, and combines the results back together:
 
 ```prql no-eval
-from invoices
+from.invoices
 group billing_city (
     aggregate {
         num_orders = count this,
@@ -66,14 +66,14 @@ group billing_city (
 ```
 
 Those familiar with SQL have probably noticed that we just decoupled aggregation
-from grouping.
+from.grouping.
 
 Although these operations are connected in SQL, PRQL makes it straightforward to
 use `group` and `aggregate` separate from each other, while combining with other
 transform functions, such as:
 
 ```prql no-eval
-from invoices
+from.invoices
 group billing_city (
     take 2
 )

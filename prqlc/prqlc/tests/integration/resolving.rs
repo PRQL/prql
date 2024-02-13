@@ -11,7 +11,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
 
     // resolved PL, restricted back into AST
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);
-    drop_module_defs(&mut root_module.stmts, &["std", "default_db"]);
+    drop_module_defs(&mut root_module.stmts, &["std", "from"]);
 
     prqlc::pl_to_prql(&root_module)
 }
@@ -27,7 +27,7 @@ fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
 #[test]
 fn resolve_basic_01() {
     assert_snapshot!(resolve(r#"
-    from x
+    from.x
     select {a, b}
     "#).unwrap(), @r###"
     let main <[{a = ?, b = ?}]> = `(Select ...)`

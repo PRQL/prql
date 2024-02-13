@@ -30,7 +30,7 @@ sealed public class CompilerTest
         var query = """
             let a = (from employees | take 10)
 
-            from a | select {first_name}
+            from.a | select {first_name}
             """;
         var options = new PrqlCompilerOptions();
 

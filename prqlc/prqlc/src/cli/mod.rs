@@ -578,7 +578,7 @@ mod tests {
         let output = Command::execute(
             &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
             &mut r#"
-from initial_table
+from.initial_table
 select {f = first_name, l = last_name, gender}
 derive full_name = f"{f} {l}"
 take 23
@@ -591,7 +591,7 @@ sort full
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table
+        from.initial_table
         select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
         derive full_name = f"{f} {l}"                   # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
@@ -641,7 +641,7 @@ sort full
                     ("Project.prql".into(), "orders.x | select y".to_string()),
                     (
                         "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
+                        "let x = (from.z | select {y, u})".to_string(),
                     ),
                 ],
                 None,
@@ -709,7 +709,7 @@ sort full
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &mut "from x | select y".into(),
+            &mut "from.x | select y".into(),
             "",
         )
         .unwrap();
@@ -753,7 +753,7 @@ sort full
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &mut "from employees | sort salary | take 3 | filter salary > 0".into(),
+            &mut "from.employees | sort salary | take 3 | filter salary > 0".into(),
             "",
         )
         .unwrap();

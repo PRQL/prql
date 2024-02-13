@@ -1,15 +1,18 @@
 label: Joins
 prql: |
-  from employees
-  join b=benefits (==employee_id)
-  join side:left p=positions (p.id==employees.employee_id)
-  select {employees.employee_id, p.role, b.vision_coverage}
+  from.employees
+  join (from.benefits | select {b = this}) (==employee_id)
+  join side:left from.positions (positions.id==employees.employee_id)
+  select {employees.employee_id, positions.role, b.vision_coverage}
 sql: |
+  WITH table_0 AS (
+    SELECT * FROM benefits
+  )
   SELECT
     employees.employee_id,
-    p.role,
-    b.vision_coverage
+    positions.role,
+    table_0.vision_coverage
   FROM
     employees
-    JOIN benefits AS b ON employees.employee_id = b.employee_id
-    LEFT JOIN positions AS p ON p.id = employees.employee_id
+    JOIN table_0 ON employees.employee_id = table_0.employee_id
+    LEFT JOIN positions ON positions.id = employees.employee_id

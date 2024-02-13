@@ -2,7 +2,7 @@ label: Functions
 prql: |
   let celsius_to_fahrenheit = temp -> temp * 9/5 + 32
 
-  from weather
+  from.weather
   select temp_f = (celsius_to_fahrenheit temp_c)
 sql: |
   SELECT

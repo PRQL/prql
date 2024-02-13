@@ -7,6 +7,7 @@ TokenVec (
   0..12: Comment(" mssql:test"),
   12..13: NewLine,
   13..17: Ident("from"),
+  17..18: Control('.'),
   18..24: Ident("tracks"),
   24..25: NewLine,
   25..31: Ident("derive"),

@@ -54,7 +54,7 @@ let substr = text start len -> s"substr({text}, {start}, {len})"
 
 
 # start of the pipeline
-from tt  # as declared in --from
+from.tt  # as declared in --from
 
 # compute a few new columns
 derive [

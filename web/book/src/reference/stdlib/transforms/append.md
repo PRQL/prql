@@ -7,8 +7,8 @@ number of rows from the two input tables. To replicate `UNION DISTINCT`, see
 [set operations](#set-operations).
 
 ```prql
-from employees_1
-append employees_2
+from.employees_1
+append from.employees_2
 ```
 
 ## Remove
@@ -19,8 +19,8 @@ Removes rows that appear in another relation, like `EXCEPT ALL`. Duplicate rows
 are removed one-for-one.
 
 ```prql
-from employees_1
-remove employees_2
+from.employees_1
+remove from.employees_2
 ```
 
 ## Intersection
@@ -28,8 +28,8 @@ remove employees_2
 > _experimental_
 
 ```prql
-from employees_1
-intersect employees_2
+from.employees_1
+intersect from.employees_2
 ```
 
 ## Set operations

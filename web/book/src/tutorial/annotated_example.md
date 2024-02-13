@@ -10,7 +10,7 @@ explains the details of each line in that example.
 -->
 
 ```prql no-eval
-from invoices                        # A PRQL query begins with a table
+from.invoices                        # A PRQL query begins with a table
                                      # Subsequent lines "transform" (modify) it
 derive {                             # "derive" adds columns to the result
   transaction_fee = 0.8,             # "=" sets a column name
@@ -25,7 +25,7 @@ group customer_id (                  # "group" performs the pipeline in (...) on
     ct = count customer_id,          #
   }
 )
-join c=customers (==customer_id)     # join on "customer_id" from both tables
+join (from.customers | select {c = this}) (==customer_id)     # join on "customer_id" from both tables
 derive name = f"{c.last_name}, {c.first_name}" # F-strings like Python
 derive db_version = s"version()"     # S-string offers escape hatch to SQL
 select {                             # "select" passes along only the named columns

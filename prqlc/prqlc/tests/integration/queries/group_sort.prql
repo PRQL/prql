@@ -1,5 +1,5 @@
 # mssql:test
-from tracks
+from.tracks
 derive d = album_id + 1
 group d (
     aggregate {
