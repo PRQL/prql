@@ -1,4 +1,3 @@
-use crate::ast::{TupleField, Ty, TyFunc, TyKind};
 /// A trait to "fold" a PRQL AST (similar to a visitor), so we can transitively
 /// apply some logic to a whole tree by just defining how we want to handle each
 /// type.
@@ -6,6 +5,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use super::*;
+use crate::ast::{TupleField, Ty, TyFunc, TyKind};
 
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html

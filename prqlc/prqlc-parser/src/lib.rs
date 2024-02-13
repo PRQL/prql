@@ -1,5 +1,4 @@
 mod expr;
-mod file_tree;
 mod interpolation;
 mod lexer;
 mod span;
