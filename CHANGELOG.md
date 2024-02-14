@@ -6,7 +6,7 @@
 
 **Features**:
 
-- Initial implemention of an experimental documentation generator that
+- Initial implementation of an experimental documentation generator that
   generates Markdown documentation from `.prql` files. (@vanillajonathan, #4152).
 
 **Fixes**:
