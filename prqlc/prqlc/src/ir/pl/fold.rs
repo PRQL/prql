@@ -3,9 +3,9 @@
 /// type.
 use anyhow::Result;
 use itertools::Itertools;
-use prqlc_ast::{TupleField, Ty, TyFunc, TyKind};
 
 use super::*;
+use crate::ast::{TupleField, Ty, TyFunc, TyKind};
 
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html

@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use prqlc_ast::{Span, Ty};
-
+use crate::ast::{Span, Ty};
 use crate::codegen::write_ty;
 use crate::ir::pl::*;
 use crate::semantic::write_pl;

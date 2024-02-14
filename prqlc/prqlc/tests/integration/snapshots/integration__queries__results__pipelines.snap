@@ -1,6 +1,7 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# sqlite:skip (Only works on Sqlite implementations which have the extension\n# installed\n# https://stackoverflow.com/questions/24037982/how-to-use-regexp-in-sqlite)\n\nfrom tracks\n\nfilter (name ~= \"Love\")\nfilter ((milliseconds / 1000 / 60) | in 3..4)\nsort track_id\ntake 1..15\nselect {name, composer}\n"
+input_file: prqlc/prqlc/tests/integration/queries/pipelines.prql
 ---
 My Love,Jauperi/Zeu Góes
 The Girl I Love She Got Long Black Wavy Hair,Jimmy Page/John Bonham/John Estes/John Paul Jones/Robert Plant

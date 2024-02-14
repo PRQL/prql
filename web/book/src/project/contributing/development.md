@@ -441,10 +441,10 @@ Currently we release in a semi-automated way:
    produce a draft version at <https://github.com/PRQL/prql/releases/new>,
    including "New Contributors".
 
-   Use this script to generate the first line:
+   Use this script to generate a line introducing the enumerated changes:
 
    ```sh
-   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
+   echo "It has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
 2. If the current version is correct, then skip ahead. But if the version needs
@@ -467,9 +467,9 @@ Currently we release in a semi-automated way:
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
 
 5. Run
-   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
+   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task test-rust`
    to bump the versions and add a new Changelog section; then PR the resulting
-   commit. Currently we also require running `task test-rust` to update snapshot
+   commit. Note this currently contains `task test-rust` to update snapshot
    tests which contain the version.
 
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)

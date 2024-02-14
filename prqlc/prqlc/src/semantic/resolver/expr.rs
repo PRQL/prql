@@ -1,14 +1,13 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{Span, TupleField, Ty, TyKind};
-
+use crate::ast::{TupleField, Ty, TyKind};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
-use crate::{Error, Reason, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {

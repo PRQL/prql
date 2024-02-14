@@ -69,7 +69,7 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`prqlc_ast::expr::ExprKind::Literal`]
+//! * `serde_yaml`: adapts the `Serialize` implementation for [`crate::ast::expr::ExprKind::Literal`]
 //!   to `serde_yaml`, which doesn't support the serialization of nested enums
 //!
 //! ## Large binary sizes
@@ -99,17 +99,16 @@ pub mod semantic;
 pub mod sql;
 mod utils;
 
-pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation, WithErrorInfo};
+pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
+pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
 pub use ir::Span;
 pub use prqlc_ast as ast;
-pub use prqlc_ast::error::{Error, Errors, MessageKind, Reason};
 
 use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
-use utils::IdGenerator;
 
 pub static COMPILER_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
@@ -140,8 +139,7 @@ pub static COMPILER_VERSION: Lazy<Version> =
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
-    let mut sources = SourceTree::from(prql);
-    semantic::load_std_lib(&mut sources);
+    let sources = SourceTree::from(prql);
 
     parser::parse(&sources)
         .and_then(|ast| semantic::resolve_and_lower(ast, &[], None))
@@ -271,19 +269,13 @@ pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
 // TODO: rename this to `prql_to_pl_simple`
-pub fn prql_to_pl(prql: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
-    let sources = SourceTree::from(prql);
-
-    parser::parse(&sources)
-        .map(|x| x.sources.into_values().next().unwrap())
-        .map_err(error_message::downcast)
-        .map_err(|e| e.composed(&prql.into()))
+pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
+    let source_tree = SourceTree::from(prql);
+    prql_to_pl_tree(&source_tree)
 }
 
 /// Parse PRQL into a PL AST
-pub fn prql_to_pl_tree(
-    prql: &SourceTree,
-) -> Result<SourceTree<Vec<prqlc_ast::stmt::Stmt>>, ErrorMessages> {
+pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessages> {
     parser::parse(prql)
         .map_err(error_message::downcast)
         .map_err(|e| e.composed(prql))
@@ -291,14 +283,13 @@ pub fn prql_to_pl_tree(
 
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
-pub fn pl_to_rq(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    let source_tree = SourceTree::single(PathBuf::new(), pl);
-    semantic::resolve_and_lower(source_tree, &[], None).map_err(error_message::downcast)
+pub fn pl_to_rq(pl: ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
+    semantic::resolve_and_lower(pl, &[], None).map_err(error_message::downcast)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq_tree(
-    pl: SourceTree<Vec<prqlc_ast::stmt::Stmt>>,
+    pl: ast::ModuleDef,
     main_path: &[String],
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
@@ -312,8 +303,8 @@ pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<Strin
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
-    Ok(codegen::WriteSource::write(&pl, codegen::WriteOpt::default()).unwrap())
+pub fn pl_to_prql(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+    Ok(codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap())
 }
 
 /// JSON serialization and deserialization functions
@@ -321,18 +312,18 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: Vec<prqlc_ast::stmt::Stmt>) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+        serde_json::to_string(pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<Vec<prqlc_ast::stmt::Stmt>, ErrorMessages> {
+    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, ErrorMessages> {
         serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON serialization
-    pub fn from_rq(rq: ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&rq).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn from_rq(rq: &ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
+        serde_json::to_string(rq).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
@@ -348,20 +339,20 @@ pub mod json {
 // (i.e. `Option<PathBuf>` below signifies whether it's a project or not). But
 // waiting until it's necessary before splitting it out.)
 #[derive(Debug, Clone, Default, Serialize)]
-pub struct SourceTree<T: Sized + Serialize = String> {
+pub struct SourceTree {
     /// Path to the root of the source tree.
     pub root: Option<PathBuf>,
 
     /// Mapping from file paths into into their contents.
     /// Paths are relative to the root.
-    pub sources: HashMap<PathBuf, T>,
+    pub sources: HashMap<PathBuf, String>,
 
     /// Index of source ids to paths. Used to keep [error::Span] lean.
     source_ids: HashMap<u16, PathBuf>,
 }
 
-impl<T: Sized + Serialize> SourceTree<T> {
-    pub fn single(path: PathBuf, content: T) -> Self {
+impl SourceTree {
+    pub fn single(path: PathBuf, content: String) -> Self {
         SourceTree {
             sources: [(path.clone(), content)].into(),
             source_ids: [(1, path)].into(),
@@ -371,41 +362,25 @@ impl<T: Sized + Serialize> SourceTree<T> {
 
     pub fn new<I>(iter: I, root: Option<PathBuf>) -> Self
     where
-        I: IntoIterator<Item = (PathBuf, T)>,
+        I: IntoIterator<Item = (PathBuf, String)>,
     {
-        let mut id_gen = IdGenerator::<usize>::new();
         let mut res = SourceTree {
             sources: HashMap::new(),
             source_ids: HashMap::new(),
             root,
         };
 
-        for (path, content) in iter {
+        for (index, (path, content)) in iter.into_iter().enumerate() {
             res.sources.insert(path.clone(), content);
-            res.source_ids.insert(id_gen.gen() as u16, path);
+            res.source_ids.insert((index + 1) as u16, path);
         }
         res
     }
 
-    pub fn insert(&mut self, path: PathBuf, content: T) {
+    pub fn insert(&mut self, path: PathBuf, content: String) {
         let last_id = self.source_ids.keys().max().cloned().unwrap_or(0);
         self.sources.insert(path.clone(), content);
         self.source_ids.insert(last_id + 1, path);
-    }
-
-    pub fn map<F, U: Sized + Serialize>(self, f: F) -> SourceTree<U>
-    where
-        F: Fn(T) -> U,
-    {
-        SourceTree {
-            sources: self
-                .sources
-                .into_iter()
-                .map(|(path, val)| (path, f(val)))
-                .collect(),
-            source_ids: self.source_ids,
-            root: self.root,
-        }
     }
 
     pub fn get_path(&self, source_id: u16) -> Option<&PathBuf> {
@@ -415,15 +390,15 @@ impl<T: Sized + Serialize> SourceTree<T> {
 
 impl<S: ToString> From<S> for SourceTree {
     fn from(source: S) -> Self {
-        SourceTree::single(std::path::Path::new("").to_path_buf(), source.to_string())
+        SourceTree::single(PathBuf::from(""), source.to_string())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::ast::expr::Ident;
     use crate::Target;
     use insta::assert_debug_snapshot;
-    use prqlc_ast::expr::Ident;
     use std::str::FromStr;
 
     pub fn compile(prql: &str) -> Result<String, super::ErrorMessages> {

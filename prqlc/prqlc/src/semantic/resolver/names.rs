@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 
-use prqlc_ast::expr::Ident;
+use crate::ast::Ident;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};

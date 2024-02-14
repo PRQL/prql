@@ -8,11 +8,8 @@ The main entry point is a Python method `prqlc.compile(query: str) -> str`.
 The package is consumed by [pyprql](https://github.com/prql/pyprql) &
 [dbt-prql](https://github.com/prql/dbt-prql).
 
-<!-- TODO: change -->
-<!-- <https://pypi.org/project/prqlc/>. -->
-
 The crate is not published to crates.io; only to PyPI at
-<https://pypi.org/project/prql-python/>.
+<https://pypi.org/project/prqlc/>.
 
 ## Installation
 

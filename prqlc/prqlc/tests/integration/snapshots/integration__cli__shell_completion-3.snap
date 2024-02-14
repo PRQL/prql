@@ -7,10 +7,10 @@ info:
     - shell-completion
     - powershell
   env:
-    NO_COLOR: "1"
     CLICOLOR_FORCE: ""
-    RUST_BACKTRACE: ""
     RUST_LOG: ""
+    RUST_BACKTRACE: ""
+    NO_COLOR: "1"
 ---
 success: true
 exit_code: 0
@@ -47,6 +47,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
             [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
+            [CompletionResult]::new('experimental', 'experimental', [CompletionResultType]::ParameterValue, 'Experimental commands are prone to change')
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
             [CompletionResult]::new('sql:preprocess', 'sql:preprocess', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess SRQ')
             [CompletionResult]::new('sql:anchor', 'sql:anchor', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess & anchor SRQ')
@@ -145,6 +146,31 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         'prqlc;debug;help;help' {
             break
         }
+        'prqlc;experimental' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;experimental;doc' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;experimental;help' {
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;experimental;help;doc' {
+            break
+        }
+        'prqlc;experimental;help;help' {
+            break
+        }
         'prqlc;resolve' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
@@ -200,6 +226,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
             [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
+            [CompletionResult]::new('experimental', 'experimental', [CompletionResultType]::ParameterValue, 'Experimental commands are prone to change')
             [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
             [CompletionResult]::new('sql:preprocess', 'sql:preprocess', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess SRQ')
             [CompletionResult]::new('sql:anchor', 'sql:anchor', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess & anchor SRQ')
@@ -240,6 +267,13 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;debug;ast' {
+            break
+        }
+        'prqlc;help;experimental' {
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            break
+        }
+        'prqlc;help;experimental;doc' {
             break
         }
         'prqlc;help;resolve' {

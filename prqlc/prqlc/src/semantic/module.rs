@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::ast::QueryDef;
+use crate::ast::{Literal, Span, TupleField, Ty, TyKind};
 use anyhow::Result;
-use prqlc_ast::stmt::QueryDef;
-use prqlc_ast::{Literal, Span, TupleField, Ty, TyKind};
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::Error;

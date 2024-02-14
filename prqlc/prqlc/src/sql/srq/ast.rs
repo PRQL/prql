@@ -8,10 +8,10 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::Serialize;
 
+use crate::ast::generic::InterpolateItem;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::JoinSide;
 use crate::ir::rq::{self, fold_column_sorts, RelationLiteral, RqFold};
-use prqlc_ast::expr::generic::InterpolateItem;
 
 use super::context::RIId;
 

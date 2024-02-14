@@ -5,18 +5,16 @@ use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use prqlc_ast::error::{Error, Reason};
-use prqlc_ast::{TupleField, Ty, TyKind};
-
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 
+use crate::ast::{TupleField, Ty, TyKind};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
-use crate::{WithErrorInfo, COMPILER_VERSION};
+use crate::{Error, Reason, WithErrorInfo, COMPILER_VERSION};
 
 use super::types::{ty_tuple_kind, type_intersection};
 use super::Resolver;
@@ -780,6 +778,17 @@ impl Lineage {
             ExprKind::Tuple(fields) => {
                 for expr in fields {
                     self.apply_assigns(expr, inline_refs);
+                }
+
+                // hack for making `x | select { y = this }` work
+                if let Some(alias) = &assigns.alias {
+                    if self.columns.len() == 1 {
+                        let col = self.columns.first().unwrap();
+                        if let LineageColumn::All { input_id, .. } = col {
+                            let input = self.inputs.iter_mut().find(|i| i.id == *input_id).unwrap();
+                            input.name = alias.clone();
+                        }
+                    }
                 }
             }
             _ => self.apply_assign(assigns, inline_refs),
