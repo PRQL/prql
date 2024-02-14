@@ -12,7 +12,9 @@ services:
     volumes: &vol
       - ../data/chinook:/tmp/chinook:ro
   mysql:
-    image: "mysql:oracle"
+    # TODO: unpinning this causes an error. Possibly something to do with
+    # `--secure-file-priv=""`, which currently shows a deprecation warning.
+    image: "mysql:8.2.0-oracle"
     ports:
       - "3306:3306"
     environment:
