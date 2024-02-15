@@ -200,21 +200,23 @@ mod results {
             results.push((dialect, result));
         }
 
-        // insta::allow_duplicates!, but with reporting of which two cases are not matching.
-        let (left_dialect, left_text) = results.swap_remove(0);
-        for (right_dialect, right_text) in results {
-            similar_asserts::assert_eq!(
-                left_text,
-                right_text,
-                "{} {} {}",
-                test_name,
-                left_dialect,
-                right_dialect
-            );
-        }
+        // insta::allow_duplicates!, but with reporting of which two cases are
+        // not matching.
+        let ((first_dialect, first_text), others) = results.split_first().unwrap();
 
         with_settings!({ input_file => prql_path }, {
-            assert_snapshot!(test_name, left_text, &prql)
-        })
+            assert_snapshot!(test_name, first_text, &prql)
+        });
+
+        for (dialect, text) in others {
+            similar_asserts::assert_eq!(
+                first_text,
+                text,
+                "{} {} {}",
+                test_name,
+                first_dialect,
+                dialect
+            );
+        }
     }
 }
