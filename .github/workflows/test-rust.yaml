@@ -33,6 +33,12 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+      - name: Run docker compose
+        # trying
+        # run: docker compose up -d
+        run: docker compose up -d && sleep 10
+        working-directory: ./prqlc/prqlc/tests/integration/dbs
+        if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update
@@ -76,12 +82,6 @@ jobs:
         if:
           ${{ contains(inputs.features, 'test-dbs-external') &&
           steps.cache.outputs.cache-hit == 'false' }}
-      - name: Run docker compose
-        # trying
-        # run: docker compose up -d
-        run: docker compose up -d && sleep 10
-        working-directory: ./prqlc/prqlc/tests/integration/dbs
-        if: ${{ contains(inputs.features, 'test-dbs-external') }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1.1.0
         with:
