@@ -6,7 +6,9 @@ use super::DbProtocolHandler;
 use crate::dbs::Row;
 
 pub fn init(url: &str) -> Box<dyn DbProtocolHandler> {
-    Box::new(mysql::Pool::new(url).unwrap())
+    Box::new(
+        mysql::Pool::new(url).unwrap_or_else(|e| panic!("Failed to connect to {}:\n{}", url, e)),
+    )
 }
 
 impl DbProtocolHandler for mysql::Pool {
