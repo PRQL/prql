@@ -16,7 +16,6 @@
         essentials = with pkgs; [
           # compiler requirements
           rustup
-          clang
 
           # tools
           cargo-nextest
@@ -78,10 +77,10 @@
           buildInputs = essentials ++ web ++ bindings;
 
           # needed for running wheels produced by Python maturin builds that are not manylinux
-          shellHook = ''
-            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath bindings}:$LD_LIBRARY_PATH"
-            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
-          '';
+          # shellHook = ''
+          #   export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath bindings}:$LD_LIBRARY_PATH"
+          #   export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
+          # '';
         };
       });
 }
