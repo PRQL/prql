@@ -36,6 +36,7 @@ impl Serialize for Span {
 
 impl PartialOrd for Span {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // We could expand this to compare source_id too, starting with minimum surprise
         match other.source_id.partial_cmp(&self.source_id) {
             Some(std::cmp::Ordering::Equal) => {
                 debug_assert!((self.start <= other.start) == (self.end <= other.end));
