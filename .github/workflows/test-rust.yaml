@@ -57,8 +57,14 @@ jobs:
         id: cache
         with:
           prefix-key: ${{ env.version }}
-          shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: rust-${{ inputs.target }}
+          # Don't save if empty features, because we run a test with empty
+          # features on linux, and don't want to save that instead of the one
+          # with all features. I tried including features in the key, but it
+          # contains a comma, which isn't allowed; a whole extra task to remove
+          # the comma seemed over the top.
+          save-if:
+            ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile

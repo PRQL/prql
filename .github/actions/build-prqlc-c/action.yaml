@@ -35,7 +35,7 @@ runs:
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
           'musl') }}
-        shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
+        shared-key: rust-${{ inputs.target }}
         prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
