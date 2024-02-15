@@ -483,8 +483,7 @@ pub(super) fn translate_query_sstring(
 
     Err(
         Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
-            .push_hint("this is a limitation by current compiler implementation")
-            .into(),
+            .push_hint("this is a limitation by current compiler implementation"),
     )
 }
 

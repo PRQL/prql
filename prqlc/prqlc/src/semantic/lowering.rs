@@ -124,7 +124,7 @@ fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationCol
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
         if !requirement.matches(&COMPILER_VERSION) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler.").into());
+            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler."));
         }
     }
     Ok(())
@@ -396,8 +396,7 @@ impl Lowerer {
                     found: format!("`{}`", write_pl(expr.clone())),
                 })
                 .push_hint("are you missing `from` statement?")
-                .with_span(expr.span)
-                .into())
+                .with_span(expr.span))
             }
         })
     }
@@ -740,8 +739,7 @@ impl Lowerer {
                         who: None,
                         expected: "an identifier".to_string(),
                         found: write_pl(e),
-                    })
-                    .into());
+                    }));
                 }
             }
         }
@@ -831,8 +829,7 @@ impl Lowerer {
                     } else {
                         return Err(
                             Error::new_simple("This wildcard usage is not yet supported.")
-                                .with_span(span)
-                                .into(),
+                                .with_span(span),
                         );
                     }
                 } else if let Some(id) = expr.target_id {
@@ -854,8 +851,7 @@ impl Lowerer {
                 } else {
                     return Err(
                         Error::new_simple("This wildcard usage is not yet supported.")
-                            .with_span(span)
-                            .into(),
+                            .with_span(span),
                     );
                 }
             }
@@ -899,8 +895,7 @@ impl Lowerer {
                 return Err(
                     Error::new_simple("table instance cannot be referenced directly")
                         .push_hint("did you forget to specify the column name?")
-                        .with_span(span)
-                        .into(),
+                        .with_span(span),
                 );
             }
 
@@ -917,8 +912,7 @@ impl Lowerer {
                     found: format!("`{}`", write_pl(expr.clone())),
                 })
                 .push_hint("this is probably a 'bad type' error (we are working on that)")
-                .with_span(expr.span)
-                .into());
+                .with_span(expr.span));
             }
 
             pl::ExprKind::Internal(_) => {
@@ -957,8 +951,7 @@ impl Lowerer {
                         "This table contains unnamed columns that need to be referenced by name",
                     )
                     .with_span(self.root_mod.span_map.get(&id).cloned())
-                    .push_hint("the name may have been overridden later in the pipeline.")
-                    .into()),
+                    .push_hint("the name may have been overridden later in the pipeline.")),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");
 
@@ -1019,8 +1012,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
             expected: "a positive int range".to_string(),
             found: range_display,
         })
-        .with_span(span)
-        .into())
+        .with_span(span))
     } else {
         Ok(())
     }
@@ -1139,9 +1131,9 @@ where
 {
     move |e| {
         if e.span.is_some() {
-            return e.into();
+            return e;
         }
 
-        e.with_span(get_span()).into()
+        e.with_span(get_span())
     }
 }

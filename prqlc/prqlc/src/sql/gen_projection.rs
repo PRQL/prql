@@ -42,8 +42,7 @@ pub(super) fn try_into_exprs(
             if !excluded.is_empty() {
                 return Err(
                     Error::new_simple("Excluding columns not supported as this position")
-                        .with_span(span)
-                        .into(),
+                        .with_span(span),
                 );
             }
         }

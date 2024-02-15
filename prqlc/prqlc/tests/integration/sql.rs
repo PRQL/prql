@@ -2279,7 +2279,7 @@ fn test_from_json() {
     let sql_from_json = prqlc::prql_to_pl(original_prql)
         .map(|x| prqlc::json::from_pl(&x).unwrap())
         .map(|json| prqlc::json::to_pl(&json).unwrap())
-        .and_then(|x| prqlc::pl_to_rq(x))
+        .and_then(prqlc::pl_to_rq)
         .and_then(|rq| prqlc::rq_to_sql(rq, &Options::default()))
         .unwrap();
 

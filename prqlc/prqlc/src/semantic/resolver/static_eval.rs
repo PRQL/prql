@@ -134,7 +134,7 @@ struct StaticEvaluator<'a, 'b> {
 impl<'a, 'b> StaticEvaluator<'a, 'b> {
     fn run(expr: Expr, resolver: &'a mut super::Resolver<'b>) -> Result<ConstExpr> {
         let expr = StaticEvaluator { resolver }.fold_expr(expr)?;
-        Ok(restrict_to_const(expr)?)
+        restrict_to_const(expr)
     }
 }
 

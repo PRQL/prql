@@ -437,7 +437,7 @@ impl RootModule {
     ) -> Result<()> {
         let existing = self.module.get(&ident);
         if existing.is_some() {
-            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
+            return Err(Error::new_simple(format!("duplicate declarations of {ident}")));
         }
 
         let decl = Decl {

@@ -148,7 +148,7 @@ fn expand_unary(UnaryExpr { op, expr }: UnaryExpr) -> Result<pl::ExprKind> {
             if !ident.path.is_empty() {
                 return Err(Error::new_simple(
                     "you cannot use namespace prefix with self-equality operator",
-                ).into());
+                ));
             }
 
             let left = pl::Expr {

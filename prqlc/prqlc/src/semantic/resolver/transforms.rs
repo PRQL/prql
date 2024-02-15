@@ -90,8 +90,7 @@ impl Resolver<'_> {
                             })
                             // Possibly this should refer to the item after the `take` where
                             // one exists?
-                            .with_span(expr.span)
-                            .into());
+                            .with_span(expr.span));
                         }
                     }
                 };
@@ -262,8 +261,7 @@ impl Resolver<'_> {
                     expected: "a pattern".to_string(),
                     found: write_pl(pattern.clone()),
                 })
-                .with_span(pattern.span)
-                .into());
+                .with_span(pattern.span));
             }
 
             "tuple_every" => {
@@ -343,8 +341,7 @@ impl Resolver<'_> {
                             expected: "a string literal".to_string(),
                             found: format!("`{}`", write_pl(text_expr.clone())),
                         })
-                        .with_span(text_expr.span)
-                        .into());
+                        .with_span(text_expr.span));
                     }
                 };
 
@@ -427,8 +424,7 @@ impl Resolver<'_> {
                 return Err(
                     Error::new_simple(format!("unknown operator {internal_name}"))
                         .push_hint("this is a bug in prqlc")
-                        .with_span(func.body.span)
-                        .into(),
+                        .with_span(func.body.span),
                 )
             }
         };
@@ -457,8 +453,7 @@ impl Resolver<'_> {
                     found: format!("assign to `{alias}`"),
                 })
                 .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
-                .with_span(expr.span)
-                .into());
+                .with_span(expr.span));
             }
 
             expr
@@ -564,8 +559,7 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
             ExprKind::Literal(Literal::Null) => Ok(None),
             ExprKind::Literal(Literal::Integer(i)) => Ok(Some(i)),
             _ => Err(Error::new_simple("expected an int literal")
-                .with_span(bound.span)
-                .into()),
+                .with_span(bound.span)),
         }
     }
     Ok((into_int(range.0)?, into_int(range.1)?))
@@ -1046,7 +1040,7 @@ mod from_text {
         let data: Vec<JsonFormat1Row> = serde_json::from_str(text).map_err(|e| e.to_string())?;
         let mut columns = data
             .first()
-            .ok_or_else(|| "json: no rows")?
+            .ok_or("json: no rows")?
             .keys()
             .cloned()
             .collect_vec();

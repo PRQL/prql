@@ -82,7 +82,7 @@ impl PlFold for Evaluator {
             | ExprKind::RqOperator { .. }
             | ExprKind::Param(_)
             | ExprKind::Internal(_) => {
-                return Err(Error::new_simple("not a value").with_span(expr.span).into())
+                return Err(Error::new_simple("not a value").with_span(expr.span))
             }
         };
         Ok(expr)
@@ -100,7 +100,7 @@ fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if name == "std" {
         return Ok(std_module());
     }
-    Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)).into())
+    Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)))
 }
 
 impl Evaluator {
@@ -142,7 +142,7 @@ impl Evaluator {
                     (Integer(l), Float(r)) => (l as f64) + r,
                     (Float(l), Float(r)) => l + r,
 
-                    _ => return Err(Error::new_simple("bad arg types").with_span(span).into()),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(span)),
                 };
 
                 ExprKind::Literal(Float(res))
@@ -154,7 +154,7 @@ impl Evaluator {
                 let res = match x.kind {
                     ExprKind::Literal(Integer(i)) => i,
                     ExprKind::Literal(Float(f)) => f.floor() as i64,
-                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span)),
                 };
 
                 ExprKind::Literal(Integer(res))
@@ -166,7 +166,7 @@ impl Evaluator {
                 match x.kind {
                     ExprKind::Literal(Integer(i)) => ExprKind::Literal(Integer(-i)),
                     ExprKind::Literal(Float(f)) => ExprKind::Literal(Float(-f)),
-                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span)),
                 }
             }
 
@@ -273,8 +273,7 @@ impl Evaluator {
 
             _ => {
                 return Err(Error::new_simple(format!("unknown function {func_name}"))
-                    .with_span(span)
-                    .into())
+                    .with_span(span))
             }
         })
     }

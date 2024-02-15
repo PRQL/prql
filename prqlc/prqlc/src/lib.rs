@@ -144,7 +144,7 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
     Ok(&sources)
-        .and_then(|s| parser::parse(s))
+        .and_then(parser::parse)
         .and_then(|ast| semantic::resolve_and_lower(ast, &[], None).map_err(Errors::from))
         .and_then(|rq| sql::compile(rq, options).map_err(Errors::from))
         .map_err(|e| ErrorMessages::from(e).composed(&sources))

@@ -73,8 +73,7 @@ fn linearize_tree(tree: &SourceTree) -> Result<Vec<SourceFile>> {
             "Cannot find the root module within the following files:\n{file_names}"
         ))
         .push_hint("add a file that starts with uppercase letter to the root directory")
-        .with_code("E0002")
-        .into());
+        .with_code("E0002"));
     }
 
     let mut sources: Vec<_> = Vec::with_capacity(tree.sources.len());

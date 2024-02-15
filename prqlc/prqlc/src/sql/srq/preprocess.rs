@@ -97,7 +97,7 @@ fn lookup_riid(table_ref: &TableRef, ctx: &mut Context) -> Result<RIId> {
     // now we can look it up and replace with its RIId
 
     let Some((_, cid)) = table_ref.columns.first() else {
-        return Err(Error::new_simple("invalid RQ: table ref without columns").into());
+        return Err(Error::new_simple("invalid RQ: table ref without columns"));
     };
 
     let ColumnDecl::RelationColumn(riid, _, _) = ctx.anchor.column_decls[cid] else {
@@ -382,8 +382,7 @@ pub(in crate::sql) fn except(
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
                 return Err(Error::new_simple(format!("The dialect {:?} does not support EXCEPT ALL", ctx.dialect))
-                    .push_hint("providing more column information will allow the query to be translated to an anti-join.")
-                    .into());
+                    .push_hint("providing more column information will allow the query to be translated to an anti-join."));
             } else {
                 // Don't create Except, fallback to anti-join.
                 continue;
@@ -470,8 +469,7 @@ pub(in crate::sql) fn intersect(
             // can we fall back to anti-join?
             if ctx.anchor.contains_wildcard(&top) || ctx.anchor.contains_wildcard(&bottom) {
                 return Err(Error::new_simple(format!("The dialect {:?} does not support INTERSECT ALL", ctx.dialect))
-                    .push_hint("providing more column information will allow the query to be translated to an anti-join.")
-                    .into());
+                    .push_hint("providing more column information will allow the query to be translated to an anti-join."));
             } else {
                 // Don't create Intercept, fallback to inner join.
                 continue;

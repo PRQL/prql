@@ -63,8 +63,7 @@ pub(super) fn translate_operator(
             return Err(Error::new_simple(format!(
                 "operator {} is not supported for dialect {}",
                 name, ctx.dialect_enum
-            ))
-            .into())
+            )))
         }
         pl::ExprKind::SString(items) => items,
         _ => panic!("Bad RQ operator implementation. Expected s-string or null"),

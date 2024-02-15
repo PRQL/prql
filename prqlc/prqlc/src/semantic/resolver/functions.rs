@@ -34,8 +34,7 @@ impl Resolver<'_> {
                 "Too many arguments to function `{}`",
                 closure.as_debug_name()
             ))
-            .with_span(span)
-            .into());
+            .with_span(span));
         }
 
         let enough_args = closure.args.len() == closure.params.len();

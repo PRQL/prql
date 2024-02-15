@@ -123,8 +123,7 @@ pub(super) fn translate_expr(expr: Expr, ctx: &mut Context) -> Result<ExprOrSour
             return Err(Error::new(Reason::Unexpected {
                 found: "array of values (not supported here)".to_string(),
             })
-            .with_span(expr.span)
-            .into());
+            .with_span(expr.span));
         }
     })
 }
@@ -211,8 +210,7 @@ fn process_date_to_text(
     } else {
         Err(
             Error::new_simple("`std.date.to_text` only supports a string literal as format")
-                .with_span(expr.span)
-                .into(),
+                .with_span(expr.span),
         )
     }
 }
@@ -533,8 +531,7 @@ pub(super) fn translate_star(ctx: &Context, span: Option<Span>) -> Result<String
     if !ctx.query.allow_stars {
         Err(
             Error::new_simple("Target dialect does not support * in this position.")
-                .with_span(span)
-                .into(),
+                .with_span(span),
         )
     } else {
         Ok("*".to_string())
