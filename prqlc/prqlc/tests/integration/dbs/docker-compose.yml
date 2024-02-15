@@ -12,9 +12,6 @@ services:
     volumes: &vol
       - ../data/chinook:/tmp/chinook:ro
   mysql:
-    # TODO: unpinning this causes an error, would be good to unpin & fix.
-    # Possibly something to do with `--secure-file-priv=""`, which currently
-    # shows a deprecation warning.
     image: "mysql:8.1.0-oracle"
     ports:
       - "3306:3306"
@@ -37,7 +34,8 @@ services:
       MSSQL_COLLATION: Latin1_General_100_CS_AI_SC_UTF8
     volumes: *vol
   clickhouse:
-    image: "clickhouse/clickhouse-server:latest-alpine"
+    # TODO: unpinning this causes an error, would be good to unpin & fix.
+    image: "clickhouse/clickhouse-server:23.12.4.15-alpine"
     ports:
       # 9004 is MySQL emulation port
       # https://clickhouse.com/docs/en/guides/sre/network-ports
