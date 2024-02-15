@@ -52,7 +52,7 @@ jobs:
         id: cache
         with:
           prefix-key: ${{ env.version }}
-          shared-key: rust-${{ inputs.target }}
+          shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
