@@ -94,7 +94,7 @@
 mod codegen;
 mod error_message;
 pub mod ir;
-mod parser;
+pub mod parser;
 pub mod semantic;
 pub mod sql;
 mod utils;
@@ -312,23 +312,27 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, serde_json::Error> {
-        serde_json::to_string(pl)
+    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
+        serde_json::to_string(pl).map_err(convert_json_err)
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, serde_json::Error> {
-        serde_json::from_str(json)
+    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, ErrorMessages> {
+        serde_json::from_str(json).map_err(convert_json_err)
     }
 
     /// JSON serialization
-    pub fn from_rq(rq: &ir::rq::RelationalQuery) -> Result<String, serde_json::Error> {
-        serde_json::to_string(rq)
+    pub fn from_rq(rq: &ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
+        serde_json::to_string(rq).map_err(convert_json_err)
     }
 
     /// JSON deserialization
-    pub fn to_rq(json: &str) -> Result<ir::rq::RelationalQuery, serde_json::Error> {
-        serde_json::from_str(json)
+    pub fn to_rq(json: &str) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
+        serde_json::from_str(json).map_err(convert_json_err)
+    }
+
+    fn convert_json_err(err: serde_json::Error) -> ErrorMessages {
+        ErrorMessages::from(Error::new_simple(err.to_string()))
     }
 }
 

@@ -13,7 +13,7 @@ pub mod postgres;
 
 pub mod sqlite;
 
-use crate::Result;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::Row;

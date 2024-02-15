@@ -29,8 +29,8 @@ cli = [
 default = ["cli"]
 # Technically tokio could be limited to external tests, but its types are in
 # signatures which would require lots of conditional compilation.
-test-dbs = ["duckdb", "glob", "rusqlite", "tokio"]
-test-dbs-external = ["duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
+test-dbs = ["anyhow", "duckdb", "glob", "rusqlite", "tokio"]
+test-dbs-external = ["anyhow", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
 prqlc-ast = {path = "../prqlc-ast", version = "0.11.4"}

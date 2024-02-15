@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prqlc_lib::{self, Target};
+
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -102,7 +102,7 @@ impl CompileOptions {
 }
 
 fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
-    let target = Target::from_str(&o.target).map_err(|e| prqlc_lib::downcast(e.into()))?;
+    let target = prqlc_lib::Target::from_str(&o.target).map_err(prqlc_lib::ErrorMessages::from)?;
 
     Ok(prqlc_lib::Options {
         format: o.format,
@@ -115,7 +115,7 @@ fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::E
 
 #[pyfunction]
 pub fn get_targets() -> Vec<String> {
-    Target::names()
+    prqlc_lib::Target::names()
 }
 
 #[cfg(not(feature = "extension-module"))]

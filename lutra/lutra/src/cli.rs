@@ -21,9 +21,7 @@ fn main() {
     match res {
         Ok(_) => {}
         Err(err) => {
-            let errors = prqlc::downcast(err);
-
-            println!("{errors}");
+            println!("{err}");
             std::process::exit(1);
         }
     }

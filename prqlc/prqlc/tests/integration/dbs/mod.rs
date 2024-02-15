@@ -4,7 +4,7 @@
 mod protocol;
 mod runner;
 
-use crate::Result;
+use anyhow::Result;
 use prqlc::{sql::Dialect, sql::SupportLevel, Options, Target};
 use regex::Regex;
 use serde::{Deserialize, Serialize};

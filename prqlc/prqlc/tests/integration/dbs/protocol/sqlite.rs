@@ -1,4 +1,4 @@
-use crate::Result;
+use anyhow::Result;
 use rusqlite::types::ValueRef;
 
 use super::DbProtocolHandler;
