@@ -34,11 +34,10 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: Run docker compose
-        # trying
-        # run: docker compose up -d
-        run: docker compose up -d && sleep 10
-        working-directory: ./prqlc/prqlc/tests/integration/dbs
+        # This can go early because the DBs take a few seconds to start up.
         if: ${{ contains(inputs.features, 'test-dbs-external') }}
+        run: docker compose up -d
+        working-directory: ./prqlc/prqlc/tests/integration/dbs
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update

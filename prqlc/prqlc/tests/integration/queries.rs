@@ -97,14 +97,14 @@ mod results {
 
                 protocol: DbProtocol::DuckDb,
             },
-            // ConnectionCfg {
-            //     dialect: Dialect::Postgres,
-            //     data_file_root: "/tmp/chinook".to_string(),
+            ConnectionCfg {
+                dialect: Dialect::Postgres,
+                data_file_root: "/tmp/chinook".to_string(),
 
-            //     protocol: DbProtocol::Postgres {
-            //         url: "host=localhost user=root password=root dbname=dummy".to_string(),
-            //     },
-            // },
+                protocol: DbProtocol::Postgres {
+                    url: "host=localhost user=root password=root dbname=dummy".to_string(),
+                },
+            },
             ConnectionCfg {
                 dialect: Dialect::MySql,
                 data_file_root: "/tmp/chinook".to_string(),
@@ -113,28 +113,28 @@ mod results {
                     url: "mysql://root:root@localhost:3306/dummy".to_string(),
                 },
             },
-            // ConnectionCfg {
-            //     dialect: Dialect::ClickHouse,
-            //     data_file_root: "chinook".to_string(),
+            ConnectionCfg {
+                dialect: Dialect::ClickHouse,
+                data_file_root: "chinook".to_string(),
 
-            //     protocol: DbProtocol::MySql {
-            //         url: "mysql://default:@localhost:9004/dummy".to_string(),
-            //     },
-            // },
-            // ConnectionCfg {
-            //     dialect: Dialect::GlareDb,
-            //     data_file_root: "/tmp/chinook".to_string(),
+                protocol: DbProtocol::MySql {
+                    url: "mysql://default:@localhost:9004/dummy".to_string(),
+                },
+            },
+            ConnectionCfg {
+                dialect: Dialect::GlareDb,
+                data_file_root: "/tmp/chinook".to_string(),
 
-            //     protocol: DbProtocol::Postgres {
-            //         url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
-            //     },
-            // },
-            // ConnectionCfg {
-            //     dialect: Dialect::MsSql,
-            //     data_file_root: "/tmp/chinook".to_string(),
+                protocol: DbProtocol::Postgres {
+                    url: "host=localhost user=glaredb dbname=glaredb port=6543".to_string(),
+                },
+            },
+            ConnectionCfg {
+                dialect: Dialect::MsSql,
+                data_file_root: "/tmp/chinook".to_string(),
 
-            //     protocol: DbProtocol::MsSql,
-            // },
+                protocol: DbProtocol::MsSql,
+            },
         ];
 
         let mut connections = Vec::new();
