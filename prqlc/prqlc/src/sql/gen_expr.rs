@@ -1,6 +1,5 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
-use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
@@ -15,7 +14,7 @@ use crate::ir::pl::{self, Ident, Literal};
 use crate::ir::rq::*;
 use crate::sql::srq::context::ColumnDecl;
 use crate::utils::{OrMap, VALID_IDENT};
-use crate::{Error, Reason, Span, WithErrorInfo};
+use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 use super::gen_projection::try_into_exprs;
 use super::{keywords, Context};
@@ -199,9 +198,7 @@ fn process_date_to_text(
                         kind: ExprKind::Literal(Literal::String(
                             ctx.dialect
                                 .translate_prql_date_format(date_format)
-                                .map_err(|e| {
-                                    Error::new_simple(e).with_span(date_format_exp.span)
-                                })?,
+                                .map_err(|e| e.with_span(date_format_exp.span))?,
                         )),
                         span: date_format_exp.span,
                     },
@@ -289,7 +286,7 @@ fn collect_concat_args(expr: &Expr) -> Vec<&Expr> {
 }
 
 /// Translate expr into a BETWEEN statement if possible, otherwise returns the expr unchanged.
-fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>, anyhow::Error> {
+fn try_into_between(expr: Expr, ctx: &mut Context) -> Result<Option<sql_ast::Expr>> {
     match expr.kind {
         ExprKind::Operator { name, args } if name == "std.and" => {
             let [a, b]: [_; 2] = args.try_into().unwrap();
@@ -384,7 +381,12 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
                 "seconds" => DateTimeField::Second,
                 "milliseconds" => DateTimeField::Millisecond,
                 "microseconds" => DateTimeField::Microsecond,
-                _ => bail!("Unsupported interval unit: {}", vau.unit),
+                _ => {
+                    return Err(Error::new_simple(format!(
+                        "Unsupported interval unit: {}",
+                        vau.unit
+                    )))
+                }
             };
             let value = if ctx.dialect.requires_quotes_intervals() {
                 Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
@@ -583,18 +585,17 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
     Ok(current)
 }
 
-fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
-    fn cast_bound(bound: Expr) -> Result<i64> {
-        bound
-            .kind
-            .into_literal()?
-            .into_integer()
-            .map_err(|kind| anyhow!("Failed to convert `{kind:?}`"))
-    }
+fn unpack_as_int_literal(bound: Expr) -> Result<i64> {
+    Some(bound.kind)
+        .and_then(|x| x.into_literal().ok())
+        .and_then(|x| x.into_integer().ok())
+        .ok_or_else(|| Error::new_simple("expected an integer literal").with_span(bound.span))
+}
 
+fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
     Ok(Range {
-        start: range.start.map(cast_bound).transpose()?,
-        end: range.end.map(cast_bound).transpose()?,
+        start: range.start.map(unpack_as_int_literal).transpose()?,
+        end: range.end.map(unpack_as_int_literal).transpose()?,
     })
 }
 
@@ -699,11 +700,7 @@ fn translate_windowed(
 
 fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
     fn parse_bound(bound: Expr) -> Result<WindowFrameBound> {
-        let as_int = bound
-            .kind
-            .into_literal()?
-            .into_integer()
-            .map_err(|kind| anyhow!("Failed to convert `{kind:?}`"))?;
+        let as_int = unpack_as_int_literal(bound)?;
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
             1.. => WindowFrameBound::Following(Some(Box::new(sql_ast::Expr::Value(

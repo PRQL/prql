@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::zip;
 use std::path::PathBuf;
 
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 
@@ -151,13 +151,9 @@ fn find_operator_impl(
     let func_def = decl.kind.as_expr().unwrap();
     let func_def = func_def.kind.as_func().unwrap();
 
-    let mut annotation = decl
-        .clone()
-        .annotations
-        .into_iter()
-        .exactly_one()
-        .ok()
-        .and_then(|x| x.tuple_items().ok())
+    let annotation = decl.annotations.iter().exactly_one().ok();
+    let mut annotation = annotation
+        .and_then(|x| into_tuple_items(*x.expr.clone()).ok())
         .unwrap_or_default();
 
     let binding_strength = pluck_annotation(&mut annotation, "binding_strength")
@@ -183,4 +179,16 @@ fn pluck_annotation(
         .into_iter()
         .next()
         .and_then(|val| val.into_literal().ok())
+}
+
+/// Find the items in a `@{a=b}`. We're only using annotations with tuples;
+/// we can consider formalizing this constraint.
+fn into_tuple_items(expr: pl::Expr) -> Result<Vec<(String, pl::ExprKind)>, pl::Expr> {
+    match expr.kind {
+        pl::ExprKind::Tuple(items) => items
+            .into_iter()
+            .map(|item| Ok((item.alias.clone().unwrap(), item.kind)))
+            .collect(),
+        _ => Err(expr),
+    }
 }

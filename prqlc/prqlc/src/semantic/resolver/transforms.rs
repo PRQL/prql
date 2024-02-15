@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
@@ -14,7 +13,7 @@ use crate::ast::{TupleField, Ty, TyKind};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
-use crate::{Error, Reason, WithErrorInfo, COMPILER_VERSION};
+use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
 use super::types::{ty_tuple_kind, type_intersection};
 use super::Resolver;
@@ -111,12 +110,14 @@ impl Resolver<'_> {
                         "right" => JoinSide::Right,
                         "full" => JoinSide::Full,
 
-                        found => bail!(Error::new(Reason::Expected {
-                            who: Some("`side`".to_string()),
-                            expected: "inner, left, right or full".to_string(),
-                            found: found.to_string()
-                        })
-                        .with_span(span)),
+                        found => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`side`".to_string()),
+                                expected: "inner, left, right or full".to_string(),
+                                found: found.to_string(),
+                            })
+                            .with_span(span))
+                        }
                     }
                 };
 
@@ -353,8 +354,10 @@ impl Resolver<'_> {
                         .try_cast(ExprKind::into_ident, Some("format"), "ident")?
                         .to_string();
                     match format.as_str() {
-                        "csv" => from_text::parse_csv(&text)?,
-                        "json" => from_text::parse_json(&text)?,
+                        "csv" => from_text::parse_csv(&text)
+                            .map_err(|r| Error::new_simple(r).with_span(span))?,
+                        "json" => from_text::parse_json(&text)
+                            .map_err(|r| Error::new_simple(r).with_span(span))?,
 
                         _ => {
                             return Err(Error::new(Reason::Expected {
@@ -362,8 +365,7 @@ impl Resolver<'_> {
                                 expected: "csv or json".to_string(),
                                 found: format,
                             })
-                            .with_span(span)
-                            .into())
+                            .with_span(span))
                         }
                     }
                 };
@@ -572,11 +574,7 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
 impl Resolver<'_> {
     /// Simulate evaluation of the inner pipeline of group or window
     // Creates a dummy node that acts as value that pipeline can be resolved upon.
-    fn fold_by_simulating_eval(
-        &mut self,
-        pipeline: Expr,
-        val: &Expr,
-    ) -> Result<Expr, anyhow::Error> {
+    fn fold_by_simulating_eval(&mut self, pipeline: Expr, val: &Expr) -> Result<Expr> {
         log::debug!("fold by simulating evaluation");
         let span = pipeline.span;
 
@@ -642,9 +640,9 @@ impl TransformCall {
         use TransformKind::*;
 
         fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
-            expr.lineage
-                .clone()
-                .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
+            expr.lineage.clone().ok_or_else(|| {
+                Error::new_simple("expected {expr:?} to have table type").with_span(expr.span)
+            })
         }
 
         Ok(match self.kind.as_ref() {
@@ -976,7 +974,7 @@ mod from_text {
     // TODO: Can we dynamically get the types, like in pandas? We need to put
     // quotes around strings and not around numbers.
     // https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
-    pub fn parse_csv(text: &str) -> Result<RelationLiteral> {
+    pub fn parse_csv(text: &str) -> Result<RelationLiteral, String> {
         let text = text.trim();
         let mut rdr = csv::Reader::from_reader(text.as_bytes());
 
@@ -991,11 +989,12 @@ mod from_text {
         }
 
         Ok(RelationLiteral {
-            columns: parse_header(rdr.headers()?),
+            columns: parse_header(rdr.headers().map_err(|e| e.to_string())?),
             rows: rdr
                 .records()
                 .map(|row_result| row_result.map(parse_row))
-                .try_collect()?,
+                .try_collect()
+                .map_err(|e| e.to_string())?,
         })
     }
 
@@ -1036,18 +1035,18 @@ mod from_text {
             .collect_vec()
     }
 
-    pub fn parse_json(text: &str) -> Result<RelationLiteral> {
+    pub fn parse_json(text: &str) -> Result<RelationLiteral, String> {
         parse_json1(text).or_else(|err1| {
             parse_json2(text)
-                .map_err(|err2| anyhow!("While parsing rows: {err1}\nWhile parsing object: {err2}"))
+                .map_err(|err2| format!("While parsing rows: {err1}\nWhile parsing object: {err2}"))
         })
     }
 
-    fn parse_json1(text: &str) -> Result<RelationLiteral> {
-        let data: Vec<JsonFormat1Row> = serde_json::from_str(text)?;
+    fn parse_json1(text: &str) -> Result<RelationLiteral, String> {
+        let data: Vec<JsonFormat1Row> = serde_json::from_str(text).map_err(|e| e.to_string())?;
         let mut columns = data
             .first()
-            .ok_or_else(|| anyhow!("json: no rows"))?
+            .ok_or_else(|| "json: no rows")?
             .keys()
             .cloned()
             .collect_vec();
@@ -1063,8 +1062,9 @@ mod from_text {
         Ok(RelationLiteral { columns, rows })
     }
 
-    fn parse_json2(text: &str) -> Result<RelationLiteral> {
-        let JsonFormat2 { columns, data } = serde_json::from_str(text)?;
+    fn parse_json2(text: &str) -> Result<RelationLiteral, String> {
+        let JsonFormat2 { columns, data } =
+            serde_json::from_str(text).map_err(|x| x.to_string())?;
 
         Ok(RelationLiteral {
             columns,

@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
-use anyhow::Result;
-
+use crate::Result;
 use crate::ir::rq::{fold_table, CId, RelationalQuery, RqFold, TId, TableDecl};
 
 #[derive(Debug, Clone)]

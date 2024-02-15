@@ -25,9 +25,9 @@ use prqlc::ast;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
-use prqlc::{downcast, Options, Target};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
+use prqlc::{Options, Target};
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
@@ -309,8 +309,7 @@ impl Command {
                 let stmts = prql_to_pl_tree(sources)?;
 
                 let root_module = semantic::resolve(stmts, Default::default())
-                    .map_err(prqlc::downcast)
-                    .map_err(|e| e.composed(sources))?;
+                    .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
 
                 // debug output of the PL
                 let mut out = format!("{root_module:#?}\n").into_bytes();
@@ -366,8 +365,7 @@ impl Command {
                         res += &format!("## {}\n", def.name);
 
                         let val = semantic::eval(*def.value.unwrap())
-                            .map_err(downcast)
-                            .map_err(|e| e.composed(sources))?;
+                            .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
                         res += &semantic::write_pl(val);
                         res += "\n\n";
                     }
@@ -396,7 +394,9 @@ impl Command {
                 ..
             } => {
                 let opts = Options::default()
-                    .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
+                    .with_target(
+                        Target::from_str(target).map_err(|e| prqlc::ErrorMessages::from(e))?,
+                    )
                     .with_signature_comment(*signature_comment)
                     .with_format(*format);
 

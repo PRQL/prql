@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, ExceptSelectItem, ExcludeSelectItem, ObjectName, SelectItem,

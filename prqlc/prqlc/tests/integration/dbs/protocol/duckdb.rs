@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::Result;
 use duckdb::types::ValueRef;
 
 use super::DbProtocolHandler;

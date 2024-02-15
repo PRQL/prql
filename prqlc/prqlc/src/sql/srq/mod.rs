@@ -19,21 +19,21 @@ pub(super) use gen_query::compile_query;
 
 #[cfg(test)]
 mod test {
-    use anyhow::Result;
+    use crate::{Errors, Result};
 
     use super::ast::SqlQuery;
     use super::*;
 
     use crate::sql::Dialect;
 
-    fn parse_and_resolve(source: &str) -> Result<SqlQuery> {
+    fn parse_and_resolve(source: &str) -> Result<SqlQuery, Errors> {
         let query = crate::semantic::test::parse_resolve_and_lower(source)?;
 
         let (sql, _) = compile_query(query, Some(Dialect::Generic))?;
         Ok(sql)
     }
 
-    fn count_atomics(prql: &str) -> Result<usize> {
+    fn count_atomics(prql: &str) -> Result<usize, Errors> {
         let query = parse_and_resolve(prql)?;
 
         Ok(query.ctes.len() + 1)

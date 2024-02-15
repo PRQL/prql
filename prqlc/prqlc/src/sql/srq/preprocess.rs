@@ -1,9 +1,7 @@
+use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
-
-use anyhow::Result;
-use itertools::Itertools;
 
 use crate::ast::generic::{InterpolateItem, Range};
 use crate::ir::generic::{ColumnSort, SortDirection, WindowFrame, WindowKind};
@@ -13,7 +11,7 @@ use crate::ir::rq::{
 };
 use crate::sql::srq::context::ColumnDecl;
 use crate::sql::Context;
-use crate::{Error, WithErrorInfo};
+use crate::{Error, Result, WithErrorInfo};
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::ast::*;
@@ -26,7 +24,7 @@ use super::context::RIId;
 pub(in crate::sql) fn preprocess(
     pipeline: Vec<Transform>,
     ctx: &mut Context,
-) -> Result<Vec<SqlTransform>, anyhow::Error> {
+) -> Result<Vec<SqlTransform>> {
     Ok(pipeline)
         .and_then(normalize)
         .and_then(|p| wrap(p, ctx))
@@ -159,7 +157,7 @@ pub(in crate::sql) fn distinct(
                 let range_int = range
                     .clone()
                     .try_map(as_int)
-                    .map_err(|_| anyhow::anyhow!("Invalid take arguments"))?;
+                    .map_err(|_| Error::new_simple("Invalid take arguments"))?;
 
                 let take_only_first =
                     range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));

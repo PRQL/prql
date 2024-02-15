@@ -1,12 +1,11 @@
-use anyhow::Result;
 use itertools::Itertools;
 use std::path::PathBuf;
 use std::{collections::HashMap, path::Path};
 
 use crate::ast::{ModuleDef, Stmt, StmtKind};
-use crate::{Error, Errors, SourceTree, WithErrorInfo};
+use crate::{Error, Errors, Result, SourceTree, WithErrorInfo};
 
-pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef> {
+pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef, Errors> {
     let source_files = linearize_tree(file_tree)?;
 
     // reverse the id->file_path map
@@ -40,7 +39,7 @@ pub fn parse(file_tree: &SourceTree) -> Result<ModuleDef> {
     if errors.is_empty() {
         Ok(root)
     } else {
-        Err(Errors(errors).into())
+        Err(Errors(errors))
     }
 }
 
@@ -156,8 +155,8 @@ pub fn os_path_to_prql_path(path: &Path) -> Result<Vec<String>> {
         .map(|x| {
             x.as_os_str()
                 .to_str()
-                .ok_or_else(|| anyhow::anyhow!("Invalid file path: {path:?}"))
                 .map(str::to_string)
+                .ok_or_else(|| Error::new_simple(format!("Invalid file path: {path:?}")))
         })
         .try_collect()
 }

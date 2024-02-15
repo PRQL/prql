@@ -2,7 +2,6 @@ use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
-use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
@@ -17,7 +16,7 @@ use crate::ir::rq::{
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
-use crate::{Error, Reason, Span, WithErrorInfo};
+use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:
@@ -1134,16 +1133,11 @@ fn get_span_of_id(l: &Lowerer, id: Option<usize>) -> Option<Span> {
     id.and_then(|id| l.root_mod.span_map.get(&id)).cloned()
 }
 
-fn with_span_if_not_exists<'a, F>(get_span: F) -> impl FnOnce(anyhow::Error) -> anyhow::Error + 'a
+fn with_span_if_not_exists<'a, F>(get_span: F) -> impl FnOnce(Error) -> Error + 'a
 where
     F: FnOnce() -> Option<Span> + 'a,
 {
     move |e| {
-        let e = match e.downcast::<Error>() {
-            Ok(e) => e,
-            Err(e) => return e,
-        };
-
         if e.span.is_some() {
             return e.into();
         }

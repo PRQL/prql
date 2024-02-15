@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use anyhow::Result;
+use crate::Result;
 
 use crate::ast::Ident;
 
@@ -32,7 +32,7 @@ impl Resolver<'_> {
 
         if let Err(e) = &r {
             log::debug!(
-                "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
+                "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
                 self.root_mod
             );
         }

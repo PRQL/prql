@@ -100,18 +100,20 @@ pub mod sql;
 mod utils;
 
 pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
-pub use error_message::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
+pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use ir::Span;
 pub use prqlc_ast as ast;
+
+pub type Result<T, E = Error> = core::result::Result<T, E>;
+
+pub static COMPILER_VERSION: Lazy<Version> =
+    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
 use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 use strum::VariantNames;
-
-pub static COMPILER_VERSION: Lazy<Version> =
-    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -141,11 +143,11 @@ pub static COMPILER_VERSION: Lazy<Version> =
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
-    parser::parse(&sources)
-        .and_then(|ast| semantic::resolve_and_lower(ast, &[], None))
-        .and_then(|rq| sql::compile(rq, options))
-        .map_err(error_message::downcast)
-        .map_err(|e| e.composed(&prql.into()))
+    Ok(&sources)
+        .and_then(|s| parser::parse(s))
+        .and_then(|ast| semantic::resolve_and_lower(ast, &[], None).map_err(Errors::from))
+        .and_then(|rq| sql::compile(rq, options).map_err(Errors::from))
+        .map_err(|e| ErrorMessages::from(e).composed(&sources))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -276,15 +278,13 @@ pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
 
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessages> {
-    parser::parse(prql)
-        .map_err(error_message::downcast)
-        .map_err(|e| e.composed(prql))
+    parser::parse(prql).map_err(|e| ErrorMessages::from(e).composed(prql))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
 // TODO: rename this to `pl_to_rq_simple`
 pub fn pl_to_rq(pl: ast::ModuleDef) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-    semantic::resolve_and_lower(pl, &[], None).map_err(error_message::downcast)
+    semantic::resolve_and_lower(pl, &[], None).map_err(ErrorMessages::from)
 }
 
 /// Perform semantic analysis and convert PL to RQ.
@@ -294,12 +294,12 @@ pub fn pl_to_rq_tree(
     database_module_path: &[String],
 ) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
     semantic::resolve_and_lower(pl, main_path, Some(database_module_path))
-        .map_err(error_message::downcast)
+        .map_err(ErrorMessages::from)
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(error_message::downcast)
+    sql::compile(rq, options).map_err(ErrorMessages::from)
 }
 
 /// Generate PRQL code from PL AST
@@ -312,23 +312,23 @@ pub mod json {
     use super::*;
 
     /// JSON serialization
-    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
-        serde_json::to_string(pl).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn from_pl(pl: &ast::ModuleDef) -> Result<String, serde_json::Error> {
+        serde_json::to_string(pl)
     }
 
     /// JSON deserialization
-    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, ErrorMessages> {
-        serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn to_pl(json: &str) -> Result<ast::ModuleDef, serde_json::Error> {
+        serde_json::from_str(json)
     }
 
     /// JSON serialization
-    pub fn from_rq(rq: &ir::rq::RelationalQuery) -> Result<String, ErrorMessages> {
-        serde_json::to_string(rq).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn from_rq(rq: &ir::rq::RelationalQuery) -> Result<String, serde_json::Error> {
+        serde_json::to_string(rq)
     }
 
     /// JSON deserialization
-    pub fn to_rq(json: &str) -> Result<ir::rq::RelationalQuery, ErrorMessages> {
-        serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
+    pub fn to_rq(json: &str) -> Result<ir::rq::RelationalQuery, serde_json::Error> {
+        serde_json::from_str(json)
     }
 }
 

@@ -1,11 +1,10 @@
 use std::iter::zip;
 
-use anyhow::Result;
 use itertools::Itertools;
 
 use super::ast_expand;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
-use crate::{Error, Span, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 pub fn eval(expr: crate::ast::expr::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
@@ -455,8 +454,9 @@ mod test {
 
     use super::*;
 
+    #[track_caller]
     fn eval(source: &str) -> Result<String> {
-        let stmts = crate::prql_to_pl(source)?.stmts.into_iter();
+        let stmts = crate::prql_to_pl(source).unwrap().stmts.into_iter();
         let stmt = stmts.exactly_one().unwrap();
         let expr = stmt.kind.into_var_def().unwrap().value.unwrap();
 

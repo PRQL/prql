@@ -47,12 +47,3 @@ pub enum UnOp {
     Neg,
     Not,
 }
-
-impl From<ExprKind> for anyhow::Error {
-    // https://github.com/bluejekyll/enum-as-inner/issues/84
-    #[allow(unreachable_code)]
-    fn from(_kind: ExprKind) -> Self {
-        panic!("Failed to convert ir:ExprKind")
-        // anyhow!("Failed to convert ir:ExprKind")
-    }
-}
