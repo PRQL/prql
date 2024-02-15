@@ -34,6 +34,19 @@ impl Serialize for Span {
     }
 }
 
+impl PartialOrd for Span {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // We could expand this to compare source_id too, starting with minimum surprise
+        match other.source_id.partial_cmp(&self.source_id) {
+            Some(std::cmp::Ordering::Equal) => {
+                debug_assert!((self.start <= other.start) == (self.end <= other.end));
+                self.start.partial_cmp(&other.start)
+            }
+            _ => None,
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for Span {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -105,5 +118,32 @@ mod test {
         insta::assert_snapshot!(span_serialized, @r###""45:12-15""###);
         let span_deserialized: Span = serde_json::from_str(&span_serialized).unwrap();
         assert_eq!(span_deserialized, span);
+    }
+
+    #[test]
+    fn test_span_partial_cmp() {
+        let span1 = Span {
+            start: 10,
+            end: 20,
+            source_id: 1,
+        };
+        let span2 = Span {
+            start: 15,
+            end: 25,
+            source_id: 1,
+        };
+        let span3 = Span {
+            start: 5,
+            end: 15,
+            source_id: 2,
+        };
+
+        // span1 and span2 have the same source_id, so their start values are compared
+        assert_eq!(span1.partial_cmp(&span2), Some(std::cmp::Ordering::Less));
+        assert_eq!(span2.partial_cmp(&span1), Some(std::cmp::Ordering::Greater));
+
+        // span1 and span3 have different source_id, so their source_id values are compared
+        assert_eq!(span1.partial_cmp(&span3), None);
+        assert_eq!(span3.partial_cmp(&span1), None);
     }
 }
