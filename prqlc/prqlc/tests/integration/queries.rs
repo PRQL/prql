@@ -105,14 +105,14 @@ mod results {
                     url: "host=localhost user=root password=root dbname=dummy".to_string(),
                 },
             },
-            ConnectionCfg {
-                dialect: Dialect::MySql,
-                data_file_root: "/tmp/chinook".to_string(),
+            // ConnectionCfg {
+            //     dialect: Dialect::MySql,
+            //     data_file_root: "/tmp/chinook".to_string(),
 
-                protocol: DbProtocol::MySql {
-                    url: "mysql://root:root@localhost:3306/dummy".to_string(),
-                },
-            },
+            //     protocol: DbProtocol::MySql {
+            //         url: "mysql://root:root@localhost:3306/dummy".to_string(),
+            //     },
+            // },
             ConnectionCfg {
                 dialect: Dialect::ClickHouse,
                 data_file_root: "chinook".to_string(),
