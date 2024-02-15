@@ -12,7 +12,7 @@ services:
     volumes: &vol
       - ../data/chinook:/tmp/chinook:ro
   mysql:
-    image: "mysql:8.1.0-oracle"
+    image: "mysql:oracle"
     ports:
       - "3306:3306"
     environment:
