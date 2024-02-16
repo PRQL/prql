@@ -16,6 +16,7 @@
         essentials = with pkgs; [
           # compiler requirements
           rustup
+          iconv
 
           # tools
           cargo-nextest
