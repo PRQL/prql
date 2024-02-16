@@ -303,7 +303,8 @@ tasks:
     #   - "**/*.lock"
     #   - "**/*.snap"
     cmds:
-      - INSTA_FORCE_PASS=1 cargo nextest run --features=default,test-dbs
+      - cargo insta test --accept --features=default,test-dbs
+        --unreferenced=auto
 
   test-rust-fast:
     desc: Test prqlc's unit tests.
