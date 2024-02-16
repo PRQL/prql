@@ -394,9 +394,7 @@ impl Command {
                 ..
             } => {
                 let opts = Options::default()
-                    .with_target(
-                        Target::from_str(target).map_err(prqlc::ErrorMessages::from)?,
-                    )
+                    .with_target(Target::from_str(target).map_err(prqlc::ErrorMessages::from)?)
                     .with_signature_comment(*signature_comment)
                     .with_format(*format);
 

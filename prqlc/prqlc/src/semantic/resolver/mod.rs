@@ -50,7 +50,7 @@ impl Resolver<'_> {
 
 #[cfg(test)]
 pub(super) mod test {
-    use crate::{Result, Errors};
+    use crate::{Errors, Result};
     use insta::assert_yaml_snapshot;
 
     use crate::ir::pl::{Expr, Lineage, PlFold};

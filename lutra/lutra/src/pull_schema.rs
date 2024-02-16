@@ -96,9 +96,9 @@ fn convert_arrow_type(ty: &DataType) -> Result<TyKind, Error> {
         | DataType::Decimal256(_, _)
         | DataType::Map(_, _)
         | DataType::RunEndEncoded(_, _) => {
-            return Err(
-                Error::new_simple(format!("cannot convert arrow type {ty:?} a PRQL type")),
-            )
+            return Err(Error::new_simple(format!(
+                "cannot convert arrow type {ty:?} a PRQL type"
+            )))
         }
     })
 }

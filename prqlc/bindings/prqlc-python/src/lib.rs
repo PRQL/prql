@@ -1,7 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]

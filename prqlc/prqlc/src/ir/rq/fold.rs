@@ -63,10 +63,7 @@ pub trait RqFold {
     }
 }
 
-fn fold_compute<F: ?Sized + RqFold>(
-    fold: &mut F,
-    compute: Compute,
-) -> Result<Compute> {
+fn fold_compute<F: ?Sized + RqFold>(fold: &mut F, compute: Compute) -> Result<Compute> {
     Ok(Compute {
         id: fold.fold_cid(compute.id)?,
         expr: fold.fold_expr(compute.expr)?,
@@ -97,10 +94,7 @@ pub fn fold_table<F: ?Sized + RqFold>(fold: &mut F, t: TableDecl) -> Result<Tabl
     })
 }
 
-pub fn fold_relation<F: ?Sized + RqFold>(
-    fold: &mut F,
-    relation: Relation,
-) -> Result<Relation> {
+pub fn fold_relation<F: ?Sized + RqFold>(fold: &mut F, relation: Relation) -> Result<Relation> {
     Ok(Relation {
         kind: fold.fold_relation_kind(relation.kind)?,
         columns: relation.columns,

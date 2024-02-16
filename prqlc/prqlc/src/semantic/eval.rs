@@ -100,7 +100,10 @@ fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if name == "std" {
         return Ok(std_module());
     }
-    Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)))
+    Err(Error::new_simple(format!(
+        "cannot find `{}` in {:?}",
+        name, base
+    )))
 }
 
 impl Evaluator {
@@ -272,8 +275,9 @@ impl Evaluator {
             }
 
             _ => {
-                return Err(Error::new_simple(format!("unknown function {func_name}"))
-                    .with_span(span))
+                return Err(
+                    Error::new_simple(format!("unknown function {func_name}")).with_span(span)
+                )
             }
         })
     }

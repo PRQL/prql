@@ -558,8 +558,7 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
         match bound.kind {
             ExprKind::Literal(Literal::Null) => Ok(None),
             ExprKind::Literal(Literal::Integer(i)) => Ok(Some(i)),
-            _ => Err(Error::new_simple("expected an int literal")
-                .with_span(bound.span)),
+            _ => Err(Error::new_simple("expected an int literal").with_span(bound.span)),
         }
     }
     Ok((into_int(range.0)?, into_int(range.1)?))

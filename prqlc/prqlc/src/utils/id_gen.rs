@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::Result;
 use crate::ir::rq::{fold_table, CId, RelationalQuery, RqFold, TId, TableDecl};
+use crate::Result;
 
 #[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
