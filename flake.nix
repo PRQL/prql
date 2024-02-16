@@ -27,6 +27,7 @@
           fenix_pkgs.stable.rustfmt
           fenix_pkgs.stable.rust-analyzer
           iconv
+          clang_16
 
           # tools
           cargo-nextest
