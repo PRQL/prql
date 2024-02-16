@@ -1511,7 +1511,7 @@ fn test_op_precedence() {
 #[test]
 fn test_var_def() {
     assert_yaml_snapshot!(parse_single(
-            "let newest_employees = (from employees)"
+            "let newest_employees = (from db.employees)"
         ).unwrap(), @r###"
     ---
     - VarDef:
