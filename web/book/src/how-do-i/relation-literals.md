@@ -27,9 +27,9 @@ let my_artists = [
   {artist="James Brown"},
 ]
 
-from.artists
+from db.artists
 join my_artists (==artist)
-join from.albums (==artist_id)
+join db.albums (==artist_id)
 select {artists.artist_id, albums.title}
 ```
 

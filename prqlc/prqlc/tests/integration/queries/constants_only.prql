@@ -1,4 +1,4 @@
-from.genres
+from db.genres
 take 10
 filter true
 take 20

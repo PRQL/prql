@@ -1,4 +1,4 @@
-from.employees
+from db.employees
 filter country == "USA"                      # Each line transforms the previous result.
 derive {                                     # This adds columns / variables.
   gross_salary = salary + payroll_tax,

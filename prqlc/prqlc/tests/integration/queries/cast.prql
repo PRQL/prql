@@ -1,5 +1,5 @@
 # mssql:test
-from.tracks
+from db.tracks
 sort {-bytes}
 select {
     name,

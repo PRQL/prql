@@ -1,6 +1,6 @@
 label: Orthogonality
 prql: |
-  from.employees
+  from db.employees
   # `filter` before aggregations...
   filter start_date > @2021-01-01
   group country (

@@ -1,9 +1,9 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "from.genres\ntake 10\nfilter true\ntake 20\nfilter true\nselect d = 10\n"
+expression: "from db.genres\ntake 10\nfilter true\ntake 20\nfilter true\nselect d = 10\n"
 input_file: prqlc/prqlc/tests/integration/queries/constants_only.prql
 ---
-from.genres
+from db.genres
 take 10
 filter true
 take 20

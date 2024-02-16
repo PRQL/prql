@@ -1,6 +1,6 @@
 label: Basic example
 prql: |
-  from.employees
+  from db.employees
   select {id, first_name, age}
   sort age
   take 10

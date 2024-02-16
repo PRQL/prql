@@ -1,9 +1,9 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom.tracks\nsort {-bytes}\nselect {\n    name,\n    bin = ((album_id | as REAL) * 99)\n}\ntake 20\n"
+expression: "# mssql:test\nfrom db.tracks\nsort {-bytes}\nselect {\n    name,\n    bin = ((album_id | as REAL) * 99)\n}\ntake 20\n"
 input_file: prqlc/prqlc/tests/integration/queries/cast.prql
 ---
-from.tracks
+from db.tracks
 sort {-bytes}
 select {name, bin = (album_id | as REAL) * 99}
 take 20

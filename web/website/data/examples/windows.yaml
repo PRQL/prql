@@ -1,6 +1,6 @@
 label: Windows
 prql: |
-  from.employees
+  from db.employees
   group employee_id (
     sort month
     window rolling:12 (

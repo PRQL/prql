@@ -52,7 +52,7 @@ TODO: this should be a part of the tutorial
 As you may have noticed, transforms are regular functions too!
 
 ```prql
-from.employees
+from db.employees
 filter age > 50
 sort name
 ```
@@ -60,19 +60,19 @@ sort name
 ... is equivalent to ...
 
 ```prql
-from.employees | filter age > 50 | sort name
+from db.employees | filter age > 50 | sort name
 ```
 
 ... is equivalent to ...
 
 ```prql
-filter age > 50 (from.employees) | sort name
+filter age > 50 (from db.employees) | sort name
 ```
 
 ... is equivalent to ...
 
 ```prql
-sort name (filter age > 50 (from.employees))
+sort name (filter age > 50 (from db.employees))
 ```
 
 As you can see, the first example with pipeline notation is much easier to

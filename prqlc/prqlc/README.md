@@ -18,7 +18,7 @@ binary that compiles PRQL into SQL.
 This command works as a filter that compiles a PRQL string into an SQL string.
 
 ```sh
-$ echo 'from.employees | filter has_dog | select salary' | prqlc compile
+$ echo 'from db.employees | filter has_dog | select salary' | prqlc compile
 
 SELECT
   salary
@@ -183,7 +183,7 @@ Compile a PRQL string to a SQLite dialect string:
 
 use prqlc::{compile, Options, Target, sql::Dialect};
 
-let prql = "from.employees | select {name, age}";
+let prql = "from db.employees | select {name, age}";
 let opts = &Options {
     format: false,
     target: Target::Sql(Some(Dialect::SQLite)),

@@ -1,9 +1,9 @@
 # clickhouse:skip (clickhouse doesn't have lag function)
 
 #! Calculate a number of metrics about the sales of tracks in each city.
-from.invoices
+from db.invoices
 select {i = this}
-join (from.invoice_items | select {ii = this}) (==invoice_id)
+join (db.invoice_items | select {ii = this}) (==invoice_id)
 derive {
     city = i.billing_city,
     street = i.billing_address,

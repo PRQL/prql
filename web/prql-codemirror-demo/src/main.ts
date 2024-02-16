@@ -29,7 +29,7 @@ group customer_id (
 )
 sort {-sum_income}
 take 10
-join (from.customers | select {c = this}) (==customer_id)
+join (db.customers | select {c = this}) (==customer_id)
 derive name = f"{c.last_name}, {c.first_name}"
 select {
   c.customer_id, name, sum_income

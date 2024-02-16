@@ -1,9 +1,9 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom.tracks\nsort {+track_id}\ntake 3..5\n"
+expression: "# mssql:test\nfrom db.tracks\nsort {+track_id}\ntake 3..5\n"
 input_file: prqlc/prqlc/tests/integration/queries/take.prql
 ---
-from.tracks
+from db.tracks
 sort {+track_id}
 take 3..5
 

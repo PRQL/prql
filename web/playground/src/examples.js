@@ -16,7 +16,7 @@ group customer_id (                  # "group" performs the pipeline in (...) on
     ct = count customer_id,          #
   }
 )
-join (from.customers | select {c = this}) (==customer_id)     # join on "customer_id" from both tables
+join c = db.customers (==customer_id) # join on "customer_id" from both tables
 derive name = f"{c.last_name}, {c.first_name}" # F-strings like Python
 derive db_version = s"version()"     # S-string offers escape hatch to SQL
 select {                             # "select" passes along only the named columns
@@ -33,18 +33,18 @@ take 1..10                           # Limit to a range - could also be "take 10
   "let-table-0.prql": [
     "sql",
     `let soundtracks = (
-  from.playlists
+  from db.playlists
   filter name == 'TV Shows'
- join (from.playlist | select {pt = this})_track (==playlist_id)
+ join (db.playlist_track | select {pt = this}) (==playlist_id)
   select pt.track_id
 )
 
 let high_energy = (
-  from.genres
+  from db.genres
   filter name == 'Rock And Roll' || name == 'Hip Hop/Rap'
 )
 
-from.tracks
+from db.tracks
 select {t = this}
 
 # anti-join soundtracks
@@ -52,7 +52,7 @@ join side:left s=soundtracks (==track_id)
 filter s.track_id == null
 
 # limit to kicker genres
-join (from.high | select {g = this})_energy (==genre_id)
+join g= db.high_energy (==genre_id)
 
 # format output
 select {t.track_id, track = t.name, genre = g.name}
@@ -71,14 +71,14 @@ group album_id (
     album_price = sum unit_price
     }
 )
-join from.albums (==album_id)
+join db.albums (==album_id)
 group artist_id (
     aggregate {
     track_count = sum track_count,
     artist_price = sum album_price
     }
 )
-join from.artists (==artist_id)
+join db.artists (==artist_id)
 select {artists.name, artist_price, track_count}
 sort {-artist_price}
 derive avg_track_price = artist_price / track_count

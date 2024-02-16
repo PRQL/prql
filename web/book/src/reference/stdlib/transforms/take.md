@@ -11,12 +11,12 @@ See [Ranges](../../syntax/ranges.md) for more details on how ranges work.
 ## Examples
 
 ```prql
-from.employees
+from db.employees
 take 10
 ```
 
 ```prql
-from.orders
+from db.orders
 sort {-value, created_at}
 take 101..110
 ```

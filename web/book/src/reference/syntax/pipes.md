@@ -10,7 +10,7 @@ For example, here the `filter` transform operates on the result of
 transform operates on the result of the `filter` transform.
 
 ```prql
-from.employees
+from db.employees
 filter department == "Product"
 select {first_name, last_name}
 ```
@@ -19,7 +19,7 @@ In the place of a line break, it's also possible to use the `|` character to
 pipe results between transforms, such that this is equivalent:
 
 ```prql
-from.employees | filter department == "Product" | select {first_name, last_name}
+from db.employees | filter department == "Product" | select {first_name, last_name}
 ```
 
 In almost all situations, a line break acts as a pipe. But there are a few
@@ -49,7 +49,7 @@ pass their result to an "inner transform". The example below applies the
 `aggregate` pipeline to each group of unique `title` and `country` values:
 
 ```prql
-from.employees
+from db.employees
 group {title, country} (
   aggregate {
     average salary,

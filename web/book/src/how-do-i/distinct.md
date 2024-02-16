@@ -4,7 +4,7 @@ PRQL doesn't have a specific `distinct` keyword. Instead duplicate tuples in a
 relation can be removed by using `group` and `take 1`:
 
 ```prql
-from.employees
+from db.employees
 select department
 group employees.* (
   take 1
@@ -14,7 +14,7 @@ group employees.* (
 This also works with a wildcard:
 
 ```prql
-from.employees
+from db.employees
 group employees.* (take 1)
 ```
 
@@ -26,7 +26,7 @@ To
 
 ```prql
 # youngest employee from each department
-from.employees
+from db.employees
 group department (
   sort age
   take 1
@@ -37,7 +37,7 @@ Note that we can't always compile to `DISTINCT`; when the columns in the `group`
 aren't all the available columns, we need to use a window function:
 
 ```prql
-from.employees
+from db.employees
 group {first_name, last_name} (take 1)
 ```
 
@@ -50,7 +50,7 @@ group {first_name, last_name} (take 1)
 ```prql
 prql target:sql.postgres
 
-from.employees
+from db.employees
 group department (
   sort age
   take 1

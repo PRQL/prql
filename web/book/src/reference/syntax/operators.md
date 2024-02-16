@@ -5,7 +5,7 @@ Expressions can be composed from _function calls_ and _operations_, such as
 to calculate the alias `circumference` and in the `filter` transform.
 
 ```prql
-from.foo
+from db.foo
 select {
   circumference = diameter * 3.14159,
   color,
@@ -60,7 +60,7 @@ We can coalesce values with an `??` operator. Coalescing takes either the first
 value or, if that value is null, the second value.
 
 ```prql
-from.orders
+from db.orders
 derive amount ?? 0
 ```
 
@@ -75,42 +75,42 @@ compiles to `REGEXP`, though differs by dialect. A regex search means that to
 match an exact value, the start and end need to be anchored with `^foo$`.
 
 ```prql
-from.tracks
+from db.tracks
 filter (name ~= "Love")
 ```
 
 ```prql
 prql target:sql.duckdb
 
-from.artists
+from db.artists
 filter (name ~= "Love.*You")
 ```
 
 ```prql
 prql target:sql.bigquery
 
-from.tracks
+from db.tracks
 filter (name ~= "\\bLove\\b")
 ```
 
 ```prql
 prql target:sql.postgres
 
-from.tracks
+from db.tracks
 filter (name ~= "\\(I Can't Help\\) Falling")
 ```
 
 ```prql
 prql target:sql.mysql
 
-from.tracks
+from db.tracks
 filter (name ~= "With You")
 ```
 
 ```prql
 prql target:sql.sqlite
 
-from.tracks
+from db.tracks
 filter (name ~= "But Why Isn't Your Syntax More Similar\\?")
 ```
 
@@ -137,7 +137,7 @@ calls, for example: `foo + bar`.
 Here's a set of examples of these rules:
 
 ```prql
-from.employees
+from db.employees
 # Requires parentheses, because it contains a pipe
 derive is_proximate = (distance | in 0..20)
 # Requires parentheses, because it's a function call
@@ -171,14 +171,14 @@ For example, the snippet below produces an error because the `sum` function call
 is not in a tuple.
 
 ```prql error no-fmt
-from.employees
+from db.employees
 derive total_distance = sum distance
 ```
 
 ...while with parentheses, it works at expected:
 
 ```prql
-from.employees
+from db.employees
 derive other_distance = (sum distance)
 ```
 
@@ -195,7 +195,7 @@ multiple physical lines, we can use `\` at the beginning of subsequent physical
 lines:
 
 ```prql
-from.artists
+from db.artists
 select is_europe =
 \ country == "DE"
 \ || country == "FR"
@@ -206,7 +206,7 @@ Wrapping will "jump over" empty lines or lines with comments. For example, the
 `select` here is only one logical line:
 
 ```prql
-from.tracks
+from db.tracks
 # This would be a really long line without being able to split it:
 select listening_time_years = (spotify_plays + apple_music_plays + pandora_plays)
 # We can toggle between lines when developing:

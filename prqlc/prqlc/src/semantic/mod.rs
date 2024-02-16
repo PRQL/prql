@@ -96,7 +96,7 @@ pub const NS_STD: &str = "std";
 pub const NS_THIS: &str = "this";
 pub const NS_THAT: &str = "that";
 pub const NS_PARAM: &str = "_param";
-pub const NS_DEFAULT_DB: &str = "from";
+pub const NS_DEFAULT_DB: &str = "db";
 pub const NS_QUERY_DEF: &str = "prql";
 pub const NS_MAIN: &str = "main";
 
@@ -178,7 +178,7 @@ pub mod test {
     #[test]
     fn test_resolve_01() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from.employees
+        from db.employees
         select !{foo}
         "###).unwrap().relation.columns, @r###"
         ---
@@ -189,7 +189,7 @@ pub mod test {
     #[test]
     fn test_resolve_02() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from.foo
+        from db.foo
         sort day
         window range:-4..4 (
             derive {next_four_days = sum b}
@@ -206,7 +206,7 @@ pub mod test {
     #[test]
     fn test_resolve_03() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from.albums
+        from db.albums
         select {a = this}
         filter is_sponsored
         select {a.*}
@@ -220,7 +220,7 @@ pub mod test {
     #[test]
     fn test_resolve_04() {
         assert_yaml_snapshot!(parse_resolve_and_lower(r###"
-        from.x
+        from db.x
         select {a, a, a = a + 1}
         "###).unwrap().relation.columns, @r###"
         ---
@@ -235,7 +235,7 @@ pub mod test {
         assert_yaml_snapshot!(parse_resolve_and_lower(r#"
         prql target:sql.mssql version:"0"
 
-        from.employees
+        from db.employees
         "#).unwrap(), @r###"
         ---
         def:
@@ -269,7 +269,7 @@ pub mod test {
         assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.bigquery version:foo
-        from.employees
+        from db.employees
         "###,
         )
         .is_err());
@@ -277,7 +277,7 @@ pub mod test {
         assert!(parse_resolve_and_lower(
             r#"
         prql target:sql.bigquery version:"25"
-        from.employees
+        from db.employees
         "#,
         )
         .is_err());
@@ -285,7 +285,7 @@ pub mod test {
         assert!(parse_resolve_and_lower(
             r###"
         prql target:sql.yah version:foo
-        from.employees
+        from db.employees
         "###,
         )
         .is_err());

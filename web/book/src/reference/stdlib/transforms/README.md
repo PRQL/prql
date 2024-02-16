@@ -23,7 +23,7 @@ These are the currently available transforms:
 
 | Transform   | Purpose                                                                         | SQL Equivalent              |
 | ----------- | ------------------------------------------------------------------------------- | --------------------------- |
-| `from`      | [Start from a table](./from.md)                                                 | `FROM`                      |
+| `from`      | [Start from a table](./from db.md)                                                 | `FROM`                      |
 | `derive`    | [Compute new columns](./derive.md)                                              | `SELECT *, ... AS ...`      |
 | `select`    | [Pick & compute columns](./select.md)                                           | `SELECT ... AS ...`         |
 | `filter`    | [Pick rows based on their values](./filter.md)                                  | `WHERE`, `HAVING`,`QUALIFY` |

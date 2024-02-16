@@ -2,7 +2,7 @@
 # glaredb:skip
 # sqlite:skip
 # mssql:test
-from.invoices
+from db.invoices
 take 20
 select {
     d1 = (invoice_date | date.to_text "%Y/%m/%d"),

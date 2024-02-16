@@ -1080,7 +1080,7 @@ mod tests {
         // distinct query #292
 
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from.c_invoice
+        from db.c_invoice
         select invoice_no
         group invoice_no (
             take 1
@@ -1133,7 +1133,7 @@ mod tests {
         // oops, two arguments #339
         let result = parse_resolve_and_lower(
             "
-        from.c_invoice
+        from db.c_invoice
         aggregate average amount
         ",
         );
@@ -1142,7 +1142,7 @@ mod tests {
         // oops, two arguments
         let result = parse_resolve_and_lower(
             "
-        from.c_invoice
+        from db.c_invoice
         group issued_at (aggregate average amount)
         ",
         );
@@ -1151,7 +1151,7 @@ mod tests {
         // correct function call
         let ctx = crate::semantic::test::parse_and_resolve(
             "
-        from.c_invoice
+        from db.c_invoice
         group issued_at (
             aggregate (average amount)
         )
@@ -1167,7 +1167,7 @@ mod tests {
     #[test]
     fn test_transform_sort() {
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from.invoices
+        from db.invoices
         sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)

@@ -26,8 +26,8 @@ def test_all() -> None:
 
     # Example from readme
     prql_query = """
-        from.employees
-        join from.salaries(==emp_id)
+        from db.employees
+        join db.salaries(==emp_id)
         group {employees.dept_id, employees.gender} (
             aggregate {
                 avg_salary = average salaries.salary

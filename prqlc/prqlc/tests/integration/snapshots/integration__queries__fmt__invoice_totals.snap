@@ -1,11 +1,11 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom.invoices\nselect {i = this}\njoin (from.invoice_items | select {ii = this}) (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks,\n    running_total_num_tracks,\n    num_tracks_last_week\n}\ntake 20\n"
+expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom db.invoices\nselect {i = this}\njoin (db.invoice_items | select {ii = this}) (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks,\n    running_total_num_tracks,\n    num_tracks_last_week\n}\ntake 20\n"
 input_file: prqlc/prqlc/tests/integration/queries/invoice_totals.prql
 ---
-from.invoices
+from db.invoices
 select {i = this}
-join (from.invoice_items | select {ii = this}) (
+join (db.invoice_items | select {ii = this}) (
   ==invoice_id
 )
 derive {

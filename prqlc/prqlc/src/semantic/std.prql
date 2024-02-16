@@ -68,6 +68,10 @@ type transform = func relation -> relation
 # Functions
 
 ## Relational transforms
+let from = func
+  tbl <relation>
+  -> <relation> tbl
+
 let select = func
   columns <anytype>
   tbl <relation>

@@ -1,7 +1,7 @@
 # clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)
 # mssql:test
 let genre_count = (
-    from.genres
+    from db.genres
     aggregate {a = count name}
 )
 

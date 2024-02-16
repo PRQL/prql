@@ -10,7 +10,7 @@ Ranges can be used in filters with the `in` function, with any type of literal,
 including dates:
 
 ```prql
-from.events
+from db.events
 filter (created_at | in @1776-07-04..@1787-09-17)
 filter (magnitude | in 50..100)
 derive is_northern = (latitude | in 0..)
@@ -19,7 +19,7 @@ derive is_northern = (latitude | in 0..)
 Ranges can also be used in `take`:
 
 ```prql
-from.orders
+from db.orders
 sort {-value, created_at}
 take 101..110
 ```

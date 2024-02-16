@@ -3,14 +3,14 @@ import { expect } from "chai";
 import prql from "../dist/node/prql_js.js";
 
 const employee_prql = `from employees
-join from.salaries (==emp_no)
+join db.salaries (==emp_no)
 group {employees.emp_no, employees.gender} (
   aggregate {
     emp_salary = average salaries.salary
   }
 )
-join (from.dept | select {de = this})_emp (==emp_no)
-join (from.dept | select {dm = this})_manager (
+join de = db.dept_emp (==emp_no)
+join dm = db.dept_manager (
   (dm.dept_no == de.dept_no) && s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 )
 group {dm.emp_no, gender} (
@@ -20,7 +20,7 @@ group {dm.emp_no, gender} (
   }
 )
 derive mng_no = emp_no
-join (from.employees | select {managers = this}) (==emp_no)
+join (db.employees | select {managers = this}) (==emp_no)
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select {mng_name, managers.gender, salary_avg, salary_sd}`;
 

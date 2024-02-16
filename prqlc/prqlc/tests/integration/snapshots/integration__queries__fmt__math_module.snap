@@ -1,9 +1,9 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom.invoices\ntake 5\nselect {\n    total_original = total | math.round 2,\n    total_x = math.pi - total | math.round 2 | math.abs,\n    total_floor = math.floor total,\n    total_ceil = math.ceil total,\n    total_log10 = math.log10 total | math.round 3,\n    total_log2 = math.log 2 total | math.round 3,\n    total_sqrt = math.sqrt total | math.round 3,\n    total_ln = math.ln total | math.exp | math.round 2,\n    total_cos = math.cos total | math.acos | math.round 2,\n    total_sin = math.sin total | math.asin | math.round 2,\n    total_tan = math.tan total | math.atan | math.round 2,\n    total_deg = total | math.degrees | math.radians | math.round 2,\n    total_square = total | math.pow 2| math.round 2,\n}\n"
+expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom db.invoices\ntake 5\nselect {\n    total_original = total | math.round 2,\n    total_x = math.pi - total | math.round 2 | math.abs,\n    total_floor = math.floor total,\n    total_ceil = math.ceil total,\n    total_log10 = math.log10 total | math.round 3,\n    total_log2 = math.log 2 total | math.round 3,\n    total_sqrt = math.sqrt total | math.round 3,\n    total_ln = math.ln total | math.exp | math.round 2,\n    total_cos = math.cos total | math.acos | math.round 2,\n    total_sin = math.sin total | math.asin | math.round 2,\n    total_tan = math.tan total | math.atan | math.round 2,\n    total_deg = total | math.degrees | math.radians | math.round 2,\n    total_square = total | math.pow 2| math.round 2,\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 ---
-from.invoices
+from db.invoices
 take 5
 select {
   total_original = (total | math.round 2),

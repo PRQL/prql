@@ -1,5 +1,5 @@
 # mssql:test
-from.albums
+from db.albums
 select {
     title,
     title_and_spaces = f"  {title}  ",

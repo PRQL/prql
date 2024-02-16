@@ -15,7 +15,7 @@ So this function is named `fahrenheit_to_celsius` and has one parameter `temp`:
 ```prql
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 
-from.cities
+from db.cities
 derive temp_c = (fahrenheit_to_celsius temp_f)
 ```
 
@@ -27,7 +27,7 @@ and `x`, and one named parameter named `low` which takes a default argument of
 ```prql
 let interp = low:0 high x -> (x - low) / (high - low)
 
-from.students
+from db.students
 derive {
   sat_proportion_1 = (interp 1600 sat_score),
   sat_proportion_2 = (interp low:0 1600 sat_score),
@@ -42,7 +42,7 @@ let writes_code = col -> (col | in ["PRQL", "Rust"])
 let square = col -> (col | math.pow 2)
 let starts_with_a = col -> (col | text.lower | text.starts_with("a"))
 
-from.employees
+from db.employees
 select {
     first_name,
     last_name,
@@ -64,7 +64,7 @@ above with an alternative construction:
 ```prql
 let interp = low:0 high x -> (x - low) / (high - low)
 
-from.students
+from db.students
 derive {
   sat_proportion_1 = (sat_score | interp 1600),
   sat_proportion_2 = (sat_score | interp low:0 1600),
@@ -76,7 +76,7 @@ and
 ```prql
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 
-from.cities
+from db.cities
 derive temp_c = (temp_f | fahrenheit_to_celsius)
 ```
 
@@ -86,7 +86,7 @@ We can combine a chain of functions, which makes logic more readable:
 let fahrenheit_to_celsius = temp -> (temp - 32) / 1.8
 let interp = low:0 high x -> (x - low) / (high - low)
 
-from.kettles
+from db.kettles
 derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
 ```
 
@@ -99,7 +99,7 @@ in the `from`.
 ```prql
 let cost_share = cost -> cost / cost_total
 
-from.costs
+from db.costs
 select {materials, labor, overhead, cost_total}
 derive {
   materials_share = (cost_share materials),

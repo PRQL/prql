@@ -105,7 +105,7 @@ let take_oldest = n rel -> (
     take n
 )
 
-from.invoices
+from db.invoices
 take_oldest 3
 ```
 
