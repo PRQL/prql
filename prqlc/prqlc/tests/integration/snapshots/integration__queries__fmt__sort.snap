@@ -1,11 +1,12 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom e=employees\nfilter first_name != \"Mitchell\"\nsort {first_name, last_name}\n\n# joining may use HashMerge, which can undo ORDER BY\njoin manager=employees side:left (e.reports_to == manager.employee_id)\n\nselect {e.first_name, e.last_name, manager.first_name}\n"
+expression: "# mssql:test\nfrom db.employees\nselect {e = this}\nfilter first_name != \"Mitchell\"\nsort {first_name, last_name}\n\n# joining may use HashMerge, which can undo ORDER BY\njoin (db.employees | select {manager = this}) side:left (e.reports_to == manager.employee_id)\n\nselect {e.first_name, e.last_name, manager.first_name}\n"
 input_file: prqlc/prqlc/tests/integration/queries/sort.prql
 ---
-from e = employees
+from db.employees
+select {e = this}
 filter first_name != "Mitchell"
 sort {first_name, last_name}
-join side:left manager = employees e.reports_to == manager.employee_id
+join side:left (db.employees | select {manager = this}) e.reports_to == manager.employee_id
 select {e.first_name, e.last_name, manager.first_name}
 

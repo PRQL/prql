@@ -10,7 +10,7 @@ PRQL to compile to a database-specific SQL flavor.
 ```prql
 prql target:sql.postgres
 
-from employees
+from db.employees
 sort age
 take 10
 ```
@@ -18,7 +18,7 @@ take 10
 ```prql
 prql target:sql.mssql
 
-from employees
+from db.employees
 sort age
 take 10
 ```
@@ -64,7 +64,7 @@ DuckDB dialect.
 
 ```sh
 echo 'prql target:sql.generic
-      from foo' | prqlc compile --target sql.duckdb
+      from db.foo' | prqlc compile --target sql.duckdb
 ```
 
 To use the target described in the query, a special target `sql.any` can be
@@ -72,7 +72,7 @@ specified in the compiler option.
 
 ```sh
 echo 'prql target:sql.generic
-      from foo' | prqlc compile --target sql.any
+      from db.foo' | prqlc compile --target sql.any
 ```
 
 ## Version
@@ -82,7 +82,7 @@ PRQL allows specifying a version of the language in the PRQL header, like:
 ```prql
 prql version:"0.11.4"
 
-from employees
+from db.employees
 ```
 
 This has two roles, one of which is implemented:

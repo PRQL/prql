@@ -5,7 +5,7 @@ expression: expr
 TransformCall:
   input:
     Ident:
-      - default_db
+      - db
       - c_invoice
     ty:
       kind:
@@ -29,7 +29,7 @@ TransformCall:
         - id: 118
           name: c_invoice
           table:
-            - default_db
+            - db
             - c_invoice
   kind:
     Aggregate:
@@ -56,14 +56,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "0:4186-4191"
+                      span: "0:4115-4120"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "0:4195-4199"
+                      span: "0:4124-4128"
                       name: ~
-              span: "0:4186-4199"
+              span: "0:4115-4128"
               name: ~
         ty:
           kind:
@@ -75,14 +75,14 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "0:4186-4191"
+                            span: "0:4115-4120"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "0:4195-4199"
+                            span: "0:4124-4128"
                             name: ~
-                    span: "0:4186-4199"
+                    span: "0:4115-4128"
                     name: ~
           span: ~
           name: ~
@@ -149,7 +149,7 @@ TransformCall:
                           name: ~
                   span: "0:2042-2053"
                   name: tuple
-          span: "0:3013-3028"
+          span: "0:2981-2996"
           name: ~
     ty:
       kind:
@@ -212,7 +212,7 @@ TransformCall:
                                 name: ~
                         span: "0:2042-2053"
                         name: tuple
-                span: "0:3013-3028"
+                span: "0:2981-2996"
                 name: ~
       span: ~
       name: ~
@@ -279,7 +279,7 @@ ty:
                                 name: ~
                         span: "0:2042-2053"
                         name: tuple
-                span: "0:3013-3028"
+                span: "0:2981-2996"
                 name: ~
           - Single:
               - ~
@@ -288,14 +288,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4186-4191"
+                        span: "0:4115-4120"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "0:4195-4199"
+                        span: "0:4124-4128"
                         name: ~
-                span: "0:4186-4199"
+                span: "0:4115-4128"
                 name: ~
       span: ~
       name: ~
@@ -317,6 +317,6 @@ lineage:
     - id: 118
       name: c_invoice
       table:
-        - default_db
+        - db
         - c_invoice
 
