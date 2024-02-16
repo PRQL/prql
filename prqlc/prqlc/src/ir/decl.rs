@@ -37,11 +37,17 @@ pub struct Module {
 
     /// A declaration that has been shadowed (overwritten) by this module.
     pub shadowed: Option<Box<Decl>>,
+
+    /// When a reference into this module does not exist, this declaration will
+    /// be instantiated instead.
+    pub infer_decl: Option<Box<Decl>>,
 }
 
-/// A struct containing information about a single declaration.
+/// A struct containing information about a single declaration
+/// within a PRQL module.
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct Decl {
+    // TODO: make this plain usize, it is populated at creation anyway
     #[serde(skip_serializing_if = "Option::is_none")]
     pub declared_at: Option<usize>,
 
@@ -56,7 +62,7 @@ pub struct Decl {
     pub annotations: Vec<Annotation>,
 }
 
-/// The Declaration itself.
+/// Declaration kind.
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
 pub enum DeclKind {
     /// A nested namespace
@@ -85,6 +91,11 @@ pub enum DeclKind {
 
     /// Equivalent to the declaration pointed to by the fully qualified ident
     Import(Ident),
+
+    /// A declaration that has not yet been resolved.
+    /// Created during the first pass of the AST, must not be present in
+    /// a fully resolved module structure.
+    Unresolved(StmtKind),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -163,6 +174,7 @@ impl Default for DeclKind {
     }
 }
 
+// TODO: convert to Decl::new
 impl From<DeclKind> for Decl {
     fn from(kind: DeclKind) -> Self {
         Decl {
@@ -199,6 +211,7 @@ impl std::fmt::Display for DeclKind {
             Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),
             Self::QueryDef(_) => write!(f, "QueryDef"),
             Self::Import(arg0) => write!(f, "Import {arg0}"),
+            Self::Unresolved(_) => write!(f, "Unresolved"),
         }
     }
 }

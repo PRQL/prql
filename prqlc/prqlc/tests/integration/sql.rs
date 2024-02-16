@@ -5198,3 +5198,35 @@ fn test_import() {
       x
     "###);
 }
+
+#[test]
+fn test_ordering_declarations() {
+    // declarations must be resolved in the correct order:
+    // - hello.world
+    // - foo.bar.baz
+    // - main
+
+    assert_snapshot!(compile(
+        r###"
+    let main = (from db.h | filter j == (foo.bar.baz + 1))
+
+    module foo {
+      module bar {
+        let baz = hello.world
+      }
+    }
+
+    module hello {
+      let world = 1
+    }
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      h
+    WHERE
+      j = 1 + 1
+    "###);
+}

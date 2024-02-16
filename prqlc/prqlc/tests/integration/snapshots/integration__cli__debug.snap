@@ -8,9 +8,9 @@ info:
     - resolve
   env:
     CLICOLOR_FORCE: ""
+    NO_COLOR: "1"
     RUST_BACKTRACE: ""
     RUST_LOG: ""
-    NO_COLOR: "1"
   stdin: from db.tracks
 ---
 success: true
@@ -179,7 +179,7 @@ Module {
                     ),
                 },
             ),
-            order: 0,
+            order: 2,
             annotations: [],
         },
         "std": Decl {
@@ -191,7 +191,7 @@ Module {
                     names: "... 77 entries ...",
                 },
             ),
-            order: 0,
+            order: 1,
             annotations: [],
         },
     },
@@ -214,4 +214,3 @@ module db {
 let main <[{*..}]> = db.tracks
 
 ----- stderr -----
-

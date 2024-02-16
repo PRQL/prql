@@ -212,8 +212,9 @@ impl Resolver<'_> {
             | DeclKind::TableDecl(_)
             | DeclKind::Ty(_)
             | DeclKind::InstanceOf { .. }
-            | DeclKind::QueryDef(_)
-            | DeclKind::Import(_) => {
+            | DeclKind::Import(_)
+            | DeclKind::Unresolved(_)
+            | DeclKind::QueryDef(_) => {
                 panic!("declaration {decl} is not able to have a type")
             }
         }

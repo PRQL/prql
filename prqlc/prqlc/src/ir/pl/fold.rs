@@ -277,13 +277,18 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
 
 pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
     Ok(Func {
+        name_hint: func.name_hint,
         body: Box::new(fold.fold_expr(*func.body)?),
         args: func
             .args
             .into_iter()
             .map(|item| fold.fold_expr(item))
             .try_collect()?,
-        ..func
+        return_ty: fold_type_opt(fold, func.return_ty)?,
+        params: fold_func_param(fold, func.params)?,
+        named_params: fold_func_param(fold, func.named_params)?,
+        generic_type_params: func.generic_type_params, // recurse into this too?
+        env: func.env,                                 // recurse into this too?
     })
 }
 

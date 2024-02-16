@@ -5,6 +5,7 @@ mod eval;
 mod lowering;
 mod module;
 pub mod reporting;
+mod resolve_decls;
 mod resolver;
 
 use self::resolver::Resolver;
@@ -14,7 +15,7 @@ pub use lowering::lower_to_ir;
 
 use crate::ast;
 use crate::ir::constant::ConstExpr;
-use crate::ir::decl::{Module, RootModule};
+use crate::ir::decl::RootModule;
 use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
@@ -42,15 +43,18 @@ pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Res
     // expand AST into PL
     let root_module_def = ast_expand::expand_module_def(module_tree)?;
 
-    // init new root module
-    let mut root_module = RootModule {
-        module: Module::new_root(),
-        ..Default::default()
-    };
+    // init the module structure
+    let mut root_module = resolve_decls::init_module_tree(root_module_def);
+
+    // resolve name references between declarations
+    let resolution_order = resolve_decls::resolve_decl_refs(&mut root_module)?;
+
+    // resolve
     let mut resolver = Resolver::new(&mut root_module, options);
 
-    // resolve the module def into the root module
-    resolver.fold_statements(root_module_def.stmts)?;
+    for decl_fq in resolution_order {
+        resolver.resolve_decl(decl_fq)?;
+    }
 
     Ok(root_module)
 }

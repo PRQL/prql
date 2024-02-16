@@ -4,7 +4,7 @@ use crate::ast::QueryDef;
 use crate::ast::{Literal, Span, Ty, TyKind, TyTupleField};
 use crate::Result;
 
-use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
+use crate::ir::pl::{Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
 
 use super::{
@@ -40,31 +40,32 @@ impl Module {
                 Ident::from_name(NS_STD),
                 Ident::from_name(NS_GENERIC),
             ],
+            infer_decl: None,
         }
     }
 
     pub fn new_database() -> Module {
+        let table_decl = DeclKind::TableDecl(TableDecl {
+            ty: Some(Ty::relation(vec![TyTupleField::Wildcard(None)])),
+            expr: TableExpr::LocalTable,
+        });
+
         let names = HashMap::from([
             (
                 NS_INFER.to_string(),
-                Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    ty: Some(Ty::relation(vec![TyTupleField::Wildcard(None)])),
-                    expr: TableExpr::LocalTable,
-                })))),
+                Decl::from(DeclKind::Infer(Box::new(table_decl.clone()))),
             ),
             (
                 NS_INFER_MODULE.to_string(),
-                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(Module {
-                    names: HashMap::new(),
-                    redirects: vec![],
-                    shadowed: None,
-                })))),
+                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(
+                    Module::default(),
+                )))),
             ),
         ]);
         Module {
             names,
-            shadowed: None,
-            redirects: vec![],
+            infer_decl: Some(Box::new(Decl::from(table_decl))),
+            ..Default::default()
         }
     }
 
@@ -135,6 +136,35 @@ impl Module {
         }
 
         ns.names.get(&fq_ident.name)
+    }
+
+    pub fn get_submodule(&self, path: &[String]) -> Option<&Module> {
+        let mut curr_mod = self;
+        for step in path {
+            let decl = curr_mod.names.get(step)?;
+            curr_mod = decl.kind.as_module()?;
+        }
+        Some(curr_mod)
+    }
+
+    pub fn get_submodule_mut(&mut self, path: &[String]) -> Option<&mut Module> {
+        let mut curr_mod = self;
+        for step in path {
+            let decl = curr_mod.names.get_mut(step)?;
+            curr_mod = decl.kind.as_module_mut()?;
+        }
+        Some(curr_mod)
+    }
+
+    pub fn get_module_path(&self, path: &[String]) -> Option<Vec<&Module>> {
+        let mut res = vec![self];
+        for step in path {
+            let decl = res.last().unwrap().names.get(step)?;
+            let module = decl.kind.as_module()?;
+            res.push(module);
+        }
+
+        Some(res)
     }
 
     pub fn lookup(&self, ident: &Ident) -> HashSet<Ident> {
@@ -425,30 +455,6 @@ fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
 type HintAndSpan = (Option<String>, Option<Span>);
 
 impl RootModule {
-    pub(super) fn declare(
-        &mut self,
-        ident: Ident,
-        decl: DeclKind,
-        id: Option<usize>,
-        annotations: Vec<Annotation>,
-    ) -> Result<()> {
-        let existing = self.module.get(&ident);
-        if existing.is_some() {
-            return Err(Error::new_simple(format!(
-                "duplicate declarations of {ident}"
-            )));
-        }
-
-        let decl = Decl {
-            kind: decl,
-            declared_at: id,
-            order: 0,
-            annotations,
-        };
-        self.module.insert(ident, decl).unwrap();
-        Ok(())
-    }
-
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
     pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), HintAndSpan> {

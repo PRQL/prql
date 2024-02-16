@@ -508,6 +508,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
         }
         decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),
         decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
+        decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "unresolved".to_string()),
 
         decl::DeclKind::Expr(mut expr) => StmtKind::VarDef(VarDef {
             kind: VarDefKind::Let,

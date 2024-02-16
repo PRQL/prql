@@ -86,6 +86,7 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::Infer(_) => Color::White,
                         DeclKind::QueryDef(_) => Color::White,
                         DeclKind::Import(_) => Color::White,
+                        DeclKind::Unresolved(_) => Color::White,
                     };
 
                     let location = decl

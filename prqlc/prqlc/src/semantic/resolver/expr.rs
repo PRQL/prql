@@ -29,6 +29,7 @@ impl PlFold for Resolver<'_> {
                         expected: "a type".to_string(),
                         found: decl.to_string(),
                     })
+                    .with_span(ty.span)
                 })?;
                 let mut ty = decl_ty.clone();
                 ty.name = ty.name.or(Some(fq_ident.name));
@@ -139,6 +140,14 @@ impl PlFold for Resolver<'_> {
                             found: "a type".to_string(),
                         })
                         .with_span(*span));
+                    }
+
+                    DeclKind::Unresolved(_) => {
+                        panic!(
+                            "bug: bad resolution order:\n\
+                            Found reference to {}, but its declaration is unresolved.",
+                            fq_ident
+                        );
                     }
 
                     _ => Expr {

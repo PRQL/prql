@@ -34,12 +34,16 @@ pub struct ResolverOptions {}
 
 impl Resolver<'_> {
     pub fn new(root_mod: &mut RootModule, options: ResolverOptions) -> Resolver {
+        let mut id = IdGenerator::new();
+        let max_id = root_mod.span_map.keys().max().cloned().unwrap_or(0);
+        id.skip(max_id);
+
         Resolver {
             root_mod,
             options,
             current_module_path: Vec::new(),
             in_func_call_name: false,
-            id: IdGenerator::new(),
+            id,
             generics: Default::default(),
         }
     }
