@@ -1524,8 +1524,9 @@ fn test_var_def() {
                 - from
             args:
               - Ident:
+                  - db
                   - employees
-      span: "0:0-39"
+      span: "0:0-42"
     "###);
 
     assert_yaml_snapshot!(parse_single(
