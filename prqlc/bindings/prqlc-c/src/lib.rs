@@ -321,7 +321,7 @@ fn convert_options(o: &Options) -> Result<prqlc::Options, prqlc::ErrorMessages> 
         .filter(|x| !x.is_empty())
         .unwrap_or("sql.any");
 
-    let target = Target::from_str(target).map_err(|e| prqlc::downcast(e.into()))?;
+    let target = Target::from_str(target).map_err(prqlc::ErrorMessages::from)?;
 
     Ok(prqlc::Options {
         format: o.format,

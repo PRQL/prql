@@ -5,7 +5,6 @@ use std::path::Path;
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
-use prqlc::downcast;
 use walkdir::WalkDir;
 
 use super::jinja;
@@ -121,8 +120,8 @@ fn compile_path(path: &Path, opt: &prqlc::Options) -> Result<()> {
     println!("Compiling {}", prql_path.display());
     let sql_string = match prqlc::compile(&prql_string, opt) {
         Ok(sql_string) => sql_string,
-        Err(err) => {
-            for err in downcast(anyhow!(err)).inner {
+        Err(errs) => {
+            for err in errs.inner {
                 println!("{err}");
             }
             return Err(anyhow!("failed to compile"));

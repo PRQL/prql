@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::Result;
+use crate::Result;
 use itertools::{Itertools, Position};
 
 use crate::ast::{Ty, TyFunc, TyKind};
@@ -34,8 +34,7 @@ impl Resolver<'_> {
                 "Too many arguments to function `{}`",
                 closure.as_debug_name()
             ))
-            .with_span(span)
-            .into());
+            .with_span(span));
         }
 
         let enough_args = closure.args.len() == closure.params.len();
@@ -216,10 +215,10 @@ impl Resolver<'_> {
         }
         if let Some((name, _)) = named_args.into_iter().next() {
             // TODO: report all remaining named_args as separate errors
-            anyhow::bail!(
+            return Err(Error::new_simple(format!(
                 "unknown named argument `{name}` to closure {:?}",
                 closure.name_hint
-            )
+            )));
         }
 
         // positional

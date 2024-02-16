@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
 use crate::ast::{TupleField, Ty, TyKind};
@@ -138,8 +138,7 @@ impl PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(*span)
-                        .into());
+                        .with_span(*span));
                     }
 
                     _ => Expr {

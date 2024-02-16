@@ -245,9 +245,9 @@ FROM
 
 #[test]
 fn json_of_test() {
-    let json = prqlc::prql_to_pl("from employees | take 10")
-        .and_then(|x| prqlc::json::from_pl(&x))
-        .unwrap();
+    let pl = prqlc::prql_to_pl("from employees | take 10").unwrap();
+    let json = prqlc::json::from_pl(&pl).unwrap();
+
     // Since the AST is so in flux right now just test that the brackets are present
     assert_eq!(json.chars().next().unwrap(), '{');
     assert_eq!(json.chars().nth(json.len() - 1).unwrap(), '}');
@@ -2277,8 +2277,8 @@ fn test_from_json() {
         .unwrap();
 
     let sql_from_json = prqlc::prql_to_pl(original_prql)
-        .and_then(|x| prqlc::json::from_pl(&x))
-        .and_then(|json| prqlc::json::to_pl(&json))
+        .map(|x| prqlc::json::from_pl(&x).unwrap())
+        .map(|json| prqlc::json::to_pl(&json).unwrap())
         .and_then(prqlc::pl_to_rq)
         .and_then(|rq| prqlc::rq_to_sql(rq, &Options::default()))
         .unwrap();

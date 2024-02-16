@@ -1,11 +1,10 @@
 use std::iter::zip;
 
-use anyhow::Result;
 use itertools::Itertools;
 
 use super::ast_expand;
 use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
-use crate::{Error, Span, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 pub fn eval(expr: crate::ast::expr::Expr) -> Result<Expr> {
     let expr = ast_expand::expand_expr(expr)?;
@@ -83,7 +82,7 @@ impl PlFold for Evaluator {
             | ExprKind::RqOperator { .. }
             | ExprKind::Param(_)
             | ExprKind::Internal(_) => {
-                return Err(Error::new_simple("not a value").with_span(expr.span).into())
+                return Err(Error::new_simple("not a value").with_span(expr.span))
             }
         };
         Ok(expr)
@@ -101,7 +100,10 @@ fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if name == "std" {
         return Ok(std_module());
     }
-    Err(Error::new_simple(format!("cannot find `{}` in {:?}", name, base)).into())
+    Err(Error::new_simple(format!(
+        "cannot find `{}` in {:?}",
+        name, base
+    )))
 }
 
 impl Evaluator {
@@ -143,7 +145,7 @@ impl Evaluator {
                     (Integer(l), Float(r)) => (l as f64) + r,
                     (Float(l), Float(r)) => l + r,
 
-                    _ => return Err(Error::new_simple("bad arg types").with_span(span).into()),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(span)),
                 };
 
                 ExprKind::Literal(Float(res))
@@ -155,7 +157,7 @@ impl Evaluator {
                 let res = match x.kind {
                     ExprKind::Literal(Integer(i)) => i,
                     ExprKind::Literal(Float(f)) => f.floor() as i64,
-                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span)),
                 };
 
                 ExprKind::Literal(Integer(res))
@@ -167,7 +169,7 @@ impl Evaluator {
                 match x.kind {
                     ExprKind::Literal(Integer(i)) => ExprKind::Literal(Integer(-i)),
                     ExprKind::Literal(Float(f)) => ExprKind::Literal(Float(-f)),
-                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span).into()),
+                    _ => return Err(Error::new_simple("bad arg types").with_span(x.span)),
                 }
             }
 
@@ -273,9 +275,9 @@ impl Evaluator {
             }
 
             _ => {
-                return Err(Error::new_simple(format!("unknown function {func_name}"))
-                    .with_span(span)
-                    .into())
+                return Err(
+                    Error::new_simple(format!("unknown function {func_name}")).with_span(span)
+                )
             }
         })
     }
@@ -455,8 +457,9 @@ mod test {
 
     use super::*;
 
+    #[track_caller]
     fn eval(source: &str) -> Result<String> {
-        let stmts = crate::prql_to_pl(source)?.stmts.into_iter();
+        let stmts = crate::prql_to_pl(source).unwrap().stmts.into_iter();
         let stmt = stmts.exactly_one().unwrap();
         let expr = stmt.kind.into_var_def().unwrap().value.unwrap();
 

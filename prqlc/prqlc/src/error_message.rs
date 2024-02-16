@@ -1,5 +1,4 @@
 use anstream::adapter::strip_str;
-pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
 use serde::Serialize;
@@ -74,6 +73,20 @@ impl Debug for ErrorMessage {
     }
 }
 
+impl From<Error> for ErrorMessage {
+    fn from(e: Error) -> Self {
+        ErrorMessage {
+            code: e.code.map(str::to_string),
+            kind: MessageKind::Error,
+            reason: e.reason.to_string(),
+            hints: e.hints,
+            span: e.span,
+            display: None,
+            location: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ErrorMessages {
     pub inner: Vec<ErrorMessage>,
@@ -86,67 +99,28 @@ impl From<ErrorMessage> for ErrorMessages {
     }
 }
 
+impl From<Error> for ErrorMessages {
+    fn from(e: Error) -> Self {
+        ErrorMessages {
+            inner: vec![ErrorMessage::from(e)],
+        }
+    }
+}
+
+impl From<Errors> for ErrorMessages {
+    fn from(errs: Errors) -> Self {
+        ErrorMessages {
+            inner: errs.0.into_iter().map(ErrorMessage::from).collect(),
+        }
+    }
+}
+
 impl Display for ErrorMessages {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         for e in &self.inner {
             Display::fmt(&e, f)?;
         }
         Ok(())
-    }
-}
-
-pub fn downcast(error: anyhow::Error) -> ErrorMessages {
-    let mut code = None;
-    let mut span = None;
-    let mut hints = Vec::new();
-
-    let error = match error.downcast::<ErrorMessages>() {
-        Ok(messages) => return messages,
-        Err(error) => error,
-    };
-
-    let error = match error.downcast::<Errors>() {
-        Ok(messages) => {
-            return ErrorMessages {
-                inner: messages
-                    .0
-                    .into_iter()
-                    .flat_map(|e| downcast(e.into()).inner)
-                    .collect(),
-            }
-        }
-        Err(error) => error,
-    };
-
-    let reason = match error.downcast::<Error>() {
-        Ok(error) => {
-            code = error.code.map(|x| x.to_string());
-            span = error.span;
-            hints.extend(error.hints);
-
-            error.reason.to_string()
-        }
-        Err(error) => {
-            // default to basic Display
-            format!("{:#?}", error)
-        }
-    };
-
-    ErrorMessage {
-        code,
-        kind: MessageKind::Error,
-        reason,
-        hints,
-        span,
-        display: None,
-        location: None,
-    }
-    .into()
-}
-
-impl From<anyhow::Error> for ErrorMessages {
-    fn from(e: anyhow::Error) -> Self {
-        downcast(e)
     }
 }
 

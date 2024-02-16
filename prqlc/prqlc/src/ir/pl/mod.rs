@@ -16,7 +16,7 @@ mod stmt;
 mod utils;
 
 pub use self::expr::*;
-pub use self::extra::expr::*;
+pub use self::extra::*;
 pub use self::fold::*;
 pub use self::lineage::*;
 pub use self::stmt::*;

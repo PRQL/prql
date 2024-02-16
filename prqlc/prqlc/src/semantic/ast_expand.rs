@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
 use crate::ast::*;
 use crate::ir::decl;
 use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
+use crate::{Error, Result};
 
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
@@ -86,7 +86,7 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
 }
 
 /// De-sugars range `a..b` into `{start=a, end=b}`. Open bounds are mapped into `null`.
-fn expands_range(v: generic::Range<Box<Expr>>) -> Result<pl::ExprKind, anyhow::Error> {
+fn expands_range(v: generic::Range<Box<Expr>>) -> Result<pl::ExprKind> {
     let mut start = v
         .start
         .map(|e| expand_expr(*e))
@@ -140,14 +140,17 @@ fn expand_unary(UnaryExpr { op, expr }: UnaryExpr) -> Result<pl::ExprKind> {
         Not => ["std", "not"],
         Add => return Ok(expr.kind),
         EqSelf => {
-            let ident = expr.kind.into_ident().map_err(|_| {
-                anyhow!("you can only use column names with self-equality operator.")
-            })?;
+            let pl::ExprKind::Ident(ident) = expr.kind else {
+                return Err(Error::new_simple(
+                    "you can only use column names with self-equality operator",
+                ));
+            };
             if !ident.path.is_empty() {
-                return Err(anyhow!(
-                    "you cannot use namespace prefix with self-equality operator."
+                return Err(Error::new_simple(
+                    "you cannot use namespace prefix with self-equality operator",
                 ));
             }
+
             let left = pl::Expr {
                 span: expr.span,
                 ..pl::Expr::new(Ident {

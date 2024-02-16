@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
 use crate::ir::generic::ColumnSort;

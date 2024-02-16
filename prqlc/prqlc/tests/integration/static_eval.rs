@@ -16,8 +16,7 @@ fn static_eval(prql_source: &str) -> ConstExpr {
     let mut root_module = RootModule::default();
 
     prqlc::semantic::static_eval(expr, &mut root_module)
-        .map_err(prqlc::downcast)
-        .map_err(|e| e.composed(&sources))
+        .map_err(|e| prqlc::ErrorMessages::from(e).composed(&sources))
         .unwrap()
 }
 

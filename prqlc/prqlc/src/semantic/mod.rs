@@ -7,8 +7,6 @@ mod module;
 pub mod reporting;
 mod resolver;
 
-use anyhow::Result;
-
 use self::resolver::Resolver;
 pub use self::resolver::ResolverOptions;
 pub use eval::eval;
@@ -21,7 +19,7 @@ use crate::ir::pl::{self, Expr, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
 use crate::WithErrorInfo;
-use crate::{Error, Reason};
+use crate::{Error, Reason, Result};
 
 /// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve_and_lower(
@@ -159,22 +157,22 @@ pub fn write_pl(expr: pl::Expr) -> String {
 }
 #[cfg(test)]
 pub mod test {
-    use anyhow::Result;
     use insta::assert_yaml_snapshot;
 
     use crate::ir::rq::RelationalQuery;
     use crate::parser::parse;
+    use crate::Errors;
 
     use super::{resolve, resolve_and_lower, RootModule};
 
-    pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery> {
+    pub fn parse_resolve_and_lower(query: &str) -> Result<RelationalQuery, Errors> {
         let source_tree = query.into();
-        resolve_and_lower(parse(&source_tree)?, &[], None)
+        Ok(resolve_and_lower(parse(&source_tree)?, &[], None)?)
     }
 
-    pub fn parse_and_resolve(query: &str) -> Result<RootModule> {
+    pub fn parse_and_resolve(query: &str) -> Result<RootModule, Errors> {
         let source_tree = query.into();
-        resolve(parse(&source_tree)?, Default::default())
+        Ok(resolve(parse(&source_tree)?, Default::default())?)
     }
 
     #[test]

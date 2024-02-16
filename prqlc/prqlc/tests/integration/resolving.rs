@@ -1,4 +1,3 @@
-use anyhow::Result;
 use insta::assert_snapshot;
 use prqlc::ErrorMessages;
 
@@ -8,8 +7,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     let stmts = prqlc::prql_to_pl_tree(&sources)?;
 
     let root_module = prqlc::semantic::resolve(stmts, Default::default())
-        .map_err(prqlc::downcast)
-        .map_err(|e| e.composed(&sources))?;
+        .map_err(|e| prqlc::ErrorMessages::from(e).composed(&sources))?;
 
     // resolved PL, restricted back into AST
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);

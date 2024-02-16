@@ -8,14 +8,10 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
-[features]
-default = ["anyhow"]
-
 [lib]
 doctest = false
 
 [dependencies]
-anyhow = {version = "1.0.79", optional = true}
 enum-as-inner = "0.6.0"
 semver = {version = "1.0.21", features = ["serde"]}
 serde = {version = "1.0.196", features = ["derive"]}

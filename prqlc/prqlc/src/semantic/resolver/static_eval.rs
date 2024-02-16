@@ -1,11 +1,10 @@
 //! Static analysis - compile time expression evaluation
 
-use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ir::constant::{ConstExpr, ConstExprKind};
 use crate::ir::pl::{Expr, ExprKind, Literal, PlFold};
-use crate::{Error, WithErrorInfo};
+use crate::{Error, Result, WithErrorInfo};
 
 impl super::Resolver<'_> {
     /// Tries to simplify this expression (and not child expressions) to a constant.
@@ -135,7 +134,7 @@ struct StaticEvaluator<'a, 'b> {
 impl<'a, 'b> StaticEvaluator<'a, 'b> {
     fn run(expr: Expr, resolver: &'a mut super::Resolver<'b>) -> Result<ConstExpr> {
         let expr = StaticEvaluator { resolver }.fold_expr(expr)?;
-        Ok(restrict_to_const(expr)?)
+        restrict_to_const(expr)
     }
 }
 

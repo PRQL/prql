@@ -75,7 +75,6 @@ mod results {
 
     use std::{ops::DerefMut, sync::Mutex};
 
-    use anyhow::Context;
     use once_cell::sync::Lazy;
     use prqlc::sql::SupportLevel;
 
@@ -184,10 +183,7 @@ mod results {
             let dialect = con.cfg.dialect;
 
             println!("Executing {test_name} for {dialect}");
-            let rows = con
-                .run_query(&prql)
-                .context(format!("Executing {test_name} for {dialect}"))
-                .unwrap();
+            let rows = con.run_query(&prql).unwrap();
 
             // convert into ad-hoc CSV
             let result = rows

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
 use crate::ast::{Ident, TupleField, Ty};

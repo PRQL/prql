@@ -3,7 +3,7 @@
 //! This IR dictates the structure of the resulting SQL query. This includes number of CTEs,
 //! position of sub-queries and set operations.
 
-use anyhow::Result;
+use crate::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::Serialize;

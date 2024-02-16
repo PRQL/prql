@@ -35,8 +35,8 @@ fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> R
         .map(|field| -> Result<_> {
             let name = field.name();
 
-            let res = convert_arrow_type(field.data_type());
-            let ty = res.push_hint(format!("Found on table `{table_name}`, column `{name}`",))?;
+            let ty = convert_arrow_type(field.data_type())
+                .push_hint(format!("Found on table `{table_name}`, column `{name}`",))?;
 
             // TODO: handle field.is_nullable()
 
@@ -58,7 +58,8 @@ fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> R
     Ok(stmt)
 }
 
-fn convert_arrow_type(ty: &DataType) -> Result<TyKind> {
+#[allow(clippy::result_large_err)]
+fn convert_arrow_type(ty: &DataType) -> Result<TyKind, Error> {
     Ok(match ty {
         DataType::Boolean => TyKind::Primitive(PrimitiveSet::Bool),
         DataType::Int8 => TyKind::Primitive(PrimitiveSet::Int),
@@ -95,9 +96,9 @@ fn convert_arrow_type(ty: &DataType) -> Result<TyKind> {
         | DataType::Decimal256(_, _)
         | DataType::Map(_, _)
         | DataType::RunEndEncoded(_, _) => {
-            return Err(
-                Error::new_simple(format!("cannot convert arrow type {ty:?} a PRQL type")).into(),
-            )
+            return Err(Error::new_simple(format!(
+                "cannot convert arrow type {ty:?} a PRQL type"
+            )))
         }
     })
 }
