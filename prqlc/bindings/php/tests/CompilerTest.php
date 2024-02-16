@@ -45,7 +45,7 @@ final class CompilerTest extends TestCase
         $options->target = "sql.mssql";
         $prql = new Compiler();
 
-        $actual = $prql->compile("from employees | take 10", $options);
+        $actual = $prql->compile("from db.employees | take 10", $options);
         $this->assertCount(0, $actual->messages);
 
         $this->assertEquals(

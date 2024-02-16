@@ -27,7 +27,7 @@ def test_all() -> None:
     # Example from readme
     prql_query = """
         from db.employees
-        join db.salaries(==emp_id)
+        join db.salaries (==emp_id)
         group {employees.dept_id, employees.gender} (
             aggregate {
                 avg_salary = average salaries.salary
@@ -47,7 +47,7 @@ def test_compile_options() -> None:
     """
     Test the CompileOptions
     """
-    query_mssql = "prql target:sql.mssql\nfrom a | take 3"
+    query_mssql = "prql target:sql.mssql\nfrom db.a | take 3"
 
     assert prqlc.compile(query_mssql).startswith(
         "SELECT\n  *\nFROM\n  a\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  3 ROWS ONLY"
