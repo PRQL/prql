@@ -245,7 +245,7 @@ FROM
 
 #[test]
 fn json_of_test() {
-    let pl = prqlc::prql_to_pl("from employees | take 10").unwrap();
+    let pl = prqlc::prql_to_pl("from db.employees | take 10").unwrap();
     let json = prqlc::json::from_pl(&pl).unwrap();
 
     // Since the AST is so in flux right now just test that the brackets are present

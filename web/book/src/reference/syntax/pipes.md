@@ -6,7 +6,7 @@ the input for the transform following the pipe. A pipe can be represented with
 either a line break or a pipe character (`|`).
 
 For example, here the `filter` transform operates on the result of
-`from employees` (which is just the `employees` table), and the `select`
+`from db.employees` (which is just the `employees` table), and the `select`
 transform operates on the result of the `filter` transform.
 
 ```prql
