@@ -17,7 +17,7 @@ sealed public class CompilerTest
         };
 
         // Act
-        var result = PrqlCompiler.Compile("from employees", options);
+        var result = PrqlCompiler.Compile("from db.employees", options);
 
         // Assert
         Assert.Equal(expected, result.Output);
@@ -28,9 +28,9 @@ sealed public class CompilerTest
     {
         // Arrange
         var query = """
-            let a = (from employees | take 10)
+            let a = (from db.employees | take 10)
 
-            from db.a | select {first_name}
+            from a | select {first_name}
             """;
         var options = new PrqlCompilerOptions();
 
