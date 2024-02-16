@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use serde::Deserialize;
-use std::iter::zip;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
@@ -367,7 +366,6 @@ impl Resolver<'_> {
                 };
 
                 let expr_id = text_expr.id.unwrap();
-                let input_name = text_expr.alias.unwrap_or_else(|| "text".to_string());
 
                 let columns: Vec<_> = res
                     .columns
@@ -376,8 +374,7 @@ impl Resolver<'_> {
                     .map(|x| TyTupleField::Single(Some(x), None))
                     .collect();
 
-                let frame =
-                    self.declare_table_for_literal(expr_id, Some(columns), Some(input_name));
+                let ty = self.declare_table_for_literal(expr_id, Some(columns));
 
                 let res = Expr::new(ExprKind::Array(
                     res.rows
@@ -392,7 +389,7 @@ impl Resolver<'_> {
                         .collect(),
                 ));
                 let res = Expr {
-                    lineage: Some(frame),
+                    ty: Some(ty),
                     id: text_expr.id,
                     ..res
                 };
@@ -583,7 +580,6 @@ impl Resolver<'_> {
         let mut dummy = Expr::new(ExprKind::Ident(Ident::from_path(vec![
             NS_LOCAL, NS_PARAM, param_name,
         ])));
-        dummy.lineage = val.lineage.clone();
         dummy.ty = val.ty.clone();
 
         let pipeline = Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
@@ -591,7 +587,7 @@ impl Resolver<'_> {
             vec![dummy],
         )));
 
-        let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+        let env = Module::singleton(param_name, Decl::from(DeclKind::TupleField(None)));
         self.root_mod.local_mut().stack_push(NS_PARAM, env);
 
         let mut pipeline = self.fold_expr(pipeline)?;
@@ -626,335 +622,6 @@ impl Resolver<'_> {
             generic_type_params: Default::default(),
         });
         Ok(*expr_of_func(func, span))
-    }
-}
-
-impl TransformCall {
-    pub fn infer_lineage(&self) -> Result<Lineage> {
-        use TransformKind::*;
-
-        fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
-            expr.lineage.clone().ok_or_else(|| {
-                Error::new_simple("expected {expr:?} to have table type").with_span(expr.span)
-            })
-        }
-
-        Ok(match self.kind.as_ref() {
-            Select { assigns } => {
-                let mut lineage = lineage_or_default(&self.input)?;
-
-                lineage.clear();
-                lineage.apply_assigns(assigns, false);
-                lineage
-            }
-            Derive { assigns } => {
-                let mut lineage = lineage_or_default(&self.input)?;
-
-                lineage.apply_assigns(assigns, false);
-                lineage
-            }
-            Group { pipeline, by, .. } => {
-                let mut lineage = lineage_or_default(&self.input)?;
-                lineage.clear();
-                lineage.apply_assigns(by, false);
-
-                // pipeline's body is resolved, just use its type
-                let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-
-                let partition_lin = lineage_or_default(body).unwrap();
-                lineage.columns.extend(partition_lin.columns);
-
-                log::debug!(".. type={lineage}");
-                lineage
-            }
-            Window { pipeline, .. } => {
-                // pipeline's body is resolved, just use its type
-                let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
-
-                lineage_or_default(body).unwrap()
-            }
-            Aggregate { assigns } => {
-                let mut lineage = lineage_or_default(&self.input)?;
-                lineage.clear();
-
-                lineage.apply_assigns(assigns, false);
-                lineage
-            }
-            Join { with, .. } => {
-                let left = lineage_or_default(&self.input)?;
-                let right = lineage_or_default(with)?;
-                join(left, right)
-            }
-            Append(bottom) => {
-                let top = lineage_or_default(&self.input)?;
-                let bottom = lineage_or_default(bottom)?;
-                append(top, bottom)?
-            }
-            Loop(_) => lineage_or_default(&self.input)?,
-            Sort { .. } | Filter { .. } | Take { .. } => lineage_or_default(&self.input)?,
-        })
-    }
-}
-
-fn join(mut lhs: Lineage, rhs: Lineage) -> Lineage {
-    lhs.columns.extend(rhs.columns);
-    lhs.inputs.extend(rhs.inputs);
-    lhs
-}
-
-fn append(mut top: Lineage, bottom: Lineage) -> Result<Lineage, Error> {
-    if top.columns.len() != bottom.columns.len() {
-        return Err(Error::new_simple(
-            "cannot append two relations with non-matching number of columns.",
-        ))
-        .push_hint(format!(
-            "top has {} columns, but bottom has {}",
-            top.columns.len(),
-            bottom.columns.len()
-        ));
-    }
-
-    // TODO: I'm not sure what to use as input_name and expr_id...
-    let mut columns = Vec::with_capacity(top.columns.len());
-    for (t, b) in zip(top.columns, bottom.columns) {
-        columns.push(match (t, b) {
-            (LineageColumn::All { input_id, except }, LineageColumn::All { .. }) => {
-                LineageColumn::All { input_id, except }
-            }
-            (
-                LineageColumn::Single {
-                    name: name_t,
-                    target_id,
-                    target_name,
-                },
-                LineageColumn::Single { name: name_b, .. },
-            ) => match (name_t, name_b) {
-                (None, None) => {
-                    let name = None;
-                    LineageColumn::Single {
-                        name,
-                        target_id,
-                        target_name,
-                    }
-                }
-                (None, Some(name)) | (Some(name), _) => {
-                    let name = Some(name);
-                    LineageColumn::Single {
-                        name,
-                        target_id,
-                        target_name,
-                    }
-                }
-            },
-            (t, b) => return Err(Error::new_simple(format!(
-                "cannot match columns `{t:?}` and `{b:?}`"
-            ))
-            .push_hint(
-                "make sure that top and bottom relations of append has the same column layout",
-            )),
-        });
-    }
-
-    top.columns = columns;
-    Ok(top)
-}
-
-impl Lineage {
-    pub fn clear(&mut self) {
-        self.prev_columns.clear();
-        self.prev_columns.append(&mut self.columns);
-    }
-
-    pub fn apply_assigns(&mut self, assigns: &Expr, inline_refs: bool) {
-        match &assigns.kind {
-            ExprKind::Tuple(fields) => {
-                for expr in fields {
-                    self.apply_assigns(expr, inline_refs);
-                }
-
-                // hack for making `x | select { y = this }` work
-                if let Some(alias) = &assigns.alias {
-                    if self.columns.len() == 1 {
-                        let col = self.columns.first().unwrap();
-                        if let LineageColumn::All { input_id, .. } = col {
-                            let input = self.inputs.iter_mut().find(|i| i.id == *input_id).unwrap();
-                            input.name = alias.clone();
-                        }
-                    }
-                }
-            }
-            _ => self.apply_assign(assigns, inline_refs),
-        }
-    }
-
-    pub fn apply_assign(&mut self, expr: &Expr, inline_refs: bool) {
-        // special case: all except
-        if let ExprKind::All { within, except } = &expr.kind {
-            let mut within_lineage = Lineage::default();
-            within_lineage.inputs.extend(self.inputs.clone());
-            within_lineage.apply_assigns(within, true);
-
-            let mut except_lineage = Lineage::default();
-            except_lineage.inputs.extend(self.inputs.clone());
-            except_lineage.apply_assigns(except, true);
-
-            'within: for col in within_lineage.columns {
-                match col {
-                    LineageColumn::Single {
-                        ref name,
-                        ref target_id,
-                        ref target_name,
-                        ..
-                    } => {
-                        let is_excluded = except_lineage.columns.iter().any(|e| match e {
-                            LineageColumn::Single { name: e_name, .. } => name == e_name,
-
-                            LineageColumn::All {
-                                input_id: e_iid,
-                                except: e_except,
-                            } => {
-                                target_id == e_iid
-                                    && !e_except.contains(target_name.as_ref().unwrap())
-                            }
-                        });
-                        if !is_excluded {
-                            self.columns.push(col);
-                        }
-                    }
-                    LineageColumn::All {
-                        input_id,
-                        mut except,
-                    } => {
-                        for excluded in &except_lineage.columns {
-                            match excluded {
-                                LineageColumn::Single {
-                                    name: Some(name), ..
-                                } => {
-                                    let input = self.find_input(input_id).unwrap();
-                                    let ex_input_name = name.iter().next().unwrap();
-                                    if ex_input_name == &input.name {
-                                        except.insert(name.name.clone());
-                                    }
-                                }
-                                LineageColumn::Single { .. } => {}
-                                LineageColumn::All {
-                                    input_id: e_iid,
-                                    except: e_e,
-                                } => {
-                                    if *e_iid == input_id {
-                                        // The two `All`s match and will erase each other.
-                                        // The only remaining columns are those from the first wildcard
-                                        // that are not excluded, but are excluded in the second wildcard.
-                                        let input = self.find_input(input_id).unwrap();
-                                        let input_name = input.name.clone();
-                                        for remaining in e_e.difference(&except).sorted() {
-                                            self.columns.push(LineageColumn::Single {
-                                                name: Some(Ident {
-                                                    path: vec![input_name.clone()],
-                                                    name: remaining.clone(),
-                                                }),
-                                                target_id: input_id,
-                                                target_name: Some(remaining.clone()),
-                                            })
-                                        }
-                                        continue 'within;
-                                    }
-                                }
-                            }
-                        }
-                        self.columns.push(LineageColumn::All { input_id, except });
-                    }
-                }
-            }
-            return;
-        }
-
-        // special case: include a tuple
-        if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && expr.kind.is_ident() {
-            // this ident is a tuple, which means it much point to an input
-            let input_id = expr.target_id.unwrap();
-
-            self.columns.push(LineageColumn::All {
-                input_id,
-                except: Default::default(),
-            });
-            return;
-        }
-
-        fn pop_local_and_this(ident: &Ident) -> Ident {
-            ident.clone().pop_front().1.unwrap().pop_front().1.unwrap()
-        }
-
-        // special case: an ref that should be inlined because this node
-        // might not exist in the resulting AST
-        if inline_refs && expr.target_id.is_some() {
-            let ident = pop_local_and_this(expr.kind.as_ident().unwrap());
-            let target_id = expr.target_id.unwrap();
-            let input = &self.find_input(target_id);
-
-            self.columns.push(if input.is_some() {
-                LineageColumn::Single {
-                    target_name: Some(ident.name.clone()),
-                    name: Some(ident),
-                    target_id,
-                }
-            } else {
-                LineageColumn::Single {
-                    target_name: None,
-                    name: Some(ident),
-                    target_id,
-                }
-            });
-            return;
-        };
-
-        // base case: define the expr as a new lineage column
-        let (target_id, target_name) = (expr.id.unwrap(), None);
-
-        let alias = expr.alias.as_ref().map(Ident::from_name);
-        let name = alias.or_else(|| Some(pop_local_and_this(expr.kind.as_ident()?)));
-
-        // remove names from columns with the same name
-        if name.is_some() {
-            for c in &mut self.columns {
-                if let LineageColumn::Single { name: n, .. } = c {
-                    if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
-                        *n = None;
-                    }
-                }
-            }
-        }
-
-        self.columns.push(LineageColumn::Single {
-            name,
-            target_id,
-            target_name,
-        });
-    }
-
-    pub fn find_input_by_name(&self, input_name: &str) -> Option<&LineageInput> {
-        self.inputs.iter().find(|i| i.name == input_name)
-    }
-
-    pub fn find_input(&self, input_id: usize) -> Option<&LineageInput> {
-        self.inputs.iter().find(|i| i.id == input_id)
-    }
-
-    /// Renames all frame inputs to the given alias.
-    pub fn rename(&mut self, alias: String) {
-        for input in &mut self.inputs {
-            input.name = alias.clone();
-        }
-
-        for col in &mut self.columns {
-            match col {
-                LineageColumn::All { .. } => {}
-                LineageColumn::Single {
-                    name: Some(name), ..
-                } => name.path = vec![alias.clone()],
-                _ => {}
-            }
-        }
     }
 }
 

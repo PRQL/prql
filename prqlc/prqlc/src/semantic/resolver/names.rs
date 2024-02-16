@@ -70,7 +70,7 @@ impl Resolver<'_> {
         };
 
         for (ident, decl) in this.as_decls().into_iter().sorted_by_key(|x| x.1.order) {
-            if let DeclKind::Column(_) = decl.kind {
+            if let DeclKind::TupleField(_) = decl.kind {
                 cols.push(ident);
             }
         }

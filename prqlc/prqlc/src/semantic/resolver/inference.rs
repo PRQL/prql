@@ -1,9 +1,7 @@
 use crate::Result;
-use itertools::Itertools;
 
 use crate::ast::{Ident, Ty, TyTupleField};
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
-use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
 
 use super::Resolver;
@@ -39,76 +37,39 @@ impl Resolver<'_> {
         columns.push(TyTupleField::Single(Some(col_name.to_string()), None));
 
         // also add into input tables of this table expression
-        if let TableExpr::RelationVar(expr) = &table_decl.expr {
-            if let Some(frame) = &expr.lineage {
-                let wildcard_inputs = (frame.columns.iter())
-                    .filter_map(|c| c.as_all())
-                    .collect_vec();
+        if let TableExpr::RelationVar(_) = &table_decl.expr {
+            // TODO
+            // if let Some(frame) = &expr.lineage {
+            //     let wildcard_inputs = (frame.columns.iter())
+            //         .filter_map(|c| c.as_all())
+            //         .collect_vec();
 
-                match wildcard_inputs.len() {
-                    0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
-                    1 => {
-                        let (input_id, _) = wildcard_inputs.into_iter().next().unwrap();
+            //     match wildcard_inputs.len() {
+            //         0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
+            //         1 => {
+            //             let (input_id, _) = wildcard_inputs.into_iter().next().unwrap();
 
-                        let input = frame.find_input(*input_id).unwrap();
-                        let table_ident = input.table.clone();
-                        self.infer_table_column(&table_ident, col_name)?;
-                    }
-                    _ => {
-                        return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
-                    }
-                }
-            }
+            //             let input = frame.find_input(*input_id).unwrap();
+            //             let table_ident = input.table.clone();
+            //             self.infer_table_column(&table_ident, col_name)?;
+            //         }
+            //         _ => {
+            //             return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
+            //         }
+            //     }
+            // }
         }
 
         Ok(())
     }
 
     /// Converts a identifier that points to a table declaration to lineage of that table.
-    pub fn lineage_of_table_decl(
-        &mut self,
-        table_fq: &Ident,
-        input_name: String,
-        input_id: usize,
-    ) -> Lineage {
+    pub fn ty_of_table_decl(&mut self, table_fq: &Ident) -> Ty {
         let table_decl = self.root_mod.module.get(table_fq).unwrap();
         let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
 
-        // TODO: can this panic?
-        let columns = ty.as_ref().unwrap().as_relation().unwrap();
-
-        let mut instance_frame = Lineage {
-            inputs: vec![LineageInput {
-                id: input_id,
-                name: input_name.clone(),
-                table: table_fq.clone(),
-            }],
-            columns: Vec::new(),
-            ..Default::default()
-        };
-
-        for col in columns {
-            let col = match col {
-                TyTupleField::Wildcard(_) => LineageColumn::All {
-                    input_id,
-                    except: columns
-                        .iter()
-                        .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
-                        .collect(),
-                },
-                TyTupleField::Single(col_name, _) => LineageColumn::Single {
-                    name: col_name
-                        .clone()
-                        .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
-                    target_id: input_id,
-                    target_name: col_name.clone(),
-                },
-            };
-            instance_frame.columns.push(col);
-        }
-
-        log::debug!("instanced table {table_fq} as {instance_frame:?}");
-        instance_frame
+        ty.clone()
+            .expect("a referenced relation to have its type resolved")
     }
 
     /// Declares a new table for a relation literal.
@@ -117,8 +78,7 @@ impl Resolver<'_> {
         &mut self,
         input_id: usize,
         columns: Option<Vec<TyTupleField>>,
-        name_hint: Option<String>,
-    ) -> Lineage {
+    ) -> Ty {
         let id = input_id;
         let global_name = format!("_literal_{}", id);
 
@@ -142,8 +102,7 @@ impl Resolver<'_> {
             .insert(global_name.clone(), Decl::from(infer_default));
 
         // produce a frame of that table
-        let input_name = name_hint.unwrap_or_else(|| global_name.clone());
         let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.lineage_of_table_decl(&table_fq, input_name, id)
+        self.ty_of_table_decl(&table_fq)
     }
 }

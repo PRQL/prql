@@ -1,3 +1,4 @@
+use ast::IndirectionKind;
 use itertools::Itertools;
 
 use crate::ir::decl;
@@ -142,8 +143,12 @@ impl NameResolver<'_> {
                 "Import can only reference modules and declarations",
             ));
         }
+        if fq_ident.is_empty() {
+            log::debug!("resolved type ident to : {fq_ident:?} + {indirections:?}");
+            return Err(Error::new_simple("invalid type name"));
+        }
         Ok(ImportDef {
-            name: fq_ident,
+            name: ast::Ident::from_path(fq_ident),
             alias: import_def.alias,
         })
     }
@@ -151,23 +156,28 @@ impl NameResolver<'_> {
 
 impl pl::PlFold for NameResolver<'_> {
     fn fold_expr(&mut self, expr: pl::Expr) -> Result<pl::Expr> {
+        // Convert indirections into ident, since the algo below works with
+        // full idents and not indirections.
+        // We could change that to work with indirections, but then we'd
+        // need to change how idents in types and imports are resolved.
+        let expr = push_indirections_into_ident(expr);
+
         Ok(match expr.kind {
             pl::ExprKind::Ident(ident) => {
                 let (ident, indirections) = self.resolve_ident(ident).with_span(expr.span)?;
+                // TODO: can this ident have length 0?
 
-                // TODO: hack for until indirections are implemented: convert back to ident
-                let ident = ast::Ident::from_path(ident.into_iter().chain(indirections).collect());
-
-                // for indirection in indirections {
-                //     r = pl::Expr::new(pl::ExprKind::Indirection {
-                //         base: Box::new(r),
-                //         field: indirection,
-                //     })
-                // }
-                pl::Expr {
-                    kind: pl::ExprKind::Ident(ident),
-                    ..expr
+                let mut kind = pl::ExprKind::Ident(ast::Ident::from_path(ident));
+                for indirection in indirections {
+                    let mut e = pl::Expr::new(kind);
+                    e.span = expr.span;
+                    kind = pl::ExprKind::Indirection {
+                        base: Box::new(e),
+                        field: ast::IndirectionKind::Name(indirection),
+                    };
                 }
+
+                pl::Expr { kind, ..expr }
             }
             _ => pl::Expr {
                 kind: pl::fold_expr_kind(self, expr.kind)?,
@@ -182,14 +192,19 @@ impl pl::PlFold for NameResolver<'_> {
                 let (ident, indirections) = self.resolve_ident(ident).with_span(ty.span)?;
 
                 if !indirections.is_empty() {
-                    log::debug!("resolved type ident to : {ident} + {indirections:?}");
+                    log::debug!("resolved type ident to : {ident:?} + {indirections:?}");
                     return Err(
                         Error::new_simple("types are not allowed indirections").with_span(ty.span)
                     );
                 }
 
+                if ident.is_empty() {
+                    log::debug!("resolved type ident to : {ident:?} + {indirections:?}");
+                    return Err(Error::new_simple("invalid type name").with_span(ty.span));
+                }
+
                 ast::Ty {
-                    kind: ast::TyKind::Ident(ident),
+                    kind: ast::TyKind::Ident(ast::Ident::from_path(ident)),
                     ..ty
                 }
             }
@@ -198,9 +213,41 @@ impl pl::PlFold for NameResolver<'_> {
     }
 }
 
+/// Converts `Indirection { base: Ident(x), field: y }` into `Ident(x.y)`.
+fn push_indirections_into_ident(mut expr: pl::Expr) -> pl::Expr {
+    let mut indirections = Vec::new();
+    while let pl::ExprKind::Indirection {
+        base,
+        field: IndirectionKind::Name(name),
+    } = expr.kind
+    {
+        indirections.push((name, expr.span, expr.alias));
+        expr = *base;
+    }
+
+    if let pl::ExprKind::Ident(ident) = &mut expr.kind {
+        for (part, span, alias) in indirections.into_iter().rev() {
+            ident.push(part);
+            expr.span = ast::Span::merge_opt(expr.span, span);
+            expr.alias = alias.or(expr.alias);
+        }
+    } else {
+        // this is not on an ident - we have to revert it
+        for (name, span, alias) in indirections {
+            expr = pl::Expr::new(pl::ExprKind::Indirection {
+                base: Box::new(expr),
+                field: IndirectionKind::Name(name),
+            });
+            expr.span = span;
+            expr.alias = alias;
+        }
+    }
+    expr
+}
+
 impl NameResolver<'_> {
     /// Returns resolved fully-qualified ident and a list of indirections
-    fn resolve_ident(&mut self, ident: ast::Ident) -> Result<(ast::Ident, Vec<String>)> {
+    fn resolve_ident(&mut self, ident: ast::Ident) -> Result<(Vec<String>, Vec<String>)> {
         // this is the name we are looking for
         let first = ident.iter().next().unwrap();
         let mod_path = match first.as_str() {
@@ -228,28 +275,27 @@ impl NameResolver<'_> {
             // module found
 
             // now find the decl within that module
-            let mut ident_within = ident;
-            ident_within = ident_within.pop_front().1.unwrap();
-            let (_, path, indirections) = lookup_within_module(module, ident_within)?;
+            if let Some(ident_within) = ident.pop_front().1 {
+                let (path, indirections) = lookup_within_module(module, ident_within)?;
 
-            // prepend the ident with the module path
-            // this will make this ident a fully-qualified ident
-            let mut fq_ident = mod_path;
-            fq_ident.extend(path);
-            let fq_ident = ast::Ident::from_path(fq_ident);
+                // prepend the ident with the module path
+                // this will make this ident a fully-qualified ident
+                let mut fq_ident = mod_path;
+                fq_ident.extend(path);
 
-            self.refs.push(fq_ident.clone());
+                self.refs.push(ast::Ident::from_path(fq_ident.clone()));
 
-            (fq_ident, indirections)
+                (fq_ident, indirections)
+            } else {
+                // there is no inner ident - we return the fq path to the module
+                (mod_path, vec![])
+            }
         } else {
             // cannot find module, so this must be a ref to a local var + indirections
             let mut steps = ident.into_iter();
             let first = steps.next().unwrap();
             let indirections = steps.collect_vec();
-            (
-                ast::Ident::from_path(vec![NS_LOCAL.to_string(), first]),
-                indirections,
-            )
+            (vec![NS_LOCAL.to_string(), first], indirections)
         };
         Ok((ident, indirections))
     }
@@ -258,7 +304,7 @@ impl NameResolver<'_> {
 fn lookup_within_module(
     module: &decl::Module,
     ident_within: ast::Ident,
-) -> Result<(&decl::Decl, Vec<String>, Vec<String>)> {
+) -> Result<(Vec<String>, Vec<String>)> {
     let mut steps = ident_within.into_iter().collect_vec();
 
     let mut module = module;
@@ -282,7 +328,7 @@ fn lookup_within_module(
             }
             _ => {
                 let indirections = steps.drain((i + 1)..).collect_vec();
-                return Ok((decl, steps, indirections));
+                return Ok((steps, indirections));
             }
         }
     }

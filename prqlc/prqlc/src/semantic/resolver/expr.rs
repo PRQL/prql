@@ -1,11 +1,13 @@
+use crate::codegen::write_ty;
 use crate::Result;
 use itertools::Itertools;
+use prqlc_ast::IndirectionKind;
 
 use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_LOCAL, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_LOCAL, NS_SELF, NS_STD, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -83,31 +85,37 @@ impl PlFold for Resolver<'_> {
             ExprKind::Ident(ident) => {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
-                log::debug!("... resolved to {fq_ident}");
+                let log_debug = !fq_ident.starts_with_part(NS_STD);
+                if log_debug {
+                    log::debug!("... resolved to {fq_ident}")
+                }
                 let entry = self.root_mod.module.get(&fq_ident).unwrap();
-                log::debug!("... which is {entry}");
+                if log_debug {
+                    log::debug!("... which is {entry}");
+                }
+
+                // strip `._self` suffix
+                let fq_ident = if fq_ident.name == NS_SELF {
+                    fq_ident.pop().unwrap()
+                } else {
+                    fq_ident
+                };
 
                 match &entry.kind {
                     DeclKind::Infer(_) => Expr {
                         kind: ExprKind::Ident(fq_ident),
-                        target_id: entry.declared_at,
                         ..node
                     },
-                    DeclKind::Column(target_id) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
-                        target_id: Some(*target_id),
-                        ..node
-                    },
+                    DeclKind::TupleField(_) => {
+                        panic!("this should not happen: indirections have their own code path")
+                    }
 
                     DeclKind::TableDecl(_) => {
-                        let input_name = ident.name.clone();
-
-                        let lineage = self.lineage_of_table_decl(&fq_ident, input_name, id);
+                        let ty = self.ty_of_table_decl(&fq_ident);
 
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
-                            ty: Some(ty_of_lineage(&lineage)),
-                            lineage: Some(lineage),
+                            ty: Some(ty),
                             alias: None,
                             ..node
                         }
@@ -128,17 +136,11 @@ impl PlFold for Resolver<'_> {
                         _ => self.fold_expr(expr.as_ref().clone())?,
                     },
 
-                    DeclKind::InstanceOf(_, ty) => {
-                        let ty = ty.clone();
-
-                        let fields = self.construct_wildcard_include(&fq_ident);
-
-                        Expr {
-                            kind: ExprKind::Tuple(fields),
-                            ty,
-                            ..node
-                        }
-                    }
+                    DeclKind::InstanceOf(_, ty) => Expr {
+                        kind: ExprKind::Ident(fq_ident),
+                        ty: ty.clone(),
+                        ..node
+                    },
 
                     DeclKind::Ty(_) => {
                         return Err(Error::new(Reason::Expected {
@@ -160,6 +162,58 @@ impl PlFold for Resolver<'_> {
                         kind: ExprKind::Ident(fq_ident),
                         ..node
                     },
+                }
+            }
+
+            ExprKind::Indirection { base, field } => {
+                let base = self.fold_expr(*base)?;
+
+                let ty = base.ty.as_ref().unwrap();
+                let TyKind::Tuple(fields) = &ty.kind else {
+                    return Err(Error::new_simple(format!(
+                        "cannot lookup fields in type {}",
+                        write_ty(ty)
+                    ))
+                    .with_span(*span));
+                };
+
+                let (position, field) = match field {
+                    IndirectionKind::Name(field_name) => {
+                        let field = fields.iter().find_position(|f| match f {
+                            TyTupleField::Single(Some(n), _) => n == &field_name,
+                            _ => false,
+                        });
+
+                        let Some((position, field)) = field else {
+                            return Err(Error::new_simple(format!(
+                                "cannot lookup field {field_name} in tuple {}",
+                                write_ty(ty)
+                            ))
+                            .with_span(*span));
+                        };
+                        (position as i64, field)
+                    }
+                    IndirectionKind::Position(position) => {
+                        let Some(field) = fields.get(position as usize) else {
+                            return Err(Error::new_simple(format!(
+                                "cannot lookup field {position} in tuple {}, which only has {} fields",
+                                write_ty(ty),
+                                fields.len(),
+                            )).with_span(*span));
+                        };
+                        (position, field)
+                    }
+                    IndirectionKind::Star => todo!(),
+                };
+
+                let ty = field.as_single().unwrap().1.clone();
+                Expr {
+                    kind: ExprKind::Indirection {
+                        base: Box::new(base),
+                        field: IndirectionKind::Position(position),
+                    },
+                    ty,
+                    ..node
                 }
             }
 
@@ -235,29 +289,14 @@ impl Resolver<'_> {
         if r.ty.is_none() {
             r.ty = Resolver::infer_type(&r)?;
         }
-        if r.lineage.is_none() {
-            if let ExprKind::TransformCall(call) = &r.kind {
-                r.lineage = Some(call.infer_lineage()?);
-            } else if let Some(relation_columns) = r.ty.as_ref().and_then(|t| t.as_relation()) {
-                // lineage from ty
-
-                let columns = Some(relation_columns.clone());
-
-                let name = r.alias.clone();
-                let frame = self.declare_table_for_literal(id, columns, name);
-
-                r.lineage = Some(frame);
-            }
-        }
-        if let Some(lineage) = &mut r.lineage {
-            if let Some(alias) = r.alias.take() {
-                lineage.rename(alias.clone());
-
-                if let Some(ty) = &mut r.ty {
+        if let Some(ty) = &mut r.ty {
+            if ty.is_relation() {
+                if let Some(alias) = r.alias.take() {
                     types::rename_relation(&mut ty.kind, alias);
                 }
             }
         }
+
         Ok(*r)
     }
 
@@ -288,10 +327,9 @@ impl Resolver<'_> {
     ) -> Vec<Expr> {
         let mut res = Vec::new();
 
-        if let Some(decl) = module.names.get(NS_INFER) {
+        if let Some(_) = module.names.get(NS_INFER) {
             let wildcard_field = Expr {
                 id: Some(id.gen()),
-                target_id: decl.declared_at,
                 flatten: true,
                 ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
                 ..Expr::new(Ident::from_name(NS_SELF))
@@ -310,9 +348,9 @@ impl Resolver<'_> {
                         ..Expr::new(ExprKind::Tuple(sub_fields))
                     }
                 }
-                DeclKind::Column(target_id) => Expr {
+                DeclKind::TupleField(ty) => Expr {
                     id: Some(id.gen()),
-                    target_id: Some(*target_id),
+                    ty: ty.clone(),
                     // alias: Some(name.clone()),
                     ..Expr::new(Ident::from_path([prefix.to_vec(), vec![name]].concat()))
                 },
@@ -321,20 +359,4 @@ impl Resolver<'_> {
         }
         res
     }
-}
-
-fn ty_of_lineage(lineage: &Lineage) -> Ty {
-    Ty::relation(
-        lineage
-            .columns
-            .iter()
-            .map(|col| match col {
-                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TyTupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(Literal::Null)),
-                ),
-            })
-            .collect(),
-    )
 }

@@ -78,6 +78,10 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
             within: Box::new(fold.fold_expr(*within)?),
             except: Box::new(fold.fold_expr(*except)?),
         },
+        Indirection { base, field } => Indirection {
+            base: Box::new(fold.fold_expr(*base)?),
+            field,
+        },
         Tuple(items) => Tuple(fold.fold_exprs(items)?),
         Array(items) => Array(fold.fold_exprs(items)?),
         SString(items) => SString(

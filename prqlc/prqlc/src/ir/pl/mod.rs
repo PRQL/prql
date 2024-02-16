@@ -11,14 +11,12 @@
 mod expr;
 mod extra;
 mod fold;
-mod lineage;
 mod stmt;
 mod utils;
 
 pub use self::expr::*;
 pub use self::extra::*;
 pub use self::fold::*;
-pub use self::lineage::*;
 pub use self::stmt::*;
 pub use self::utils::*;
 pub use crate::ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
@@ -58,9 +56,6 @@ pub fn print_mem_sizes() {
     );
     println!("{:16}= {}", "InterpolateItem", size_of::<InterpolateItem>());
     println!("{:16}= {}", "JoinSide", size_of::<JoinSide>());
-    println!("{:16}= {}", "Lineage", size_of::<Lineage>());
-    println!("{:16}= {}", "LineageColumn", size_of::<LineageColumn>());
-    println!("{:16}= {}", "LineageInput", size_of::<LineageInput>());
     println!("{:16}= {}", "ModuleDef", size_of::<ModuleDef>());
     println!("{:16}= {}", "pl::Expr", size_of::<pl::Expr>());
     println!("{:16}= {}", "PrimitiveSet", size_of::<PrimitiveSet>());

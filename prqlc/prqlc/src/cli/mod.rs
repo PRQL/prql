@@ -22,10 +22,10 @@ use std::process::exit;
 use std::str::FromStr;
 
 use prqlc::ast;
+use prqlc::ir::Span;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
-use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
 use prqlc::{Options, Target};
 
@@ -294,12 +294,17 @@ impl Command {
 
                 let expanded = prqlc::semantic::ast_expand::expand_module_def(root_module_def)?;
 
+                let mut out = Vec::new();
+                out.extend(serde_yaml::to_string(&expanded)?.into_bytes());
+                out.push('\n' as u8);
+
                 let mut restricted = prqlc::semantic::ast_expand::restrict_module_def(expanded);
 
                 drop_module_def(&mut restricted.stmts, "std");
                 drop_module_def(&mut restricted.stmts, "_local");
 
-                pl_to_prql(&restricted)?.into_bytes()
+                out.extend(pl_to_prql(&restricted)?.into_bytes());
+                out
             }
             Command::Debug(DebugCommand::Resolve(_)) => {
                 let stmts = prql_to_pl_tree(sources)?;
@@ -501,7 +506,7 @@ fn read_files(input: &mut clio::ClioPath) -> Result<SourceTree> {
     Ok(SourceTree::new(sources, Some(root.to_path_buf())))
 }
 
-fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Span, ast::Ty)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
@@ -534,7 +539,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
             .to_string();
         printed_lines_count += 1;
 
-        result.push(format!("{chars:width$} # {frame}"));
+        result.push(format!("{chars:width$} # {frame:?}"));
     }
     for line in lines.iter().skip(printed_lines_count) {
         result.push(source.get_line_text(line.to_owned()).unwrap().to_string());

@@ -54,7 +54,8 @@ pub(super) mod test {
     use crate::{Errors, Result};
     use insta::assert_yaml_snapshot;
 
-    use crate::ir::pl::{Expr, Lineage, PlFold};
+    use crate::ast::Ty;
+    use crate::ir::pl::{Expr, PlFold};
 
     pub fn erase_ids(expr: Expr) -> Expr {
         IdEraser {}.fold_expr(expr).unwrap()
@@ -77,8 +78,8 @@ pub(super) mod test {
         Ok(*main.clone().into_relation_var().unwrap())
     }
 
-    fn resolve_lineage(query: &str) -> Result<Lineage, Errors> {
-        Ok(parse_and_resolve(query)?.lineage.unwrap())
+    fn resolve_lineage(query: &str) -> Result<Ty, Errors> {
+        Ok(parse_and_resolve(query)?.ty.unwrap())
     }
 
     fn resolve_derive(query: &str) -> Result<Vec<Expr>, Errors> {

@@ -1,4 +1,4 @@
-use crate::ast::{Ty, TyTupleField};
+use crate::ast::Ty;
 use crate::ir::decl::{DeclKind, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::Result;
@@ -95,21 +95,12 @@ impl super::Resolver<'_> {
 }
 
 fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
-    match &value.lineage {
-        Some(frame) => {
-            let columns = (frame.columns.iter())
-                .map(|col| match col {
-                    LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                    LineageColumn::Single { name, .. } => {
-                        TyTupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
-                    }
-                })
-                .collect();
-            let ty = Some(Ty::relation(columns));
+    if value.ty.as_ref().map_or(false, |t| t.is_relation()) {
+        let ty = value.ty.clone();
+        let expr = TableExpr::RelationVar(value);
 
-            let expr = TableExpr::RelationVar(value);
-            DeclKind::TableDecl(TableDecl { ty, expr })
-        }
-        _ => DeclKind::Expr(value),
+        DeclKind::TableDecl(TableDecl { ty, expr })
+    } else {
+        DeclKind::Expr(value)
     }
 }

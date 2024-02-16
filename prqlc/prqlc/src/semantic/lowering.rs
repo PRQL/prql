@@ -9,10 +9,8 @@ use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ast::TyTupleField;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
-use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
-use crate::ir::rq::{
-    self, CId, RelationColumn, RelationLiteral, RelationalQuery, TId, TableDecl, Transform,
-};
+use crate::ir::pl::{self, Ident, PlFold, QueryDef};
+use crate::ir::rq::{self, CId, RelationColumn, RelationalQuery, TId, TableDecl, Transform};
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
@@ -214,11 +212,7 @@ impl Lowerer {
 
     /// Lower an expression into a instance of a table in the query
     fn lower_table_ref(&mut self, expr: pl::Expr) -> Result<rq::TableRef> {
-        let mut expr = expr;
-        if expr.lineage.is_none() {
-            // make sure that type of this expr has been inferred to be a table
-            expr.lineage = Some(Lineage::default());
-        }
+        let expr = expr;
 
         Ok(match expr.kind {
             pl::ExprKind::Ident(fq_table_name) => {
@@ -228,14 +222,7 @@ impl Lowerer {
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
-                let input_name = expr
-                    .lineage
-                    .as_ref()
-                    .and_then(|f| f.inputs.first())
-                    .map(|i| i.name.clone());
-                let name = input_name.or(Some(fq_table_name.name));
-
-                self.create_a_table_instance(id, name, tid)
+                self.create_a_table_instance(id, None, tid)
             }
             pl::ExprKind::TransformCall(_) => {
                 // pipeline that has to be pulled out into a table
@@ -264,96 +251,72 @@ impl Lowerer {
 
                 table_ref
             }
-            pl::ExprKind::SString(items) => {
-                let id = expr.id.unwrap();
+            pl::ExprKind::SString(_items) => {
+                // let id = expr.id.unwrap();
 
                 // create a new table
-                let tid = self.tid.gen();
+                // let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.first().unwrap();
-
-                let table_decl = self.root_mod.module.get(&input.table).unwrap();
-                let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let ty = table_decl.ty.as_ref();
                 // TODO: can this panic?
-                let columns = ty.unwrap().as_relation().unwrap().clone();
 
-                log::debug!("lowering sstring table, columns = {columns:?}");
+                todo!();
 
                 // lower the expr
-                let items = self.lower_interpolations(items)?;
-                let relation = rq::Relation {
-                    kind: rq::RelationKind::SString(items),
-                    columns: tuple_fields_to_relation_columns(columns),
-                };
+                // let items = self.lower_interpolations(items)?;
+                // let relation = rq::Relation {
+                //     kind: rq::RelationKind::SString(items),
+                //     columns: tuple_fields_to_relation_columns(columns),
+                // };
 
-                self.table_buffer.push(TableDecl {
-                    id: tid,
-                    name: None,
-                    relation,
-                });
+                // self.table_buffer.push(TableDecl {
+                //     id: tid,
+                //     name: None,
+                //     relation,
+                // });
 
                 // return an instance of this new table
-                self.create_a_table_instance(id, None, tid)
+                // self.create_a_table_instance(id, None, tid)
             }
-            pl::ExprKind::RqOperator { name, args } => {
-                let id = expr.id.unwrap();
+            pl::ExprKind::RqOperator { .. } => {
+                todo!();
+
+                // let id = expr.id.unwrap();
 
                 // create a new table
-                let tid = self.tid.gen();
-
-                // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.first().unwrap();
-
-                let table_decl = self.root_mod.module.get(&input.table).unwrap();
-                let table_decl = table_decl.kind.as_table_decl().unwrap();
-                let ty = table_decl.ty.as_ref();
-                // TODO: can this panic?
-                let columns = ty.unwrap().as_relation().unwrap().clone();
-
-                log::debug!("lowering function table, columns = {columns:?}");
+                // let tid = self.tid.gen();
 
                 // lower the expr
-                let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
-                let relation = rq::Relation {
-                    kind: rq::RelationKind::BuiltInFunction { name, args },
-                    columns: tuple_fields_to_relation_columns(columns),
-                };
+                // let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
+                // let relation = rq::Relation {
+                //     kind: rq::RelationKind::BuiltInFunction { name, args },
+                //     columns: tuple_fields_to_relation_columns(vec![]),
+                // };
 
-                self.table_buffer.push(TableDecl {
-                    id: tid,
-                    name: None,
-                    relation,
-                });
+                // self.table_buffer.push(TableDecl {
+                //     id: tid,
+                //     name: None,
+                //     relation,
+                // });
 
-                // return an instance of this new table
-                self.create_a_table_instance(id, None, tid)
+                // // return an instance of this new table
+                // self.create_a_table_instance(id, None, tid)
             }
 
-            pl::ExprKind::Array(elements) => {
+            pl::ExprKind::Array(_) => {
+                todo!();
+
+                /*
                 let id = expr.id.unwrap();
 
                 // create a new table
                 let tid = self.tid.gen();
 
                 // pull columns from the table decl
-                let frame = expr.lineage.as_ref().unwrap();
-                let columns = (frame.columns.iter())
-                    .map(|c| {
-                        RelationColumn::Single(
-                            c.as_single().unwrap().0.as_ref().map(|i| i.name.clone()),
-                        )
-                    })
-                    .collect_vec();
+
 
                 let lit = RelationLiteral {
-                    columns: columns
-                        .iter()
-                        .map(|c| c.as_single().unwrap().clone().unwrap())
-                        .collect_vec(),
+                    columns: vec![],
                     rows: elements
                         .into_iter()
                         .map(|row| {
@@ -373,6 +336,7 @@ impl Lowerer {
                         .try_collect()?,
                 };
 
+                let columns = vec![];
                 log::debug!("lowering literal relation table, columns = {columns:?}");
                 let relation = rq::Relation {
                     kind: rq::RelationKind::Literal(lit),
@@ -387,6 +351,7 @@ impl Lowerer {
 
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
+                 */
             }
 
             _ => {
@@ -453,20 +418,19 @@ impl Lowerer {
     }
 
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
-        let span = expr.span;
-        let lineage = expr.lineage.clone();
+        // let _span = expr.span;
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_relational_expr(expr, None)?;
 
-        let mut transforms = self.pipeline.drain(..).collect_vec();
-        let columns = self.push_select(lineage, &mut transforms).with_span(span)?;
+        let transforms = self.pipeline.drain(..).collect_vec();
+        // let columns = self.push_select(ty, &mut transforms).with_span(span)?;
 
         self.pipeline = prev_pipeline;
 
         let relation = rq::Relation {
             kind: rq::RelationKind::Pipeline(transforms),
-            columns,
+            columns: vec![], // TODO
         };
         Ok(relation)
     }
@@ -621,63 +585,6 @@ impl Lowerer {
                 Ok(ColumnSort { direction, column })
             })
             .try_collect()
-    }
-
-    /// Append a Select of final table columns derived from frame
-    fn push_select(
-        &mut self,
-        lineage: Option<Lineage>,
-        transforms: &mut Vec<Transform>,
-    ) -> Result<Vec<RelationColumn>> {
-        let lineage = lineage.unwrap_or_default();
-
-        log::debug!("push_select of a frame: {:?}", lineage);
-
-        let mut columns = Vec::new();
-
-        // normal columns
-        for col in &lineage.columns {
-            match col {
-                LineageColumn::Single {
-                    name,
-                    target_id,
-                    target_name,
-                } => {
-                    let cid = self.lookup_cid(*target_id, target_name.as_ref())?;
-
-                    let name = name.as_ref().map(|i| i.name.clone());
-                    columns.push((RelationColumn::Single(name), cid));
-                }
-                LineageColumn::All { input_id, except } => {
-                    let input = lineage.find_input(*input_id).unwrap();
-
-                    match &self.node_mapping[&input.id] {
-                        LoweredTarget::Compute(_cid) => unreachable!(),
-                        LoweredTarget::Input(input_cols) => {
-                            let mut input_cols = input_cols
-                                .iter()
-                                .filter(|(c, _)| match c {
-                                    RelationColumn::Single(Some(name)) => !except.contains(name),
-                                    _ => true,
-                                })
-                                .collect_vec();
-                            input_cols.sort_by_key(|e| e.1 .1);
-
-                            for (col, (cid, _)) in input_cols {
-                                columns.push((col.clone(), *cid));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        let (cols, cids) = columns.into_iter().unzip();
-
-        log::debug!("... cids={:?}", cids);
-        transforms.push(Transform::Select(cids));
-
-        Ok(cols)
     }
 
     fn declare_as_columns(&mut self, exprs: pl::Expr, is_aggregation: bool) -> Result<Vec<CId>> {
@@ -873,6 +780,10 @@ impl Lowerer {
                             .with_span(span),
                     );
                 }
+            }
+            pl::ExprKind::Indirection { .. } => {
+                // TODO: I've started impl of this on feat-lower-indirections
+                todo!()
             }
 
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),

@@ -19,6 +19,8 @@ impl Ident {
     }
 
     /// Creates a new ident from a non-empty path.
+    /// 
+    /// Panics if path is empty.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
         Ident {
@@ -54,6 +56,11 @@ impl Ident {
     pub fn prepend(self, mut parts: Vec<String>) -> Ident {
         parts.extend(self);
         Ident::from_path(parts)
+    }
+
+    pub fn push(&mut self, name: String) {
+        self.path.push(std::mem::take(&mut self.name));
+        self.name = name;
     }
 
     pub fn with_name<S: ToString>(mut self, name: S) -> Self {

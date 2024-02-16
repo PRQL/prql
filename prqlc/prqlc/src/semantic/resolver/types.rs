@@ -4,6 +4,7 @@ use std::iter::zip;
 use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
 use itertools::Itertools;
+use prqlc_ast::IndirectionKind;
 
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
@@ -52,12 +53,10 @@ impl Resolver<'_> {
                         }
                     }
 
-                    // TODO: move this into de-sugar stage (expand PL)
-                    // TODO: this will not infer nested namespaces
                     let name = field
                         .alias
                         .clone()
-                        .or_else(|| field.kind.as_ident().map(|i| i.name.clone()));
+                        .or_else(|| infer_tuple_field_name(field));
 
                     ty_fields.push(TyTupleField::Single(name, ty));
                 }
@@ -114,26 +113,26 @@ impl Resolver<'_> {
         let Some(found_ty) = &mut found.ty else {
             // found is none: infer from expected
 
-            if found.lineage.is_none() && expected.unwrap().is_relation() {
-                // special case: infer a table type
-                // inferred tables are needed for s-strings that represent tables
-                // similarly as normal table references, we want to be able to infer columns
-                // of this table, which means it needs to be defined somewhere
-                // in the module structure.
-                let frame = self.declare_table_for_literal(
-                    found
-                        .clone()
-                        .id
-                        // This is quite rare but possible with something like
-                        // `a -> b` at the moment.
-                        .ok_or_else(|| Error::new_bug(4280))?,
-                    None,
-                    found.alias.clone(),
-                );
+            // if found.lineage.is_none() && expected.unwrap().is_relation() {
+            // special case: infer a table type
+            // inferred tables are needed for s-strings that represent tables
+            // similarly as normal table references, we want to be able to infer columns
+            // of this table, which means it needs to be defined somewhere
+            // in the module structure.
+            // let frame = self.declare_table_for_literal(
+            //     found
+            //         .clone()
+            //         .id
+            //         // This is quite rare but possible with something like
+            //         // `a -> b` at the moment.
+            //         .ok_or_else(|| Error::new_bug(4280))?,
+            //     None,
+            //     found.alias.clone(),
+            // );
 
-                // override the empty frame with frame of the new table
-                found.lineage = Some(frame)
-            }
+            // override the empty frame with frame of the new table
+            // found.lineage = Some(frame)
+            // }
 
             // base case: infer expected type
             found.ty = expected.cloned();
@@ -207,7 +206,7 @@ impl Resolver<'_> {
 
             DeclKind::Module(_)
             | DeclKind::LayeredModules(_)
-            | DeclKind::Column(_)
+            | DeclKind::TupleField(_)
             | DeclKind::Infer(_)
             | DeclKind::TableDecl(_)
             | DeclKind::Ty(_)
@@ -276,6 +275,25 @@ impl Resolver<'_> {
     pub fn resolve_generic_args_opt(&mut self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
         ty.map(|x| self.resolve_generic_args(x)).transpose()
     }
+}
+
+fn infer_tuple_field_name(field: &Expr) -> Option<String> {
+    // at this stage, this expr should already be fully resolved
+    // this means that any indirections will be tuple positional
+    // so we check for that and pull the name from the type of the base
+
+    let ExprKind::Indirection {
+        base,
+        field: IndirectionKind::Position(pos),
+    } = &field.kind
+    else {
+        return None;
+    };
+
+    let base_ty = base.ty.as_ref()?;
+    let base_field = base_ty.kind.as_tuple()?.get(*pos as usize)?;
+
+    base_field.as_single()?.0.clone()
 }
 
 pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {

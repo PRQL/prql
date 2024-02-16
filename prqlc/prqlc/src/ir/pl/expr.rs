@@ -1,15 +1,12 @@
+use enum_as_inner::EnumAsInner;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use enum_as_inner::EnumAsInner;
-
-use serde::{Deserialize, Serialize};
-
 use crate::ast::generic;
-use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
-
+use crate::ast::{GenericTypeParam, Ident, IndirectionKind, Literal, Span, Ty};
 use crate::codegen::write_ty;
 
-use super::{Lineage, TransformCall};
+use super::TransformCall;
 
 // The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 
@@ -39,13 +36,6 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
 
-    /// Information about where data of this expression will come from.
-    ///
-    /// Currently, this is used to infer relational pipeline frames.
-    /// Must always exists if ty is a relation.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub lineage: Option<Lineage>,
-
     #[serde(skip)]
     pub needs_window: bool,
 
@@ -62,6 +52,10 @@ pub enum ExprKind {
     All {
         within: Box<Expr>,
         except: Box<Expr>,
+    },
+    Indirection {
+        base: Box<Expr>,
+        field: IndirectionKind,
     },
     Literal(Literal),
 
@@ -190,9 +184,6 @@ impl std::fmt::Debug for Expr {
                 }
             }
             ds.field("ty", &DebugTy(x));
-        }
-        if let Some(x) = &self.lineage {
-            ds.field("lineage", x);
         }
         ds.finish()
     }

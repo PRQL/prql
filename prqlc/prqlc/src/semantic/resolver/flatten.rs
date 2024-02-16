@@ -100,7 +100,6 @@ impl PlFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }
@@ -125,7 +124,6 @@ impl PlFold for Flattener {
 
                         return Ok(Expr {
                             ty: expr.ty,
-                            lineage: expr.lineage,
                             ..pipeline
                         });
                     }

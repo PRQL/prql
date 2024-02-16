@@ -68,9 +68,9 @@ type transform = func std.relation -> std.relation
 # Functions
 
 ## Relational transforms
-let from = func
-  tbl <std.relation>
-  -> <std.relation> tbl
+let from = func <R: [{anytype..}]>
+  tbl <R>
+  -> <R> tbl
 
 let select = func
   columns <anytype>

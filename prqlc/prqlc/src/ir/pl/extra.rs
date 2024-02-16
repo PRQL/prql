@@ -125,7 +125,6 @@ impl Expr {
             span: None,
             target_id: None,
             ty: None,
-            lineage: None,
             needs_window: false,
             alias: None,
             flatten: false,

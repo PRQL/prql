@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
-use prqlc_ast::error::WithErrorInfo;
 
 use crate::ast::*;
 use crate::ir::decl;
@@ -15,27 +14,10 @@ use super::NS_LOCAL;
 pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
         ExprKind::Ident(v) => pl::ExprKind::Ident(Ident::from_name(v)),
-        ExprKind::Indirection { base, field } => {
-            let field_as_name = match field {
-                IndirectionKind::Name(n) => n,
-                IndirectionKind::Position(_) => Err(Error::new_simple(
-                    "Positional indirection not supported yet",
-                )
-                .with_span(expr.span))?,
-                IndirectionKind::Star => "*".to_string(),
-            };
-
-            // convert indirections into ident
-            // (in the future, resolve will support proper indirection handling)
-            let base = expand_expr_box(base)?;
-            let base_ident = base.kind.into_ident().map_err(|_| {
-                Error::new_simple("Indirection (the dot) is supported only on names.")
-                    .with_span(expr.span)
-            })?;
-
-            let ident = base_ident + Ident::from_name(field_as_name);
-            pl::ExprKind::Ident(ident)
-        }
+        ExprKind::Indirection { base, field } => pl::ExprKind::Indirection {
+            base: expand_expr_box(base)?,
+            field,
+        },
         ExprKind::Literal(v) => pl::ExprKind::Literal(v),
         ExprKind::Pipeline(v) => {
             let mut e = desugar_pipeline(v)?;
@@ -103,7 +85,6 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         id: None,
         target_id: None,
         ty: None,
-        lineage: None,
         needs_window: false,
         flatten: false,
     })
@@ -322,6 +303,10 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
             }
             base.kind
         }
+        pl::ExprKind::Indirection { base, field } => ExprKind::Indirection {
+            base: restrict_expr_box(base),
+            field,
+        },
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
@@ -514,7 +499,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
         decl::DeclKind::InstanceOf(ident, _) => {
             new_internal_stmt(name, format!("instance_of.{ident}"))
         }
-        decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),
+        decl::DeclKind::TupleField(_) => new_internal_stmt(name, format!("column.?")),
         decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
         decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "unresolved".to_string()),
 

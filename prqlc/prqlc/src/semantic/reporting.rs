@@ -2,6 +2,7 @@ use std::ops::Range;
 
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
+use crate::ast::Ty;
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::{Result, Span};
@@ -74,7 +75,7 @@ impl<'a> PlFold for Labeler<'a> {
                     let color = match &decl.kind {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Ty(_) => Color::Green,
-                        DeclKind::Column { .. } => Color::Yellow,
+                        DeclKind::TupleField { .. } => Color::Yellow,
                         DeclKind::InstanceOf(_, _) => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
                         DeclKind::Module(module) => {
@@ -127,7 +128,7 @@ impl<'a> PlFold for Labeler<'a> {
     }
 }
 
-pub fn collect_frames(expr: Expr) -> Vec<(Span, Lineage)> {
+pub fn collect_frames(expr: Expr) -> Vec<(Span, Ty)> {
     let mut collector = FrameCollector { frames: vec![] };
 
     collector.fold_expr(expr).unwrap();
@@ -138,16 +139,15 @@ pub fn collect_frames(expr: Expr) -> Vec<(Span, Lineage)> {
 
 /// Traverses AST and collects all node.frame
 struct FrameCollector {
-    frames: Vec<(Span, Lineage)>,
+    frames: Vec<(Span, Ty)>,
 }
 
 impl PlFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
         if matches!(expr.kind, ExprKind::TransformCall(_)) {
             if let Some(span) = expr.span {
-                let lineage = expr.lineage.clone();
-                if let Some(lineage) = lineage {
-                    self.frames.push((span, lineage));
+                if expr.ty.as_ref().map_or(false, |x| x.is_relation()) {
+                    self.frames.push((span, expr.ty.clone().unwrap()));
                 }
             }
         }

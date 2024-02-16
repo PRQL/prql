@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::QueryDef;
-use crate::ast::{Literal, Span, Ty, TyKind, TyTupleField};
+use crate::ast::{Span, Ty, TyTupleField};
 use crate::Result;
 
-use crate::ir::pl::{Expr, Ident, Lineage, LineageColumn};
+use crate::ir::pl::{Expr, Ident};
 use crate::Error;
 
 use super::{
@@ -284,114 +284,58 @@ impl Module {
         res
     }
 
-    pub(super) fn insert_frame(&mut self, lineage: &Lineage, namespace: &str) {
+    pub(super) fn insert_frame(&mut self, ty: &Ty, namespace: &str) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        let lin_ty = *ty_of_lineage(lineage).kind.into_array().unwrap();
+        let tuple_ty = ty.kind.as_array().unwrap();
+        let fields = tuple_ty.kind.as_tuple().unwrap();
 
-        for (col_index, column) in lineage.columns.iter().enumerate() {
-            // determine input name
-            let input_name = match column {
-                LineageColumn::All { input_id, .. } => {
-                    lineage.find_input(*input_id).map(|i| &i.name)
-                }
-                LineageColumn::Single { name, .. } => name
-                    .as_ref()
-                    .and_then(|n| n.path.first())
-                    .filter(|x| x.as_str() != NS_THIS),
-            };
-
-            // get or create input namespace
-            let ns;
-            if let Some(input_name) = input_name {
-                let entry = match namespace.names.get_mut(input_name) {
-                    Some(x) => x,
-                    None => {
-                        namespace.redirects.push(Ident::from_name(input_name));
-
-                        let input = lineage.find_input_by_name(input_name).unwrap();
-                        let order = lineage.inputs.iter().position(|i| i.id == input.id);
-                        let order = order.unwrap();
-
-                        let mut sub_ns = Module::default();
-
-                        let self_ty = lin_ty.clone().kind.into_tuple().unwrap();
-                        let self_ty = self_ty
-                            .into_iter()
-                            .flat_map(|x| x.into_single())
-                            .find(|(name, _)| name.as_ref() == Some(input_name))
-                            .and_then(|(_, ty)| ty)
-                            .or(Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(
-                                None,
-                            )]))));
-
-                        let self_decl = Decl {
-                            declared_at: Some(input.id),
-                            kind: DeclKind::InstanceOf(input.table.clone(), self_ty),
-                            ..Default::default()
-                        };
-                        sub_ns.names.insert(NS_SELF.to_string(), self_decl);
-
-                        let sub_ns = Decl {
-                            declared_at: Some(input.id),
-                            order,
-                            kind: DeclKind::Module(sub_ns),
-                            ..Default::default()
-                        };
-
-                        namespace.names.entry(input_name.clone()).or_insert(sub_ns)
-                    }
-                };
-                ns = entry.kind.as_module_mut().unwrap()
-            } else {
-                ns = namespace;
-            }
-
-            // insert column decl
-            match column {
-                LineageColumn::All { input_id, .. } => {
-                    let input = lineage.find_input(*input_id).unwrap();
-
-                    let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
-                    let declared_at = Some(input.id);
+        for (field_index, field) in fields.iter().enumerate() {
+            match field {
+                TyTupleField::Single(Some(name), ty) => {
                     let decl = Decl {
-                        kind,
-                        declared_at,
-                        order: col_index + 1,
-                        ..Default::default()
-                    };
-                    ns.names.insert(NS_INFER.to_string(), decl);
-                }
-                LineageColumn::Single {
-                    name: Some(name),
-                    target_id,
-                    ..
-                } => {
-                    let decl = Decl {
-                        kind: DeclKind::Column(*target_id),
+                        kind: DeclKind::TupleField(ty.clone()),
                         declared_at: None,
-                        order: col_index + 1,
+                        order: field_index + 1,
                         ..Default::default()
                     };
-                    ns.names.insert(name.name.clone(), decl);
+                    namespace.names.insert(name.clone(), decl);
                 }
-                _ => {}
+
+                TyTupleField::Single(None, _) => {
+                    // unnamed columns cannot be referenced
+                }
+
+                TyTupleField::Wildcard(ty) => {
+                    let decl = Decl {
+                        kind: DeclKind::Infer(Box::new(DeclKind::TupleField(ty.clone()))),
+                        declared_at: None,
+                        order: field_index + 1,
+                        ..Default::default()
+                    };
+                    namespace.names.insert(NS_INFER.to_string(), decl);
+                }
             }
         }
 
         // insert namespace._self with correct type
         namespace.names.insert(
             NS_SELF.to_string(),
-            Decl::from(DeclKind::InstanceOf(Ident::from_name(""), Some(lin_ty))),
+            Decl::from(DeclKind::InstanceOf(
+                Ident::from_name(""),
+                Some(*tuple_ty.clone()),
+            )),
         );
     }
 
-    pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String, id: usize) {
+    pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String, ty: Option<Ty>) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        namespace.names.insert(name, DeclKind::Column(id).into());
+        namespace
+            .names
+            .insert(name, DeclKind::TupleField(ty).into());
     }
 
     pub fn shadow(&mut self, ident: &str) {
@@ -601,25 +545,10 @@ impl RootModule {
     }
 }
 
-pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
-    Ty::relation(
-        lineage
-            .columns
-            .iter()
-            .map(|col| match col {
-                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TyTupleField::Single(
-                    name.as_ref().map(|i| i.name.clone()),
-                    Some(Ty::new(Literal::Null)),
-                ),
-            })
-            .collect(),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::Literal;
     use crate::ir::pl::ExprKind;
 
     // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`

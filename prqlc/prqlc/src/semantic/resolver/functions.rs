@@ -274,11 +274,11 @@ impl Resolver<'_> {
 
                 // add relation frame into scope
                 if partial_application_position.is_none() {
-                    let frame = arg.lineage.as_ref().unwrap();
+                    let ty = arg.ty.as_ref().unwrap();
                     if is_last {
-                        self.root_mod.local_mut().insert_frame(frame, NS_THIS);
+                        self.root_mod.local_mut().insert_frame(ty, NS_THIS);
                     } else {
-                        self.root_mod.local_mut().insert_frame(frame, NS_THAT);
+                        self.root_mod.local_mut().insert_frame(ty, NS_THAT);
                     }
                 }
 
@@ -299,10 +299,11 @@ impl Resolver<'_> {
 
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
-                            let id = field.id.unwrap();
-                            self.root_mod
-                                .local_mut()
-                                .insert_frame_col(NS_THIS, alias, id);
+                            self.root_mod.local_mut().insert_frame_col(
+                                NS_THIS,
+                                alias,
+                                field.ty.clone(),
+                            );
                         }
                         fields_new.push(field);
                     }
