@@ -6,16 +6,26 @@
     flake-utils.url = "github:numtide/flake-utils";
     mdbook-footnote.url = "github:aljazerzen/mdbook-footnote";
     hyperlink.url = "github:aljazerzen/hyperlink";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink }:
+  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink, fenix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        fenix_pkgs = fenix.packages.${system};
 
         essentials = with pkgs; [
           # compiler requirements
-          rustup
+          fenix_pkgs.stable.cargo
+          fenix_pkgs.stable.clippy
+          fenix_pkgs.stable.rust-src
+          fenix_pkgs.stable.rustc
+          fenix_pkgs.stable.rustfmt
+          fenix_pkgs.stable.rust-analyzer
           iconv
 
           # tools
