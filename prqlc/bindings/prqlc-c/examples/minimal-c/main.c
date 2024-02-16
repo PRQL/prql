@@ -23,7 +23,7 @@ void print_result(CompileResult res) {
 
 int main() {
   char *prql_query;
-  prql_query = "from albums | select {album_id, title} | take 3";
+  prql_query = "from db.albums | select {album_id, title} | take 3";
   CompileResult res;
   CompileResult res2;
 

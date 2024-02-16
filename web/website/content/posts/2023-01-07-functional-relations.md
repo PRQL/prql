@@ -251,7 +251,7 @@ columns of a relation in function calls:
 ```prql
 (select [title, artist_id] default_db.albums)
 # and with a pipeline:
-(from albums | select {title, artist_id})
+(from db.albums | select {title, artist_id})
 ```
 
 All these queries can be simplified to an expression of relations and scalars.
