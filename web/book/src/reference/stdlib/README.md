@@ -35,7 +35,7 @@ Example of different implementations of division and integer division:
 ```prql
 prql target:sql.sqlite
 
-[{x = 13, y = 5}]
+from [{x = 13, y = 5}]
 select {
   quotient = x / y,
   int_quotient = x // y,
@@ -45,7 +45,7 @@ select {
 ```prql
 prql target:sql.mysql
 
-[{x = 13, y = 5}]
+from [{x = 13, y = 5}]
 select {
   quotient = x / y,
   int_quotient = x // y,

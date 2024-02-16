@@ -82,7 +82,7 @@ module my_playlists {
     module upbeat_rock {
         let decl_3 = ...
 
-        decl_1 | join soundtracks.decl2 | join decl_3
+        from decl_1 | join soundtracks.decl2 | join decl_3
     }
 }
 ```
@@ -251,7 +251,7 @@ module project {
 		let mean = a -> ...
 	}
 
-	module default_db {
+	module db {
 		# all inferred tables and defined CTEs
 	}
 

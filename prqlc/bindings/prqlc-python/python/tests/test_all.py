@@ -9,7 +9,7 @@ def test_all() -> None:
     should write more tests at some point.
     """
 
-    prql_query = "from employee"
+    prql_query = "from db.employee"
 
     res = prqlc.prql_to_pl(prql_query)
     assert res is not None

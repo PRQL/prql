@@ -66,7 +66,7 @@ column names.
 ```prql
 from db.employees
 derive {first_name, dept_id}
-join (db.departments | select {d = this}) (==dept_id)
+join d = db.departments (==dept_id)
 select {first_name, d.title}
 ```
 

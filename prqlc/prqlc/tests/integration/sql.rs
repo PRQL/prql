@@ -475,7 +475,7 @@ fn test_append() {
 
     assert_display_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = `default_db.bottom` top -> (top | append bottom | distinct)
+    let union = func bottom top -> (top | append bottom | distinct)
 
     from db.employees
     union db.managers
@@ -494,7 +494,7 @@ fn test_append() {
 
     assert_display_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = `default_db.bottom` top -> (top | append bottom | distinct)
+    let union = func bottom top -> (top | append bottom | distinct)
 
     from db.employees
     append db.managers
@@ -607,7 +607,7 @@ fn test_remove() {
     prql target:sql.sqlite
 
     let distinct = rel -> (_param.rel | group this (take 1))
-    let except = `default_db.bottom` top -> (top | distinct | remove bottom)
+    let except = func bottom top -> (top | distinct | remove bottom)
 
     from db.album
     select {artist_id, title}
@@ -638,7 +638,7 @@ fn test_remove() {
     prql target:sql.sqlite
 
     let distinct = rel -> (_param.rel | group this (take 1))
-    let except = `default_db.bottom` top -> (top | distinct | remove bottom)
+    let except = func bottom top -> (top | distinct | remove bottom)
 
     from db.album
     except db.artist

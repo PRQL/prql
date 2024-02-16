@@ -11,8 +11,7 @@ A summary of PRQL syntax:
 | Syntax               | Usage                                                                          | Example                                                 |
 | -------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | <code>\|</code>      | [Pipelines](./function-calls.md)                                               | <code>from employees \| select first_name</code>        |
-| `=`                  | [Assigns](../declarations/variables.md)                                        | `from db.employees
-select {e = this}` <br> `derive total = (sum salary)` |
+| `=`                  | [Assigns](../declarations/variables.md)                                        | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`                  | [Named args & parameters](../declarations/functions.md)                        | `interp low:0 1600 sat_score`                           |
 | `{}`                 | [Tuples](./tuples.md)                                                          | `{id, false, total = 3}`                                |
 | `[]`                 | [Arrays](./arrays.md)                                                          | `[1, 4, 3, 4]`                                          |
@@ -26,7 +25,7 @@ select {e = this}` <br> `derive total = (sum salary)` |
 | `@`                  | [Dates & times](./literals.md#date-and-time)                                   | `@2021-01-01`                                           |
 | `` ` ` ``            | [Quoted identifiers](./keywords.md#quoting)                                    | ``select `first name` ``                                |
 | `#`                  | [Comments](./comments.md)                                                      | `# A comment`                                           |
-| `==`                 | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join (db.salaries | select {s = this}) (==id)`                                |
+| `==`                 | [Self-equality in `join`](../stdlib/transforms/join.md#self-equality-operator) | `join s=salaries (==id)`                                |
 | `->`                 | [Function definitions](../declarations/functions.md)                           | `let add = a b -> a + b`                                |
 | `=>`                 | [Case statement](./case.md)                                                    | `case [a==1 => c, a==2 => d]`                           |
 | `+`,`-`              | [Sort order](../stdlib/transforms/sort.md)                                     | `sort {-amount, +date}`                                 |

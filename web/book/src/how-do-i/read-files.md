@@ -5,7 +5,7 @@ There are a couple of functions mainly designed for DuckDB:
 ```prql
 prql target:sql.duckdb
 
-read_parquet "artists.parquet"
+from (read_parquet "artists.parquet")
 join (read_csv "albums.csv") (==track_id)
 ```
 
@@ -23,7 +23,7 @@ functions, which is allowed in DuckDB, enclose the file names in backticks
 ` `` ` as follows:
 
 ```prql
-from.`artists.parquet`
+from db.`artists.parquet`
 ```
 
 ## See also

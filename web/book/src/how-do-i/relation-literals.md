@@ -12,7 +12,7 @@ Because relations (aka a table) in PRQL are just arrays of tuples, they can be
 expressed with array and tuple syntax:
 
 ```prql
-[
+from [
   {a=5, b=false},
   {a=6, b=true},
 ]

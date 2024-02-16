@@ -1,17 +1,11 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from.employees\nderive {first_name, dept_id}\njoin (from.departments | select {d = this}) (==dept_id)\nselect {first_name, d.title}\n"
+expression: "from db.employees\nderive {first_name, dept_id}\njoin d = db.departments (==dept_id)\nselect {first_name, d.title}\n"
 ---
-WITH table_0 AS (
-  SELECT
-    *
-  FROM
-    departments
-)
 SELECT
   employees.first_name,
-  table_0.title
+  d.title
 FROM
   employees
-  JOIN table_0 ON employees.dept_id = table_0.dept_id
+  JOIN departments AS d ON employees.dept_id = d.dept_id
 

@@ -48,7 +48,7 @@
     - [Append](./reference/stdlib/transforms/append.md)
     - [Derive](./reference/stdlib/transforms/derive.md)
     - [Filter](./reference/stdlib/transforms/filter.md)
-    - [From](./reference/stdlib/transforms/from db.md)
+    - [From](./reference/stdlib/transforms/from.md)
     - [Group](./reference/stdlib/transforms/group.md)
     - [Join](./reference/stdlib/transforms/join.md)
     - [Loop](./reference/stdlib/transforms/loop.md)
