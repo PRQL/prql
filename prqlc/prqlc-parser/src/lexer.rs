@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub struct Token {
     #[serde(flatten)]
     pub kind: TokenKind,
-    pub span: std::ops::Range<usize>, // Option<Span>,
+    pub span: std::ops::Range<usize>,
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
