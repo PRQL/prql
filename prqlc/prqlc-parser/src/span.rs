@@ -1,4 +1,4 @@
-use std::ops::{Add, Deref, DerefMut};
+use std::ops::{Add, Deref, DerefMut, Sub};
 
 use crate::Span;
 
@@ -26,6 +26,18 @@ impl Add<usize> for ParserSpan {
         Self(Span {
             start: self.start + rhs,
             end: self.end + rhs,
+            source_id: self.source_id,
+        })
+    }
+}
+
+impl Sub<usize> for ParserSpan {
+    type Output = ParserSpan;
+
+    fn sub(self, rhs: usize) -> ParserSpan {
+        Self(Span {
+            start: self.start - rhs,
+            end: self.end - rhs,
             source_id: self.source_id,
         })
     }

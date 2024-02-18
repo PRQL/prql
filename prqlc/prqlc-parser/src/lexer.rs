@@ -4,10 +4,19 @@ use chumsky::{
     text::{newline, Character},
 };
 
-use prqlc_ast::expr::*;
+use prqlc_ast::{expr::*, Span};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum Token {
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Token {
+    #[serde(flatten)]
+    pub kind: TokenKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span: Option<Span>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub enum TokenKind {
     NewLine,
 
     Ident(String),
@@ -56,7 +65,7 @@ pub enum Token {
     //   But requires a whole extra pass.
     // - Change the functionality. But it's very nice to be able to comment
     //   something out and have line-wraps still work.
-    LineWrap(Vec<Token>),
+    LineWrap(Vec<TokenKind>),
 }
 
 /// Lex chars to tokens until the end of the input
@@ -70,24 +79,26 @@ pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
 /// Lex chars to a single token
 pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     let control_multi = choice((
-        just("->").to(Token::ArrowThin),
-        just("=>").to(Token::ArrowFat),
-        just("==").to(Token::Eq),
-        just("!=").to(Token::Ne),
-        just(">=").to(Token::Gte),
-        just("<=").to(Token::Lte),
-        just("~=").to(Token::RegexSearch),
-        just("&&").then_ignore(end_expr()).to(Token::And),
-        just("||").then_ignore(end_expr()).to(Token::Or),
-        just("??").to(Token::Coalesce),
-        just("//").to(Token::DivInt),
-        // just("**").to(Token::Pow),
-        just("@").then(digits(1).not().rewind()).to(Token::Annotate),
+        just("->").to(TokenKind::ArrowThin),
+        just("=>").to(TokenKind::ArrowFat),
+        just("==").to(TokenKind::Eq),
+        just("!=").to(TokenKind::Ne),
+        just(">=").to(TokenKind::Gte),
+        just("<=").to(TokenKind::Lte),
+        just("~=").to(TokenKind::RegexSearch),
+        just("&&").then_ignore(end_expr()).to(TokenKind::And),
+        just("||").then_ignore(end_expr()).to(TokenKind::Or),
+        just("??").to(TokenKind::Coalesce),
+        just("//").to(TokenKind::DivInt),
+        // just("**").to(TokenKind::Pow),
+        just("@")
+            .then(digits(1).not().rewind())
+            .to(TokenKind::Annotate),
     ));
 
-    let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control);
 
-    let ident = ident_part().map(Token::Ident);
+    let ident = ident_part().map(TokenKind::Ident);
 
     let keyword = choice((
         just("let"),
@@ -101,22 +112,22 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())
-    .map(Token::Keyword);
+    .map(TokenKind::Keyword);
 
-    let literal = literal().map(Token::Literal);
+    let literal = literal().map(TokenKind::Literal);
 
     let param = just('$')
         .ignore_then(filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.').repeated())
         .collect::<String>()
-        .map(Token::Param);
+        .map(TokenKind::Param);
 
     let interpolation = one_of("sf")
         .then(quoted_string(true))
-        .map(|(c, s)| Token::Interpolation(c, s));
+        .map(|(c, s)| TokenKind::Interpolation(c, s));
 
     let token = choice((
         line_wrap(),
-        newline().to(Token::NewLine),
+        newline().to(TokenKind::NewLine),
         control_multi,
         interpolation,
         param,
@@ -131,7 +142,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     let range = (whitespace().or_not())
         .then_ignore(just(".."))
         .then(whitespace().or_not())
-        .map(|(left, right)| Token::Range {
+        .map(|(left, right)| TokenKind::Range {
             // If there was no whitespace before (after), then we mark the range
             // as bound on the left (right).
             bind_left: left.is_none(),
@@ -153,7 +164,7 @@ fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
         .ignored()
 }
 
-fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
+fn line_wrap() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     newline()
         .ignore_then(
             whitespace()
@@ -164,23 +175,23 @@ fn line_wrap() -> impl Parser<char, Token, Error = Cheap<char>> {
         )
         .then_ignore(whitespace().repeated())
         .then_ignore(just('\\'))
-        .map(Token::LineWrap)
+        .map(TokenKind::LineWrap)
 }
 
-fn comment() -> impl Parser<char, Token, Error = Cheap<char>> {
+fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     just('#').ignore_then(choice((
         just('!').ignore_then(
             newline()
                 .not()
                 .repeated()
                 .collect::<String>()
-                .map(Token::DocComment),
+                .map(TokenKind::DocComment),
         ),
         newline()
             .not()
             .repeated()
             .collect::<String>()
-            .map(Token::Comment),
+            .map(TokenKind::Comment),
     )))
 }
 
@@ -472,9 +483,9 @@ fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     .rewind()
 }
 
-impl Token {
+impl TokenKind {
     pub fn range(bind_left: bool, bind_right: bool) -> Self {
-        Token::Range {
+        TokenKind::Range {
             bind_left,
             bind_right,
         }
@@ -482,23 +493,23 @@ impl Token {
 }
 
 // This is here because Literal::Float(f64) does not implement Hash, so we cannot simply derive it.
-// There are reasons for that, but chumsky::Error needs Hash for the Token, so it can deduplicate
+// There are reasons for that, but chumsky::Error needs Hash for the TokenKind, so it can deduplicate
 // tokens in error.
 // So this hack could lead to duplicated tokens in error messages. Oh no.
 #[allow(clippy::derived_hash_with_manual_eq)]
-impl std::hash::Hash for Token {
+impl std::hash::Hash for TokenKind {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
     }
 }
 
-impl std::cmp::Eq for Token {}
+impl std::cmp::Eq for TokenKind {}
 
-impl std::fmt::Display for Token {
+impl std::fmt::Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::NewLine => write!(f, "new line"),
-            Token::Ident(s) => {
+            TokenKind::NewLine => write!(f, "new line"),
+            TokenKind::Ident(s) => {
                 if s.is_empty() {
                     // FYI this shows up in errors
                     write!(f, "an identifier")
@@ -506,27 +517,27 @@ impl std::fmt::Display for Token {
                     write!(f, "{s}")
                 }
             }
-            Token::Keyword(s) => write!(f, "keyword {s}"),
-            Token::Literal(lit) => write!(f, "{}", lit),
-            Token::Control(c) => write!(f, "{c}"),
+            TokenKind::Keyword(s) => write!(f, "keyword {s}"),
+            TokenKind::Literal(lit) => write!(f, "{}", lit),
+            TokenKind::Control(c) => write!(f, "{c}"),
 
-            Token::ArrowThin => f.write_str("->"),
-            Token::ArrowFat => f.write_str("=>"),
-            Token::Eq => f.write_str("=="),
-            Token::Ne => f.write_str("!="),
-            Token::Gte => f.write_str(">="),
-            Token::Lte => f.write_str("<="),
-            Token::RegexSearch => f.write_str("~="),
-            Token::And => f.write_str("&&"),
-            Token::Or => f.write_str("||"),
-            Token::Coalesce => f.write_str("??"),
-            Token::DivInt => f.write_str("//"),
-            // Token::Pow => f.write_str("**"),
-            Token::Annotate => f.write_str("@{"),
+            TokenKind::ArrowThin => f.write_str("->"),
+            TokenKind::ArrowFat => f.write_str("=>"),
+            TokenKind::Eq => f.write_str("=="),
+            TokenKind::Ne => f.write_str("!="),
+            TokenKind::Gte => f.write_str(">="),
+            TokenKind::Lte => f.write_str("<="),
+            TokenKind::RegexSearch => f.write_str("~="),
+            TokenKind::And => f.write_str("&&"),
+            TokenKind::Or => f.write_str("||"),
+            TokenKind::Coalesce => f.write_str("??"),
+            TokenKind::DivInt => f.write_str("//"),
+            // TokenKind::Pow => f.write_str("**"),
+            TokenKind::Annotate => f.write_str("@{"),
 
-            Token::Param(id) => write!(f, "${id}"),
+            TokenKind::Param(id) => write!(f, "${id}"),
 
-            Token::Range {
+            TokenKind::Range {
                 bind_left,
                 bind_right,
             } => write!(
@@ -535,16 +546,16 @@ impl std::fmt::Display for Token {
                 if *bind_left { "" } else { " " },
                 if *bind_right { "" } else { " " }
             ),
-            Token::Interpolation(c, s) => {
+            TokenKind::Interpolation(c, s) => {
                 write!(f, "{c}\"{}\"", s)
             }
-            Token::Comment(s) => {
+            TokenKind::Comment(s) => {
                 writeln!(f, "#{}", s)
             }
-            Token::DocComment(s) => {
+            TokenKind::DocComment(s) => {
                 writeln!(f, "#!{}", s)
             }
-            Token::LineWrap(comments) => {
+            TokenKind::LineWrap(comments) => {
                 write!(f, "\n\\ ")?;
                 for comment in comments {
                     write!(f, "{}", comment)?;
@@ -556,7 +567,7 @@ impl std::fmt::Display for Token {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TokenSpan(pub Token, pub std::ops::Range<usize>);
+pub struct TokenSpan(pub TokenKind, pub std::ops::Range<usize>);
 
 impl std::fmt::Debug for TokenSpan {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -615,7 +626,7 @@ mod test {
         assert_eq!(
             format!(
                 "{}",
-                Token::LineWrap(vec![Token::Comment(" a comment".to_string())])
+                TokenKind::LineWrap(vec![TokenKind::Comment(" a comment".to_string())])
             ),
             r#"
 \ # a comment
@@ -667,7 +678,7 @@ mod test {
         )
         "###);
 
-        assert_display_snapshot!(Token::Comment(" This is a single-line comment".to_string()), @r###"
+        assert_display_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @r###"
         # This is a single-line comment
         "###);
     }
