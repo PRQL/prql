@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
-use prqlc_parser::{Token, TokenSpan, TokenVec};
+use prqlc_parser::{Token, TokenKind, TokenVec};
 
 use crate::ast::*;
 use regex::Regex;
@@ -65,7 +65,7 @@ impl WriteSource for Expr {
             // dbg!(&comments);
 
             for c in comments {
-                r += &c.0.to_string();
+                r += &c.kind.to_string();
             }
         }
         Some(r)
@@ -337,18 +337,18 @@ pub fn write_ident_part(s: &str) -> String {
 
 /// Find a comment before a span. If there's exactly one newline, then the
 /// comment is included; otherwise it's included after the current line.
-fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<Token> {
+fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
     // index of the span in the token vec
     let index = tokens
         .0
         .iter()
-        .position(|t| t.1.start == span.start && t.1.end == span.end)?;
+        .position(|t| t.span.start == span.start && t.span.end == span.end)?;
     if index <= 1 {
         return None;
     }
-    let prior_token = &tokens.0[index - 1].0;
-    let prior_2_token = &tokens.0[index - 2].0;
-    if matches!(prior_token, Token::NewLine) && matches!(prior_2_token, Token::Comment(_)) {
+    let prior_token = &tokens.0[index - 1].kind;
+    let prior_2_token = &tokens.0[index - 2].kind;
+    if matches!(prior_token, TokenKind::NewLine) && matches!(prior_2_token, TokenKind::Comment(_)) {
         Some(prior_2_token.clone())
     } else {
         None
@@ -357,7 +357,7 @@ fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<Token> {
 
 /// Find a comment before a span. If there's exactly one newline, then the
 /// comment is included; otherwise it's included after the current line.
-fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<TokenSpan> {
+fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
     let mut out = vec![];
     // index of the span in the token vec
     let index = tokens
@@ -365,11 +365,11 @@ fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<TokenSpan> {
         .iter()
         // FIXME: why isn't this working?
         // .position(|t| t.1.start == span.start && t.1.end == span.end)
-        .position(|t| t.1.start == span.start)
+        .position(|t| t.span.start == span.start)
         .unwrap_or_else(|| panic!("{:?}, {:?}", &tokens, &span));
     for token in tokens.0.iter().skip(index) {
-        match token.0 {
-            Token::NewLine | Token::Comment(_) => out.push(dbg!(token.clone())),
+        match token.kind {
+            TokenKind::NewLine | TokenKind::Comment(_) => out.push(dbg!(token.clone())),
             _ => break,
         }
     }
