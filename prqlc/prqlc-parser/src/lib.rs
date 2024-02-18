@@ -15,8 +15,8 @@ use prqlc_ast::error::{Error, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
-use lexer::Token;
-use lexer::{TokenSpan, TokenVec};
+pub use lexer::Token;
+pub use lexer::{TokenSpan, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.

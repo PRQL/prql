@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
+use prqlc_parser::{Token, TokenSpan, TokenVec};
 
 use crate::ast::*;
 use regex::Regex;
@@ -22,8 +23,20 @@ fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) 
 
 impl WriteSource for Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
+        // let span = self.span;
+        // let tokens = opt.tokens;
+        // let comment =
         let mut r = String::new();
 
+        if let Some(span) = self.span {
+            if let Some(comment) = find_comment_before(span, &opt.tokens) {
+                // dbg!(&span);
+                // dbg!(&self);
+                // dbg!(&comment);
+
+                r += &comment.to_string();
+            }
+        }
         if let Some(alias) = &self.alias {
             r += opt.consume(alias)?;
             r += opt.consume(" = ")?;
@@ -41,9 +54,20 @@ impl WriteSource for Expr {
             if let Some(value) = value {
                 r += &value;
             } else {
-                r += &break_line_within_parenthesis(&self.kind, opt)?;
+                r += &break_line_within_parenthesis(&self.kind, &mut opt)?;
             }
         };
+
+        if let Some(span) = self.span {
+            let comments = find_comments_after(span, &opt.tokens);
+            // dbg!(&span);
+            // dbg!(&self);
+            // dbg!(&comments);
+
+            for c in comments {
+                r += &c.0.to_string();
+            }
+        }
         Some(r)
     }
 }
@@ -180,7 +204,7 @@ impl WriteSource for ExprKind {
                 if let Some(body) = c.body.write(opt.clone()) {
                     r += &body;
                 } else {
-                    r += &break_line_within_parenthesis(c.body.as_ref(), opt)?;
+                    r += &break_line_within_parenthesis(c.body.as_ref(), &mut opt)?;
                 }
 
                 Some(r)
@@ -205,7 +229,7 @@ impl WriteSource for ExprKind {
     }
 }
 
-fn break_line_within_parenthesis<T: WriteSource>(expr: &T, mut opt: WriteOpt) -> Option<String> {
+fn break_line_within_parenthesis<T: WriteSource>(expr: &T, opt: &mut WriteOpt) -> Option<String> {
     let mut r = "(\n".to_string();
     opt.indent += 1;
     r += &opt.write_indent();
@@ -302,6 +326,54 @@ pub fn write_ident_part(s: &str) -> String {
     } else {
         format!("`{}`", s)
     }
+}
+
+// impl WriteSource for ModuleDef {
+//     fn write(&self, mut opt: WriteOpt) -> Option<String> {
+//         codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap()
+//     }}
+
+// impl WriteSource for ModuleDef {
+
+/// Find a comment before a span. If there's exactly one newline, then the
+/// comment is included; otherwise it's included after the current line.
+fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<Token> {
+    // index of the span in the token vec
+    let index = tokens
+        .0
+        .iter()
+        .position(|t| t.1.start == span.start && t.1.end == span.end)?;
+    if index <= 1 {
+        return None;
+    }
+    let prior_token = &tokens.0[index - 1].0;
+    let prior_2_token = &tokens.0[index - 2].0;
+    if matches!(prior_token, Token::NewLine) && matches!(prior_2_token, Token::Comment(_)) {
+        Some(prior_2_token.clone())
+    } else {
+        None
+    }
+}
+
+/// Find a comment before a span. If there's exactly one newline, then the
+/// comment is included; otherwise it's included after the current line.
+fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<TokenSpan> {
+    let mut out = vec![];
+    // index of the span in the token vec
+    let index = tokens
+        .0
+        .iter()
+        // FIXME: why isn't this working?
+        // .position(|t| t.1.start == span.start && t.1.end == span.end)
+        .position(|t| t.1.start == span.start)
+        .unwrap_or_else(|| panic!("{:?}, {:?}", &tokens, &span));
+    for token in tokens.0.iter().skip(index) {
+        match token.0 {
+            Token::NewLine | Token::Comment(_) => out.push(dbg!(token.clone())),
+            _ => break,
+        }
+    }
+    out
 }
 
 impl WriteSource for Vec<Stmt> {

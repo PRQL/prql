@@ -564,6 +564,7 @@ impl std::fmt::Debug for TokenSpan {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct TokenVec(pub Vec<TokenSpan>);
 
 impl std::fmt::Debug for TokenVec {

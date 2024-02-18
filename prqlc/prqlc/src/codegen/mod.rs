@@ -4,6 +4,8 @@ mod types;
 pub(crate) use ast::write_expr;
 pub(crate) use types::{write_ty, write_ty_kind};
 
+use prqlc_parser::TokenVec;
+
 pub trait WriteSource {
     /// Converts self to its source representation according to specified
     /// options.
@@ -72,6 +74,10 @@ pub struct WriteOpt {
     /// For example:
     /// `join foo` has an unbound expr, since `join foo ==bar` produced a binary op.
     pub unbound_expr: bool,
+
+    /// The lexer tokens that were used to produce this source; used for
+    /// comments.
+    pub tokens: TokenVec,
 }
 
 impl Default for WriteOpt {
@@ -84,6 +90,7 @@ impl Default for WriteOpt {
             rem_width: 50,
             context_strength: 0,
             unbound_expr: false,
+            tokens: TokenVec(vec![]),
         }
     }
 }

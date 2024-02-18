@@ -276,6 +276,15 @@ pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
     prql_to_pl_tree(&source_tree)
 }
 
+// pub fn fmt(prql: &str) -> Result<String> {
+//     let source_tree = SourceTree::from(prql);
+//     let pl = prql_to_pl_tree(&source_tree)?;
+
+//     for x in pl.stmts {
+//         x.
+
+// }
+
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessages> {
     parser::parse(prql).map_err(|e| ErrorMessages::from(e).composed(prql))
@@ -305,6 +314,42 @@ pub fn rq_to_sql(rq: ir::rq::RelationalQuery, options: &Options) -> Result<Strin
 /// Generate PRQL code from PL AST
 pub fn pl_to_prql(pl: &ast::ModuleDef) -> Result<String, ErrorMessages> {
     Ok(codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap())
+}
+
+pub fn format_prql(prql: &str) -> Result<String, ErrorMessages> {
+    // TODO: convert errors
+    let tokens = prqlc_parser::lex_source(prql).unwrap();
+    let pl = prql_to_pl(prql)?;
+    Ok(codegen::WriteSource::write(
+        &pl.stmts,
+        codegen::WriteOpt {
+            tokens,
+            ..Default::default()
+        },
+    )
+    .unwrap())
+}
+
+#[test]
+fn test_format_prql() {
+    use insta::assert_display_snapshot;
+
+    assert_display_snapshot!(format_prql( "from db.employees | select {name, age}").unwrap(), @r###"
+    from db.employees
+    select {name, age}
+    "###);
+
+    assert_display_snapshot!(format_prql( r#"
+    # test comment
+    from db.employees # inline comment
+    # another test comment
+    select {name, age}"#
+).unwrap(), @r###"
+    # test comment
+    from db.employees # in
+    # another test comment
+    select {name, age}
+    "###);
 }
 
 /// JSON serialization and deserialization functions
