@@ -16,7 +16,7 @@ use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
 use lexer::TokenKind;
-use lexer::{TokenSpan, TokenVec};
+use lexer::{Token, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -34,9 +34,9 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
     // We don't want comments in the AST (but we do intend to use them as part of
     // formatting)
     let semantic_tokens: Option<_> = tokens.map(|tokens| {
-        tokens.into_iter().filter(|TokenSpan(t, _)| {
+        tokens.into_iter().filter(|token| {
             !matches!(
-                t,
+                token.kind,
                 TokenKind::Comment(_) | TokenKind::LineWrap(_) | TokenKind::DocComment(_)
             )
         })
@@ -128,13 +128,13 @@ mod common {
 /// Convert the output of the lexer into the input of the parser. Requires
 /// supplying the original source code.
 fn prepare_stream(
-    tokens: impl Iterator<Item = TokenSpan>,
+    tokens: impl Iterator<Item = Token>,
     source: &str,
     source_id: u16,
 ) -> Stream<TokenKind, ParserSpan, impl Iterator<Item = (TokenKind, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |TokenSpan(t, s)| (t, ParserSpan::new(source_id, s)));
+        .map(move |token| (token.kind, ParserSpan::new(source_id, token.span)));
     let len = source.chars().count();
     let eoi = ParserSpan(Span {
         start: len,

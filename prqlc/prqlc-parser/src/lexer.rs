@@ -4,15 +4,14 @@ use chumsky::{
     text::{newline, Character},
 };
 
-use prqlc_ast::{expr::*, Span};
+use prqlc_ast::expr::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
     #[serde(flatten)]
     pub kind: TokenKind,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub span: Option<Span>,
+    pub span: std::ops::Range<usize>, // Option<Span>,
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -69,7 +68,7 @@ pub enum TokenKind {
 }
 
 /// Lex chars to tokens until the end of the input
-pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
+pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
     lex_token()
         .repeated()
         .then_ignore(ignored())
@@ -77,7 +76,7 @@ pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
 }
 
 /// Lex chars to a single token
-pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
+pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
     let control_multi = choice((
         just("->").to(TokenKind::ArrowThin),
         just("=>").to(TokenKind::ArrowFat),
@@ -148,9 +147,12 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
-        .map_with_span(TokenSpan);
+        .map_with_span(|kind, span| Token { kind, span });
 
-    choice((range, ignored().ignore_then(token.map_with_span(TokenSpan))))
+    choice((
+        range,
+        ignored().ignore_then(token.map_with_span(|kind, span| Token { kind, span })),
+    ))
 }
 
 fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
@@ -566,16 +568,13 @@ impl std::fmt::Display for TokenKind {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TokenSpan(pub TokenKind, pub std::ops::Range<usize>);
-
-impl std::fmt::Debug for TokenSpan {
+impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}..{}: {:?}", self.1.start, self.1.end, self.0)
+        write!(f, "{}..{}: {:?}", self.span.start, self.span.end, self.kind)
     }
 }
 
-pub struct TokenVec(pub Vec<TokenSpan>);
+pub struct TokenVec(pub Vec<Token>);
 
 impl std::fmt::Debug for TokenVec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
