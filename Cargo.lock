@@ -2964,6 +2964,7 @@ dependencies = [
  "itertools 0.12.1",
  "prqlc-ast",
  "semver",
+ "serde",
  "stacker",
 ]
 

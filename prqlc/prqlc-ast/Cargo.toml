@@ -14,7 +14,7 @@ doctest = false
 [dependencies]
 enum-as-inner = "0.6.0"
 semver = {version = "1.0.21", features = ["serde"]}
-serde = {version = "1.0.196", features = ["derive"]}
+serde = {workspace = true}
 strum = {version = "0.26.1", features = ["std", "derive"]}
 
 [dev-dependencies]
