@@ -45,7 +45,7 @@ allow-branch = ["*"]
 consolidate-commits = true
 
 [workspace.dependencies]
-anyhow = "1.0.79"
+anyhow = "1.0.80"
 insta = {version = "1.34", features = ["colors", "glob", "yaml"]}
 insta-cmd = "0.4.0"
 itertools = "0.12.0"
