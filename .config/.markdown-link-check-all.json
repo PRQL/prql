@@ -10,8 +10,8 @@
       "pattern": "^https://www.php.net"
     },
     {
-      "pattern": "^https://github.com/PRQL/prql/pkgs/container/",
-      "_comment": "This seems to fail extremely frequently from CI, more so than other GitHub links. So ignoring."
+      "pattern": "^https://github.com.*container",
+      "_comment": "`https://github.com/PRQL/prql/pkgs/container/` seems to fail extremely frequently from CI, more so than other GitHub links. So ignoring."
     }
   ],
   "httpHeaders": [
