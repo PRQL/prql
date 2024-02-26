@@ -7,10 +7,11 @@
 **Features**:
 
 - Initial implementation of an experimental documentation generator that
-  generates Markdown documentation from `.prql` files. (@vanillajonathan, #4152).
+  generates Markdown documentation from `.prql` files. (@vanillajonathan,
+  #4152).
 
-- _Breaking_: References to database tables now require an explicit `db.` prefix.
-  Example:
+- _Breaking_: References to database tables now require an explicit `db.`
+  prefix. Example:
   ```prql no-eval
   from db.my_table
   join db.another_table (==some_id)
@@ -916,7 +917,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 - Support double brackets in s-strings which aren't symmetric (@max-sixty,
   #1650)
 - Support Postgres's Interval syntax (@max-sixty, #1649)
-- Fixed tests for `prql-elixir` with MacOS (@kasvith, #1707)
+- Fixed tests for `prql-elixir` with macOS (@kasvith, #1707)
 
 **Documentation**:
 
