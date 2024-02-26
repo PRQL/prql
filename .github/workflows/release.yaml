@@ -67,8 +67,14 @@ jobs:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
       - name: test the CLI works
-        # TODO: Add for Windows too (but will require unzipping rather than un-taring)
-        if: ${{ matrix.target != 'x86_64-pc-windows-msvc' }}
+        # TODO: Add for Windows too (but will require unzipping rather than
+        # un-taring)
+        #
+        # Currently filtering by x86, since that's the same as those not
+        # cross-compiled. But we'll have to refine this in the future.
+        if:
+          ${{ contains(matrix.target, 'x86') && matrix.target !=
+          'x86_64-pc-windows-msvc' }}
         run: |
           # `prqlc` is an existing path at the root
           mkdir -p temp_path
