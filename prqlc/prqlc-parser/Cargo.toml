@@ -18,7 +18,7 @@ semver = {version = "1.0.22"}
 serde = {workspace = true}
 
 # Chumsky's default features have issues when running in wasm (though we only
-# see it when compiling on MacOS), so we only include features when running
+# see it when compiling on macOS), so we only include features when running
 # outside wasm.
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 chumsky = "0.9.2"
