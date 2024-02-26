@@ -19,13 +19,16 @@
         fenix_pkgs = fenix.packages.${system};
 
         essentials = with pkgs; [
-          # compiler requirements
+          # requirements
           fenix_pkgs.stable.cargo
           fenix_pkgs.stable.clippy
           fenix_pkgs.stable.rust-src
           fenix_pkgs.stable.rustc
           fenix_pkgs.stable.rustfmt
           fenix_pkgs.stable.rust-analyzer
+
+          # tooling
+          clang # for llvm debugger in VSCode
 
           # tools
           cargo-nextest
