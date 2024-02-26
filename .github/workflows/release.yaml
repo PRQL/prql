@@ -67,7 +67,8 @@ jobs:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
       - name: test the CLI works
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        # TODO: Add for Windows too (but will require unzipping rather than un-taring)
+        if: ${{ matrix.target != 'x86_64-pc-windows-msvc' }}
         run: |
           # `prqlc` is an existing path at the root
           mkdir -p temp_path
