@@ -1,5 +1,10 @@
 # PRQL Changelog
 
+## 0.11.4 — 2023-02-25
+
+0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
+built without the `cli` feature.
+
 ## 0.11.3 — 2023-02-10
 
 0.11.3 is a very small release, mostly a rename of the python bindings.
