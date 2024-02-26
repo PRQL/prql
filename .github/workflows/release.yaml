@@ -69,11 +69,10 @@ jobs:
       - name: test the CLI works
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: |
-          # `prqlc` already exists at the root
+          # `prqlc` is an existing path at the root
           mkdir -p temp_path
           tar xzf ${{ steps.build-artifact.outputs.artifact-name }} -C temp_path
-          cd temp_path
-          ./prqlc/prqlc --help
+          ./temp_path/prqlc --help
 
   build-prqlc-c:
     # Mostly a copy/paste of `build-prqlc`.
