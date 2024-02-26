@@ -45,8 +45,7 @@ runs:
 
     - if: runner.os == 'Windows' && inputs.profile == 'release'
       shell: bash
-      run: |
-        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
+      run: echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
@@ -68,8 +67,9 @@ runs:
         # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
-          && '--package=prqlc' || '--all-targets' }}
+          --no-default-features --features=${{ inputs.features }} ${{
+          contains(inputs.target, 'musl') && '--package=prqlc' ||
+          '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
@@ -100,3 +100,7 @@ runs:
     - id: echo-artifact-name
       shell: bash
       run: echo "artifact-name=${{ env.ARTIFACT_NAME }}" >>"$GITHUB_OUTPUT"
+
+    - name: test-cli-works
+      shell: bash
+      run: ${{ env.ARTIFACT_NAME }} --help

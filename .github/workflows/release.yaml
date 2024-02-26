@@ -59,6 +59,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: release
+          features: cli
       - name: Upload release artifact
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
@@ -67,7 +68,7 @@ jobs:
           files: ${{ steps.build-artifact.outputs.artifact-name }}
 
   build-prqlc-c:
-    # Currently a copy/paste of `build-prqlc`.
+    # Mostly a copy/paste of `build-prqlc`.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
