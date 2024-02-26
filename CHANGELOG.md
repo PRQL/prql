@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.11.4 — Unreleased
+## 0.11.5 — Unreleased
 
 **Language**:
 
@@ -30,6 +30,11 @@
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.11.4 — 2023-02-25
+
+0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
+built without the `cli` feature.
 
 ## 0.11.3 — 2023-02-10
 
