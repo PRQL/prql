@@ -6,11 +6,11 @@ the input for the transform following the pipe. A pipe can be represented with
 either a line break or a pipe character (`|`).
 
 For example, here the `filter` transform operates on the result of
-`from employees` (which is just the `employees` table), and the `select`
+`from db.employees` (which is just the `employees` table), and the `select`
 transform operates on the result of the `filter` transform.
 
 ```prql
-from employees
+from db.employees
 filter department == "Product"
 select {first_name, last_name}
 ```
@@ -19,7 +19,7 @@ In the place of a line break, it's also possible to use the `|` character to
 pipe results between transforms, such that this is equivalent:
 
 ```prql
-from employees | filter department == "Product" | select {first_name, last_name}
+from db.employees | filter department == "Product" | select {first_name, last_name}
 ```
 
 In almost all situations, a line break acts as a pipe. But there are a few
@@ -32,7 +32,7 @@ exceptions where a line break doesn't create a pipeline:
 - Within a [line wrap](./operators.md#wrapping-lines)
 
 ```prql
-from [        # Line break OK in an array
+[        # Line break OK in an array
   {a=2, b=3}
 ]
 derive {      # Line break OK in a tuple
@@ -49,7 +49,7 @@ pass their result to an "inner transform". The example below applies the
 `aggregate` pipeline to each group of unique `title` and `country` values:
 
 ```prql
-from employees
+from db.employees
 group {title, country} (
   aggregate {
     average salary,

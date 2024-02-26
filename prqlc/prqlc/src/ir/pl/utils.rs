@@ -1,4 +1,4 @@
-use prqlc_ast::expr::Ident;
+use crate::ast::expr::Ident;
 
 use super::{Expr, ExprKind, FuncCall};
 

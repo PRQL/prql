@@ -68,13 +68,13 @@ use `sort` for test queries to to guarantee the order of rows across DBs.
 For example, instead of the following query:
 
 ```elm
-from albums
+from db.albums
 ```
 
 Use a query including `sort`:
 
 ```elm
-from albums
+from db.albums
 sort album_id
 ```
 

@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_lineage(r#\"\n            from orders\n            select {customer_no, gross, tax, gross - tax}\n            take 20\n            \"#).unwrap()"
+expression: "resolve_lineage(r#\"\n            from db.orders\n            select {customer_no, gross, tax, gross - tax}\n            take 20\n            \"#).unwrap()"
 ---
 columns:
   - Single:
@@ -29,6 +29,6 @@ inputs:
   - id: 121
     name: orders
     table:
-      - default_db
+      - db
       - orders
 

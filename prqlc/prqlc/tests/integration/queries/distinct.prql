@@ -1,5 +1,5 @@
 # mssql:test
-from tracks
+from db.tracks
 select {album_id, genre_id}
 group tracks.* (take 1)
 sort tracks.*

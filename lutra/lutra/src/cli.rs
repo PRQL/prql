@@ -21,9 +21,7 @@ fn main() {
     match res {
         Ok(_) => {}
         Err(err) => {
-            let errors = prqlc::downcast(err);
-
-            println!("{errors}");
+            println!("{err}");
             std::process::exit(1);
         }
     }
@@ -120,27 +118,10 @@ mod inner {
             name: db_mod_name.unwrap_or_default(),
             stmts,
         };
-        let mut new_module_stmt = Stmt::new(StmtKind::ModuleDef(new_module_def));
 
-        // pull annotations and other metadata from the resolved module tree
-        // TODO: this is not a good idea, because we have to restrict PL back into AST
-        //   also, we'd have to pull back doc comments
-        //   ideally, we'd edit only the module contents, not the module itself
-        let db_mod_path = &project.database_module.path;
-        let root_mod = &project.root_module.module;
-        if !db_mod_path.is_empty() {
-            let i = Ident::from_path(db_mod_path.clone());
-            let database_mod_decl = root_mod.get(&i).unwrap();
+        // TODO: make sure that annotations don't get overwritten
 
-            new_module_stmt.annotations = database_mod_decl
-                .annotations
-                .clone()
-                .into_iter()
-                .map(prqlc::semantic::ast_expand::restrict_annotation)
-                .collect();
-        }
-
-        let new_source = prqlc::pl_to_prql(vec![new_module_stmt])?;
+        let new_source = prqlc::pl_to_prql(&new_module_def)?;
 
         lutra::editing::edit_source_file(&project, db_mod_decl_id, new_source)?;
 

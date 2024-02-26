@@ -8,11 +8,8 @@ The main entry point is a Python method `prqlc.compile(query: str) -> str`.
 The package is consumed by [pyprql](https://github.com/prql/pyprql) &
 [dbt-prql](https://github.com/prql/dbt-prql).
 
-<!-- TODO: change -->
-<!-- <https://pypi.org/project/prqlc/>. -->
-
 The crate is not published to crates.io; only to PyPI at
-<https://pypi.org/project/prql-python/>.
+<https://pypi.org/project/prqlc/>.
 
 ## Installation
 
@@ -24,8 +21,8 @@ The crate is not published to crates.io; only to PyPI at
 import prqlc
 
 prql_query = """
-    from employees
-    join salaries (==emp_id)
+    from db.employees
+ join db.salaries (==emp_id)
     group {employees.dept_id, employees.gender} (
       aggregate {
         avg_salary = average salaries.salary

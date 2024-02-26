@@ -10,7 +10,7 @@ mod srq;
 
 pub use dialect::{Dialect, SupportLevel};
 
-use anyhow::Result;
+use crate::Result;
 
 use crate::{ir::rq::RelationalQuery, Options, COMPILER_VERSION};
 
@@ -61,6 +61,7 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
 pub mod internal {
     use super::*;
     use crate::ir::rq::{RelationalQuery, Transform};
+    use crate::{Error, Result};
 
     pub use super::srq::ast::SqlTransform;
 
@@ -69,7 +70,7 @@ pub mod internal {
         let ctx = Context::new(dialect::Dialect::Generic, ctx);
 
         let pipeline = (relation.kind.into_pipeline())
-            .map_err(|_| anyhow::anyhow!("Main RQ relation is not a pipeline."))?;
+            .map_err(|_| Error::new_simple("Main RQ relation is not a pipeline."))?;
         Ok((pipeline, ctx))
     }
 
@@ -164,7 +165,7 @@ mod test {
 
     #[test]
     fn test_end_with_new_line() {
-        let sql = compile("from a", &Options::default().no_signature()).unwrap();
+        let sql = compile("from db.a", &Options::default().no_signature()).unwrap();
         assert_eq!(sql, "SELECT\n  *\nFROM\n  a\n")
     }
 }

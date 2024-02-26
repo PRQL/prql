@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::Result;
+use crate::ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
+use crate::Result;
 use itertools::Itertools;
-use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
 
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;

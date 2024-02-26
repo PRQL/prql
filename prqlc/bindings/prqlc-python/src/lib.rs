@@ -1,7 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prqlc_lib::{self, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -23,7 +22,7 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     Ok(prql_query)
         .and_then(prqlc_lib::prql_to_pl)
-        .and_then(prqlc_lib::json::from_pl)
+        .and_then(|x| prqlc_lib::json::from_pl(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -32,7 +31,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     Ok(pl_json)
         .and_then(prqlc_lib::json::to_pl)
         .and_then(prqlc_lib::pl_to_rq)
-        .and_then(prqlc_lib::json::from_rq)
+        .and_then(|x| prqlc_lib::json::from_rq(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -102,7 +101,7 @@ impl CompileOptions {
 }
 
 fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
-    let target = Target::from_str(&o.target).map_err(|e| prqlc_lib::downcast(e.into()))?;
+    let target = prqlc_lib::Target::from_str(&o.target).map_err(prqlc_lib::ErrorMessages::from)?;
 
     Ok(prqlc_lib::Options {
         format: o.format,
@@ -115,7 +114,7 @@ fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::E
 
 #[pyfunction]
 pub fn get_targets() -> Vec<String> {
-    Target::names()
+    prqlc_lib::Target::names()
 }
 
 #[cfg(not(feature = "extension-module"))]
@@ -133,7 +132,7 @@ mod test {
         });
 
         assert_snapshot!(
-            compile("from employees | filter (age | in 20..30)", opts).unwrap(),
+            compile("from db.employees | filter (age | in 20..30)", opts).unwrap(),
             @r###"
         SELECT
           *
@@ -153,7 +152,7 @@ mod test {
             signature_comment: false,
         });
 
-        let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
+        let prql = r#"from db.artists | select {name, id} | filter (id | in [1, 2, 3])"#;
         assert_snapshot!(
              prql_to_pl(prql).and_then(|x| pl_to_rq(x.as_str())).and_then(|x|rq_to_sql(x.as_str(), opts)).unwrap(), @r###"
         SELECT

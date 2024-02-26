@@ -1,5 +1,36 @@
 # PRQL Changelog
 
+## 0.11.5 — Unreleased
+
+**Language**:
+
+**Features**:
+
+- Initial implementation of an experimental documentation generator that
+  generates Markdown documentation from `.prql` files. (@vanillajonathan, #4152).
+
+- _Breaking_: References to database tables now require an explicit `db.` prefix.
+  Example:
+  ```prql no-eval
+  from db.my_table
+  join db.another_table (==some_id)
+  ```
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+- The syntax highlighter package for Sublime Text is now
+  [published](https://packagecontrol.io/packages/PRQL) (@vanillajonathan).
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.11.4 — 2023-02-25
 
 0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
@@ -7,15 +38,15 @@ built without the `cli` feature.
 
 ## 0.11.3 — 2023-02-10
 
-0.11.3 is a very small release, mostly a rename of the python bindings.
+0.11.3 is a very small release, mostly a rename of the Python bindings.
 
-This release has 13 commits from 4 contributors. Selected changes:
+The release has 13 commits from 4 contributors.
 
 **Internal changes**:
 
-- As part of making our names more consistent, the python bindings are renamed.
+- As part of making our names more consistent, the Python bindings are renamed.
   `prql-python` becomes a package published and importable as `prqlc`. The
-  internal rust crate is named `prqlc-python`.
+  internal Rust crate is named `prqlc-python`.
 
 ## 0.11.2 — 2023-02-07
 
@@ -610,7 +641,7 @@ This release has 17 commits from 4 contributors.
 improvements, such as integration tests with a whole range of DBs, a blog post
 on Pi day, RFCs for a type system, and more robust language bindings.
 
-There's a very small breaking change to the rust API, hence the minor version
+There's a very small breaking change to the Rust API, hence the minor version
 bump.
 
 Here's our April 2023 Update, from our

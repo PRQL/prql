@@ -1,14 +1,13 @@
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{Span, TupleField, Ty, TyKind};
-
+use crate::ast::{TupleField, Ty, TyKind};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
-use crate::{Error, Reason, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -139,8 +138,7 @@ impl PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(*span)
-                        .into());
+                        .with_span(*span));
                     }
 
                     _ => Expr {
@@ -164,7 +162,6 @@ impl PlFold for Resolver<'_> {
                 named_args,
             }) => {
                 // fold function name
-                self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
                 let name = Box::new(self.fold_expr(*name)?);

@@ -7,10 +7,10 @@ info:
     - shell-completion
     - fish
   env:
-    CLICOLOR_FORCE: ""
     NO_COLOR: "1"
     RUST_BACKTRACE: ""
     RUST_LOG: ""
+    CLICOLOR_FORCE: ""
 ---
 success: true
 exit_code: 0

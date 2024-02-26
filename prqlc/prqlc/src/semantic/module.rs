@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
-use prqlc_ast::stmt::QueryDef;
-use prqlc_ast::{Literal, Span, TupleField, Ty, TyKind};
+use crate::ast::QueryDef;
+use crate::ast::{Literal, Span, TupleField, Ty, TyKind};
+use crate::Result;
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
@@ -437,7 +437,9 @@ impl RootModule {
     ) -> Result<()> {
         let existing = self.module.get(&ident);
         if existing.is_some() {
-            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
+            return Err(Error::new_simple(format!(
+                "duplicate declarations of {ident}"
+            )));
         }
 
         let decl = Decl {

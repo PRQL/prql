@@ -1,11 +1,12 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\njoin side:left p=positions (employees.id==p.employee_id)\n"
+expression: "from db.tracks\njoin side:left db.artists (\n  # This adds a `country` condition, as an alternative to filtering\n  artists.id==tracks.artist_id && artists.country=='UK'\n)\n"
 ---
 SELECT
-  employees.*,
-  p.*
+  tracks.*,
+  artists.*
 FROM
-  employees
-  LEFT JOIN positions AS p ON employees.id = p.employee_id
+  tracks
+  LEFT JOIN artists ON artists.id = tracks.artist_id
+  AND artists.country = 'UK'
 
