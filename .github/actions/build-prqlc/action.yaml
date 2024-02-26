@@ -77,9 +77,10 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc/README.md .
-        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE README.md
+        TEMP_DIR=$(mktemp -d)
+        cp prqlc/prqlc/README.md LICENSE "${TEMP_DIR}/"
+        cp -r target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}/prqlc "${TEMP_DIR}/"
+        tar czf "${ARTIFACT_NAME}" -C "$TEMP_DIR" .
 
     - name: Create artifact for Windows
       shell: bash

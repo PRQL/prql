@@ -430,6 +430,20 @@ task run-book
 task run-playground
 ```
 
+## Bindings
+
+We have a number of language bindings, as documented at
+<https://prql-lang.org/book/project/bindings/index.html>. Some of these are
+within our monorepo, some are in separate repos. Here's a provisional framework
+for when we use the main prql repo vs separate repos for bindings:
+
+| Factor                                           | Rationale                                                                                  | Example                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Does someone want to sign up to maintain a repo? | A different repo is harder for the core team to maintain                                   | `tree-sitter-prql` is well maintained                         |
+| Can it change independently from the compiler?   | If it's in a different repo, it can't be changed in lockstep with the compiler             | `prql-vscode` is fine to change "behind" the language         |
+| Would a separate repo invite new contributors?   | A monorepo with all the rust code can be less inviting for those familiar with other langs | `prql-vscode` had some JS-only contributors                   |
+| Is there an convention for a stand-alone repo?   | A small number of ecosystems require a separate repo                                       | `homebrew-prql` needs to be named that way for a Homebrew tap |
+
 ---
 
 ## Releasing
