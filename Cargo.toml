@@ -23,7 +23,7 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.70.0"
-version = "0.11.4"
+version = "0.11.5"
 
 [profile.release]
 # Optimize for binary size in releases of all crates,
