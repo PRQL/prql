@@ -66,6 +66,11 @@ jobs:
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
+      - name: test the CLI works
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: |
+          tar xzf ${{ steps.build-artifact.outputs.artifact-name }}
+          ./prqlc/prqlc --help
 
   build-prqlc-c:
     # Mostly a copy/paste of `build-prqlc`.

@@ -100,7 +100,3 @@ runs:
     - id: echo-artifact-name
       shell: bash
       run: echo "artifact-name=${{ env.ARTIFACT_NAME }}" >>"$GITHUB_OUTPUT"
-
-    - name: test-cli-works
-      shell: bash
-      run: ${{ env.ARTIFACT_NAME }} --help
