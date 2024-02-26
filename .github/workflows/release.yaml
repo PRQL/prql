@@ -70,9 +70,9 @@ jobs:
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: |
           # `prqlc` already exists at the root
-          mkdir -p extraction_path
-          tar xzf ${{ steps.build-artifact.outputs.artifact-name }} -C extraction_path
-          cd extraction_path
+          mkdir -p temp_path
+          tar xzf ${{ steps.build-artifact.outputs.artifact-name }} -C temp_path
+          cd temp_path
           ./prqlc/prqlc --help
 
   build-prqlc-c:
