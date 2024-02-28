@@ -22,22 +22,35 @@ pipe results between transforms, such that this is equivalent:
 from db.employees | filter department == "Product" | select {first_name, last_name}
 ```
 
-In almost all situations, a line break acts as a pipe. But there are a few
-exceptions where a line break doesn't create a pipeline:
+## "C'est ne pas un pipe"
 
-- within a tuple
-- within an array
-- when the following line is a new statement, which starts with a keyword of
-  `func`, `let` or `from`
-- Within a [line wrap](./operators.md#wrapping-lines)
+In almost all situations, a line break acts as a pipe. But there are a few cases
+where a line break doesn't act as a pipe.
+
+- before or after tuple items
+- before or after list items
+- before a new statement, which starts with `let` or `from` (or `func`)
+- within a [line wrap](./operators.md#wrapping-lines)
+
+For example:
 
 ```prql
-[        # Line break OK in an array
-  {a=2, b=3}
+[
+  {a=2}      # No pipe from line break before & after this list item
 ]
-derive {      # Line break OK in a tuple
-  c = 2 * a,
+derive {
+  c = 2 * a, # No pipe from line break before & after this tuple item
 }
+```
+
+```prql
+let b =
+  \ 3        # No pipe from line break within this line wrap
+
+# No pipe from line break before this `from` statement
+
+from db.y
+derive a = b
 ```
 
 ## Inner Transforms

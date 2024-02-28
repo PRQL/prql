@@ -1,16 +1,13 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from [        # Line break OK in an array\n  {a=2, b=3}\n]\nderive {      # Line break OK in a tuple\n  c = 2 * a,\n}\n"
+expression: "[\n  {a=2}      # Line break OK before & after this list item\n]\nderive {\n  c = 2 * a, # Line break OK before & after this tuple item\n}\n"
 ---
 WITH table_0 AS (
   SELECT
-    2 AS a,
-    3 AS b
+    2 AS a
 )
 SELECT
   a,
-  b,
   2 * a AS c
 FROM
   table_0
-
