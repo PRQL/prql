@@ -1,9 +1,0 @@
----
-source: web/book/tests/documentation/book.rs
-expression: "let b =\n  \\ 3        # Line break OK within this line wrap\n\n# Line break OK before this `from` statement\n\nfrom db.y\nderive a = b\n"
----
-SELECT
-  *,
-  3 AS a
-FROM
-  y
