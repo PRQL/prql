@@ -23,6 +23,10 @@
 
 **Web**:
 
+- The `browser` dist files are now built with `wasm-pack`'s `web` target.
+  As a result, they should be usable as ES Modules, through JS CDNs, and
+  for example with Observable Framework (@srenatus, #4274).
+
 **Integrations**:
 
 - The syntax highlighter package for Sublime Text is now
