@@ -73,18 +73,12 @@ console.log(sql);
 ```html
 <html>
   <head>
-    <script src="./node_modules/prql-js/dist/web/prql_js.js"></script>
-    <script>
-      const { compile } = wasm_bindgen;
+    <script type="module">
+      import init, { compile } from './dist/web/prql_js.js';
+      await init();
 
-      async function run() {
-        await wasm_bindgen("./node_modules/prql-js/dist/web/prql_js_bg.wasm");
-        const sql = compile("from db.employees | select first_name");
-
-        console.log(sql);
-      }
-
-      run();
+      const sql = compile("from db.employees | select first_name");
+      console.log(sql);
     </script>
   </head>
 
