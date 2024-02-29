@@ -449,6 +449,10 @@ pub(in crate::sql) fn intersect(
         if bottom.iter().any(|c| output.contains(c)) {
             continue;
         }
+        // select must contain at least one thing from top
+        if top.iter().all(|c| !output.contains(c)) {
+            continue;
+        }
 
         // determine DISTINCT
         let mut distinct = false;
