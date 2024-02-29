@@ -278,7 +278,7 @@ fn test_precedence_division() {
 }
 
 #[test]
-fn test_precedence() {
+fn test_precedence_01() {
     assert_display_snapshot!((compile(r###"
     from db.artists
     derive {
@@ -297,7 +297,10 @@ fn test_precedence() {
     FROM
       artists
     "###);
+}
 
+#[test]
+fn test_precedence_02() {
     assert_display_snapshot!((compile(r###"
     from db.x
     derive {
@@ -314,7 +317,10 @@ fn test_precedence() {
     FROM
       x
     "###);
+}
 
+#[test]
+fn test_precedence_03() {
     assert_display_snapshot!((compile(r###"
     from db.numbers
     derive {
@@ -333,7 +339,10 @@ fn test_precedence() {
     FROM
       numbers
     "###);
+}
 
+#[test]
+fn test_precedence_04() {
     assert_display_snapshot!((compile(r###"
     from db.comparisons
     select {
@@ -362,7 +371,10 @@ fn test_precedence() {
     FROM
       comparisons
     "###);
+}
 
+#[test]
+fn test_precedence_05() {
     assert_display_snapshot!(compile(
     r###"
     from db.numbers
@@ -520,7 +532,7 @@ fn test_append() {
 }
 
 #[test]
-fn test_remove() {
+fn test_remove_01() {
     assert_display_snapshot!(compile(r#"
     from db.albums
     remove db.artists
@@ -538,7 +550,10 @@ fn test_remove() {
       artists AS b
     "###
     );
+}
 
+#[test]
+fn test_remove_02() {
     assert_display_snapshot!(compile(r#"
     from db.album
     select artist_id
@@ -565,7 +580,10 @@ fn test_remove() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_remove_03() {
     assert_display_snapshot!(compile(r#"
     from db.album
     select {artist_id, title}
@@ -590,7 +608,10 @@ fn test_remove() {
       table_0.artist_id IS NULL
     "###
     );
+}
 
+#[test]
+fn test_remove_04() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
@@ -602,7 +623,10 @@ fn test_remove() {
     ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
     "###
     );
+}
 
+#[test]
+fn test_remove_05() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
@@ -633,7 +657,10 @@ fn test_remove() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_remove_06() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
@@ -1679,7 +1706,7 @@ fn test_filter() {
 }
 
 #[test]
-fn test_nulls() {
+fn test_nulls_01() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     select amount = null
@@ -1689,7 +1716,10 @@ fn test_nulls() {
     FROM
       employees
     "###);
+}
 
+#[test]
+fn test_nulls_02() {
     // coalesce
     assert_display_snapshot!((compile(r###"
     from db.employees
@@ -1701,7 +1731,10 @@ fn test_nulls() {
     FROM
       employees
     "###);
+}
 
+#[test]
+fn test_nulls_03() {
     // IS NULL
     assert_display_snapshot!((compile(r###"
     from db.employees
@@ -1715,7 +1748,10 @@ fn test_nulls() {
       first_name IS NULL
       AND last_name IS NULL
     "###);
+}
 
+#[test]
+fn test_nulls_04() {
     // IS NOT NULL
     assert_display_snapshot!((compile(r###"
     from db.employees
@@ -1732,7 +1768,7 @@ fn test_nulls() {
 }
 
 #[test]
-fn test_take() {
+fn test_take_01() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take ..10
@@ -1744,7 +1780,10 @@ fn test_take() {
     LIMIT
       10
     "###);
+}
 
+#[test]
+fn test_take_02() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take 5..10
@@ -1756,7 +1795,10 @@ fn test_take() {
     LIMIT
       6 OFFSET 4
     "###);
+}
 
+#[test]
+fn test_take_03() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take 5..
@@ -1766,7 +1808,10 @@ fn test_take() {
     FROM
       employees OFFSET 4
     "###);
+}
 
+#[test]
+fn test_take_04() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take 5..5
@@ -1778,7 +1823,10 @@ fn test_take() {
     LIMIT
       1 OFFSET 4
     "###);
+}
 
+#[test]
+fn test_take_05() {
     // should be one SELECT
     assert_display_snapshot!((compile(r###"
     from db.employees
@@ -1792,7 +1840,10 @@ fn test_take() {
     LIMIT
       5 OFFSET 10
     "###);
+}
 
+#[test]
+fn test_take_06() {
     // should be two SELECTs
     assert_display_snapshot!((compile(r###"
     from db.employees
@@ -1817,7 +1868,10 @@ fn test_take() {
     LIMIT
       5
     "###);
+}
 
+#[test]
+fn test_take_07() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take 0..1
@@ -1830,7 +1884,10 @@ fn test_take() {
        │         ╰────── take expected a positive int range, but found 0..1
     ───╯
     "###);
+}
 
+#[test]
+fn test_take_08() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take (-1..)
@@ -1843,7 +1900,10 @@ fn test_take() {
        │          ╰─────── take expected a positive int range, but found -1..
     ───╯
     "###);
+}
 
+#[test]
+fn test_take_09() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     select a
@@ -1857,7 +1917,10 @@ fn test_take() {
        │          ╰─────── take expected a positive int range, but found 5..?
     ───╯
     "###);
+}
 
+#[test]
+fn test_take_10() {
     assert_display_snapshot!((compile(r###"
     from db.employees
     take (-1)
@@ -2918,21 +2981,18 @@ fn test_table_names_between_splits() {
 }
 
 #[test]
-fn test_table_alias() {
-    // Alias on from
-    let query = r###"
-        from db.employees
-        select {e = this}
-        join db.salaries side:left (salaries.emp_no == e.emp_no)
-        group {e.emp_no} (
-            aggregate {
-                emp_salary = average salaries.salary
-            }
-        )
-        select {emp_no, emp_salary}
-    "###;
-
-    assert_display_snapshot!((compile(query).unwrap()), @r###"
+fn test_table_alias_01() {
+    assert_display_snapshot!((compile(r###"
+    from db.employees
+    select {e = this}
+    join db.salaries side:left (salaries.emp_no == e.emp_no)
+    group {e.emp_no} (
+        aggregate {
+            emp_salary = average salaries.salary
+        }
+    )
+    select {emp_no, emp_salary}
+    "###).unwrap()), @r###"
     SELECT
       employees.emp_no,
       AVG(salaries.salary) AS emp_salary
@@ -2942,7 +3002,10 @@ fn test_table_alias() {
     GROUP BY
       employees.emp_no
     "###);
+}
 
+#[test]
+fn test_table_alias_02() {
     assert_display_snapshot!((compile(r#"
     from db.employees
     select {e = this}
@@ -3625,7 +3688,7 @@ fn test_output_column_deduplication() {
 }
 
 #[test]
-fn test_case() {
+fn test_case_01() {
     assert_display_snapshot!(compile(
         r###"
     from db.employees
@@ -3645,7 +3708,10 @@ fn test_case() {
       employees
     "###
     );
+}
 
+#[test]
+fn test_case_02() {
     assert_display_snapshot!(compile(
         r###"
     from db.employees
@@ -3666,7 +3732,10 @@ fn test_case() {
       employees
     "###
     );
+}
 
+#[test]
+fn test_case_03() {
     assert_display_snapshot!(compile(
         r###"
     from db.tracks
