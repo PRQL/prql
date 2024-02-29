@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::QueryDef;
-use crate::ast::{Literal, Span, TupleField, Ty, TyKind};
+use crate::ast::{Literal, Span, TyTupleField, Ty, TyKind};
 use crate::Result;
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
@@ -48,7 +48,7 @@ impl Module {
             (
                 NS_INFER.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
+                    ty: Some(Ty::relation(vec![TyTupleField::Wildcard(None)])),
                     expr: TableExpr::LocalTable,
                 })))),
             ),
@@ -232,7 +232,7 @@ impl Module {
                             .flat_map(|x| x.into_single())
                             .find(|(name, _)| name.as_ref() == Some(input_name))
                             .and_then(|(_, ty)| ty)
-                            .or(Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(
+                            .or(Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(
                                 None,
                             )]))));
 
@@ -531,8 +531,8 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .columns
             .iter()
             .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
+                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TyTupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
                     Some(Ty::new(Literal::Null)),
                 ),

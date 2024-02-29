@@ -3,7 +3,7 @@
 /// type.
 use itertools::Itertools;
 
-use crate::ast::{TupleField, Ty, TyFunc, TyKind};
+use crate::ast::{TyTupleField, Ty, TyFunc, TyKind};
 use crate::Result;
 
 use super::*;
@@ -322,11 +322,11 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                     .into_iter()
                     .map(|field| -> Result<_> {
                         Ok(match field {
-                            TupleField::Single(name, ty) => {
-                                TupleField::Single(name, fold_type_opt(fold, ty)?)
+                            TyTupleField::Single(name, ty) => {
+                                TyTupleField::Single(name, fold_type_opt(fold, ty)?)
                             }
-                            TupleField::Wildcard(ty) => {
-                                TupleField::Wildcard(fold_type_opt(fold, ty)?)
+                            TyTupleField::Wildcard(ty) => {
+                                TyTupleField::Wildcard(fold_type_opt(fold, ty)?)
                             }
                         })
                     })

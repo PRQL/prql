@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
+use crate::ast::{PrimitiveSet, TyTupleField, Ty, TyFunc, TyKind};
 use crate::Result;
 use itertools::Itertools;
 
@@ -39,7 +39,7 @@ impl Resolver<'_> {
 
             ExprKind::TransformCall(_) => return Ok(None), // TODO
             ExprKind::Tuple(fields) => {
-                let mut ty_fields: Vec<TupleField> = Vec::with_capacity(fields.len());
+                let mut ty_fields: Vec<TyTupleField> = Vec::with_capacity(fields.len());
                 let has_other = false;
 
                 for field in fields {
@@ -59,11 +59,11 @@ impl Resolver<'_> {
                         .clone()
                         .or_else(|| field.kind.as_ident().map(|i| i.name.clone()));
 
-                    ty_fields.push(TupleField::Single(name, ty));
+                    ty_fields.push(TyTupleField::Single(name, ty));
                 }
 
                 if has_other {
-                    ty_fields.push(TupleField::Wildcard(None));
+                    ty_fields.push(TyTupleField::Wildcard(None));
                 }
                 ty_tuple_kind(ty_fields)
             }
@@ -231,11 +231,11 @@ impl Resolver<'_> {
                     .into_iter()
                     .map(|field| -> Result<_, Error> {
                         Ok(match field {
-                            TupleField::Single(name, ty) => {
-                                TupleField::Single(name, self.resolve_generic_args_opt(ty)?)
+                            TyTupleField::Single(name, ty) => {
+                                TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
                             }
-                            TupleField::Wildcard(ty) => {
-                                TupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
+                            TyTupleField::Wildcard(ty) => {
+                                TyTupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
                             }
                         })
                     })
@@ -267,10 +267,10 @@ impl Resolver<'_> {
     }
 }
 
-pub fn ty_tuple_kind(fields: Vec<TupleField>) -> TyKind {
-    let mut res: Vec<TupleField> = Vec::with_capacity(fields.len());
+pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {
+    let mut res: Vec<TyTupleField> = Vec::with_capacity(fields.len());
     for field in fields {
-        if let TupleField::Single(name, _) = &field {
+        if let TyTupleField::Single(name, _) = &field {
             // remove names from previous fields with the same name
             if name.is_some() {
                 for f in res.iter_mut() {
@@ -449,7 +449,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
                     let exclude_fields: HashMap<&String, &Option<Ty>> = exclude_fields
                         .iter()
                         .flat_map(|field| match field {
-                            TupleField::Single(Some(name), ty) => Some((name, ty)),
+                            TyTupleField::Single(Some(name), ty) => Some((name, ty)),
                             _ => None,
                         })
                         .collect();
@@ -458,7 +458,7 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
                     for field in base_fields {
                         // TODO: this whole block should be redone - I'm not sure it fully correct.
                         match field {
-                            TupleField::Single(Some(name), Some(ty)) => {
+                            TyTupleField::Single(Some(name), Some(ty)) => {
                                 if let Some(right_field) = exclude_fields.get(&name) {
                                     let right_tuple =
                                         right_field.as_ref().map_or(false, |x| x.kind.is_tuple());
@@ -470,26 +470,26 @@ pub(crate) fn normalize_type(ty: Ty) -> Ty {
                                             exclude: Box::new((*right_field).clone().unwrap()),
                                         });
                                         let ty = normalize_type(ty);
-                                        res.push(TupleField::Single(Some(name), Some(ty)))
+                                        res.push(TyTupleField::Single(Some(name), Some(ty)))
                                     } else {
                                         // erase completely
                                     }
                                 } else {
-                                    res.push(TupleField::Single(Some(name), Some(ty)))
+                                    res.push(TyTupleField::Single(Some(name), Some(ty)))
                                 }
                             }
-                            TupleField::Single(Some(name), None) => {
+                            TyTupleField::Single(Some(name), None) => {
                                 if exclude_fields.get(&name).is_some() {
                                     // TODO: I'm not sure what should happen in this case
                                     continue;
                                 } else {
-                                    res.push(TupleField::Single(Some(name), None))
+                                    res.push(TyTupleField::Single(Some(name), None))
                                 }
                             }
-                            TupleField::Single(None, ty) => {
-                                res.push(TupleField::Single(None, ty));
+                            TyTupleField::Single(None, ty) => {
+                                res.push(TyTupleField::Single(None, ty));
                             }
-                            TupleField::Wildcard(_) => res.push(field),
+                            TyTupleField::Wildcard(_) => res.push(field),
                         }
                     }
                     return Ty {
@@ -576,17 +576,17 @@ fn sink_union_into_array_and_tuple(
     remaining
 }
 
-fn union_of_tuples(tuple_variants: Vec<Vec<TupleField>>) -> Ty {
-    let mut fields = Vec::<TupleField>::new();
+fn union_of_tuples(tuple_variants: Vec<Vec<TyTupleField>>) -> Ty {
+    let mut fields = Vec::<TyTupleField>::new();
     let mut has_wildcard = false;
 
     for tuple_variant in tuple_variants {
         for field in tuple_variant {
             match field {
-                TupleField::Single(Some(name), ty) => {
+                TyTupleField::Single(Some(name), ty) => {
                     // find by name
                     let existing = fields.iter_mut().find_map(|f| match f {
-                        TupleField::Single(n, t) if n.as_ref() == Some(&name) => Some(t),
+                        TyTupleField::Single(n, t) if n.as_ref() == Some(&name) => Some(t),
                         _ => None,
                     });
                     if let Some(existing) = existing {
@@ -594,19 +594,19 @@ fn union_of_tuples(tuple_variants: Vec<Vec<TupleField>>) -> Ty {
                         *existing = maybe_union(existing.take(), ty);
                     } else {
                         // push
-                        fields.push(TupleField::Single(Some(name), ty));
+                        fields.push(TyTupleField::Single(Some(name), ty));
                     }
                 }
-                TupleField::Single(None, ty) => {
+                TyTupleField::Single(None, ty) => {
                     // push
-                    fields.push(TupleField::Single(None, ty));
+                    fields.push(TyTupleField::Single(None, ty));
                 }
-                TupleField::Wildcard(_) => has_wildcard = true,
+                TyTupleField::Wildcard(_) => has_wildcard = true,
             }
         }
     }
     if has_wildcard {
-        fields.push(TupleField::Wildcard(None));
+        fields.push(TyTupleField::Wildcard(None));
     }
     Ty::new(TyKind::Tuple(fields))
 }
@@ -653,7 +653,7 @@ fn restrict_type(ty: &mut Ty, sub_ty: Ty) {
         (TyKind::Tuple(tuple), TyKind::Tuple(sub_tuple)) => {
             for sub_field in sub_tuple {
                 match sub_field {
-                    TupleField::Single(sub_name, sub_ty) => {
+                    TyTupleField::Single(sub_name, sub_ty) => {
                         if let Some(sub_name) = sub_name {
                             let existing = tuple
                                 .iter_mut()
@@ -663,13 +663,13 @@ fn restrict_type(ty: &mut Ty, sub_ty: Ty) {
                             if let Some((_, existing)) = existing {
                                 restrict_type_opt(existing, sub_ty)
                             } else {
-                                tuple.push(TupleField::Single(Some(sub_name), sub_ty));
+                                tuple.push(TyTupleField::Single(Some(sub_name), sub_ty));
                             }
                         } else {
                             // TODO: insert unnamed fields?
                         }
                     }
-                    TupleField::Wildcard(_) => todo!("remove TupleField::Wildcard"),
+                    TyTupleField::Wildcard(_) => todo!("remove TupleField::Wildcard"),
                 }
             }
         }
@@ -761,7 +761,7 @@ fn rename_tuples(ty_kind: &mut TyKind, alias: String) {
         let inner_fields = std::mem::take(fields);
 
         let ty = Ty::new(TyKind::Tuple(inner_fields));
-        fields.push(TupleField::Single(Some(alias), Some(ty)));
+        fields.push(TyTupleField::Single(Some(alias), Some(ty)));
     }
 }
 
@@ -770,7 +770,7 @@ fn flatten_tuples(ty_kind: &mut TyKind) {
         let mut new_fields = Vec::new();
 
         for field in fields.drain(..) {
-            let TupleField::Single(name, Some(ty)) = field else {
+            let TyTupleField::Single(name, Some(ty)) = field else {
                 new_fields.push(field);
                 continue;
             };
@@ -779,7 +779,7 @@ fn flatten_tuples(ty_kind: &mut TyKind) {
             // let ty = ty.flatten_tuples();
 
             let TyKind::Tuple(inner_fields) = ty.kind else {
-                new_fields.push(TupleField::Single(name, Some(ty)));
+                new_fields.push(TyTupleField::Single(name, Some(ty)));
                 continue;
             };
             new_fields.extend(inner_fields);
@@ -839,10 +839,10 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
         (TyKind::Tuple(sup_tuple), TyKind::Tuple(sub_tuple)) => {
             let sup_has_wildcard = sup_tuple
                 .iter()
-                .any(|f| matches!(f, TupleField::Wildcard(_)));
+                .any(|f| matches!(f, TyTupleField::Wildcard(_)));
             let sub_has_wildcard = sub_tuple
                 .iter()
-                .any(|f| matches!(f, TupleField::Wildcard(_)));
+                .any(|f| matches!(f, TyTupleField::Wildcard(_)));
 
             let mut sup_fields = sup_tuple.iter().filter(|f| f.is_single());
             let mut sub_fields = sub_tuple.iter().filter(|f| f.is_single());
@@ -852,7 +852,7 @@ fn is_super_type_of_kind(superset: &TyKind, subset: &TyKind) -> bool {
                 let sub = sub_fields.next();
 
                 match (sup, sub) {
-                    (Some(TupleField::Single(_, sup)), Some(TupleField::Single(_, sub))) => {
+                    (Some(TyTupleField::Single(_, sup)), Some(TyTupleField::Single(_, sub))) => {
                         if is_not_super_type_of(sup, sub) {
                             return false;
                         }
@@ -950,7 +950,7 @@ fn type_intersection_with_union(variants: Vec<(Option<String>, Ty)>, b: Ty) -> T
     Ty::new(TyKind::Union(variants))
 }
 
-fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
+fn type_intersection_of_tuples(a: Vec<TyTupleField>, b: Vec<TyTupleField>) -> Ty {
     let a_has_other = a.iter().any(|f| f.is_wildcard());
     let b_has_other = b.iter().any(|f| f.is_wildcard());
 
@@ -967,14 +967,14 @@ fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
                     return Ty::never();
                 }
                 has_other = true;
-                fields.push(TupleField::Single(b_field.0, b_field.1));
+                fields.push(TyTupleField::Single(b_field.0, b_field.1));
             }
             (Some(a_field), None) => {
                 if !b_has_other {
                     return Ty::never();
                 }
                 has_other = true;
-                fields.push(TupleField::Single(a_field.0, a_field.1));
+                fields.push(TyTupleField::Single(a_field.0, a_field.1));
             }
             (Some((a_name, a_ty)), Some((b_name, b_ty))) => {
                 let name = match (a_name, b_name) {
@@ -984,12 +984,12 @@ fn type_intersection_of_tuples(a: Vec<TupleField>, b: Vec<TupleField>) -> Ty {
                 };
                 let ty = maybe_type_intersection(a_ty, b_ty);
 
-                fields.push(TupleField::Single(name, ty));
+                fields.push(TyTupleField::Single(name, ty));
             }
         }
     }
     if has_other {
-        fields.push(TupleField::Wildcard(None));
+        fields.push(TyTupleField::Wildcard(None));
     }
 
     Ty::new(TyKind::Tuple(fields))

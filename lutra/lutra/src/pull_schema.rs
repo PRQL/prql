@@ -2,7 +2,7 @@ use anyhow::Result;
 use arrow::datatypes::{DataType, SchemaRef};
 use connector_arrow::api::SchemaGet;
 use itertools::Itertools;
-use prqlc::ast::{PrimitiveSet, Stmt, TupleField, Ty, TyKind, VarDef};
+use prqlc::ast::{PrimitiveSet, Stmt, TyTupleField, Ty, TyKind, VarDef};
 use prqlc::{Error, WithErrorInfo};
 
 use crate::ProjectCompiled;
@@ -40,7 +40,7 @@ fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> R
 
             // TODO: handle field.is_nullable()
 
-            Ok(TupleField::Single(Some(name.clone()), Some(Ty::new(ty))))
+            Ok(TyTupleField::Single(Some(name.clone()), Some(Ty::new(ty))))
         })
         .try_collect()?;
 
