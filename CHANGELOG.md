@@ -23,9 +23,9 @@
 
 **Web**:
 
-- The `browser` dist files are now built with `wasm-pack`'s `web` target.
-  As a result, they should be usable as ES Modules, through JS CDNs, and
-  for example with Observable Framework (@srenatus, #4274).
+- The `browser` dist files are now built with `wasm-pack`'s `web` target. As a
+  result, they should be usable as ES Modules, through JS CDNs, and for example
+  with Observable Framework (@srenatus, #4274).
 
 **Integrations**:
 
@@ -36,12 +36,12 @@
 
 **New Contributors**:
 
-## 0.11.4 — 2023-02-25
+## 0.11.4 — 2024-02-25
 
 0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
 built without the `cli` feature.
 
-## 0.11.3 — 2023-02-10
+## 0.11.3 — 2024-02-10
 
 0.11.3 is a very small release, mostly a rename of the Python bindings.
 
@@ -53,7 +53,7 @@ The release has 13 commits from 4 contributors.
   `prql-python` becomes a package published and importable as `prqlc`. The
   internal Rust crate is named `prqlc-python`.
 
-## 0.11.2 — 2023-02-07
+## 0.11.2 — 2024-02-07
 
 0.11.2 contains lots of internal changes, lots of syntax highlighting, and the
 beginning of `lutra`, a query runner.
