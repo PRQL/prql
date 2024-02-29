@@ -658,7 +658,7 @@ fn test_remove() {
 }
 
 #[test]
-fn test_intersect() {
+fn test_intersect_01() {
     assert_display_snapshot!(compile(r#"
     from db.album
     intersect db.artist
@@ -676,7 +676,10 @@ fn test_intersect() {
       artist AS b
     "###
     );
+}
 
+#[test]
+fn test_intersect_02() {
     assert_display_snapshot!(compile(r#"
     from db.album
     select artist_id
@@ -703,7 +706,10 @@ fn test_intersect() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_intersect_03() {
     assert_display_snapshot!(compile(r#"
     let distinct = rel -> (_param.rel | group this (take 1))
 
@@ -740,7 +746,10 @@ fn test_intersect() {
       table_1
     "###
     );
+}
 
+#[test]
+fn test_intersect_04() {
     assert_display_snapshot!(compile(r#"
     let distinct = rel -> (_param.rel | group this (take 1))
 
@@ -776,7 +785,10 @@ fn test_intersect() {
       table_1
     "###
     );
+}
 
+#[test]
+fn test_intersect_05() {
     assert_display_snapshot!(compile(r#"
     let distinct = rel -> (_param.rel | group this (take 1))
 
@@ -806,7 +818,10 @@ fn test_intersect() {
       table_0
     "###
     );
+}
 
+#[test]
+fn test_intersect_06() {
     assert_display_snapshot!(compile(r#"
     prql target:sql.sqlite
 
@@ -816,6 +831,23 @@ fn test_intersect() {
         @r###"
     Error: The dialect SQLiteDialect does not support INTERSECT ALL
     ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
+    "###
+    );
+}
+
+#[test]
+fn test_intersect_07() {
+    assert_display_snapshot!(compile(r#"
+    from ds2 = db.foo.t1
+    join side:inner ds1 = db.bar.t2 (ds2.idx==ds1.idx)
+    aggregate { count this }
+    "#).unwrap(),
+        @r###"
+    SELECT
+      COUNT(*)
+    FROM
+      foo.t1 AS ds2
+      JOIN bar.t2 AS ds1 ON ds2.idx = ds1.idx
     "###
     );
 }
