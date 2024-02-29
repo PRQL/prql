@@ -35,36 +35,38 @@ TransformCall:
     Aggregate:
       assigns:
         Tuple:
-          - RqOperator:
-              name: std.average
-              args:
-                - Ident:
-                    - this
-                    - c_invoice
-                    - amount
-                  ty:
-                    kind:
-                      Array:
-                        kind: Any
-                        span: "0:1929-1936"
+          - name: ~
+            value:
+              RqOperator:
+                name: std.average
+                args:
+                  - Ident:
+                      - this
+                      - c_invoice
+                      - amount
+                    ty:
+                      kind:
+                        Array:
+                          kind: Any
+                          span: "0:1929-1936"
+                          name: ~
+                      span: "0:1928-1937"
+                      name: array
+              ty:
+                kind:
+                  Union:
+                    - - ~
+                      - kind:
+                          Primitive: Float
+                        span: "0:4115-4120"
                         name: ~
-                    span: "0:1928-1937"
-                    name: array
-            ty:
-              kind:
-                Union:
-                  - - ~
-                    - kind:
-                        Primitive: Float
-                      span: "0:4115-4120"
-                      name: ~
-                  - - ~
-                    - kind:
-                        Singleton: "Null"
-                      span: "0:4124-4128"
-                      name: ~
-              span: "0:4115-4128"
-              name: ~
+                    - - ~
+                      - kind:
+                          Singleton: "Null"
+                        span: "0:4124-4128"
+                        name: ~
+                span: "0:4115-4128"
+                name: ~
         ty:
           kind:
             Tuple:
@@ -88,69 +90,71 @@ TransformCall:
           name: ~
   partition:
     Tuple:
-      - Ident:
-          - this
-          - c_invoice
-          - issued_at
-        ty:
-          kind:
-            Union:
-              - - ~
-                - kind:
-                    Union:
-                      - - ~
-                        - kind:
-                            Primitive: Int
-                          span: "0:1963-1966"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Float
-                          span: "0:1970-1975"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Bool
-                          span: "0:1979-1983"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Text
-                          span: "0:1987-1991"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Date
-                          span: "0:1995-1999"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Time
-                          span: "0:2003-2007"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Primitive: Timestamp
-                          span: "0:2011-2020"
-                          name: ~
-                      - - ~
-                        - kind:
-                            Singleton: "Null"
-                          span: "0:2024-2028"
-                          name: ~
-                  span: "0:1963-2028"
-                  name: scalar
-              - - ~
-                - kind:
-                    Tuple:
-                      - Wildcard:
-                          kind: Any
-                          span: "0:2043-2050"
-                          name: ~
-                  span: "0:2042-2053"
-                  name: tuple
-          span: "0:2981-2996"
-          name: ~
+      - name: ~
+        value:
+          Ident:
+            - this
+            - c_invoice
+            - issued_at
+          ty:
+            kind:
+              Union:
+                - - ~
+                  - kind:
+                      Union:
+                        - - ~
+                          - kind:
+                              Primitive: Int
+                            span: "0:1963-1966"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Primitive: Float
+                            span: "0:1970-1975"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Primitive: Bool
+                            span: "0:1979-1983"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Primitive: Text
+                            span: "0:1987-1991"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Primitive: Date
+                            span: "0:1995-1999"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Primitive: Time
+                            span: "0:2003-2007"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Primitive: Timestamp
+                            span: "0:2011-2020"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Singleton: "Null"
+                            span: "0:2024-2028"
+                            name: ~
+                    span: "0:1963-2028"
+                    name: scalar
+                - - ~
+                  - kind:
+                      Tuple:
+                        - Wildcard:
+                            kind: Any
+                            span: "0:2043-2050"
+                            name: ~
+                    span: "0:2042-2053"
+                    name: tuple
+            span: "0:2981-2996"
+            name: ~
     ty:
       kind:
         Tuple:

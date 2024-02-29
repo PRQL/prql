@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::*;
 
-use crate::ast::{TyTupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
@@ -56,11 +56,11 @@ impl Resolver<'_> {
                     .try_cast(|x| x.into_tuple(), Some("sort"), "tuple")?
                     .into_iter()
                     .map(|expr| {
-                        let (column, direction) = match expr.kind {
+                        let (column, direction) = match expr.value.kind {
                             ExprKind::RqOperator { name, mut args } if name == "std.neg" => {
                                 (args.remove(0), SortDirection::Desc)
                             }
-                            _ => (expr, SortDirection::default()),
+                            _ => (*expr.value, SortDirection::default()),
                         };
                         let column = Box::new(column);
 
@@ -271,7 +271,7 @@ impl Resolver<'_> {
 
                 let mut res = None;
                 for item in list {
-                    res = maybe_binop(res, &["std", "and"], Some(item));
+                    res = maybe_binop(res, &["std", "and"], Some(*item.value));
                 }
                 let res =
                     res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
@@ -287,11 +287,12 @@ impl Resolver<'_> {
 
                 let list_items = list_items
                     .into_iter()
-                    .map(|item| {
-                        Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
+                    .map(|item| TupleField {
+                        name: item.name,
+                        value: Box::new(Expr::new(ExprKind::FuncCall(FuncCall::new_simple(
                             func.clone(),
-                            vec![item],
-                        )))
+                            vec![*item.value],
+                        )))),
                     })
                     .collect_vec();
 
@@ -310,7 +311,10 @@ impl Resolver<'_> {
 
                 let mut res = Vec::new();
                 for (a, b) in std::iter::zip(a, b) {
-                    res.push(Expr::new(ExprKind::Tuple(vec![a, b])));
+                    res.push(TupleField {
+                        name: None,
+                        value: Box::new(Expr::new(ExprKind::Tuple(vec![a, b]))),
+                    });
                 }
 
                 return Ok(Expr::new(ExprKind::Tuple(res)));
@@ -321,9 +325,9 @@ impl Resolver<'_> {
 
                 let [list] = unpack::<1>(func.args);
                 let list = list.kind.into_tuple().unwrap();
-                let [a, b]: [Expr; 2] = list.try_into().unwrap();
+                let [a, b]: [TupleField; 2] = list.try_into().unwrap();
 
-                let res = maybe_binop(Some(a), &["std", "eq"], Some(b)).unwrap();
+                let res = maybe_binop(Some(*a.value), &["std", "eq"], Some(*b.value)).unwrap();
                 return Ok(res);
             }
 
@@ -386,6 +390,10 @@ impl Resolver<'_> {
                             Expr::new(ExprKind::Tuple(
                                 row.into_iter()
                                     .map(|lit| Expr::new(ExprKind::Literal(lit)))
+                                    .map(|value| TupleField {
+                                        name: None,
+                                        value: Box::new(value),
+                                    })
                                     .collect(),
                             ))
                         })
@@ -458,7 +466,10 @@ impl Resolver<'_> {
             expr
         } else {
             let span = expr.span;
-            let mut expr = Expr::new(ExprKind::Tuple(vec![expr]));
+            let mut expr = Expr::new(ExprKind::Tuple(vec![TupleField {
+                name: None,
+                value: Box::new(expr),
+            }]));
             expr.span = span;
 
             self.fold_expr(expr)?
@@ -767,7 +778,7 @@ impl Lineage {
         match &assigns.kind {
             ExprKind::Tuple(fields) => {
                 for expr in fields {
-                    self.apply_assigns(expr, inline_refs);
+                    self.apply_assigns(&expr.value, inline_refs);
                 }
 
                 // hack for making `x | select { y = this }` work

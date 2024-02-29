@@ -2,7 +2,7 @@
 
 use itertools::Itertools;
 
-use crate::ir::constant::{ConstExpr, ConstExprKind};
+use crate::ir::constant::{ConstExpr, ConstExprKind, ConstTupleField};
 use crate::ir::pl::{Expr, ExprKind, Literal, PlFold};
 use crate::{Error, Result, WithErrorInfo};
 
@@ -148,9 +148,17 @@ impl PlFold for StaticEvaluator<'_, '_> {
 fn restrict_to_const(expr: Expr) -> Result<ConstExpr, Error> {
     let kind = match expr.kind {
         ExprKind::Literal(lit) => ConstExprKind::Literal(lit),
-        ExprKind::Tuple(fields) => {
-            ConstExprKind::Tuple(fields.into_iter().map(restrict_to_const).try_collect()?)
-        }
+        ExprKind::Tuple(fields) => ConstExprKind::Tuple(
+            fields
+                .into_iter()
+                .map(|field| -> Result<_> {
+                    Ok(ConstTupleField {
+                        name: field.name,
+                        value: restrict_to_const(*field.value)?,
+                    })
+                })
+                .try_collect()?,
+        ),
         ExprKind::Array(items) => {
             ConstExprKind::Array(items.into_iter().map(restrict_to_const).try_collect()?)
         }

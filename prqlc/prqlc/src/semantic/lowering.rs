@@ -362,7 +362,7 @@ impl Lowerer {
                                 .unwrap()
                                 .into_iter()
                                 .map(|element| {
-                                    element.try_cast(
+                                    element.value.try_cast(
                                         |x| x.into_literal(),
                                         Some("relation literal"),
                                         "literals",
@@ -685,7 +685,7 @@ impl Lowerer {
             pl::ExprKind::Tuple(fields) => {
                 // tuple unpacking
                 for expr in fields {
-                    r.extend(self.declare_as_columns(expr, is_aggregation)?);
+                    r.extend(self.declare_as_columns(*expr.value, is_aggregation)?);
                 }
             }
             _ => {
@@ -716,14 +716,19 @@ impl Lowerer {
 
         let mut res = HashSet::new();
         for e in fields {
-            if e.target_id.is_none() {
+            if e.value.target_id.is_none() {
                 continue;
             }
 
-            let id = e.target_id.unwrap();
-            match e.kind {
-                pl::ExprKind::Ident(_) if e.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) => {
-                    res.extend(self.find_selected_all(e, None).with_span(except.span)?);
+            let id = e.value.target_id.unwrap();
+            match e.value.kind {
+                pl::ExprKind::Ident(_)
+                    if e.value.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) =>
+                {
+                    res.extend(
+                        self.find_selected_all(*e.value, None)
+                            .with_span(except.span)?,
+                    );
                 }
                 pl::ExprKind::Ident(ident) => {
                     res.insert(
@@ -738,7 +743,7 @@ impl Lowerer {
                     return Err(Error::new(Reason::Expected {
                         who: None,
                         expected: "an identifier".to_string(),
-                        found: write_pl(e),
+                        found: write_pl(*e.value),
                     }));
                 }
             }

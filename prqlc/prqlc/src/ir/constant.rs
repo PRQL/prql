@@ -9,9 +9,19 @@ pub struct ConstExpr {
     pub span: Option<Span>,
 }
 
+/// A subset of PL expressions that are constant.
+#[derive(Serialize, Deserialize)]
+pub struct ConstTupleField {
+    pub name: Option<String>,
+
+    pub value: ConstExpr,
+}
+
+
+
 #[derive(Serialize, Deserialize)]
 pub enum ConstExprKind {
     Literal(Literal),
-    Tuple(Vec<ConstExpr>),
+    Tuple(Vec<ConstTupleField>),
     Array(Vec<ConstExpr>),
 }

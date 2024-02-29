@@ -186,7 +186,7 @@ fn into_tuple_items(expr: pl::Expr) -> Result<Vec<(String, pl::ExprKind)>, pl::E
     match expr.kind {
         pl::ExprKind::Tuple(items) => items
             .into_iter()
-            .map(|item| Ok((item.alias.clone().unwrap(), item.kind)))
+            .map(|item| Ok((item.value.alias.clone().unwrap(), item.value.kind)))
             .collect(),
         _ => Err(expr),
     }

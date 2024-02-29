@@ -1,7 +1,7 @@
 use crate::Result;
 use itertools::Itertools;
 
-use crate::ast::{TyTupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
@@ -177,13 +177,13 @@ impl PlFold for Resolver<'_> {
             ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
 
             ExprKind::Tuple(exprs) => {
-                let exprs = self.fold_exprs(exprs)?;
+                let exprs = fold_tuple_fields(self, exprs)?;
 
                 // flatten
                 let exprs = exprs
                     .into_iter()
-                    .flat_map(|e| match e.kind {
-                        ExprKind::Tuple(items) if e.flatten => items,
+                    .flat_map(|e| match e.value.kind {
+                        ExprKind::Tuple(items) if e.value.flatten => items,
                         _ => vec![e],
                     })
                     .collect_vec();
@@ -256,7 +256,7 @@ impl Resolver<'_> {
         }))
     }
 
-    pub fn construct_wildcard_include(&mut self, module_fq_self: &Ident) -> Vec<Expr> {
+    pub fn construct_wildcard_include(&mut self, module_fq_self: &Ident) -> Vec<TupleField> {
         let module_fq = module_fq_self.clone().pop().unwrap();
 
         let decl = self.root_mod.module.get(&module_fq).unwrap();
@@ -270,9 +270,7 @@ impl Resolver<'_> {
         id: &mut IdGenerator<usize>,
         prefix: &[&String],
         module: &Module,
-    ) -> Vec<Expr> {
-        let mut res = Vec::new();
-
+    ) -> Vec<TupleField> {
         if let Some(decl) = module.names.get(NS_INFER) {
             let wildcard_field = Expr {
                 id: Some(id.gen()),
@@ -281,27 +279,39 @@ impl Resolver<'_> {
                 ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
                 ..Expr::new(Ident::from_name(NS_SELF))
             };
-            return vec![wildcard_field];
+            let field = TupleField {
+                name: None,
+                value: Box::new(wildcard_field),
+            };
+            return vec![field];
         }
 
+        let mut res = Vec::new();
         for (name, decl) in module.names.iter().sorted_by_key(|(_, d)| d.order) {
-            res.push(match &decl.kind {
+            let value = match &decl.kind {
                 DeclKind::Module(submodule) => {
                     let prefix = [prefix.to_vec(), vec![name]].concat();
                     let sub_fields = Self::construct_tuple_from_module(id, &prefix, submodule);
+
                     Expr {
                         id: Some(id.gen()),
                         alias: Some(name.clone()),
                         ..Expr::new(ExprKind::Tuple(sub_fields))
                     }
                 }
-                DeclKind::Column(target_id) => Expr {
-                    id: Some(id.gen()),
-                    target_id: Some(*target_id),
-                    // alias: Some(name.clone()),
-                    ..Expr::new(Ident::from_path([prefix.to_vec(), vec![name]].concat()))
-                },
+                DeclKind::Column(target_id) => {
+                    Expr {
+                        id: Some(id.gen()),
+                        target_id: Some(*target_id),
+                        // alias: Some(name.clone()),
+                        ..Expr::new(Ident::from_path([prefix.to_vec(), vec![name]].concat()))
+                    }
+                }
                 _ => continue,
+            };
+            res.push(TupleField {
+                name: None,
+                value: Box::new(value),
             });
         }
         res

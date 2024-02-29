@@ -3,7 +3,7 @@
 /// type.
 use itertools::Itertools;
 
-use crate::ast::{TyTupleField, Ty, TyFunc, TyKind};
+use crate::ast::{Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
 
 use super::*;
@@ -78,7 +78,7 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
             within: Box::new(fold.fold_expr(*within)?),
             except: Box::new(fold.fold_expr(*except)?),
         },
-        Tuple(items) => Tuple(fold.fold_exprs(items)?),
+        Tuple(fields) => Tuple(fold_tuple_fields(fold, fields)?),
         Array(items) => Array(fold.fold_exprs(items)?),
         SString(items) => SString(
             items
@@ -156,6 +156,21 @@ pub fn fold_optional_box<F: ?Sized + PlFold>(
     opt: Option<Box<Expr>>,
 ) -> Result<Option<Box<Expr>>> {
     Ok(opt.map(|n| fold.fold_expr(*n)).transpose()?.map(Box::from))
+}
+
+pub fn fold_tuple_fields<F: ?Sized + PlFold>(
+    fold: &mut F,
+    fields: Vec<TupleField>,
+) -> Result<Vec<TupleField>> {
+    fields
+        .into_iter()
+        .map(|field| -> Result<TupleField> {
+            Ok(TupleField {
+                name: field.name,
+                value: Box::new(fold.fold_expr(*field.value)?),
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()
 }
 
 pub fn fold_interpolate_item<F: ?Sized + PlFold>(

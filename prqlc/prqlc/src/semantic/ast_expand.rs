@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::ast::*;
 use crate::ir::decl;
-use crate::ir::pl::{self, new_binop};
+use crate::ir::pl::{self, new_binop, TupleField};
 use crate::semantic::{NS_THAT, NS_THIS};
 use crate::{Error, Result};
 
@@ -18,7 +18,17 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
             e.alias = expr.alias.or(e.alias);
             return Ok(e);
         }
-        ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)?),
+        ExprKind::Tuple(v) => pl::ExprKind::Tuple(
+            v.into_iter()
+                .map(|field| -> Result<_> {
+                    let value = expand_expr(field)?;
+                    Ok(TupleField {
+                        name: None,
+                        value: Box::new(value),
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        ),
         ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)?),
 
         ExprKind::Range(v) => expands_range(v)?,
@@ -93,12 +103,21 @@ fn expands_range(v: generic::Range<Box<Expr>>) -> Result<pl::ExprKind> {
         .transpose()?
         .unwrap_or_else(|| pl::Expr::new(Literal::Null));
     start.alias = Some("start".into());
+    let start = TupleField {
+        name: None,
+        value: Box::new(start),
+    };
+
     let mut end = v
         .end
         .map(|e| expand_expr(*e))
         .transpose()?
         .unwrap_or_else(|| pl::Expr::new(Literal::Null));
     end.alias = Some("end".into());
+    let end = TupleField {
+        name: None,
+        value: Box::new(end),
+    };
     Ok(pl::ExprKind::Tuple(vec![start, end]))
 }
 
@@ -281,7 +300,17 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
     match value {
         pl::ExprKind::Ident(v) => ExprKind::Ident(v),
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
-        pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
+        pl::ExprKind::Tuple(v) => ExprKind::Tuple(
+            v.into_iter()
+                .map(|field| {
+                    let mut value = restrict_expr(*field.value);
+                    if let Some(name) = field.name {
+                        value.alias = Some(name);
+                    }
+                    value
+                })
+                .collect(),
+        ),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
         pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(FuncCall {
             name: restrict_expr_box(v.name),
@@ -361,8 +390,8 @@ pub fn try_restrict_range(expr: pl::Expr) -> Result<(pl::Expr, pl::Expr), pl::Ex
     };
 
     if fields.len() != 2
-        || fields[0].alias.as_deref() != Some("start")
-        || fields[1].alias.as_deref() != Some("end")
+        || fields[0].value.alias.as_deref() != Some("start")
+        || fields[1].value.alias.as_deref() != Some("end")
     {
         return Err(pl::Expr {
             kind: pl::ExprKind::Tuple(fields),
@@ -370,9 +399,9 @@ pub fn try_restrict_range(expr: pl::Expr) -> Result<(pl::Expr, pl::Expr), pl::Ex
         });
     }
 
-    let [start, end]: [pl::Expr; 2] = fields.try_into().unwrap();
+    let [start, end]: [pl::TupleField; 2] = fields.try_into().unwrap();
 
-    Ok((start, end))
+    Ok((*start.value, *end.value))
 }
 
 /// Returns None if the Expr is a null literal and Some(expr) otherwise.

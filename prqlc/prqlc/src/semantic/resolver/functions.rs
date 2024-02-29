@@ -295,14 +295,18 @@ impl Resolver<'_> {
 
                     let mut fields_new = Vec::with_capacity(fields.len());
                     for field in fields {
-                        let field = self.fold_within_namespace(field, &param.name)?;
+                        let value = self.fold_within_namespace(*field.value, &param.name)?;
 
                         // add aliased columns into scope
-                        if let Some(alias) = field.alias.clone() {
-                            let id = field.id.unwrap();
+                        if let Some(alias) = value.alias.clone() {
+                            let id = value.id.unwrap();
                             self.root_mod.module.insert_frame_col(NS_THIS, alias, id);
                         }
-                        fields_new.push(field);
+
+                        fields_new.push(TupleField {
+                            value: Box::new(value),
+                            name: field.name,
+                        });
                     }
 
                     // note that this tuple node has to be resolved itself

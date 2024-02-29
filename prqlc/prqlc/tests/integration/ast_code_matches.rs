@@ -19,11 +19,15 @@ fn test_expr_ast_code_matches() {
     @@ .. @@
     -    Pipeline(Pipeline),
     @@ .. @@
+    -    Tuple(Vec<Expr>),
+    +    Tuple(Vec<TupleField>),
+    @@ .. @@
     -    Range(Range),
     -    Binary(BinaryExpr),
     -    Unary(UnaryExpr),
     @@ .. @@
-    -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+    +/// A tuple field
+    @@ .. @@
     -pub struct BinaryExpr {
     -    pub left: Box<Expr>,
     -    pub op: BinOp,
@@ -34,8 +38,9 @@ fn test_expr_ast_code_matches() {
     -pub struct UnaryExpr {
     -    pub op: UnOp,
     -    pub expr: Box<Expr>,
-    -}
-    -
+    +pub struct TupleField {
+    +    pub name: Option<String>,
+    +    pub value: Box<Expr>
     @@ .. @@
     -}
     -
@@ -48,13 +53,12 @@ fn test_expr_ast_code_matches() {
     -    /// For a given instance of this function, the argument must be
     -    /// exactly one of types in the domain.
     -    pub domain: Vec<Ty>,
-    @@ .. @@
+    -}
+    -
     -/// A value and a series of functions that are to be applied to that value one after another.
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct Pipeline {
     -    pub exprs: Vec<Expr>,
-    -}
-    -
     "###
     );
 }

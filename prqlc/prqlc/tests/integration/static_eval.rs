@@ -30,39 +30,51 @@ fn basic_01() {
     ---
     kind:
       Tuple:
-        - kind:
-            Literal:
-              Integer: 1
-          span: "1:19-20"
-        - kind:
-            Literal:
-              String: hello
-          span: "1:22-29"
-        - kind:
-            Array:
-              - kind:
-                  Literal:
-                    Float: 1.1
-                span: "1:32-35"
-              - kind:
-                  Literal:
-                    Float: 0
-                span: "1:37-40"
-              - kind:
-                  Literal:
-                    Float: 2.4
-                span: "1:42-45"
-          span: "1:31-46"
-        - kind:
-            Tuple:
-              - kind:
-                  Literal: "Null"
-                span: "1:49-53"
-              - kind:
-                  Literal:
-                    Boolean: false
-                span: "1:55-60"
-          span: "1:48-61"
+        - name: ~
+          value:
+            kind:
+              Literal:
+                Integer: 1
+            span: "1:19-20"
+        - name: ~
+          value:
+            kind:
+              Literal:
+                String: hello
+            span: "1:22-29"
+        - name: ~
+          value:
+            kind:
+              Array:
+                - kind:
+                    Literal:
+                      Float: 1.1
+                  span: "1:32-35"
+                - kind:
+                    Literal:
+                      Float: 0
+                  span: "1:37-40"
+                - kind:
+                    Literal:
+                      Float: 2.4
+                  span: "1:42-45"
+            span: "1:31-46"
+        - name: ~
+          value:
+            kind:
+              Tuple:
+                - name: ~
+                  value:
+                    kind:
+                      Literal: "Null"
+                    span: "1:49-53"
+                - name: ~
+                  value:
+                    kind:
+                      Literal:
+                        Boolean: false
+                    span: "1:55-60"
+            span: "1:48-61"
     span: "1:5-67"
     "###)
 }

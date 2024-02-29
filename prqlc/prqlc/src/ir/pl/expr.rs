@@ -65,7 +65,7 @@ pub enum ExprKind {
     },
     Literal(Literal),
 
-    Tuple(Vec<Expr>),
+    Tuple(Vec<TupleField>),
     Array(Vec<Expr>),
     FuncCall(FuncCall),
     Func(Box<Func>),
@@ -84,6 +84,13 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
+}
+
+/// A tuple field
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct TupleField {
+    pub name: Option<String>,
+    pub value: Box<Expr>
 }
 
 /// Function call.

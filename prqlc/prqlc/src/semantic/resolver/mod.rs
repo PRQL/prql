@@ -80,13 +80,14 @@ pub(super) mod test {
     fn resolve_derive(query: &str) -> Result<Vec<Expr>, Errors> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call().unwrap();
-        let exprs = derive
+        let fields = derive
             .kind
             .into_derive()
             .unwrap_or_else(|e| panic!("Failed to convert `{e:?}`"))
             .kind
             .into_tuple()
             .unwrap_or_else(|e| panic!("Failed to convert `{e:?}`"));
+        let exprs = fields.into_iter().map(|f| *f.value).collect();
 
         let exprs = IdEraser {}.fold_exprs(exprs).unwrap();
         Ok(exprs)

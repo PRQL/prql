@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::ast::{PrimitiveSet, TyTupleField, Ty, TyFunc, TyKind};
+use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
 use itertools::Itertools;
 
@@ -43,9 +43,9 @@ impl Resolver<'_> {
                 let has_other = false;
 
                 for field in fields {
-                    let ty = Resolver::infer_type(field)?;
+                    let ty = Resolver::infer_type(&field.value)?;
 
-                    if field.flatten {
+                    if field.value.flatten {
                         if let Some(fields) = ty.as_ref().and_then(|x| x.kind.as_tuple()) {
                             ty_fields.extend(fields.iter().cloned());
                             continue;
@@ -55,9 +55,10 @@ impl Resolver<'_> {
                     // TODO: move this into de-sugar stage (expand PL)
                     // TODO: this will not infer nested namespaces
                     let name = field
+                        .value
                         .alias
                         .clone()
-                        .or_else(|| field.kind.as_ident().map(|i| i.name.clone()));
+                        .or_else(|| field.value.kind.as_ident().map(|i| i.name.clone()));
 
                     ty_fields.push(TyTupleField::Single(name, ty));
                 }

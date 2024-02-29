@@ -3,7 +3,7 @@ use std::iter::zip;
 use itertools::Itertools;
 
 use super::ast_expand;
-use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold};
+use crate::ir::pl::{Expr, ExprKind, Func, FuncParam, Ident, Literal, PlFold, TupleField};
 use crate::{Error, Result, Span, WithErrorInfo};
 
 pub fn eval(expr: crate::ast::expr::Expr) -> Result<Expr> {
@@ -92,8 +92,11 @@ impl PlFold for Evaluator {
 fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if let Some(base) = base {
         if let ExprKind::Tuple(items) = &base.kind {
-            if let Some(item) = items.iter().find(|i| i.alias.as_deref() == Some(name)) {
-                return Ok(item.clone());
+            if let Some(item) = items
+                .iter()
+                .find(|i| i.value.alias.as_deref() == Some(name))
+            {
+                return Ok(*item.value.clone());
             }
         }
     }
@@ -326,7 +329,7 @@ fn windowed(
     let start = (row + frame.start).clamp(0, end as i64) as usize;
 
     for field in relation.kind.as_tuple_mut().unwrap() {
-        let column = field.kind.as_array_mut().unwrap();
+        let column = field.value.kind.as_array_mut().unwrap();
 
         column.drain(end..);
         column.drain(0..start);
@@ -342,9 +345,13 @@ fn rows_to_cols(expr: Expr) -> Result<Expr> {
     // prepare output
     let mut arg_tuple = Vec::new();
     for field in relation_rows.first().unwrap().kind.as_tuple().unwrap() {
-        arg_tuple.push(Expr {
-            alias: field.alias.clone(),
+        let value = Expr {
+            alias: field.value.alias.clone(),
             ..Expr::new(ExprKind::Array(Vec::new()))
+        };
+        arg_tuple.push(TupleField {
+            name: None,
+            value: Box::new(value),
         });
     }
 
@@ -353,7 +360,12 @@ fn rows_to_cols(expr: Expr) -> Result<Expr> {
         let fields = relation_row.try_cast(|x| x.into_tuple(), None, "a tuple")?;
 
         for (index, field) in fields.into_iter().enumerate() {
-            arg_tuple[index].kind.as_array_mut().unwrap().push(field);
+            arg_tuple[index]
+                .value
+                .kind
+                .as_array_mut()
+                .unwrap()
+                .push(*field.value);
         }
     }
     Ok(Expr::new(ExprKind::Tuple(arg_tuple)))
@@ -364,16 +376,19 @@ fn rows_to_cols(expr: Expr) -> Result<Expr> {
 fn cols_to_rows(expr: Expr) -> Result<Expr> {
     let fields = expr.try_cast(|x| x.into_tuple(), None, "an tuple")?;
 
-    let len = fields.first().unwrap().kind.as_array().unwrap().len();
+    let len = fields.first().unwrap().value.kind.as_array().unwrap().len();
 
     let mut rows = Vec::new();
     for index in 0..len {
         let mut row = Vec::new();
         for field in &fields {
-            row.push(Expr {
-                alias: field.alias.clone(),
-                ..field.kind.as_array().unwrap()[index].clone()
-            })
+            row.push(TupleField {
+                name: None,
+                value: Box::new(Expr {
+                    alias: field.value.alias.clone(),
+                    ..field.value.kind.as_array().unwrap()[index].clone()
+                }),
+            });
         }
 
         rows.push(Expr::new(ExprKind::Tuple(row)));
@@ -401,7 +416,7 @@ fn std_module() -> Expr {
     ))
 }
 
-fn new_func(name: &str, params: &[&str]) -> Expr {
+fn new_func(name: &str, params: &[&str]) -> TupleField {
     let params = params
         .iter()
         .map(|name| FuncParam {
@@ -426,9 +441,13 @@ fn new_func(name: &str, params: &[&str]) -> Expr {
         env: Default::default(),
         generic_type_params: Default::default(),
     }));
-    Expr {
+    let value = Expr {
         alias: Some(name.to_string()),
         ..Expr::new(kind)
+    };
+    TupleField {
+        name: Some(name.to_string()),
+        value: Box::new(value),
     }
 }
 
