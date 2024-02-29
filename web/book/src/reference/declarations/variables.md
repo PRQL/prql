@@ -24,7 +24,7 @@ Syntactically, variables can take 3 forms.
 - The final expression of a pipeline defaults to taking the name `main`.
 
   ```prql no-eval
-  from db.x
+  x
   ```
 
   ... is equivalent to:
