@@ -6,7 +6,6 @@ use std::iter::zip;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
-use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 
 use crate::ast::{TupleField, Ty, TyKind};

@@ -544,7 +544,7 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::pl::{Expr, ExprKind, Literal};
+    use crate::ir::pl::ExprKind;
 
     // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
     #[test]

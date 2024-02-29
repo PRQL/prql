@@ -19,13 +19,16 @@
         fenix_pkgs = fenix.packages.${system};
 
         essentials = with pkgs; [
-          # requirements
-          fenix_pkgs.stable.cargo
-          fenix_pkgs.stable.clippy
-          fenix_pkgs.stable.rust-src
-          fenix_pkgs.stable.rustc
-          fenix_pkgs.stable.rustfmt
-          fenix_pkgs.stable.rust-analyzer
+          # rust toolchain
+          (fenix_pkgs.stable.withComponents [
+            "cargo"
+            "clippy"
+            "rust-src"
+            "rustc"
+            "rustfmt"
+            "rust-analyzer"
+            "llvm-tools-preview"
+          ])
 
           # tooling
           clang # for llvm debugger in VSCode

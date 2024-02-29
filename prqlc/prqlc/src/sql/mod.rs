@@ -60,8 +60,8 @@ pub fn compile(query: RelationalQuery, options: &Options) -> Result<String> {
 /// This module gives access to internal machinery that gives no stability guarantees.
 pub mod internal {
     use super::*;
-    use crate::ir::rq::{RelationalQuery, Transform};
-    use crate::{Error, Result};
+    use crate::ir::rq::Transform;
+    use crate::Error;
 
     pub use super::srq::ast::SqlTransform;
 

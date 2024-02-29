@@ -873,16 +873,6 @@ trait SQLExpression {
     fn associativity(&self) -> Associativity {
         Associativity::Both
     }
-
-    /// Returns true iff `a + b + c = (a + b) + c`
-    fn left_associative(&self) -> bool {
-        self.associativity().left_associative()
-    }
-
-    /// Returns true iff `a + b + c = a + (b + c)`
-    fn right_associative(&self) -> bool {
-        self.associativity().right_associative()
-    }
 }
 
 impl SQLExpression for sql_ast::Expr {
@@ -1015,7 +1005,7 @@ impl From<sql_ast::Expr> for ExprOrSource {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::generic::Range;
+
     use insta::assert_yaml_snapshot;
 
     #[test]

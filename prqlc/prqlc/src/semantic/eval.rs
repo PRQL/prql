@@ -451,7 +451,6 @@ fn zip_relations(l: Expr, r: Expr) -> ExprKind {
 mod test {
 
     use insta::assert_display_snapshot;
-    use itertools::Itertools;
 
     use crate::semantic::write_pl;
 
