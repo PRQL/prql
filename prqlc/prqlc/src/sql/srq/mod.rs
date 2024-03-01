@@ -19,21 +19,21 @@ pub(super) use gen_query::compile_query;
 
 #[cfg(test)]
 mod test {
-    use anyhow::Result;
+    use crate::{Errors, Result};
 
     use super::ast::SqlQuery;
     use super::*;
 
     use crate::sql::Dialect;
 
-    fn parse_and_resolve(source: &str) -> Result<SqlQuery> {
+    fn parse_and_resolve(source: &str) -> Result<SqlQuery, Errors> {
         let query = crate::semantic::test::parse_resolve_and_lower(source)?;
 
         let (sql, _) = compile_query(query, Some(Dialect::Generic))?;
         Ok(sql)
     }
 
-    fn count_atomics(prql: &str) -> Result<usize> {
+    fn count_atomics(prql: &str) -> Result<usize, Errors> {
         let query = parse_and_resolve(prql)?;
 
         Ok(query.ctes.len() + 1)
@@ -43,7 +43,7 @@ mod test {
     fn test_ctes_of_pipeline() {
         // One aggregate, take at the end
         let prql: &str = r#"
-        from employees
+        from db.employees
         filter country == "USA"
         aggregate {sal = average salary}
         sort sal
@@ -54,7 +54,7 @@ mod test {
 
         // One aggregate, but take at the top
         let prql: &str = r#"
-        from employees
+        from db.employees
         take 20
         filter country == "USA"
         aggregate {sal = average salary}
@@ -65,7 +65,7 @@ mod test {
 
         // A take, then two aggregates
         let prql: &str = r#"
-        from employees
+        from db.employees
         take 20
         filter country == "USA"
         aggregate {sal = average salary}
@@ -77,7 +77,7 @@ mod test {
 
         // A take, then a select
         let prql: &str = r###"
-        from employees
+        from db.employees
         take 20
         select first_name
         "###;

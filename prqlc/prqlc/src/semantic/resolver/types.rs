@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::Result;
+use crate::ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
+use crate::Result;
 use itertools::Itertools;
-use prqlc_ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
 
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
@@ -118,9 +118,18 @@ impl Resolver<'_> {
                 // special case: infer a table type
                 // inferred tables are needed for s-strings that represent tables
                 // similarly as normal table references, we want to be able to infer columns
-                // of this table, which means it needs to be defined somewhere in the module structure.
-                let frame =
-                    self.declare_table_for_literal(found.id.unwrap(), None, found.alias.clone());
+                // of this table, which means it needs to be defined somewhere
+                // in the module structure.
+                let frame = self.declare_table_for_literal(
+                    found
+                        .clone()
+                        .id
+                        // This is quite rare but possible with something like
+                        // `a -> b` at the moment.
+                        .ok_or_else(|| Error::new(Reason::Bug { issue: Some(4280) }))?,
+                    None,
+                    found.alias.clone(),
+                );
 
                 // override the empty frame with frame of the new table
                 found.lineage = Some(frame)

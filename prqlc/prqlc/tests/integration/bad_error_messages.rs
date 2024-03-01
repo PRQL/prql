@@ -21,7 +21,7 @@ use insta::assert_display_snapshot;
 #[test]
 fn test_bad_error_messages() {
     assert_display_snapshot!(compile(r###"
-    from film
+    from db.film
     group
     "###).unwrap_err(), @r###"
     Error:
@@ -41,7 +41,7 @@ fn test_bad_error_messages() {
     assert_display_snapshot!(compile(r#"
     let f = country -> country == "Canada"
 
-    from employees
+    from db.employees
     filter f location
     "#).unwrap_err(), @r###"
     Error:
@@ -56,20 +56,20 @@ fn test_bad_error_messages() {
     // Really complicated error message for something so fundamental
     assert_display_snapshot!(compile(r###"
     select tracks
-    from artists
+    from db.artists
     "###).unwrap_err(), @r###"
     Error:
        ╭─[:3:5]
        │
-     3 │     from artists
-       │     ──────┬─────
-       │           ╰─────── expected a function, but found `default_db.artists`
+     3 │     from db.artists
+       │     ───────┬───────
+       │            ╰───────── expected a function, but found `db.artists`
     ───╯
     "###);
 
     // It's better if we can tell them to put in {} braces
     assert_display_snapshot!(compile(r###"
-    from artists
+    from db.artists
     sort -name
     "###).unwrap_err(), @r###"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
@@ -80,7 +80,7 @@ fn test_bad_error_messages() {
 #[test]
 fn empty_interpolations() {
     assert_display_snapshot!(compile(r#"
-    from x
+    from db.x
     select f"{}"
     "#).unwrap_err(), @r###"
     Error:
@@ -97,7 +97,7 @@ fn empty_interpolations() {
 fn select_with_extra_fstr() {
     // Should complain in the same way as `select lower "mooo"`
     assert_display_snapshot!(compile(r#"
-    from foo
+    from db.foo
     select lower f"{x}/{y}"
     "#).unwrap_err(), @r###"
     Error:
@@ -117,7 +117,7 @@ fn misplaced_type_error() {
     // (preferably in addition to the error that is currently generated)
     assert_display_snapshot!(compile(r###"
     let foo = 123
-    from t
+    from db.t
     select (true && foo)
     "###).unwrap_err(), @r###"
     Error:
@@ -133,7 +133,7 @@ fn misplaced_type_error() {
 #[test]
 fn invalid_lineage_in_transform() {
     assert_display_snapshot!(compile(r###"
-  from tbl
+  from db.tbl
   group id (
     sort -val
   )
@@ -146,7 +146,7 @@ fn invalid_lineage_in_transform() {
 #[test]
 fn test_hint_missing_args() {
     assert_display_snapshot!(compile(r###"
-    from film
+    from db.film
     select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
     Error:
@@ -164,14 +164,14 @@ fn test_hint_missing_args() {
 #[test]
 fn test_relation_literal_contains_literals() {
     assert_display_snapshot!(compile(r###"
-    from [{a=(1+1)}]
+    [{a=(1+1)}]
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:2:14]
+       ╭─[:2:9]
        │
-     2 │     from [{a=(1+1)}]
-       │              ──┬──
-       │                ╰──── relation literal expected literals, but found ``(std.add ...)``
+     2 │     [{a=(1+1)}]
+       │         ──┬──
+       │           ╰──── relation literal expected literals, but found ``(std.add ...)``
     ───╯
     "###)
 }
@@ -180,8 +180,9 @@ fn test_relation_literal_contains_literals() {
 fn nested_groups() {
     // Nested `group` gives a very abstract & internally-focused error message
     assert_display_snapshot!(compile(r###"
-    from inv=invoices
-    join item=invoice_items (==invoice_id)
+    from db.invoices
+    select {inv = this}
+    join item = db.invoice_items (==invoice_id)
 
     group { inv.billing_city } (
 
@@ -195,11 +196,22 @@ fn nested_groups() {
     Error:
         ╭─[:2:5]
         │
-      2 │ ╭─▶     from inv=invoices
+      2 │ ╭─▶     from db.invoices
         ┆ ┆
-     12 │ ├─▶     )
+     13 │ ├─▶     )
         │ │
         │ ╰─────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
     ────╯
+    "###);
+}
+
+#[test]
+fn a_arrow_b() {
+    // This is fairly low priority, given how idiosyncratic the query is. If
+    // we find other cases, we should increase the priority.
+    assert_display_snapshot!(compile(r###"
+    x -> y
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280
     "###);
 }

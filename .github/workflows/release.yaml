@@ -59,15 +59,30 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: release
+          features: cli
       - name: Upload release artifact
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
+      - name: test the CLI works
+        # TODO: Add for Windows too (but will require unzipping rather than
+        # un-taring)
+        #
+        # Currently filtering by x86, since that's the same as those not
+        # cross-compiled. But we'll have to refine this in the future.
+        if:
+          ${{ contains(matrix.target, 'x86') && matrix.target !=
+          'x86_64-pc-windows-msvc' }}
+        run: |
+          # `prqlc` is an existing path at the root
+          mkdir -p temp_path
+          tar xzf ${{ steps.build-artifact.outputs.artifact-name }} -C temp_path
+          ./temp_path/prqlc --help
 
   build-prqlc-c:
-    # Currently a copy/paste of `build-prqlc`.
+    # Mostly a copy/paste of `build-prqlc`.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -269,11 +284,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prql-python
+      - uses: ./.github/actions/build-prqlc-python
         with:
           target: ${{ matrix.target }}
 
-  publish-prql-python:
+  publish-prqlc-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'

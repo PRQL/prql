@@ -1,10 +1,10 @@
-use anyhow::Result;
+use crate::Result;
 use std::collections::HashMap;
 
+use crate::ast::{TupleField, Ty, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::WithErrorInfo;
-use prqlc_ast::{TupleField, Ty, TyKind};
 
 impl super::Resolver<'_> {
     // entry point to the resolver

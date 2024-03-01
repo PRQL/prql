@@ -1,4 +1,4 @@
-use prqlc_ast::{Literal, Span};
+use crate::ast::{Literal, Span};
 use serde::{Deserialize, Serialize};
 
 /// A subset of PL expressions that are constant.

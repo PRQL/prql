@@ -1,18 +1,74 @@
 # PRQL Changelog
 
-## 0.11.2 — [unreleased]
+## 0.11.5 — Unreleased
 
 **Language**:
 
 **Features**:
 
-- `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
+- Initial implementation of an experimental documentation generator that
+  generates Markdown documentation from `.prql` files. (@vanillajonathan,
+  #4152).
+
+- _Breaking_: References to database tables now require an explicit `db.`
+  prefix. Example:
+  ```prql no-eval
+  from db.my_table
+  join db.another_table (==some_id)
+  ```
 
 **Fixes**:
 
 **Documentation**:
 
 **Web**:
+
+- The `browser` dist files are now built with `wasm-pack`'s `web` target. As a
+  result, they should be usable as ES Modules, through JS CDNs, and for example
+  with Observable Framework (@srenatus, #4274).
+
+**Integrations**:
+
+- The syntax highlighter package for Sublime Text is now
+  [published](https://packagecontrol.io/packages/PRQL) (@vanillajonathan).
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.11.4 — 2024-02-25
+
+0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
+built without the `cli` feature.
+
+## 0.11.3 — 2024-02-10
+
+0.11.3 is a very small release, mostly a rename of the Python bindings.
+
+The release has 13 commits from 4 contributors.
+
+**Internal changes**:
+
+- As part of making our names more consistent, the Python bindings are renamed.
+  `prql-python` becomes a package published and importable as `prqlc`. The
+  internal Rust crate is named `prqlc-python`.
+
+## 0.11.2 — 2024-02-07
+
+0.11.2 contains lots of internal changes, lots of syntax highlighting, and the
+beginning of `lutra`, a query runner.
+
+This release has 122 commits from 9 contributors. Selected changes:
+
+**Features**:
+
+- Initial implementation of `lutra`, a query runner. (@aljazerzen, #4182, #4174,
+  #4134)
+- `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
+
+**Fixes**:
+
+- Reduce stack memory usage (@aljazerzen, #4103)
 
 **Integrations**:
 
@@ -24,12 +80,20 @@
 
 **Internal changes**:
 
-- _Breaking_ The `prqlc-clib` crate was renamed to `prqlc-c`, and associated
-  artifacts were renamed. We're trying to make names consistent (ideally for the
-  final time!), and have a plan to rename some other bindings. (@max-sixty,
-  #4077)
+- `prql-compiler` has been renamed to `prqlc`, and we've established a more
+  consistent naming scheme. The existing crate will still be published,
+  re-exporting `prqlc`, so no dependencies will break. A future version will add
+  a deprecation warning.
+- The `prqlc-clib` crate was renamed to `prqlc-c`, and associated artifacts were
+  renamed. We're trying to make names consistent (ideally for the final time!),
+  and have a plan to rename some other bindings. (@max-sixty, #4077)
+- Add lots of whitespace items to the lexer, in preparation for the completion
+  of `prqlc fmt` (@max-sixty, #4109, #4105)
+- Table declarations (@aljazerzen, #4126)
 
 **New Contributors**:
+
+- @kaspermarstal, with #4124
 
 ## 0.11.1 — 2023-12-26
 
@@ -582,7 +646,7 @@ This release has 17 commits from 4 contributors.
 improvements, such as integration tests with a whole range of DBs, a blog post
 on Pi day, RFCs for a type system, and more robust language bindings.
 
-There's a very small breaking change to the rust API, hence the minor version
+There's a very small breaking change to the Rust API, hence the minor version
 bump.
 
 Here's our April 2023 Update, from our
@@ -857,7 +921,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 - Support double brackets in s-strings which aren't symmetric (@max-sixty,
   #1650)
 - Support Postgres's Interval syntax (@max-sixty, #1649)
-- Fixed tests for `prql-elixir` with MacOS (@kasvith, #1707)
+- Fixed tests for `prql-elixir` with macOS (@kasvith, #1707)
 
 **Documentation**:
 

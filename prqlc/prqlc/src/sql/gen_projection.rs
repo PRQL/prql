@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, ExceptSelectItem, ExcludeSelectItem, ObjectName, SelectItem,
@@ -42,8 +42,7 @@ pub(super) fn try_into_exprs(
             if !excluded.is_empty() {
                 return Err(
                     Error::new_simple("Excluding columns not supported as this position")
-                        .with_span(span)
-                        .into(),
+                        .with_span(span),
                 );
             }
         }
@@ -66,7 +65,7 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     let mut excluded: Excluded = HashMap::new();
 
     // When compiling:
-    // from employees | group department (take 3)
+    // from db.employees | group department (take 3)
     // Row number will be computed in a CTE that also contains a star.
     // In the main query, star will also include row number, which was not
     // requested.

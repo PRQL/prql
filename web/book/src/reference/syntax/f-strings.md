@@ -4,7 +4,7 @@ F-strings are a readable approach to building new strings from existing strings
 & variables.
 
 ```prql
-from employees
+from db.employees
 select full_name = f"{first_name} {last_name}"
 ```
 
@@ -12,7 +12,7 @@ This can be much easier to read for longer strings, relative to the SQL
 approach:
 
 ```prql
-from web
+from db.web
 select url = f"http{tls}://www.{domain}.{tld}/{page}"
 ```
 
@@ -20,7 +20,7 @@ Note that currently interpolations can only contain plain variable names and not
 whole expressions like Python, so this won't work:
 
 ```prql error no-fmt
-from tracks
+from db.tracks
 select length_str = f"{length_seconds / 60} minutes"
 ```
 

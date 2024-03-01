@@ -236,7 +236,7 @@ fn test_replace_examples() -> Result<()> {
 # PRQL Doc
 
 ```prql
-from x
+from db.x
 ```
 
 ```python
@@ -260,7 +260,7 @@ this is an error
     <h4>PRQL</h4>
 
     ```prql
-    from x
+    from db.x
     ```
 
     </div>

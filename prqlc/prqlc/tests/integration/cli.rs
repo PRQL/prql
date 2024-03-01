@@ -20,6 +20,7 @@ fn help() {
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
+      experimental      Experimental commands are prone to change
       resolve           Parse, resolve & lower into RQ
       sql:preprocess    Parse, resolve, lower into RQ & preprocess SRQ
       sql:anchor        Parse, resolve, lower into RQ & preprocess & anchor SRQ
@@ -66,7 +67,7 @@ fn get_targets() {
 fn compile() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["compile", "--hide-signature-comment"])
-        .pass_stdin("from tracks"), @r###"
+        .pass_stdin("from db.tracks"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
@@ -134,7 +135,7 @@ fn long_query() {
         .args(["compile", "--hide-signature-comment"])
         .pass_stdin(r#"
 let long_query = (
-  from employees
+  from db.employees
   filter gross_cost > 0
   group {title} (
       aggregate {
@@ -154,7 +155,7 @@ let long_query = (
   filter ct > 200
   take 20
 )
-from long_query
+long_query
   "#), @r###"
     success: true
     exit_code: 0
@@ -313,11 +314,11 @@ fn compile_project() {
 #[test]
 fn format() {
     // stdin
-    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from tracks | take 20"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["fmt"]).pass_stdin("from db.tracks | take 20"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    from tracks
+    from db.tracks
     take 20
 
     ----- stderr -----
@@ -351,15 +352,15 @@ fn format() {
 fn debug() {
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "resolve"])
-        .pass_stdin("from tracks"));
+        .pass_stdin("from db.tracks"));
 
     assert_cmd_snapshot!(prqlc_command()
         .args(["debug", "expand-pl"])
-        .pass_stdin("from tracks"), @r###"
+        .pass_stdin("from db.tracks"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----
-    let main = from tracks
+    let main = from db.tracks
 
     ----- stderr -----
     "###);
@@ -370,8 +371,6 @@ fn debug() {
     success: true
     exit_code: 0
     ----- stdout -----
-    # 
-
     ## main
     4
 
@@ -382,7 +381,7 @@ fn debug() {
 
 #[test]
 fn preprocess() {
-    assert_cmd_snapshot!(prqlc_command().args(["sql:preprocess"]).pass_stdin("from tracks | take 20"), @r###"
+    assert_cmd_snapshot!(prqlc_command().args(["sql:preprocess"]).pass_stdin("from db.tracks | take 20"), @r###"
     success: true
     exit_code: 0
     ----- stdout -----

@@ -251,13 +251,13 @@ columns of a relation in function calls:
 ```prql
 (select [title, artist_id] default_db.albums)
 # and with a pipeline:
-(from albums | select {title, artist_id})
+(from db.albums | select {title, artist_id})
 ```
 
 All these queries can be simplified to an expression of relations and scalars.
 In PRQL, we call such expressions "Relational Queries" or RQ for short. It is an
-intermediate representation of the prql-compiler and can be translated to SQL
-and executed on basically any relational database.
+intermediate representation of prqlc and can be translated to SQL and executed
+on basically any relational database.
 
 This is the gist of how to express SQL queries with a functional language. At
 this stage a curious reader might ask "can PRQL express any SQL query?" to which
@@ -300,7 +300,7 @@ applies `aggregate` to each of the groups. This is exactly how PRQL expressed
 it:
 
 ```prql
-from albums | group artist_id (aggregate {n_albums = count})
+from db.albums | group artist_id (aggregate {n_albums = count})
 ```
 
 This is a lot for one line, so let's unveil new syntactic conveniences: a new
@@ -308,7 +308,7 @@ line is a pipe operator and the top-level pipeline does not need parenthesis.
 I'll also add a new transform at the back, don't worry about it.
 
 ```prql
-from albums
+from db.albums
 group artist_id (
     aggregate {n_albums = count}
 )
@@ -377,7 +377,7 @@ that can be expressed as `sort x | take 1` (which evaluates to a function), so
 now surely this should work:
 
 ```prql
-from tab
+from db.tab
 group y (sort x | take 1)
 ```
 
@@ -390,7 +390,7 @@ then take one row from each group". Or another way: "select distinct values of
 all columns".
 
 ```prql
-from tab
+from db.tab
 group tab.* (take 1)
 ```
 
