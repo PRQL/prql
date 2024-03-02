@@ -31,7 +31,7 @@
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
 
-- [Importing data](./reference/data/readme.md)
+- [Importing data](./reference/data/README.md)
 
   - [From](./reference/data/from.md)
   - [Reading files](./reference/data/read-files.md)
