@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from `artists.parquet`\n"
+expression: "from db.`artists.parquet`\n"
 ---
 SELECT
   *

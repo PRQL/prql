@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "let my_artists = [\n  {artist=\"Miles Davis\"},\n  {artist=\"Marvin Gaye\"},\n  {artist=\"James Brown\"},\n]\n\nfrom artists\njoin my_artists (==artist)\njoin albums (==artist_id)\nselect {artists.artist_id, albums.title}\n"
+expression: "let my_artists = [\n  {artist=\"Miles Davis\"},\n  {artist=\"Marvin Gaye\"},\n  {artist=\"James Brown\"},\n]\n\nfrom db.artists\njoin my_artists (==artist)\njoin db.albums (==artist_id)\nselect {artists.artist_id, albums.title}\n"
 ---
 WITH table_0 AS (
   SELECT
