@@ -8,11 +8,8 @@
 - [Filtering](./tutorial/filtering.md)
 - [Aggregation](./tutorial/aggregation.md)
 
-# How do I?
-
-- [Read files?](./how-do-i/read-files.md)
-- [Remove duplicates?](./how-do-i/distinct.md)
-- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
+<!-- We used to have a "How do I", which I think would be good, but we didn't build enough to maintain it. If we find the Reference or Tutorial has enough content that we could move here, we could start it again  -->
+<!-- # How do I? -->
 
 # Reference
 
@@ -34,10 +31,16 @@
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
 
+- [Importing data](./reference/data/readme.md)
+
+  - [From](./reference/data/from.md)
+  - [Reading files](./reference/data/read-files.md)
+  - [Ad-hoc data](./reference/data/relation-literals.md)
+
 - [Declarations]()
   <!-- I don't know what to call this section. -->
 
-  - [Variables](./reference/declarations/variables.md)
+  - [Variables — `let` & `into`](./reference/declarations/variables.md)
   - [Functions](./reference/declarations/functions.md)
 
 - [Standard library](./reference/stdlib/README.md)
@@ -48,7 +51,6 @@
     - [Append](./reference/stdlib/transforms/append.md)
     - [Derive](./reference/stdlib/transforms/derive.md)
     - [Filter](./reference/stdlib/transforms/filter.md)
-    - [From](./reference/stdlib/transforms/from.md)
     - [Group](./reference/stdlib/transforms/group.md)
     - [Join](./reference/stdlib/transforms/join.md)
     - [Loop](./reference/stdlib/transforms/loop.md)
@@ -61,6 +63,7 @@
   - [Date functions](./reference/stdlib/date.md)
   - [Mathematical functions](./reference/stdlib/math.md)
   - [Text functions](./reference/stdlib/text.md)
+  - [Removing duplicates](./reference/stdlib/distinct.md)
 
 - [Specification](./reference/spec/README.md)
 
