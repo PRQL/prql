@@ -1,8 +1,11 @@
 <!-- markdownlint-disable MD042 — some pages aren't finished yet (though the graying out of top level pages is not ideal — it's either that, or links to pages that are blank. Or maybe we try and write a useful page for each heading?) -->
 
-[Overview](./overview.md)
-
 # Tutorial
+
+A friendly & accessible guide for learning PRQL. It has a gradual increase of
+difficulty and requires only basic understanding of programming languages.
+Knowledge of SQL is beneficial, because of many comparisons to SQL, but not
+required.
 
 - [Relations](./tutorial/relations.md)
 - [Filtering](./tutorial/filtering.md)
@@ -12,6 +15,9 @@
 <!-- # How do I? -->
 
 # Reference
+
+In-depth information about the PRQL language. Includes justifications for
+language design decisions and formal specifications for parts of the language.
 
 - [Syntax](./reference/syntax/README.md)
 
@@ -73,6 +79,8 @@
   - [Type system](./reference/spec/type-system.md)
 
 # Project
+
+General information about the project, tooling and development.
 
 - [Changelog](./project/changelog.md)
 
