@@ -110,30 +110,27 @@ impl Module {
         let mut ns = self;
 
         for (index, part) in fq_ident.path.iter().enumerate() {
-            let decl = ns.names.get(part);
-            if let Some(decl) = decl {
-                match &decl.kind {
-                    DeclKind::Module(inner) => {
-                        ns = inner;
-                    }
-                    DeclKind::LayeredModules(stack) => {
-                        let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
-                        let mut found = false;
-                        for n in stack.iter().rev() {
-                            if n.names.contains_key(next) {
-                                ns = n;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if !found {
-                            return None;
-                        }
-                    }
-                    _ => return None,
+            let decl = ns.names.get(part)?;
+
+            match &decl.kind {
+                DeclKind::Module(inner) => {
+                    ns = inner;
                 }
-            } else {
-                return None;
+                DeclKind::LayeredModules(stack) => {
+                    let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
+                    let mut found = false;
+                    for n in stack.iter().rev() {
+                        if n.names.contains_key(next) {
+                            ns = n;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        return None;
+                    }
+                }
+                _ => return None,
             }
         }
 
