@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "let top_50 = (\n  from employees\n  sort salary\n  take 50\n  aggregate {total_salary = sum salary}\n)\n\nfrom top_50      # Starts a new pipeline\n"
+expression: "let top_50 = (\n  from db.employees\n  sort salary\n  take 50\n  aggregate {total_salary = sum salary}\n)\n\ntop_50      # Starts a new pipeline\n"
 ---
 WITH table_0 AS (
   SELECT
