@@ -1,4 +1,4 @@
-# Variables
+# Variables — `let` & `into`
 
 Variables assign a name — say `x` — to an expression, like in most programming
 languages. The name can then be used in any expression, acting as a substitute

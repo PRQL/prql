@@ -14,7 +14,7 @@ select e.first_name
 ```
 
 Table names containing spaces or special characters
-[need to be contained within backticks](../../syntax/keywords.md#quoting):
+[need to be contained within backticks](../syntax/keywords.md#quoting):
 
 ```prql
 from `artist tracks`
