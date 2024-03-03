@@ -653,19 +653,19 @@ impl TransformCall {
                 let mut lineage = lineage_or_default(&self.input)?;
 
                 lineage.clear();
-                lineage.apply_assigns(assigns, false);
+                lineage.apply_assigns_plain(assigns, false);
                 lineage
             }
             Derive { assigns } => {
                 let mut lineage = lineage_or_default(&self.input)?;
 
-                lineage.apply_assigns(assigns, false);
+                lineage.apply_assigns_plain(assigns, false);
                 lineage
             }
             Group { pipeline, by, .. } => {
                 let mut lineage = lineage_or_default(&self.input)?;
                 lineage.clear();
-                lineage.apply_assigns(by, false);
+                lineage.apply_assigns_plain(by, false);
 
                 // pipeline's body is resolved, just use its type
                 let Func { body, .. } = pipeline.kind.as_func().unwrap().as_ref();
@@ -686,7 +686,7 @@ impl TransformCall {
                 let mut lineage = lineage_or_default(&self.input)?;
                 lineage.clear();
 
-                lineage.apply_assigns(assigns, false);
+                lineage.apply_assigns_plain(assigns, false);
                 lineage
             }
             Join { with, .. } => {
@@ -774,15 +774,23 @@ impl Lineage {
         self.prev_columns.append(&mut self.columns);
     }
 
-    pub fn apply_assigns(&mut self, assigns: &Expr, inline_refs: bool) {
-        match &assigns.kind {
+    pub fn apply_assigns_plain(&mut self, assigns: &Expr, inline_refs: bool) {
+        let field = TupleField {
+            name: assigns.alias.clone(),
+            value: Box::new(assigns.clone()),
+        };
+        self.apply_assigns(&field, inline_refs)
+    }
+
+    pub fn apply_assigns(&mut self, assigns: &TupleField, inline_refs: bool) {
+        match &assigns.value.kind {
             ExprKind::Tuple(fields) => {
                 for expr in fields {
-                    self.apply_assigns(&expr.value, inline_refs);
+                    self.apply_assigns(&expr, inline_refs);
                 }
 
                 // hack for making `x | select { y = this }` work
-                if let Some(alias) = &assigns.alias {
+                if let Some(alias) = &assigns.name {
                     if self.columns.len() == 1 {
                         let col = self.columns.first().unwrap();
                         if let LineageColumn::All { input_id, .. } = col {
@@ -792,20 +800,22 @@ impl Lineage {
                     }
                 }
             }
-            _ => self.apply_assign(assigns, inline_refs),
+            _ => {
+                self.apply_assign(&assigns, inline_refs);
+            }
         }
     }
 
-    pub fn apply_assign(&mut self, expr: &Expr, inline_refs: bool) {
+    pub fn apply_assign(&mut self, expr: &TupleField, inline_refs: bool) {
         // special case: all except
-        if let ExprKind::All { within, except } = &expr.kind {
+        if let ExprKind::All { within, except } = &expr.value.kind {
             let mut within_lineage = Lineage::default();
             within_lineage.inputs.extend(self.inputs.clone());
-            within_lineage.apply_assigns(within, true);
+            within_lineage.apply_assigns_plain(within, true);
 
             let mut except_lineage = Lineage::default();
             except_lineage.inputs.extend(self.inputs.clone());
-            except_lineage.apply_assigns(except, true);
+            except_lineage.apply_assigns_plain(except, true);
 
             'within: for col in within_lineage.columns {
                 match col {
@@ -879,9 +889,10 @@ impl Lineage {
         }
 
         // special case: include a tuple
-        if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && expr.kind.is_ident() {
+        if expr.value.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && expr.value.kind.is_ident()
+        {
             // this ident is a tuple, which means it much point to an input
-            let input_id = expr.target_id.unwrap();
+            let input_id = expr.value.target_id.unwrap();
 
             self.columns.push(LineageColumn::All {
                 input_id,
@@ -892,9 +903,17 @@ impl Lineage {
 
         // special case: an ref that should be inlined because this node
         // might not exist in the resulting AST
-        if inline_refs && expr.target_id.is_some() {
-            let ident = expr.kind.as_ident().unwrap().clone().pop_front().1.unwrap();
-            let target_id = expr.target_id.unwrap();
+        if inline_refs && expr.value.target_id.is_some() {
+            let ident = expr
+                .value
+                .kind
+                .as_ident()
+                .unwrap()
+                .clone()
+                .pop_front()
+                .1
+                .unwrap();
+            let target_id = expr.value.target_id.unwrap();
             let input = &self.find_input(target_id);
 
             self.columns.push(if input.is_some() {
@@ -914,10 +933,9 @@ impl Lineage {
         };
 
         // base case: define the expr as a new lineage column
-        let (target_id, target_name) = (expr.id.unwrap(), None);
+        let (target_id, target_name) = (expr.value.id.unwrap(), None);
 
-        let alias = expr.alias.as_ref().map(Ident::from_name);
-        let name = alias.or_else(|| expr.kind.as_ident()?.clone().pop_front().1);
+        let name = expr.name.clone().map(Ident::from_name);
 
         // remove names from columns with the same name
         if name.is_some() {

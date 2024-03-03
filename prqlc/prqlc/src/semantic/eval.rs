@@ -92,10 +92,7 @@ impl PlFold for Evaluator {
 fn lookup(base: Option<&Expr>, name: &str) -> Result<Expr> {
     if let Some(base) = base {
         if let ExprKind::Tuple(items) = &base.kind {
-            if let Some(item) = items
-                .iter()
-                .find(|i| i.value.alias.as_deref() == Some(name))
-            {
+            if let Some(item) = items.iter().find(|i| i.name.as_deref() == Some(name)) {
                 return Ok(*item.value.clone());
             }
         }
@@ -345,12 +342,9 @@ fn rows_to_cols(expr: Expr) -> Result<Expr> {
     // prepare output
     let mut arg_tuple = Vec::new();
     for field in relation_rows.first().unwrap().kind.as_tuple().unwrap() {
-        let value = Expr {
-            alias: field.value.alias.clone(),
-            ..Expr::new(ExprKind::Array(Vec::new()))
-        };
+        let value = Expr::new(ExprKind::Array(Vec::new()));
         arg_tuple.push(TupleField {
-            name: None,
+            name: field.name.clone(),
             value: Box::new(value),
         });
     }
@@ -383,11 +377,8 @@ fn cols_to_rows(expr: Expr) -> Result<Expr> {
         let mut row = Vec::new();
         for field in &fields {
             row.push(TupleField {
-                name: None,
-                value: Box::new(Expr {
-                    alias: field.value.alias.clone(),
-                    ..field.value.kind.as_array().unwrap()[index].clone()
-                }),
+                name: field.name.clone(),
+                value: Box::new(field.value.kind.as_array().unwrap()[index].clone()),
             });
         }
 
@@ -441,13 +432,9 @@ fn new_func(name: &str, params: &[&str]) -> TupleField {
         env: Default::default(),
         generic_type_params: Default::default(),
     }));
-    let value = Expr {
-        alias: Some(name.to_string()),
-        ..Expr::new(kind)
-    };
     TupleField {
         name: Some(name.to_string()),
-        value: Box::new(value),
+        value: Box::new(Expr::new(kind)),
     }
 }
 
