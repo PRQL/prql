@@ -29,13 +29,13 @@ strum = {version = "0.26.1", features = ["std", "derive"]}
 strum_macros = "0.26.1"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-anstream = {version = "0.6.11"}
+anstream = {version = "0.6.12"}
 globset = "0.4.14"
 insta = {workspace = true}
 log = {workspace = true}
 regex = "1.10.3"
-serde_json = "1.0.113"
-serde_yaml = "0.9.31"
+serde_json = "1.0.114"
+serde_yaml = "0.9.32"
 similar-asserts = "1.5.0"
 walkdir = "2.4.0"
 

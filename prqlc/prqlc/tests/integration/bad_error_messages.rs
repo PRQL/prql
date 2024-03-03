@@ -204,3 +204,14 @@ fn nested_groups() {
     ────╯
     "###);
 }
+
+#[test]
+fn a_arrow_b() {
+    // This is fairly low priority, given how idiosyncratic the query is. If
+    // we find other cases, we should increase the priority.
+    assert_display_snapshot!(compile(r###"
+    x -> y
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280
+    "###);
+}

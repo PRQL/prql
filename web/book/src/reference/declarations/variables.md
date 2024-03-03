@@ -1,4 +1,4 @@
-# Variables
+# Variables — `let` & `into`
 
 Variables assign a name — say `x` — to an expression, like in most programming
 languages. The name can then be used in any expression, acting as a substitute
@@ -24,7 +24,7 @@ Syntactically, variables can take 3 forms.
 - The final expression of a pipeline defaults to taking the name `main`.
 
   ```prql no-eval
-  from db.x
+  x
   ```
 
   ... is equivalent to:

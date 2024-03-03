@@ -53,7 +53,7 @@ tasks:
 
           🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
 
-          Please install it. On MacOS, that's
+          Please install it. On macOS, that's
 
             xcode-select --install
 
@@ -305,6 +305,7 @@ tasks:
     cmds:
       - cargo insta test --accept --features=default,test-dbs
         --unreferenced=auto
+      - cargo clippy --fix --allow-dirty
 
   test-rust-fast:
     desc: Test prqlc's unit tests.

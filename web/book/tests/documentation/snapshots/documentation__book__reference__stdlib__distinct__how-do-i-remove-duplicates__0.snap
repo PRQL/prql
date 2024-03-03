@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\nselect department\ngroup employees.* (\n  take 1\n)\n"
+expression: "from db.employees\nselect department\ngroup employees.* (\n  take 1\n)\n"
 ---
 SELECT
   DISTINCT department
