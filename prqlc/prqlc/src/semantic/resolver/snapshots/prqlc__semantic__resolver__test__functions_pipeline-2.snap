@@ -36,14 +36,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     - - ~
                       - kind:
                           Primitive: Int
-                        span: "0:4050-4053"
+                        span: "0:4052-4055"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4057-4062"
+                        span: "0:4059-4064"
                         name: ~
-                span: "0:4050-4062"
+                span: "0:4052-4064"
                 name: ~
             - Literal:
                 Integer: 1

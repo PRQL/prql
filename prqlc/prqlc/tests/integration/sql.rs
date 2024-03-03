@@ -1618,6 +1618,30 @@ fn test_window_functions_13() {
 }
 
 #[test]
+fn test_window_single_item_range() {
+    assert_display_snapshot!(compile(r###"
+      from db.login_event
+      window rows:1..1 (
+        sort time_upload
+        derive {
+            last_user = min user_id
+        }
+      )
+    "###).unwrap(), @r###"
+    SELECT
+      *,
+      MIN(user_id) OVER (
+        ORDER BY
+          time_upload ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING
+      ) AS last_user
+    FROM
+      login_event
+    ORDER BY
+      time_upload
+    "###);
+}
+
+#[test]
 fn test_name_resolving() {
     let query = r###"
     from db.numbers
