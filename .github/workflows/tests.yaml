@@ -592,7 +592,7 @@ jobs:
               "build-web",
               "check-links-book",
               "check-links-markdown",
-              "test-deps-min-versions"
+              "test-deps-min-versions",
               "lint-megalinter",
               "measure-code-cov",
               "nightly",
