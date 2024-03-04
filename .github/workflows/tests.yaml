@@ -606,8 +606,8 @@ jobs:
               "test-php",
               "test-prqlc-c",
               "test-python",
-              "test-rust-main",
               "test-rust",
+              "test-rust-main",
               "test-taskfile",
               "time-compilation"
             ]
