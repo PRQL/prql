@@ -4347,7 +4347,7 @@ fn test_params() {
         i.id,
         i.total,
     }
-    filter i.total > $3
+    filter total > $3
     "#).unwrap(),
         @r###"
     SELECT

@@ -37,27 +37,15 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         ExprKind::Unary(unary) => expand_unary(unary)?,
         ExprKind::Binary(binary) => expand_binary(binary)?,
 
-        ExprKind::FuncCall(v) => {
-            let name = expand_expr_box(v.name)?;
-
-            let func_name = name.kind.as_ident();
-            let args = expand_exprs(v.args)?;
-            let args = args
+        ExprKind::FuncCall(v) => pl::ExprKind::FuncCall(pl::FuncCall {
+            name: expand_expr_box(v.name)?,
+            args: expand_exprs(v.args)?,
+            named_args: v
+                .named_args
                 .into_iter()
-                .enumerate()
-                .map(|(index, a)| desugar_func_arg(func_name, index, a))
-                .collect();
-
-            pl::ExprKind::FuncCall(pl::FuncCall {
-                name,
-                args,
-                named_args: v
-                    .named_args
-                    .into_iter()
-                    .map(|(k, v)| -> Result<_> { Ok((k, expand_expr(v)?)) })
-                    .try_collect()?,
-            })
-        }
+                .map(|(k, v)| -> Result<_> { Ok((k, expand_expr(v)?)) })
+                .try_collect()?,
+        }),
         ExprKind::Func(v) => pl::ExprKind::Func(
             pl::Func {
                 return_ty: v.return_ty,
@@ -106,31 +94,6 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
         needs_window: false,
         flatten: false,
     })
-}
-
-fn desugar_func_arg(func_name: Option<&Ident>, param: usize, expr: pl::Expr) -> pl::Expr {
-    let Some(func_name) = func_name else {
-        return expr;
-    };
-
-    match (func_name.name.as_str(), param) {
-        ("select" | "derive" | "aggregate" | "sort" | "group", 0) => {
-            // coerce into tuple
-
-            if !expr.kind.is_tuple() {
-                let span = expr.span;
-                let mut expr = pl::Expr::new(pl::ExprKind::Tuple(vec![pl::TupleField {
-                    name: infer_tuple_field_name(&expr),
-                    value: Box::new(expr),
-                }]));
-                expr.span = span;
-                return expr;
-            }
-        }
-        _ => {}
-    }
-
-    expr
 }
 
 fn infer_tuple_field_name(expr: &pl::Expr) -> Option<String> {

@@ -113,18 +113,18 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule, 
     };
 
     let file = params.into_iter().next().unwrap();
-    let prqlc::ir::constant::ConstExprKind::Literal(Literal::String(file_str)) = file.kind else {
+    let prqlc::ir::constant::ConstExprKind::Literal(Literal::String(file_str)) = file.value.kind else {
         return Err(Error::new_simple("expected a string")
-            .with_span(file.span)
+            .with_span(file.value.span)
             .into());
     };
 
     let file_relative = std::path::PathBuf::from_str(&file_str)
-        .map_err(|e| Error::new_simple(e.to_string()).with_span(file.span))?;
+        .map_err(|e| Error::new_simple(e.to_string()).with_span(file.value.span))?;
     if !file_relative.is_relative() {
         Err(
             Error::new_simple("expected a relative path to the SQLite database file")
-                .with_span(file.span),
+                .with_span(file.value.span),
         )?;
     }
 
