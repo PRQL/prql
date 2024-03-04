@@ -590,7 +590,6 @@ impl std::fmt::Debug for TokenVec {
 mod test {
     use super::*;
     use insta::assert_debug_snapshot;
-    use insta::assert_display_snapshot;
     use insta::assert_snapshot;
 
     #[test]
@@ -677,7 +676,7 @@ mod test {
         )
         "###);
 
-        assert_display_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @r###"
+        assert_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @r###"
         # This is a single-line comment
         "###);
     }
