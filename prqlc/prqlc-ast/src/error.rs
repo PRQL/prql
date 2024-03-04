@@ -171,7 +171,7 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use insta::{assert_debug_snapshot, assert_display_snapshot};
+    use insta::{assert_debug_snapshot, assert_snapshot};
 
     // Helper function to create a simple Error object
     fn create_simple_error() -> Error {
@@ -182,12 +182,12 @@ mod tests {
 
     #[test]
     fn display() {
-        assert_display_snapshot!(create_simple_error(),
+        assert_snapshot!(create_simple_error(),
             @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
         );
 
         let errors = Errors(vec![create_simple_error()]);
-        assert_display_snapshot!(errors,
+        assert_snapshot!(errors,
             @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
         );
         assert_debug_snapshot!(errors, @r###"
