@@ -304,7 +304,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.path }}-wheels
+          name: ${{ matrix.path }}-wheels
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
