@@ -28,7 +28,7 @@ jobs:
           package: prqlc-python
       - uses: actions/download-artifact@v3
         with:
-          name: wheels
+          name: prqlc-python-wheels
           path: target/python
       - uses: actions/setup-python@v5
         with:
