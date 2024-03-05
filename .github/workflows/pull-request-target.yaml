@@ -83,8 +83,8 @@ jobs:
         run: >
           echo "commit-count=$(curl -s -H 'Authorization: token ${{ github.token
           }}' https://api.github.com/repos/prql/prql/pulls/${{
-          github.event.pull_request.number }}/commits | jq 'length')" >>
-          "$GITHUB_OUTPUT"
+          github.event.pull_request.number }}/commits | jq 'length')"
+          >>"$GITHUB_OUTPUT"
       - if:
           # - It's dependabot
           # - or it's prql-bot

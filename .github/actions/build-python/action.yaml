@@ -11,11 +11,12 @@ inputs:
 runs:
   using: composite
   steps:
-    # There's benefit from caching here, because the maturin action uses a container.
-    - run: |
-        package_path=$(cargo metadata --no-deps --format-version 1 | jq -r --arg package_name ${{ inputs.package }} '.packages[] | select(.name == $package_name) | .manifest_path')
-        echo "package_path=$package_path" >>$GITHUB_OUTPUT
+    - run:
+        echo "package_path=$(cargo metadata --no-deps --format-version 1 | jq -r
+        --arg package_name ${{ inputs.package }} '.packages[] | select(.name ==
+        $package_name) | .manifest_path')" >>"$GITHUB_OUTPUT"
       shell: bash
+    # There's benefit from caching here, because the maturin action uses a container.
     - uses: PyO3/maturin-action@v1
       if: inputs.target == 'source'
       with:
