@@ -273,7 +273,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         package:
           - prqlc-python
           - lutra-python
@@ -285,7 +285,6 @@ jobs:
             target: aarch64
           - os: ubuntu-latest
             target: source
-        # Is this going to work with the `include`??
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
