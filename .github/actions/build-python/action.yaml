@@ -13,7 +13,7 @@ runs:
   steps:
     # There's benefit from caching here, because the maturin action uses a container.
     - run: |
-        package_path=$(cargo metadata --no-deps --format-version 1 | jq -r --arg ${{ inputs.package }} "$package_name" '.packages[] | select(.name == $package_name) | .manifest_path')
+        package_path=$(cargo metadata --no-deps --format-version 1 | jq -r --arg package_name ${{ inputs.package }} '.packages[] | select(.name == $package_name) | .manifest_path')
         echo "package_path=$package_path" >>$GITHUB_OUTPUT
       shell: bash
     - uses: PyO3/maturin-action@v1
