@@ -274,13 +274,14 @@ jobs:
       fail-fast: true
       matrix:
         os: [macos-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            target: x86_64
-          - os: ubuntu-latest
-            target: aarch64
-          - os: ubuntu-latest
-            target: source
+        # FIXME: testing
+        # include:
+        #   - os: ubuntu-latest
+        #     target: x86_64
+        #   - os: ubuntu-latest
+        #     target: aarch64
+        #   - os: ubuntu-latest
+        #     target: source
         # Is this going to work with the `include`??
         package:
           - prqlc-python
