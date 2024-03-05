@@ -22,9 +22,7 @@ runs:
       if: inputs.target == 'source'
       with:
         command: sdist
-        args:
-          -o target/python -m
-          ${{steps.package-path.outputs.package_path}}/Cargo.toml
+        args: -o target/python -m ${{steps.package-path.outputs.package_path}}
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Linux' && inputs.target != 'source'
       with:
@@ -33,14 +31,14 @@ runs:
         command: build
         args:
           --release -o target/python -m
-          ${{steps.package-path.outputs.package_path}}/Cargo.toml
+          ${{steps.package-path.outputs.package_path}}
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
         args:
           --release -o target/python -m
-          ${{steps.package-path.outputs.package_path}}/Cargo.toml
+          ${{steps.package-path.outputs.package_path}}
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
