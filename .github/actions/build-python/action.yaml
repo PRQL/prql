@@ -4,45 +4,50 @@ inputs:
   target:
     description: Build target, or 'source' for source distribution
     required: false
-  path:
-    description: Path to the Cargo.toml file
-    required: false
-    default: prqlc/bindings/prqlc-python
-  # name:
-  #   description: Name of the package
-  #   required: false
-  #   default: prqlc
+  package:
+    description: Package name
+    required: true
 
 runs:
   using: composite
   steps:
     # There's benefit from caching here, because the maturin action uses a container.
+    - run: |
+        package_path=$(cargo metadata --no-deps --format-version 1 | jq -r --arg ${{ inputs.package }} "$package_name" '.packages[] | select(.name == $package_name) | .manifest_path')
+        echo "package_path=$package_path" >>$GITHUB_OUTPUT
+      shell: bash
     - uses: PyO3/maturin-action@v1
       if: inputs.target == 'source'
       with:
         command: sdist
-        args: -o target/python -m ${{inputs.path}}/Cargo.toml
+        args:
+          -o target/python -m
+          ${{steps.get-path.outputs.package_path}}/Cargo.toml
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Linux' && inputs.target != 'source'
       with:
         target: ${{ inputs.target }}
         manylinux: auto
         command: build
-        args: --release -o target/python -m ${{inputs.path}}/Cargo.toml
+        args:
+          --release -o target/python -m
+          ${{steps.get-path.outputs.package_path}}/Cargo.toml
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
-        args: --release -o target/python -m ${{inputs.path}}/Cargo.toml
+        args:
+          --release -o target/python -m
+          ${{steps.get-path.outputs.package_path}}/Cargo.toml
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
         args:
           --release -o target/python --target universal2-apple-darwin -m
-          prqlc/bindings/prqlc-python/Cargo.toml
+          ${{steps.get-path.outputs.package_path}}
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ inputs.path }}-wheels
+        name: ${{ inputs.package }}-wheels
         path: target/python

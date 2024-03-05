@@ -25,6 +25,7 @@ jobs:
         uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
+          package: prqlc-python
       - uses: actions/download-artifact@v3
         with:
           name: wheels
