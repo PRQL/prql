@@ -277,18 +277,19 @@ jobs:
         package:
           - prqlc-python
           - lutra-python
-        target: [x86_64, aarch64, source]
-        # We only want x86_64 for Mac & Windows; so we put `aarch64` & `source`
-        # in the matrix and then exclude them for Mac & Windows. Plausibly
-        # there's a better way...
-        exclude:
-          - os: macos-latest
+        # Also produce more targets for ubuntu:
+        include:
+          - os: ubuntu-latest
+            package: prqlc-python
             target: aarch64
-          - os: macos-latest
+          - os: ubuntu-latest
+            package: prqlc-python
             target: source
-          - os: windows-latest
+          - os: ubuntu-latest
+            package: lutra-python
             target: aarch64
-          - os: windows-latest
+          - os: ubuntu-latest
+            package: lutra-python
             target: source
     steps:
       - name: 📂 Checkout code
