@@ -296,6 +296,12 @@ jobs:
           - os: ubuntu-latest
             package: lutra-python
             target: source
+          - os: macos-latest
+            package: prqlc-python
+            target: x86_64
+          - os: windows-latest
+            package: lutra-python
+            target: x86_64
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
