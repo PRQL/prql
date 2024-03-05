@@ -277,31 +277,17 @@ jobs:
         package:
           - prqlc-python
           - lutra-python
-        include:
-          - os: ubuntu-latest
-            package: prqlc-python
-            target: x86_64
-          - os: ubuntu-latest
-            package: prqlc-python
-            target: aarch64
-          - os: ubuntu-latest
-            package: prqlc-python
-            target: source
-          - os: ubuntu-latest
-            package: lutra-python
-            target: x86_64
-          - os: ubuntu-latest
-            package: lutra-python
-            target: aarch64
-          - os: ubuntu-latest
-            package: lutra-python
-            target: source
+        target: [x86_64, aarch64, source]
+        # We only use `source`
+        exclude:
           - os: macos-latest
-            package: prqlc-python
-            target: x86_64
+            target: aarch64
+          - os: macos-latest
+            target: source
           - os: windows-latest
-            package: lutra-python
-            target: x86_64
+            target: aarch64
+          - os: windows-latest
+            target: source
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
