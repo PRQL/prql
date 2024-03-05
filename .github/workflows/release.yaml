@@ -281,21 +281,30 @@ jobs:
             target: aarch64
           - os: ubuntu-latest
             target: source
+        # Is this going to work with the `include`??
+        path:
+          - prqlc/bindings/prqlc-python/
+          - lutra/bindings/python/
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prqlc-python
+      - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
 
-  publish-prqlc-python:
+  publish-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'
+    strategy:
+      matrix:
+        path:
+          - prqlc/bindings/prqlc-python/
+          - lutra/bindings/python/
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: wheels
+          name: ${{path}}-wheels
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:

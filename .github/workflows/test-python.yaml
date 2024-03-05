@@ -22,7 +22,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: Build wheel
-        uses: ./.github/actions/build-prqlc-python
+        uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
       - uses: actions/download-artifact@v3

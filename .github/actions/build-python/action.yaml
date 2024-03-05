@@ -1,11 +1,17 @@
 name: build-wheel
-description:
-  "Use maturin to build python dists of prqlc-python. Conditional `if` checks
-  ensure only the correct OS build is called."
+description: "Use maturin to build python dists."
 inputs:
   target:
     description: Build target, or 'source' for source distribution
     required: false
+  path:
+    description: Path to the Cargo.toml file
+    required: false
+    default: prqlc/bindings/prqlc-python
+  # name:
+  #   description: Name of the package
+  #   required: false
+  #   default: prqlc
 
 runs:
   using: composite
@@ -15,21 +21,19 @@ runs:
       if: inputs.target == 'source'
       with:
         command: sdist
-        args: -o target/python -m prqlc/bindings/prqlc-python/Cargo.toml
+        args: -o target/python -m ${{inputs.path}}/Cargo.toml
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Linux' && inputs.target != 'source'
       with:
         target: ${{ inputs.target }}
         manylinux: auto
         command: build
-        args:
-          --release -o target/python -m prqlc/bindings/prqlc-python/Cargo.toml
+        args: --release -o target/python -m ${{inputs.path}}/Cargo.toml
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
-        args:
-          --release -o target/python -m prqlc/bindings/prqlc-python/Cargo.toml
+        args: --release -o target/python -m ${{inputs.path}}/Cargo.toml
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
@@ -40,5 +44,5 @@ runs:
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
-        name: wheels
+        name: ${{ inputs.path }}-wheels
         path: target/python
