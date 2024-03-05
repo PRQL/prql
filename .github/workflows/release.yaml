@@ -277,13 +277,24 @@ jobs:
         package:
           - prqlc-python
           - lutra-python
-        # FIXME: testing
         include:
           - os: ubuntu-latest
+            package: prqlc-python
             target: x86_64
           - os: ubuntu-latest
+            package: prqlc-python
             target: aarch64
           - os: ubuntu-latest
+            package: prqlc-python
+            target: source
+          - os: ubuntu-latest
+            package: lutra-python
+            target: x86_64
+          - os: ubuntu-latest
+            package: lutra-python
+            target: aarch64
+          - os: ubuntu-latest
+            package: lutra-python
             target: source
     steps:
       - name: 📂 Checkout code
