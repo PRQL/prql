@@ -842,19 +842,19 @@ checksum = "510ca239cf13b7f8d16a2b48f263de7b4f8c566f0af58d901031473c76afb1e3"
 
 [[package]]
 name = "connector_arrow"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01313fde3e8ccf9f49b899d639bad75d5a2e019dce5ab8a1acf7118e7cf62905"
+checksum = "020328ac2fffdd1cd95125962ac89381a5272b527f9131a68f34477ef3716d98"
 dependencies = [
  "arrow",
  "chrono",
- "fallible-streaming-iterator",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "log",
+ "once_cell",
+ "regex",
  "rusqlite",
  "serde_json",
  "thiserror",
- "urlencoding",
 ]
 
 [[package]]
@@ -4330,12 +4330,6 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
-
-[[package]]
-name = "urlencoding"
-version = "2.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "utf8parse"
