@@ -277,6 +277,7 @@ jobs:
         package:
           - prqlc-python
           - lutra-python
+        target: [x86_64]
         # Also produce more targets for ubuntu:
         include:
           - os: ubuntu-latest
