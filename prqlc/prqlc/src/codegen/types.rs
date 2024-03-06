@@ -1,5 +1,5 @@
+use crate::ast::*;
 use crate::codegen::SeparatedExprs;
-use prqlc_ast::*;
 
 use super::{WriteOpt, WriteSource};
 
@@ -83,6 +83,7 @@ impl WriteSource for TyKind {
                 let exclude = exclude.write(opt.clone())?;
                 Some(format!("{base} - {exclude}"))
             }
+            GenericArg(_) => Some("?".to_string()),
         }
     }
 }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ir::decl::RootModule;
 use crate::utils::IdGenerator;
 
@@ -17,14 +19,14 @@ pub struct Resolver<'a> {
 
     current_module_path: Vec<String>,
 
-    default_namespace: Option<String>,
-
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
 
     pub id: IdGenerator<usize>,
 
     pub options: ResolverOptions,
+
+    pub generics: HashMap<(usize, String), Vec<crate::ast::Ty>>,
 }
 
 #[derive(Default, Clone)]
@@ -36,16 +38,16 @@ impl Resolver<'_> {
             root_mod,
             options,
             current_module_path: Vec::new(),
-            default_namespace: None,
             in_func_call_name: false,
             id: IdGenerator::new(),
+            generics: Default::default(),
         }
     }
 }
 
 #[cfg(test)]
 pub(super) mod test {
-    use anyhow::Result;
+    use crate::{Errors, Result};
     use insta::assert_yaml_snapshot;
 
     use crate::ir::pl::{Expr, Lineage, PlFold};
@@ -65,17 +67,17 @@ pub(super) mod test {
         }
     }
 
-    fn parse_and_resolve(query: &str) -> Result<Expr> {
+    fn parse_and_resolve(query: &str) -> Result<Expr, Errors> {
         let ctx = crate::semantic::test::parse_and_resolve(query)?;
         let (main, _) = ctx.find_main_rel(&[]).unwrap();
         Ok(*main.clone().into_relation_var().unwrap())
     }
 
-    fn resolve_lineage(query: &str) -> Result<Lineage> {
+    fn resolve_lineage(query: &str) -> Result<Lineage, Errors> {
         Ok(parse_and_resolve(query)?.lineage.unwrap())
     }
 
-    fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
+    fn resolve_derive(query: &str) -> Result<Vec<Expr>, Errors> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call().unwrap();
         let exprs = derive
@@ -94,7 +96,7 @@ pub(super) mod test {
     fn test_variables_1() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            from employees
+            from db.employees
             derive {
                 gross_salary = salary + payroll_tax,
                 gross_cost =   gross_salary + benefits_cost
@@ -119,7 +121,7 @@ pub(super) mod test {
             r#"
             let subtract = a b -> a - b
 
-            from employees
+            from db.employees
             derive {
                 net_salary = subtract gross_salary tax
             }
@@ -135,7 +137,7 @@ pub(super) mod test {
             let lag_day = x -> s"lag_day_todo({x})"
             let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
-            from a
+            from db.a
             derive (ret b c)
             "#
         )
@@ -146,7 +148,7 @@ pub(super) mod test {
     fn test_functions_pipeline() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
-            from a
+            from db.a
             derive one = (foo | sum)
             "#
         )
@@ -157,7 +159,7 @@ pub(super) mod test {
             let plus_one = x -> x + 1
             let plus = x y -> x + y
 
-            from a
+            from db.a
             derive {b = (sum foo | plus_one | plus 2)}
             "#
         )
@@ -169,7 +171,7 @@ pub(super) mod test {
             r#"
             let add_one = x to:1 -> x + to
 
-            from foo_table
+            from db.foo_table
             derive {
                 added = add_one bar to:3,
                 added_default = add_one bar
@@ -183,7 +185,7 @@ pub(super) mod test {
     fn test_frames_and_names() {
         assert_yaml_snapshot!(resolve_lineage(
             r#"
-            from orders
+            from db.orders
             select {customer_no, gross, tax, gross - tax}
             take 20
             "#
@@ -192,16 +194,17 @@ pub(super) mod test {
 
         assert_yaml_snapshot!(resolve_lineage(
             r#"
-            from table_1
-            join customers (==customer_no)
+            from db.table_1
+            join db.customers(==customer_no)
             "#
         )
         .unwrap());
 
         assert_yaml_snapshot!(resolve_lineage(
             r#"
-            from e = employees
-            join salaries (==emp_no)
+            from db.employees
+            select {e = this}
+            join db.salaries(==emp_no)
             group {e.emp_no, e.gender} (
                 aggregate {
                     emp_salary = average salaries.salary

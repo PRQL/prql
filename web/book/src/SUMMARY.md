@@ -1,20 +1,23 @@
 <!-- markdownlint-disable MD042 — some pages aren't finished yet (though the graying out of top level pages is not ideal — it's either that, or links to pages that are blank. Or maybe we try and write a useful page for each heading?) -->
 
-[Overview](./overview.md)
-
 # Tutorial
+
+A friendly & accessible guide for learning PRQL. It has a gradual increase of
+difficulty and requires only basic understanding of programming languages.
+Knowledge of SQL is beneficial, because of many comparisons to SQL, but not
+required.
 
 - [Relations](./tutorial/relations.md)
 - [Filtering](./tutorial/filtering.md)
 - [Aggregation](./tutorial/aggregation.md)
 
-# How do I?
-
-- [Read files?](./how-do-i/read-files.md)
-- [Remove duplicates?](./how-do-i/distinct.md)
-- [Create ad-hoc relations?](./how-do-i/relation-literals.md)
+<!-- We used to have a "How do I", which I think would be good, but we didn't build enough to maintain it. If we find the Reference or Tutorial has enough content that we could move here, we could start it again  -->
+<!-- # How do I? -->
 
 # Reference
+
+In-depth information about the PRQL language. Includes justifications for
+language design decisions and formal specifications for parts of the language.
 
 - [Syntax](./reference/syntax/README.md)
 
@@ -34,10 +37,16 @@
   - [Comments](./reference/syntax/comments.md)
   - [Parameters](./reference/syntax/parameters.md)
 
+- [Importing data](./reference/data/README.md)
+
+  - [From](./reference/data/from.md)
+  - [Reading files](./reference/data/read-files.md)
+  - [Ad-hoc data](./reference/data/relation-literals.md)
+
 - [Declarations]()
   <!-- I don't know what to call this section. -->
 
-  - [Variables](./reference/declarations/variables.md)
+  - [Variables — `let` & `into`](./reference/declarations/variables.md)
   - [Functions](./reference/declarations/functions.md)
 
 - [Standard library](./reference/stdlib/README.md)
@@ -48,7 +57,6 @@
     - [Append](./reference/stdlib/transforms/append.md)
     - [Derive](./reference/stdlib/transforms/derive.md)
     - [Filter](./reference/stdlib/transforms/filter.md)
-    - [From](./reference/stdlib/transforms/from.md)
     - [Group](./reference/stdlib/transforms/group.md)
     - [Join](./reference/stdlib/transforms/join.md)
     - [Loop](./reference/stdlib/transforms/loop.md)
@@ -61,6 +69,7 @@
   - [Date functions](./reference/stdlib/date.md)
   - [Mathematical functions](./reference/stdlib/math.md)
   - [Text functions](./reference/stdlib/text.md)
+  - [Removing duplicates](./reference/stdlib/distinct.md)
 
 - [Specification](./reference/spec/README.md)
 
@@ -70,6 +79,8 @@
   - [Type system](./reference/spec/type-system.md)
 
 # Project
+
+General information about the project, tooling and development.
 
 - [Changelog](./project/changelog.md)
 
@@ -96,6 +107,7 @@
   - [VS Code](./project/integrations/vscode.md)
   - [Rill](./project/integrations/rill.md)
   - [Syntax highlighting](./project/integrations/syntax-highlighting.md)
+  - [PostgreSQL](./project/integrations/postgresql.md)
 
 - [Contributing to PRQL](./project/contributing/README.md)
 

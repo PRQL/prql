@@ -1,7 +1,7 @@
 use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jstring};
 use jni::JNIEnv;
-use prql_compiler::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
+use prqlc::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
 use std::str::FromStr;
 
 #[no_mangle]
@@ -30,7 +30,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         // TODO: add support for this
         color: false,
     };
-    let result = prql_compiler::compile(&prql_query, &opt);
+    let result = prqlc::compile(&prql_query, &opt);
     java_string_with_exception(result, &mut env)
 }
 
@@ -45,7 +45,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_format(
         .get_string(&query)
         .expect("Couldn't get java string!")
         .into();
-    let result = prql_to_pl(&prql_query).and_then(pl_to_prql);
+    let result = prql_to_pl(&prql_query).and_then(|x| pl_to_prql(&x));
     java_string_with_exception(result, &mut env)
 }
 
@@ -60,7 +60,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
         .get_string(&query)
         .expect("Couldn't get java string!")
         .into();
-    let result = prql_to_pl(&prql_query).and_then(json::from_pl);
+    let result = prql_to_pl(&prql_query).and_then(|x| json::from_pl(&x));
     java_string_with_exception(result, &mut env)
 }
 

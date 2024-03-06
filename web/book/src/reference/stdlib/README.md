@@ -22,7 +22,7 @@ The source is the [`std.sql`](https://github.com/PRQL/prql/blob/main/prqlc/prqlc
 And a couple of examples:
 
 ```prql
-from employees
+from db.employees
 derive {
   gross_salary = (salary + payroll_tax | as int),
   gross_salary_rounded = (gross_salary | math.round 0),

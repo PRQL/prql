@@ -8,5 +8,6 @@ PRQL is building integrations with lots of external tools, including:
 - [Prefect](./prefect.md)
 - [VS Code](./vscode.md)
 - [Rill](./rill.md)
+- [PostgreSQL](./postgresql.md)
 
 We also have a CLI, [`prqlc`](./prqlc-cli.md)

@@ -1,9 +1,8 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use prqlc_ast::{Span, Ty};
-
-pub use prqlc_ast::stmt::QueryDef;
+pub use crate::ast::stmt::QueryDef;
+use crate::ast::{Span, Ty};
 
 use super::expr::Expr;
 
@@ -33,7 +32,7 @@ pub enum StmtKind {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
     pub name: String,
-    pub value: Box<Expr>,
+    pub value: Option<Box<Expr>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,

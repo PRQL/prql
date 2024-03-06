@@ -4,7 +4,7 @@ use globset::Glob;
 use insta::assert_snapshot;
 use itertools::Itertools;
 use mdbook_prql::{code_block_lang_tags, LangTag};
-use prqlc::{pl_to_prql, pl_to_rq, prql_to_pl, ErrorMessages};
+use prqlc::{pl_to_prql, pl_to_rq, prql_to_pl};
 use pulldown_cmark::Tag;
 use std::fs;
 use std::path::Path;
@@ -80,7 +80,7 @@ Remove `error` as a language label to assert successfully compiling.
 }
 
 #[test]
-fn test_prql_examples_rq_serialize() -> Result<(), ErrorMessages> {
+fn test_prql_examples_rq_serialize() -> Result<()> {
     for Example { tags, prql, .. } in collect_book_examples()? {
         // Don't assert that this fails, whether or not they compile to RQ is
         // undefined.
@@ -111,7 +111,7 @@ fn test_prql_examples_display_then_compile() -> Result<()> {
     let mut errs = Vec::new();
     for Example { name, tags, prql } in examples {
         let result = prql_to_pl(&prql)
-            .and_then(pl_to_prql)
+            .and_then(|x| pl_to_prql(&x))
             .and_then(|x| compile(&x));
 
         let should_succeed = !tags.contains(&LangTag::NoFmt);

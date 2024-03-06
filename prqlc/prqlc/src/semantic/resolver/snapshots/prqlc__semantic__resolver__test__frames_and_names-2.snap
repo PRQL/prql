@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_lineage(r#\"\n            from table_1\n            join customers (==customer_no)\n            \"#).unwrap()"
+expression: "resolve_lineage(r#\"\n            from db.table_1\n            join db.customers(==customer_no)\n            \"#).unwrap()"
 ---
 columns:
   - All:
@@ -13,11 +13,11 @@ inputs:
   - id: 119
     name: table_1
     table:
-      - default_db
+      - db
       - table_1
   - id: 116
     name: customers
     table:
-      - default_db
+      - db
       - customers
 

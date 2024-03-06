@@ -15,8 +15,8 @@ use prqlc_ast::error::{Error, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
-use lexer::Token;
-use lexer::{TokenSpan, TokenVec};
+use lexer::TokenKind;
+use lexer::{Token, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
@@ -31,8 +31,19 @@ pub fn parse_source(source: &str, source_id: u16) -> Result<Vec<Stmt>, Vec<Error
             .map(|e| convert_lexer_error(source, e, source_id)),
     );
 
-    let ast = if let Some(tokens) = tokens {
-        let stream = prepare_stream(tokens, source, source_id);
+    // We don't want comments in the AST (but we do intend to use them as part of
+    // formatting)
+    let semantic_tokens: Option<_> = tokens.map(|tokens| {
+        tokens.into_iter().filter(|token| {
+            !matches!(
+                token.kind,
+                TokenKind::Comment(_) | TokenKind::LineWrap(_) | TokenKind::DocComment(_)
+            )
+        })
+    });
+
+    let ast = if let Some(semantic_tokens) = semantic_tokens {
+        let stream = prepare_stream(semantic_tokens, source, source_id);
 
         let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
@@ -63,32 +74,32 @@ mod common {
     use prqlc_ast::Ty;
     use prqlc_ast::TyKind;
 
-    use super::{lexer::Token, span::ParserSpan};
+    use super::{lexer::TokenKind, span::ParserSpan};
     use prqlc_ast::expr::*;
     use prqlc_ast::stmt::*;
 
-    pub type PError = Simple<Token, ParserSpan>;
+    pub type PError = Simple<TokenKind, ParserSpan>;
 
-    pub fn ident_part() -> impl Parser<Token, String, Error = PError> {
-        select! { Token::Ident(ident) => ident }.map_err(|e: PError| {
+    pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> {
+        select! { TokenKind::Ident(ident) => ident }.map_err(|e: PError| {
             Simple::expected_input_found(
                 e.span(),
-                [Some(Token::Ident("".to_string()))],
+                [Some(TokenKind::Ident("".to_string()))],
                 e.found().cloned(),
             )
         })
     }
 
-    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = PError> + Clone {
-        just(Token::Keyword(kw.to_string())).ignored()
+    pub fn keyword(kw: &'static str) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+        just(TokenKind::Keyword(kw.to_string())).ignored()
     }
 
-    pub fn new_line() -> impl Parser<Token, (), Error = PError> + Clone {
-        just(Token::NewLine).ignored()
+    pub fn new_line() -> impl Parser<TokenKind, (), Error = PError> + Clone {
+        just(TokenKind::NewLine).ignored()
     }
 
-    pub fn ctrl(char: char) -> impl Parser<Token, (), Error = PError> + Clone {
-        just(Token::Control(char)).ignored()
+    pub fn ctrl(char: char) -> impl Parser<TokenKind, (), Error = PError> + Clone {
+        just(TokenKind::Control(char)).ignored()
     }
 
     pub fn into_stmt((annotations, kind): (Vec<Annotation>, StmtKind), span: ParserSpan) -> Stmt {
@@ -114,14 +125,16 @@ mod common {
     }
 }
 
+/// Convert the output of the lexer into the input of the parser. Requires
+/// supplying the original source code.
 fn prepare_stream(
-    tokens: Vec<TokenSpan>,
+    tokens: impl Iterator<Item = Token>,
     source: &str,
     source_id: u16,
-) -> Stream<Token, ParserSpan, impl Iterator<Item = (Token, ParserSpan)> + Sized> {
+) -> Stream<TokenKind, ParserSpan, impl Iterator<Item = (TokenKind, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |TokenSpan(t, s)| (t, ParserSpan::new(source_id, s)));
+        .map(move |token| (token.kind, ParserSpan::new(source_id, token.span)));
     let len = source.chars().count();
     let eoi = ParserSpan(Span {
         start: len,
@@ -155,32 +168,31 @@ fn convert_parser_error(e: common::PError) -> Error {
         // found end of file
         // fix for span outside of source
         if span.start > 0 && span.end > 0 {
-            span.start -= 1;
-            span.end -= 1;
+            span = span - 1;
         }
     }
 
-    construct_parser_error(e).with_span(Some(*span))
+    construct_parser_error(e).with_span(Some(span.0))
 }
 
-fn construct_parser_error(e: Simple<Token, ParserSpan>) -> Error {
+fn construct_parser_error(e: Simple<TokenKind, ParserSpan>) -> Error {
     if let SimpleReason::Custom(message) = e.reason() {
         return Error::new_simple(message);
     }
 
-    fn token_to_string(t: Option<Token>) -> String {
+    fn token_to_string(t: Option<TokenKind>) -> String {
         t.as_ref()
-            .map(Token::to_string)
+            .map(TokenKind::to_string)
             .unwrap_or_else(|| "end of input".to_string())
     }
 
     let is_all_whitespace = e
         .expected()
-        .all(|t| matches!(t, None | Some(Token::NewLine)));
+        .all(|t| matches!(t, None | Some(TokenKind::NewLine)));
     let expected: Vec<String> = e
         .expected()
         // Only include whitespace if we're _only_ expecting whitespace
-        .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
+        .filter(|t| is_all_whitespace || !matches!(t, None | Some(TokenKind::NewLine)))
         .cloned()
         .map(token_to_string)
         .collect();

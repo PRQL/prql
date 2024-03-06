@@ -50,7 +50,7 @@ updates:
     commit-message:
       prefix: "chore: "
 
-  - directory: ".github/actions/build-prql-python"
+  - directory: ".github/actions/build-python"
     commit-message:
       prefix: "chore: "
     package-ecosystem: "github-actions"
@@ -72,7 +72,7 @@ updates:
       interval: "daily"
 
   - package-ecosystem: pip
-    directory: "prqlc/bindings/python"
+    directory: "prqlc/bindings/prqlc-python"
     schedule:
       interval: daily
     commit-message:
@@ -81,3 +81,8 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-patch
+
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: daily

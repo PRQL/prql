@@ -61,7 +61,7 @@ mod fmt {
         let prql = fs::read_to_string(prql_path).unwrap();
 
         let pl = prqlc::prql_to_pl(&prql).unwrap();
-        let formatted = prqlc::pl_to_prql(pl).unwrap();
+        let formatted = prqlc::pl_to_prql(&pl).unwrap();
 
         with_settings!({ input_file => prql_path }, {
             assert_snapshot!(test_name, &formatted, &prql)
@@ -75,7 +75,6 @@ mod results {
 
     use std::{ops::DerefMut, sync::Mutex};
 
-    use anyhow::Context;
     use once_cell::sync::Lazy;
     use prqlc::sql::SupportLevel;
 
@@ -184,10 +183,7 @@ mod results {
             let dialect = con.cfg.dialect;
 
             println!("Executing {test_name} for {dialect}");
-            let rows = con
-                .run_query(&prql)
-                .context(format!("Executing {test_name} for {dialect}"))
-                .unwrap();
+            let rows = con.run_query(&prql).unwrap();
 
             // convert into ad-hoc CSV
             let result = rows
@@ -199,21 +195,23 @@ mod results {
             results.push((dialect, result));
         }
 
-        // insta::allow_duplicates!, but with reporting of which two cases are not matching.
-        let (left_dialect, left_text) = results.swap_remove(0);
-        for (right_dialect, right_text) in results {
-            similar_asserts::assert_eq!(
-                left_text,
-                right_text,
-                "{} {} {}",
-                test_name,
-                left_dialect,
-                right_dialect
-            );
-        }
+        // insta::allow_duplicates!, but with reporting of which two cases are
+        // not matching.
+        let ((first_dialect, first_text), others) = results.split_first().unwrap();
 
         with_settings!({ input_file => prql_path }, {
-            assert_snapshot!(test_name, left_text, &prql)
-        })
+            assert_snapshot!(test_name, first_text, &prql)
+        });
+
+        for (dialect, text) in others {
+            similar_asserts::assert_eq!(
+                first_text,
+                text,
+                "{} {} {}",
+                test_name,
+                first_dialect,
+                dialect
+            );
+        }
     }
 }

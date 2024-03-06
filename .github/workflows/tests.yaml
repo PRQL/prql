@@ -61,7 +61,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
@@ -109,7 +109,7 @@ jobs:
               - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-php.yaml
             python:
-              - prqlc/bindings/python/**
+              - prqlc/bindings/prqlc-python/**
               - .github/workflows/test-python.yaml
             rust:
               - "**/*.rs"
@@ -271,13 +271,13 @@ jobs:
           # The mac rust cache key. It's not _that_ useful since this will build
           # much more, but it's better than nothing. We can't have our own
           # cache, since we're out of cache space and this workflow takes 1.5GB.
-          shared-key: rust-x86_64-apple-darwin-test-dbs
+          shared-key: rust-x86_64-apple-darwin
           save-if: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
@@ -372,11 +372,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
       # the link checker
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: hyperlink
       - run: ./.github/workflows/scripts/set_version.sh
@@ -396,11 +396,18 @@ jobs:
   measure-code-cov:
     runs-on: ubuntu-latest
     needs: rules
+    # Annoyingly, dependabot doesn't get the `${{ secrets.CODECOV_TOKEN }}`
+    # secret, but codecov expects one given it's not a forked PR. So to avoid
+    # failing, we skip this. (Ideally dependabot would either come from a fork
+    # and not be this special case...). If codecov.io either recognizes this
+    # case or stops requiring tokens while remaining reliable, we can remove
+    # this exception.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: ./.github/workflows/scripts/set_version.sh
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-llvm-cov
       - name: 💰 Cache
@@ -417,7 +424,7 @@ jobs:
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           # files: codecov.json
           files: cobertura.xml
@@ -495,7 +502,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
@@ -513,19 +520,21 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup toolchain add nightly
-      - uses: baptiste0928/cargo-install@v2
+      - run: rustup override set nightly-2023-11-22
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-hack
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-minimal-versions
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          prefix-key: ${{ env.version }}
       - name: Verify minimum rust version
-        run: cargo minimal-versions test
+        run: cargo minimal-versions test --direct
 
   check-ok-to-merge:
     # This indicates to GitHub whether everything in this workflow has passed
@@ -540,18 +549,20 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
-      - test-msrv
+      - test-deps-min-versions
       - test-dotnet
       - test-elixir
+      - test-grammars
       - test-java
       - test-js
-      - test-grammars
-      - test-prqlc-c
+      - test-msrv
       - test-php
+      - test-prqlc-c
       - test-python
       - test-rust
       - test-rust-main
       - test-taskfile
+      - time-compilation
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
@@ -582,20 +593,23 @@ jobs:
               "check-links-book",
               "check-links-markdown",
               "lint-megalinter",
+              "measure-code-cov",
               "nightly",
               "publish-web",
-              "test-msrv",
+              "test-deps-min-versions",
               "test-dotnet",
               "test-elixir",
+              "test-grammars",
               "test-java",
               "test-js",
-              "test-prqlc-c",
-              "test-grammars",
+              "test-msrv",
               "test-php",
+              "test-prqlc-c",
               "test-python",
               "test-rust",
               "test-rust-main",
-              "test-taskfile"
+              "test-taskfile",
+              "time-compilation"
             ]
 
   build-prqlc:

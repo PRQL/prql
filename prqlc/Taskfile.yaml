@@ -2,13 +2,13 @@ version: "3"
 
 includes:
   bindings-python:
-    taskfile: ./bindings/python
-    dir: ./bindings/python
+    taskfile: ./bindings/prqlc-python
+    dir: ./bindings/prqlc-python
 
 vars:
   packages_core: -p prqlc-ast -p prqlc-parser -p prqlc
   packages_addon: -p prql-compiler-macros -p compile-files
-  packages_bindings: -p prql -p prql-java -p prql-js -p prqlc-c -p prql-python
+  packages_bindings: -p prql -p prql-java -p prql-js -p prqlc-c -p prqlc-python
 
 tasks:
   fmt:
@@ -46,19 +46,22 @@ tasks:
       - cmd: cargo clippy --all-targets {{.packages_core}}
 
   test:
-    desc: A full test of prqlc
+    desc: |
+      A full test of prqlc (excluding --test-dbs-external).
+      Generates coverage report.
+    env:
+      # Use a different target dir so we don't poison the cache
+      CARGO_LLVM_COV_TARGET_DIR: ../target-cov
     cmds:
-      - cmd:
-          cargo nextest run {{.packages_core}} {{.packages_addon}}
-          {{.packages_bindings}}
+      - cmd: |
+          cargo \
+            llvm-cov --lcov --output-path lcov.info \
+            nextest --features=test-dbs \
+            {{.packages_core}} {{.packages_addon}} {{.packages_bindings}}
 
       - cmd:
           cargo clippy --all-targets {{.packages_core}} {{.packages_addon}}
           {{.packages_bindings}} -- -D warnings
-
-      - cmd:
-          cargo test --package prqlc --features=default,test-dbs
-          --test=integration -- queries::results
 
   pull-request:
     desc: Most checks that run within GH actions for a pull request

@@ -1,9 +1,10 @@
 /// A trait to "fold" a PRQL AST (similar to a visitor), so we can transitively
 /// apply some logic to a whole tree by just defining how we want to handle each
 /// type.
-use anyhow::Result;
 use itertools::Itertools;
-use prqlc_ast::{TupleField, Ty, TyFunc, TyKind};
+
+use crate::ast::{TupleField, Ty, TyFunc, TyKind};
+use crate::Result;
 
 use super::*;
 
@@ -128,7 +129,7 @@ fn fold_module_def<F: ?Sized + PlFold>(fold: &mut F, module_def: ModuleDef) -> R
 pub fn fold_var_def<F: ?Sized + PlFold>(fold: &mut F, var_def: VarDef) -> Result<VarDef> {
     Ok(VarDef {
         name: var_def.name,
-        value: Box::new(fold.fold_expr(*var_def.value)?),
+        value: fold_optional_box(fold, var_def.value)?,
         ty: var_def.ty.map(|x| fold.fold_type(x)).transpose()?,
     })
 }
@@ -350,7 +351,11 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                 base: Box::new(fold.fold_type(*base)?),
                 exclude: Box::new(fold.fold_type(*exclude)?),
             },
-            TyKind::Any | TyKind::Ident(_) | TyKind::Primitive(_) | TyKind::Singleton(_) => ty.kind,
+            TyKind::Any
+            | TyKind::Ident(_)
+            | TyKind::Primitive(_)
+            | TyKind::Singleton(_)
+            | TyKind::GenericArg(_) => ty.kind,
         },
         span: ty.span,
         name: ty.name,

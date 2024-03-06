@@ -4,8 +4,8 @@ use enum_as_inner::EnumAsInner;
 
 use serde::{Deserialize, Serialize};
 
-use prqlc_ast::expr::generic;
-use prqlc_ast::{Ident, Literal, Span, Ty};
+use crate::ast::generic;
+use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
 
 use crate::codegen::write_ty;
 
@@ -14,7 +14,7 @@ use super::{Lineage, TransformCall};
 // The following code is tested by the tests_misc crate to match expr.rs in prqlc_ast.
 
 /// Expr is anything that has a value and thus a type.
-/// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
+/// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
     #[serde(flatten)]
@@ -113,6 +113,9 @@ pub struct Func {
 
     /// Named function parameters.
     pub named_params: Vec<FuncParam>,
+
+    /// Generic type arguments within this function.
+    pub generic_type_params: Vec<GenericTypeParam>,
 
     /// Arguments that have already been provided.
     pub args: Vec<Expr>,

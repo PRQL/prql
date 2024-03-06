@@ -1,0 +1,18 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from db.employees\ngroup {first_name, last_name} (take 1)\n"
+---
+WITH table_0 AS (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY first_name, last_name) AS _expr_0
+  FROM
+    employees
+)
+SELECT
+  *
+FROM
+  table_0
+WHERE
+  _expr_0 <= 1
+

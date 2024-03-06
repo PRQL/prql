@@ -23,7 +23,6 @@ These are the currently available transforms:
 
 | Transform   | Purpose                                                                         | SQL Equivalent              |
 | ----------- | ------------------------------------------------------------------------------- | --------------------------- |
-| `from`      | [Start from a table](./from.md)                                                 | `FROM`                      |
 | `derive`    | [Compute new columns](./derive.md)                                              | `SELECT *, ... AS ...`      |
 | `select`    | [Pick & compute columns](./select.md)                                           | `SELECT ... AS ...`         |
 | `filter`    | [Pick rows based on their values](./filter.md)                                  | `WHERE`, `HAVING`,`QUALIFY` |
@@ -34,3 +33,9 @@ These are the currently available transforms:
 | `aggregate` | [Summarize many rows into one row](./aggregate.md)                              | `SELECT foo(...)`           |
 | `window`    | [Apply a pipeline to overlapping segments of rows](./window.md)                 | `OVER`, `ROWS`, `RANGE`     |
 | `loop`      | [Iteratively apply a function to a relation until it's empty](./loop.md)        | `WITH RECURSIVE ...`        |
+
+## See also
+
+- [`from`](../../data/from.md) — `from` is the main way of getting data into a
+  pipeline (it's not listed above since it's not technically a transform, since
+  it doesn't receive an input).

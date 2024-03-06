@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use prqlc_ast::expr::*;
-use prqlc_ast::stmt::*;
+use crate::ast::*;
 use regex::Regex;
 
 use crate::codegen::SeparatedExprs;
@@ -137,6 +136,23 @@ impl WriteSource for ExprKind {
             }
             Func(c) => {
                 let mut r = "func ".to_string();
+                if !c.generic_type_params.is_empty() {
+                    r += opt.consume("<")?;
+                    for generic_param in &c.generic_type_params {
+                        r += opt.consume(&write_ident_part(&generic_param.name))?;
+                        r += opt.consume(": ")?;
+                        r += &opt.consume(
+                            SeparatedExprs {
+                                exprs: &generic_param.domain,
+                                inline: " | ",
+                                line_end: "|",
+                            }
+                            .write(opt.clone())?,
+                        )?;
+                    }
+                    r += opt.consume("> ")?;
+                }
+
                 for param in &c.params {
                     r += opt.consume(&write_ident_part(&param.name))?;
                     r += opt.consume(" ")?;
@@ -329,20 +345,31 @@ impl WriteSource for Stmt {
                 r += "\n";
             }
             StmtKind::VarDef(var_def) => match var_def.kind {
-                VarDefKind::Let => {
+                _ if var_def.value.is_none() || var_def.ty.is_some() => {
                     let typ = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
                     } else {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}= ", var_def.name, typ))?;
+                    r += opt.consume(&format!("let {} {}", var_def.name, typ))?;
 
-                    r += &var_def.value.write(opt)?;
+                    if let Some(val) = &var_def.value {
+                        r += opt.consume("= ")?;
+                        r += &val.write(opt)?;
+                    }
+                    r += "\n";
+                }
+
+                VarDefKind::Let => {
+                    r += opt.consume(&format!("let {} = ", var_def.name))?;
+
+                    r += &var_def.value.as_ref().unwrap().write(opt)?;
                     r += "\n";
                 }
                 VarDefKind::Into | VarDefKind::Main => {
-                    match &var_def.value.kind {
+                    let val = var_def.value.as_ref().unwrap();
+                    match &val.kind {
                         ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
                                 r += &expr.write(opt.clone())?;
@@ -350,7 +377,8 @@ impl WriteSource for Stmt {
                             }
                         }
                         _ => {
-                            r += &var_def.value.write(opt)?;
+                            r += &val.write(opt)?;
+                            r += "\n";
                         }
                     }
 
@@ -416,20 +444,20 @@ impl WriteSource for SwitchCase {
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
-    use similar_asserts::assert_eq;
 
     use super::*;
 
+    #[track_caller]
     fn assert_is_formatted(input: &str) {
-        let stmt = format_single_stmt(input);
-
-        assert_eq!(input.trim(), stmt.trim());
+        let formatted = format_single_stmt(input);
+        similar_asserts::assert_eq!(input.trim(), formatted.trim());
     }
 
     fn format_single_stmt(query: &str) -> String {
         use itertools::Itertools;
         let stmt = crate::prql_to_pl(query)
             .unwrap()
+            .stmts
             .into_iter()
             .exactly_one()
             .unwrap();
@@ -494,7 +522,20 @@ mod test {
         assert_is_formatted(r#"sort {-duration}"#);
 
         assert_is_formatted(r#"select a = -b"#);
-        assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#)
+        assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#);
+    }
+
+    #[test]
+    fn test_binary() {
+        assert_is_formatted(r#"let a = 5 * (4 + 3) ?? (5 / 2) // 2 == 1 and true"#);
+
+        // TODO: associativity is not handled correctly
+        // assert_is_formatted(r#"let a = 5 / 2 / 2"#);
+    }
+
+    #[test]
+    fn test_func() {
+        assert_is_formatted(r#"let a = func x y:false -> x and y"#);
     }
 
     #[test]
@@ -526,15 +567,73 @@ group {title, country} (aggregate {
     fn test_range() {
         assert_is_formatted(
             r#"
-from foo
-is_negative = -100..0
+let negative = -100..0
 "#,
         );
 
         assert_is_formatted(
             r#"
-from foo
-is_negative = -(100..0)
+let negative = -(100..0)
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let negative = -100..
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let negative = ..-100
+"#,
+        );
+    }
+
+    #[test]
+    fn test_annotation() {
+        assert_is_formatted(
+            r#"
+@deprecated
+module hello {
+}
+"#,
+        );
+    }
+
+    #[test]
+    fn test_var_def() {
+        assert_is_formatted(
+            r#"
+let a
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let a <int>
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let a = 5
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+5
+into a
+"#,
+        );
+    }
+
+    #[test]
+    fn test_query_def() {
+        assert_is_formatted(
+            r#"
+prql version:"^0.9" target:sql.sqlite
 "#,
         );
     }

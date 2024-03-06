@@ -24,10 +24,10 @@ impl Expr {
     }
 }
 
-// The following code is tested by the tests_misc crate to match expr.rs in prql_compiler.
+// The following code is tested by the tests_misc crate to match expr.rs in prqlc.
 
 /// Expr is anything that has a value and thus a type.
-/// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
+/// Most of these can contain other [Expr] themselves; literals should be [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
     #[serde(flatten)]
@@ -102,6 +102,9 @@ pub struct Func {
 
     /// Named function parameters.
     pub named_params: Vec<FuncParam>,
+
+    /// Generic type arguments within this function.
+    pub generic_type_params: Vec<GenericTypeParam>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -112,6 +115,17 @@ pub struct FuncParam {
     pub ty: Option<Ty>,
 
     pub default_value: Option<Box<Expr>>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct GenericTypeParam {
+    /// Assigned name of this generic type argument.
+    pub name: String,
+
+    /// Possible values of this type argument.
+    /// For a given instance of this function, the argument must be
+    /// exactly one of types in the domain.
+    pub domain: Vec<Ty>,
 }
 
 /// A value and a series of functions that are to be applied to that value one after another.

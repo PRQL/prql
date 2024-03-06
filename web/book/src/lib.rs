@@ -230,13 +230,13 @@ fn table_of_error(prql: &str, message: &str) -> String {
 
 #[test]
 fn test_replace_examples() -> Result<()> {
-    use insta::assert_display_snapshot;
+    use insta::assert_snapshot;
 
     let md = r###"
 # PRQL Doc
 
 ```prql
-from x
+from db.x
 ```
 
 ```python
@@ -251,7 +251,7 @@ this is an error
     // Here we do want colors
     anstream::ColorChoice::Always.write_global();
 
-    assert_display_snapshot!(replace_examples(md)?, @r###"
+    assert_snapshot!(replace_examples(md)?, @r###"
     # PRQL Doc
 
     <div class="comparison">
@@ -260,7 +260,7 @@ this is an error
     <h4>PRQL</h4>
 
     ```prql
-    from x
+    from db.x
     ```
 
     </div>
@@ -318,7 +318,7 @@ this is an error
 
 #[test]
 fn test_table() -> Result<()> {
-    use insta::assert_display_snapshot;
+    use insta::assert_snapshot;
     let table = r"
 # Syntax
 
@@ -333,7 +333,7 @@ fn test_table() -> Result<()> {
 
 ";
 
-    assert_display_snapshot!(replace_examples(table)?, @r###"
+    assert_snapshot!(replace_examples(table)?, @r###"
     # Syntax
 
     |a|

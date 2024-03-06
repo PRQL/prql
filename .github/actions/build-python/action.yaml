@@ -1,0 +1,53 @@
+name: build-wheel
+description: "Use maturin to build python dists."
+inputs:
+  target:
+    description: Build target, or 'source' for source distribution
+    required: false
+  package:
+    description: Package name
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: package-path
+      run:
+        echo "package_path=$(cargo metadata --no-deps --format-version 1 | jq -r
+        --arg package_name ${{ inputs.package }} '.packages[] | select(.name ==
+        $package_name) | .manifest_path')" >>"$GITHUB_OUTPUT"
+      shell: bash
+    # There's benefit from caching here, because the maturin action uses a container.
+    - uses: PyO3/maturin-action@v1
+      if: inputs.target == 'source'
+      with:
+        command: sdist
+        args: -o target/python -m ${{steps.package-path.outputs.package_path}}
+    - uses: PyO3/maturin-action@v1
+      if: runner.os == 'Linux' && inputs.target != 'source'
+      with:
+        target: ${{ inputs.target }}
+        manylinux: auto
+        command: build
+        args:
+          --release -o target/python -m
+          ${{steps.package-path.outputs.package_path}}
+    - uses: PyO3/maturin-action@v1
+      if: runner.os == 'Windows' && inputs.target != 'source'
+      with:
+        command: build
+        args:
+          --release -o target/python -m
+          ${{steps.package-path.outputs.package_path}}
+    - uses: PyO3/maturin-action@v1
+      if: runner.os == 'macOS' && inputs.target != 'source'
+      with:
+        command: build
+        args:
+          --release -o target/python --target universal2-apple-darwin -m
+          ${{steps.package-path.outputs.package_path}}
+    - name: Upload wheels
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.package }}-wheels
+        path: target/python

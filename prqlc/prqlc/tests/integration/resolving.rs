@@ -1,4 +1,3 @@
-use anyhow::Result;
 use insta::assert_snapshot;
 use prqlc::ErrorMessages;
 
@@ -8,14 +7,13 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     let stmts = prqlc::prql_to_pl_tree(&sources)?;
 
     let root_module = prqlc::semantic::resolve(stmts, Default::default())
-        .map_err(prqlc::downcast)
-        .map_err(|e| e.composed(&sources))?;
+        .map_err(|e| prqlc::ErrorMessages::from(e).composed(&sources))?;
 
     // resolved PL, restricted back into AST
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);
-    drop_module_defs(&mut root_module.stmts, &["std", "default_db"]);
+    drop_module_defs(&mut root_module.stmts, &["std", "db"]);
 
-    prqlc::pl_to_prql(root_module.stmts)
+    prqlc::pl_to_prql(&root_module)
 }
 
 fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
@@ -29,7 +27,7 @@ fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
 #[test]
 fn resolve_basic_01() {
     assert_snapshot!(resolve(r#"
-    from x
+    from db.x
     select {a, b}
     "#).unwrap(), @r###"
     let main <[{a = ?, b = ?}]> = `(Select ...)`
@@ -93,5 +91,39 @@ fn resolve_types_04() {
       Unpaid = float ||
       {reason = text, cancelled_at = timestamp} ||
     )
+    "###);
+}
+
+#[test]
+fn resolve_types_05() {
+    // TODO: this is very strange, it should only be allowed in std
+    assert_snapshot!(resolve(
+        r#"
+    type A
+    "#,
+    )
+    .unwrap(), @r###"
+    type A = null
+    "###);
+}
+
+#[test]
+fn resolve_generics_01() {
+    assert_snapshot!(resolve(
+        r#"
+    let add_one = func <A: int | float> a <A> -> <A> a + 1
+        
+    let my_int = add_one 1
+    let my_float = add_one 1.0
+    "#,
+    )
+    .unwrap(), @r###"
+    let add_one = func <A: int | float> a <A> -> <A> (
+      std.add a 1
+    )
+
+    let my_float <float> = `(std.add ...)`
+
+    let my_int <int> = `(std.add ...)`
     "###);
 }

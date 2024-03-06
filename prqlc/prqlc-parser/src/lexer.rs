@@ -6,9 +6,17 @@ use chumsky::{
 
 use itertools::Itertools;
 use prqlc_ast::expr::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum Token {
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct Token {
+    #[serde(flatten)]
+    pub kind: TokenKind,
+    pub span: std::ops::Range<usize>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub enum TokenKind {
     NewLine,
 
     Ident(String),
@@ -40,6 +48,24 @@ pub enum Token {
     DivInt,      // //
     // Pow,         // **
     Annotate, // @
+
+    // Aesthetics only
+    Comment(String),
+    DocComment(String),
+    /// Vec contains comments between the newline and the line wrap
+    // Currently we include the comments with the LineWrap token. This isn't
+    // ideal, but I'm not sure of an easy way of having them be separate.
+    // - The line wrap span technically include the comments — on a newline,
+    //   we need to look ahead to _after_ the comments to see if there's a
+    //   line wrap, and exclude the newline if there is.
+    // - We can only pass one token back
+    //
+    // Alternatives:
+    // - Post-process the stream, removing the newline prior to a line wrap.
+    //   But requires a whole extra pass.
+    // - Change the functionality. But it's very nice to be able to comment
+    //   something out and have line-wraps still work.
+    LineWrap(Vec<TokenKind>),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -49,7 +75,7 @@ pub enum InterpolateItem {
 }
 
 /// Lex chars to tokens until the end of the input
-pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
+pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
     lex_token()
         .repeated()
         .then_ignore(ignored())
@@ -57,26 +83,28 @@ pub fn lexer() -> impl Parser<char, Vec<TokenSpan>, Error = Cheap<char>> {
 }
 
 /// Lex chars to a single token
-pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
+pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
     let control_multi = choice((
-        just("->").to(Token::ArrowThin),
-        just("=>").to(Token::ArrowFat),
-        just("==").to(Token::Eq),
-        just("!=").to(Token::Ne),
-        just(">=").to(Token::Gte),
-        just("<=").to(Token::Lte),
-        just("~=").to(Token::RegexSearch),
-        just("&&").then_ignore(end_expr()).to(Token::And),
-        just("||").then_ignore(end_expr()).to(Token::Or),
-        just("??").to(Token::Coalesce),
-        just("//").to(Token::DivInt),
-        // just("**").to(Token::Pow),
-        just("@").then(digits(1).not().rewind()).to(Token::Annotate),
+        just("->").to(TokenKind::ArrowThin),
+        just("=>").to(TokenKind::ArrowFat),
+        just("==").to(TokenKind::Eq),
+        just("!=").to(TokenKind::Ne),
+        just(">=").to(TokenKind::Gte),
+        just("<=").to(TokenKind::Lte),
+        just("~=").to(TokenKind::RegexSearch),
+        just("&&").then_ignore(end_expr()).to(TokenKind::And),
+        just("||").then_ignore(end_expr()).to(TokenKind::Or),
+        just("??").to(TokenKind::Coalesce),
+        just("//").to(TokenKind::DivInt),
+        // just("**").to(TokenKind::Pow),
+        just("@")
+            .then(digits(1).not().rewind())
+            .to(TokenKind::Annotate),
     ));
 
-    let control = one_of("></%=+-*[]().,:|!{}").map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!{}").map(TokenKind::Control);
 
-    let ident = ident_part().map(Token::Ident);
+    let ident = ident_part().map(TokenKind::Ident);
 
     let keyword = choice((
         just("let"),
@@ -90,9 +118,9 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())
-    .map(Token::Keyword);
+    .map(TokenKind::Keyword);
 
-    let literal = literal().map(Token::Literal);
+    let literal = literal().map(TokenKind::Literal);
 
     let param = just('$')
         .ignore_then(filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.').repeated())
@@ -106,7 +134,8 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     let newline = newline();
 
     let token = choice((
-        newline.to(Token::NewLine),
+        line_wrap(),
+        newline().to(TokenKind::NewLine),
         control_multi,
         interpolation(),
         param,
@@ -114,6 +143,7 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
         literal,
         keyword,
         ident,
+        comment(),
     ))
     // TODO: I think this now needs to be able to fail without recovering, since we use
     // it in the interpolation lexer
@@ -123,21 +153,22 @@ pub fn lex_token() -> impl Parser<char, TokenSpan, Error = Cheap<char>> {
     let range = (whitespace().or_not())
         .then_ignore(just(".."))
         .then(whitespace().or_not())
-        .map(|(left, right)| Token::Range {
+        .map(|(left, right)| TokenKind::Range {
             // If there was no whitespace before (after), then we mark the range
             // as bound on the left (right).
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
-        .map_with_span(TokenSpan);
+        .map_with_span(|kind, span| Token { kind, span });
 
-    choice((range, ignored().ignore_then(token.map_with_span(TokenSpan))))
+    choice((
+        range,
+        ignored().ignore_then(token.map_with_span(|kind, span| Token { kind, span })),
+    ))
 }
 
 fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
-    choice((comment(), whitespace(), line_wrap()))
-        .repeated()
-        .ignored()
+    whitespace().repeated().ignored()
 }
 
 fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
@@ -147,28 +178,35 @@ fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
         .ignored()
 }
 
-fn line_wrap() -> impl Parser<char, (), Error = Cheap<char>> {
+fn line_wrap() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     newline()
-        .then(
-            // We can optionally have an empty line, or a line with a comment,
-            // between the initial line and the continued line
+        .ignore_then(
             whitespace()
-                .or_not()
-                .then(comment().or_not())
-                .then(newline())
+                .repeated()
+                .ignore_then(comment())
+                .then_ignore(newline())
                 .repeated(),
         )
-        .then(whitespace().repeated())
-        .then(just('\\'))
-        .ignored()
+        .then_ignore(whitespace().repeated())
+        .then_ignore(just('\\'))
+        .map(TokenKind::LineWrap)
 }
 
-fn comment() -> impl Parser<char, (), Error = Cheap<char>> {
-    just('#')
-        .then(newline().not().repeated())
-        .separated_by(newline().then(whitespace().or_not()))
-        .at_least(1)
-        .ignored()
+fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
+    just('#').ignore_then(choice((
+        just('!').ignore_then(
+            newline()
+                .not()
+                .repeated()
+                .collect::<String>()
+                .map(TokenKind::DocComment),
+        ),
+        newline()
+            .not()
+            .repeated()
+            .collect::<String>()
+            .map(TokenKind::Comment),
+    )))
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
@@ -535,9 +573,9 @@ fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     .rewind()
 }
 
-impl Token {
+impl TokenKind {
     pub fn range(bind_left: bool, bind_right: bool) -> Self {
-        Token::Range {
+        TokenKind::Range {
             bind_left,
             bind_right,
         }
@@ -545,23 +583,23 @@ impl Token {
 }
 
 // This is here because Literal::Float(f64) does not implement Hash, so we cannot simply derive it.
-// There are reasons for that, but chumsky::Error needs Hash for the Token, so it can deduplicate
+// There are reasons for that, but chumsky::Error needs Hash for the TokenKind, so it can deduplicate
 // tokens in error.
 // So this hack could lead to duplicated tokens in error messages. Oh no.
 #[allow(clippy::derived_hash_with_manual_eq)]
-impl std::hash::Hash for Token {
+impl std::hash::Hash for TokenKind {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
     }
 }
 
-impl std::cmp::Eq for Token {}
+impl std::cmp::Eq for TokenKind {}
 
-impl std::fmt::Display for Token {
+impl std::fmt::Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::NewLine => write!(f, "new line"),
-            Token::Ident(s) => {
+            TokenKind::NewLine => write!(f, "new line"),
+            TokenKind::Ident(s) => {
                 if s.is_empty() {
                     // FYI this shows up in errors
                     write!(f, "an identifier")
@@ -569,27 +607,27 @@ impl std::fmt::Display for Token {
                     write!(f, "{s}")
                 }
             }
-            Token::Keyword(s) => write!(f, "keyword {s}"),
-            Token::Literal(lit) => write!(f, "{}", lit),
-            Token::Control(c) => write!(f, "{c}"),
+            TokenKind::Keyword(s) => write!(f, "keyword {s}"),
+            TokenKind::Literal(lit) => write!(f, "{}", lit),
+            TokenKind::Control(c) => write!(f, "{c}"),
 
-            Token::ArrowThin => f.write_str("->"),
-            Token::ArrowFat => f.write_str("=>"),
-            Token::Eq => f.write_str("=="),
-            Token::Ne => f.write_str("!="),
-            Token::Gte => f.write_str(">="),
-            Token::Lte => f.write_str("<="),
-            Token::RegexSearch => f.write_str("~="),
-            Token::And => f.write_str("&&"),
-            Token::Or => f.write_str("||"),
-            Token::Coalesce => f.write_str("??"),
-            Token::DivInt => f.write_str("//"),
-            // Token::Pow => f.write_str("**"),
-            Token::Annotate => f.write_str("@{"),
+            TokenKind::ArrowThin => f.write_str("->"),
+            TokenKind::ArrowFat => f.write_str("=>"),
+            TokenKind::Eq => f.write_str("=="),
+            TokenKind::Ne => f.write_str("!="),
+            TokenKind::Gte => f.write_str(">="),
+            TokenKind::Lte => f.write_str("<="),
+            TokenKind::RegexSearch => f.write_str("~="),
+            TokenKind::And => f.write_str("&&"),
+            TokenKind::Or => f.write_str("||"),
+            TokenKind::Coalesce => f.write_str("??"),
+            TokenKind::DivInt => f.write_str("//"),
+            // TokenKind::Pow => f.write_str("**"),
+            TokenKind::Annotate => f.write_str("@{"),
 
-            Token::Param(id) => write!(f, "${id}"),
+            TokenKind::Param(id) => write!(f, "${id}"),
 
-            Token::Range {
+            TokenKind::Range {
                 bind_left,
                 bind_right,
             } => write!(
@@ -598,8 +636,25 @@ impl std::fmt::Display for Token {
                 if *bind_left { "" } else { " " },
                 if *bind_right { "" } else { " " }
             ),
-            Token::Interpolation(c, s) => {
-                write!(f, r#"{c}"{}""#, s.iter().map(|x| x.to_string()).join(""))
+            TokenKind::Interpolation(c, s) => {
+                write!(
+                    f,
+                    "{c}\"{}\"",
+                    s.into_iter().map(|x| x.to_string()).join("")
+                )
+            }
+            TokenKind::Comment(s) => {
+                writeln!(f, "#{}", s)
+            }
+            TokenKind::DocComment(s) => {
+                writeln!(f, "#!{}", s)
+            }
+            TokenKind::LineWrap(comments) => {
+                write!(f, "\n\\ ")?;
+                for comment in comments {
+                    write!(f, "{}", comment)?;
+                }
+                Ok(())
             }
         }
     }
@@ -613,7 +668,7 @@ impl std::fmt::Display for InterpolateItem {
                 write!(f, r#"{}"#, s)
             }
             InterpolateItem::Expr(expr, format) => {
-                let expr = expr.iter().map(|x| x.to_string()).join("");
+                let expr = expr.iter().map(|x| x.kind.to_string()).join("");
                 if let Some(format) = format {
                     write!(f, "{{{}:{}}}", expr, format)
                 } else {
@@ -624,16 +679,13 @@ impl std::fmt::Display for InterpolateItem {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
-pub struct TokenSpan(pub Token, pub std::ops::Range<usize>);
-
-impl std::fmt::Debug for TokenSpan {
+impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}..{}: {:?}", self.1.start, self.1.end, self.0)
+        write!(f, "{}..{}: {:?}", self.span.start, self.span.end, self.kind)
     }
 }
 
-pub struct TokenVec(pub Vec<TokenSpan>);
+pub struct TokenVec(pub Vec<Token>);
 
 impl std::fmt::Debug for TokenVec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -655,25 +707,39 @@ mod test {
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
     \ 3 "
         ).unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      10..11: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..9: LineWrap([]),
+          10..11: Literal(Integer(3)),
+        )
+        "###);
 
-        // Comments get skipped over
+        // Comments are included; no newline after the comments
         assert_debug_snapshot!(TokenVec(lexer().parse(r"5 +
 # comment
    # comment with whitespace
   \ 3 "
         ).unwrap()), @r###"
-    TokenVec (
-      0..1: Literal(Integer(5)),
-      2..3: Control('+'),
-      47..48: Literal(Integer(3)),
-    )
-    "###);
+        TokenVec (
+          0..1: Literal(Integer(5)),
+          2..3: Control('+'),
+          3..46: LineWrap([Comment(" comment"), Comment(" comment with whitespace")]),
+          47..48: Literal(Integer(3)),
+        )
+        "###);
+
+        // Check display, for the test coverage (use `assert_eq` because the
+        // line-break doesn't work well with snapshots)
+        assert_eq!(
+            format!(
+                "{}",
+                TokenKind::LineWrap(vec![TokenKind::Comment(" a comment".to_string())])
+            ),
+            r#"
+\ # a comment
+"#
+        );
     }
 
     #[test]
@@ -708,6 +774,30 @@ mod test {
       4..5: Literal(Integer(3)),
     )
     "###);
+    }
+
+    #[test]
+    fn comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("# comment\n# second line").unwrap()), @r###"
+        TokenVec (
+          0..9: Comment(" comment"),
+          9..10: NewLine,
+          10..23: Comment(" second line"),
+        )
+        "###);
+
+        assert_snapshot!(TokenKind::Comment(" This is a single-line comment".to_string()), @r###"
+        # This is a single-line comment
+        "###);
+    }
+
+    #[test]
+    fn doc_comment() {
+        assert_debug_snapshot!(TokenVec(lexer().parse("#! docs").unwrap()), @r###"
+        TokenVec (
+          0..7: DocComment(" docs"),
+        )
+        "###);
     }
 
     #[test]
@@ -780,16 +870,16 @@ mod test {
 
     #[test]
     fn interpolate_item_display() {
-        use insta::assert_display_snapshot;
+        use insta::assert_snapshot;
 
-        assert_display_snapshot!(InterpolateItem::String("hello".to_string()), @"hello");
-        assert_display_snapshot!(Token::Ident("hello".to_string()), @"hello");
-        assert_display_snapshot!(
-            InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
+        assert_snapshot!(InterpolateItem::String("hello".to_string()), @"hello");
+        assert_snapshot!(TokenKind::Ident("hello".to_string()), @"hello");
+        assert_snapshot!(
+            InterpolateItem::Expr(vec![TokenKind::Ident("hello".to_string())], None),
             @"{hello}"
         );
-        assert_display_snapshot!(
-            InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], Some("s".to_string())),
+        assert_snapshot!(
+            InterpolateItem::Expr(vec![TokenKind::Ident("hello".to_string())], Some("s".to_string())),
             @"{hello:s}"
         );
     }
@@ -1047,26 +1137,26 @@ mod test {
 
     #[test]
     fn test_interpolated_display() {
-        use insta::assert_display_snapshot;
+        use insta::assert_snapshot;
 
         fn roundtrip(s: &str) -> String {
             let parsed = interpolation().parse(s).unwrap();
             parsed.to_string()
         }
 
-        assert_display_snapshot!(roundtrip(r#"s"{hello}world""#), @r###"s"{hello}world""###);
+        assert_snapshot!(roundtrip(r#"s"{hello}world""#), @r###"s"{hello}world""###);
 
-        assert_display_snapshot!(
+        assert_snapshot!(
             InterpolateItem::String("hello".to_string()),
             @"hello"
         );
 
-        assert_display_snapshot!(
+        assert_snapshot!(
             InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
             @"{hello}"
         );
 
-        assert_display_snapshot!(
+        assert_snapshot!(
             InterpolateItem::Expr(
                 vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
                 None
@@ -1075,7 +1165,7 @@ mod test {
             @"{hello+3}"
         );
 
-        assert_display_snapshot!(
+        assert_snapshot!(
             InterpolateItem::Expr(
                 vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
                 Some("fmt".to_string())
@@ -1084,7 +1174,7 @@ mod test {
             @"{hello+3:fmt}"
         );
 
-        assert_display_snapshot!(
+        assert_snapshot!(
             InterpolateItem::String("a{bracket}".to_string()),
             @"a{{bracket}}"
         );

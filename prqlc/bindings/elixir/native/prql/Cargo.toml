@@ -1,6 +1,6 @@
 [package]
 authors = ["Kasun Vithanage <kasvith.me@gmail.com>"]
-description = "Elixir NIF bindings for prql-compiler"
+description = "Elixir NIF bindings for prqlc"
 name = "prql"
 publish = false
 
@@ -16,8 +16,9 @@ doctest = false
 name = "prql"
 path = "src/lib.rs"
 test = false
+doc = false
 
 # See Readme for details on Mac
 [target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
-prql-compiler = {path = "../../../../prql-compiler", default-features = false, version = "0.11.2"}
-rustler = "0.30.0"
+prqlc = {path = "../../../../prqlc", default-features = false, version = "0.11.5" }
+rustler = "0.31.0"

@@ -1,14 +1,13 @@
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{TupleField, Ty, TyKind};
-
+use crate::ast::{TupleField, Ty, TyKind};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
-use crate::{Error, Reason, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -44,10 +43,10 @@ impl PlFold for Resolver<'_> {
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
-        let value = if matches!(var_def.value.kind, ExprKind::Func(_)) {
-            var_def.value
-        } else {
-            Box::new(flatten::Flattener::fold(self.fold_expr(*var_def.value)?))
+        let value = match var_def.value {
+            Some(value) if matches!(value.kind, ExprKind::Func(_)) => Some(value),
+            Some(value) => Some(Box::new(flatten::Flattener::fold(self.fold_expr(*value)?))),
+            None => None,
         };
 
         Ok(VarDef {
@@ -63,10 +62,10 @@ impl PlFold for Resolver<'_> {
         }
 
         let id = self.id.gen();
-        let alias = node.alias.clone();
-        let span = node.span;
+        let alias = Box::new(node.alias.clone());
+        let span = Box::new(node.span);
 
-        if let Some(span) = span {
+        if let Some(span) = *span {
             self.root_mod.span_map.insert(id, span);
         }
 
@@ -108,9 +107,9 @@ impl PlFold for Resolver<'_> {
 
                     DeclKind::Expr(expr) => match &expr.kind {
                         ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(*closure.clone())?;
+                            let closure = self.fold_function_types(closure.clone(), id)?;
 
-                            let expr = Expr::new(ExprKind::Func(Box::new(closure)));
+                            let expr = Expr::new(ExprKind::Func(closure));
 
                             if self.in_func_call_name {
                                 expr
@@ -139,8 +138,7 @@ impl PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(span)
-                        .into());
+                        .with_span(*span));
                     }
 
                     _ => Expr {
@@ -164,20 +162,19 @@ impl PlFold for Resolver<'_> {
                 named_args,
             }) => {
                 // fold function name
-                self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let name = self.fold_expr(*name)?;
+                let name = Box::new(self.fold_expr(*name)?);
                 self.in_func_call_name = old;
 
-                let func = *name.try_cast(|n| n.into_func(), None, "a function")?;
+                let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, span)?
+                self.fold_function(func, id, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(*closure, span)?,
+            ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;
@@ -202,7 +199,20 @@ impl PlFold for Resolver<'_> {
                 ..node
             },
         };
-        let mut r = self.static_eval(r)?;
+        self.finish_expr_resolve(r, id, *alias, *span)
+    }
+}
+
+impl Resolver<'_> {
+    fn finish_expr_resolve(
+        &mut self,
+        expr: Expr,
+        id: usize,
+        alias: Option<String>,
+        span: Option<Span>,
+    ) -> Result<Expr> {
+        let mut r = Box::new(self.maybe_static_eval(expr)?);
+
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);
         r.span = r.span.or(span);
@@ -233,11 +243,9 @@ impl PlFold for Resolver<'_> {
                 }
             }
         }
-        Ok(r)
+        Ok(*r)
     }
-}
 
-impl Resolver<'_> {
     pub fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr> {
         let expr = self.fold_expr(expr)?;
         let except = self.coerce_into_tuple(expr)?;

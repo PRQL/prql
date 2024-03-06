@@ -69,8 +69,8 @@ type transform = func relation -> relation
 
 ## Relational transforms
 let from = func
-  `default_db.source` <relation>
-  -> <relation> internal from
+  tbl <relation>
+  -> <relation> tbl
 
 let select = func
   columns <anytype>
@@ -103,7 +103,7 @@ let take = func
   -> <relation> internal take
 
 let join = func
-  `default_db.with` <relation>
+  with <relation>
   condition <bool>
   `noresolve.side`:inner
   tbl <relation>
@@ -124,13 +124,13 @@ let window = func
   tbl <relation>
   -> <relation> internal window
 
-let append = `default_db.bottom`<relation> top<relation> -> <relation> internal append
-let intersect = `default_db.bottom`<relation> top<relation> -> <relation> (
+let append = bottom<relation> top<relation> -> <relation> internal append
+let intersect = bottom<relation> top<relation> -> <relation> (
   t = top
   join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   select t.*
 )
-let remove = `default_db.bottom`<relation> top<relation> -> <relation> (
+let remove = bottom<relation> top<relation> -> <relation> (
   t = top
   join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
   filter (tuple_every (tuple_map _is_null b.*))

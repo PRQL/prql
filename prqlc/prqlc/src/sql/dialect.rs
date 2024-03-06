@@ -11,13 +11,13 @@
 //!
 //! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
 //! constructs. The upside is much less complex translator.
-use anyhow::{bail, Result};
-use core::fmt::Debug;
-
 use chrono::format::{Fixed, Item, Numeric, Pad, StrftimeItems};
+use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use std::any::{Any, TypeId};
 use strum::VariantNames;
+
+use crate::{Error, Result};
 
 /// SQL dialect.
 ///
@@ -39,7 +39,7 @@ use strum::VariantNames;
     strum::EnumIter,
     strum::EnumMessage,
     strum::EnumString,
-    strum::EnumVariantNames,
+    strum::VariantNames,
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum Dialect {
@@ -191,7 +191,9 @@ pub(super) trait DialectHandler: Any + Debug {
     }
 
     fn translate_chrono_item(&self, _item: Item) -> Result<String> {
-        bail!("Date formatting is not yet supported for this dialect")
+        Err(Error::new_simple(
+            "Date formatting is not yet supported for this dialect",
+        ))
     }
 }
 
@@ -204,7 +206,7 @@ impl dyn DialectHandler {
 
 impl DialectHandler for GenericDialect {
     fn translate_chrono_item(&self, _item: Item) -> Result<String> {
-        bail!("Date formatting requires a dialect")
+        Err(Error::new_simple("Date formatting requires a dialect"))
     }
 }
 
@@ -251,7 +253,11 @@ impl DialectHandler for PostgresDialect {
                 }
             }
             Item::Space(spaces) => spaces.to_string(),
-            _ => bail!("PRQL doesn't support this format specifier"),
+            _ => {
+                return Err(Error::new_simple(
+                    "PRQL doesn't support this format specifier",
+                ))
+            }
         })
     }
 }
@@ -331,7 +337,11 @@ impl DialectHandler for MsSqlDialect {
                 }
             }
             Item::Space(spaces) => spaces.to_string(),
-            _ => bail!("PRQL doesn't support this format specifier"),
+            _ => {
+                return Err(Error::new_simple(
+                    "PRQL doesn't support this format specifier",
+                ))
+            }
         })
     }
 }
@@ -369,7 +379,11 @@ impl DialectHandler for MySqlDialect {
             Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%i:%S.%fZ".to_string(),
             Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
             Item::Space(spaces) => spaces.to_string(),
-            _ => bail!("PRQL doesn't support this format specifier"),
+            _ => {
+                return Err(Error::new_simple(
+                    "PRQL doesn't support this format specifier",
+                ))
+            }
         })
     }
 }
@@ -416,7 +430,11 @@ impl DialectHandler for ClickHouseDialect {
                 }
             }
             Item::Space(spaces) => spaces.to_string(),
-            _ => bail!("PRQL doesn't support this format specifier"),
+            _ => {
+                return Err(Error::new_simple(
+                    "PRQL doesn't support this format specifier",
+                ))
+            }
         })
     }
 }
@@ -486,7 +504,11 @@ impl DialectHandler for DuckDbDialect {
             Item::Fixed(Fixed::RFC3339) => "%Y-%m-%dT%H:%M:%S.%fZ".to_string(),
             Item::Literal(literal) => literal.replace('\'', "''").replace('%', "%%"),
             Item::Space(spaces) => spaces.to_string(),
-            _ => bail!("PRQL doesn't support this format specifier"),
+            _ => {
+                return Err(Error::new_simple(
+                    "PRQL doesn't support this format specifier",
+                ))
+            }
         })
     }
 }

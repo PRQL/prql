@@ -7,11 +7,11 @@ info:
     - debug
     - resolve
   env:
-    RUST_LOG: ""
     CLICOLOR_FORCE: ""
     RUST_BACKTRACE: ""
+    RUST_LOG: ""
     NO_COLOR: "1"
-  stdin: from tracks
+  stdin: from db.tracks
 ---
 success: true
 exit_code: 0
@@ -22,6 +22,7 @@ Module {
         "that",
         "_param",
         "std",
+        "_generic",
     ],
     names: {
         "_param": Decl {
@@ -32,7 +33,7 @@ Module {
             order: 0,
             annotations: [],
         },
-        "default_db": Decl {
+        "db": Decl {
             declared_at: None,
             kind: Module(
                 Module {
@@ -142,17 +143,17 @@ Module {
                     ),
                     expr: RelationVar(
                         Expr {
-                            span: 0:0-11,
+                            span: 1:0-14,
                             kind: Ident(
                                 Ident {
                                     path: [
-                                        "default_db",
+                                        "db",
                                     ],
                                     name: "tracks",
                                 },
                             ),
                             id: 115,
-                            ty: [{*..}],
+                            ty: relation,
                             lineage: Lineage {
                                 columns: [
                                     All {
@@ -166,7 +167,7 @@ Module {
                                         name: "tracks",
                                         table: Ident {
                                             path: [
-                                                "default_db",
+                                                "db",
                                             ],
                                             name: "tracks",
                                         },
@@ -198,11 +199,11 @@ Module {
 [34mInfo:[0m 
    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m:1:1[38;5;246m][0m
    [38;5;246m│[0m
- [38;5;246m1 │[0m [31mf[0m[31mr[0m[31mo[0m[31mm[0m[31m [0m[31mt[0m[31mr[0m[31ma[0m[31mc[0m[31mk[0m[31ms[0m
- [38;5;240m  │[0m [31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m┬[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m  
- [38;5;240m  │[0m      [31m╰[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m [default_db.tracks] table 
+ [38;5;246m1 │[0m [31mf[0m[31mr[0m[31mo[0m[31mm[0m[31m [0m[31md[0m[31mb[0m[31m.[0m[31mt[0m[31mr[0m[31ma[0m[31mc[0m[31mk[0m[31ms[0m
+ [38;5;240m  │[0m [31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m┬[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m  
+ [38;5;240m  │[0m        [31m╰[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m[31m─[0m [db.tracks] table 
 [38;5;246m───╯[0m
-module default_db {
+module db {
   let _infer = internal infer
 
   let _infer_module = internal infer
@@ -210,7 +211,7 @@ module default_db {
   let tracks <[{*..}]> = internal local_table
 }
 
-let main <[{*..}]> = default_db.tracks
+let main <[{*..}]> = db.tracks
 
 ----- stderr -----
 

@@ -45,7 +45,7 @@ pub enum StmtKind {
 pub struct VarDef {
     pub kind: VarDefKind,
     pub name: String,
-    pub value: Box<Expr>,
+    pub value: Option<Box<Expr>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,

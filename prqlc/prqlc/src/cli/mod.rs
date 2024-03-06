@@ -1,5 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
 
+mod docs_generator;
 mod jinja;
 mod watch;
 
@@ -12,22 +13,21 @@ use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
 use itertools::Itertools;
-use prqlc_ast::stmt::StmtKind;
 use std::collections::HashMap;
 use std::env;
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::ops::Range;
 use std::path::Path;
-use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
+use prqlc::ast;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
-use prqlc::{downcast, Options, Target};
+use prqlc::semantic::NS_DEFAULT_DB;
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
+use prqlc::{Options, Target};
 
 /// Entrypoint called by [`crate::main`]
 pub fn main() -> color_eyre::eyre::Result<()> {
@@ -91,6 +91,9 @@ enum Command {
 
     #[command(subcommand)]
     Debug(DebugCommand),
+
+    #[command(subcommand)]
+    Experimental(ExperimentalCommand),
 
     /// Parse, resolve & lower into RQ
     Resolve {
@@ -174,6 +177,14 @@ pub enum DebugCommand {
     Ast,
 }
 
+/// Experimental commands are prone to change
+#[derive(Subcommand, Debug, Clone)]
+pub enum ExperimentalCommand {
+    /// Generate Markdown documentation
+    #[command(name = "doc")]
+    GenerateDocs(IoArgs),
+}
+
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
     #[arg(value_parser, default_value = "-", value_hint(ValueHint::AnyPath))]
@@ -212,7 +223,7 @@ impl Command {
                     // We're discarding many of the benefits of Clio here...)
                     if path.as_os_str() == "" {
                         let mut output: Output = Output::new(input.path())?;
-                        output.write_all(&pl_to_prql(ast)?.into_bytes())?;
+                        output.write_all(&pl_to_prql(&ast)?.into_bytes())?;
                         break;
                     }
 
@@ -224,7 +235,7 @@ impl Command {
                     })?;
                     let mut output: Output = Output::new(path_str)?;
 
-                    output.write_all(&pl_to_prql(ast)?.into_bytes())?;
+                    output.write_all(&pl_to_prql(&ast)?.into_bytes())?;
                 }
                 Ok(())
             }
@@ -277,31 +288,28 @@ impl Command {
                 }
             }
             Command::Collect(_) => {
-                let ast = prql_to_pl_tree(sources)?;
-                let mut root_module_def = prqlc::semantic::compose_module_tree(ast)?;
+                let mut root_module_def = prql_to_pl_tree(sources)?;
 
                 drop_module_def(&mut root_module_def.stmts, "std");
 
-                pl_to_prql(root_module_def.stmts)?.into_bytes()
+                pl_to_prql(&root_module_def)?.into_bytes()
             }
             Command::Debug(DebugCommand::ExpandPL(_)) => {
-                let ast = prql_to_pl_tree(sources)?;
-                let root_module_def = prqlc::semantic::compose_module_tree(ast)?;
+                let root_module_def = prql_to_pl_tree(sources)?;
 
                 let expanded = prqlc::semantic::ast_expand::expand_module_def(root_module_def)?;
 
-                let mut restricted = prqlc::semantic::ast_expand::restrict_stmts(expanded.stmts);
+                let mut restricted = prqlc::semantic::ast_expand::restrict_module_def(expanded);
 
-                drop_module_def(&mut restricted, "std");
+                drop_module_def(&mut restricted.stmts, "std");
 
-                pl_to_prql(restricted)?.into_bytes()
+                pl_to_prql(&restricted)?.into_bytes()
             }
             Command::Debug(DebugCommand::Resolve(_)) => {
                 let stmts = prql_to_pl_tree(sources)?;
 
                 let root_module = semantic::resolve(stmts, Default::default())
-                    .map_err(prqlc::downcast)
-                    .map_err(|e| e.composed(sources))?;
+                    .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
 
                 // debug output of the PL
                 let mut out = format!("{root_module:#?}\n").into_bytes();
@@ -315,7 +323,7 @@ impl Command {
                 // resolved PL, restricted back into AST
                 let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
                 drop_module_def(&mut root_module.stmts, "std");
-                out.extend(pl_to_prql(root_module.stmts)?.into_bytes());
+                out.extend(pl_to_prql(&root_module)?.into_bytes());
 
                 out
             }
@@ -334,11 +342,10 @@ impl Command {
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
                 // promote it to the `prqlc` crate.
-                let stmts = prql_to_pl(&source)?;
+                let root_mod = prql_to_pl(&source)?;
 
                 // resolve
-                let stmts = SourceTree::single(PathBuf::new(), stmts);
-                let ctx = semantic::resolve(stmts, Default::default())?;
+                let ctx = semantic::resolve(root_mod, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
                     collect_frames(*main.clone().into_relation_var().unwrap())
@@ -350,33 +357,30 @@ impl Command {
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
             Command::Debug(DebugCommand::Eval(_)) => {
-                let stmts = prql_to_pl_tree(sources)?;
+                let root_mod = prql_to_pl_tree(sources)?;
 
                 let mut res = String::new();
+                for stmt in root_mod.stmts {
+                    if let ast::StmtKind::VarDef(def) = stmt.kind {
+                        res += &format!("## {}\n", def.name);
 
-                for (path, stmts) in stmts.sources {
-                    res += &format!("# {}\n\n", path.to_str().unwrap());
-
-                    for stmt in stmts {
-                        if let StmtKind::VarDef(def) = stmt.kind {
-                            res += &format!("## {}\n", def.name);
-
-                            let val = semantic::eval(*def.value)
-                                .map_err(downcast)
-                                .map_err(|e| e.composed(sources))?;
-                            res += &semantic::write_pl(val);
-                            res += "\n\n";
-                        }
+                        let val = semantic::eval(*def.value.unwrap())
+                            .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
+                        res += &semantic::write_pl(val);
+                        res += "\n\n";
                     }
                 }
 
                 res.into_bytes()
             }
-            Command::Resolve { format, .. } => {
-                semantic::load_std_lib(sources);
+            Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
+                let module_ref = prql_to_pl_tree(sources)?;
 
+                docs_generator::generate_markdown_docs(module_ref.stmts).into_bytes()
+            }
+            Command::Resolve { format, .. } => {
                 let ast = prql_to_pl_tree(sources)?;
-                let ir = pl_to_rq_tree(ast, &main_path)?;
+                let ir = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
 
                 match format {
                     Format::Json => serde_json::to_string_pretty(&ir)?.into_bytes(),
@@ -389,15 +393,13 @@ impl Command {
                 target,
                 ..
             } => {
-                semantic::load_std_lib(sources);
-
                 let opts = Options::default()
-                    .with_target(Target::from_str(target).map_err(|e| downcast(e.into()))?)
+                    .with_target(Target::from_str(target).map_err(prqlc::ErrorMessages::from)?)
                     .with_signature_comment(*signature_comment)
                     .with_format(*format);
 
                 prql_to_pl_tree(sources)
-                    .and_then(|pl| pl_to_rq_tree(pl, &main_path))
+                    .and_then(|pl| pl_to_rq_tree(pl, &main_path, &[NS_DEFAULT_DB.to_string()]))
                     .and_then(|rq| rq_to_sql(rq, &opts))
                     .map_err(|e| e.composed(sources))?
                     .as_bytes()
@@ -405,18 +407,14 @@ impl Command {
             }
 
             Command::SQLPreprocess { .. } => {
-                semantic::load_std_lib(sources);
-
                 let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, &main_path)?;
+                let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
                 let srq = prqlc::sql::internal::preprocess(rq)?;
                 format!("{srq:#?}").as_bytes().to_vec()
             }
             Command::SQLAnchor { format, .. } => {
-                semantic::load_std_lib(sources);
-
                 let ast = prql_to_pl_tree(sources)?;
-                let rq = pl_to_rq_tree(ast, &main_path)?;
+                let rq = pl_to_rq_tree(ast, &main_path, &[NS_DEFAULT_DB.to_string()])?;
                 let srq = prqlc::sql::internal::anchor(rq)?;
 
                 let json = serde_json::to_string_pretty(&srq)?;
@@ -439,7 +437,9 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{
+            Collect, Debug, Experimental, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+        };
         let io_args = match self {
             Parse { io_args, .. }
             | Collect(io_args)
@@ -453,6 +453,7 @@ impl Command {
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args,
+            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
             _ => unreachable!(),
         };
         let input = &mut io_args.input;
@@ -479,7 +480,9 @@ impl Command {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Command::{Collect, Debug, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess};
+        use Command::{
+            Collect, Debug, Experimental, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+        };
         let mut output = match self {
             Parse { io_args, .. }
             | Collect(io_args)
@@ -493,13 +496,14 @@ impl Command {
                 | DebugCommand::Annotate(io_args)
                 | DebugCommand::Eval(io_args),
             ) => io_args.output.clone(),
+            Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
             _ => unreachable!(),
         };
         output.write_all(data)
     }
 }
 
-fn drop_module_def(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, name: &str) {
+fn drop_module_def(stmts: &mut Vec<ast::stmt::Stmt>, name: &str) {
     stmts.retain(|x| x.kind.as_module_def().map_or(true, |m| m.name != name));
 }
 
@@ -565,7 +569,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
 /// are in `prqlc/tests/test.rs`.
 #[cfg(test)]
 mod tests {
-    use insta::{assert_display_snapshot, assert_snapshot};
+    use insta::assert_snapshot;
 
     use super::*;
 
@@ -574,7 +578,7 @@ mod tests {
         let output = Command::execute(
             &Command::Debug(DebugCommand::Annotate(IoArgs::default())),
             &mut r#"
-from initial_table
+from db.initial_table
 select {f = first_name, l = last_name, gender}
 derive full_name = f"{f} {l}"
 take 23
@@ -587,7 +591,7 @@ sort full
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table
+        from db.initial_table
         select {f = first_name, l = last_name, gender}  # [f, l, initial_table.gender]
         derive full_name = f"{f} {l}"                   # [f, l, initial_table.gender, full_name]
         take 23                                         # [f, l, initial_table.gender, full_name]
@@ -612,7 +616,7 @@ sort full
             "",
         );
 
-        assert_display_snapshot!(&result.unwrap_err().to_string(), @r###"
+        assert_snapshot!(&result.unwrap_err().to_string(), @r###"
         Error:
            ╭─[:1:1]
            │
@@ -637,7 +641,7 @@ sort full
                     ("Project.prql".into(), "orders.x | select y".to_string()),
                     (
                         "orders.prql".into(),
-                        "let x = (from z | select {y, u})".to_string(),
+                        "let x = (from db.z | select {y, u})".to_string(),
                     ),
                 ],
                 None,
@@ -645,7 +649,7 @@ sort full
             "main",
         )
         .unwrap();
-        assert_display_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
         WITH x AS (
           SELECT
             y,
@@ -672,33 +676,30 @@ sort full
         )
         .unwrap();
 
-        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
-        sources:
-          '':
-          - VarDef:
-              kind: Main
-              name: main
-              value:
-                Pipeline:
-                  exprs:
-                  - FuncCall:
-                      name:
-                        Ident:
-                        - from
-                      args:
-                      - Ident:
-                        - x
-                  - FuncCall:
-                      name:
-                        Ident:
-                        - select
-                      args:
-                      - Ident:
-                        - y
-            span: 1:0-17
-        source_ids:
-          1: ''
-        root: null
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        name: Project
+        stmts:
+        - VarDef:
+            kind: Main
+            name: main
+            value:
+              Pipeline:
+                exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                      - from
+                    args:
+                    - Ident:
+                      - x
+                - FuncCall:
+                    name:
+                      Ident:
+                      - select
+                    args:
+                    - Ident:
+                      - y
+          span: 1:0-17
         "###);
     }
     #[test]
@@ -708,12 +709,12 @@ sort full
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &mut "from x | select y".into(),
+            &mut "from db.x | select y".into(),
             "",
         )
         .unwrap();
 
-        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         def:
           version: null
           other: {}
@@ -752,12 +753,12 @@ sort full
                 io_args: IoArgs::default(),
                 format: Format::Yaml,
             },
-            &mut "from employees | sort salary | take 3 | filter salary > 0".into(),
+            &mut "from db.employees | sort salary | take 3 | filter salary > 0".into(),
             "",
         )
         .unwrap();
 
-        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         ctes:
         - tid: 1
           kind:
@@ -801,12 +802,12 @@ sort full
                   args:
                   - kind:
                       ColumnRef: 2
-                    span: 1:47-53
+                    span: 1:50-56
                   - kind:
                       Literal:
                         Integer: 0
-                    span: 1:56-57
-              span: 1:47-57
+                    span: 1:59-60
+              span: 1:50-60
           - Sort:
             - direction: Asc
               column: 2
