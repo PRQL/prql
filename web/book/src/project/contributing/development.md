@@ -112,6 +112,11 @@ and its system requirements. Then refer to the links above to get started.
 
 ### Option 4: Use nix development environment
 
+```admonish note
+This is used by a member of the core team on Linux, but doesn't currently work on Mac. We're open to
+contributions to improve support.
+```
+
 A [nix](https://nixos.org/) flake `flake.nix` provides 3 development
 environments:
 
@@ -134,7 +139,7 @@ To load the shell:
    tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
    ```
 
-   For NixOs users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
+   For NixOS users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
 
 3. Run:
 
@@ -142,7 +147,7 @@ To load the shell:
    nix develop
    ```
 
-   If you want "web" or "full" shell, run:
+   To use the "web" or "full" shell, run:
 
    ```sh
    nix develop .#web
