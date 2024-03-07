@@ -1619,7 +1619,7 @@ fn test_window_functions_13() {
 
 #[test]
 fn test_window_single_item_range() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
       from db.login_event
       window rows:1..1 (
         sort time_upload
