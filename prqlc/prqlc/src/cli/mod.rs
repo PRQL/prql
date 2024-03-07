@@ -569,7 +569,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
 /// are in `prqlc/tests/test.rs`.
 #[cfg(test)]
 mod tests {
-    use insta::{assert_display_snapshot, assert_snapshot};
+    use insta::assert_snapshot;
 
     use super::*;
 
@@ -616,7 +616,7 @@ sort full
             "",
         );
 
-        assert_display_snapshot!(&result.unwrap_err().to_string(), @r###"
+        assert_snapshot!(&result.unwrap_err().to_string(), @r###"
         Error:
            ╭─[:1:1]
            │
@@ -649,7 +649,7 @@ sort full
             "main",
         )
         .unwrap();
-        assert_display_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(result).unwrap().trim(), @r###"
         WITH x AS (
           SELECT
             y,
@@ -676,7 +676,7 @@ sort full
         )
         .unwrap();
 
-        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         name: Project
         stmts:
         - VarDef:
@@ -714,7 +714,7 @@ sort full
         )
         .unwrap();
 
-        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         def:
           version: null
           other: {}
@@ -758,7 +758,7 @@ sort full
         )
         .unwrap();
 
-        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
         ctes:
         - tid: 1
           kind:

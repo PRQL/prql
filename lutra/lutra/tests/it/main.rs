@@ -4,7 +4,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use anyhow::Result;
 use arrow::record_batch::RecordBatch;
-use insta::{assert_debug_snapshot, assert_display_snapshot};
+use insta::{assert_debug_snapshot, assert_snapshot};
 use itertools::Itertools;
 use lutra::{DiscoverParams, ExecuteParams};
 use prqlc::ir::pl::Ident;
@@ -45,7 +45,7 @@ fn test_execute() {
 
     assert_eq!(name.to_string(), "main");
 
-    assert_display_snapshot!(arrow::util::pretty::pretty_format_batches(&data).unwrap(), @r###"
+    assert_snapshot!(arrow::util::pretty::pretty_format_batches(&data).unwrap(), @r###"
     +-----+--------------+-------------+
     | aid | name         | last_listen |
     +-----+--------------+-------------+

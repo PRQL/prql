@@ -549,18 +549,20 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
-      - test-msrv
+      - test-deps-min-versions
       - test-dotnet
       - test-elixir
+      - test-grammars
       - test-java
       - test-js
-      - test-grammars
-      - test-prqlc-c
+      - test-msrv
       - test-php
+      - test-prqlc-c
       - test-python
       - test-rust
       - test-rust-main
       - test-taskfile
+      - time-compilation
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
@@ -594,18 +596,20 @@ jobs:
               "measure-code-cov",
               "nightly",
               "publish-web",
-              "test-msrv",
+              "test-deps-min-versions",
               "test-dotnet",
               "test-elixir",
+              "test-grammars",
               "test-java",
               "test-js",
-              "test-prqlc-c",
-              "test-grammars",
+              "test-msrv",
               "test-php",
+              "test-prqlc-c",
               "test-python",
               "test-rust",
               "test-rust-main",
-              "test-taskfile"
+              "test-taskfile",
+              "time-compilation"
             ]
 
   build-prqlc:
