@@ -541,7 +541,7 @@ impl Resolver<'_> {
 
 fn range_is_empty(range: &(Option<i64>, Option<i64>)) -> bool {
     match (&range.0, &range.1) {
-        (Some(s), Some(e)) => s >= e,
+        (Some(s), Some(e)) => s > e,
         _ => false,
     }
 }
