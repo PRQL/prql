@@ -48,6 +48,8 @@ fn test_errors() {
      4 │     select b
        │            ┬
        │            ╰── Unknown name `b`
+       │
+       │ Help: available columns: x.a
     ───╯
     "###);
 
@@ -223,6 +225,8 @@ fn test_ambiguous() {
        │              ╰─── Ambiguous name
        │
        │ Help: could be any of: std.date, this.date
+       │
+       │ Note: available columns: date
     ───╯
     "###);
 }
@@ -244,6 +248,8 @@ fn test_ambiguous_join() {
        │            ╰── Ambiguous name
        │
        │ Help: could be any of: a.x, b.x
+       │
+       │ Note: available columns: a.x, b.x
     ───╯
     "###);
 }
@@ -336,6 +342,25 @@ fn date_to_text_unsupported_chrono_item() {
      6 │       d_str = d | date.to_text "%_j"
        │                                ──┬──
        │                                  ╰──── PRQL doesn't support this format specifier
+    ───╯
+    "###);
+}
+
+#[test]
+fn available_columns() {
+    assert_snapshot!(compile(r#"
+    from db.invoices
+    select foo
+    select bar
+    "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:12]
+       │
+     4 │     select bar
+       │            ─┬─
+       │             ╰─── Unknown name `bar`
+       │
+       │ Help: available columns: invoices.foo
     ───╯
     "###);
 }

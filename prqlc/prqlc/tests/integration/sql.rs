@@ -5090,6 +5090,8 @@ fn test_group_exclude() {
      4 │     group {a} (derive c = a + 1)
        │                           ┬
        │                           ╰── Unknown name `a`
+       │
+       │ Help: available columns: x.b
     ───╯
     "###);
 
