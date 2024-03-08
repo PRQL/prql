@@ -348,7 +348,7 @@ fn date_to_text_unsupported_chrono_item() {
 
 #[test]
 fn available_columns() {
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     from db.invoices
     select foo
     select bar
