@@ -1,7 +1,7 @@
 use crate::Result;
 use std::collections::HashMap;
 
-use crate::ast::{TupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::WithErrorInfo;
@@ -131,9 +131,9 @@ fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
         Some(frame) => {
             let columns = (frame.columns.iter())
                 .map(|col| match col {
-                    LineageColumn::All { .. } => TupleField::Wildcard(None),
+                    LineageColumn::All { .. } => TyTupleField::Wildcard(None),
                     LineageColumn::Single { name, .. } => {
-                        TupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
+                        TyTupleField::Single(name.as_ref().map(|n| n.name.clone()), None)
                     }
                 })
                 .collect();
