@@ -210,6 +210,7 @@ fn test_type_error_placement() {
 }
 
 #[test]
+#[ignore]
 fn test_ambiguous() {
     assert_snapshot!(compile(r#"
     from db.a

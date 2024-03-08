@@ -5230,3 +5230,25 @@ fn test_ordering_declarations() {
       j = 1 + 1
     "###);
 }
+
+#[test]
+#[ignore]
+fn test_local_ref() {
+    assert_snapshot!(compile(
+        r###"
+    let hello = 10
+
+    from db.x
+    select {this.hello}
+    select {hello}
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      h
+    WHERE
+      j = 1 + 1
+    "###);
+}
