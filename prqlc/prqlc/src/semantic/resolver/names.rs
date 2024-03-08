@@ -16,15 +16,13 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        let mut ident = ident.clone().prepend(self.current_module_path.clone());
+        // try resolving relative to current module
+        let i = ident.clone().prepend(self.current_module_path.clone());
+        let mut res = self.resolve_ident_core(&i);
 
-        let mut res = self.resolve_ident_core(&ident);
-        for _ in 0..self.current_module_path.len() {
-            if res.is_ok() {
-                break;
-            }
-            ident = ident.pop_front().1.unwrap();
-            res = self.resolve_ident_core(&ident);
+        // try resolving as a fully qualified ident
+        if res.is_err() {
+            res = self.resolve_ident_core(ident);
         }
 
         match &res {
