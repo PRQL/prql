@@ -24,7 +24,7 @@ pub use self::utils::*;
 pub use crate::ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
 pub fn print_mem_sizes() {
-    use crate::ast::{PrimitiveSet, TyTupleField, Ty, TyFunc, TyKind};
+    use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::ir::{decl, generic, pl, rq};
     use crate::sql::internal::SqlTransform;
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};

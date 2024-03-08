@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::ast::{PrimitiveSet, TyTupleField, Ty, TyFunc, TyKind};
+use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
 use itertools::Itertools;
 

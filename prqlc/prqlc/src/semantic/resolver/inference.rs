@@ -1,7 +1,7 @@
 use crate::Result;
 use itertools::Itertools;
 
-use crate::ast::{Ident, TyTupleField, Ty};
+use crate::ast::{Ident, Ty, TyTupleField};
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
 use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
@@ -21,7 +21,9 @@ impl Resolver<'_> {
             return Err(format!("Variable {table_ident:?} is not a relation."));
         };
 
-        let has_wildcard = columns.iter().any(|c| matches!(c, TyTupleField::Wildcard(_)));
+        let has_wildcard = columns
+            .iter()
+            .any(|c| matches!(c, TyTupleField::Wildcard(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }

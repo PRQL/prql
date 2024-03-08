@@ -3,7 +3,7 @@
 /// type.
 use itertools::Itertools;
 
-use crate::ast::{TyTupleField, Ty, TyFunc, TyKind};
+use crate::ast::{Ty, TyFunc, TyKind, TyTupleField};
 use crate::Result;
 
 use super::*;

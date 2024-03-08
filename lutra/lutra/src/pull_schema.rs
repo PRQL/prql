@@ -2,7 +2,7 @@ use anyhow::Result;
 use arrow::datatypes::{DataType, SchemaRef};
 use connector_arrow::api::SchemaGet;
 use itertools::Itertools;
-use prqlc::ast::{PrimitiveSet, Stmt, TyTupleField, Ty, TyKind, VarDef};
+use prqlc::ast::{PrimitiveSet, Stmt, Ty, TyKind, TyTupleField, VarDef};
 use prqlc::{Error, WithErrorInfo};
 
 use crate::ProjectCompiled;

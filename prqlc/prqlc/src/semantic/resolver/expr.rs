@@ -1,7 +1,7 @@
 use crate::Result;
 use itertools::Itertools;
 
-use crate::ast::{TyTupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};

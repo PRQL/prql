@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::QueryDef;
-use crate::ast::{Literal, Span, TyTupleField, Ty, TyKind};
+use crate::ast::{Literal, Span, Ty, TyKind, TyTupleField};
 use crate::Result;
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};

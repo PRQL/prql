@@ -1,7 +1,7 @@
 use crate::Result;
 use std::collections::HashMap;
 
-use crate::ast::{TyTupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{Decl, DeclKind, Module, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::WithErrorInfo;
