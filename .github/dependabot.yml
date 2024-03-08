@@ -13,6 +13,8 @@ updates:
       patch:
         update-types:
           - patch
+    # We exclude labels throughout because of https://github.com/dependabot/dependabot-core/issues/7645#issuecomment-1986212847
+    labels: []
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -20,6 +22,7 @@ updates:
       interval: daily
     commit-message:
       prefix: "chore: "
+    labels: []
 
   - package-ecosystem: "npm"
     directory: "/prqlc/bindings/js"
@@ -31,6 +34,7 @@ updates:
           - version-update:semver-patch
     commit-message:
       prefix: "chore: "
+    labels: []
 
   - package-ecosystem: "npm"
     directory: "/web/playground"
@@ -42,6 +46,7 @@ updates:
           - version-update:semver-patch
     commit-message:
       prefix: "chore: "
+    labels: []
 
   - package-ecosystem: docker
     directory: .devcontainer/base-image
@@ -49,6 +54,7 @@ updates:
       interval: daily
     commit-message:
       prefix: "chore: "
+    labels: []
 
   - directory: ".github/actions/build-python"
     commit-message:
@@ -56,6 +62,7 @@ updates:
     package-ecosystem: "github-actions"
     schedule:
       interval: "daily"
+    labels: []
 
   - directory: ".github/actions/build-prqlc"
     commit-message:
@@ -63,6 +70,7 @@ updates:
     package-ecosystem: "github-actions"
     schedule:
       interval: "daily"
+    labels: []
 
   - directory: ".github/actions/time-compilation"
     commit-message:
@@ -70,6 +78,7 @@ updates:
     package-ecosystem: "github-actions"
     schedule:
       interval: "daily"
+    labels: []
 
   - package-ecosystem: pip
     directory: "prqlc/bindings/prqlc-python"
@@ -81,8 +90,10 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-patch
+    labels: []
 
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
       interval: daily
+    labels: []
