@@ -85,6 +85,7 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::LayeredModules(_) => Color::Cyan,
                         DeclKind::Infer(_) => Color::White,
                         DeclKind::QueryDef(_) => Color::White,
+                        DeclKind::Import(_) => Color::White,
                     };
 
                     let location = decl

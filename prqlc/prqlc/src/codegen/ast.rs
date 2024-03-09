@@ -407,6 +407,15 @@ impl WriteSource for Stmt {
                 r += &opt.write_indent();
                 r += "}\n";
             }
+            StmtKind::ImportDef(import_def) => {
+                r += "import ";
+                if let Some(alias) = &import_def.alias {
+                    r += &write_ident_part(alias);
+                    r += " = ";
+                }
+                r += &import_def.name.write(opt)?;
+                r += "\n";
+            }
         }
         Some(r)
     }

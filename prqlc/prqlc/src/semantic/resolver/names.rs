@@ -27,22 +27,30 @@ impl Resolver<'_> {
             res = self.resolve_ident_core(&ident);
         }
 
-        if let Err(e) = &res {
-            log::debug!(
-                "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
-                self.root_mod
-            );
+        match &res {
+            Ok(fq_ident) => {
+                let decl = self.root_mod.module.get(fq_ident).unwrap();
+                if let DeclKind::Import(target) = &decl.kind {
+                    let target = target.clone();
+                    return self.resolve_ident(&target);
+                }
+            }
+            Err(e) => {
+                log::debug!(
+                    "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
+                    self.root_mod
+                );
 
-            // attach available names
-            let mut available_names = Vec::new();
-            available_names.extend(self.collect_columns_in_module(NS_THIS));
-            available_names.extend(self.collect_columns_in_module(NS_THAT));
-            if !available_names.is_empty() {
-                let available_names = available_names.iter().map(Ident::to_string).join(", ");
-                res = res.push_hint(format!("available columns: {available_names}"));
+                // attach available names
+                let mut available_names = Vec::new();
+                available_names.extend(self.collect_columns_in_module(NS_THIS));
+                available_names.extend(self.collect_columns_in_module(NS_THAT));
+                if !available_names.is_empty() {
+                    let available_names = available_names.iter().map(Ident::to_string).join(", ");
+                    res = res.push_hint(format!("available columns: {available_names}"));
+                }
             }
         }
-
         res
     }
 

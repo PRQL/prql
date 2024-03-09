@@ -20,8 +20,6 @@ impl super::Resolver<'_> {
                 name: stmt.name().to_string(),
             };
 
-            let stmt_name = stmt.name().to_string();
-
             let mut def = match stmt.kind {
                 StmtKind::QueryDef(d) => {
                     let decl = DeclKind::QueryDef(*d);
@@ -72,6 +70,20 @@ impl super::Resolver<'_> {
                     self.current_module_path.pop();
                     continue;
                 }
+                StmtKind::ImportDef(target) => {
+                    let decl = Decl {
+                        declared_at: stmt.id,
+                        kind: DeclKind::Import(target.name),
+                        annotations: stmt.annotations,
+                        ..Default::default()
+                    };
+
+                    self.root_mod
+                        .module
+                        .insert(ident, decl)
+                        .with_span(stmt.span)?;
+                    continue;
+                }
             };
 
             if def.name == "main" {
@@ -94,7 +106,7 @@ impl super::Resolver<'_> {
 
                     // validate type
                     if expected_ty.is_some() {
-                        let who = || Some(stmt_name.clone());
+                        let who = || Some(def.name.clone());
                         self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
                     }
 
@@ -112,7 +124,7 @@ impl super::Resolver<'_> {
                         })
                     } else {
                         // treat this var as a param
-                        let mut expr = Box::new(Expr::new(ExprKind::Param(stmt_name.clone())));
+                        let mut expr = Box::new(Expr::new(ExprKind::Param(def.name)));
                         expr.ty = expected_ty;
                         DeclKind::Expr(expr)
                     }
