@@ -37,7 +37,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 
         annotation
             .repeated()
-            .then(choice((type_def(), var_def(), module_def)))
+            .then(choice((module_def, type_def(), var_def())))
             .map_with_span(into_stmt)
             .separated_by(new_line().repeated().at_least(1))
             .allow_leading()
