@@ -15,7 +15,7 @@ pub use lowering::lower_to_ir;
 use crate::ast;
 use crate::ir::constant::ConstExpr;
 use crate::ir::decl::{Module, RootModule};
-use crate::ir::pl::{self, Expr, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
+use crate::ir::pl::{self, Expr, ImportDef, ModuleDef, Stmt, StmtKind, TypeDef, VarDef};
 use crate::ir::rq::RelationalQuery;
 use crate::parser::is_mod_def_for;
 use crate::WithErrorInfo;
@@ -127,6 +127,7 @@ impl Stmt {
             StmtKind::VarDef(VarDef { name, .. }) => name,
             StmtKind::TypeDef(TypeDef { name, .. }) => name,
             StmtKind::ModuleDef(ModuleDef { name, .. }) => name,
+            StmtKind::ImportDef(ImportDef { name, alias }) => alias.as_ref().unwrap_or(&name.name),
         }
     }
 }

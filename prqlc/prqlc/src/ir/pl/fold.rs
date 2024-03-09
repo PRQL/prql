@@ -111,11 +111,10 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
 pub fn fold_stmt_kind<T: ?Sized + PlFold>(fold: &mut T, stmt_kind: StmtKind) -> Result<StmtKind> {
     use StmtKind::*;
     Ok(match stmt_kind {
-        // FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         TypeDef(type_def) => TypeDef(fold.fold_type_def(type_def)?),
         ModuleDef(module_def) => ModuleDef(fold.fold_module_def(module_def)?),
-        QueryDef(_) => stmt_kind,
+        QueryDef(_) | ImportDef(_) => stmt_kind,
     })
 }
 

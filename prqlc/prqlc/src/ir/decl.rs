@@ -82,6 +82,9 @@ pub enum DeclKind {
     Ty(Ty),
 
     QueryDef(QueryDef),
+
+    /// Equivalent to the declaration pointed to by the fully qualified ident
+    Import(Ident),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -195,6 +198,7 @@ impl std::fmt::Display for DeclKind {
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
             Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),
             Self::QueryDef(_) => write!(f, "QueryDef"),
+            Self::Import(arg0) => write!(f, "Import {arg0}"),
         }
     }
 }
