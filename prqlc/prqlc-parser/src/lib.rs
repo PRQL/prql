@@ -84,7 +84,8 @@ mod common {
         select! {
             TokenKind::Ident(ident) => ident,
             TokenKind::Keyword(ident) if &ident == "module" => ident,
-        }.map_err(|e: PError| {
+        }
+        .map_err(|e: PError| {
             Simple::expected_input_found(
                 e.span(),
                 [Some(TokenKind::Ident("".to_string()))],
