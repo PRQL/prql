@@ -25,8 +25,8 @@ mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.9.6", default-features = false}
 pulldown-cmark-to-cmark = "11.2.0"
-strum = {version = "0.26.1", features = ["std", "derive"]}
-strum_macros = "0.26.1"
+strum = {version = "0.26.2", features = ["std", "derive"]}
+strum_macros = "0.26.2"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 anstream = {version = "0.6.13"}
