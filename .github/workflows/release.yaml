@@ -62,7 +62,7 @@ jobs:
           features: cli
       - name: Upload release artifact
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
@@ -110,7 +110,7 @@ jobs:
           profile: release
       - name: Upload release artifact
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
@@ -182,7 +182,7 @@ jobs:
             ./*.deb
       - name: Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: prqlc_*.deb
 
@@ -243,7 +243,7 @@ jobs:
       - run: rm prqlc-debuginfo-*.rpm
       - name: Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: prqlc-*.rpm
 
