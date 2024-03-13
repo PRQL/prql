@@ -26,8 +26,8 @@ pub fn prql_to_pl(prql_query: &str) -> Option<String> {
 pub fn pl_to_prql(pl_json: &str) -> Option<String> {
     return_or_throw(
         Ok(pl_json)
-            .and_then(prql_compiler::json::to_pl)
-            .and_then(prql_compiler::pl_to_prql)
+            .and_then(prqlc::json::to_pl)
+            .and_then(|x| prqlc::pl_to_prql(&x))
     )
 }
 
