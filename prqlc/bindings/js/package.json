@@ -13,17 +13,14 @@
   "license": "Apache-2.0",
   "author": "PRQL team",
   "main": "dist/node/prql_js.js",
-  "name": "@bioteam/prql",
+  "name": "prql-js",
   "bugs": {
     "url": "https://github.com/PRQL/prql/issues"
   },
   "homepage": "https://prql-lang.org/",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bioteam/prql.git",
+    "url": "https://github.com/PRQL/prql",
     "directory": "prqlc/bindings/js"
   },
   "keywords": [
