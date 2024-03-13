@@ -1,4 +1,12 @@
-# PRQL compiler CLI — `prqlc`
+# PRQL compiler
+
+`prqlc` is the reference implementation of a compiler from PRQL to SQL, written
+in Rust. It also serves as the CLI.
+
+For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
+[PRQL repo](https://github.com/PRQL/prql).
+
+## CLI
 
 `prqlc` serves as a CLI for the PRQL compiler. It is a single, dependency-free
 binary that compiles PRQL into SQL.
@@ -10,7 +18,7 @@ binary that compiles PRQL into SQL.
 This command works as a filter that compiles a PRQL string into an SQL string.
 
 ```sh
-$ echo 'from employees | filter has_dog | select salary' | prqlc compile
+$ echo 'from db.employees | filter has_dog | select salary' | prqlc compile
 
 SELECT
   salary
@@ -25,7 +33,7 @@ A PRQL query can be executed with CLI tools compatible with SQL,, such as
 
 ```sh
 $ curl -fsL https://raw.githubusercontent.com/PRQL/prql/0.8.1/prql-compiler/tests/integration/data/chinook/albums.csv -o albums.csv
-$ echo 'from `albums.csv` | take 3' | prqlc compile | duckdb
+$ echo 'from.`albums.csv` | take 3' | prqlc compile | duckdb
 ┌──────────┬───────────────────────────────────────┬───────────┐
 │ album_id │                 title                 │ artist_id │
 │  int64   │                varchar                │   int64   │
@@ -154,3 +162,34 @@ tools.
 - [`eg`](https://github.com/srsudar/eg)
 
 <!-- Issues: #2034 cheat/cheatsheets, #2041 devhints.io -->
+
+## Library
+
+For more usage examples and the library documentation, check out the
+[`prqlc` documentation](https://docs.rs/prqlc/).
+
+### Library installation
+
+```shell
+cargo add prqlc
+```
+
+### Examples
+
+Compile a PRQL string to a SQLite dialect string:
+
+```rust
+// In a file src/main.rs
+
+use prqlc::{compile, Options, Target, sql::Dialect};
+
+let prql = "from db.employees | select {name, age}";
+let opts = &Options {
+    format: false,
+    target: Target::Sql(Some(Dialect::SQLite)),
+    signature_comment: false,
+    color: false,
+};
+let sql = compile(&prql, opts).unwrap();
+assert_eq!("SELECT name, age FROM employees", sql);
+```

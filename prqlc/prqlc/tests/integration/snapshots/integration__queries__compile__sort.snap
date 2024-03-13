@@ -1,0 +1,32 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom.employees\nselect {e = this}\nfilter first_name != \"Mitchell\"\nsort {first_name, last_name}\n\n# joining may use HashMerge, which can undo ORDER BY\njoin (from.employees | select {manager = this}) side:left (e.reports_to == manager.employee_id)\n\nselect {e.first_name, e.last_name, manager.first_name}\n"
+input_file: prqlc/prqlc/tests/integration/queries/sort.prql
+---
+WITH table_1 AS (
+  SELECT
+    first_name,
+    last_name,
+    reports_to
+  FROM
+    employees
+  WHERE
+    first_name <> 'Mitchell'
+),
+table_0 AS (
+  SELECT
+    *
+  FROM
+    employees
+)
+SELECT
+  table_1.first_name,
+  table_1.last_name,
+  table_0.first_name
+FROM
+  table_1
+  LEFT JOIN table_0 ON table_1.reports_to = table_0.employee_id
+ORDER BY
+  table_1.first_name,
+  table_1.last_name
+

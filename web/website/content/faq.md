@@ -164,7 +164,7 @@ PRQL clearly delineates two operations with two transforms:
   exactly one output row for every input row.
 
   ```prql
-  from employees
+  from db.employees
   select name = f"{first_name} {last_name}"
   ```
 
@@ -172,7 +172,7 @@ PRQL clearly delineates two operations with two transforms:
   function like `sum` or `min`.
 
   ```prql
-  from employees
+  from db.employees
   aggregate [total_salary = sum salary]
   ```
 
@@ -181,7 +181,7 @@ same semantics on the group as it would on a whole table — another example of
 PRQL's orthogonality.
 
 ```prql
-from employees
+from db.employees
 group department (
   aggregate [total_salary = sum salary]
 )
@@ -199,6 +199,15 @@ PRQL:
 
 For more detail, check out the docs in the
 [PRQL Book](https://prql-lang.org/book/reference/stdlib/transforms/aggregate.html).
+
+{{</ faq >}}
+
+{{< faq "Can PRQL write to databases?" >}}
+
+PRQL is focused on analytical queries, so we don't currently support writing or
+modifying data in databases. However, PRQL queries can be used to generate SQL
+statements that write to databases. For example, surround the SQL output of a
+PRQL query in `CREATE OR REPLACE TABLE foo AS (...)`.
 
 {{</ faq >}}
 

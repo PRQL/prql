@@ -4,7 +4,7 @@ use enum_as_inner::EnumAsInner;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
-use crate::{expr::Expr, Span, Ty};
+use crate::{expr::Expr, Ident, Span, Ty};
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
 pub struct QueryDef {
@@ -39,13 +39,14 @@ pub enum StmtKind {
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
+    ImportDef(ImportDef),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct VarDef {
     pub kind: VarDefKind,
     pub name: String,
-    pub value: Box<Expr>,
+    pub value: Option<Box<Expr>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
@@ -61,6 +62,12 @@ pub struct TypeDef {
 pub struct ModuleDef {
     pub name: String,
     pub stmts: Vec<Stmt>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ImportDef {
+    pub alias: Option<String>,
+    pub name: Ident,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

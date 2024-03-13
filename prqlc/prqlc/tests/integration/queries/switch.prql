@@ -1,0 +1,10 @@
+# glaredb:skip (May be a bag of String type conversion for Postgres Client)
+# mssql:test
+from db.tracks
+sort milliseconds
+select display = case [
+    composer != null => composer,
+    genre_id < 17 => 'no composer',
+    true => f'unknown composer'
+]
+take 10

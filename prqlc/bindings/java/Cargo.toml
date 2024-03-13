@@ -12,10 +12,11 @@ version.workspace = true
 crate_type = ["cdylib"]
 doctest = false
 test = false
+doc = false
 
 [dependencies]
 jni = "0.21.1"
-prql-compiler = {path = "../../prql-compiler", default-features = false}
+prqlc = {path = "../../prqlc", default-features = false}
 
 [package.metadata.release]
 tag-name = "{{version}}"

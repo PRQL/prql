@@ -1,0 +1,322 @@
+---
+source: prqlc/prqlc/src/semantic/resolver/transforms.rs
+expression: expr
+---
+TransformCall:
+  input:
+    Ident:
+      - db
+      - c_invoice
+    ty:
+      kind:
+        Array:
+          kind:
+            Tuple:
+              - Wildcard:
+                  kind: Any
+                  span: "0:2043-2050"
+                  name: ~
+          span: "0:2042-2053"
+          name: tuple
+      span: "0:2158-2165"
+      name: relation
+    lineage:
+      columns:
+        - All:
+            input_id: 118
+            except: []
+      inputs:
+        - id: 118
+          name: c_invoice
+          table:
+            - db
+            - c_invoice
+  kind:
+    Aggregate:
+      assigns:
+        Tuple:
+          - RqOperator:
+              name: std.average
+              args:
+                - Ident:
+                    - this
+                    - c_invoice
+                    - amount
+                  ty:
+                    kind:
+                      Array:
+                        kind: Any
+                        span: "0:1929-1936"
+                        name: ~
+                    span: "0:1928-1937"
+                    name: array
+            ty:
+              kind:
+                Union:
+                  - - ~
+                    - kind:
+                        Primitive: Float
+                      span: "0:4117-4122"
+                      name: ~
+                  - - ~
+                    - kind:
+                        Singleton: "Null"
+                      span: "0:4126-4130"
+                      name: ~
+              span: "0:4117-4130"
+              name: ~
+        ty:
+          kind:
+            Tuple:
+              - Single:
+                  - ~
+                  - kind:
+                      Union:
+                        - - ~
+                          - kind:
+                              Primitive: Float
+                            span: "0:4117-4122"
+                            name: ~
+                        - - ~
+                          - kind:
+                              Singleton: "Null"
+                            span: "0:4126-4130"
+                            name: ~
+                    span: "0:4117-4130"
+                    name: ~
+          span: ~
+          name: ~
+  partition:
+    Tuple:
+      - Ident:
+          - this
+          - c_invoice
+          - issued_at
+        ty:
+          kind:
+            Union:
+              - - ~
+                - kind:
+                    Union:
+                      - - ~
+                        - kind:
+                            Primitive: Int
+                          span: "0:1963-1966"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Primitive: Float
+                          span: "0:1970-1975"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Primitive: Bool
+                          span: "0:1979-1983"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Primitive: Text
+                          span: "0:1987-1991"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Primitive: Date
+                          span: "0:1995-1999"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Primitive: Time
+                          span: "0:2003-2007"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Primitive: Timestamp
+                          span: "0:2011-2020"
+                          name: ~
+                      - - ~
+                        - kind:
+                            Singleton: "Null"
+                          span: "0:2024-2028"
+                          name: ~
+                  span: "0:1963-2028"
+                  name: scalar
+              - - ~
+                - kind:
+                    Tuple:
+                      - Wildcard:
+                          kind: Any
+                          span: "0:2043-2050"
+                          name: ~
+                  span: "0:2042-2053"
+                  name: tuple
+          span: "0:2981-2996"
+          name: ~
+    ty:
+      kind:
+        Tuple:
+          - Single:
+              - issued_at
+              - kind:
+                  Union:
+                    - - ~
+                      - kind:
+                          Union:
+                            - - ~
+                              - kind:
+                                  Primitive: Int
+                                span: "0:1963-1966"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Float
+                                span: "0:1970-1975"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Bool
+                                span: "0:1979-1983"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Text
+                                span: "0:1987-1991"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Date
+                                span: "0:1995-1999"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Time
+                                span: "0:2003-2007"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Timestamp
+                                span: "0:2011-2020"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Singleton: "Null"
+                                span: "0:2024-2028"
+                                name: ~
+                        span: "0:1963-2028"
+                        name: scalar
+                    - - ~
+                      - kind:
+                          Tuple:
+                            - Wildcard:
+                                kind: Any
+                                span: "0:2043-2050"
+                                name: ~
+                        span: "0:2042-2053"
+                        name: tuple
+                span: "0:2981-2996"
+                name: ~
+      span: ~
+      name: ~
+ty:
+  kind:
+    Array:
+      kind:
+        Tuple:
+          - Single:
+              - issued_at
+              - kind:
+                  Union:
+                    - - ~
+                      - kind:
+                          Union:
+                            - - ~
+                              - kind:
+                                  Primitive: Int
+                                span: "0:1963-1966"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Float
+                                span: "0:1970-1975"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Bool
+                                span: "0:1979-1983"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Text
+                                span: "0:1987-1991"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Date
+                                span: "0:1995-1999"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Time
+                                span: "0:2003-2007"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Primitive: Timestamp
+                                span: "0:2011-2020"
+                                name: ~
+                            - - ~
+                              - kind:
+                                  Singleton: "Null"
+                                span: "0:2024-2028"
+                                name: ~
+                        span: "0:1963-2028"
+                        name: scalar
+                    - - ~
+                      - kind:
+                          Tuple:
+                            - Wildcard:
+                                kind: Any
+                                span: "0:2043-2050"
+                                name: ~
+                        span: "0:2042-2053"
+                        name: tuple
+                span: "0:2981-2996"
+                name: ~
+          - Single:
+              - ~
+              - kind:
+                  Union:
+                    - - ~
+                      - kind:
+                          Primitive: Float
+                        span: "0:4117-4122"
+                        name: ~
+                    - - ~
+                      - kind:
+                          Singleton: "Null"
+                        span: "0:4126-4130"
+                        name: ~
+                span: "0:4117-4130"
+                name: ~
+      span: ~
+      name: ~
+  span: ~
+  name: ~
+lineage:
+  columns:
+    - Single:
+        name:
+          - c_invoice
+          - issued_at
+        target_id: 120
+        target_name: ~
+    - Single:
+        name: ~
+        target_id: 136
+        target_name: ~
+  inputs:
+    - id: 118
+      name: c_invoice
+      table:
+        - db
+        - c_invoice
+

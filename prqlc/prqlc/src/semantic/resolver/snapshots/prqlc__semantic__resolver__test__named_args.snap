@@ -1,0 +1,85 @@
+---
+source: prqlc/prqlc/src/semantic/resolver/mod.rs
+expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add_one bar to:3,\n                added_default = add_one bar\n            }\n            \"#).unwrap()"
+---
+- RqOperator:
+    name: std.add
+    args:
+      - Ident:
+          - this
+          - foo_table
+          - bar
+      - Literal:
+          Integer: 3
+        ty:
+          kind:
+            Primitive: Int
+          span: ~
+          name: ~
+  alias: added
+  ty:
+    kind:
+      Union:
+        - - ~
+          - kind:
+              Primitive: Int
+            span: "0:893-896"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Float
+            span: "0:900-905"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Timestamp
+            span: "0:909-918"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Date
+            span: "0:922-926"
+            name: ~
+    span: "0:893-926"
+    name: ~
+- RqOperator:
+    name: std.add
+    args:
+      - Ident:
+          - this
+          - foo_table
+          - bar
+      - Literal:
+          Integer: 1
+        ty:
+          kind:
+            Primitive: Int
+          span: ~
+          name: ~
+  alias: added_default
+  ty:
+    kind:
+      Union:
+        - - ~
+          - kind:
+              Primitive: Int
+            span: "0:893-896"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Float
+            span: "0:900-905"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Timestamp
+            span: "0:909-918"
+            name: ~
+        - - ~
+          - kind:
+              Primitive: Date
+            span: "0:922-926"
+            name: ~
+    span: "0:893-926"
+    name: ~
+

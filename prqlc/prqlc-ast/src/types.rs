@@ -6,7 +6,7 @@ use crate::{Ident, Span};
 
 use super::Literal;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -31,7 +31,7 @@ pub enum TyKind {
     Union(Vec<(Option<String>, Ty)>),
 
     /// Type of tuples (product)
-    Tuple(Vec<TupleField>),
+    Tuple(Vec<TyTupleField>),
 
     /// Type of arrays
     Array(Box<Ty>),
@@ -42,10 +42,16 @@ pub enum TyKind {
     /// Type of every possible value. Super type of all other types.
     /// The breaker of chains. Mother of types.
     Any,
+
+    /// Type that is the largest subtype of `base` while not a subtype of `exclude`.
+    Difference { base: Box<Ty>, exclude: Box<Ty> },
+
+    /// A generic argument. Contains id of the function call node and generic type param name.
+    GenericArg((usize, String)),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum TupleField {
+pub enum TyTupleField {
     /// Named tuple element.
     Single(Option<String>, Option<Ty>),
 
@@ -92,7 +98,7 @@ impl Ty {
         }
     }
 
-    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+    pub fn relation(tuple_fields: Vec<TyTupleField>) -> Self {
         let tuple = Ty::new(TyKind::Tuple(tuple_fields));
         Ty::new(TyKind::Array(Box::new(tuple)))
     }
@@ -101,15 +107,19 @@ impl Ty {
         Ty::new(TyKind::Union(Vec::new()))
     }
 
-    pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
+    pub fn is_never(&self) -> bool {
+        self.kind.as_union().map_or(false, |x| x.is_empty())
+    }
+
+    pub fn as_relation(&self) -> Option<&Vec<TyTupleField>> {
         self.kind.as_array()?.kind.as_tuple()
     }
 
-    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TupleField>> {
+    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TyTupleField>> {
         self.kind.as_array_mut()?.kind.as_tuple_mut()
     }
 
-    pub fn into_relation(self) -> Option<Vec<TupleField>> {
+    pub fn into_relation(self) -> Option<Vec<TyTupleField>> {
         self.kind.into_array().ok()?.kind.into_tuple().ok()
     }
 
@@ -121,21 +131,13 @@ impl Ty {
             _ => false,
         }
     }
-
-    pub fn is_function(&self) -> bool {
-        matches!(self.kind, TyKind::Function(_))
-    }
-
-    pub fn is_tuple(&self) -> bool {
-        matches!(self.kind, TyKind::Tuple(_))
-    }
 }
 
-impl TupleField {
+impl TyTupleField {
     pub fn ty(&self) -> Option<&Ty> {
         match self {
-            TupleField::Single(_, ty) => ty.as_ref(),
-            TupleField::Wildcard(ty) => ty.as_ref(),
+            TyTupleField::Single(_, ty) => ty.as_ref(),
+            TyTupleField::Wildcard(ty) => ty.as_ref(),
         }
     }
 }
@@ -155,11 +157,5 @@ impl From<TyFunc> for TyKind {
 impl From<Literal> for TyKind {
     fn from(value: Literal) -> Self {
         TyKind::Singleton(value)
-    }
-}
-
-impl std::fmt::Debug for Ty {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ok(())
     }
 }

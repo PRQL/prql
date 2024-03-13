@@ -26,7 +26,7 @@ since it compiles to SQL.
 PRQL can be as simple as:
 
 ```elm
-from tracks
+from db.tracks
 filter artist == "Bob Marley"                 # Each line transforms the previous result
 aggregate {                                   # `aggregate` reduces each column to a value
   plays    = sum plays,
@@ -38,7 +38,7 @@ aggregate {                                   # `aggregate` reduces each column 
 Here's a fuller example of the language;
 
 ```elm
-from employees
+from db.employees
 filter start_date > @2021-01-01               # Clear date syntax
 derive {                                      # `derive` adds columns / variables
   gross_salary = salary + (tax ?? 0),         # Terse coalesce
@@ -62,7 +62,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - November 2023
+## Current Status - February 2024
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
@@ -71,12 +71,10 @@ using one of our supported language bindings.
 PRQL still has some bugs and some missing features, and is probably only ready
 to be rolled out to non-technical teams for fairly simple queries.
 
-We released [0.10.0](https://github.com/PRQL/prql/releases/tag/0.10.0) in
-October. It contains lots of small improvements, including support for new types
-of literal notation, support for `read_*` functions in more dialects, playground
-improvements, and a better Lezer grammar (which we're planning on using for a
-Jupyter extension). Here's our current
-[Roadmap](https://prql-lang.org/roadmap/).
+We released [0.11.0](https://github.com/PRQL/prql/releases/tag/0.10.0) in
+December. It contains three new packages of standard functions — `date`, `text`
+& `math` — as well as smaller improvements and lots of internal work on our
+compiler. Here's our current [Roadmap](https://prql-lang.org/roadmap/).
 
 <!-- TODO: add back when we get them
 and our
@@ -89,8 +87,7 @@ Our immediate focus for the code is on:
   As more folks have started using PRQL, we've had more bug reports — good news,
   but also gives us more to work on.
 - Filling remaining feature gaps, so that PRQL is possible to use for almost all
-  standard SQL queries; for example
-  [date to string functions](https://github.com/PRQL/prql/issues/366).
+  standard SQL queries.
 - Expanding our set of supported features — we've recently added experimental
   support for modules / multi-file projects, and for auto-formatting.
 

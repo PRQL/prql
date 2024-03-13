@@ -17,16 +17,16 @@ final class CompilerTest extends TestCase
 
     public function testPrqlLibraryFileExists(): void
     {
-        $fileExists = file_exists("lib/libprqlc_lib.so")
-                  || file_exists("lib/libprqlc_lib.dylib")
-                  || file_exists("lib/libprqlc_lib.dll");
+        $fileExists = file_exists("lib/libprqlc_c.so")
+                  || file_exists("lib/libprqlc_c.dylib")
+                  || file_exists("lib/libprqlc_c.dll");
 
         $this->assertTrue($fileExists);
     }
 
     public function testPrqlHeaderFileExists(): void
     {
-        $this->assertFileExists("lib/libprqlc_lib.h");
+        $this->assertFileExists("lib/prqlc.h");
     }
 
     public function testInvalidQuery(): void
@@ -45,10 +45,13 @@ final class CompilerTest extends TestCase
         $options->target = "sql.mssql";
         $prql = new Compiler();
 
-        $actual = $prql->compile("from employees | take 10", $options);
+        $actual = $prql->compile("from db.employees | take 10", $options);
         $this->assertCount(0, $actual->messages);
 
-        $this->assertEquals("SELECT TOP (10) * FROM employees", $actual->output);
+        $this->assertEquals(
+            "SELECT * FROM employees ORDER BY (SELECT NULL) OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY",
+            $actual->output
+        );
     }
 
     public function testOtherFunctions(): void
@@ -56,9 +59,9 @@ final class CompilerTest extends TestCase
         $prql = new Compiler();
 
         $query = "
-            let a = (from employees | take 10)
+            let a = (from db.employees | take 10)
 
-            from a | select {first_name}
+            from db.a | select {first_name}
         ";
 
         $pl = $prql->prqlToPL($query);

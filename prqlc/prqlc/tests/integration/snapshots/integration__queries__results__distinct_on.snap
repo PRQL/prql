@@ -1,0 +1,43 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
+---
+25,2,317
+24,2,346
+24,4,342
+24,5,268
+23,2,323
+23,3,271
+23,4,260
+22,3,251
+21,3,261
+20,3,253
+19,3,261
+18,3,227
+17,1,258
+16,1,161
+16,5,263
+15,1,259
+15,5,264
+14,1,146
+14,2,321
+13,1,102
+12,1,83
+11,1,52
+10,1,176
+10,2,347
+9,1,29
+9,2,322
+8,1,241
+7,1,248
+7,5,266
+6,1,210
+5,1,12
+4,1,225
+3,1,207
+2,1,204
+2,5,267
+1,1,246
+1,2,257
+1,5,265

@@ -1,0 +1,6 @@
+from db.genres
+take 10
+filter true
+take 20
+filter true
+select d = 10

@@ -1,0 +1,64 @@
+version: "3"
+
+includes:
+  bindings-python:
+    taskfile: ./bindings/python
+    dir: ./bindings/python
+
+vars:
+  packages: -p lutra -p lutra-python
+
+tasks:
+  run:
+    cmds:
+      - cmd: cargo run --package lutra -- execute example-project
+
+  fmt:
+    desc: Format prqlc source files
+    cmds:
+      - cmd: |
+          # remove trailing whitespace
+          rg '\s+$' --files-with-matches --glob '!*.{rs,snap}' . \
+          | xargs -I _ sh -c "echo Removing trailing whitespace from _ && sd '[\t ]+$' '' _"
+
+      - cmd: |
+          # rustfmt
+          cargo fmt {{.packages}}
+
+      - cmd: |
+          # no dbg
+          rg 'dbg!' --glob '*.rs' . --no-heading
+        ignore_error: true
+
+      - task: bindings-python:fmt
+
+  test-fast:
+    desc: A fast test used for feedback during development
+    cmds:
+      - cmd: |
+          INSTA_FORCE_PASS=1 cargo nextest run {{.packages}} --no-fail-fast
+
+      - cmd: cargo insta review
+
+      - cmd: cargo clippy --all-targets {{.packages}}
+
+  test:
+    desc: The full test. Generates coverage report.
+    env:
+      # Use a different target dir so we don't poison the cache
+      CARGO_LLVM_COV_TARGET_DIR: ../target-cov
+    cmds:
+      - cmd: |
+          cargo \
+            llvm-cov --lcov --output-path lcov.info \
+            nextest \
+            {{.packages}}
+
+      - cmd:
+          cargo clippy --all-targets {{.packages}} -- -D warnings
+
+  pull-request:
+    desc: Most checks that run within GH actions for a pull request
+    cmds:
+      - task: fmt
+      - task: test

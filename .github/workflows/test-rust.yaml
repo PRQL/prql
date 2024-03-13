@@ -33,16 +33,21 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+      - name: Run docker compose
+        # This can go early because the DBs take a few seconds to start up.
+        if: ${{ contains(inputs.features, 'test-dbs-external') }}
+        run: docker compose up -d
+        working-directory: ./prqlc/prqlc/tests/integration/dbs
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools
       - run: rustup target add ${{ inputs.target }}
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-bindgen-cli
         if: inputs.target == 'wasm32-unknown-unknown'
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-insta
       - run: ./.github/workflows/scripts/set_version.sh
@@ -52,17 +57,16 @@ jobs:
         id: cache
         with:
           prefix-key: ${{ env.version }}
-          shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          shared-key: rust-${{ inputs.target }}
+          # Don't save if empty features, because we run a test with empty
+          # features on linux, and don't want to save that instead of the one
+          # with all features. I tried including features in the key, but it
+          # contains a comma, which isn't allowed; a whole extra task to remove
+          # the comma seemed over the top.
+          save-if:
+            ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
-      - name: 🏭 Compile
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: test
-          args: >
-            --no-run --locked --target=${{ inputs.target }} --features=${{
-            inputs.features }}
       - name: Free up disk space
         # https://github.com/actions/runner-images/issues/2840
         run: ./.github/workflows/scripts/util_free_space.sh
@@ -76,10 +80,13 @@ jobs:
         if:
           ${{ contains(inputs.features, 'test-dbs-external') &&
           steps.cache.outputs.cache-hit == 'false' }}
-      - name: Run docker compose
-        run: docker compose up -d
-        working-directory: ./prqlc/prql-compiler/tests/integration/dbs
-        if: ${{ contains(inputs.features, 'test-dbs-external') }}
+      - name: 🏭 Compile
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: test
+          args: >
+            --no-run --locked --target=${{ inputs.target }}
+            --no-default-features --features=${{ inputs.features }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1.1.0
         with:
@@ -94,9 +101,10 @@ jobs:
           # - Unreferenced snapshots - `--unreferenced=auto` when testing on
           #   linux & with `test-dbs` feature.
           args: >
-            test --target=${{ inputs.target }} --features=${{ inputs.features }}
-            ${{ contains(inputs.features, 'test-dbs') && inputs.target ==
-            'x86_64-unknown-linux-gnu' && '--unreferenced=auto' || '' }}
+            test --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }} ${{ contains(inputs.features,
+            'test-dbs') && inputs.target == 'x86_64-unknown-linux-gnu' &&
+            '--unreferenced=auto' || '' }}
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -105,8 +113,8 @@ jobs:
           # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
           #
           args: >
-            --all-targets --target=${{ inputs.target }} --features=${{
-            inputs.features }} -- -D warnings
+            --all-targets --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }} -- -D warnings
       - name: ⌨️ Fmt
         uses: richb-hanover/cargo@v1.1.0
         with:
@@ -115,18 +123,17 @@ jobs:
       - name: 🗒️ Doc
         # Only running on nightly, because of
         # https://github.com/duckdb/duckdb-rs/issues/179#issuecomment-1710986020.
-        # if: inputs.target == 'nightly' && inputs.target != 'wasm32-unknown-unknown'
         if:
-          inputs.target == 'nightly' && inputs.target !=
-          'wasm32-unknown-unknown'
+          inputs.nightly == 'true' && inputs.target != 'wasm32-unknown-unknown'
         uses: richb-hanover/cargo@v1.1.0
         with:
           command: doc
           # Only run with deps on nightly, since it's much slower, and so far™
           # we haven't seen any errors.
           args:
-            --target=${{ inputs.target }} --features=${{ inputs.features }} ${{
-            inputs.nightly != 'true' && '--no-deps' || '' }}
+            --target=${{ inputs.target }} --no-default-features --features=${{
+            inputs.features }} ${{ inputs.nightly != 'true' && '--no-deps' || ''
+            }}
       - name: Build extra targets for cache
         # When building the cache, we also run with `--all-targets` so that
         # prqlc builds can use the same cache.
@@ -137,5 +144,5 @@ jobs:
         with:
           command: build
           args:
-            --all-targets --target=${{ inputs.target }} --features=${{
-            inputs.features }}
+            --all-targets --target=${{ inputs.target }} --no-default-features
+            --features=${{ inputs.features }}

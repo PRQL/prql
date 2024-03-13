@@ -1,0 +1,248 @@
+# The PRQL standard library defines the following functions and transforms.
+# The definitions are whitespace insensitive, and have this form:
+#
+# ```
+# let my_func = param1 param2 ...  -> <return_type> body_expr
+# ```
+#
+# Where:
+#   * `my_func` is the name of the function
+#   * `param1` is the first parameter optionally followed by a type in "< ... >"
+#   * `param2` etc. follow the same pattern as param1
+#   * `<return_type>` is the type of result wrapped in "< ... >"
+#   * `body_expr` defines the function body that creates the result.
+#     It can be PRQL code or `internal ...` to indicate internal compiler code.
+
+# Operators
+
+let mul = left right -> <int || float> internal std.mul
+let div_i = left right -> <int || float> internal std.div_i
+let div_f = left right -> <int || float> internal std.div_f
+let mod = left right -> <int || float> internal std.mod
+let add = left right -> <int || float || timestamp || date> internal std.add
+let sub = left right -> <int || float || timestamp || date> internal std.sub
+let eq = left right -> <bool> internal std.eq
+let ne = left right -> <bool> internal std.ne
+let gt = left right -> <bool> internal std.gt
+let lt = left right -> <bool> internal std.lt
+let gte = left right -> <bool> internal std.gte
+let lte = left right -> <bool> internal std.lte
+let and = left<bool> right<bool> -> <bool> internal std.and
+let or = left<bool> right<bool> -> <bool> internal std.or
+let coalesce = left right -> internal std.coalesce
+let regex_search = text pattern -> <bool> internal std.regex_search
+
+let neg = expr<int || float> -> <int || float> internal std.neg
+let not = expr<bool> -> <bool> internal std.not
+
+# Types
+
+## Type primitives
+type int = int
+type float = float
+type bool = bool
+type text = text
+type date = date
+type time = time
+type timestamp = timestamp
+type `func` = func
+type anytype = anytype
+
+## Generic array
+# TODO: an array of anything, not just nulls
+type array = [anytype]
+
+## Scalar
+type scalar = int || float || bool || text || date || time || timestamp || null
+type tuple = {anytype..}
+
+## Range
+type range = {start = scalar, end = scalar}
+
+## Relation (an array of tuples)
+type relation = [tuple]
+
+## Transform
+type transform = func relation -> relation
+
+# Functions
+
+## Relational transforms
+let from = func
+  tbl <relation>
+  -> <relation> tbl
+
+let select = func
+  columns <anytype>
+  tbl <relation>
+  -> <relation> internal select
+
+let filter = func
+  condition <bool>
+  tbl <relation>
+  -> <relation> internal filter
+
+let derive = func
+  columns <anytype>
+  tbl <relation>
+  -> <relation> internal derive
+
+let aggregate = func
+  columns <anytype>
+  tbl <relation>
+  -> <relation> internal aggregate
+
+let sort = func
+  by <anytype>
+  tbl <relation>
+  -> <relation> internal sort
+
+let take = func
+  expr <anytype>
+  tbl <relation>
+  -> <relation> internal take
+
+let join = func
+  with <relation>
+  condition <bool>
+  `noresolve.side`:inner
+  tbl <relation>
+  -> <relation> internal join
+
+let group = func
+  by<scalar || tuple>
+  pipeline <transform>
+  tbl <relation>
+  -> <relation> internal group
+
+let window = func
+  rows:0..-1
+  range:0..-1
+  expanding <bool>:false
+  rolling <int>:0
+  pipeline <transform>
+  tbl <relation>
+  -> <relation> internal window
+
+let append = bottom<relation> top<relation> -> <relation> internal append
+let intersect = bottom<relation> top<relation> -> <relation> (
+  t = top
+  join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+  select t.*
+)
+let remove = bottom<relation> top<relation> -> <relation> (
+  t = top
+  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+  filter (tuple_every (tuple_map _is_null b.*))
+  select t.*
+)
+let loop = func
+  pipeline <transform>
+  top <relation>
+  -> <relation> internal loop
+
+## Aggregate functions
+# These return either a scalar when used within `aggregate`, or a column when used anywhere else.
+
+let min = column <array> -> <int || float || null> internal std.min
+
+let max = column <array> -> <int || float || null> internal std.max
+
+let sum = column <array> -> <int || float> internal std.sum
+
+let average = column <array> -> <float || null> internal std.average
+
+let stddev = column <array> -> <float || null> internal std.stddev
+
+let all = column <array> -> <bool> internal std.all
+
+let any = column <array> -> <bool> internal std.any
+
+let concat_array = column <array> -> <text> internal std.concat_array
+
+# Counts number of items in the column.
+# Note that the count will include null values.
+let count = column<array> -> <int> internal count
+
+# Deprecated in favour of filterning input to the [std.count] function (not yet implemented).
+@{deprecated}
+let count_distinct = column <array> -> internal std.count_distinct
+
+## Window functions
+let lag =   offset <int>    column <array> -> internal std.lag
+let lead =  offset <int>    column <array> -> internal std.lead
+let first      = column <array> -> internal std.first
+let last       = column <array> -> internal std.last
+let rank       = column <array> -> internal std.rank
+let rank_dense = column <array> -> internal std.rank_dense
+let row_number = column <array> -> internal row_number
+
+# Mathematical functions
+module math {
+  let abs = column -> <int || float> internal std.math.abs
+  let floor = column -> <int> internal std.math.floor
+  let ceil = column -> <int> internal std.math.ceil
+  let pi = -> <float> internal std.math.pi
+  let exp = column -> <int || float> internal std.math.exp
+  let ln = column -> <int || float> internal std.math.ln
+  let log10 = column -> <int || float> internal std.math.log10
+  let log = base<int || float> column -> <int || float> internal std.math.log
+  let sqrt = column -> <int || float> internal std.math.sqrt
+  let degrees = column -> <int || float> internal std.math.degrees
+  let radians = column -> <int || float> internal std.math.radians
+  let cos = column -> <int || float> internal std.math.cos
+  let acos = column -> <int || float> internal std.math.acos
+  let sin = column -> <int || float> internal std.math.sin
+  let asin = column -> <int || float> internal std.math.asin
+  let tan = column -> <int || float> internal std.math.tan
+  let atan = column -> <int || float> internal std.math.atan
+  let pow = exponent<int || float> column -> <int || float> internal std.math.pow
+  let round = n_digits column -> <scalar> internal std.math.round
+}
+
+## Misc functions
+let as = `noresolve.type` column -> <scalar> internal std.as
+let in = pattern value -> <bool> internal in
+
+## Tuple functions
+let tuple_every = func list -> <bool> internal tuple_every
+let tuple_map = func fn <func> list -> internal tuple_map
+let tuple_zip = func a b -> internal tuple_zip
+let _eq = func a -> internal _eq
+let _is_null = func a -> _param.a == null
+
+## Misc
+let from_text = input<text> `noresolve.format`:csv -> <relation> internal from_text
+
+## Text functions
+module text {
+  let lower = column -> <text> internal std.text.lower
+  let upper = column -> <text> internal std.text.upper
+  let ltrim = column -> <text> internal std.text.ltrim
+  let rtrim = column -> <text> internal std.text.rtrim
+  let trim = column -> <text> internal std.text.trim
+  let length = column -> <int> internal std.text.length
+  let extract = offset<int> length<int> column -> <text> internal std.text.extract
+  let replace = pattern<text> replacement<text> column -> <text> internal std.text.replace
+  let starts_with = prefix<text> column -> <bool> internal std.text.starts_with
+  let contains = substr<text> column -> <bool> internal std.text.contains
+  let ends_with = suffix<text> column -> <bool> internal std.text.ends_with
+}
+
+## Date functions
+module date {
+  let to_text = format<text> column -> <text> internal std.date.to_text
+}
+
+## File-reading functions, primarily for DuckDB
+let read_parquet = source<text> -> <relation> internal std.read_parquet
+let read_csv = source<text> -> <relation> internal std.read_csv
+
+
+## PRQL compiler functions
+module `prql` {
+  let version = -> <text> internal prql_version
+}
+
+# Deprecated, will be removed in 0.12.0
+let prql_version = -> <text> internal prql_version

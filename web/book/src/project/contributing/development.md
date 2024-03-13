@@ -14,17 +14,17 @@ editing, and testing PRQL's compiler code in two minutes:
   cargo install cargo-insta
   ```
 
-- That's it! Running the unit tests for the `prql-compiler` crate after cloning
-  the repo should complete successfully:
+- That's it! Running the unit tests for the `prqlc` crate after cloning the repo
+  should complete successfully:
 
   ```sh
-  cargo test --package prql-compiler --lib
+  cargo test --package prqlc --lib
   ```
 
   ...or, to run tests and update the test snapshots:
 
   ```sh
-  cargo insta test --accept --package prql-compiler --lib
+  cargo insta test --accept --package prqlc --lib
   ```
 
   There's more context on our tests in [How we test](#how-we-test) below.
@@ -79,7 +79,7 @@ since it relies on `brew`.
   ```
 
   ...and if that doesn't complete successfully, ensure we have Python >= 3.7, to
-  compile `prql-python`.
+  compile `prqlc-python`.
 
 - For more involved contributions, such as building the website, playground,
   book, or some release artifacts, we'll need some additional tools. But we
@@ -112,6 +112,11 @@ and its system requirements. Then refer to the links above to get started.
 
 ### Option 4: Use nix development environment
 
+```admonish note
+This is used by a member of the core team on Linux, but doesn't currently work on Mac. We're open to
+contributions to improve support.
+```
+
 A [nix](https://nixos.org/) flake `flake.nix` provides 3 development
 environments:
 
@@ -129,22 +134,22 @@ To load the shell:
 
    For non-NixOS users:
 
-   ```
+   ```sh
    mkdir -p ~/.config/nix/
    tee 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
    ```
 
-   For NixOs users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
+   For NixOS users, follow instructions [here](https://nixos.wiki/wiki/Flakes).
 
 3. Run:
 
-   ```
+   ```sh
    nix develop
    ```
 
-   If you want "web" or "full" shell, run:
+   To use the "web" or "full" shell, run:
 
-   ```
+   ```sh
    nix develop .#web
    ```
 
@@ -153,7 +158,7 @@ the shell when you enter this repo. The easiest way is to also install
 [direnv-nix](https://github.com/nix-community/nix-direnv) and configure your
 `.envrc` with:
 
-```
+```sh
 # .envrc
 use flake .#full
 ```
@@ -302,7 +307,7 @@ Our tests, from the bottom of the pyramid to the top:
   ```sh
   task test-rust-fast
   # or
-  cargo insta test --accept --package prql-compiler --lib
+  cargo insta test --accept --package prqlc --lib
   # or, to run on every change:
   task -w test-rust-fast
   ```
@@ -316,7 +321,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,md -cr --ignore='target/**' -- cargo -q insta test --accept -p prqlc --lib
     ```
 
     Breaking this down:
@@ -329,8 +334,8 @@ inconsistent in watchexec. Let's revert back if it gets solved.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot
       library, and writes any results immediately. I rely on git to track
       changes, so I run with `--accept`, but YMMV.
-    - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
-      tells it to only run the tests for `prql-compiler` rather than the other
+    - `-p prqlc --lib` is passed to cargo by `insta`; `-p prqlc`
+      tells it to only run the tests for `prqlc` rather than the other
       crates, and `--lib` to only run the unit tests rather than the integration
       tests, which are slower.
     - Note that we don't want to re-run on _any_ file changing, because we can
@@ -346,7 +351,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   cargo insta test --accept
   ```
 
-- **[Database integration tests](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration/dbs)**
+- **[Database integration tests](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/tests/integration/dbs)**
   — we run tests with example queries against databases with actual data to
   ensure we're producing correct SQL across our supported dialects. The
   in-process tests can be run locally with:
@@ -354,11 +359,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   ```sh
   task test-rust
   # or
-  cargo insta test --accept --features=test-dbs
+  cargo insta test --accept --features=default,test-dbs
   ```
 
   More details on running with external databases are in the
-  [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prql-compiler/tests/integration/dbs).
+  [Readme](https://github.com/PRQL/prql/tree/main/prqlc/prqlc/tests/integration/dbs).
 
 ```admonish note
 Integration tests use DuckDB, and so require a clang compiler to compile
@@ -430,6 +435,20 @@ task run-book
 task run-playground
 ```
 
+## Bindings
+
+We have a number of language bindings, as documented at
+<https://prql-lang.org/book/project/bindings/index.html>. Some of these are
+within our monorepo, some are in separate repos. Here's a provisional framework
+for when we use the main prql repo vs separate repos for bindings:
+
+| Factor                                           | Rationale                                                                                  | Example                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Does someone want to sign up to maintain a repo? | A different repo is harder for the core team to maintain                                   | `tree-sitter-prql` is well maintained                         |
+| Can it change independently from the compiler?   | If it's in a different repo, it can't be changed in lockstep with the compiler             | `prql-vscode` is fine to change "behind" the language         |
+| Would a separate repo invite new contributors?   | A monorepo with all the rust code can be less inviting for those familiar with other langs | `prql-vscode` had some JS-only contributors                   |
+| Is there an convention for a stand-alone repo?   | A small number of ecosystems require a separate repo                                       | `homebrew-prql` needs to be named that way for a Homebrew tap |
+
 ---
 
 ## Releasing
@@ -441,10 +460,10 @@ Currently we release in a semi-automated way:
    produce a draft version at <https://github.com/PRQL/prql/releases/new>,
    including "New Contributors".
 
-   Use this script to generate the first line:
+   Use this script to generate a line introducing the enumerated changes:
 
    ```sh
-   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
+   echo "It has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
 2. If the current version is correct, then skip ahead. But if the version needs
@@ -457,18 +476,20 @@ Currently we release in a semi-automated way:
    [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
        maintainers have access to this page.}}, copy the changelog entry into the
    release description{{footnote: Unfortunately GitHub's markdown parser
-        interprets linebreaks as newlines. I haven't found a better way of editing
-        the markdown to look reasonable than manually editing the text.}}, enter
-   the tag to be created, and hit "Publish".
+        interprets linebreaks as newlines. I haven't found a better way of
+        editing the markdown to look reasonable than manually editing the text
+        or asking LLM to help.}}, enter the tag to be created, and hit
+   "Publish".
 
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
 
 5. Run
-   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm`
+   `cargo release version patch -x --no-confirm && cargo release replace -x --no-confirm && task test-rust`
    to bump the versions and add a new Changelog section; then PR the resulting
-   commit.
+   commit. Note this currently contains `task test-rust` to update snapshot
+   tests which contain the version.
 
 6. Check whether there are [milestones](https://github.com/PRQL/prql/milestones)
    that need to be pushed out.

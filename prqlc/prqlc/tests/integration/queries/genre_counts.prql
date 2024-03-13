@@ -1,0 +1,10 @@
+# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)
+# mssql:test
+let genre_count = (
+    from db.genres
+    aggregate {a = count name}
+)
+
+genre_count
+filter a > 0
+select a = -a

@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from db.`artist tracks`\n"
+---
+SELECT
+  *
+FROM
+  "artist tracks"
+

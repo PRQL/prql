@@ -10,7 +10,7 @@ PRQL to compile to a database-specific SQL flavor.
 ```prql
 prql target:sql.postgres
 
-from employees
+from db.employees
 sort age
 take 10
 ```
@@ -18,7 +18,7 @@ take 10
 ```prql
 prql target:sql.mssql
 
-from employees
+from db.employees
 sort age
 take 10
 ```
@@ -64,7 +64,7 @@ DuckDB dialect.
 
 ```sh
 echo 'prql target:sql.generic
-      from foo' | prqlc compile --target sql.duckdb
+      from db.foo' | prqlc compile --target sql.duckdb
 ```
 
 To use the target described in the query, a special target `sql.any` can be
@@ -72,7 +72,7 @@ specified in the compiler option.
 
 ```sh
 echo 'prql target:sql.generic
-      from foo' | prqlc compile --target sql.any
+      from db.foo' | prqlc compile --target sql.any
 ```
 
 ## Version
@@ -80,9 +80,9 @@ echo 'prql target:sql.generic
 PRQL allows specifying a version of the language in the PRQL header, like:
 
 ```prql
-prql version:"0.10.2"
+prql version:"0.11.5"
 
-from employees
+from db.employees
 ```
 
 This has two roles, one of which is implemented:
@@ -96,12 +96,13 @@ This has two roles, one of which is implemented:
   feature for PRQL 1.0.
 
 The version of the compiler currently in use can be called using the special
-function `std.prql_version` in PRQL.
+function `std.prql.version` in PRQL.
 
 ```prql
-[{version = prql_version}]
+[{version = prql.version}]
 ```
 
 ```admonish note
-This function `std.prql_version` may be replaced in the future by something like `prql.version`.
+This function was renamed from `std.prql_version` to `prql.version` in PRQL 0.11.1.
+`std.prql_version` will be removed in PRQL 0.12.0.
 ```

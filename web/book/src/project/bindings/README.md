@@ -14,7 +14,7 @@ Supported bindings require:
 
 - A maintainer.
 - Implementations of the
-  [core compile functions](https://docs.rs/prql-compiler/latest/prql_compiler/#functions).
+  [core compile functions](https://docs.rs/prqlc/latest/prqlc/#functions).
 - Test coverage for these functions.
 - A published package to the language's standard package repository.
 - A script in `Taskfile.yml` to bootstrap a development environment.
@@ -38,7 +38,7 @@ nascent.
 
 - [Java](./java.md)
 - [Elixir](./elixir.md)
-- `prqlc-clib`, the C bindings
+- `prqlc-c`, the C bindings
 
 ## Nascent
 
@@ -46,3 +46,11 @@ Nascent bindings are in development, and may not yet fully work.
 
 - [.NET](./dotnet.md)
 - [PHP](./php.md)
+
+## Naming
+
+Over time, we're trying to move to a consistent naming scheme:
+
+- Crates are named `prqlc-$lang`.
+- Where possible, packages are published to each language's package repository
+  as `prqlc`.

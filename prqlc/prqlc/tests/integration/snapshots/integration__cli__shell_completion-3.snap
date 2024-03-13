@@ -1,0 +1,310 @@
+---
+source: prqlc/prqlc/tests/integration/cli.rs
+info:
+  program: prqlc
+  args:
+    - "--color=never"
+    - shell-completion
+    - powershell
+  env:
+    CLICOLOR_FORCE: ""
+    RUST_LOG: ""
+    RUST_BACKTRACE: ""
+    NO_COLOR: "1"
+---
+success: true
+exit_code: 0
+----- stdout -----
+
+using namespace System.Management.Automation
+using namespace System.Management.Automation.Language
+
+Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition)
+
+    $commandElements = $commandAst.CommandElements
+    $command = @(
+        'prqlc'
+        for ($i = 1; $i -lt $commandElements.Count; $i++) {
+            $element = $commandElements[$i]
+            if ($element -isnot [StringConstantExpressionAst] -or
+                $element.StringConstantType -ne [StringConstantType]::BareWord -or
+                $element.Value.StartsWith('-') -or
+                $element.Value -eq $wordToComplete) {
+                break
+        }
+        $element.Value
+    }) -join ';'
+
+    $completions = @(switch ($command) {
+        'prqlc' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('-V', 'V ', [CompletionResultType]::ParameterName, 'Print version')
+            [CompletionResult]::new('--version', 'version', [CompletionResultType]::ParameterName, 'Print version')
+            [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
+            [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
+            [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
+            [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
+            [CompletionResult]::new('experimental', 'experimental', [CompletionResultType]::ParameterValue, 'Experimental commands are prone to change')
+            [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
+            [CompletionResult]::new('sql:preprocess', 'sql:preprocess', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess SRQ')
+            [CompletionResult]::new('sql:anchor', 'sql:anchor', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess & anchor SRQ')
+            [CompletionResult]::new('compile', 'compile', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & compile to SQL')
+            [CompletionResult]::new('watch', 'watch', [CompletionResultType]::ParameterValue, 'Watch a directory and compile .prql files to .sql files')
+            [CompletionResult]::new('list-targets', 'list-targets', [CompletionResultType]::ParameterValue, 'Show available compile target names')
+            [CompletionResult]::new('shell-completion', 'shell-completion', [CompletionResultType]::ParameterValue, 'Print a shell completion for supported shells')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;parse' {
+            [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;fmt' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;collect' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;debug' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('expand-pl', 'expand-pl', [CompletionResultType]::ParameterValue, 'Parse & and expand into PL, but don''t resolve')
+            [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
+            [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
+            [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;debug;expand-pl' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;debug;resolve' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;debug;eval' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'prqlc;debug;annotate' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;debug;ast' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;debug;help' {
+            [CompletionResult]::new('expand-pl', 'expand-pl', [CompletionResultType]::ParameterValue, 'Parse & and expand into PL, but don''t resolve')
+            [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
+            [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
+            [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;debug;help;expand-pl' {
+            break
+        }
+        'prqlc;debug;help;resolve' {
+            break
+        }
+        'prqlc;debug;help;eval' {
+            break
+        }
+        'prqlc;debug;help;annotate' {
+            break
+        }
+        'prqlc;debug;help;ast' {
+            break
+        }
+        'prqlc;debug;help;help' {
+            break
+        }
+        'prqlc;experimental' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;experimental;doc' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;experimental;help' {
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;experimental;help;doc' {
+            break
+        }
+        'prqlc;experimental;help;help' {
+            break
+        }
+        'prqlc;resolve' {
+            [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;sql:preprocess' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;sql:anchor' {
+            [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'prqlc;compile' {
+            [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 'Target to compile to')
+            [CompletionResult]::new('--target', 'target', [CompletionResultType]::ParameterName, 'Target to compile to')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('--hide-signature-comment', 'hide-signature-comment', [CompletionResultType]::ParameterName, 'Exclude the signature comment containing the PRQL version')
+            [CompletionResult]::new('--no-format', 'no-format', [CompletionResultType]::ParameterName, 'Emit unformatted, dense SQL')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'prqlc;watch' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('--no-format', 'no-format', [CompletionResultType]::ParameterName, 'no-format')
+            [CompletionResult]::new('--no-signature', 'no-signature', [CompletionResultType]::ParameterName, 'no-signature')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;list-targets' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;shell-completion' {
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;help' {
+            [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
+            [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
+            [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
+            [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
+            [CompletionResult]::new('experimental', 'experimental', [CompletionResultType]::ParameterValue, 'Experimental commands are prone to change')
+            [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse, resolve & lower into RQ')
+            [CompletionResult]::new('sql:preprocess', 'sql:preprocess', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess SRQ')
+            [CompletionResult]::new('sql:anchor', 'sql:anchor', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & preprocess & anchor SRQ')
+            [CompletionResult]::new('compile', 'compile', [CompletionResultType]::ParameterValue, 'Parse, resolve, lower into RQ & compile to SQL')
+            [CompletionResult]::new('watch', 'watch', [CompletionResultType]::ParameterValue, 'Watch a directory and compile .prql files to .sql files')
+            [CompletionResult]::new('list-targets', 'list-targets', [CompletionResultType]::ParameterValue, 'Show available compile target names')
+            [CompletionResult]::new('shell-completion', 'shell-completion', [CompletionResultType]::ParameterValue, 'Print a shell completion for supported shells')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'prqlc;help;parse' {
+            break
+        }
+        'prqlc;help;fmt' {
+            break
+        }
+        'prqlc;help;collect' {
+            break
+        }
+        'prqlc;help;debug' {
+            [CompletionResult]::new('expand-pl', 'expand-pl', [CompletionResultType]::ParameterValue, 'Parse & and expand into PL, but don''t resolve')
+            [CompletionResult]::new('resolve', 'resolve', [CompletionResultType]::ParameterValue, 'Parse & resolve, but don''t lower into RQ')
+            [CompletionResult]::new('eval', 'eval', [CompletionResultType]::ParameterValue, 'Parse & evaluate expression down to a value')
+            [CompletionResult]::new('annotate', 'annotate', [CompletionResultType]::ParameterValue, 'Parse, resolve & combine source with comments annotating relation type')
+            [CompletionResult]::new('ast', 'ast', [CompletionResultType]::ParameterValue, 'Print info about the AST data structure')
+            break
+        }
+        'prqlc;help;debug;expand-pl' {
+            break
+        }
+        'prqlc;help;debug;resolve' {
+            break
+        }
+        'prqlc;help;debug;eval' {
+            break
+        }
+        'prqlc;help;debug;annotate' {
+            break
+        }
+        'prqlc;help;debug;ast' {
+            break
+        }
+        'prqlc;help;experimental' {
+            [CompletionResult]::new('doc', 'doc', [CompletionResultType]::ParameterValue, 'Generate Markdown documentation')
+            break
+        }
+        'prqlc;help;experimental;doc' {
+            break
+        }
+        'prqlc;help;resolve' {
+            break
+        }
+        'prqlc;help;sql:preprocess' {
+            break
+        }
+        'prqlc;help;sql:anchor' {
+            break
+        }
+        'prqlc;help;compile' {
+            break
+        }
+        'prqlc;help;watch' {
+            break
+        }
+        'prqlc;help;list-targets' {
+            break
+        }
+        'prqlc;help;shell-completion' {
+            break
+        }
+        'prqlc;help;help' {
+            break
+        }
+    })
+
+    $completions.Where{ $_.CompletionText -like "$wordToComplete*" } |
+        Sort-Object -Property ListItemText
+}
+
+----- stderr -----
+

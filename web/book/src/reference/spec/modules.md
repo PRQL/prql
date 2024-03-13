@@ -62,9 +62,9 @@ module my_playlists {
         let movie_albums = (from albums | filter id == 3)
     }
 
-    from soundtracks.movie_albums
+    from db.soundtracks.movie_albums
 }
-from my_playlists.soundtracks.movie_albums
+from db.my_playlists.soundtracks.movie_albums
 ```
 
 If an identifier cannot be resolved relative to the current module, it tries to
@@ -94,9 +94,9 @@ acquire an implicit name main.
 
 ```
 module my_playlists {
-    let bangers = (from tracks | take 10)
+    let bangers = (from db.tracks | take 10)
 
-    from playlists | take 10
+    from db.playlists | take 10
 }
 
 let album_titles = my_playlists.main
@@ -214,7 +214,7 @@ module mod_b {
 
 ## Compiler interface
 
-`prql-compiler` provides two interfaces for compiling files.
+`prqlc` provides two interfaces for compiling files.
 
 **Multi-file interface** requires three arguments:
 
@@ -251,12 +251,13 @@ module project {
 		let mean = a -> ...
 	}
 
-	module default_db {
+	module db {
 		# all inferred tables and defined CTEs
 	}
 
 	let main = (
-		from t = tracks
+		from db.tracks
+		select {t = this}
 		select [track_id, title]
 	)
 }

@@ -1,9 +1,9 @@
 label: Functions
 prql: |
-  let fahrenheit_from_celsius = temp -> temp * 9/5 + 32
+  let celsius_to_fahrenheit = temp -> temp * 9/5 + 32
 
-  from weather
-  select temp_f = (fahrenheit_from_celsius temp_c)
+  from db.weather
+  select temp_f = (celsius_to_fahrenheit temp_c)
 sql: |
   SELECT
     temp_c * 9 / 5 + 32 AS temp_f

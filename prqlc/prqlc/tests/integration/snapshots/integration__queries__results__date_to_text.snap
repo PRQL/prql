@@ -1,0 +1,25 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# generic:skip\n# glaredb:skip\n# sqlite:skip\n# mssql:test\nfrom invoices\ntake 20\nselect {\n    d1 = (invoice_date | date.to_text \"%Y/%m/%d\"),\n    d2 = (invoice_date | date.to_text \"%F\"),\n    d3 = (invoice_date | date.to_text \"%D\"),\n    d4 = (invoice_date | date.to_text \"%H:%M:%S.%f\"),\n    d5 = (invoice_date | date.to_text \"%r\"),\n    d6 = (invoice_date | date.to_text \"%A %B %-d %Y\"),\n    d7 = (invoice_date | date.to_text \"%a, %-d %b %Y at %I:%M:%S %p\"),\n    d8 = (invoice_date | date.to_text \"%+\"),\n    d9 = (invoice_date | date.to_text \"%-d/%-m/%y\"),\n    d10 = (invoice_date | date.to_text \"%-Hh %Mmin\"),\n    d11 = (invoice_date | date.to_text \"%M'%S\\\"\"),\n    d12 = (invoice_date | date.to_text \"100%% in %d days\"),\n}\n"
+input_file: prqlc/prqlc/tests/integration/queries/date_to_text.prql
+---
+2009/01/01,2009-01-01,01/01/09,00:00:00.000000,12:00:00 AM,Thursday January 1 2009,Thu, 1 Jan 2009 at 12:00:00 AM,2009-01-01T00:00:00.000000Z,1/1/09,0h 00min,00'00",100% in 01 days
+2009/01/02,2009-01-02,01/02/09,00:00:00.000000,12:00:00 AM,Friday January 2 2009,Fri, 2 Jan 2009 at 12:00:00 AM,2009-01-02T00:00:00.000000Z,2/1/09,0h 00min,00'00",100% in 02 days
+2009/01/03,2009-01-03,01/03/09,00:00:00.000000,12:00:00 AM,Saturday January 3 2009,Sat, 3 Jan 2009 at 12:00:00 AM,2009-01-03T00:00:00.000000Z,3/1/09,0h 00min,00'00",100% in 03 days
+2009/01/06,2009-01-06,01/06/09,00:00:00.000000,12:00:00 AM,Tuesday January 6 2009,Tue, 6 Jan 2009 at 12:00:00 AM,2009-01-06T00:00:00.000000Z,6/1/09,0h 00min,00'00",100% in 06 days
+2009/01/11,2009-01-11,01/11/09,00:00:00.000000,12:00:00 AM,Sunday January 11 2009,Sun, 11 Jan 2009 at 12:00:00 AM,2009-01-11T00:00:00.000000Z,11/1/09,0h 00min,00'00",100% in 11 days
+2009/01/19,2009-01-19,01/19/09,00:00:00.000000,12:00:00 AM,Monday January 19 2009,Mon, 19 Jan 2009 at 12:00:00 AM,2009-01-19T00:00:00.000000Z,19/1/09,0h 00min,00'00",100% in 19 days
+2009/02/01,2009-02-01,02/01/09,00:00:00.000000,12:00:00 AM,Sunday February 1 2009,Sun, 1 Feb 2009 at 12:00:00 AM,2009-02-01T00:00:00.000000Z,1/2/09,0h 00min,00'00",100% in 01 days
+2009/02/01,2009-02-01,02/01/09,00:00:00.000000,12:00:00 AM,Sunday February 1 2009,Sun, 1 Feb 2009 at 12:00:00 AM,2009-02-01T00:00:00.000000Z,1/2/09,0h 00min,00'00",100% in 01 days
+2009/02/02,2009-02-02,02/02/09,00:00:00.000000,12:00:00 AM,Monday February 2 2009,Mon, 2 Feb 2009 at 12:00:00 AM,2009-02-02T00:00:00.000000Z,2/2/09,0h 00min,00'00",100% in 02 days
+2009/02/03,2009-02-03,02/03/09,00:00:00.000000,12:00:00 AM,Tuesday February 3 2009,Tue, 3 Feb 2009 at 12:00:00 AM,2009-02-03T00:00:00.000000Z,3/2/09,0h 00min,00'00",100% in 03 days
+2009/02/06,2009-02-06,02/06/09,00:00:00.000000,12:00:00 AM,Friday February 6 2009,Fri, 6 Feb 2009 at 12:00:00 AM,2009-02-06T00:00:00.000000Z,6/2/09,0h 00min,00'00",100% in 06 days
+2009/02/11,2009-02-11,02/11/09,00:00:00.000000,12:00:00 AM,Wednesday February 11 2009,Wed, 11 Feb 2009 at 12:00:00 AM,2009-02-11T00:00:00.000000Z,11/2/09,0h 00min,00'00",100% in 11 days
+2009/02/19,2009-02-19,02/19/09,00:00:00.000000,12:00:00 AM,Thursday February 19 2009,Thu, 19 Feb 2009 at 12:00:00 AM,2009-02-19T00:00:00.000000Z,19/2/09,0h 00min,00'00",100% in 19 days
+2009/03/04,2009-03-04,03/04/09,00:00:00.000000,12:00:00 AM,Wednesday March 4 2009,Wed, 4 Mar 2009 at 12:00:00 AM,2009-03-04T00:00:00.000000Z,4/3/09,0h 00min,00'00",100% in 04 days
+2009/03/04,2009-03-04,03/04/09,00:00:00.000000,12:00:00 AM,Wednesday March 4 2009,Wed, 4 Mar 2009 at 12:00:00 AM,2009-03-04T00:00:00.000000Z,4/3/09,0h 00min,00'00",100% in 04 days
+2009/03/05,2009-03-05,03/05/09,00:00:00.000000,12:00:00 AM,Thursday March 5 2009,Thu, 5 Mar 2009 at 12:00:00 AM,2009-03-05T00:00:00.000000Z,5/3/09,0h 00min,00'00",100% in 05 days
+2009/03/06,2009-03-06,03/06/09,00:00:00.000000,12:00:00 AM,Friday March 6 2009,Fri, 6 Mar 2009 at 12:00:00 AM,2009-03-06T00:00:00.000000Z,6/3/09,0h 00min,00'00",100% in 06 days
+2009/03/09,2009-03-09,03/09/09,00:00:00.000000,12:00:00 AM,Monday March 9 2009,Mon, 9 Mar 2009 at 12:00:00 AM,2009-03-09T00:00:00.000000Z,9/3/09,0h 00min,00'00",100% in 09 days
+2009/03/14,2009-03-14,03/14/09,00:00:00.000000,12:00:00 AM,Saturday March 14 2009,Sat, 14 Mar 2009 at 12:00:00 AM,2009-03-14T00:00:00.000000Z,14/3/09,0h 00min,00'00",100% in 14 days
+2009/03/22,2009-03-22,03/22/09,00:00:00.000000,12:00:00 AM,Sunday March 22 2009,Sun, 22 Mar 2009 at 12:00:00 AM,2009-03-22T00:00:00.000000Z,22/3/09,0h 00min,00'00",100% in 22 days

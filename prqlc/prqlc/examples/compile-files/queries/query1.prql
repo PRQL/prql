@@ -1,0 +1,3 @@
+from db.albums
+select {title, artist_id}
+join db.artists (==artist_id)

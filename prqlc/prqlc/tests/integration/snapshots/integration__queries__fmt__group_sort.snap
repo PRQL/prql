@@ -1,0 +1,12 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom db.tracks\nderive d = album_id + 1\ngroup d (\n    aggregate {\n        n1 = (track_id | sum),\n    }\n)\nsort d\ntake 10\nselect { d1 = d, n1 }\n"
+input_file: prqlc/prqlc/tests/integration/queries/group_sort.prql
+---
+from db.tracks
+derive d = album_id + 1
+group d (aggregate {n1 = (track_id | sum)})
+sort d
+take 10
+select {d1 = d, n1}
+

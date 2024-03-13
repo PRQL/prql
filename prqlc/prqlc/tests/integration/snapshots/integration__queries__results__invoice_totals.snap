@@ -1,0 +1,25 @@
+---
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# clickhouse:skip (clickhouse doesn't have lag function)\n\n#! Calculate a number of metrics about the sales of tracks in each city.\nfrom i=invoices\njoin ii=invoice_items (==invoice_id)\nderive {\n    city = i.billing_city,\n    street = i.billing_address,\n}\ngroup {city, street} (\n    derive total = ii.unit_price * ii.quantity\n    aggregate {\n        num_orders = count_distinct i.invoice_id,\n        num_tracks = sum ii.quantity,\n        total_price = sum total,\n    }\n)\ngroup {city} (\n    sort street\n    window expanding:true (\n        derive {running_total_num_tracks = sum num_tracks}\n    )\n)\nsort {city, street}\nderive {num_tracks_last_week = lag 7 num_tracks}\nselect {\n    city,\n    street,\n    num_orders,\n    num_tracks,\n    running_total_num_tracks,\n    num_tracks_last_week\n}\ntake 20\n"
+input_file: prqlc/prqlc/tests/integration/queries/invoice_totals.prql
+---
+Amsterdam,Lijnbaansgracht 120bg,7,38,38,
+Bangalore,3,Raj Bhavan Road,6,36,36,
+Berlin,Barbarossastraße 19,7,38,38,
+Berlin,Tauentzienstraße 8,7,38,76,
+Bordeaux,9, Place Louis Barthou,7,38,38,
+Boston,69 Salem Street,7,38,38,
+Brasília,Qe 7 Bloco G,7,38,38,
+Brussels,Grétrystraat 63,7,38,38,38
+Budapest,Erzsébet krt. 58.,7,38,38,36
+Buenos Aires,307 Macacha Güemes,7,38,38,38
+Chicago,162 E Superior Street,7,38,38,38
+Copenhagen,Sønder Boulevard 51,7,38,38,38
+Cupertino,1 Infinite Loop,7,38,38,38
+Delhi,12,Community Centre,7,38,38,38
+Dijon,68, Rue Jouvence,7,38,38,38
+Dublin,3 Chatham Street,7,38,38,38
+Edinburgh ,110 Raeburn Pl,7,38,38,38
+Edmonton,8210 111 ST NW,7,38,38,38
+Fort Worth,2211 W Berry Street,7,38,38,38
+Frankfurt,Berger Straße 10,7,38,38,38

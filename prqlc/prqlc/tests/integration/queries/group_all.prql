@@ -1,0 +1,7 @@
+# mssql:test
+from db.albums
+select {a = this}
+take 10
+join db.tracks (==album_id)
+group {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))
+sort album_id

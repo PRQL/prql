@@ -1,0 +1,34 @@
+[package]
+build = "build.rs"
+name = "lutra-python"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+doc = false
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+arrow = {version = "49.0", features = ["pyarrow"], default-features = false}
+itertools = {workspace = true}
+# we rename lutra to lutralib here, so we can define a function named lutra
+lutralib = {package = "lutra", path = "../../lutra", default-features = false}
+pyo3 = {version = "0.20.2", features = ["abi3-py37", "anyhow"]}
+
+[build-dependencies]
+pyo3-build-config = "0.20.2"
+
+[package.metadata.release]
+tag-name = "{{version}}"
+tag-prefix = ""
+
+# We want the package to be named `lutra`, but the crate is named `lutra_python`
+# to avoid a conflict with other cargo artifacts. This option renames the
+# package to `lutra`.
+[package.metadata.maturin]
+name = "lutra"

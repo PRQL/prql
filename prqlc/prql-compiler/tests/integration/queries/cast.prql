@@ -1,8 +1,0 @@
-# mssql:test
-from tracks
-sort {-bytes}
-select {
-    name,
-    bin = ((album_id | as REAL) * 99)
-}
-take 20

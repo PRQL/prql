@@ -1,14 +1,137 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.11.5 — Unreleased
 
 **Language**:
 
-- _Breaking_: Exclude `group`'s `by` columns from the partition. See #3490
+**Features**:
+
+- Initial implementation of an experimental documentation generator that
+  generates Markdown documentation from `.prql` files. (@vanillajonathan,
+  #4152).
+
+- _Breaking_: References to database tables now require an explicit `db.`
+  prefix. Example:
+  ```prql no-eval
+  from db.my_table
+  join db.another_table (==some_id)
+  ```
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+- The `browser` dist files are now built with `wasm-pack`'s `web` target. As a
+  result, they should be usable as ES Modules, through JS CDNs, and for example
+  with Observable Framework (@srenatus, #4274).
+
+**Integrations**:
+
+- The syntax highlighter package for Sublime Text is now
+  [published](https://packagecontrol.io/packages/PRQL) (@vanillajonathan).
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.11.4 — 2024-02-25
+
+0.11.4 is a hotfix release, fixing a CI issue that caused the CLI binaries to be
+built without the `cli` feature.
+
+## 0.11.3 — 2024-02-10
+
+0.11.3 is a very small release, mostly a rename of the Python bindings.
+
+The release has 13 commits from 4 contributors.
+
+**Internal changes**:
+
+- As part of making our names more consistent, the Python bindings are renamed.
+  `prql-python` becomes a package published and importable as `prqlc`. The
+  internal Rust crate is named `prqlc-python`.
+
+## 0.11.2 — 2024-02-07
+
+0.11.2 contains lots of internal changes, lots of syntax highlighting, and the
+beginning of `lutra`, a query runner.
+
+This release has 122 commits from 9 contributors. Selected changes:
+
+**Features**:
+
+- Initial implementation of `lutra`, a query runner. (@aljazerzen, #4182, #4174,
+  #4134)
+- `prqlc fmt` works on projects with multiple files. (@max-sixty, #4028)
+
+**Fixes**:
+
+- Reduce stack memory usage (@aljazerzen, #4103)
+
+**Integrations**:
+
+- Add syntax highlight file for GtkSourceView. (@vanillajonathan, #4062)
+- Add syntax highlight file for CotEditor. (@vanillajonathan)
+- Add syntax highlight file for Sublime Text. (@vanillajonathan, #4127)
+- [sloc](https://github.com/flosse/sloc), a source lines of code counter now has
+  support for `.prql` files. (@vanillajonathan)
+
+**Internal changes**:
+
+- `prql-compiler` has been renamed to `prqlc`, and we've established a more
+  consistent naming scheme. The existing crate will still be published,
+  re-exporting `prqlc`, so no dependencies will break. A future version will add
+  a deprecation warning.
+- The `prqlc-clib` crate was renamed to `prqlc-c`, and associated artifacts were
+  renamed. We're trying to make names consistent (ideally for the final time!),
+  and have a plan to rename some other bindings. (@max-sixty, #4077)
+- Add lots of whitespace items to the lexer, in preparation for the completion
+  of `prqlc fmt` (@max-sixty, #4109, #4105)
+- Table declarations (@aljazerzen, #4126)
+
+**New Contributors**:
+
+- @kaspermarstal, with #4124
+
+## 0.11.1 — 2023-12-26
+
+0.11.1 fixes a couple of small bugs; it comes a few days after 0.11.
+
+This release has 16 commits from 6 contributors. Selected changes:
+
+**Features**:
+
+- Infer the type of array literals to be the union of types of its items.
+  (@aljazerzen, #3989)
+- `prql` module is added and the `prql_version` function is renamed to the
+  `prql.version` function. The old `prql_version` function is deprecated and
+  will be removed in the future release. (@eitsupi, #4006)
+
+**Fixes**:
+
+- Do not compile to `DISTINCT ON` when `take n` is used with `group` for the
+  targets `clickhouse`, `duckdb` and `postgres`. (@PrettyWood, #3988)
+- Fix `take` n rows for `mssql` dialect by switching from TOP to FETCH
+  (@PrettyWood, #3994)
+
+## 0.11.0 — 2023-12-19
+
+0.11.0 introduces new `date`, `text` & `math` modules with lots of standard
+functions, including a new `date.to_text` function. It contains a few bugs
+fixes, and lots of internal improvements to the compiler.
+
+This release has 119 commits from 9 contributors. Selected changes:
+
+**Language**:
+
+- _Breaking_: `group`'s `by` columns are now excluded from the partition.
+  (#3490)
 - _Breaking_: `round` is now in the `math` module and needs to be called via
-  `math.round`. See #3928
-- _Breaking_: `lower` and `upper` are now in the `string` module and need to be
-  called via `string.lower` and `string.upper`. See #3913
+  `math.round`. (#3928)
+- _Breaking_: `lower` and `upper` are now in the `text` module and need to be
+  called via `text.lower` and `text.upper`. (#3913, #3973)
 
 **Features**:
 
@@ -18,20 +141,23 @@
   `cos`, `acos`, `sin`, `asin`, `tan`, `atan`, `pow` and `round`.\
   Those functions are in the `math` module (@PrettyWood, #3909, #3916 & 3928)
 - Most standard string functions are now supported: `ltrim`, `rtrim`, `trim`,
-  `length`, `substring`, `replace`. Utility functions `starts_with`, `contains`
+  `length`, `extract`, `replace`. Utility functions `starts_with`, `contains`
   and `ends_with` are also available.\
-  Those functions are in the `string` module (@PrettyWood, #3913)
+  Those functions are in the `text` module (@PrettyWood, #3913, #3973)
+- Formatting a date to a text is now available for Clickhouse, DuckDB, MySQL,
+  MSSQL and Postgres. A new `date` module has been added with the `to_text`
+  function (@PrettyWood, #3951, #3954 & #3955)
 
 **Fixes**:
 
 - Fix an issue with arithmetic precedence (@max-sixty, #3846)
 - `+` and `-` can be used after a cast (@PrettyWood, #3923)
-
-**Documentation**:
+- The [Lezer](https://lezer.codemirror.net/) grammar had plenty of improvements
+  and fixes. (@vanillajonathan)
 
 **Web**:
 
-**Integrations**:
+- The Playground now uses [Vite](https://vitejs.dev/). (@vanillajonathan)
 
 **Internal changes**:
 
@@ -520,7 +646,7 @@ This release has 17 commits from 4 contributors.
 improvements, such as integration tests with a whole range of DBs, a blog post
 on Pi day, RFCs for a type system, and more robust language bindings.
 
-There's a very small breaking change to the rust API, hence the minor version
+There's a very small breaking change to the Rust API, hence the minor version
 bump.
 
 Here's our April 2023 Update, from our
@@ -795,7 +921,7 @@ This release has 74 commits from 12 contributors. Selected changes:
 - Support double brackets in s-strings which aren't symmetric (@max-sixty,
   #1650)
 - Support Postgres's Interval syntax (@max-sixty, #1649)
-- Fixed tests for `prql-elixir` with MacOS (@kasvith, #1707)
+- Fixed tests for `prql-elixir` with macOS (@kasvith, #1707)
 
 **Documentation**:
 

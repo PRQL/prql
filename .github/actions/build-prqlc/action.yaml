@@ -1,6 +1,9 @@
 name: build-prqlc
 description: >
   Build prqlc
+
+  Note that much of this is copy/pasted into build-prqlc-c, so changes here
+  should generally be copied into that file.
 inputs:
   target:
     description: Build target
@@ -31,7 +34,7 @@ runs:
         save-if:
           ${{ (github.ref == 'refs/heads/main') && contains(inputs.target,
           'musl') }}
-        shared-key: rust-${{ inputs.target }}-${{ inputs.features }}
+        shared-key: rust-${{ inputs.target }}
         prefix-key: ${{ env.version }}
 
     - if: runner.os == 'Linux'
@@ -42,8 +45,7 @@ runs:
 
     - if: runner.os == 'Windows' && inputs.profile == 'release'
       shell: bash
-      run: |
-        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
+      run: echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
@@ -65,8 +67,9 @@ runs:
         # even at the cost of slighly less efficiency.)
         args:
           --profile=${{ inputs.profile }} --locked --target=${{ inputs.target }}
-          --features=${{ inputs.features }} ${{ contains(inputs.target, 'musl')
-          && '--package=prqlc' || '--all-targets' }}
+          --no-default-features --features=${{ inputs.features }} ${{
+          contains(inputs.target, 'musl') && '--package=prqlc' ||
+          '--all-targets' }}
 
     - name: Create artifact for Linux and macOS
       shell: bash
@@ -74,9 +77,10 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc/README.md .
-        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE README.md
+        TEMP_DIR=$(mktemp -d)
+        cp prqlc/prqlc/README.md LICENSE "${TEMP_DIR}/"
+        cp -r target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}/prqlc "${TEMP_DIR}/"
+        tar czf "${ARTIFACT_NAME}" -C "$TEMP_DIR" .
 
     - name: Create artifact for Windows
       shell: bash

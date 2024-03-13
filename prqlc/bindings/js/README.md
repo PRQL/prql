@@ -1,6 +1,6 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](https://github.com/PRQL/prql/).
+JavaScript bindings for [`prqlc`](https://github.com/PRQL/prql/).
 
 ## Installation
 
@@ -31,7 +31,7 @@ Direct usage
 ```javascript
 const prqljs = require("prql-js");
 
-const sql = prqljs.compile(`from employees | select first_name`);
+const sql = prqljs.compile(`from db.employees | select first_name`);
 console.log(sql);
 ```
 
@@ -43,7 +43,7 @@ opts.target = "sql.mssql";
 opts.format = false;
 opts.signature_comment = false;
 
-const sql = prqljs.compile(`from employees | take 10`, opts);
+const sql = prqljs.compile(`from db.employees | take 10`, opts);
 console.log(sql);
 ```
 
@@ -53,7 +53,7 @@ Template literal
 const prqljs = require("prql-js");
 const prql = (string) => prqljs.compile(string[0] || "");
 
-const sql = prql`from employees | select first_name`;
+const sql = prql`from db.employees | select first_name`;
 console.log(sql);
 ```
 
@@ -64,7 +64,7 @@ const prqljs = require("prql-js");
 const prql = (string) => prqljs.compile(string[0] || "");
 
 const sql = prql`
-    from employees
+    from db.employees
     select first_name
 `;
 console.log(sql);
@@ -75,18 +75,12 @@ console.log(sql);
 ```html
 <html>
   <head>
-    <script src="./node_modules/prql-js/dist/web/prql_js.js"></script>
-    <script>
-      const { compile } = wasm_bindgen;
+    <script type="module">
+      import init, { compile } from './dist/web/prql_js.js';
+      await init();
 
-      async function run() {
-        await wasm_bindgen("./node_modules/prql-js/dist/web/prql_js_bg.wasm");
-        const sql = compile("from employees | select first_name");
-
-        console.log(sql);
-      }
-
-      run();
+      const sql = compile("from db.employees | select first_name");
+      console.log(sql);
     </script>
   </head>
 
@@ -99,7 +93,7 @@ console.log(sql);
 ```typescript
 import compile from "prql-js/dist/bundler";
 
-const sql = compile(`from employees | select first_name`);
+const sql = compile(`from db.employees | select first_name`);
 console.log(sql);
 ```
 
@@ -141,7 +135,7 @@ These errors can be caught as such:
 
 ```javascript
 try {
-  const sql = prqlJs.compile(`from employees | foo first_name`);
+  const sql = prqlJs.compile(`from db.employees | foo first_name`);
 } catch (error) {
   const errorMessages = JSON.parse(error.message).inner;
 

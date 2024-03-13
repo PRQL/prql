@@ -1,0 +1,20 @@
+# generic:skip
+# glaredb:skip
+# sqlite:skip
+# mssql:test
+from db.invoices
+take 20
+select {
+    d1 = (invoice_date | date.to_text "%Y/%m/%d"),
+    d2 = (invoice_date | date.to_text "%F"),
+    d3 = (invoice_date | date.to_text "%D"),
+    d4 = (invoice_date | date.to_text "%H:%M:%S.%f"),
+    d5 = (invoice_date | date.to_text "%r"),
+    d6 = (invoice_date | date.to_text "%A %B %-d %Y"),
+    d7 = (invoice_date | date.to_text "%a, %-d %b %Y at %I:%M:%S %p"),
+    d8 = (invoice_date | date.to_text "%+"),
+    d9 = (invoice_date | date.to_text "%-d/%-m/%y"),
+    d10 = (invoice_date | date.to_text "%-Hh %Mmin"),
+    d11 = (invoice_date | date.to_text "%M'%S\""),
+    d12 = (invoice_date | date.to_text "100%% in %d days"),
+}

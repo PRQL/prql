@@ -18,6 +18,12 @@ includes:
   prqlc:
     taskfile: ./prqlc
     dir: ./prqlc
+  zig:
+    taskfile: ./prqlc/bindings/prqlc-c/examples/minimal-zig
+    dir: ./prqlc/bindings/prqlc-c/examples/minimal-zig
+  lutra:
+    taskfile: ./lutra
+    dir: ./lutra
 
 vars:
   # Keep in sync with .vscode/extensions.json
@@ -28,9 +34,9 @@ vars:
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
   cargo_crates: >
-    bacon cargo-audit cargo-insta cargo-release default-target mdbook
-    mdbook-admonish mdbook-footnote mdbook-toc wasm-bindgen-cli wasm-opt
-    wasm-pack
+    bacon cbindgen cargo-audit cargo-insta cargo-llvm-cov cargo-release
+    default-target mdbook mdbook-admonish mdbook-footnote mdbook-toc nextest
+    wasm-bindgen-cli wasm-opt wasm-pack
   # Excluding `elixir` atm given it's not enabled on Mac and currently unsupported
   brew_dependencies: |
     hugo
@@ -47,7 +53,7 @@ tasks:
 
           🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
 
-          Please install it. On MacOS, that's
+          Please install it. On macOS, that's
 
             xcode-select --install
 
@@ -68,6 +74,7 @@ tasks:
       - task: install-pre-commit
       - task: install-npm-dependencies
       - pre-commit install-hooks
+      - rustup component add llvm-tools-preview
       - cmd: |
           echo "
           🟢 Setup complete! ✅🚀"
@@ -230,13 +237,14 @@ tasks:
       # features themselves and so require recompiling. This is only useful for
       # caching.
       - cargo build --all-targets
+      - cargo doc
       - task: build-web
       - task: build-each-crate
 
   build-each-crate:
     summary: |
       Builds each crates individually. This is helpful for caching, since often
-      we'll want to run `cargo build -p prql-compiler`, and the dependencies can have
+      we'll want to run `cargo build -p prqlc`, and the dependencies can have
       different features for that relative to `cargo build`.
     vars:
       PACKAGES:
@@ -273,8 +281,8 @@ tasks:
 
     cmds:
       # TODO:
-      # - Add `prql-python` tests.
-      # - We could add `prql-lib` here.
+      # - Add `prqlc-python` tests.
+      # - We could add `prqlc-c` here.
       # - We deliberately don't test some other bindings, such as `prql-php`,
       #   given they require more dependencies and aren't yet supported.
       - task: test-lint
@@ -295,10 +303,12 @@ tasks:
     #   - "**/*.lock"
     #   - "**/*.snap"
     cmds:
-      - cargo insta test --accept --features=test-dbs --unreferenced=auto
+      - cargo insta test --accept --features=default,test-dbs
+        --unreferenced=auto
+      - cargo clippy --fix --allow-dirty
 
   test-rust-fast:
-    desc: Test prql-compiler's unit tests.
+    desc: Test prqlc's unit tests.
     summary: |
       Test only unit tests, including accepting snapshots.
 
@@ -318,6 +328,20 @@ tasks:
     cmds:
       - cargo insta test --accept --lib -- --quiet
 
+  test-rust-coverage:
+    desc: Run tests with instrumentation for code coverage.
+    summary:
+      Run tests with instrumentation for code coverage. This works with VS
+      Code's [Coverage
+      Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
+      extension.
+    env:
+      # Use a different target dir so we don't poison the cache
+      CARGO_TARGET_DIR: "./target-cov"
+    cmds:
+      - cargo llvm-cov --lcov --output-path lcov.info
+        --features=default,test-dbs
+
   build-web:
     desc:
       Build the web products for distribution - Website, Book, and Playground.
@@ -329,7 +353,7 @@ tasks:
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
       # (we don't use `build-playground-dependencies`, since that uses the dev profile)
-      - cd playground && npm install && npm run build
+      - cd playground && npm ci && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
       # Possibly there's a more elegant way of doing this...
@@ -387,7 +411,7 @@ tasks:
     env:
       PROFILE: dev
     cmds:
-      - npm install
+      - npm ci
     # Note that now we have `PROFILE: dev`, the build is much much faster, and
     # we could remove this sources check if it became inconvenient.
     sources:
@@ -397,11 +421,18 @@ tasks:
       - ../../prqlc/bindings/**/*.rs
 
   build-php:
-    - cargo build --package prqlc-clib --release
+    - cargo build --package prqlc-c --release
     - mkdir -p prqlc/bindings/php/lib/
-    - cp target/release/libprqlc_lib.* prqlc/bindings/clib/libprqlc_lib.h
+    - cp target/release/libprqlc_c.* prqlc/bindings/prqlc-c/prqlc.h
       prqlc/bindings/php/lib/
     - cd prqlc/bindings/php && composer install
+
+  build-prqlc-c-header:
+    desc: Build the C header for the C bindings.
+    dir: prqlc/bindings/prqlc-c
+    cmds:
+      - cbindgen --crate prqlc-c --output prqlc.h
+      - cbindgen --crate prqlc-c --lang C++ --output prqlc.hpp
 
   test-php:
     dir: prqlc/bindings/php
