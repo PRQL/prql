@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chumsky::prelude::*;
 
+use itertools::Itertools;
 use prqlc_ast::expr::*;
 use prqlc_ast::Span;
 
@@ -85,12 +86,15 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
                     |_| Expr::new(ExprKind::Literal(Literal::Null)),
                 ));
 
+        // TODO: temporary implementation to keep it working on the new
+        // interpolation lexer with the old interpolation parser
         let interpolation = select! {
             TokenKind::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
             TokenKind::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
         }
         .validate(|(finish, string), span: ParserSpan, emit| {
-            match interpolation::parse(string, span + 2) {
+            match interpolation::parse(string.into_iter().map(|x| x.to_string()).join(""), span + 2)
+            {
                 Ok(items) => finish(items),
                 Err(errors) => {
                     for err in errors {

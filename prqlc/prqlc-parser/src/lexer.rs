@@ -4,6 +4,7 @@ use chumsky::{
     text::{newline, Character},
 };
 
+use itertools::Itertools;
 use prqlc_ast::expr::*;
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +30,7 @@ pub enum TokenKind {
         bind_left: bool,
         bind_right: bool,
     },
-    Interpolation(char, String),
+    Interpolation(char, Vec<InterpolateItem>),
 
     /// single-char control tokens
     Control(char),
@@ -65,6 +66,12 @@ pub enum TokenKind {
     // - Change the functionality. But it's very nice to be able to comment
     //   something out and have line-wraps still work.
     LineWrap(Vec<TokenKind>),
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum InterpolateItem {
+    String(String),
+    Expr(Vec<Token>, Option<String>),
 }
 
 /// Lex chars to tokens until the end of the input
@@ -119,17 +126,19 @@ pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
     let param = just('$')
         .ignore_then(filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.').repeated())
         .collect::<String>()
-        .map(TokenKind::Param);
-
-    let interpolation = one_of("sf")
-        .then(quoted_string(true))
-        .map(|(c, s)| TokenKind::Interpolation(c, s));
+        .map(Token::Param);
+    // I think declaring this and then cloning will be more performant than
+    // calling the function on each invocation.
+    // https://github.com/zesterer/chumsky/issues/501 would allow us to avoid
+    // this, and let us split up this giant function without sacrificing
+    // performance.
+    let newline = newline();
 
     let token = choice((
         line_wrap(),
         newline().to(TokenKind::NewLine),
         control_multi,
-        interpolation,
+        interpolation(),
         param,
         control,
         literal,
@@ -137,7 +146,10 @@ pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
         ident,
         comment(),
     ))
-    .recover_with(skip_then_retry_until([]).skip_start());
+    // TODO: I think this now needs to be able to fail without recovering, since we use
+    // it in the interpolation lexer
+    // .recover_with(skip_then_retry_until([]).skip_start());
+    ;
 
     let range = (whitespace().or_not())
         .then_ignore(just(".."))
@@ -205,6 +217,12 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     let backticks = none_of('`').repeated().delimited_by(just('`'), just('`'));
 
     plain.or(backticks).collect()
+}
+
+fn interpolation() -> impl Parser<char, Token, Error = Cheap<char>> {
+    one_of("sf")
+        .then(interpolated_string(&'"', true).or(interpolated_string(&'\'', true)))
+        .map(|(c, s)| Token::Interpolation(c, s))
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
@@ -401,6 +419,76 @@ fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>
     .labelled("string")
 }
 
+fn interpolated_string(
+    quote: &char,
+    escaping: bool,
+) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> + '_ {
+    let opening = just(*quote).repeated().at_least(1);
+
+    opening.then_with(move |opening| {
+        if opening.len() % 2 == 0 {
+            // If we have an even number of quotes, it's an empty string.
+            return chumsky::prelude::empty().to(vec![]).boxed();
+        }
+        let delimiter = just(*quote).repeated().exactly(opening.len());
+
+        let string = if escaping {
+            choice((
+                // Convert double braces to single braces
+                just(vec!['{', '{']).to('{'),
+                just(vec!['}', '}']).to('}'),
+                // Don't allow consuming a backslash, or the start of an expr
+                choice((delimiter, just(vec!['\\']), just(vec!['{']))).not(),
+                escaped_character(),
+                // Or escape the quote char or `{` of the current string (though
+                // maybe we don't need to allow the escaping of `{` given we
+                // have `{{`?)
+                just('\\').ignore_then(just(*quote).or(just('{'))),
+            ))
+            .boxed()
+        } else {
+            choice((
+                just(vec!['{', '{']).to('{'),
+                just(vec!['}', '}']).to('}'),
+                choice((delimiter, just(vec!['{']))).not(),
+            ))
+            .boxed()
+        }
+        .repeated()
+        .at_least(1)
+        .collect()
+        .map(InterpolateItem::String);
+
+        choice((interpolated_expr(), string))
+            .repeated()
+            .at_least(1)
+            .then_ignore(delimiter)
+            .boxed()
+    })
+}
+
+fn interpolated_expr() -> impl Parser<char, InterpolateItem, Error = Cheap<char>> {
+    // Don't allow two opening `{{`, since that's converted to a string of `{`
+    let inner = just('{').repeated().at_least(2).not().rewind().ignore_then(
+        // TODO: decide how we want to handle colons in interpolated expressions
+        // We use rewinds to look ahead and ensure we don't have a closing
+        // bracket (or colon), before forwarding that to the lexer.
+        filter(|c| *c != '}' && *c != ':')
+            .rewind()
+            .ignore_then(lex_token())
+            .repeated()
+            .then(
+                just(':')
+                    .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                    .or_not(),
+            ),
+    );
+
+    inner.delimited_by(just('{'), just('}')).map(|(e, f)| {
+        InterpolateItem::Expr(e.into_iter().map(|TokenSpan(tok, _)| tok).collect(), f)
+    })
+}
+
 fn quoted_string_of_quote(
     quote: &char,
     escaping: bool,
@@ -410,7 +498,7 @@ fn quoted_string_of_quote(
     opening.then_with(move |opening| {
         if opening.len() % 2 == 0 {
             // If we have an even number of quotes, it's an empty string.
-            return (just(vec![])).boxed();
+            return chumsky::prelude::empty().to(vec![]).boxed();
         }
         let delimiter = just(*quote).repeated().exactly(opening.len());
 
@@ -550,7 +638,11 @@ impl std::fmt::Display for TokenKind {
                 if *bind_right { "" } else { " " }
             ),
             TokenKind::Interpolation(c, s) => {
-                write!(f, "{c}\"{}\"", s)
+                write!(
+                    f,
+                    "{c}\"{}\"",
+                    s.into_iter().map(|x| x.to_string()).join("")
+                )
             }
             TokenKind::Comment(s) => {
                 writeln!(f, "#{}", s)
@@ -564,6 +656,25 @@ impl std::fmt::Display for TokenKind {
                     write!(f, "{}", comment)?;
                 }
                 Ok(())
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for InterpolateItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InterpolateItem::String(s) => {
+                let s = s.replace('{', "{{").replace('}', "}}");
+                write!(f, r#"{}"#, s)
+            }
+            InterpolateItem::Expr(expr, format) => {
+                let expr = expr.iter().map(|x| x.kind.to_string()).join("");
+                if let Some(format) = format {
+                    write!(f, "{{{}:{}}}", expr, format)
+                } else {
+                    write!(f, "{{{}}}", expr)
+                }
             }
         }
     }
@@ -586,7 +697,6 @@ impl std::fmt::Debug for TokenVec {
         write!(f, ")")
     }
 }
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -757,5 +867,317 @@ mod test {
           5..6: Literal(Integer(5)),
         )
         "###);
+    }
+
+    #[test]
+    fn interpolate_item_display() {
+        use insta::assert_snapshot;
+
+        assert_snapshot!(InterpolateItem::String("hello".to_string()), @"hello");
+        assert_snapshot!(TokenKind::Ident("hello".to_string()), @"hello");
+        assert_snapshot!(
+            InterpolateItem::Expr(vec![TokenKind::Ident("hello".to_string())], None),
+            @"{hello}"
+        );
+        assert_snapshot!(
+            InterpolateItem::Expr(vec![TokenKind::Ident("hello".to_string())], Some("s".to_string())),
+            @"{hello:s}"
+        );
+    }
+
+    #[test]
+    fn test_lexer() {
+        use insta::assert_debug_snapshot;
+
+        assert_debug_snapshot!(lex_token().repeated().parse(r"{test}").unwrap(), @r###"
+    [
+        0..1: Control('{'),
+        1..5: Ident("test"),
+        5..6: Control('}'),
+    ]
+    "###);
+    }
+    #[test]
+    fn test_interpolated_expr() {
+        use insta::assert_debug_snapshot;
+
+        assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello}"), @r###"
+    (
+        Some(
+            Expr(
+                [
+                    Ident(
+                        "hello",
+                    ),
+                ],
+                None,
+            ),
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello + 5}"), @r###"
+    (
+        Some(
+            Expr(
+                [
+                    Ident(
+                        "hello",
+                    ),
+                    Control(
+                        '+',
+                    ),
+                    Literal(
+                        Integer(
+                            5,
+                        ),
+                    ),
+                ],
+                None,
+            ),
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_expr().parse_recovery_verbose("{hello}{foo}"), @r###"
+    (
+        Some(
+            Expr(
+                [
+                    Ident(
+                        "hello",
+                    ),
+                ],
+                None,
+            ),
+        ),
+        [],
+    )
+    "###);
+    }
+
+    #[test]
+    fn interpolate() {
+        use insta::assert_debug_snapshot;
+
+        let interpolated_string = interpolated_string(&'"', false);
+
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello + 5}""#), @r###"
+    (
+        Some(
+            [
+                Expr(
+                    [
+                        Ident(
+                            "hello",
+                        ),
+                        Control(
+                            '+',
+                        ),
+                        Literal(
+                            Integer(
+                                5,
+                            ),
+                        ),
+                    ],
+                    None,
+                ),
+            ],
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""hello""#), @r###"
+    (
+        Some(
+            [
+                String(
+                    "hello",
+                ),
+            ],
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_string.parse(r#""{hello}world""#).unwrap(), @r###"
+    [
+        Expr(
+            [
+                Ident(
+                    "hello",
+                ),
+            ],
+            None,
+        ),
+        String(
+            "world",
+        ),
+    ]
+    "###);
+
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello}{world}""#), @r###"
+    (
+        Some(
+            [
+                Expr(
+                    [
+                        Ident(
+                            "hello",
+                        ),
+                    ],
+                    None,
+                ),
+                Expr(
+                    [
+                        Ident(
+                            "world",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello}world""#), @r###"
+    (
+        Some(
+            [
+                Expr(
+                    [
+                        Ident(
+                            "hello",
+                        ),
+                    ],
+                    None,
+                ),
+                String(
+                    "world",
+                ),
+            ],
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""{hello + 5}world""#), @r###"
+    (
+        Some(
+            [
+                Expr(
+                    [
+                        Ident(
+                            "hello",
+                        ),
+                        Control(
+                            '+',
+                        ),
+                        Literal(
+                            Integer(
+                                5,
+                            ),
+                        ),
+                    ],
+                    None,
+                ),
+                String(
+                    "world",
+                ),
+            ],
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(interpolated_string.parse_recovery_verbose(r#""print('{{hello}}')""#), @r###"
+    (
+        Some(
+            [
+                String(
+                    "print('{hello}')",
+                ),
+            ],
+        ),
+        [],
+    )
+    "###);
+    }
+
+    #[test]
+    fn test_interpolate_lex() {
+        use insta::assert_debug_snapshot;
+
+        assert_debug_snapshot!(lexer().parse_recovery_verbose(r#"s"hello{world}""#), @r###"
+    (
+        Some(
+            [
+                0..15: Interpolation('s', [String("hello"), Expr([Ident("world")], None)]),
+            ],
+        ),
+        [],
+    )
+    "###);
+
+        assert_debug_snapshot!(lexer().parse_recovery_verbose(r#"s"hello{{world}}""#), @r###"
+    (
+        Some(
+            [
+                0..17: Interpolation('s', [String("hello{world}")]),
+            ],
+        ),
+        [],
+    )
+    "###);
+    }
+
+    #[test]
+    fn test_interpolated_display() {
+        use insta::assert_snapshot;
+
+        fn roundtrip(s: &str) -> String {
+            let parsed = interpolation().parse(s).unwrap();
+            parsed.to_string()
+        }
+
+        assert_snapshot!(roundtrip(r#"s"{hello}world""#), @r###"s"{hello}world""###);
+
+        assert_snapshot!(
+            InterpolateItem::String("hello".to_string()),
+            @"hello"
+        );
+
+        assert_snapshot!(
+            InterpolateItem::Expr(vec![Token::Ident("hello".to_string())], None),
+            @"{hello}"
+        );
+
+        assert_snapshot!(
+            InterpolateItem::Expr(
+                vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
+                None
+            )
+            ,
+            @"{hello+3}"
+        );
+
+        assert_snapshot!(
+            InterpolateItem::Expr(
+                vec![Token::Ident("hello".to_string()), Token::Control('+'), Token::Literal(Literal::Integer(3))],
+                Some("fmt".to_string())
+            )
+            ,
+            @"{hello+3:fmt}"
+        );
+
+        assert_snapshot!(
+            InterpolateItem::String("a{bracket}".to_string()),
+            @"a{{bracket}}"
+        );
     }
 }

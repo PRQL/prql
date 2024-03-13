@@ -1339,10 +1339,12 @@ fn test_func_call() {
         "###);
 
     // A non-friendly option for #154
-    let ast = parse_expr(r#"count s'*'"#).unwrap();
-    let func_call: FuncCall = ast.kind.into_func_call().unwrap();
     assert_yaml_snapshot!(
-            func_call, @r###"
+      parse_expr(r#"count s'*'"#)
+        .unwrap()
+        .kind
+        .into_func_call()
+        .unwrap(), @r###"
         ---
         name:
           Ident:
