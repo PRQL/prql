@@ -1,6 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
+use prqlc_lib::ErrorMessages;
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -69,8 +70,8 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
 #[pyclass]
 #[derive(Clone)]
 pub struct CompileOptions {
-    /// Pass generated SQL string trough a formatter that splits it
-    /// into multiple lines and prettifies indentation and spacing.
+    /// Pass generated SQL string through a formatter that splits it into
+    /// multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.
     pub format: bool,
@@ -85,30 +86,45 @@ pub struct CompileOptions {
     ///
     /// Defaults to true.
     pub signature_comment: bool,
+
+    pub color: bool,
+
+    pub display: String,
 }
 
 #[pymethods]
 impl CompileOptions {
     #[new]
-    #[pyo3(signature = (*, format=true, signature_comment=true, target="sql.any".to_string()))]
-    pub fn new(format: bool, signature_comment: bool, target: String) -> Self {
+    #[pyo3(signature = (*, format=true, signature_comment=true, target="sql.any".to_string(), color=false, display="plain".to_string()))]
+    pub fn new(
+        format: bool,
+        signature_comment: bool,
+        target: String,
+        color: bool,
+        display: String,
+    ) -> Self {
         CompileOptions {
             format,
             target,
             signature_comment,
+            color,
+            display,
         }
     }
 }
 
 fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
+    use prqlc_lib::Error;
     let target = prqlc_lib::Target::from_str(&o.target).map_err(prqlc_lib::ErrorMessages::from)?;
 
     Ok(prqlc_lib::Options {
         format: o.format,
         target,
         signature_comment: o.signature_comment,
-        // TODO: offer support
         color: false,
+        display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|e| ErrorMessages {
+            inner: vec![Error::new_simple(format!("Invalid display option: {}", e)).into()],
+        })?,
     })
 }
 
@@ -129,6 +145,8 @@ mod test {
             format: true,
             target: "sql.any".to_string(),
             signature_comment: false,
+            color: false,
+            display: "plain".to_string(),
         });
 
         assert_snapshot!(
@@ -150,6 +168,8 @@ mod test {
             format: true,
             target: "sql.any".to_string(),
             signature_comment: false,
+            color: false,
+            display: "plain".to_string(),
         });
 
         let prql = r#"from db.artists | select {name, id} | filter (id | in [1, 2, 3])"#;

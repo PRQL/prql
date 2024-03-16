@@ -9,6 +9,10 @@ mod website;
 use ::prqlc::Options;
 
 fn compile(prql: &str) -> Result<String, prqlc::ErrorMessages> {
-    anstream::ColorChoice::Never.write_global();
-    prqlc::compile(prql, &Options::default().no_signature())
+    prqlc::compile(
+        prql,
+        &Options::default()
+            .no_signature()
+            .with_display(prqlc::DisplayOptions::Plain),
+    )
 }
