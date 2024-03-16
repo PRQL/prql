@@ -250,6 +250,10 @@ fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
             value: v.value,
         }),
         StmtKind::ModuleDef(v) => pl::StmtKind::ModuleDef(expand_module_def(v)?),
+        StmtKind::ImportDef(v) => pl::StmtKind::ImportDef(pl::ImportDef {
+            alias: v.alias,
+            name: v.name,
+        }),
     })
 }
 
@@ -409,6 +413,10 @@ fn restrict_stmt(stmt: pl::Stmt) -> Stmt {
             value: def.value,
         }),
         pl::StmtKind::ModuleDef(def) => StmtKind::ModuleDef(restrict_module_def(def)),
+        pl::StmtKind::ImportDef(def) => StmtKind::ImportDef(ImportDef {
+            name: def.name,
+            alias: def.alias,
+        }),
     };
 
     Stmt {
@@ -485,6 +493,10 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             value: Some(ty),
         }),
         decl::DeclKind::QueryDef(query_def) => StmtKind::QueryDef(Box::new(query_def)),
+        decl::DeclKind::Import(ident) => StmtKind::ImportDef(ImportDef {
+            alias: Some(name),
+            name: ident,
+        }),
     };
     Some(Stmt::new(kind))
 }

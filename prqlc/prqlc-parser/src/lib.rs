@@ -81,7 +81,11 @@ mod common {
     pub type PError = Simple<TokenKind, ParserSpan>;
 
     pub fn ident_part() -> impl Parser<TokenKind, String, Error = PError> {
-        select! { TokenKind::Ident(ident) => ident }.map_err(|e: PError| {
+        select! {
+            TokenKind::Ident(ident) => ident,
+            TokenKind::Keyword(ident) if &ident == "module" => ident,
+        }
+        .map_err(|e: PError| {
             Simple::expected_input_found(
                 e.span(),
                 [Some(TokenKind::Ident("".to_string()))],

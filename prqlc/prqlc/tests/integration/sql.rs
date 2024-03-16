@@ -5177,3 +5177,24 @@ fn test_relation_aliasing() {
       x
     "###);
 }
+
+#[test]
+fn test_import() {
+    assert_snapshot!(compile(
+        r###"
+    module hello {
+        let world = 1
+    }
+
+    import a = hello.world
+
+    from db.x | select a
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      1
+    FROM
+      x
+    "###);
+}

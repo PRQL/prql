@@ -23,6 +23,15 @@ pub fn prql_to_pl(prql_query: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
+pub fn pl_to_prql(pl_json: &str) -> Option<String> {
+    return_or_throw(
+        Ok(pl_json)
+            .and_then(prqlc::json::to_pl)
+            .and_then(|x| prqlc::pl_to_prql(&x)),
+    )
+}
+
+#[wasm_bindgen]
 pub fn pl_to_rq(pl_json: &str) -> Option<String> {
     return_or_throw(
         Ok(pl_json)

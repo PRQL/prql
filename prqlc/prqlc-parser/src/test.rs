@@ -2565,3 +2565,37 @@ fn test_target() {
       span: "0:45-81"
     "###);
 }
+
+#[test]
+fn test_module() {
+    assert_yaml_snapshot!(parse_single(
+            r#"
+          module hello {
+            let world = 1
+            let man = module.world
+          }
+        "#,
+        )
+        .unwrap(), @r###"
+    ---
+    - ModuleDef:
+        name: hello
+        stmts:
+          - VarDef:
+              kind: Let
+              name: world
+              value:
+                Literal:
+                  Integer: 1
+            span: "0:38-51"
+          - VarDef:
+              kind: Let
+              name: man
+              value:
+                Ident:
+                  - module
+                  - world
+            span: "0:64-86"
+      span: "0:11-98"
+    "###);
+}
