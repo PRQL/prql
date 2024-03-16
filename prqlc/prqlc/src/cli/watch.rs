@@ -24,10 +24,8 @@ pub struct WatchArgs {
 pub fn run(command: &mut WatchArgs) -> Result<()> {
     let opt = prqlc::Options {
         format: !command.no_format,
-        target: prqlc::Target::Sql(None),
         signature_comment: !command.no_signature,
-        // TODO: potentially offer this as an arg?
-        color: true,
+        ..Default::default()
     };
     let path = Path::new(&command.path);
 

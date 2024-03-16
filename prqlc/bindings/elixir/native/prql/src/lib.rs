@@ -6,6 +6,8 @@
 // likely because of the `NifStruct` derive.
 #![allow(clippy::needless_borrow)]
 
+use std::default::Default;
+
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
 mod atoms {
@@ -77,8 +79,8 @@ impl From<CompileOptions> for prqlc::Options {
             format: o.format,
             target: target_from_atom(o.target),
             signature_comment: o.signature_comment,
-            // TODO: add support for this
-            color: false,
+            display: prqlc::DisplayOptions::Plain,
+            ..Default::default()
         }
     }
 }

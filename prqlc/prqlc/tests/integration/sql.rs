@@ -4,17 +4,21 @@ use prqlc::{sql, ErrorMessages, Options, SourceTree, Target};
 use rstest::rstest;
 
 pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
-    anstream::ColorChoice::Never.write_global();
-    prqlc::compile(prql, &Options::default().no_signature())
-}
-
-fn compile_with_sql_dialect(prql: &str, dialect: sql::Dialect) -> Result<String, ErrorMessages> {
-    anstream::ColorChoice::Never.write_global();
     prqlc::compile(
         prql,
         &Options::default()
             .no_signature()
-            .with_target(Target::Sql(Some(dialect))),
+            .with_display(prqlc::DisplayOptions::Plain),
+    )
+}
+
+fn compile_with_sql_dialect(prql: &str, dialect: sql::Dialect) -> Result<String, ErrorMessages> {
+    prqlc::compile(
+        prql,
+        &Options::default()
+            .no_signature()
+            .with_target(Target::Sql(Some(dialect)))
+            .with_display(prqlc::DisplayOptions::Plain),
     )
 }
 

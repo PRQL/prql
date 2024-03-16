@@ -323,11 +323,8 @@ fn convert_options(o: &Options) -> Result<prqlc::Options, prqlc::ErrorMessages> 
 
     let target = Target::from_str(target).map_err(prqlc::ErrorMessages::from)?;
 
-    Ok(prqlc::Options {
-        format: o.format,
-        target,
-        signature_comment: o.signature_comment,
-        // TODO: add support for this
-        color: false,
-    })
+    Ok(prqlc::Options::default()
+        .with_format(o.format)
+        .with_target(target)
+        .with_signature_comment(o.signature_comment))
 }

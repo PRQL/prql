@@ -27,8 +27,8 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         format: format != 0,
         target: prql_dialect,
         signature_comment: signature != 0,
-        // TODO: add support for this
-        color: false,
+        // TODO: add support for `display`
+        ..Default::default()
     };
     let result = prqlc::compile(&prql_query, &opt);
     java_string_with_exception(result, &mut env)

@@ -1,6 +1,6 @@
 #![cfg(target_family = "wasm")]
 
-use std::str::FromStr;
+use std::{default::Default, str::FromStr};
 
 use prqlc::Target;
 use wasm_bindgen::prelude::*;
@@ -117,8 +117,8 @@ impl From<CompileOptions> for prqlc::Options {
             format: o.format,
             target,
             signature_comment: o.signature_comment,
-            // TODO: offer this option in the API
-            color: false,
+            display: prqlc::DisplayOptions::Plain,
+            ..Default::default()
         }
     }
 }
