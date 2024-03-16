@@ -252,9 +252,7 @@ this is an error
     anstream::ColorChoice::Always.write_global();
 
     assert_snapshot!(replace_examples(md)?, @r###"
-    # PRQL Doc
-
-    <div class="comparison">
+    # PRQL Doc<div class="comparison">
 
     <div>
     <h4>PRQL</h4>
@@ -283,9 +281,7 @@ this is an error
 
     ````python
     import sys
-    ````
-
-    <div class="comparison">
+    ````<div class="comparison">
 
     <div>
     <h4>PRQL</h4>
