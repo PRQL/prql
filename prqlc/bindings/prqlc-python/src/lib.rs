@@ -68,7 +68,7 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
 
 /// Compilation options for SQL backend of the compiler.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CompileOptions {
     /// Pass generated SQL string through a formatter that splits it into
     /// multiple lines and prettifies indentation and spacing.
@@ -108,7 +108,7 @@ impl CompileOptions {
             target,
             signature_comment,
             color,
-            display,
+            display: display.to_lowercase(),
         }
     }
 }
@@ -152,13 +152,13 @@ mod test {
         assert_snapshot!(
             compile("from db.employees | filter (age | in 20..30)", opts).unwrap(),
             @r###"
-        SELECT
-          *
-        FROM
-          employees
-        WHERE
-          age BETWEEN 20 AND 30
-        "###
+            SELECT
+              *
+            FROM
+              employees
+            WHERE
+              age BETWEEN 20 AND 30
+            "###
         );
     }
 

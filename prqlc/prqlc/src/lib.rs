@@ -291,6 +291,7 @@ impl Options {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 #[non_exhaustive]
 pub enum DisplayOptions {
     /// Plain text
