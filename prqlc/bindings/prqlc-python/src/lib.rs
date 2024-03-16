@@ -6,31 +6,30 @@ use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    let options = options.map(convert_options).transpose();
+    let Ok(options) = options.map(convert_options).transpose() else {
+        return Err(PyErr::new::<exceptions::PyValueError, _>(
+            "Invalid options".to_string(),
+        ));
+    };
 
-    options
-        .and_then(|opts| {
-            Ok(prql_query)
-                .and_then(prqlc_lib::prql_to_pl)
-                .and_then(prqlc_lib::pl_to_rq)
-                .and_then(|rq| prqlc_lib::rq_to_sql(rq, &opts.unwrap_or_default()))
-        })
+    Ok(prql_query)
+        .and_then(prqlc_lib::prql_to_pl)
+        .and_then(prqlc_lib::pl_to_rq)
+        .and_then(|rq| prqlc_lib::rq_to_sql(rq, &options.unwrap_or_default()))
         .map_err(|e| e.composed(&prql_query.into()))
         .map_err(|e| (PyErr::new::<exceptions::PyValueError, _>(e.to_string())))
 }
 
 #[pyfunction]
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
-    Ok(prql_query)
-        .and_then(prqlc_lib::prql_to_pl)
+    prqlc_lib::prql_to_pl(prql_query)
         .and_then(|x| prqlc_lib::json::from_pl(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
 pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
-    Ok(pl_json)
-        .and_then(prqlc_lib::json::to_pl)
+    prqlc_lib::json::to_pl(pl_json)
         .and_then(prqlc_lib::pl_to_rq)
         .and_then(|x| prqlc_lib::json::from_rq(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
@@ -38,8 +37,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
 
 #[pyfunction]
 pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    Ok(rq_json)
-        .and_then(prqlc_lib::json::to_rq)
+    prqlc_lib::json::to_rq(rq_json)
         .and_then(|x| {
             prqlc_lib::rq_to_sql(
                 x,
