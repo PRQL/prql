@@ -182,7 +182,7 @@ impl ErrorMessage {
         report.finish().write(cache, &mut out).ok()?;
         String::from_utf8(out)
             .ok()
-            .map(|x| strip_colors(x.as_str()))
+            .map(|x| maybe_strip_colors(x.as_str()))
     }
 
     fn compose_location(&self, source: &Source) -> Option<SourceLocation> {
@@ -208,10 +208,8 @@ fn should_use_color() -> bool {
 
 /// Strip colors, for external libraries which don't yet strip themselves, and
 /// for insta snapshot tests. This will respond to environment variables such as
-/// `CLI_COLOR`. Eventually we can remove this, always pass colors back, and the
-/// consuming library can strip (including insta
-/// https://github.com/mitsuhiko/insta/issues/378).
-pub fn strip_colors(s: &str) -> String {
+/// `CLI_COLOR`.
+pub(crate) fn maybe_strip_colors(s: &str) -> String {
     if !should_use_color() {
         strip_str(s).to_string()
     } else {

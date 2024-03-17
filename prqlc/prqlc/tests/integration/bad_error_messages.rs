@@ -16,11 +16,11 @@
 //! So instead, add the error message as a test here.
 
 use super::sql::compile;
-use insta::assert_display_snapshot;
+use insta::assert_snapshot;
 
 #[test]
 fn test_bad_error_messages() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from db.film
     group
     "###).unwrap_err(), @r###"
@@ -38,7 +38,7 @@ fn test_bad_error_messages() {
     "###);
 
     // This should suggest parentheses (this might not be an easy one to solve)
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     let f = country -> country == "Canada"
 
     from db.employees
@@ -54,7 +54,7 @@ fn test_bad_error_messages() {
     "###);
 
     // Really complicated error message for something so fundamental
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     select tracks
     from db.artists
     "###).unwrap_err(), @r###"
@@ -68,7 +68,7 @@ fn test_bad_error_messages() {
     "###);
 
     // It's better if we can tell them to put in {} braces
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from db.artists
     sort -name
     "###).unwrap_err(), @r###"
@@ -79,7 +79,7 @@ fn test_bad_error_messages() {
 
 #[test]
 fn empty_interpolations() {
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     from db.x
     select f"{}"
     "#).unwrap_err(), @r###"
@@ -96,7 +96,7 @@ fn empty_interpolations() {
 #[test]
 fn select_with_extra_fstr() {
     // Should complain in the same way as `select lower "mooo"`
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     from db.foo
     select lower f"{x}/{y}"
     "#).unwrap_err(), @r###"
@@ -115,7 +115,7 @@ fn select_with_extra_fstr() {
 fn misplaced_type_error() {
     // This one should point at `foo` in `select (... foo)`
     // (preferably in addition to the error that is currently generated)
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     let foo = 123
     from db.t
     select (true && foo)
@@ -132,7 +132,7 @@ fn misplaced_type_error() {
 
 #[test]
 fn invalid_lineage_in_transform() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
   from db.tbl
   group id (
     sort -val
@@ -145,7 +145,7 @@ fn invalid_lineage_in_transform() {
 
 #[test]
 fn test_hint_missing_args() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from db.film
     select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
@@ -163,7 +163,7 @@ fn test_hint_missing_args() {
 
 #[test]
 fn test_relation_literal_contains_literals() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     [{a=(1+1)}]
     "###).unwrap_err(), @r###"
     Error:
@@ -179,7 +179,7 @@ fn test_relation_literal_contains_literals() {
 #[test]
 fn nested_groups() {
     // Nested `group` gives a very abstract & internally-focused error message
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from db.invoices
     select {inv = this}
     join item = db.invoice_items (==invoice_id)
@@ -209,7 +209,7 @@ fn nested_groups() {
 fn a_arrow_b() {
     // This is fairly low priority, given how idiosyncratic the query is. If
     // we find other cases, we should increase the priority.
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     x -> y
     "###).unwrap_err(), @r###"
     Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280

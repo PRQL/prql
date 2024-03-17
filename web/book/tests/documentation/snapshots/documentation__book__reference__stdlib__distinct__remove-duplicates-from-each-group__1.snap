@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from employees\ngroup {first_name, last_name} (take 1)\n"
+expression: "from db.employees\ngroup {first_name, last_name} (take 1)\n"
 ---
 WITH table_0 AS (
   SELECT

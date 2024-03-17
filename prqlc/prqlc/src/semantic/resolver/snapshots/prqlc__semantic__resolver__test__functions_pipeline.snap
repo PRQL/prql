@@ -24,13 +24,13 @@ expression: "resolve_derive(r#\"\n            from db.a\n            derive one 
         - - ~
           - kind:
               Primitive: Int
-            span: "0:4050-4053"
+            span: "0:4052-4055"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "0:4057-4062"
+            span: "0:4059-4064"
             name: ~
-    span: "0:4050-4062"
+    span: "0:4052-4064"
     name: ~
 

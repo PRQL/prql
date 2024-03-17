@@ -22,12 +22,13 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: Build wheel
-        uses: ./.github/actions/build-prqlc-python
+        uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
+          package: prqlc-python
       - uses: actions/download-artifact@v3
         with:
-          name: wheels
+          name: prqlc-python-wheels
           path: target/python
       - uses: actions/setup-python@v5
         with:

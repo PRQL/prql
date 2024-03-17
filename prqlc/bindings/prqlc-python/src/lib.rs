@@ -1,35 +1,35 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
+use prqlc_lib::ErrorMessages;
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    let options = options.map(convert_options).transpose();
+    let Ok(options) = options.map(convert_options).transpose() else {
+        return Err(PyErr::new::<exceptions::PyValueError, _>(
+            "Invalid options".to_string(),
+        ));
+    };
 
-    options
-        .and_then(|opts| {
-            Ok(prql_query)
-                .and_then(prqlc_lib::prql_to_pl)
-                .and_then(prqlc_lib::pl_to_rq)
-                .and_then(|rq| prqlc_lib::rq_to_sql(rq, &opts.unwrap_or_default()))
-        })
+    Ok(prql_query)
+        .and_then(prqlc_lib::prql_to_pl)
+        .and_then(prqlc_lib::pl_to_rq)
+        .and_then(|rq| prqlc_lib::rq_to_sql(rq, &options.unwrap_or_default()))
         .map_err(|e| e.composed(&prql_query.into()))
-        .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
+        .map_err(|e| (PyErr::new::<exceptions::PyValueError, _>(e.to_string())))
 }
 
 #[pyfunction]
 pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
-    Ok(prql_query)
-        .and_then(prqlc_lib::prql_to_pl)
+    prqlc_lib::prql_to_pl(prql_query)
         .and_then(|x| prqlc_lib::json::from_pl(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
 pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
-    Ok(pl_json)
-        .and_then(prqlc_lib::json::to_pl)
+    prqlc_lib::json::to_pl(pl_json)
         .and_then(prqlc_lib::pl_to_rq)
         .and_then(|x| prqlc_lib::json::from_rq(&x))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
@@ -37,8 +37,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
 
 #[pyfunction]
 pub fn rq_to_sql(rq_json: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    Ok(rq_json)
-        .and_then(prqlc_lib::json::to_rq)
+    prqlc_lib::json::to_rq(rq_json)
         .and_then(|x| {
             prqlc_lib::rq_to_sql(
                 x,
@@ -67,10 +66,10 @@ fn prqlc(_py: Python, m: &PyModule) -> PyResult<()> {
 
 /// Compilation options for SQL backend of the compiler.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CompileOptions {
-    /// Pass generated SQL string trough a formatter that splits it
-    /// into multiple lines and prettifies indentation and spacing.
+    /// Pass generated SQL string through a formatter that splits it into
+    /// multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.
     pub format: bool,
@@ -85,30 +84,45 @@ pub struct CompileOptions {
     ///
     /// Defaults to true.
     pub signature_comment: bool,
+
+    pub color: bool,
+
+    pub display: String,
 }
 
 #[pymethods]
 impl CompileOptions {
     #[new]
-    #[pyo3(signature = (*, format=true, signature_comment=true, target="sql.any".to_string()))]
-    pub fn new(format: bool, signature_comment: bool, target: String) -> Self {
+    #[pyo3(signature = (*, format=true, signature_comment=true, target="sql.any".to_string(), color=false, display="plain".to_string()))]
+    pub fn new(
+        format: bool,
+        signature_comment: bool,
+        target: String,
+        color: bool,
+        display: String,
+    ) -> Self {
         CompileOptions {
             format,
             target,
             signature_comment,
+            color,
+            display: display.to_lowercase(),
         }
     }
 }
 
 fn convert_options(o: CompileOptions) -> Result<prqlc_lib::Options, prqlc_lib::ErrorMessages> {
+    use prqlc_lib::Error;
     let target = prqlc_lib::Target::from_str(&o.target).map_err(prqlc_lib::ErrorMessages::from)?;
 
     Ok(prqlc_lib::Options {
         format: o.format,
         target,
         signature_comment: o.signature_comment,
-        // TODO: offer support
         color: false,
+        display: prqlc_lib::DisplayOptions::from_str(&o.display).map_err(|e| ErrorMessages {
+            inner: vec![Error::new_simple(format!("Invalid display option: {}", e)).into()],
+        })?,
     })
 }
 
@@ -129,18 +143,20 @@ mod test {
             format: true,
             target: "sql.any".to_string(),
             signature_comment: false,
+            color: false,
+            display: "plain".to_string(),
         });
 
         assert_snapshot!(
             compile("from db.employees | filter (age | in 20..30)", opts).unwrap(),
             @r###"
-        SELECT
-          *
-        FROM
-          employees
-        WHERE
-          age BETWEEN 20 AND 30
-        "###
+            SELECT
+              *
+            FROM
+              employees
+            WHERE
+              age BETWEEN 20 AND 30
+            "###
         );
     }
 
@@ -150,6 +166,8 @@ mod test {
             format: true,
             target: "sql.any".to_string(),
             signature_comment: false,
+            color: false,
+            display: "plain".to_string(),
         });
 
         let prql = r#"from db.artists | select {name, id} | filter (id | in [1, 2, 3])"#;

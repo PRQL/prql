@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::*;
 
-use crate::ast::{TupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
@@ -373,7 +373,7 @@ impl Resolver<'_> {
                     .columns
                     .iter()
                     .cloned()
-                    .map(|x| TupleField::Single(Some(x), None))
+                    .map(|x| TyTupleField::Single(Some(x), None))
                     .collect();
 
                 let frame =
@@ -506,7 +506,7 @@ impl Resolver<'_> {
                 let with_name = with.alias.clone();
                 let with = with.ty.clone().unwrap();
                 let with = with.kind.into_array().unwrap();
-                let with = TupleField::Single(with_name, Some(*with));
+                let with = TyTupleField::Single(with_name, Some(*with));
 
                 Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
                     [input, vec![with]].concat(),
@@ -541,7 +541,7 @@ impl Resolver<'_> {
 
 fn range_is_empty(range: &(Option<i64>, Option<i64>)) -> bool {
     match (&range.0, &range.1) {
-        (Some(s), Some(e)) => s >= e,
+        (Some(s), Some(e)) => s > e,
         _ => false,
     }
 }
@@ -601,7 +601,7 @@ impl Resolver<'_> {
 
         // validate that the return type is a relation
         // this can be removed after we have proper type checking for all std functions
-        let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
+        let expected = Some(Ty::relation(vec![TyTupleField::Wildcard(None)]));
         self.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
             Some("pipeline".to_string())
         })?;

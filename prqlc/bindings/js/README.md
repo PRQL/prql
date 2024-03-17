@@ -17,6 +17,8 @@ function compile(prql_query: string, options?: CompileOptions): string;
 
 function prql_to_pl(prql_query: string): string;
 
+function pl_to_prql(pl_json: string): string;
+
 function pl_to_rq(pl_json: string): string;
 
 function rq_to_sql(rq_json: string): string;

@@ -305,6 +305,7 @@ tasks:
     cmds:
       - cargo insta test --accept --features=default,test-dbs
         --unreferenced=auto
+      - cargo clippy --fix --allow-dirty --allow-staged
 
   test-rust-fast:
     desc: Test prqlc's unit tests.

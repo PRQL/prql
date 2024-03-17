@@ -62,7 +62,7 @@ jobs:
           features: cli
       - name: Upload release artifact
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
@@ -110,7 +110,7 @@ jobs:
           profile: release
       - name: Upload release artifact
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
@@ -182,7 +182,7 @@ jobs:
             ./*.deb
       - name: Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: prqlc_*.deb
 
@@ -243,7 +243,7 @@ jobs:
       - run: rm prqlc-debuginfo-*.rpm
       - name: Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: prqlc-*.rpm
 
@@ -273,29 +273,46 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        package:
+          - prqlc-python
+          - lutra-python
+        target: [x86_64]
+        # Also produce more targets for ubuntu:
         include:
           - os: ubuntu-latest
-            target: x86_64
-          - os: ubuntu-latest
+            package: prqlc-python
             target: aarch64
           - os: ubuntu-latest
+            package: prqlc-python
+            target: source
+          - os: ubuntu-latest
+            package: lutra-python
+            target: aarch64
+          - os: ubuntu-latest
+            package: lutra-python
             target: source
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prqlc-python
+      - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
+          package: ${{ matrix.package }}
 
-  publish-prqlc-python:
+  publish-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'
+    strategy:
+      matrix:
+        package:
+          - prqlc-python
+          - lutra-python
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: wheels
+          name: ${{ matrix.package }}-wheels
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:

@@ -56,14 +56,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "0:4115-4120"
+                      span: "0:4117-4122"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "0:4124-4128"
+                      span: "0:4126-4130"
                       name: ~
-              span: "0:4115-4128"
+              span: "0:4117-4130"
               name: ~
         ty:
           kind:
@@ -75,14 +75,14 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "0:4115-4120"
+                            span: "0:4117-4122"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "0:4124-4128"
+                            span: "0:4126-4130"
                             name: ~
-                    span: "0:4115-4128"
+                    span: "0:4117-4130"
                     name: ~
           span: ~
           name: ~
@@ -288,14 +288,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4115-4120"
+                        span: "0:4117-4122"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "0:4124-4128"
+                        span: "0:4126-4130"
                         name: ~
-                span: "0:4115-4128"
+                span: "0:4117-4130"
                 name: ~
       span: ~
       name: ~

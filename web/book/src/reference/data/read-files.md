@@ -1,6 +1,6 @@
-# How do I: read files?
+# Reading files
 
-There are a couple of functions mainly designed for DuckDB:
+There are a couple of functions mainly designed for DuckDB to read from files:
 
 ```prql
 prql target:sql.duckdb
@@ -28,5 +28,5 @@ from db.`artists.parquet`
 
 ## See also
 
-- [Target and Version](../project/target.md)
-- [How do I: create ad-hoc relations?](./relation-literals.md)
+- [Target and Version](../../project/target.md)
+- [Ad-hoc data](./relation-literals.md)
