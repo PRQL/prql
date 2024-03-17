@@ -24,7 +24,7 @@ mdbook = {version = "0.4.36", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.2"
 prqlc = {path = "../../prqlc/prqlc", default-features = false}
 pulldown-cmark = {version = "0.10.0", default-features = false}
-pulldown-cmark-to-cmark = "12.0.0"
+pulldown-cmark-to-cmark = "13.0.0"
 strum = {version = "0.26.2", features = ["std", "derive"]}
 strum_macros = "0.26.2"
 
