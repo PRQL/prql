@@ -9,10 +9,10 @@ build-prql:
 UNAME_S := $(shell uname -s)
 
 LD_FLAGS = -L${PRQL_PROJECT}/target/release \
-           ${PRQL_PROJECT}/target/release/libprqlc_c.a
+	${PRQL_PROJECT}/target/release/libprqlc_c.a
 
 ifeq ($(UNAME_S),Darwin)
-    LD_FLAGS := $(LD_FLAGS) -framework CoreFoundation
+	LD_FLAGS := $(LD_FLAGS) -framework CoreFoundation
 endif
 
 # TODO: would be helpful to allow running with a debug build too.
