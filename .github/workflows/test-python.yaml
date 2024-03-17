@@ -37,7 +37,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install nox
-        run: pipx install nox
+        # run: pipx install nox
+        run: pip install nox
         shell: bash
       - name: Cache Nox
         uses: actions/cache@v4
