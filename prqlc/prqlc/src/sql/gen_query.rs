@@ -416,6 +416,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
         alias: simple_table_alias(cte_name),
         query: Box::new(query),
         from: None,
+        materialized: None,
     };
     Ok((cte, recursive))
 }
@@ -558,6 +559,7 @@ fn default_select() -> Select {
         having: None,
         named_window: vec![],
         qualify: None,
+        value_table_mode: None,
     }
 }
 
