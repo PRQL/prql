@@ -45,7 +45,7 @@ jobs:
             target: aarch64-unknown-linux-musl
           - os: macos-latest
             target: x86_64-apple-darwin
-          - os: macos-latest
+          - os: macos-14
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -94,7 +94,7 @@ jobs:
             target: aarch64-unknown-linux-musl
           - os: macos-latest
             target: x86_64-apple-darwin
-          - os: macos-latest
+          - os: macos-14
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
