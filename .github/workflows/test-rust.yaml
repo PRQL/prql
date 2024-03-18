@@ -65,8 +65,11 @@ jobs:
           # the comma seemed over the top.
           save-if:
             ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
-        # We split up the test compilation as recommended in
-        # https://matklad.github.io/2021/09/04/fast-rust-builds.html
+      - uses: actions/setup-python@v5
+        # python isn't natively installed on macos-14, so we need to install it
+        if: ${{ inputs.os == 'macos-14' }}
+        with:
+          python-version: "3.11"
       - name: Free up disk space
         # https://github.com/actions/runner-images/issues/2840
         run: ./.github/workflows/scripts/util_free_space.sh
@@ -80,6 +83,8 @@ jobs:
         if:
           ${{ contains(inputs.features, 'test-dbs-external') &&
           steps.cache.outputs.cache-hit == 'false' }}
+      # We split up the test compilation as recommended in
+      # https://matklad.github.io/2021/09/04/fast-rust-builds.html
       - name: 🏭 Compile
         uses: richb-hanover/cargo@v1.1.0
         with:
