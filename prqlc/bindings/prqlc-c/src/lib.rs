@@ -60,7 +60,7 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult 
 
     let result = Ok(prql_query.as_str())
         .and_then(prqlc::prql_to_pl)
-        .and_then(prqlc::json::from_pl);
+        .and_then(|x| prqlc::json::from_pl(&x));
     result_into_c_str(result)
 }
 
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
     let result = Ok(pl_json.as_str())
         .and_then(prqlc::json::to_pl)
         .and_then(prqlc::pl_to_rq)
-        .and_then(prqlc::json::from_rq);
+        .and_then(|x| prqlc::json::from_rq(&x));
     result_into_c_str(result)
 }
 
@@ -321,13 +321,10 @@ fn convert_options(o: &Options) -> Result<prqlc::Options, prqlc::ErrorMessages> 
         .filter(|x| !x.is_empty())
         .unwrap_or("sql.any");
 
-    let target = Target::from_str(target).map_err(|e| prqlc::downcast(e.into()))?;
+    let target = Target::from_str(target).map_err(prqlc::ErrorMessages::from)?;
 
-    Ok(prqlc::Options {
-        format: o.format,
-        target,
-        signature_comment: o.signature_comment,
-        // TODO: add support for this
-        color: false,
-    })
+    Ok(prqlc::Options::default()
+        .with_format(o.format)
+        .with_target(target)
+        .with_signature_comment(o.signature_comment))
 }

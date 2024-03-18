@@ -3,15 +3,15 @@
 //! This IR dictates the structure of the resulting SQL query. This includes number of CTEs,
 //! position of sub-queries and set operations.
 
-use anyhow::Result;
+use crate::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::Serialize;
 
+use crate::ast::generic::InterpolateItem;
 use crate::ir::generic::ColumnSort;
 use crate::ir::pl::JoinSide;
 use crate::ir::rq::{self, fold_column_sorts, RelationLiteral, RqFold};
-use prqlc_ast::expr::generic::InterpolateItem;
 
 use super::context::RIId;
 

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use prqlc_ast::*;
 
+use crate::ast::*;
 use crate::ir::decl;
 use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
+use crate::{Error, Result};
 
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
@@ -86,7 +86,7 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
 }
 
 /// De-sugars range `a..b` into `{start=a, end=b}`. Open bounds are mapped into `null`.
-fn expands_range(v: prqlc_ast::generic::Range<Box<Expr>>) -> Result<pl::ExprKind, anyhow::Error> {
+fn expands_range(v: generic::Range<Box<Expr>>) -> Result<pl::ExprKind> {
     let mut start = v
         .start
         .map(|e| expand_expr(*e))
@@ -102,16 +102,16 @@ fn expands_range(v: prqlc_ast::generic::Range<Box<Expr>>) -> Result<pl::ExprKind
     Ok(pl::ExprKind::Tuple(vec![start, end]))
 }
 
-fn expand_exprs(exprs: Vec<prqlc_ast::Expr>) -> Result<Vec<pl::Expr>> {
+fn expand_exprs(exprs: Vec<Expr>) -> Result<Vec<pl::Expr>> {
     exprs.into_iter().map(expand_expr).collect()
 }
 
 #[allow(clippy::boxed_local)]
-fn expand_expr_box(expr: Box<prqlc_ast::Expr>) -> Result<Box<pl::Expr>> {
+fn expand_expr_box(expr: Box<Expr>) -> Result<Box<pl::Expr>> {
     Ok(Box::new(expand_expr(*expr)?))
 }
 
-fn desugar_pipeline(mut pipeline: prqlc_ast::Pipeline) -> Result<pl::Expr> {
+fn desugar_pipeline(mut pipeline: Pipeline) -> Result<pl::Expr> {
     let value = pipeline.exprs.remove(0);
     let mut value = expand_expr(value)?;
 
@@ -130,8 +130,8 @@ fn desugar_pipeline(mut pipeline: prqlc_ast::Pipeline) -> Result<pl::Expr> {
 }
 
 /// Desugar unary operators into function calls.
-fn expand_unary(prqlc_ast::UnaryExpr { op, expr }: prqlc_ast::UnaryExpr) -> Result<pl::ExprKind> {
-    use prqlc_ast::UnOp::*;
+fn expand_unary(UnaryExpr { op, expr }: UnaryExpr) -> Result<pl::ExprKind> {
+    use UnOp::*;
 
     let expr = expand_expr(*expr)?;
 
@@ -140,14 +140,17 @@ fn expand_unary(prqlc_ast::UnaryExpr { op, expr }: prqlc_ast::UnaryExpr) -> Resu
         Not => ["std", "not"],
         Add => return Ok(expr.kind),
         EqSelf => {
-            let ident = expr.kind.into_ident().map_err(|_| {
-                anyhow!("you can only use column names with self-equality operator.")
-            })?;
+            let pl::ExprKind::Ident(ident) = expr.kind else {
+                return Err(Error::new_simple(
+                    "you can only use column names with self-equality operator",
+                ));
+            };
             if !ident.path.is_empty() {
-                return Err(anyhow!(
-                    "you cannot use namespace prefix with self-equality operator."
+                return Err(Error::new_simple(
+                    "you cannot use namespace prefix with self-equality operator",
                 ));
             }
+
             let left = pl::Expr {
                 span: expr.span,
                 ..pl::Expr::new(Ident {
@@ -198,7 +201,7 @@ fn expand_binary(BinaryExpr { op, left, right }: BinaryExpr) -> Result<pl::ExprK
     Ok(new_binop(left, &func_name, right).kind)
 }
 
-fn expand_func_param(value: prqlc_ast::FuncParam) -> Result<pl::FuncParam> {
+fn expand_func_param(value: FuncParam) -> Result<pl::FuncParam> {
     Ok(pl::FuncParam {
         name: value.name,
         ty: value.ty,
@@ -206,7 +209,7 @@ fn expand_func_param(value: prqlc_ast::FuncParam) -> Result<pl::FuncParam> {
     })
 }
 
-fn expand_func_params(value: Vec<prqlc_ast::FuncParam>) -> Result<Vec<pl::FuncParam>> {
+fn expand_func_params(value: Vec<FuncParam>) -> Result<Vec<pl::FuncParam>> {
     value.into_iter().map(expand_func_param).collect()
 }
 
@@ -247,6 +250,10 @@ fn expand_stmt_kind(value: StmtKind) -> Result<pl::StmtKind> {
             value: v.value,
         }),
         StmtKind::ModuleDef(v) => pl::StmtKind::ModuleDef(expand_module_def(v)?),
+        StmtKind::ImportDef(v) => pl::StmtKind::ImportDef(pl::ImportDef {
+            alias: v.alias,
+            name: v.name,
+        }),
     })
 }
 
@@ -266,7 +273,7 @@ pub fn restrict_expr(expr: pl::Expr) -> Expr {
 }
 
 #[allow(clippy::boxed_local)]
-fn restrict_expr_box(expr: Box<pl::Expr>) -> Box<prqlc_ast::Expr> {
+fn restrict_expr_box(expr: Box<pl::Expr>) -> Box<Expr> {
     Box::new(restrict_expr(*expr))
 }
 
@@ -280,7 +287,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),
         pl::ExprKind::Array(v) => ExprKind::Array(restrict_exprs(v)),
-        pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(prqlc_ast::FuncCall {
+        pl::ExprKind::FuncCall(v) => ExprKind::FuncCall(FuncCall {
             name: restrict_expr_box(v.name),
             args: restrict_exprs(v.args),
             named_args: v
@@ -291,7 +298,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         }),
         pl::ExprKind::Func(v) => {
             let func = ExprKind::Func(
-                prqlc_ast::Func {
+                Func {
                     return_ty: v.return_ty,
                     body: restrict_expr_box(v.body),
                     params: restrict_func_params(v.params),
@@ -318,7 +325,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         }
         pl::ExprKind::Case(v) => ExprKind::Case(
             v.into_iter()
-                .map(|case| prqlc_ast::SwitchCase {
+                .map(|case| SwitchCase {
                     condition: restrict_expr_box(case.condition),
                     value: restrict_expr_box(case.value),
                 })
@@ -339,12 +346,12 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
     }
 }
 
-fn restrict_func_params(value: Vec<pl::FuncParam>) -> Vec<prqlc_ast::FuncParam> {
+fn restrict_func_params(value: Vec<pl::FuncParam>) -> Vec<FuncParam> {
     value.into_iter().map(restrict_func_param).collect()
 }
 
-fn restrict_func_param(value: pl::FuncParam) -> prqlc_ast::FuncParam {
-    prqlc_ast::FuncParam {
+fn restrict_func_param(value: pl::FuncParam) -> FuncParam {
+    FuncParam {
         name: value.name,
         ty: value.ty,
         default_value: value.default_value.map(restrict_expr_box),
@@ -381,26 +388,34 @@ pub fn restrict_null_literal(expr: pl::Expr) -> Option<pl::Expr> {
     }
 }
 
-pub fn restrict_stmts(stmts: Vec<pl::Stmt>) -> Vec<Stmt> {
+pub fn restrict_module_def(def: pl::ModuleDef) -> ModuleDef {
+    ModuleDef {
+        name: def.name,
+        stmts: restrict_stmts(def.stmts),
+    }
+}
+
+fn restrict_stmts(stmts: Vec<pl::Stmt>) -> Vec<Stmt> {
     stmts.into_iter().map(restrict_stmt).collect()
 }
 
 fn restrict_stmt(stmt: pl::Stmt) -> Stmt {
     let kind = match stmt.kind {
         pl::StmtKind::QueryDef(def) => StmtKind::QueryDef(def),
-        pl::StmtKind::VarDef(def) => StmtKind::VarDef(prqlc_ast::VarDef {
+        pl::StmtKind::VarDef(def) => StmtKind::VarDef(VarDef {
             kind: VarDefKind::Let,
             name: def.name,
             value: def.value.map(restrict_expr_box),
             ty: def.ty,
         }),
-        pl::StmtKind::TypeDef(def) => StmtKind::TypeDef(prqlc_ast::TypeDef {
+        pl::StmtKind::TypeDef(def) => StmtKind::TypeDef(TypeDef {
             name: def.name,
             value: def.value,
         }),
-        pl::StmtKind::ModuleDef(def) => StmtKind::ModuleDef(ModuleDef {
+        pl::StmtKind::ModuleDef(def) => StmtKind::ModuleDef(restrict_module_def(def)),
+        pl::StmtKind::ImportDef(def) => StmtKind::ImportDef(ImportDef {
             name: def.name,
-            stmts: restrict_stmts(def.stmts),
+            alias: def.alias,
         }),
     };
 
@@ -478,6 +493,10 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             value: Some(ty),
         }),
         decl::DeclKind::QueryDef(query_def) => StmtKind::QueryDef(Box::new(query_def)),
+        decl::DeclKind::Import(ident) => StmtKind::ImportDef(ImportDef {
+            alias: Some(name),
+            name: ident,
+        }),
     };
     Some(Stmt::new(kind))
 }

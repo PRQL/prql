@@ -1,5 +1,5 @@
+use crate::ast::*;
 use crate::codegen::SeparatedExprs;
-use prqlc_ast::*;
 
 use super::{WriteOpt, WriteSource};
 
@@ -88,7 +88,7 @@ impl WriteSource for TyKind {
     }
 }
 
-impl WriteSource for TupleField {
+impl WriteSource for TyTupleField {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         match self {
             Self::Wildcard(generic_el) => match generic_el {

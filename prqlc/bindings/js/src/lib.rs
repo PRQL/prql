@@ -1,6 +1,6 @@
 #![cfg(target_family = "wasm")]
 
-use std::str::FromStr;
+use std::{default::Default, str::FromStr};
 
 use prqlc::Target;
 use wasm_bindgen::prelude::*;
@@ -18,7 +18,16 @@ pub fn prql_to_pl(prql_query: &str) -> Option<String> {
     return_or_throw(
         Ok(prql_query)
             .and_then(prqlc::prql_to_pl)
-            .and_then(prqlc::json::from_pl),
+            .and_then(|x| prqlc::json::from_pl(&x)),
+    )
+}
+
+#[wasm_bindgen]
+pub fn pl_to_prql(pl_json: &str) -> Option<String> {
+    return_or_throw(
+        Ok(pl_json)
+            .and_then(prqlc::json::to_pl)
+            .and_then(|x| prqlc::pl_to_prql(&x)),
     )
 }
 
@@ -28,7 +37,7 @@ pub fn pl_to_rq(pl_json: &str) -> Option<String> {
         Ok(pl_json)
             .and_then(prqlc::json::to_pl)
             .and_then(prqlc::pl_to_rq)
-            .and_then(prqlc::json::from_rq),
+            .and_then(|x| prqlc::json::from_rq(&x)),
     )
 }
 
@@ -108,8 +117,8 @@ impl From<CompileOptions> for prqlc::Options {
             format: o.format,
             target,
             signature_comment: o.signature_comment,
-            // TODO: offer this option in the API
-            color: false,
+            display: prqlc::DisplayOptions::Plain,
+            ..Default::default()
         }
     }
 }

@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from e = employees\nselect e.first_name\n"
+expression: "from e = db.employees\nselect e.first_name\n"
 ---
 SELECT
   first_name

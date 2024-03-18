@@ -203,9 +203,7 @@ bindings_section:
   title: "Bindings"
   section_id: "bindings"
   sections:
-    # TODO: switch
-    # - link: https://pypi.org/project/prqlc
-    - link: https://pypi.org/project/prql-python
+    - link: https://pypi.org/project/prqlc
       label: "prqlc-python"
       text: Python bindings for prqlc.
 

@@ -6,6 +6,8 @@
 // likely because of the `NifStruct` derive.
 #![allow(clippy::needless_borrow)]
 
+use std::default::Default;
+
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
 mod atoms {
@@ -77,8 +79,8 @@ impl From<CompileOptions> for prqlc::Options {
             format: o.format,
             target: target_from_atom(o.target),
             signature_comment: o.signature_comment,
-            // TODO: add support for this
-            color: false,
+            display: prqlc::DisplayOptions::Plain,
+            ..Default::default()
         }
     }
 }
@@ -131,7 +133,7 @@ pub fn prql_to_pl(prql_query: &str) -> NifResult<Response> {
     to_result_tuple(
         Ok(prql_query)
             .and_then(prqlc::prql_to_pl)
-            .and_then(prqlc::json::from_pl),
+            .and_then(|x| prqlc::json::from_pl(&x)),
     )
 }
 
@@ -142,7 +144,7 @@ pub fn pl_to_rq(pl_json: &str) -> NifResult<Response> {
         Ok(pl_json)
             .and_then(prqlc::json::to_pl)
             .and_then(prqlc::pl_to_rq)
-            .and_then(prqlc::json::from_rq),
+            .and_then(|x| prqlc::json::from_rq(&x)),
     )
 }
 

@@ -53,7 +53,7 @@ tasks:
 
           🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
 
-          Please install it. On MacOS, that's
+          Please install it. On macOS, that's
 
             xcode-select --install
 
@@ -305,6 +305,7 @@ tasks:
     cmds:
       - cargo insta test --accept --features=default,test-dbs
         --unreferenced=auto
+      - cargo clippy --fix --allow-dirty --allow-staged
 
   test-rust-fast:
     desc: Test prqlc's unit tests.
@@ -352,7 +353,7 @@ tasks:
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
       # (we don't use `build-playground-dependencies`, since that uses the dev profile)
-      - cd playground && npm install && npm run build
+      - cd playground && npm ci && npm run build
       # We place the playground app in a nested path, because we want to use
       # prql-lang.org/playground with an iframe containing the playground.
       # Possibly there's a more elegant way of doing this...
@@ -410,7 +411,7 @@ tasks:
     env:
       PROFILE: dev
     cmds:
-      - npm install
+      - npm ci
     # Note that now we have `PROFILE: dev`, the build is much much faster, and
     # we could remove this sources check if it became inconvenient.
     sources:

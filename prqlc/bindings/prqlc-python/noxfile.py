@@ -8,8 +8,8 @@ import nox
 from nox.sessions import Session
 
 VERSIONS: List[str] = [
-    "3.8",
-    "3.11",
+    "3.10",
+    "3.12",
 ]
 
 nox.options.stop_on_first_error = False

@@ -1,11 +1,12 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
-expression: "# mssql:test\nfrom a=albums\ntake 10\njoin tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
-input_file: prqlc/prql-compiler/tests/integration/queries/group_all.prql
+source: prqlc/prqlc/tests/integration/queries.rs
+expression: "# mssql:test\nfrom db.albums\nselect {a = this}\ntake 10\njoin db.tracks (==album_id)\ngroup {a.album_id, a.title} (aggregate price = (sum tracks.unit_price | math.round 2))\nsort album_id\n"
+input_file: prqlc/prqlc/tests/integration/queries/group_all.prql
 ---
-from a = albums
+from db.albums
+select {a = this}
 take 10
-join tracks (==album_id)
+join db.tracks (==album_id)
 group {a.album_id, a.title} (aggregate price = (
   sum tracks.unit_price
   math.round 2

@@ -4,7 +4,7 @@ default_job = "clippy"
 
 # PRQL additions
 [jobs.test]
-command = ['cargo', 'insta', 'test', "--color=always", "--features=default,test-dbs", "--unreferenced=auto"]
+command = ['cargo', 'insta', 'test', "--color=always", "--features=default,test-dbs"]
 
 [jobs.test-accept]
 command = ['cargo', 'insta', 'test', '--accept', "--color=always", "--features=default,test-dbs", "--unreferenced=auto"]

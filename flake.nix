@@ -6,17 +6,32 @@
     flake-utils.url = "github:numtide/flake-utils";
     mdbook-footnote.url = "github:aljazerzen/mdbook-footnote";
     hyperlink.url = "github:aljazerzen/hyperlink";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink }:
+  outputs = { self, nixpkgs, flake-utils, mdbook-footnote, hyperlink, fenix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        fenix_pkgs = fenix.packages.${system};
 
         essentials = with pkgs; [
-          # compiler requirements
-          rustup
-          clang
+          # rust toolchain
+          (fenix_pkgs.stable.withComponents [
+            "cargo"
+            "clippy"
+            "rust-src"
+            "rustc"
+            "rustfmt"
+            "rust-analyzer"
+            "llvm-tools-preview"
+          ])
+
+          # tooling
+          clang # for llvm debugger in VSCode
 
           # tools
           cargo-nextest
@@ -78,10 +93,10 @@
           buildInputs = essentials ++ web ++ bindings;
 
           # needed for running wheels produced by Python maturin builds that are not manylinux
-          shellHook = ''
-            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath bindings}:$LD_LIBRARY_PATH"
-            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
-          '';
+          # shellHook = ''
+          #   export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath bindings}:$LD_LIBRARY_PATH"
+          #   export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
+          # '';
         };
       });
 }

@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::Result;
+use crate::Result;
 use itertools::{Itertools, Position};
 
+use crate::ast::{Ty, TyFunc, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use prqlc_ast::{Ty, TyFunc, TyKind};
-
 use crate::semantic::resolver::types;
 use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};
@@ -35,8 +34,7 @@ impl Resolver<'_> {
                 "Too many arguments to function `{}`",
                 closure.as_debug_name()
             ))
-            .with_span(span)
-            .into());
+            .with_span(span));
         }
 
         let enough_args = closure.args.len() == closure.params.len();
@@ -217,10 +215,10 @@ impl Resolver<'_> {
         }
         if let Some((name, _)) = named_args.into_iter().next() {
             // TODO: report all remaining named_args as separate errors
-            anyhow::bail!(
+            return Err(Error::new_simple(format!(
                 "unknown named argument `{name}` to closure {:?}",
                 closure.name_hint
-            )
+            )));
         }
 
         // positional
@@ -374,19 +372,11 @@ impl Resolver<'_> {
     }
 
     fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
-        let prev_namespace = self.default_namespace.take();
-
         if param_name.starts_with("noresolve.") {
             return Ok(expr);
-        } else if let Some((ns, _)) = param_name.split_once('.') {
-            self.default_namespace = Some(ns.to_string());
-        } else {
-            self.default_namespace = None;
         };
 
-        let res = self.fold_expr(expr);
-        self.default_namespace = prev_namespace;
-        res
+        self.fold_expr(expr)
     }
 }
 

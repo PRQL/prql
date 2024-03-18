@@ -1,8 +1,8 @@
 use anyhow::Result;
-use arrow::datatypes::DataType;
-use connector_arrow::api::RelationDef;
+use arrow::datatypes::{DataType, SchemaRef};
+use connector_arrow::api::SchemaGet;
 use itertools::Itertools;
-use prqlc::ast::{PrimitiveSet, Stmt, TupleField, Ty, TyKind, VarDef};
+use prqlc::ast::{PrimitiveSet, Stmt, Ty, TyKind, TyTupleField, VarDef};
 use prqlc::{Error, WithErrorInfo};
 
 use crate::ProjectCompiled;
@@ -15,41 +15,38 @@ pub fn pull_schema(project: &ProjectCompiled, _params: PullSchemaParams) -> Resu
     let db = &project.database_module;
     let mut conn = crate::connection::open(db, &project_root)?;
 
-    let mut defs = connector_arrow::api::Connection::get_relation_defs(&mut conn)?;
+    let mut table_names = conn.table_list()?;
+    table_names.sort();
 
-    defs.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut defs: Vec<Stmt> = Vec::with_capacity(table_names.len());
+    for table_name in table_names {
+        let schema = conn.table_get(&table_name)?;
 
-    let defs: Vec<Stmt> = defs
-        .into_iter()
-        .map(convert_arrow_schema_to_table_def)
-        .try_collect()?;
+        defs.push(convert_arrow_schema_to_table_def(table_name, schema)?);
+    }
 
     Ok(defs)
 }
 
-fn convert_arrow_schema_to_table_def(relation_def: RelationDef) -> Result<Stmt> {
-    let fields = relation_def
-        .schema
+fn convert_arrow_schema_to_table_def(table_name: String, schema: SchemaRef) -> Result<Stmt> {
+    let fields = schema
         .fields()
         .into_iter()
         .map(|field| -> Result<_> {
             let name = field.name();
 
-            let res = convert_arrow_type(field.data_type());
-            let ty = res.push_hint(format!(
-                "Found on table `{}`, column `{}`",
-                &relation_def.name, &name
-            ))?;
+            let ty = convert_arrow_type(field.data_type())
+                .push_hint(format!("Found on table `{table_name}`, column `{name}`",))?;
 
             // TODO: handle field.is_nullable()
 
-            Ok(TupleField::Single(Some(name.clone()), Some(Ty::new(ty))))
+            Ok(TyTupleField::Single(Some(name.clone()), Some(Ty::new(ty))))
         })
         .try_collect()?;
 
     let def = VarDef {
         kind: prqlc::ast::VarDefKind::Let,
-        name: relation_def.name,
+        name: table_name,
         value: None,
         ty: Some(Ty::new(TyKind::Array(Box::new(Ty::new(TyKind::Tuple(
             fields,
@@ -61,7 +58,8 @@ fn convert_arrow_schema_to_table_def(relation_def: RelationDef) -> Result<Stmt> 
     Ok(stmt)
 }
 
-fn convert_arrow_type(ty: &DataType) -> Result<TyKind> {
+#[allow(clippy::result_large_err)]
+fn convert_arrow_type(ty: &DataType) -> Result<TyKind, Error> {
     Ok(match ty {
         DataType::Boolean => TyKind::Primitive(PrimitiveSet::Bool),
         DataType::Int8 => TyKind::Primitive(PrimitiveSet::Int),
@@ -98,9 +96,9 @@ fn convert_arrow_type(ty: &DataType) -> Result<TyKind> {
         | DataType::Decimal256(_, _)
         | DataType::Map(_, _)
         | DataType::RunEndEncoded(_, _) => {
-            return Err(
-                Error::new_simple(format!("cannot convert arrow type {ty:?} a PRQL type")).into(),
-            )
+            return Err(Error::new_simple(format!(
+                "cannot convert arrow type {ty:?} a PRQL type"
+            )))
         }
     })
 }

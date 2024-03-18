@@ -33,6 +33,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
+      - name: Run docker compose
+        # This can go early because the DBs take a few seconds to start up.
+        if: ${{ contains(inputs.features, 'test-dbs-external') }}
+        run: docker compose up -d
+        working-directory: ./prqlc/prqlc/tests/integration/dbs
       - if: ${{ contains(inputs.target, 'musl') }}
         run: |
           sudo apt-get update
@@ -53,16 +58,15 @@ jobs:
         with:
           prefix-key: ${{ env.version }}
           shared-key: rust-${{ inputs.target }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Don't save if empty features, because we run a test with empty
+          # features on linux, and don't want to save that instead of the one
+          # with all features. I tried including features in the key, but it
+          # contains a comma, which isn't allowed; a whole extra task to remove
+          # the comma seemed over the top.
+          save-if:
+            ${{ github.ref == 'refs/heads/main' && inputs.features != '' }}
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
-      - name: 🏭 Compile
-        uses: richb-hanover/cargo@v1.1.0
-        with:
-          command: test
-          args: >
-            --no-run --locked --target=${{ inputs.target }}
-            --no-default-features --features=${{ inputs.features }}
       - name: Free up disk space
         # https://github.com/actions/runner-images/issues/2840
         run: ./.github/workflows/scripts/util_free_space.sh
@@ -76,10 +80,13 @@ jobs:
         if:
           ${{ contains(inputs.features, 'test-dbs-external') &&
           steps.cache.outputs.cache-hit == 'false' }}
-      - name: Run docker compose
-        run: docker compose up -d
-        working-directory: ./prqlc/prqlc/tests/integration/dbs
-        if: ${{ contains(inputs.features, 'test-dbs-external') }}
+      - name: 🏭 Compile
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: test
+          args: >
+            --no-run --locked --target=${{ inputs.target }}
+            --no-default-features --features=${{ inputs.features }}
       - name: Wait for database
         uses: ifaxity/wait-on-action@v1.1.0
         with:

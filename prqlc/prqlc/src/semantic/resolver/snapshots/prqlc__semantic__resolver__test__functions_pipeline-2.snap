@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n            let plus = x y -> x + y\n\n            from db.a\n            derive {b = (sum foo | plus_one | plus 2)}\n            \"#).unwrap()"
 ---
 - RqOperator:
     name: std.add
@@ -26,9 +26,9 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                       kind:
                         Array:
                           kind: Any
-                          span: "2:1929-1936"
+                          span: "0:1929-1936"
                           name: ~
-                      span: "2:1928-1937"
+                      span: "0:1928-1937"
                       name: array
               ty:
                 kind:
@@ -36,14 +36,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     - - ~
                       - kind:
                           Primitive: Int
-                        span: "2:4121-4124"
+                        span: "0:4052-4055"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "2:4128-4133"
+                        span: "0:4059-4064"
                         name: ~
-                span: "2:4121-4133"
+                span: "0:4052-4064"
                 name: ~
             - Literal:
                 Integer: 1
@@ -58,24 +58,24 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
               - - ~
                 - kind:
                     Primitive: Int
-                  span: "2:893-896"
+                  span: "0:893-896"
                   name: ~
               - - ~
                 - kind:
                     Primitive: Float
-                  span: "2:900-905"
+                  span: "0:900-905"
                   name: ~
               - - ~
                 - kind:
                     Primitive: Timestamp
-                  span: "2:909-918"
+                  span: "0:909-918"
                   name: ~
               - - ~
                 - kind:
                     Primitive: Date
-                  span: "2:922-926"
+                  span: "0:922-926"
                   name: ~
-          span: "2:893-926"
+          span: "0:893-926"
           name: ~
   alias: b
   ty:
@@ -84,23 +84,23 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
         - - ~
           - kind:
               Primitive: Int
-            span: "2:893-896"
+            span: "0:893-896"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "2:900-905"
+            span: "0:900-905"
             name: ~
         - - ~
           - kind:
               Primitive: Timestamp
-            span: "2:909-918"
+            span: "0:909-918"
             name: ~
         - - ~
           - kind:
               Primitive: Date
-            span: "2:922-926"
+            span: "0:922-926"
             name: ~
-    span: "2:893-926"
+    span: "0:893-926"
     name: ~
 

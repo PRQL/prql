@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".

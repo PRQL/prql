@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use prqlc_ast::expr::*;
-use prqlc_ast::stmt::*;
+use crate::ast::*;
 use regex::Regex;
 
 use crate::codegen::SeparatedExprs;
@@ -408,6 +407,15 @@ impl WriteSource for Stmt {
                 r += &opt.write_indent();
                 r += "}\n";
             }
+            StmtKind::ImportDef(import_def) => {
+                r += "import ";
+                if let Some(alias) = &import_def.alias {
+                    r += &write_ident_part(alias);
+                    r += " = ";
+                }
+                r += &import_def.name.write(opt)?;
+                r += "\n";
+            }
         }
         Some(r)
     }
@@ -458,6 +466,7 @@ mod test {
         use itertools::Itertools;
         let stmt = crate::prql_to_pl(query)
             .unwrap()
+            .stmts
             .into_iter()
             .exactly_one()
             .unwrap();

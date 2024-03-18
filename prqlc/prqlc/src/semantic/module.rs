@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
-use prqlc_ast::stmt::QueryDef;
-use prqlc_ast::{Literal, Span, TupleField, Ty, TyKind};
+use crate::ast::QueryDef;
+use crate::ast::{Literal, Span, Ty, TyKind, TyTupleField};
+use crate::Result;
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
@@ -48,7 +48,7 @@ impl Module {
             (
                 NS_INFER.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
+                    ty: Some(Ty::relation(vec![TyTupleField::Wildcard(None)])),
                     expr: TableExpr::LocalTable,
                 })))),
             ),
@@ -110,30 +110,27 @@ impl Module {
         let mut ns = self;
 
         for (index, part) in fq_ident.path.iter().enumerate() {
-            let decl = ns.names.get(part);
-            if let Some(decl) = decl {
-                match &decl.kind {
-                    DeclKind::Module(inner) => {
-                        ns = inner;
-                    }
-                    DeclKind::LayeredModules(stack) => {
-                        let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
-                        let mut found = false;
-                        for n in stack.iter().rev() {
-                            if n.names.contains_key(next) {
-                                ns = n;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if !found {
-                            return None;
-                        }
-                    }
-                    _ => return None,
+            let decl = ns.names.get(part)?;
+
+            match &decl.kind {
+                DeclKind::Module(inner) => {
+                    ns = inner;
                 }
-            } else {
-                return None;
+                DeclKind::LayeredModules(stack) => {
+                    let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
+                    let mut found = false;
+                    for n in stack.iter().rev() {
+                        if n.names.contains_key(next) {
+                            ns = n;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        return None;
+                    }
+                }
+                _ => return None,
             }
         }
 
@@ -232,7 +229,7 @@ impl Module {
                             .flat_map(|x| x.into_single())
                             .find(|(name, _)| name.as_ref() == Some(input_name))
                             .and_then(|(_, ty)| ty)
-                            .or(Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(
+                            .or(Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(
                                 None,
                             )]))));
 
@@ -437,7 +434,9 @@ impl RootModule {
     ) -> Result<()> {
         let existing = self.module.get(&ident);
         if existing.is_some() {
-            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
+            return Err(Error::new_simple(format!(
+                "duplicate declarations of {ident}"
+            )));
         }
 
         let decl = Decl {
@@ -529,8 +528,8 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .columns
             .iter()
             .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
+                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TyTupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
                     Some(Ty::new(Literal::Null)),
                 ),
@@ -542,7 +541,7 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::pl::{Expr, ExprKind, Literal};
+    use crate::ir::pl::ExprKind;
 
     // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
     #[test]

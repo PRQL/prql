@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 
-use anyhow::Result;
+use itertools::Itertools;
 
-use prqlc_ast::expr::Ident;
+use crate::Result;
+
+use crate::ast::Ident;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
-use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THIS};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::WithErrorInfo;
 
@@ -14,36 +16,64 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        let r = if let Some(default_namespace) = self.default_namespace.clone() {
-            self.resolve_ident_core(ident, Some(&default_namespace))
-        } else {
-            let mut ident = ident.clone().prepend(self.current_module_path.clone());
+        let mut ident = ident.clone().prepend(self.current_module_path.clone());
 
-            let mut res = self.resolve_ident_core(&ident, None);
-            for _ in 0..self.current_module_path.len() {
-                if res.is_ok() {
-                    break;
-                }
-                ident = ident.pop_front().1.unwrap();
-                res = self.resolve_ident_core(&ident, None);
+        let mut res = self.resolve_ident_core(&ident);
+        for _ in 0..self.current_module_path.len() {
+            if res.is_ok() {
+                break;
             }
-            res
-        };
-
-        if let Err(e) = &r {
-            log::debug!(
-                "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
-                self.root_mod
-            );
+            ident = ident.pop_front().1.unwrap();
+            res = self.resolve_ident_core(&ident);
         }
-        r
+
+        match &res {
+            Ok(fq_ident) => {
+                let decl = self.root_mod.module.get(fq_ident).unwrap();
+                if let DeclKind::Import(target) = &decl.kind {
+                    let target = target.clone();
+                    return self.resolve_ident(&target);
+                }
+            }
+            Err(e) => {
+                log::debug!(
+                    "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
+                    self.root_mod
+                );
+
+                // attach available names
+                let mut available_names = Vec::new();
+                available_names.extend(self.collect_columns_in_module(NS_THIS));
+                available_names.extend(self.collect_columns_in_module(NS_THAT));
+                if !available_names.is_empty() {
+                    let available_names = available_names.iter().map(Ident::to_string).join(", ");
+                    res = res.push_hint(format!("available columns: {available_names}"));
+                }
+            }
+        }
+        res
     }
 
-    pub(super) fn resolve_ident_core(
-        &mut self,
-        ident: &Ident,
-        default_namespace: Option<&String>,
-    ) -> Result<Ident, Error> {
+    fn collect_columns_in_module(&mut self, mod_name: &str) -> Vec<Ident> {
+        let mut cols = Vec::new();
+
+        let Some(module) = self.root_mod.module.names.get(mod_name) else {
+            return cols;
+        };
+
+        let DeclKind::Module(this) = &module.kind else {
+            return cols;
+        };
+
+        for (ident, decl) in this.as_decls().into_iter().sorted_by_key(|x| x.1.order) {
+            if let DeclKind::Column(_) = decl.kind {
+                cols.push(ident);
+            }
+        }
+        cols
+    }
+
+    pub(super) fn resolve_ident_core(&mut self, ident: &Ident) -> Result<Ident, Error> {
         // special case: wildcard
         if ident.name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -73,23 +103,7 @@ impl Resolver<'_> {
             _ => return Err(ambiguous_error(decls, None)),
         }
 
-        let ident = if let Some(default_namespace) = default_namespace {
-            let ident = ident.clone().prepend(vec![default_namespace.clone()]);
-
-            let decls = self.root_mod.module.lookup(&ident);
-            match decls.len() {
-                // no match: try match *
-                0 => ident,
-
-                // single match, great!
-                1 => return Ok(decls.into_iter().next().unwrap()),
-
-                // ambiguous
-                _ => return Err(ambiguous_error(decls, None)),
-            }
-        } else {
-            ident.clone()
-        };
+        let ident = ident.clone();
 
         // fallback case: try to match with NS_INFER and infer the declaration
         // from the original ident.

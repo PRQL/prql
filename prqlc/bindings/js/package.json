@@ -30,10 +30,10 @@
     "build": "npm run build:node && npm run build:web && npm run build:bundler",
     "build:bundler": "npx cross-env wasm-pack build --target bundler --out-dir dist/bundler --${PROFILE} && rm dist/bundler/.gitignore",
     "build:node": "npx cross-env wasm-pack build --target nodejs --out-dir dist/node --${PROFILE} && rm dist/node/.gitignore",
-    "build:web": "npx cross-env wasm-pack build --target no-modules --out-dir dist/web --${PROFILE} && rm dist/web/.gitignore",
+    "build:web": "npx cross-env wasm-pack build --target web --out-dir dist/web --${PROFILE} && rm dist/web/.gitignore",
     "prepare": "npm run build",
     "test": "mocha tests"
   },
   "types": "dist/node/prql_js.d.ts",
-  "version": "0.11.3"
+  "version": "0.11.5"
 }

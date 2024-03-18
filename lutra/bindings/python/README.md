@@ -16,7 +16,7 @@ module my_database {
     let artists <[{artist_id = int, name = text}]>
 }
 
-from my_database.artists
+from db.my_database.artists
 select {artist_id, text}
 into main
 ```

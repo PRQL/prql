@@ -24,7 +24,7 @@ doc = false
 [dependencies]
 libc = "0.2.153"
 prqlc = {path = "../../prqlc", default-features = false}
-serde_json = "1.0.113"
+serde_json = "1.0.114"
 
 [package.metadata.release]
 tag-name = "{{version}}"

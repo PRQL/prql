@@ -14,7 +14,7 @@ pub fn main() !void {
     };
 
     // Compile the PRQL query
-    const prql_query = "from albums | select {album_id, title} | take 3";
+    const prql_query = "from db.albums | select {album_id, title} | take 3";
     const result = prql.compile(prql_query, &options);
     defer prql.result_destroy(result);
 
@@ -23,7 +23,7 @@ pub fn main() !void {
 }
 
 test "simple test" {
-    const prql_query = "from albums | select {album_id, title} | take 3";
+    const prql_query = "from db.albums | select {album_id, title} | take 3";
     const result = prql.compile(prql_query, null);
     defer prql.result_destroy(result);
     try std.testing.expect(result.messages_len == 0);

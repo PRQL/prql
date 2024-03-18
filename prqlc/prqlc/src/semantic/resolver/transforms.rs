@@ -1,22 +1,18 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use serde::Deserialize;
 use std::iter::zip;
 
-use prqlc_ast::error::{Error, Reason};
-use prqlc_ast::{TupleField, Ty, TyKind};
-
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
-use crate::ir::pl::PlFold;
 use crate::ir::pl::*;
 
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
-use crate::{WithErrorInfo, COMPILER_VERSION};
+use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
 use super::types::{ty_tuple_kind, type_intersection};
 use super::Resolver;
@@ -93,8 +89,7 @@ impl Resolver<'_> {
                             })
                             // Possibly this should refer to the item after the `take` where
                             // one exists?
-                            .with_span(expr.span)
-                            .into());
+                            .with_span(expr.span));
                         }
                     }
                 };
@@ -113,12 +108,14 @@ impl Resolver<'_> {
                         "right" => JoinSide::Right,
                         "full" => JoinSide::Full,
 
-                        found => bail!(Error::new(Reason::Expected {
-                            who: Some("`side`".to_string()),
-                            expected: "inner, left, right or full".to_string(),
-                            found: found.to_string()
-                        })
-                        .with_span(span)),
+                        found => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("`side`".to_string()),
+                                expected: "inner, left, right or full".to_string(),
+                                found: found.to_string(),
+                            })
+                            .with_span(span))
+                        }
                     }
                 };
 
@@ -263,8 +260,7 @@ impl Resolver<'_> {
                     expected: "a pattern".to_string(),
                     found: write_pl(pattern.clone()),
                 })
-                .with_span(pattern.span)
-                .into());
+                .with_span(pattern.span));
             }
 
             "tuple_every" => {
@@ -344,8 +340,7 @@ impl Resolver<'_> {
                             expected: "a string literal".to_string(),
                             found: format!("`{}`", write_pl(text_expr.clone())),
                         })
-                        .with_span(text_expr.span)
-                        .into());
+                        .with_span(text_expr.span));
                     }
                 };
 
@@ -355,8 +350,10 @@ impl Resolver<'_> {
                         .try_cast(ExprKind::into_ident, Some("format"), "ident")?
                         .to_string();
                     match format.as_str() {
-                        "csv" => from_text::parse_csv(&text)?,
-                        "json" => from_text::parse_json(&text)?,
+                        "csv" => from_text::parse_csv(&text)
+                            .map_err(|r| Error::new_simple(r).with_span(span))?,
+                        "json" => from_text::parse_json(&text)
+                            .map_err(|r| Error::new_simple(r).with_span(span))?,
 
                         _ => {
                             return Err(Error::new(Reason::Expected {
@@ -364,8 +361,7 @@ impl Resolver<'_> {
                                 expected: "csv or json".to_string(),
                                 found: format,
                             })
-                            .with_span(span)
-                            .into())
+                            .with_span(span))
                         }
                     }
                 };
@@ -377,7 +373,7 @@ impl Resolver<'_> {
                     .columns
                     .iter()
                     .cloned()
-                    .map(|x| TupleField::Single(Some(x), None))
+                    .map(|x| TyTupleField::Single(Some(x), None))
                     .collect();
 
                 let frame =
@@ -427,8 +423,7 @@ impl Resolver<'_> {
                 return Err(
                     Error::new_simple(format!("unknown operator {internal_name}"))
                         .push_hint("this is a bug in prqlc")
-                        .with_span(func.body.span)
-                        .into(),
+                        .with_span(func.body.span),
                 )
             }
         };
@@ -456,9 +451,8 @@ impl Resolver<'_> {
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`"),
                 })
-                .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
-                .with_span(expr.span)
-                .into());
+                .push_hint(format!("move assign into the tuple: `{{{alias} = ...}}`"))
+                .with_span(expr.span));
             }
 
             expr
@@ -512,7 +506,7 @@ impl Resolver<'_> {
                 let with_name = with.alias.clone();
                 let with = with.ty.clone().unwrap();
                 let with = with.kind.into_array().unwrap();
-                let with = TupleField::Single(with_name, Some(*with));
+                let with = TyTupleField::Single(with_name, Some(*with));
 
                 Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
                     [input, vec![with]].concat(),
@@ -547,7 +541,7 @@ impl Resolver<'_> {
 
 fn range_is_empty(range: &(Option<i64>, Option<i64>)) -> bool {
     match (&range.0, &range.1) {
-        (Some(s), Some(e)) => s >= e,
+        (Some(s), Some(e)) => s > e,
         _ => false,
     }
 }
@@ -563,9 +557,7 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
         match bound.kind {
             ExprKind::Literal(Literal::Null) => Ok(None),
             ExprKind::Literal(Literal::Integer(i)) => Ok(Some(i)),
-            _ => Err(Error::new_simple("expected an int literal")
-                .with_span(bound.span)
-                .into()),
+            _ => Err(Error::new_simple("expected an int literal").with_span(bound.span)),
         }
     }
     Ok((into_int(range.0)?, into_int(range.1)?))
@@ -574,11 +566,7 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
 impl Resolver<'_> {
     /// Simulate evaluation of the inner pipeline of group or window
     // Creates a dummy node that acts as value that pipeline can be resolved upon.
-    fn fold_by_simulating_eval(
-        &mut self,
-        pipeline: Expr,
-        val: &Expr,
-    ) -> Result<Expr, anyhow::Error> {
+    fn fold_by_simulating_eval(&mut self, pipeline: Expr, val: &Expr) -> Result<Expr> {
         log::debug!("fold by simulating evaluation");
         let span = pipeline.span;
 
@@ -613,7 +601,7 @@ impl Resolver<'_> {
 
         // validate that the return type is a relation
         // this can be removed after we have proper type checking for all std functions
-        let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
+        let expected = Some(Ty::relation(vec![TyTupleField::Wildcard(None)]));
         self.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
             Some("pipeline".to_string())
         })?;
@@ -644,9 +632,9 @@ impl TransformCall {
         use TransformKind::*;
 
         fn lineage_or_default(expr: &Expr) -> Result<Lineage> {
-            expr.lineage
-                .clone()
-                .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
+            expr.lineage.clone().ok_or_else(|| {
+                Error::new_simple("expected {expr:?} to have table type").with_span(expr.span)
+            })
         }
 
         Ok(match self.kind.as_ref() {
@@ -780,6 +768,17 @@ impl Lineage {
             ExprKind::Tuple(fields) => {
                 for expr in fields {
                     self.apply_assigns(expr, inline_refs);
+                }
+
+                // hack for making `x | select { y = this }` work
+                if let Some(alias) = &assigns.alias {
+                    if self.columns.len() == 1 {
+                        let col = self.columns.first().unwrap();
+                        if let LineageColumn::All { input_id, .. } = col {
+                            let input = self.inputs.iter_mut().find(|i| i.id == *input_id).unwrap();
+                            input.name = alias.clone();
+                        }
+                    }
                 }
             }
             _ => self.apply_assign(assigns, inline_refs),
@@ -967,7 +966,7 @@ mod from_text {
     // TODO: Can we dynamically get the types, like in pandas? We need to put
     // quotes around strings and not around numbers.
     // https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
-    pub fn parse_csv(text: &str) -> Result<RelationLiteral> {
+    pub fn parse_csv(text: &str) -> Result<RelationLiteral, String> {
         let text = text.trim();
         let mut rdr = csv::Reader::from_reader(text.as_bytes());
 
@@ -982,11 +981,12 @@ mod from_text {
         }
 
         Ok(RelationLiteral {
-            columns: parse_header(rdr.headers()?),
+            columns: parse_header(rdr.headers().map_err(|e| e.to_string())?),
             rows: rdr
                 .records()
                 .map(|row_result| row_result.map(parse_row))
-                .try_collect()?,
+                .try_collect()
+                .map_err(|e| e.to_string())?,
         })
     }
 
@@ -1027,18 +1027,18 @@ mod from_text {
             .collect_vec()
     }
 
-    pub fn parse_json(text: &str) -> Result<RelationLiteral> {
+    pub fn parse_json(text: &str) -> Result<RelationLiteral, String> {
         parse_json1(text).or_else(|err1| {
             parse_json2(text)
-                .map_err(|err2| anyhow!("While parsing rows: {err1}\nWhile parsing object: {err2}"))
+                .map_err(|err2| format!("While parsing rows: {err1}\nWhile parsing object: {err2}"))
         })
     }
 
-    fn parse_json1(text: &str) -> Result<RelationLiteral> {
-        let data: Vec<JsonFormat1Row> = serde_json::from_str(text)?;
+    fn parse_json1(text: &str) -> Result<RelationLiteral, String> {
+        let data: Vec<JsonFormat1Row> = serde_json::from_str(text).map_err(|e| e.to_string())?;
         let mut columns = data
             .first()
-            .ok_or_else(|| anyhow!("json: no rows"))?
+            .ok_or("json: no rows")?
             .keys()
             .cloned()
             .collect_vec();
@@ -1054,8 +1054,9 @@ mod from_text {
         Ok(RelationLiteral { columns, rows })
     }
 
-    fn parse_json2(text: &str) -> Result<RelationLiteral> {
-        let JsonFormat2 { columns, data } = serde_json::from_str(text)?;
+    fn parse_json2(text: &str) -> Result<RelationLiteral, String> {
+        let JsonFormat2 { columns, data } =
+            serde_json::from_str(text).map_err(|x| x.to_string())?;
 
         Ok(RelationLiteral {
             columns,
@@ -1078,7 +1079,7 @@ mod tests {
         // distinct query #292
 
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from c_invoice
+        from db.c_invoice
         select invoice_no
         group invoice_no (
             take 1
@@ -1131,7 +1132,7 @@ mod tests {
         // oops, two arguments #339
         let result = parse_resolve_and_lower(
             "
-        from c_invoice
+        from db.c_invoice
         aggregate average amount
         ",
         );
@@ -1140,7 +1141,7 @@ mod tests {
         // oops, two arguments
         let result = parse_resolve_and_lower(
             "
-        from c_invoice
+        from db.c_invoice
         group issued_at (aggregate average amount)
         ",
         );
@@ -1149,7 +1150,7 @@ mod tests {
         // correct function call
         let ctx = crate::semantic::test::parse_and_resolve(
             "
-        from c_invoice
+        from db.c_invoice
         group issued_at (
             aggregate (average amount)
         )
@@ -1165,7 +1166,7 @@ mod tests {
     #[test]
     fn test_transform_sort() {
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from invoices
+        from db.invoices
         sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)

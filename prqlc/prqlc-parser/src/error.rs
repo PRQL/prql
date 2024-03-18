@@ -3,7 +3,7 @@ use std::fmt::Display;
 use chumsky::{error::SimpleReason, Span as ChumskySpan};
 use prqlc_ast::Span;
 
-use crate::{lexer::Token, PError};
+use crate::{lexer::TokenKind, PError};
 
 #[derive(Debug)]
 pub struct Error {
@@ -87,21 +87,21 @@ pub(crate) fn convert_parser_error(e: PError) -> Error {
         };
     }
 
-    fn token_to_string(t: Option<Token>) -> String {
+    fn token_to_string(t: Option<TokenKind>) -> String {
         t.map(|t| DisplayToken(&t).to_string())
             .unwrap_or_else(|| "end of input".to_string())
     }
 
     let is_all_whitespace = e
         .expected()
-        .all(|t| matches!(t, None | Some(Token::NewLine)));
+        .all(|t| matches!(t, None | Some(TokenKind::NewLine)));
     let expected: Vec<String> = e
         .expected()
         // TODO: could we collapse this into a `filter_map`? (though semantically
         // identical)
         //
         // Only include whitespace if we're _only_ expecting whitespace
-        .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
+        .filter(|t| is_all_whitespace || !matches!(t, None | Some(TokenKind::NewLine)))
         .cloned()
         .map(token_to_string)
         .collect();
@@ -147,40 +147,40 @@ pub(crate) fn convert_parser_error(e: PError) -> Error {
     }
 }
 
-struct DisplayToken<'a>(&'a Token);
+struct DisplayToken<'a>(&'a TokenKind);
 
 impl std::fmt::Display for DisplayToken<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
-            Token::NewLine => write!(f, "new line"),
-            Token::Ident(arg0) => {
+            TokenKind::NewLine => write!(f, "new line"),
+            TokenKind::Ident(arg0) => {
                 if arg0.is_empty() {
                     write!(f, "an identifier")
                 } else {
                     write!(f, "`{arg0}`")
                 }
             }
-            Token::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Token::Literal(..) => write!(f, "literal"),
-            Token::Control(arg0) => write!(f, "{arg0}"),
+            TokenKind::Keyword(arg0) => write!(f, "keyword {arg0}"),
+            TokenKind::Literal(..) => write!(f, "literal"),
+            TokenKind::Control(arg0) => write!(f, "{arg0}"),
 
-            Token::ArrowThin => f.write_str("->"),
-            Token::ArrowFat => f.write_str("=>"),
-            Token::Eq => f.write_str("=="),
-            Token::Ne => f.write_str("!="),
-            Token::Gte => f.write_str(">="),
-            Token::Lte => f.write_str("<="),
-            Token::RegexSearch => f.write_str("~="),
-            Token::And => f.write_str("&&"),
-            Token::Or => f.write_str("||"),
-            Token::Coalesce => f.write_str("??"),
-            Token::DivInt => f.write_str("//"),
-            Token::Pow => f.write_str("**"),
-            Token::Annotate => f.write_str("@{"),
+            TokenKind::ArrowThin => f.write_str("->"),
+            TokenKind::ArrowFat => f.write_str("=>"),
+            TokenKind::Eq => f.write_str("=="),
+            TokenKind::Ne => f.write_str("!="),
+            TokenKind::Gte => f.write_str(">="),
+            TokenKind::Lte => f.write_str("<="),
+            TokenKind::RegexSearch => f.write_str("~="),
+            TokenKind::And => f.write_str("&&"),
+            TokenKind::Or => f.write_str("||"),
+            TokenKind::Coalesce => f.write_str("??"),
+            TokenKind::DivInt => f.write_str("//"),
+            TokenKind::Pow => f.write_str("**"),
+            TokenKind::Annotate => f.write_str("@{"),
 
-            Token::Param(id) => write!(f, "${id}"),
+            TokenKind::Param(id) => write!(f, "${id}"),
 
-            Token::Range {
+            TokenKind::Range {
                 bind_left,
                 bind_right,
             } => write!(
@@ -189,7 +189,7 @@ impl std::fmt::Display for DisplayToken<'_> {
                 if *bind_left { "" } else { " " },
                 if *bind_right { "" } else { " " }
             ),
-            Token::Interpolation(c, s) => {
+            TokenKind::Interpolation(c, s) => {
                 write!(f, "{c}\"{}\"", s)
             }
         }

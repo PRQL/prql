@@ -31,7 +31,7 @@ pub enum TyKind {
     Union(Vec<(Option<String>, Ty)>),
 
     /// Type of tuples (product)
-    Tuple(Vec<TupleField>),
+    Tuple(Vec<TyTupleField>),
 
     /// Type of arrays
     Array(Box<Ty>),
@@ -51,7 +51,7 @@ pub enum TyKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
-pub enum TupleField {
+pub enum TyTupleField {
     /// Named tuple element.
     Single(Option<String>, Option<Ty>),
 
@@ -98,7 +98,7 @@ impl Ty {
         }
     }
 
-    pub fn relation(tuple_fields: Vec<TupleField>) -> Self {
+    pub fn relation(tuple_fields: Vec<TyTupleField>) -> Self {
         let tuple = Ty::new(TyKind::Tuple(tuple_fields));
         Ty::new(TyKind::Array(Box::new(tuple)))
     }
@@ -111,15 +111,15 @@ impl Ty {
         self.kind.as_union().map_or(false, |x| x.is_empty())
     }
 
-    pub fn as_relation(&self) -> Option<&Vec<TupleField>> {
+    pub fn as_relation(&self) -> Option<&Vec<TyTupleField>> {
         self.kind.as_array()?.kind.as_tuple()
     }
 
-    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TupleField>> {
+    pub fn as_relation_mut(&mut self) -> Option<&mut Vec<TyTupleField>> {
         self.kind.as_array_mut()?.kind.as_tuple_mut()
     }
 
-    pub fn into_relation(self) -> Option<Vec<TupleField>> {
+    pub fn into_relation(self) -> Option<Vec<TyTupleField>> {
         self.kind.into_array().ok()?.kind.into_tuple().ok()
     }
 
@@ -133,11 +133,11 @@ impl Ty {
     }
 }
 
-impl TupleField {
+impl TyTupleField {
     pub fn ty(&self) -> Option<&Ty> {
         match self {
-            TupleField::Single(_, ty) => ty.as_ref(),
-            TupleField::Wildcard(ty) => ty.as_ref(),
+            TyTupleField::Single(_, ty) => ty.as_ref(),
+            TyTupleField::Wildcard(ty) => ty.as_ref(),
         }
     }
 }

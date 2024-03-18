@@ -4,9 +4,9 @@ use std::str::FromStr;
 use anyhow::Result;
 use prqlc::ir::decl::RootModule;
 use prqlc::ir::pl::{Ident, Literal};
-use prqlc::semantic;
 use prqlc::sql::Dialect;
-use prqlc::{Error, Options, SourceTree, Target, WithErrorInfo};
+use prqlc::{semantic, ErrorMessages};
+use prqlc::{Error, Errors, Options, SourceTree, Target, WithErrorInfo};
 
 use crate::project::{DatabaseModule, ProjectCompiled, ProjectDiscovered, SqliteConnectionParams};
 
@@ -18,17 +18,13 @@ pub fn compile(mut project: ProjectDiscovered, _: CompileParams) -> Result<Proje
     let files = std::mem::take(&mut project.sources);
     let source_tree = SourceTree::new(files, Some(project.root_path.clone()));
 
-    let res = parse_and_compile(&source_tree);
-
-    let mut project = res
-        .map_err(prqlc::downcast)
-        .map_err(|err| err.composed(&source_tree))?;
+    let mut project = parse_and_compile(&source_tree).map_err(|e| e.composed(&source_tree))?;
 
     project.sources = source_tree;
     Ok(project)
 }
 
-fn parse_and_compile(source_tree: &SourceTree) -> Result<ProjectCompiled> {
+fn parse_and_compile(source_tree: &SourceTree) -> Result<ProjectCompiled, ErrorMessages> {
     let options = Options::default()
         .with_target(Target::Sql(Some(Dialect::SQLite)))
         .no_format()
@@ -61,7 +57,7 @@ fn parse_and_compile(source_tree: &SourceTree) -> Result<ProjectCompiled> {
     })
 }
 
-fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> {
+fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule, Errors> {
     let lutra_sqlite = Ident::from_path(vec!["lutra", "sqlite"]);
     let db_modules_fq = root_module.find_by_annotation_name(&lutra_sqlite);
 
@@ -96,14 +92,13 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
             return Err(Error::new_simple("missing connection parameters")
                 .push_hint("add `{file='sqlite.db'}`")
                 .with_span(annotation.expr.span)
-                .into())
+                .into());
         }
         prqlc::ir::pl::ExprKind::FuncCall(call) => {
             // TODO: maybe this should be checked by actual type-checker
             if call.args.len() != 1 {
-                return Err(Error::new_simple("expected exactly one argument")
-                    .with_span(annotation.expr.span)
-                    .into());
+                Err(Error::new_simple("expected exactly one argument")
+                    .with_span(annotation.expr.span))?;
             }
             call.args.first().unwrap()
         }
@@ -124,13 +119,13 @@ fn find_database_module(root_module: &mut RootModule) -> Result<DatabaseModule> 
             .into());
     };
 
-    let file_relative = std::path::PathBuf::from_str(&file_str)?;
+    let file_relative = std::path::PathBuf::from_str(&file_str)
+        .map_err(|e| Error::new_simple(e.to_string()).with_span(file.span))?;
     if !file_relative.is_relative() {
-        return Err(
+        Err(
             Error::new_simple("expected a relative path to the SQLite database file")
-                .with_span(file.span)
-                .into(),
-        );
+                .with_span(file.span),
+        )?;
     }
 
     Ok(DatabaseModule {

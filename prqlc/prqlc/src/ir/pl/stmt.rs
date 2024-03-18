@@ -1,9 +1,9 @@
 use enum_as_inner::EnumAsInner;
+use prqlc_ast::Ident;
 use serde::{Deserialize, Serialize};
 
-use prqlc_ast::{Span, Ty};
-
-pub use prqlc_ast::stmt::QueryDef;
+pub use crate::ast::stmt::QueryDef;
+use crate::ast::{Span, Ty};
 
 use super::expr::Expr;
 
@@ -28,6 +28,7 @@ pub enum StmtKind {
     VarDef(VarDef),
     TypeDef(TypeDef),
     ModuleDef(ModuleDef),
+    ImportDef(ImportDef),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -49,6 +50,12 @@ pub struct TypeDef {
 pub struct ModuleDef {
     pub name: String,
     pub stmts: Vec<Stmt>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ImportDef {
+    pub alias: Option<String>,
+    pub name: Ident,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
