@@ -27,7 +27,7 @@ repos:
         # Undo this on the next version of prettier; ref https://github.com/PRQL/prql/pull/4101
         stages: [manual]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.2
+    rev: v0.3.3
     hooks:
       - id: ruff
         args: [--fix]
