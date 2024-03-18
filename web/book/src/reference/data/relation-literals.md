@@ -82,4 +82,4 @@ from_text format:json """
 
 ## See also
 
-- [How do I: read files?](./read-files.md)
+- [Read files?](./read-files.md)
