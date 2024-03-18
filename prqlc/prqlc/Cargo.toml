@@ -49,7 +49,7 @@ semver = {version = "1.0.22", features = ["serde"]}
 # We could put `serde` behind a feature if we wanted to reduce the size of prqlc.
 serde = {workspace = true}
 serde_json = "1.0.114"
-serde_yaml = {version = "0.9.32"}
+serde_yaml = {version = "0.9.33"}
 sqlformat = "0.2.3"
 sqlparser = {version = "0.44.0", features = ["serde"]}
 strum = {version = "0.26.2", features = ["std", "derive"]}
@@ -59,12 +59,12 @@ strum_macros = "0.26.2"
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.80", features = ["backtrace"], optional = true}
+anyhow = {version = "1.0.81", features = ["backtrace"], optional = true}
 atty = {version = "0.2.14", optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
-color-eyre = {version = "0.6.2", optional = true}
+color-eyre = {version = "0.6.3", optional = true}
 colorchoice-clap = {version = "1.0.0", optional = true}
 env_logger = {version = "0.10.2", features = ["color"], optional = true}
 notify = {version = "6.1.1", optional = true}
