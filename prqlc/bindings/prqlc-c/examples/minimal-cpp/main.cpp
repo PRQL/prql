@@ -14,7 +14,7 @@ void print_result(CompileResult res) {
 }
 
 int main() {
-  const auto prql_query = "from db.albums | select {album_id, title} | take 3";
+  const auto prql_query = "from albums | select {album_id, title} | take 3";
 
   CompileResult res = compile(prql_query, nullptr);
   print_result(res);

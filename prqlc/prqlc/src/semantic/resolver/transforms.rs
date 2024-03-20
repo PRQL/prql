@@ -451,7 +451,7 @@ impl Resolver<'_> {
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`"),
                 })
-                .push_hint(format!("move assign into the tuple: `{{{alias} = ...}}`"))
+                .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
                 .with_span(expr.span));
             }
 
@@ -1079,7 +1079,7 @@ mod tests {
         // distinct query #292
 
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from db.c_invoice
+        from c_invoice
         select invoice_no
         group invoice_no (
             take 1
@@ -1132,7 +1132,7 @@ mod tests {
         // oops, two arguments #339
         let result = parse_resolve_and_lower(
             "
-        from db.c_invoice
+        from c_invoice
         aggregate average amount
         ",
         );
@@ -1141,7 +1141,7 @@ mod tests {
         // oops, two arguments
         let result = parse_resolve_and_lower(
             "
-        from db.c_invoice
+        from c_invoice
         group issued_at (aggregate average amount)
         ",
         );
@@ -1150,7 +1150,7 @@ mod tests {
         // correct function call
         let ctx = crate::semantic::test::parse_and_resolve(
             "
-        from db.c_invoice
+        from c_invoice
         group issued_at (
             aggregate (average amount)
         )
@@ -1166,7 +1166,7 @@ mod tests {
     #[test]
     fn test_transform_sort() {
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from db.invoices
+        from invoices
         sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)

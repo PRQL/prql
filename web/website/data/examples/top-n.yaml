@@ -2,7 +2,7 @@ label: Top N by group
 prql: |
   # Most recent employee in each role
   # Quite difficult in SQL...
-  from db.employees
+  from employees
   group role (
     sort join_date
     take 1

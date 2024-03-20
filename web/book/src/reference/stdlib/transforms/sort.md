@@ -19,24 +19,24 @@ sort {(+|-) column}
 ## Examples
 
 ```prql
-from db.employees
+from employees
 sort age
 ```
 
 ```prql
-from db.employees
+from employees
 sort {-age}
 ```
 
 ```prql
-from db.employees
+from employees
 sort {age, -tenure, +salary}
 ```
 
 We can also use expressions:
 
 ```prql
-from db.employees
+from employees
 sort {s"substr({first_name}, 2, 5)"}
 ```
 
@@ -45,9 +45,9 @@ sort {s"substr({first_name}, 2, 5)"}
 Ordering is persistent through a pipeline in PRQL. For example:
 
 ```prql
-from db.employees
+from employees
 sort tenure
-join db.locations (==employee_id)
+join locations (==employee_id)
 ```
 
 Here, PRQL pushes the `sort` down the pipeline, compiling the `ORDER BY` to the
@@ -108,7 +108,7 @@ above:
 ```prql
 prql target:sql.duckdb
 
-from db.artists
+from artists
 sort artist_id
 take 42
 ```

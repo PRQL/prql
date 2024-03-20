@@ -148,7 +148,7 @@ mod test {
         });
 
         assert_snapshot!(
-            compile("from db.employees | filter (age | in 20..30)", opts).unwrap(),
+            compile("from employees | filter (age | in 20..30)", opts).unwrap(),
             @r###"
             SELECT
               *
@@ -170,7 +170,7 @@ mod test {
             display: "plain".to_string(),
         });
 
-        let prql = r#"from db.artists | select {name, id} | filter (id | in [1, 2, 3])"#;
+        let prql = r#"from artists | select {name, id} | filter (id | in [1, 2, 3])"#;
         assert_snapshot!(
              prql_to_pl(prql).and_then(|x| pl_to_rq(x.as_str())).and_then(|x|rq_to_sql(x.as_str(), opts)).unwrap(), @r###"
         SELECT

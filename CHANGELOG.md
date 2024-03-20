@@ -10,13 +10,6 @@
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
 
-- _Breaking_: References to database tables now require an explicit `db.`
-  prefix. Example:
-  ```prql no-eval
-  from db.my_table
-  join db.another_table (==some_id)
-  ```
-
 **Fixes**:
 
 **Documentation**:

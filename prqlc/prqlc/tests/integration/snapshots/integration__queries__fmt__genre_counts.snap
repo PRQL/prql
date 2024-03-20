@@ -1,14 +1,14 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from db.genres\n    aggregate {a = count name}\n)\n\ngenre_count\nfilter a > 0\nselect a = -a\n"
+expression: "# clickhouse:skip (ClickHouse prefers aliases to column names https://github.com/PRQL/prql/issues/2827)\n# mssql:test\nlet genre_count = (\n    from genres\n    aggregate {a = count name}\n)\n\nfrom genre_count\nfilter a > 0\nselect a = -a\n"
 input_file: prqlc/prqlc/tests/integration/queries/genre_counts.prql
 ---
 let genre_count = (
-  from db.genres
+  from genres
   aggregate {a = count name}
 )
 
-genre_count
+from genre_count
 filter a > 0
 select a = -a
 

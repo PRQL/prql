@@ -619,7 +619,7 @@ mod test {
     #[test]
     fn test_variable_after_aggregate() {
         let query = &r#"
-        from db.employees
+        from employees
         group {title, emp_no} (
             aggregate {emp_salary = average salary}
         )
@@ -663,7 +663,7 @@ mod test {
         // be (must be) removed.
 
         let query = &r#"
-        from db.employees
+        from employees
         derive {global_rank = rank country}
         filter country == "USA"
         derive {rank = rank country}
@@ -693,7 +693,7 @@ mod test {
     fn test_filter_windowed() {
         // #806
         let query = &r#"
-        from db.tbl1
+        from tbl1
         filter (average bar) > 3
         "#;
 

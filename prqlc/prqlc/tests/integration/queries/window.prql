@@ -2,7 +2,7 @@
 # duckdb:skip problems with DISTINCT ON (duckdb internal error: [with INPUT_TYPE = int; RESULT_TYPE = unsigned char]: Assertion `min_val <= input' failed.)
 # clickhouse:skip problems with DISTINCT ON
 # postgres:skip problems with DISTINCT ON
-from db.tracks
+from tracks
 group genre_id (
   sort milliseconds
   derive {

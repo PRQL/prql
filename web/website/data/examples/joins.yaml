@@ -1,8 +1,8 @@
 label: Joins
 prql: |
-  from db.employees
-  join b = db.benefits (==employee_id)
-  join side:left p = db.positions (p.id==employees.employee_id)
+  from employees
+  join b=benefits (==employee_id)
+  join side:left p=positions (p.id==employees.employee_id)
   select {employees.employee_id, p.role, b.vision_coverage}
 sql: |
   SELECT
