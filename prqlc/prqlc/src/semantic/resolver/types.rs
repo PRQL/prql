@@ -126,7 +126,7 @@ impl Resolver<'_> {
                         .id
                         // This is quite rare but possible with something like
                         // `a -> b` at the moment.
-                        .ok_or_else(|| Error::new(Reason::Bug { issue: Some(4280) }))?,
+                        .ok_or_else(|| Error::new_bug(4280))?,
                     None,
                     found.alias.clone(),
                 );

@@ -916,7 +916,10 @@ impl Lowerer {
             }
 
             pl::ExprKind::Internal(_) => {
-                panic!("Unresolved lowering: {}", write_pl(expr))
+                return Err(Error::new_assert(format!(
+                    "Unresolved lowering: {}",
+                    write_pl(expr)
+                )))
             }
         };
 
@@ -962,7 +965,7 @@ impl Lowerer {
                 }
             }
             None => {
-                return Err(Error::new(Reason::Bug { issue: Some(3870) }))?;
+                return Err(Error::new_bug(3870))?;
             }
         };
 
