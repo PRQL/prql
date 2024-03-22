@@ -1,6 +1,7 @@
 [profile.default]
 fail-fast = false
 failure-output = "final"
+status-level = "slow"
 slow-timeout = {period = "500ms", terminate-after = 4}
 
 [[profile.default.overrides]]

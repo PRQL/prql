@@ -17,8 +17,7 @@ use super::Resolver;
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
         // try resolving relative to current module
-        let i = ident.clone().prepend(self.current_module_path.clone());
-        let mut res = self.resolve_ident_core(&i);
+        let mut res = self.resolve_ident_core(ident);
 
         // try resolving as a fully qualified ident
         if res.is_err() {

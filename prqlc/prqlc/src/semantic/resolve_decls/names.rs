@@ -1,4 +1,3 @@
-use ast::Span;
 use itertools::Itertools;
 
 use crate::ir::decl;
@@ -42,6 +41,8 @@ pub fn resolve_decl_refs(root: &mut decl::RootModule) -> Result<Vec<pl::Ident>> 
     }
 }
 
+/// Traverses module tree and runs name resolution on each of the declarations.
+/// Collects references of each declaration.
 struct ModuleRefResolver<'a> {
     root: &'a mut decl::RootModule,
     current_path: Vec<String>,
@@ -82,14 +83,14 @@ impl ModuleRefResolver<'_> {
 
             // resolve the decl
             path.push(name);
-            let mut r = DeclRefResolver {
+            let mut r = NameResolver {
                 root: self.root,
                 decl_module_path: &path[0..(path.len() - 1)],
                 refs: Vec::new(),
             };
 
             let stmt = decl.kind.into_unresolved().unwrap();
-            let stmt = r.fold_stmt_kind(stmt, span)?;
+            let stmt = r.fold_stmt_kind(stmt).with_span_fallback(span)?;
             decl.kind = decl::DeclKind::Unresolved(stmt);
 
             let decl_ident = pl::Ident::from_path(path.clone());
@@ -113,20 +114,21 @@ impl ModuleRefResolver<'_> {
     }
 }
 
-struct DeclRefResolver<'a> {
+/// Traverses AST and resolves all global (non-local) identifiers.
+struct NameResolver<'a> {
     root: &'a decl::RootModule,
     decl_module_path: &'a [String],
     refs: Vec<pl::Ident>,
 }
 
-impl DeclRefResolver<'_> {
-    fn fold_stmt_kind(&mut self, stmt: pl::StmtKind, span: Option<Span>) -> Result<pl::StmtKind> {
+impl NameResolver<'_> {
+    fn fold_stmt_kind(&mut self, stmt: pl::StmtKind) -> Result<pl::StmtKind> {
         Ok(match stmt {
             pl::StmtKind::QueryDef(_) => stmt,
             pl::StmtKind::VarDef(var_def) => pl::StmtKind::VarDef(self.fold_var_def(var_def)?),
             pl::StmtKind::TypeDef(ty_def) => pl::StmtKind::TypeDef(self.fold_type_def(ty_def)?),
             pl::StmtKind::ImportDef(import_def) => {
-                pl::StmtKind::ImportDef(self.fold_import_def(import_def).with_span(span)?)
+                pl::StmtKind::ImportDef(self.fold_import_def(import_def)?)
             }
             pl::StmtKind::ModuleDef(_) => unreachable!(),
         })
@@ -146,7 +148,7 @@ impl DeclRefResolver<'_> {
     }
 }
 
-impl pl::PlFold for DeclRefResolver<'_> {
+impl pl::PlFold for NameResolver<'_> {
     fn fold_expr(&mut self, expr: pl::Expr) -> Result<pl::Expr> {
         Ok(match expr.kind {
             pl::ExprKind::Ident(ident) => {
@@ -194,18 +196,31 @@ impl pl::PlFold for DeclRefResolver<'_> {
     }
 }
 
-impl DeclRefResolver<'_> {
+impl NameResolver<'_> {
     /// Returns resolved fully-qualified ident and a list of indirections
     fn resolve_ident(&mut self, ident: ast::Ident) -> Result<(ast::Ident, Vec<String>)> {
         // this is the name we are looking for
-        let name = ident.iter().next().unwrap();
+        let first = ident.iter().next().unwrap();
+        let mod_path = match first.as_str() {
+            "project" => Some(vec![]),
+            "module" => Some(self.decl_module_path.to_vec()),
+            "std" => Some(vec!["std".to_string()]),
+            "db" => Some(vec!["db".to_string()]),
+            _ => None,
+        };
+        let mod_decl = mod_path
+            .as_ref()
+            .and_then(|p| self.root.module.get_submodule(p));
 
-        let decl = find_lookup_base(&self.root.module, self.decl_module_path, name);
-        let (ident, indirections) = if let Some((module, mod_path)) = decl {
+        // let decl = find_lookup_base(&self.root.module, self.decl_module_path, name);
+        let (ident, indirections) = if let Some(module) = mod_decl {
+            let mod_path = mod_path.unwrap();
             // module found
 
             // now find the decl within that module
-            let (_, path, indirections) = lookup_within_module(module, ident)?;
+            let mut ident_within = ident;
+            ident_within = ident_within.pop_front().1.unwrap();
+            let (_, path, indirections) = lookup_within_module(module, ident_within)?;
 
             // prepend the ident with the module path
             // this will make this ident a fully-qualified ident
@@ -225,64 +240,6 @@ impl DeclRefResolver<'_> {
         };
         Ok((ident, indirections))
     }
-}
-
-// Find declaration by name, starting in the current module,
-// then to parent, then grandparent until root.
-fn find_lookup_base<'m>(
-    root_mod: &'m decl::Module,
-    current_mod_path: &[String],
-    name: &String,
-) -> Option<(&'m decl::Module, Vec<String>)> {
-    let mut module_path = root_mod
-        .get_module_path(current_mod_path)
-        .unwrap_or_else(|| panic!("path does not exist: {:?}", current_mod_path));
-
-    let mut path = current_mod_path;
-
-    while let Some(module) = module_path.pop() {
-        if let Some((module, redirects)) = module_contains(module, name) {
-            let mut path = path.to_vec();
-            path.extend(redirects);
-            return Some((module, path));
-        }
-
-        if !path.is_empty() {
-            path = &path[0..(path.len() - 1)];
-        }
-    }
-
-    None
-}
-
-/// Does module contains a name? If yes, return the module and redirection path to it.
-fn module_contains<'m>(
-    module: &'m decl::Module,
-    name: &String,
-) -> Option<(&'m decl::Module, Vec<String>)> {
-    // look into the module (obviously)
-    if module.names.contains_key(name) {
-        return Some((module, vec![]));
-    }
-
-    // also look into all redirected modules, recursively
-    for redirect in &module.redirects {
-        let Some(redirected) = module.get(redirect).and_then(|x| x.kind.as_module()) else {
-            continue;
-        };
-
-        let Some((module, inner_redirects)) = module_contains(redirected, name) else {
-            continue;
-        };
-
-        // redirect matched: combine the redirected paths
-        let redirect = (redirect.clone().into_iter())
-            .chain(inner_redirects)
-            .collect_vec();
-        return Some((module, redirect));
-    }
-
-    None
 }
 
 fn lookup_within_module(

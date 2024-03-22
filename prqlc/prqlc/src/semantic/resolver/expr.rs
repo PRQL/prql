@@ -24,11 +24,18 @@ impl PlFold for Resolver<'_> {
 
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
                 let decl_ty = decl.kind.as_ty().ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: None,
-                        expected: "a type".to_string(),
-                        found: decl.to_string(),
-                    })
+                    if decl.kind.is_unresolved() {
+                        Error::new_assert(format!(
+                            "bad resolution order: unresolved {fq_ident} while resolving {}",
+                            self.debug_current_decl
+                        ))
+                    } else {
+                        Error::new(Reason::Expected {
+                            who: None,
+                            expected: "a type".to_string(),
+                            found: decl.to_string(),
+                        })
+                    }
                     .with_span(ty.span)
                 })?;
                 let mut ty = decl_ty.clone();
@@ -143,11 +150,10 @@ impl PlFold for Resolver<'_> {
                     }
 
                     DeclKind::Unresolved(_) => {
-                        panic!(
-                            "bug: bad resolution order:\n\
-                            Found reference to {}, but its declaration is unresolved.",
-                            fq_ident
-                        );
+                        return Err(Error::new_assert(format!(
+                            "bad resolution order: unresolved {fq_ident} while resolving {}",
+                            self.debug_current_decl
+                        )));
                     }
 
                     _ => Expr {

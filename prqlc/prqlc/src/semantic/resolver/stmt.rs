@@ -13,6 +13,7 @@ impl super::Resolver<'_> {
             module.unwrap().names.remove(&fq_ident.name).unwrap()
         };
         let stmt = decl.kind.into_unresolved().unwrap();
+        self.debug_current_decl = fq_ident.clone();
 
         // resolve
         match stmt {

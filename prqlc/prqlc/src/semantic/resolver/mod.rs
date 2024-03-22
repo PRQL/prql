@@ -17,7 +17,7 @@ mod types;
 pub struct Resolver<'a> {
     root_mod: &'a mut RootModule,
 
-    current_module_path: Vec<String>,
+    pub debug_current_decl: crate::ast::Ident,
 
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
@@ -41,7 +41,7 @@ impl Resolver<'_> {
         Resolver {
             root_mod,
             options,
-            current_module_path: Vec::new(),
+            debug_current_decl: crate::ast::Ident::from_name("?"),
             in_func_call_name: false,
             id,
             generics: Default::default(),
