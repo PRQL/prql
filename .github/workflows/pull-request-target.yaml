@@ -3,6 +3,8 @@ name: pull-request-target
 on:
   pull_request_target:
     types: [opened, edited, synchronize, labeled, closed]
+    branches:
+      - main
 
 concurrency:
   # Generally we use `github.ref`, but in pull_request_target, that's always `main`.
