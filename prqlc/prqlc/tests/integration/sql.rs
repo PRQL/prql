@@ -491,10 +491,10 @@ fn test_append() {
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = func bottom top -> (top | append bottom | distinct)
+    let union = func `default_db.bottom` top -> (top | append bottom | distinct)
 
     from employees
-    union managers
+    union (from managers)
     "###).unwrap(), @r###"
     SELECT
       *
@@ -510,7 +510,7 @@ fn test_append() {
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = func bottom top -> (top | append bottom | distinct)
+    let union = func `default_db.bottom` top -> (top | append bottom | distinct)
 
     from employees
     append managers
@@ -635,7 +635,7 @@ fn test_remove_05() {
     prql target:sql.sqlite
 
     let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
-    let except = `default_bottom` top -> (top | distinct | remove bottom)
+    let except = `default_db.bottom` top -> (top | distinct | remove bottom)
 
     from album
     select {artist_id, title}
@@ -669,7 +669,7 @@ fn test_remove_06() {
     prql target:sql.sqlite
 
     let distinct = rel -> (from t = _param.rel | group {t.*} (take 1))
-    let except = `default_bottom` top -> (top | distinct | remove bottom)
+    let except = func `default_db.bottom` top -> (top | distinct | remove bottom)
 
     from album
     except artist
@@ -926,7 +926,7 @@ fn test_quoting() {
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
     let UPPER = (
-        default_lower
+        default_db.lower
     )
     from UPPER
     join `some_schema.tablename` (==id)
@@ -987,8 +987,7 @@ fn test_quoting() {
     "###);
 
     assert_snapshot!((compile(r###"
-        from Assessment
-        select {as = this}
+        from as = Assessment
     "###).unwrap()), @r###"
     SELECT
       *
@@ -2991,8 +2990,7 @@ fn test_table_names_between_splits() {
 #[test]
 fn test_table_alias_01() {
     assert_snapshot!((compile(r###"
-    from employees
-    select {e = this}
+    from e = employees
     join salaries side:left (salaries.emp_no == e.emp_no)
     group {e.emp_no} (
         aggregate {
@@ -3015,8 +3013,7 @@ fn test_table_alias_01() {
 #[test]
 fn test_table_alias_02() {
     assert_snapshot!((compile(r#"
-    from employees
-    select {e = this}
+    from e = employees
     select e.first_name
     filter e.first_name == "Fred"
     "#).unwrap()), @r###"
@@ -3557,7 +3554,7 @@ fn test_table_s_string_05() {
 #[test]
 fn test_table_s_string_06() {
     assert_snapshot!(compile(r#"
-    s"SELECT * FROM {x}"
+    s"SELECT * FROM {default_db.x}"
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -4355,7 +4352,7 @@ fn test_params() {
       id,
       total
     FROM
-      invoices AS i
+      invoices
     WHERE
       (
         $1 <= date
@@ -5093,10 +5090,8 @@ fn test_table_declarations() {
     )
     .unwrap(), @r###"
     SELECT
-      my_table.id,
-      my_table.a,
-      another_table.id,
-      another_table.b
+      my_table.*,
+      another_table.*
     FROM
       my_schema.my_table
       JOIN another_table ON my_table.id = another_table.id

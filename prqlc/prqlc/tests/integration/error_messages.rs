@@ -110,9 +110,9 @@ fn array_instead_of_tuple() {
     select [e.first_name, e.last_name]
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:3:12]
+       ╭─[:4:12]
        │
-     3 │     select [e.first_name, e.last_name]
+     4 │     select [e.first_name, e.last_name]
        │            ─────────────┬─────────────
        │                         ╰─────────────── unexpected array of values (not supported here)
     ───╯
