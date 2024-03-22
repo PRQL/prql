@@ -17,15 +17,11 @@ use super::Resolver;
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
         // try resolving relative to current module
-        let mut res = self.resolve_ident_core(ident);
-
-        // try resolving as a fully qualified ident
-        if res.is_err() {
-            res = self.resolve_ident_core(ident);
-        }
+        let mut res = self.resolve_ident_core(ident);        
 
         match &res {
             Ok(fq_ident) => {
+                // handle imports
                 let decl = self.root_mod.module.get(fq_ident).unwrap();
                 if let DeclKind::Import(target) = &decl.kind {
                     let target = target.clone();

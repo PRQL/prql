@@ -303,7 +303,8 @@ impl WriteSource for Ident {
 
 pub static KEYWORDS: Lazy<HashSet<&str>> = Lazy::new(|| {
     HashSet::from_iter([
-        "let", "into", "case", "prql", "type", "internal", "func",
+        "let", "into", "case", "prql", "type", "internal",
+        "func",
         // "module" can be both keyword and ident
     ])
 });
