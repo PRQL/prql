@@ -1,15 +1,17 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from employees\n            derive {\n                net_salary = subtract gross_salary tax\n            }\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n            from db.employees\n            derive {\n                net_salary = module.subtract gross_salary tax\n            }\n            \"#).unwrap()"
 ---
 - RqOperator:
     name: std.sub
     args:
       - Ident:
+          - _local
           - this
           - employees
           - gross_salary
       - Ident:
+          - _local
           - this
           - employees
           - tax
@@ -39,4 +41,3 @@ expression: "resolve_derive(r#\"\n            let subtract = a b -> a - b\n\n   
             name: ~
     span: "0:970-1003"
     name: ~
-

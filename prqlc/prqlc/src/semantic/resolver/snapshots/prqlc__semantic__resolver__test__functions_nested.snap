@@ -1,6 +1,6 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo({x})\"\n            let ret = x dividend_return ->  x / (module.lag_day x) - 1 + dividend_return\n\n            from db.a\n            derive (module.ret b c)\n            \"#).unwrap()"
 ---
 - RqOperator:
     name: std.add
@@ -12,6 +12,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                 name: std.div_f
                 args:
                   - Ident:
+                      - _local
                       - this
                       - a
                       - b
@@ -20,6 +21,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
                       - Expr:
                           expr:
                             Ident:
+                              - _local
                               - this
                               - a
                               - b
@@ -73,6 +75,7 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
           span: "0:970-1003"
           name: ~
       - Ident:
+          - _local
           - this
           - a
           - c
@@ -101,4 +104,3 @@ expression: "resolve_derive(r#\"\n            let lag_day = x -> s\"lag_day_todo
             name: ~
     span: "0:893-926"
     name: ~
-

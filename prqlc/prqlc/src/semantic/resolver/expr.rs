@@ -5,7 +5,7 @@ use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_LOCAL, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -17,8 +17,8 @@ impl PlFold for Resolver<'_> {
     fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
         Ok(match ty.kind {
             TyKind::Ident(ident) => {
-                self.root_mod.module.shadow(NS_THIS);
-                self.root_mod.module.shadow(NS_THAT);
+                self.root_mod.local_mut().shadow(NS_THIS);
+                self.root_mod.local_mut().shadow(NS_THAT);
 
                 let fq_ident = self.resolve_ident(&ident)?;
 
@@ -41,8 +41,8 @@ impl PlFold for Resolver<'_> {
                 let mut ty = decl_ty.clone();
                 ty.name = ty.name.or(Some(fq_ident.name));
 
-                self.root_mod.module.unshadow(NS_THIS);
-                self.root_mod.module.unshadow(NS_THAT);
+                self.root_mod.local_mut().unshadow(NS_THIS);
+                self.root_mod.local_mut().unshadow(NS_THAT);
 
                 ty
             }
@@ -266,7 +266,7 @@ impl Resolver<'_> {
         let except = self.coerce_into_tuple(expr)?;
 
         self.fold_expr(Expr::new(ExprKind::All {
-            within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+            within: Box::new(Expr::new(Ident::from_path(vec![NS_LOCAL, NS_THIS]))),
             except: Box::new(except),
         }))
     }

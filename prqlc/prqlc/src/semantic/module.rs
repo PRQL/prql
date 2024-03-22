@@ -8,8 +8,8 @@ use crate::ir::pl::{Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
 
 use super::{
-    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
-    NS_STD, NS_THAT, NS_THIS,
+    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_MAIN, NS_PARAM,
+    NS_QUERY_DEF, NS_SELF, NS_STD, NS_THAT, NS_THIS,
 };
 use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
 
@@ -31,15 +31,75 @@ impl Module {
                     Decl::from(DeclKind::Module(Module::new_database())),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
+                (
+                    NS_LOCAL.to_string(),
+                    Decl::from(DeclKind::Module(Module {
+                        names: HashMap::from_iter(
+                            [
+                                "array",
+                                "scalar",
+                                "tuple",
+                                "range",
+                                "relation",
+                                "transform",
+                                // transforms
+                                "from",
+                                "select",
+                                "filter",
+                                "derive",
+                                "aggregate",
+                                "sort",
+                                "take",
+                                "join",
+                                "group",
+                                "window",
+                                "append",
+                                "intersect",
+                                "remove",
+                                "loop",
+                                // agg
+                                "min",
+                                "max",
+                                "sum",
+                                "average",
+                                "stddev",
+                                "all",
+                                "any",
+                                "concat_array",
+                                "count",
+                                "count_distinct",
+                                "lag",
+                                "lead",
+                                "first",
+                                "last",
+                                "rank",
+                                "rank_dense",
+                                "row_number",
+                                // utils
+                                "in",
+                                "as",
+                            ]
+                            .into_iter()
+                            .map(|s| {
+                                (
+                                    s.to_string(),
+                                    Decl::from(DeclKind::Import(Ident::from_path(vec!["std", s]))),
+                                )
+                            }),
+                        ),
+                        shadowed: None,
+                        redirects: vec![
+                            Ident::from_name(NS_THIS),
+                            Ident::from_name(NS_THAT),
+                            Ident::from_name(NS_PARAM),
+                            Ident::from_name(NS_GENERIC),
+                        ],
+                        infer_decl: None,
+                    })),
+                ),
             ]),
             shadowed: None,
-            redirects: vec![
-                Ident::from_name(NS_THIS),
-                Ident::from_name(NS_THAT),
-                Ident::from_name(NS_PARAM),
-                Ident::from_name(NS_STD),
-                Ident::from_name(NS_GENERIC),
-            ],
+            redirects: vec![],
             infer_decl: None,
         }
     }
@@ -236,7 +296,10 @@ impl Module {
                 LineageColumn::All { input_id, .. } => {
                     lineage.find_input(*input_id).map(|i| &i.name)
                 }
-                LineageColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
+                LineageColumn::Single { name, .. } => name
+                    .as_ref()
+                    .and_then(|n| n.path.first())
+                    .filter(|x| x.as_str() != NS_THIS),
             };
 
             // get or create input namespace
@@ -455,6 +518,16 @@ fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
 type HintAndSpan = (Option<String>, Option<Span>);
 
 impl RootModule {
+    pub fn local(&self) -> &Module {
+        let decl = self.module.names.get(NS_LOCAL).unwrap();
+        decl.kind.as_module().unwrap()
+    }
+
+    pub fn local_mut(&mut self) -> &mut Module {
+        let decl = self.module.names.get_mut(NS_LOCAL).unwrap();
+        decl.kind.as_module_mut().unwrap()
+    }
+
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
     pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), HintAndSpan> {

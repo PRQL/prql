@@ -1,52 +1,60 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom db.invoices\ntake 5\nselect {\n    total_original = total | math.round 2,\n    total_x = math.pi - total | math.round 2 | math.abs,\n    total_floor = math.floor total,\n    total_ceil = math.ceil total,\n    total_log10 = math.log10 total | math.round 3,\n    total_log2 = math.log 2 total | math.round 3,\n    total_sqrt = math.sqrt total | math.round 3,\n    total_ln = math.ln total | math.exp | math.round 2,\n    total_cos = math.cos total | math.acos | math.round 2,\n    total_sin = math.sin total | math.asin | math.round 2,\n    total_tan = math.tan total | math.atan | math.round 2,\n    total_deg = total | math.degrees | math.radians | math.round 2,\n    total_square = total | math.pow 2| math.round 2,\n}\n"
+expression: "# mssql:test\n# sqlite:skip (see https://github.com/rusqlite/rusqlite/issues/1211)\nfrom db.invoices\ntake 5\nselect {\n    total_original = total | std.math.round 2,\n    total_x = std.math.pi - total | std.math.round 2 | std.math.abs,\n    total_floor = std.math.floor total,\n    total_ceil = std.math.ceil total,\n    total_log10 = std.math.log10 total | std.math.round 3,\n    total_log2 = std.math.log 2 total | std.math.round 3,\n    total_sqrt = std.math.sqrt total | std.math.round 3,\n    total_ln = std.math.ln total | std.math.exp | std.math.round 2,\n    total_cos = std.math.cos total | std.math.acos | std.math.round 2,\n    total_sin = std.math.sin total | std.math.asin | std.math.round 2,\n    total_tan = std.math.tan total | std.math.atan | std.math.round 2,\n    total_deg = total | std.math.degrees | std.math.radians | std.math.round 2,\n    total_square = total | std.math.pow 2| std.math.round 2,\n}\n"
 input_file: prqlc/prqlc/tests/integration/queries/math_module.prql
 ---
 from db.invoices
 take 5
 select {
-  total_original = (total | math.round 2),
+  total_original = (total | std.math.round 2),
   total_x = (
-    math.pi - total
-    math.round 2
-    math.abs
+    std.math.pi - total
+    std.math.round 2
+    std.math.abs
   ),
-  total_floor = math.floor total,
-  total_ceil = math.ceil total,
-  total_log10 = (math.log10 total | math.round 3),
-  total_log2 = (math.log 2 total | math.round 3),
-  total_sqrt = (math.sqrt total | math.round 3),
+  total_floor = std.math.floor total,
+  total_ceil = std.math.ceil total,
+  total_log10 = (
+    std.math.log10 total
+    std.math.round 3
+  ),
+  total_log2 = (
+    std.math.log 2 total
+    std.math.round 3
+  ),
+  total_sqrt = (
+    std.math.sqrt total
+    std.math.round 3
+  ),
   total_ln = (
-    math.ln total
-    math.exp
-    math.round 2
+    std.math.ln total
+    std.math.exp
+    std.math.round 2
   ),
   total_cos = (
-    math.cos total
-    math.acos
-    math.round 2
+    std.math.cos total
+    std.math.acos
+    std.math.round 2
   ),
   total_sin = (
-    math.sin total
-    math.asin
-    math.round 2
+    std.math.sin total
+    std.math.asin
+    std.math.round 2
   ),
   total_tan = (
-    math.tan total
-    math.atan
-    math.round 2
+    std.math.tan total
+    std.math.atan
+    std.math.round 2
   ),
   total_deg = (
     total
-    math.degrees
-    math.radians
-    math.round 2
+    std.math.degrees
+    std.math.radians
+    std.math.round 2
   ),
   total_square = (
     total
-    math.pow 2
-    math.round 2
+    std.math.pow 2
+    std.math.round 2
   ),
 }
-

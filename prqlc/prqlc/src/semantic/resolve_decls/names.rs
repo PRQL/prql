@@ -2,6 +2,7 @@ use itertools::Itertools;
 
 use crate::ir::decl;
 use crate::ir::pl::{self, ImportDef, PlFold};
+use crate::semantic::{NS_DEFAULT_DB, NS_LOCAL, NS_STD, NS_THIS};
 use crate::{ast, utils, Error};
 use crate::{Result, WithErrorInfo};
 
@@ -181,6 +182,7 @@ impl pl::PlFold for NameResolver<'_> {
                 let (ident, indirections) = self.resolve_ident(ident).with_span(ty.span)?;
 
                 if !indirections.is_empty() {
+                    log::debug!("resolved type ident to : {ident} + {indirections:?}");
                     return Err(
                         Error::new_simple("types are not allowed indirections").with_span(ty.span)
                     );
@@ -204,8 +206,16 @@ impl NameResolver<'_> {
         let mod_path = match first.as_str() {
             "project" => Some(vec![]),
             "module" => Some(self.decl_module_path.to_vec()),
-            "std" => Some(vec!["std".to_string()]),
-            "db" => Some(vec!["db".to_string()]),
+            "super" => {
+                let mut path = self.decl_module_path.to_vec();
+                path.pop();
+                Some(path)
+            }
+
+            NS_STD => Some(vec![NS_STD.to_string()]),
+            NS_DEFAULT_DB => Some(vec![NS_DEFAULT_DB.to_string()]),
+            NS_THIS => Some(vec![NS_LOCAL.to_string(), NS_THIS.to_string()]),
+            "prql" => Some(vec![NS_STD.to_string(), "prql".to_string()]),
             _ => None,
         };
         let mod_decl = mod_path
@@ -236,7 +246,10 @@ impl NameResolver<'_> {
             let mut steps = ident.into_iter();
             let first = steps.next().unwrap();
             let indirections = steps.collect_vec();
-            (ast::Ident::from_name(first), indirections)
+            (
+                ast::Ident::from_path(vec![NS_LOCAL.to_string(), first]),
+                indirections,
+            )
         };
         Ok((ident, indirections))
     }

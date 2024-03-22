@@ -19,6 +19,7 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                 name: std.sum
                 args:
                   - Ident:
+                      - _local
                       - this
                       - a
                       - foo
@@ -36,14 +37,14 @@ expression: "resolve_derive(r#\"\n            let plus_one = x -> x + 1\n       
                     - - ~
                       - kind:
                           Primitive: Int
-                        span: "0:4209-4212"
+                        span: "0:4279-4282"
                         name: ~
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4216-4221"
+                        span: "0:4286-4291"
                         name: ~
-                span: "0:4209-4221"
+                span: "0:4279-4291"
                 name: ~
             - Literal:
                 Integer: 1

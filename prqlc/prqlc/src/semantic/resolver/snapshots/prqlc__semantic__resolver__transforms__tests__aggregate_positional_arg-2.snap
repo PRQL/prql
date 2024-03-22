@@ -18,7 +18,7 @@ TransformCall:
                   name: ~
           span: "0:2042-2053"
           name: tuple
-      span: "0:2172-2186"
+      span: "0:2166-2180"
       name: relation
     lineage:
       columns:
@@ -39,6 +39,7 @@ TransformCall:
               name: std.average
               args:
                 - Ident:
+                    - _local
                     - this
                     - c_invoice
                     - amount
@@ -56,14 +57,14 @@ TransformCall:
                   - - ~
                     - kind:
                         Primitive: Float
-                      span: "0:4274-4279"
+                      span: "0:4344-4349"
                       name: ~
                   - - ~
                     - kind:
                         Singleton: "Null"
-                      span: "0:4283-4287"
+                      span: "0:4353-4357"
                       name: ~
-              span: "0:4274-4287"
+              span: "0:4344-4357"
               name: ~
         ty:
           kind:
@@ -75,20 +76,21 @@ TransformCall:
                         - - ~
                           - kind:
                               Primitive: Float
-                            span: "0:4274-4279"
+                            span: "0:4344-4349"
                             name: ~
                         - - ~
                           - kind:
                               Singleton: "Null"
-                            span: "0:4283-4287"
+                            span: "0:4353-4357"
                             name: ~
-                    span: "0:4274-4287"
+                    span: "0:4344-4357"
                     name: ~
           span: ~
           name: ~
   partition:
     Tuple:
       - Ident:
+          - _local
           - this
           - c_invoice
           - issued_at
@@ -149,7 +151,7 @@ TransformCall:
                           name: ~
                   span: "0:2042-2053"
                   name: tuple
-          span: "0:3078-3093"
+          span: "0:3072-3098"
           name: ~
     ty:
       kind:
@@ -212,7 +214,7 @@ TransformCall:
                                 name: ~
                         span: "0:2042-2053"
                         name: tuple
-                span: "0:3078-3093"
+                span: "0:3072-3098"
                 name: ~
       span: ~
       name: ~
@@ -279,7 +281,7 @@ ty:
                                 name: ~
                         span: "0:2042-2053"
                         name: tuple
-                span: "0:3078-3093"
+                span: "0:3072-3098"
                 name: ~
           - Single:
               - ~
@@ -288,14 +290,14 @@ ty:
                     - - ~
                       - kind:
                           Primitive: Float
-                        span: "0:4274-4279"
+                        span: "0:4344-4349"
                         name: ~
                     - - ~
                       - kind:
                           Singleton: "Null"
-                        span: "0:4283-4287"
+                        span: "0:4353-4357"
                         name: ~
-                span: "0:4274-4287"
+                span: "0:4344-4357"
                 name: ~
       span: ~
       name: ~

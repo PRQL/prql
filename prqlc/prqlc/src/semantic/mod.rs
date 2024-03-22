@@ -103,6 +103,7 @@ pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "db";
 pub const NS_QUERY_DEF: &str = "prql";
 pub const NS_MAIN: &str = "main";
+pub const NS_LOCAL: &str = "_local";
 
 // refers to the containing module (direct parent)
 pub const NS_SELF: &str = "_self";

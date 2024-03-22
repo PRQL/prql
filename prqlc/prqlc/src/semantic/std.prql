@@ -57,7 +57,7 @@ type scalar = int || float || bool || text || date || time || timestamp || null
 type tuple = {anytype..}
 
 ## Range
-type range = {start = module.scalar, end = module.scalar}
+type range = {start = std.scalar, end = std.scalar}
 
 ## Relation (an array of tuples)
 type relation = [module.tuple]
@@ -110,8 +110,8 @@ let join = func
   -> <std.relation> internal join
 
 let group = func
-  by<scalar || tuple>
-  pipeline <transform>
+  by<std.scalar || module.tuple>
+  pipeline <module.transform>
   tbl <std.relation>
   -> <std.relation> internal group
 
@@ -120,24 +120,24 @@ let window = func
   range:0..-1
   expanding <bool>:false
   rolling <int>:0
-  pipeline <transform>
+  pipeline <module.transform>
   tbl <std.relation>
   -> <std.relation> internal window
 
 let append = bottom<std.relation> top<std.relation> -> <std.relation> internal append
 let intersect = bottom<std.relation> top<std.relation> -> <std.relation> (
   t = top
-  join (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
+  join (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
   select t.*
 )
 let remove = bottom<std.relation> top<std.relation> -> <std.relation> (
   t = top
-  join side:left (b = bottom) (tuple_every (tuple_map _eq (tuple_zip t.* b.*)))
-  filter (tuple_every (tuple_map _is_null b.*))
+  join side:left (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
+  filter (std.tuple_every (std.tuple_map std._is_null b.*))
   select t.*
 )
 let loop = func
-  pipeline <transform>
+  pipeline <module.transform>
   top <std.relation>
   -> <std.relation> internal loop
 
@@ -197,11 +197,11 @@ module math {
   let tan = column -> <int || float> internal std.math.tan
   let atan = column -> <int || float> internal std.math.atan
   let pow = exponent<int || float> column -> <int || float> internal std.math.pow
-  let round = n_digits column -> <scalar> internal std.math.round
+  let round = n_digits column -> <super.scalar> internal std.math.round
 }
 
 ## Misc functions
-let as = `noresolve.type` column -> <scalar> internal std.as
+let as = `noresolve.type` column -> <std.scalar> internal std.as
 let in = pattern value -> <bool> internal in
 
 ## Tuple functions

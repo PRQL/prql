@@ -1,11 +1,12 @@
 ---
 source: prqlc/prqlc/src/semantic/resolver/mod.rs
-expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n            from foo_table\n            derive {\n                added = add_one bar to:3,\n                added_default = add_one bar\n            }\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n            from db.foo_table\n            derive {\n                added = module.add_one bar to:3,\n                added_default = module.add_one bar\n            }\n            \"#).unwrap()"
 ---
 - RqOperator:
     name: std.add
     args:
       - Ident:
+          - _local
           - this
           - foo_table
           - bar
@@ -46,6 +47,7 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
     name: std.add
     args:
       - Ident:
+          - _local
           - this
           - foo_table
           - bar
@@ -82,4 +84,3 @@ expression: "resolve_derive(r#\"\n            let add_one = x to:1 -> x + to\n\n
             name: ~
     span: "0:893-926"
     name: ~
-

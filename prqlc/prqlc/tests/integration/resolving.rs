@@ -11,7 +11,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
 
     // resolved PL, restricted back into AST
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);
-    drop_module_defs(&mut root_module.stmts, &["std", "db"]);
+    drop_module_defs(&mut root_module.stmts, &["std", "db", "_local"]);
 
     prqlc::pl_to_prql(&root_module)
 }
@@ -41,9 +41,7 @@ fn resolve_function_01() {
       param_1 + 1
     )
     "#).unwrap(), @r###"
-    let my_func = func param_1 <param_1_type> -> <Ret_ty> (
-      std.add param_1 1
-    )
+    let my_func = func param_1 <param_1_type> -> <Ret_ty> std.add param_1 1
     "###)
 }
 

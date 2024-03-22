@@ -41,7 +41,7 @@ fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from db.employees
     aggregate (
-        {salary_usd = (math.round 2 salary)}
+        {salary_usd = (std.math.round 2 salary)}
     )
     "###).unwrap(),
         @r###"
@@ -58,24 +58,24 @@ fn test_stdlib_math_module() {
     assert_snapshot!(compile(r#"
     from db.employees
     select {
-      salary_abs = math.abs salary,
-      salary_floor = math.floor salary,
-      salary_ceil = math.ceil salary,
-      salary_pi = math.pi,
-      salary_exp = math.exp salary,
-      salary_ln = math.ln salary,
-      salary_log10 = math.log10 salary,
-      salary_log = math.log 2 salary,
-      salary_sqrt = math.sqrt salary,
-      salary_degrees = math.degrees salary,
-      salary_radians = math.radians salary,
-      salary_cos = math.cos salary,
-      salary_acos = math.acos salary,
-      salary_sin = math.sin salary,
-      salary_asin = math.asin salary,
-      salary_tan = math.tan salary,
-      salary_atan = math.atan salary,
-      salary_pow = salary | math.pow 2,
+      salary_abs = std.math.abs salary,
+      salary_floor = std.math.floor salary,
+      salary_ceil = std.math.ceil salary,
+      salary_pi = std.math.pi,
+      salary_exp = std.math.exp salary,
+      salary_ln = std.math.ln salary,
+      salary_log10 = std.math.log10 salary,
+      salary_log = std.math.log 2 salary,
+      salary_sqrt = std.math.sqrt salary,
+      salary_degrees = std.math.degrees salary,
+      salary_radians = std.math.radians salary,
+      salary_cos = std.math.cos salary,
+      salary_acos = std.math.acos salary,
+      salary_sin = std.math.sin salary,
+      salary_asin = std.math.asin salary,
+      salary_tan = std.math.tan salary,
+      salary_atan = std.math.atan salary,
+      salary_pow = salary | std.math.pow 2,
     }
     "#).unwrap(), @r#"
     SELECT
@@ -110,24 +110,24 @@ fn test_stdlib_math_module_mssql() {
 
   from db.employees
   select {
-    salary_abs = math.abs salary,
-    salary_floor = math.floor salary,
-    salary_ceil = math.ceil salary,
-    salary_pi = math.pi,
-    salary_exp = math.exp salary,
-    salary_ln = math.ln salary,
-    salary_log10 = math.log10 salary,
-    salary_log = math.log 2 salary,
-    salary_sqrt = math.sqrt salary,
-    salary_degrees = math.degrees salary,
-    salary_radians = math.radians salary,
-    salary_cos = math.cos salary,
-    salary_acos = math.acos salary,
-    salary_sin = math.sin salary,
-    salary_asin = math.asin salary,
-    salary_tan = math.tan salary,
-    salary_atan = math.atan salary,
-    salary_pow = salary | math.pow 2,
+    salary_abs = std.math.abs salary,
+    salary_floor = std.math.floor salary,
+    salary_ceil = std.math.ceil salary,
+    salary_pi = std.math.pi,
+    salary_exp = std.math.exp salary,
+    salary_ln = std.math.ln salary,
+    salary_log10 = std.math.log10 salary,
+    salary_log = std.math.log 2 salary,
+    salary_sqrt = std.math.sqrt salary,
+    salary_degrees = std.math.degrees salary,
+    salary_radians = std.math.radians salary,
+    salary_cos = std.math.cos salary,
+    salary_acos = std.math.acos salary,
+    salary_sin = std.math.sin salary,
+    salary_asin = std.math.asin salary,
+    salary_tan = std.math.tan salary,
+    salary_atan = std.math.atan salary,
+    salary_pow = salary | std.math.pow 2,
   }
   "#).unwrap(), @r#"
   SELECT
@@ -160,17 +160,17 @@ fn test_stdlib_text_module() {
     assert_snapshot!(compile(r#"
     from db.employees
     select {
-      name_lower = name | text.lower,
-      name_upper = name | text.upper,
-      name_ltrim = name | text.ltrim,
-      name_rtrim = name | text.rtrim,
-      name_trim = name | text.trim,
-      name_length = name | text.length,
-      name_extract = name | text.extract 3 5,
-      name_replace = name | text.replace "pika" "chu",
-      name_starts_with = name | text.starts_with "pika",
-      name_contains = name | text.contains "pika",
-      name_ends_with = name | text.ends_with "pika",
+      name_lower = name | std.text.lower,
+      name_upper = name | std.text.upper,
+      name_ltrim = name | std.text.ltrim,
+      name_rtrim = name | std.text.rtrim,
+      name_trim = name | std.text.trim,
+      name_length = name | std.text.length,
+      name_extract = name | std.text.extract 3 5,
+      name_replace = name | std.text.replace "pika" "chu",
+      name_starts_with = name | std.text.starts_with "pika",
+      name_contains = name | std.text.contains "pika",
+      name_ends_with = name | std.text.ends_with "pika",
     }
     "#).unwrap(), @r###"
     SELECT
@@ -198,7 +198,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let query = r#"
   from db.employees
   select {
-    name_ends_with = name | text.contains "pika",
+    name_ends_with = name | std.text.contains "pika",
   }
   "#;
     let expected = format!(
@@ -231,7 +231,7 @@ fn date_to_text_operator(
     let query = r#"
     from db.invoices
     select {
-      invoice_date = invoice_date | date.to_text "%d/%m/%Y"
+      invoice_date = invoice_date | std.date.to_text "%d/%m/%Y"
     }"#;
     let expected = format!(
         r#"
@@ -329,7 +329,7 @@ fn test_precedence_03() {
     from db.numbers
     derive {
       sum_1 = a + b,
-      sum_2 = add a b,
+      sum_2 = std.add a b,
       g = -a
     }
     select {
@@ -4088,7 +4088,7 @@ fn test_name_inference() {
 #[test]
 fn test_from_text() {
     assert_snapshot!(compile(r#"
-    from_text format:csv """
+    std.from_text format:csv """
 a,b,c
 1,2,3
 4,5,6
@@ -4117,7 +4117,7 @@ a,b,c
     );
 
     assert_snapshot!(compile(r#"
-    from_text format:json '''
+    std.from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
     '''
     select {b, c}
@@ -4144,7 +4144,7 @@ a,b,c
     );
 
     assert_snapshot!(compile(r#"
-    from_text format:json '''{
+    std.from_text format:json '''{
         "columns": ["a", "b", "c"],
         "data": [
             [1, "x", false],
@@ -4323,7 +4323,7 @@ fn test_loop() {
 #[test]
 fn test_loop_2() {
     assert_snapshot!(compile(r#"
-    read_csv 'employees.csv'
+    std.read_csv 'employees.csv'
     filter last_name=="Mitchell"
     loop (
       join (db.employees | select {manager = this}) (manager.employee_id==this.reports_to)
@@ -4467,7 +4467,7 @@ fn test_datetime_parsing() {
 fn test_lower() {
     assert_snapshot!(compile(r#"
     from db.test_tables
-    derive {lower_name = (name | text.lower)}
+    derive {lower_name = (name | std.text.lower)}
     "#).unwrap(),
         @r###"
     SELECT
@@ -4483,7 +4483,7 @@ fn test_lower() {
 fn test_upper() {
     assert_snapshot!(compile(r#"
     from db.test_tables
-    derive {upper_name = text.upper name}
+    derive {upper_name = std.text.upper name}
     select {upper_name}
     "#).unwrap(),
         @r###"
@@ -4512,8 +4512,8 @@ fn test_1535() {
 #[test]
 fn test_read_parquet_duckdb() {
     assert_snapshot!(compile(r#"
-    read_parquet 'x.parquet'
-    join (read_parquet "y.parquet") (==foo)
+    std.read_parquet 'x.parquet'
+    join (std.read_parquet "y.parquet") (==foo)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -4756,7 +4756,7 @@ fn test_double_stars() {
 fn test_lineage() {
     // #2627
     assert_snapshot!(compile(r#"
-    from_text """
+    std.from_text """
     a
     1
     2
@@ -4787,7 +4787,7 @@ fn test_lineage() {
 
     // #2392
     assert_snapshot!(compile(r#"
-    from_text format:json """{
+    std.from_text format:json """{
         "columns": ["a"],
         "data": [[1]]
     }"""

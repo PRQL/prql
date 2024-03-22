@@ -11,7 +11,7 @@ use crate::ir::pl::*;
 use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
-use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
+use crate::semantic::{write_pl, NS_LOCAL, NS_PARAM, NS_THIS};
 use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
 use super::types::{ty_tuple_kind, type_intersection};
@@ -102,7 +102,7 @@ impl Resolver<'_> {
                 let side = {
                     let span = side.span;
                     let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
-                    match ident.to_string().as_str() {
+                    match ident.name.as_str() {
                         "inner" => JoinSide::Inner,
                         "left" => JoinSide::Left,
                         "right" => JoinSide::Right,
@@ -132,7 +132,7 @@ impl Resolver<'_> {
                 // (when generics are a thing, this can be removed)
                 let partition = {
                     let partition = Expr::new(ExprKind::All {
-                        within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+                        within: Box::new(Expr::new(Ident::from_path(vec![NS_LOCAL, NS_THIS]))),
                         except: by.clone(),
                     });
                     // wrap into select, so the names are resolved correctly
@@ -348,7 +348,7 @@ impl Resolver<'_> {
                     let span = format.span;
                     let format = format
                         .try_cast(ExprKind::into_ident, Some("format"), "ident")?
-                        .to_string();
+                        .name;
                     match format.as_str() {
                         "csv" => from_text::parse_csv(&text)
                             .map_err(|r| Error::new_simple(r).with_span(span))?,
@@ -580,7 +580,9 @@ impl Resolver<'_> {
         // thats why we trick the resolver with a dummy node that acts as table
         // chunk and instruct resolver to apply the transform on that.
 
-        let mut dummy = Expr::new(ExprKind::Ident(Ident::from_name(param_name)));
+        let mut dummy = Expr::new(ExprKind::Ident(Ident::from_path(vec![
+            NS_LOCAL, NS_PARAM, param_name,
+        ])));
         dummy.lineage = val.lineage.clone();
         dummy.ty = val.ty.clone();
 
@@ -590,11 +592,11 @@ impl Resolver<'_> {
         )));
 
         let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-        self.root_mod.module.stack_push(NS_PARAM, env);
+        self.root_mod.local_mut().stack_push(NS_PARAM, env);
 
         let mut pipeline = self.fold_expr(pipeline)?;
 
-        self.root_mod.module.stack_pop(NS_PARAM).unwrap();
+        self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
 
         // now, we need wrap the result into a closure and replace
         // the dummy node with closure's parameter.
@@ -879,10 +881,14 @@ impl Lineage {
             return;
         }
 
+        fn pop_local_and_this(ident: &Ident) -> Ident {
+            ident.clone().pop_front().1.unwrap().pop_front().1.unwrap()
+        }
+
         // special case: an ref that should be inlined because this node
         // might not exist in the resulting AST
         if inline_refs && expr.target_id.is_some() {
-            let ident = expr.kind.as_ident().unwrap().clone().pop_front().1.unwrap();
+            let ident = pop_local_and_this(expr.kind.as_ident().unwrap());
             let target_id = expr.target_id.unwrap();
             let input = &self.find_input(target_id);
 
@@ -906,7 +912,7 @@ impl Lineage {
         let (target_id, target_name) = (expr.id.unwrap(), None);
 
         let alias = expr.alias.as_ref().map(Ident::from_name);
-        let name = alias.or_else(|| expr.kind.as_ident()?.clone().pop_front().1);
+        let name = alias.or_else(|| Some(pop_local_and_this(expr.kind.as_ident()?)));
 
         // remove names from columns with the same name
         if name.is_some() {

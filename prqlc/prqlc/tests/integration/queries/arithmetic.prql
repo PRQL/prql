@@ -23,9 +23,9 @@ select {
     r_fi = x_float % k_int,
     r_ff = x_float % k_float,
 
-    (q_ii * k_int + r_ii | math.round 0),
-    (q_if * k_float + r_if | math.round 0),
-    (q_fi * k_int + r_fi | math.round 0),
-    (q_ff * k_float + r_ff | math.round 0),
+    (q_ii * k_int + r_ii | std.math.round 0),
+    (q_if * k_float + r_if | std.math.round 0),
+    (q_fi * k_int + r_fi | std.math.round 0),
+    (q_ff * k_float + r_ff | std.math.round 0),
 }
 sort id

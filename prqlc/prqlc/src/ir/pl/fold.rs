@@ -300,8 +300,9 @@ pub fn fold_func_param<T: ?Sized + PlFold>(
         .into_iter()
         .map(|param| {
             Ok(FuncParam {
+                name: param.name,
+                ty: fold_type_opt(fold, param.ty)?,
                 default_value: fold_optional_box(fold, param.default_value)?,
-                ..param
             })
         })
         .try_collect()

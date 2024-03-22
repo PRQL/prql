@@ -292,7 +292,12 @@ impl WriteSource for Ident {
         opt.consume_width(width as u16)?;
 
         let mut r = String::new();
-        for part in &self.path {
+
+        let mut path = &self.path[..];
+        if path.first().map_or(false, |f| f == "_local") {
+            path = &path[1..];
+        }
+        for part in path {
             r += &write_ident_part(part);
             r += ".";
         }

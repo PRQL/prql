@@ -1,7 +1,7 @@
 # mssql:test
 let distinct = rel -> (rel | group this (take 1))
 
-from_text format:json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'
+std.from_text format:json '{ "columns": ["a"], "data": [[1], [2], [2], [3]] }'
 module.distinct
-remove (from_text format:json '{ "columns": ["a"], "data": [[1], [2]] }')
+remove (std.from_text format:json '{ "columns": ["a"], "data": [[1], [2]] }')
 sort a

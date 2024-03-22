@@ -8,7 +8,7 @@ use crate::ast::{Ty, TyFunc, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::types;
-use crate::semantic::{NS_GENERIC, NS_PARAM, NS_THAT, NS_THIS};
+use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};
 
 use super::Resolver;
@@ -51,7 +51,7 @@ impl Resolver<'_> {
 
         // push the env
         let closure_env = Module::from_exprs(closure.env);
-        self.root_mod.module.stack_push(NS_PARAM, closure_env);
+        self.root_mod.local_mut().stack_push(NS_PARAM, closure_env);
         let closure = Box::new(Func {
             env: HashMap::new(),
             ..*closure
@@ -103,7 +103,7 @@ impl Resolver<'_> {
         };
 
         // pop the env
-        self.root_mod.module.stack_pop(NS_PARAM).unwrap();
+        self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
 
         Ok(Expr { span, ..res })
     }
@@ -114,14 +114,14 @@ impl Resolver<'_> {
 
         let (func_env, body, return_ty) = env_of_closure(*closure);
 
-        self.root_mod.module.stack_push(NS_PARAM, func_env);
+        self.root_mod.local_mut().stack_push(NS_PARAM, func_env);
 
         // fold again, to resolve inner variables & functions
         let body = self.fold_expr(body)?;
 
         // remove param decls
         log::debug!("stack_pop: {:?}", body.id);
-        let func_env = self.root_mod.module.stack_pop(NS_PARAM).unwrap();
+        let func_env = self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
 
         Ok(if let ExprKind::Func(mut inner_closure) = body.kind {
             // body couldn't been resolved - construct a closure to be evaluated later
@@ -176,7 +176,7 @@ impl Resolver<'_> {
             // insert _generic.name declaration
             let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
             let decl = Decl::from(DeclKind::Ty(Ty::new(TyKind::GenericArg(generic_id))));
-            self.root_mod.module.insert(ident, decl).unwrap();
+            self.root_mod.local_mut().insert(ident, decl).unwrap();
         }
 
         func.params = func
@@ -191,7 +191,7 @@ impl Resolver<'_> {
             .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
 
-        self.root_mod.module.names.remove(NS_GENERIC);
+        self.root_mod.local_mut().names.remove(NS_GENERIC);
         Ok(func)
     }
 
@@ -255,8 +255,8 @@ impl Resolver<'_> {
 
         // resolve relational args
         if has_relations {
-            self.root_mod.module.shadow(NS_THIS);
-            self.root_mod.module.shadow(NS_THAT);
+            self.root_mod.local_mut().shadow(NS_THIS);
+            self.root_mod.local_mut().shadow(NS_THAT);
 
             for (pos, (index, (param, mut arg))) in relations.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last | Position::Only);
@@ -276,9 +276,9 @@ impl Resolver<'_> {
                 if partial_application_position.is_none() {
                     let frame = arg.lineage.as_ref().unwrap();
                     if is_last {
-                        self.root_mod.module.insert_frame(frame, NS_THIS);
+                        self.root_mod.local_mut().insert_frame(frame, NS_THIS);
                     } else {
-                        self.root_mod.module.insert_frame(frame, NS_THAT);
+                        self.root_mod.local_mut().insert_frame(frame, NS_THAT);
                     }
                 }
 
@@ -300,7 +300,9 @@ impl Resolver<'_> {
                         // add aliased columns into scope
                         if let Some(alias) = field.alias.clone() {
                             let id = field.id.unwrap();
-                            self.root_mod.module.insert_frame_col(NS_THIS, alias, id);
+                            self.root_mod
+                                .local_mut()
+                                .insert_frame_col(NS_THIS, alias, id);
                         }
                         fields_new.push(field);
                     }
@@ -323,8 +325,8 @@ impl Resolver<'_> {
         }
 
         if has_relations {
-            self.root_mod.module.unshadow(NS_THIS);
-            self.root_mod.module.unshadow(NS_THAT);
+            self.root_mod.local_mut().unshadow(NS_THIS);
+            self.root_mod.local_mut().unshadow(NS_THAT);
         }
 
         Ok(if let Some(position) = partial_application_position {
@@ -425,6 +427,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
 
     let param_name = format!("_partial_{}", arg.id.unwrap());
     let substitute_arg = Expr::new(Ident::from_path(vec![
+        NS_LOCAL.to_string(),
         NS_PARAM.to_string(),
         param_name.clone(),
     ]));

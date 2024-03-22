@@ -8,27 +8,28 @@ info:
     - resolve
   env:
     CLICOLOR_FORCE: ""
-    NO_COLOR: "1"
     RUST_BACKTRACE: ""
     RUST_LOG: ""
+    NO_COLOR: "1"
   stdin: from db.tracks
 ---
 success: true
 exit_code: 0
 ----- stdout -----
 Module {
-    redirects: [
-        "this",
-        "that",
-        "_param",
-        "std",
-        "_generic",
-    ],
     names: {
-        "_param": Decl {
+        "_local": Decl {
             declared_at: None,
-            kind: LayeredModules(
-                [],
+            kind: Module(
+                Module {
+                    redirects: [
+                        "this",
+                        "that",
+                        "_param",
+                        "_generic",
+                    ],
+                    names: "... 40 entries ...",
+                },
             ),
             order: 0,
             annotations: [],
