@@ -5,6 +5,6 @@ let genre_count = (
     aggregate {a = count name}
 )
 
-genre_count
+module.genre_count
 filter a > 0
 select a = -a

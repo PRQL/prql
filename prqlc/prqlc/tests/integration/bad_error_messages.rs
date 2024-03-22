@@ -117,8 +117,9 @@ fn misplaced_type_error() {
     // (preferably in addition to the error that is currently generated)
     assert_snapshot!(compile(r###"
     let foo = 123
+
     from db.t
-    select (true && foo)
+    select (true && module.foo)
     "###).unwrap_err(), @r###"
     Error:
        ╭─[:2:15]

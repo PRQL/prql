@@ -638,7 +638,7 @@ sort full
             },
             &mut SourceTree::new(
                 [
-                    ("Project.prql".into(), "orders.x | select y".to_string()),
+                    ("Project.prql".into(), "project.orders.x | select y".to_string()),
                     (
                         "orders.prql".into(),
                         "let x = (from db.z | select {y, u})".to_string(),

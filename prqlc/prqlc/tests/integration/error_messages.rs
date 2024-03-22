@@ -11,15 +11,15 @@ fn test_errors() {
     let addadd = a b -> a + b
 
     from db.x
-    derive y = (addadd 4 5 6)
+    derive y = (module.addadd 4 5 6)
     "###).unwrap_err(),
         @r###"
     Error:
        ╭─[:5:17]
        │
-     5 │     derive y = (addadd 4 5 6)
-       │                 ──────┬─────
-       │                       ╰─────── Too many arguments to function `addadd`
+     5 │     derive y = (module.addadd 4 5 6)
+       │                 ─────────┬─────────
+       │                          ╰─────────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -196,15 +196,16 @@ fn test_basic_type_checking() {
 fn test_type_error_placement() {
     assert_snapshot!(compile(r###"
     let foo = x -> (x | as integer)
+
     from db.t
-    select (true && (foo y))
+    select (true && (module.foo y))
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:4:22]
+       ╭─[:5:22]
        │
-     4 │     select (true && (foo y))
-       │                      ──┬──
-       │                        ╰──── function std.and, param `right` expected type `bool`, but found type `scalar`
+     5 │     select (true && (module.foo y))
+       │                      ──────┬─────
+       │                            ╰─────── function std.and, param `right` expected type `bool`, but found type `scalar`
     ───╯
     "###);
 }

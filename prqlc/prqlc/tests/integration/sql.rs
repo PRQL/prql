@@ -491,10 +491,10 @@ fn test_append() {
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = func bottom top -> (top | append bottom | distinct)
+    let union = func bottom top -> (top | append bottom | module.distinct)
 
     from db.employees
-    union db.managers
+    module.union db.managers
     "###).unwrap(), @r###"
     SELECT
       *
@@ -510,11 +510,11 @@ fn test_append() {
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = func bottom top -> (top | append bottom | distinct)
+    let union = func bottom top -> (top | append bottom | module.distinct)
 
     from db.employees
     append db.managers
-    union db.all_employees_of_some_other_company
+    module.union db.all_employees_of_some_other_company
     "###).unwrap(), @r###"
     SELECT
       *
@@ -635,11 +635,11 @@ fn test_remove_05() {
     prql target:sql.sqlite
 
     let distinct = rel -> (_param.rel | group this (take 1))
-    let except = func bottom top -> (top | distinct | remove bottom)
+    let except = func bottom top -> (top | module.distinct | remove bottom)
 
     from db.album
     select {artist_id, title}
-    except (from db.artist | select {artist_id, name})
+    module.except (from db.artist | select {artist_id, name})
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -669,10 +669,10 @@ fn test_remove_06() {
     prql target:sql.sqlite
 
     let distinct = rel -> (_param.rel | group this (take 1))
-    let except = func bottom top -> (top | distinct | remove bottom)
+    let except = func bottom top -> (top | module.distinct | remove bottom)
 
     from db.album
-    except db.artist
+    module.except db.artist
     "#).unwrap(),
         @r###"
     SELECT
@@ -746,11 +746,11 @@ fn test_intersect_03() {
 
     from db.album
     select artist_id
-    distinct
+    module.distinct
     intersect (
         from db.artist | select artist_id
     )
-    distinct
+    module.distinct
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -789,7 +789,7 @@ fn test_intersect_04() {
     intersect (
         from db.artist | select artist_id
     )
-    distinct
+    module.distinct
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -825,7 +825,7 @@ fn test_intersect_05() {
 
     from db.album
     select artist_id
-    distinct
+    module.distinct
     intersect (
         from db.artist | select artist_id
     )
@@ -928,7 +928,7 @@ fn test_quoting() {
     let UPPER = (
         from db.lower
     )
-    UPPER
+    module.UPPER
     join db.`some_schema.tablename` (==id)
     derive `from` = 5
     "###).unwrap()), @r###"
@@ -1046,7 +1046,7 @@ fn test_sorts_02() {
       sort index
       select {fieldA}
     )
-    x
+    module.x
     "###
     ).unwrap()), @r###"
     WITH table_0 AS (
@@ -2508,7 +2508,7 @@ fn test_bare_s_string() {
           GROUPING SETS
           ((b, c, d), (d), (b, d))
       """
-    grouping
+    module.grouping
     "#;
 
     let sql = compile(query).unwrap();
@@ -2532,7 +2532,7 @@ fn test_bare_s_string() {
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
     let query = r#"
     let a = s"select insensitive from rude"
-    a
+    module.a
     "#;
 
     let sql = compile(query).unwrap();
@@ -2554,7 +2554,7 @@ fn test_bare_s_string() {
     // Check a mixture of cases for good measure.
     let query = r#"
     let a = s"sElEcT insensitive from rude"
-    a
+    module.a
     "#;
 
     let sql = compile(query).unwrap();
@@ -2581,7 +2581,7 @@ fn test_bare_s_string() {
     FROM
       bar"
 
-    a
+    module.a
     "#;
 
     let sql = compile(query).unwrap();
@@ -2613,7 +2613,7 @@ fn test_table_definition_with_expr_call() {
     let query = r###"
     let e = take 4 (from db.employees)
 
-    e
+    module.e
     "###;
 
     let sql = compile(query).unwrap();
@@ -2775,8 +2775,8 @@ fn test_prql_to_sql_table() {
             }
         )
     )
-    newest_employees
-    join average_salaries (==country)
+    module.newest_employees
+    join module.average_salaries (==country)
     select {name, salary, average_country_salary}
     "#;
     let sql = compile(query).unwrap();
@@ -2908,7 +2908,7 @@ fn test_nonatomic_table() {
         take 50
         group country (aggregate {s"count(*)"})
     )
-    a
+    module.a
     join db.b (==country)
     select {name, salary, average_country_salary}
 "#;
@@ -3197,8 +3197,8 @@ from db.y_table
 select foo
 )
 
-x
-join y (foo == only_in_x)
+module.x
+join module.y (foo == only_in_x)
 "###;
 
     assert_snapshot!(compile(query).unwrap(),
@@ -3323,10 +3323,10 @@ fn test_toposort() {
     )
 
     let a = (
-        b
+        project.b
     )
 
-    b
+    project.b
     "###).unwrap(),
         @r###"
     WITH b AS (
@@ -3556,7 +3556,7 @@ fn test_table_s_string_05() {
     let weeks_between = start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
     let current_week = -> s"date(date_trunc('week', current_date))"
 
-    weeks_between @2022-06-03 (current_week + 4)
+    module.weeks_between @2022-06-03 (module.current_week + 4)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -3848,17 +3848,17 @@ fn test_static_analysis() {
 #[test]
 fn test_closures_and_pipelines() {
     assert_snapshot!(compile(
-        r#"
+    r#"
     let addthree = a b c -> s"{a} || {b} || {c}"
     let arg = myarg myfunc <func> -> ( myfunc myarg )
 
     from db.y
     select x = (
-        addthree "apples"
-        arg "bananas"
-        arg "citrus"
+        module.addthree "apples"
+        module.arg "bananas"
+        module.arg "citrus"
     )
-        "#).unwrap(),
+    "#).unwrap(),
         @r###"
     SELECT
       'apples' || 'bananas' || 'citrus' AS x
@@ -4022,7 +4022,7 @@ fn test_custom_transforms() {
     )
 
     from db.tab
-    my_transform
+    module.my_transform
     take 3
     "#).unwrap(),
         @r###"
@@ -4604,7 +4604,7 @@ fn test_into() {
     from db.data
     into table_a
 
-    table_a
+    module.table_a
     select {x, y}
     "#).unwrap(),
         @r###"
@@ -4640,7 +4640,7 @@ fn test_array_01() {
         {a = 4, b = true},
     ]
 
-    let main = (my_relation | filter b)
+    let main = (module.my_relation | filter b)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -4817,7 +4817,8 @@ fn test_type_as_column_name() {
     )
 
     from db.foo
-    f"#)
+    module.f
+    "#)
     .unwrap(), @r###"
     SELECT
       date
@@ -5008,7 +5009,7 @@ fn test_relation_var_name_clashes_01() {
         r###"
     let table_0 = (from db.a)
 
-    table_0
+    project.table_0
     take 10
     filter x > 0
         "###,
@@ -5127,7 +5128,7 @@ fn test_table_declarations() {
       let another_table <[{ id = int, b = text }]>
     }
 
-    from db.my_schema.my_table | join db.another_table (==id) | take 10
+    from module.db.my_schema.my_table | join module.db.another_table (==id) | take 10
         "###,
     )
     .unwrap(), @r###"
@@ -5150,7 +5151,7 @@ fn test_param_declarations() {
         r###"
     let a <int>
 
-    from db.x | filter b == a
+    from db.x | filter b == module.a
         "###,
     )
     .unwrap(), @r###"
@@ -5186,9 +5187,9 @@ fn test_import() {
         let world = 1
     }
 
-    import a = hello.world
+    import a = module.hello.world
 
-    from db.x | select a
+    from db.x | select module.a
         "###,
     )
     .unwrap(), @r###"
@@ -5207,21 +5208,19 @@ fn test_ordering_declarations() {
     // - main
 
     assert_snapshot!(compile(
-        r###"
-    let main = (from db.h | filter j == (foo.bar.baz + 1))
+    r###"
+    let main = (from db.h | filter j == (module.foo.bar.baz + 1))
 
     module foo {
       module bar {
-        let baz = hello.world
+        let baz = project.hello.world
       }
     }
 
     module hello {
       let world = 1
     }
-        "###,
-    )
-    .unwrap(), @r###"
+    "###).unwrap(), @r###"
     SELECT
       *
     FROM

@@ -113,8 +113,8 @@ fn resolve_generics_01() {
         r#"
     let add_one = func <A: int | float> a <A> -> <A> a + 1
         
-    let my_int = add_one 1
-    let my_float = add_one 1.0
+    let my_int = module.add_one 1
+    let my_float = module.add_one 1.0
     "#,
     )
     .unwrap(), @r###"
