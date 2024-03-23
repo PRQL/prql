@@ -39,7 +39,7 @@
 //!     ```
 //!     # fn main() -> Result<(), prqlc::ErrorMessages> {
 //!     let sql = prqlc::compile(
-//!         "from db.albums | select {title, artist_id}",
+//!         "from albums | select {title, artist_id}",
 //!          &prqlc::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
@@ -51,7 +51,7 @@
 //!
 //!     For inline strings, use the `prql-compiler-macros` crate; for example:
 //!     ```ignore
-//!     let sql: &str = prql_to_sql!("from db.albums | select {title, artist_id}");
+//!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
 //!     For compiling whole files (`.prql` to `.sql`), call `prqlc`
@@ -129,7 +129,7 @@ use strum::VariantNames;
 /// ```
 /// use prqlc::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from db.employees | select {name,age}";
+/// let prql = "from employees | select {name,age}";
 /// let opts = Options::default().with_target(Target::Sql(Some(Dialect::SQLite))).with_signature_comment(false).with_format(false);
 /// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);

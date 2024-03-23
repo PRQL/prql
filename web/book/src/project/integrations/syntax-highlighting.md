@@ -11,7 +11,7 @@ GitHub, Pandoc, and other Markdown renderers:
 
 ````markdown
 ```elm
-from db.employees
+from employees
 filter start_date > @2021-01-01
 ```
 ````

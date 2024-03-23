@@ -1,11 +1,11 @@
 # Compute the 3 longest songs for each genre and sort by genre
 # mssql:test
-from db.tracks
+from tracks
 select {genre_id,milliseconds}
 group {genre_id} (
   sort {-milliseconds}
   take 3
 )
-join db.genres (==genre_id)
+join genres (==genre_id)
 select {name, milliseconds}
 sort {+name,-milliseconds}

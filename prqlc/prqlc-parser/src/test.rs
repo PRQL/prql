@@ -93,7 +93,7 @@ fn test_error_unexpected() {
 fn test_pipeline_parse_tree() {
     assert_yaml_snapshot!(parse_single(
         r#"
-from db.employees
+from employees
 filter country == "USA"                      # Each line transforms the previous result.
 derive {                                     # This adds columns / variables.
   gross_salary = salary + payroll_tax,
@@ -1511,7 +1511,7 @@ fn test_op_precedence() {
 #[test]
 fn test_var_def() {
     assert_yaml_snapshot!(parse_single(
-            "let newest_employees = (from db.employees)"
+            "let newest_employees = (from employees)"
         ).unwrap(), @r###"
     ---
     - VarDef:
@@ -1524,15 +1524,14 @@ fn test_var_def() {
                 - from
             args:
               - Ident:
-                  - db
                   - employees
-      span: "0:0-42"
+      span: "0:0-39"
     "###);
 
     assert_yaml_snapshot!(parse_single(
             r#"
         let newest_employees = (
-          from db.employees
+          from employees
           group country (
             aggregate {
                 average_country_salary = average salary
@@ -1555,7 +1554,6 @@ fn test_var_def() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - employees
               - FuncCall:
                   name:
@@ -1592,7 +1590,7 @@ fn test_var_def() {
                   args:
                     - Literal:
                         Integer: 50
-      span: "0:0-234"
+      span: "0:0-231"
     "###);
 
     assert_yaml_snapshot!(parse_single(r#"
@@ -1611,13 +1609,13 @@ fn test_var_def() {
     assert_yaml_snapshot!(parse_single(
           "let x = (
 
-            from db.x_table
+            from x_table
 
             select only_in_x = foo
 
           )
 
-          from db.x"
+          from x"
         ).unwrap(), @r###"
     ---
     - VarDef:
@@ -1632,7 +1630,6 @@ fn test_var_def() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - x_table
               - FuncCall:
                   name:
@@ -1642,7 +1639,7 @@ fn test_var_def() {
                     - Ident:
                         - foo
                       alias: only_in_x
-      span: "0:0-87"
+      span: "0:0-84"
     - VarDef:
         kind: Main
         name: main
@@ -1653,9 +1650,8 @@ fn test_var_def() {
                 - from
             args:
               - Ident:
-                  - db
                   - x
-      span: "0:99-108"
+      span: "0:96-102"
     "###);
 }
 
@@ -1707,7 +1703,7 @@ fn test_inline_pipeline() {
 #[test]
 fn test_sql_parameters() {
     assert_yaml_snapshot!(parse_single(r#"
-        from db.mytable
+        from mytable
         filter {
           first_name == $1,
           last_name == $2.name
@@ -1726,7 +1722,6 @@ fn test_sql_parameters() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - mytable
               - FuncCall:
                   name:
@@ -1748,7 +1743,7 @@ fn test_sql_parameters() {
                             op: Eq
                             right:
                               Param: 2.name
-      span: "0:9-111"
+      span: "0:9-108"
     "###);
 }
 
@@ -1839,7 +1834,7 @@ join `my-proj`.`dataset`.`table`
 #[test]
 fn test_sort() {
     assert_yaml_snapshot!(parse_single("
-        from db.invoices
+        from invoices
         sort issued_at
         sort (-issued_at)
         sort {issued_at}
@@ -1859,7 +1854,6 @@ fn test_sort() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - invoices
               - FuncCall:
                   name:
@@ -1915,14 +1909,14 @@ fn test_sort() {
                             expr:
                               Ident:
                                 - num_of_articles
-      span: "0:9-178"
+      span: "0:9-175"
     "###);
 }
 
 #[test]
 fn test_dates() {
     assert_yaml_snapshot!(parse_single("
-        from db.employees
+        from employees
         derive {age_plus_two_years = (age + 2years)}
         ").unwrap(), @r###"
     ---
@@ -1938,7 +1932,6 @@ fn test_dates() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - employees
               - FuncCall:
                   name:
@@ -1957,7 +1950,7 @@ fn test_dates() {
                                   n: 2
                                   unit: years
                           alias: age_plus_two_years
-      span: "0:9-80"
+      span: "0:9-77"
     "###);
 
     assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
@@ -2009,7 +2002,7 @@ fn test_multiline_string() {
 #[test]
 fn test_coalesce() {
     assert_yaml_snapshot!(parse_single(r###"
-        from db.employees
+        from employees
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
     ---
@@ -2025,7 +2018,6 @@ fn test_coalesce() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - employees
               - FuncCall:
                   name:
@@ -2041,7 +2033,7 @@ fn test_coalesce() {
                           Literal:
                             Integer: 0
                       alias: amount
-      span: "0:9-63"
+      span: "0:9-60"
     "### )
 }
 
@@ -2070,7 +2062,7 @@ fn test_literal() {
 #[test]
 fn test_allowed_idents() {
     assert_yaml_snapshot!(parse_single(r###"
-        from db.employees
+        from employees
         join _salary (==employee_id) # table with leading underscore
         filter first_name == $1
         select {_employees._underscored_column}
@@ -2088,7 +2080,6 @@ fn test_allowed_idents() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - employees
               - FuncCall:
                   name:
@@ -2123,14 +2114,14 @@ fn test_allowed_idents() {
                         - Ident:
                             - _employees
                             - _underscored_column
-      span: "0:9-176"
+      span: "0:9-173"
     "###)
 }
 
 #[test]
 fn test_gt_lt_gte_lte() {
     assert_yaml_snapshot!(parse_single(r###"
-        from db.people
+        from people
         filter age >= 100
         filter num_grandchildren <= 10
         filter salary > 0
@@ -2149,7 +2140,6 @@ fn test_gt_lt_gte_lte() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - people
               - FuncCall:
                   name:
@@ -2203,15 +2193,15 @@ fn test_gt_lt_gte_lte() {
                         right:
                           Literal:
                             Integer: 2
-      span: "0:9-143"
+      span: "0:9-140"
     "###)
 }
 
 #[test]
 fn test_assign() {
     assert_yaml_snapshot!(parse_single(r###"
-from db.employees
-join (db.salaries | select {s = this}) (==id)
+from employees
+join s=salaries (==id)
         "###).unwrap(), @r###"
     ---
     - VarDef:
@@ -2226,33 +2216,21 @@ join (db.salaries | select {s = this}) (==id)
                       - from
                   args:
                     - Ident:
-                        - db
                         - employees
               - FuncCall:
                   name:
                     Ident:
                       - join
                   args:
-                    - Pipeline:
-                        exprs:
-                          - Ident:
-                              - db
-                              - salaries
-                          - FuncCall:
-                              name:
-                                Ident:
-                                  - select
-                              args:
-                                - Tuple:
-                                    - Ident:
-                                        - this
-                                      alias: s
+                    - Ident:
+                        - salaries
+                      alias: s
                     - Unary:
                         op: EqSelf
                         expr:
                           Ident:
                             - id
-      span: "0:1-65"
+      span: "0:1-39"
     "###);
 }
 
@@ -2530,7 +2508,7 @@ fn test_target() {
             r#"
           prql target:sql.sqlite
 
-          from db.film
+          from film
           remove film2
         "#,
         )
@@ -2553,7 +2531,6 @@ fn test_target() {
                       - from
                   args:
                     - Ident:
-                        - db
                         - film
               - FuncCall:
                   name:
@@ -2562,7 +2539,7 @@ fn test_target() {
                   args:
                     - Ident:
                         - film2
-      span: "0:45-81"
+      span: "0:45-78"
     "###);
 }
 

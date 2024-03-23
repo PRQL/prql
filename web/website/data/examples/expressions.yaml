@@ -1,6 +1,6 @@
 label: Expressions
 prql: |
-  from db.track_plays
+  from track_plays
   derive {
     finished = started + unfinished,
     fin_share = finished / started,        # Use previous definitions

@@ -27,7 +27,7 @@ var options = new PrqlCompilerOptions
     Format = false,
     SignatureComment = false,
 };
-var sql = PrqlCompiler.Compile("from db.employees", options);
+var sql = PrqlCompiler.Compile("from employees", options);
 Console.WriteLine(sql);
 ```
 

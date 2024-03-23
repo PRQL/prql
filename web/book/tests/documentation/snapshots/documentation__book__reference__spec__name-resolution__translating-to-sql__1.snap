@@ -1,6 +1,6 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from db.employees\nderive {first_name, dept_id}\njoin d = db.departments (==dept_id)\nselect {first_name, d.title}\n"
+expression: "from employees\nderive {first_name, dept_id}\njoin d=departments (==dept_id)\nselect {first_name, d.title}\n"
 ---
 SELECT
   employees.first_name,

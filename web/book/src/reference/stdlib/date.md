@@ -20,7 +20,7 @@ For now the supported DBs are: Clickhouse, DuckDB, MySQL, MSSQL and Postgres.
 ```prql
 prql target:sql.duckdb
 
-from db.invoices
+from invoices
 select {
   invoice_date | date.to_text "%d/%m/%Y"
 }
@@ -29,7 +29,7 @@ select {
 ```prql
 prql target:sql.postgres
 
-from db.invoices
+from invoices
 select {
   invoice_date | date.to_text "%d/%m/%Y"
 }
@@ -38,7 +38,7 @@ select {
 ```prql
 prql target:sql.mysql
 
-from db.invoices
+from invoices
 select {
   invoice_date | date.to_text "%d/%m/%Y"
 }

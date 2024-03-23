@@ -21,7 +21,7 @@ enabled. Set `ffi.enable` in your php.ini configuration file to `"true"`.
 use Prql\Compiler\Compiler;
 
 $prql = new Compiler();
-$result = $prql->compile("from db.employees");
+$result = $prql->compile("from employees");
 
 echo $result->output;
 ```

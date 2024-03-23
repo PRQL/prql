@@ -372,11 +372,19 @@ impl Resolver<'_> {
     }
 
     fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
+        let prev_namespace = self.default_namespace.take();
+
         if param_name.starts_with("noresolve.") {
             return Ok(expr);
+        } else if let Some((ns, _)) = param_name.split_once('.') {
+            self.default_namespace = Some(ns.to_string());
+        } else {
+            self.default_namespace = None;
         };
 
-        self.fold_expr(expr)
+        let res = self.fold_expr(expr);
+        self.default_namespace = prev_namespace;
+        res
     }
 }
 

@@ -65,7 +65,7 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     let mut excluded: Excluded = HashMap::new();
 
     // When compiling:
-    // from db.employees | group department (take 3)
+    // from employees | group department (take 3)
     // Row number will be computed in a CTE that also contains a star.
     // In the main query, star will also include row number, which was not
     // requested.

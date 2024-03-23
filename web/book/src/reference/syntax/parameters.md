@@ -9,6 +9,6 @@ string.
 Most database engines only support numeric positional parameter ids (i.e `$3`).
 
 ```prql
-from db.employees
+from employees
 filter id == $1
 ```

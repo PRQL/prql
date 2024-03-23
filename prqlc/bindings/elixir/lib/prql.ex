@@ -47,12 +47,12 @@ defmodule PRQL do
   ## Examples
 
   Using default `Generic` target:
-      iex> PRQL.compile("from db.customers", signature_comment: false)
+      iex> PRQL.compile("from customers", signature_comment: false)
       {:ok, "SELECT\n  *\nFROM\n  customers\n"}
 
 
   Using `MSSQL` target:
-      iex> PRQL.compile("from db.customers\ntake 10", target: :mssql, signature_comment: false)
+      iex> PRQL.compile("from customers\ntake 10", target: :mssql, signature_comment: false)
       {:ok, "SELECT\n  *\nFROM\n  customers\nORDER BY\n  (\n    SELECT\n      NULL\n  ) OFFSET 0 ROWS\nFETCH FIRST\n  10 ROWS ONLY\n"}
   """
   @spec compile(binary(), [compile_opts()]) :: {:ok, binary()} | {:error, binary()}

@@ -4,7 +4,7 @@
 //! experienced contributors who would like a quick issue to fix:
 //! - Find where the error is being raised now, generally just search for a part
 //!   of the message.
-//! - Add `dbg` macros to the code to see what's going on.
+//! - Add `` macros to the code to see what's going on.
 //! - Write a better message / find a better place to raise a message.
 //! - Run `cargo insta test --accept`, and move the test out of this file into
 //!   `test_error_messages.rs`. If it's only partially solved, add a TODO and
@@ -21,7 +21,7 @@ use insta::assert_snapshot;
 #[test]
 fn test_bad_error_messages() {
     assert_snapshot!(compile(r###"
-    from db.film
+    from film
     group
     "###).unwrap_err(), @r###"
     Error:
@@ -41,7 +41,7 @@ fn test_bad_error_messages() {
     assert_snapshot!(compile(r#"
     let f = country -> country == "Canada"
 
-    from db.employees
+    from employees
     filter f location
     "#).unwrap_err(), @r###"
     Error:
@@ -56,20 +56,20 @@ fn test_bad_error_messages() {
     // Really complicated error message for something so fundamental
     assert_snapshot!(compile(r###"
     select tracks
-    from db.artists
+    from artists
     "###).unwrap_err(), @r###"
     Error:
        ╭─[:3:5]
        │
-     3 │     from db.artists
-       │     ───────┬───────
-       │            ╰───────── expected a function, but found `db.artists`
+     3 │     from artists
+       │     ──────┬─────
+       │           ╰─────── expected a function, but found `default_db.artists`
     ───╯
     "###);
 
     // It's better if we can tell them to put in {} braces
     assert_snapshot!(compile(r###"
-    from db.artists
+    from artists
     sort -name
     "###).unwrap_err(), @r###"
     Error: expected a pipeline that resolves to a table, but found `internal std.sub`
@@ -80,7 +80,7 @@ fn test_bad_error_messages() {
 #[test]
 fn empty_interpolations() {
     assert_snapshot!(compile(r#"
-    from db.x
+    from x
     select f"{}"
     "#).unwrap_err(), @r###"
     Error:
@@ -97,7 +97,7 @@ fn empty_interpolations() {
 fn select_with_extra_fstr() {
     // Should complain in the same way as `select lower "mooo"`
     assert_snapshot!(compile(r#"
-    from db.foo
+    from foo
     select lower f"{x}/{y}"
     "#).unwrap_err(), @r###"
     Error:
@@ -117,7 +117,7 @@ fn misplaced_type_error() {
     // (preferably in addition to the error that is currently generated)
     assert_snapshot!(compile(r###"
     let foo = 123
-    from db.t
+    from t
     select (true && foo)
     "###).unwrap_err(), @r###"
     Error:
@@ -133,7 +133,7 @@ fn misplaced_type_error() {
 #[test]
 fn invalid_lineage_in_transform() {
     assert_snapshot!(compile(r###"
-  from db.tbl
+  from tbl
   group id (
     sort -val
   )
@@ -146,7 +146,7 @@ fn invalid_lineage_in_transform() {
 #[test]
 fn test_hint_missing_args() {
     assert_snapshot!(compile(r###"
-    from db.film
+    from film
     select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
     Error:
@@ -180,9 +180,9 @@ fn test_relation_literal_contains_literals() {
 fn nested_groups() {
     // Nested `group` gives a very abstract & internally-focused error message
     assert_snapshot!(compile(r###"
-    from db.invoices
+    from invoices
     select {inv = this}
-    join item = db.invoice_items (==invoice_id)
+    join item = invoice_items (==invoice_id)
 
     group { inv.billing_city } (
 
@@ -196,7 +196,7 @@ fn nested_groups() {
     Error:
         ╭─[:2:5]
         │
-      2 │ ╭─▶     from db.invoices
+      2 │ ╭─▶     from invoices
         ┆ ┆
      13 │ ├─▶     )
         │ │

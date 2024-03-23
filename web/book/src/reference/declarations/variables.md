@@ -24,7 +24,7 @@ Syntactically, variables can take 3 forms.
 - The final expression of a pipeline defaults to taking the name `main`.
 
   ```prql no-eval
-  x
+  from x
   ```
 
   ... is equivalent to:
@@ -38,21 +38,21 @@ Expressions (or sub-queries in some cases).
 
 ```prql
 let top_50 = (
-  from db.employees
+  from employees
   sort salary
   take 50
   aggregate {total_salary = sum salary}
 )
 
-top_50      # Starts a new pipeline
+from top_50      # Starts a new pipeline
 ```
 
 ```prql
-from db.employees
+from employees
 take 50
 into first_50
 
-first_50
+from first_50
 ```
 
 Variables can be assigned an s-string containing the whole SQL query
@@ -68,5 +68,5 @@ let grouping = s"""
     ((b, c, d), (d), (b, d))
 """
 
-grouping
+from grouping
 ```

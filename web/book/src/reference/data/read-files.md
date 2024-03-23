@@ -23,7 +23,7 @@ functions, which is allowed in DuckDB, enclose the file names in backticks
 ` `` ` as follows:
 
 ```prql
-from db.`artists.parquet`
+from `artists.parquet`
 ```
 
 ## See also

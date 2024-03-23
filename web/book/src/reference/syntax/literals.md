@@ -22,7 +22,7 @@ Integers can, alternatively, be expressed using hexadecimal, octal or binary
 notation using these prefixes respectively: `0x`, `0o` or `0b`.
 
 ```prql
-from db.numbers
+from numbers
 select {
     small = 1.000_000_1,
     big = 5_000_000,
@@ -63,7 +63,7 @@ that just uses a string `'2004-10-19 10:23:54'`.
 Dates are represented by `@{yyyy-mm-dd}` — a `@` followed by the date format.
 
 ```prql
-from db.employees
+from employees
 derive age_at_year_end = (@2022-12-31 - dob)
 ```
 
@@ -74,7 +74,7 @@ defaulting to zero. This includes the timezone, which is represented by
 `+HH:mm`, `-HH:mm` or `Z`. This is consistent with the ISO8601 time format.
 
 ```prql
-from db.orders
+from orders
 derive should_have_shipped_today = (order_time < @08:30)
 ```
 
@@ -86,7 +86,7 @@ which is represented by `+HH:mm`, `-HH:mm` or `Z` (`:` is optional). This is `@
 followed by the ISO8601 datetime format, which uses `T` to separate date & time.
 
 ```prql
-from db.commits
+from commits
 derive first_prql_commit = @2020-01-01T13:19:55-08:00
 derive first_prql_commit_utc = @2020-01-02T21:19:55Z
 ```
@@ -105,7 +105,7 @@ issue if this is inconvenient.
 ```
 
 ```prql
-from db.projects
+from projects
 derive first_check_in = start + 10days
 ```
 

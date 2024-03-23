@@ -251,7 +251,7 @@ columns of a relation in function calls:
 ```prql
 (select [title, artist_id] default_db.albums)
 # and with a pipeline:
-(from db.albums | select {title, artist_id})
+(from albums | select {title, artist_id})
 ```
 
 All these queries can be simplified to an expression of relations and scalars.
@@ -300,7 +300,7 @@ applies `aggregate` to each of the groups. This is exactly how PRQL expressed
 it:
 
 ```prql
-from db.albums | group artist_id (aggregate {n_albums = count})
+from albums | group artist_id (aggregate {n_albums = count})
 ```
 
 This is a lot for one line, so let's unveil new syntactic conveniences: a new
@@ -308,7 +308,7 @@ line is a pipe operator and the top-level pipeline does not need parenthesis.
 I'll also add a new transform at the back, don't worry about it.
 
 ```prql
-from db.albums
+from albums
 group artist_id (
     aggregate {n_albums = count}
 )
@@ -377,7 +377,7 @@ that can be expressed as `sort x | take 1` (which evaluates to a function), so
 now surely this should work:
 
 ```prql
-from db.tab
+from tab
 group y (sort x | take 1)
 ```
 
@@ -390,7 +390,7 @@ then take one row from each group". Or another way: "select distinct values of
 all columns".
 
 ```prql
-from db.tab
+from tab
 group tab.* (take 1)
 ```
 

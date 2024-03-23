@@ -10,7 +10,7 @@ A summary of PRQL syntax:
 
 | Syntax               | Usage                                                                          | Example                                                 |
 | -------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| <code>\|</code>      | [Pipelines](./function-calls.md)                                               | <code>from db.employees \| select first_name</code>     |
+| <code>\|</code>      | [Pipelines](./function-calls.md)                                               | <code>from employees \| select first_name</code>        |
 | `=`                  | [Assigns](../declarations/variables.md)                                        | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`                  | [Named args & parameters](../declarations/functions.md)                        | `interp low:0 1600 sat_score`                           |
 | `{}`                 | [Tuples](./tuples.md)                                                          | `{id, false, total = 3}`                                |

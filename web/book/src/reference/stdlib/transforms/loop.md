@@ -26,7 +26,7 @@ def loop(step, initial):
 ## Examples
 
 ```prql
-[{n = 1}]
+from [{n = 1}]
 loop (
     filter n<4
     select n = n+1
