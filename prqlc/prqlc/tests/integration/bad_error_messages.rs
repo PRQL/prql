@@ -101,11 +101,11 @@ fn select_with_extra_fstr() {
     select lower f"{x}/{y}"
     "#).unwrap_err(), @r###"
     Error:
-       ╭─[:3:20]
+       ╭─[:3:21]
        │
      3 │     select lower f"{x}/{y}"
-       │                    ─┬─
-       │                     ╰─── Unknown name `x`
+       │                     ┬
+       │                     ╰── Unknown name `x`
     ───╯
     "###);
 }

@@ -42,7 +42,11 @@ pub struct Expr {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
-    Ident(Ident),
+    Ident(String),
+    Indirection {
+        base: Box<Expr>,
+        field: IndirectionKind,
+    },
     Literal(Literal),
     Pipeline(Pipeline),
 
@@ -63,6 +67,13 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
+}
+
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+pub enum IndirectionKind {
+    Name(String),
+    Position(i64),
+    Star,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -141,12 +152,6 @@ pub type SwitchCase = generic::SwitchCase<Box<Expr>>;
 impl From<Literal> for ExprKind {
     fn from(value: Literal) -> Self {
         ExprKind::Literal(value)
-    }
-}
-
-impl From<Ident> for ExprKind {
-    fn from(value: Ident) -> Self {
-        ExprKind::Ident(value)
     }
 }
 

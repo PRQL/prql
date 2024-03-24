@@ -10,154 +10,119 @@ expression: "parse_single(r#\"\nfrom employees\nfilter country == \"USA\"       
         exprs:
           - FuncCall:
               name:
-                Ident:
-                  - from
+                Ident: from
               args:
-                - Ident:
-                    - employees
+                - Ident: employees
           - FuncCall:
               name:
-                Ident:
-                  - filter
+                Ident: filter
               args:
                 - Binary:
                     left:
-                      Ident:
-                        - country
+                      Ident: country
                     op: Eq
                     right:
                       Literal:
                         String: USA
           - FuncCall:
               name:
-                Ident:
-                  - derive
+                Ident: derive
               args:
                 - Tuple:
                     - Binary:
                         left:
-                          Ident:
-                            - salary
+                          Ident: salary
                         op: Add
                         right:
-                          Ident:
-                            - payroll_tax
+                          Ident: payroll_tax
                       alias: gross_salary
                     - Binary:
                         left:
-                          Ident:
-                            - gross_salary
+                          Ident: gross_salary
                         op: Add
                         right:
-                          Ident:
-                            - benefits_cost
+                          Ident: benefits_cost
                       alias: gross_cost
           - FuncCall:
               name:
-                Ident:
-                  - filter
+                Ident: filter
               args:
                 - Binary:
                     left:
-                      Ident:
-                        - gross_cost
+                      Ident: gross_cost
                     op: Gt
                     right:
                       Literal:
                         Integer: 0
           - FuncCall:
               name:
-                Ident:
-                  - group
+                Ident: group
               args:
                 - Tuple:
-                    - Ident:
-                        - title
-                    - Ident:
-                        - country
+                    - Ident: title
+                    - Ident: country
                 - FuncCall:
                     name:
-                      Ident:
-                        - aggregate
+                      Ident: aggregate
                     args:
                       - Tuple:
                           - FuncCall:
                               name:
-                                Ident:
-                                  - average
+                                Ident: average
                               args:
-                                - Ident:
-                                    - salary
+                                - Ident: salary
                           - FuncCall:
                               name:
-                                Ident:
-                                  - average
+                                Ident: average
                               args:
-                                - Ident:
-                                    - gross_salary
+                                - Ident: gross_salary
                           - FuncCall:
                               name:
-                                Ident:
-                                  - sum
+                                Ident: sum
                               args:
-                                - Ident:
-                                    - salary
+                                - Ident: salary
                           - FuncCall:
                               name:
-                                Ident:
-                                  - sum
+                                Ident: sum
                               args:
-                                - Ident:
-                                    - gross_salary
+                                - Ident: gross_salary
                           - FuncCall:
                               name:
-                                Ident:
-                                  - average
+                                Ident: average
                               args:
-                                - Ident:
-                                    - gross_cost
+                                - Ident: gross_cost
                           - FuncCall:
                               name:
-                                Ident:
-                                  - sum
+                                Ident: sum
                               args:
-                                - Ident:
-                                    - gross_cost
+                                - Ident: gross_cost
                             alias: sum_gross_cost
                           - FuncCall:
                               name:
-                                Ident:
-                                  - count
+                                Ident: count
                               args:
-                                - Ident:
-                                    - salary
+                                - Ident: salary
                             alias: ct
           - FuncCall:
               name:
-                Ident:
-                  - sort
+                Ident: sort
               args:
-                - Ident:
-                    - sum_gross_cost
+                - Ident: sum_gross_cost
           - FuncCall:
               name:
-                Ident:
-                  - filter
+                Ident: filter
               args:
                 - Binary:
                     left:
-                      Ident:
-                        - ct
+                      Ident: ct
                     op: Gt
                     right:
                       Literal:
                         Integer: 200
           - FuncCall:
               name:
-                Ident:
-                  - take
+                Ident: take
               args:
                 - Literal:
                     Integer: 20
   span: "0:1-714"
-

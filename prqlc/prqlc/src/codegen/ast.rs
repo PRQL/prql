@@ -53,7 +53,24 @@ impl WriteSource for ExprKind {
         use ExprKind::*;
 
         match &self {
-            Ident(ident) => ident.write(opt),
+            Ident(ident) => Some(write_ident_part(ident)),
+            Indirection { base, field } => {
+                let mut r = base.write(opt.clone())?;
+                opt.consume_width(r.len() as u16)?;
+
+                r += opt.consume(".")?;
+                match field {
+                    IndirectionKind::Name(n) => {
+                        r += opt.consume(n)?;
+                    }
+                    IndirectionKind::Position(i) => {
+                        r += &opt.consume(i.to_string())?;
+                    }
+                    IndirectionKind::Star => r += "*",
+                }
+                Some(r)
+            }
+
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
                 line_end: "",
@@ -475,12 +492,10 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = Expr::new(ExprKind::Ident(Ident::from_path(vec!["short"])));
-        let long = Expr::new(ExprKind::Ident(Ident::from_path(vec![
-            "some_module",
-            "submodule",
-            "a_really_long_name",
-        ])));
+        let short = Expr::new(ExprKind::Ident("short".to_string()));
+        let long = Expr::new(ExprKind::Ident(
+            "some_really_long_and_really_long_name".to_string(),
+        ));
 
         let mut opt = WriteOpt {
             indent: 1,
@@ -501,8 +516,8 @@ mod test {
         assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r###"
         (
             short
-            some_module.submodule.a_really_long_name
-            some_module.submodule.a_really_long_name
+            some_really_long_and_really_long_name
+            some_really_long_and_really_long_name
             short
           )
         "###);
