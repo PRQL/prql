@@ -82,7 +82,7 @@ minijinja = {version = "=0.31.0", features = ["unstable_machinery"], optional = 
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 duckdb = {version = "0.10.1", optional = true, features = ["bundled", "chrono"]}
 glob = {version = "0.3.1", optional = true}
-mysql = {version = "24", optional = true}
+mysql = {version = "25", optional = true}
 pg_bigdecimal = {version = "0.1.0", optional = true}
 postgres = {version = "0.19.7", optional = true}
 rusqlite = {version = "0.30.0", optional = true, features = ["bundled", "csvtab"]}
