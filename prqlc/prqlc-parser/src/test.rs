@@ -2377,3 +2377,43 @@ fn test_module() {
       span: "0:11-98"
     "###);
 }
+
+#[test]
+fn test_indirection_01() {
+    assert_yaml_snapshot!(parse_expr(
+    r#"
+      {a = {x = 2}}.a.x
+    "#,
+    ).unwrap(), @r###"
+    ---
+    Indirection:
+      base:
+        Indirection:
+          base:
+            Tuple:
+              - Tuple:
+                  - Literal:
+                      Integer: 2
+                    alias: x
+                alias: a
+          field:
+            Name: a
+      field:
+        Name: x
+    "###);
+}
+
+#[test]
+fn test_indirection_02() {
+    assert_yaml_snapshot!(parse_expr(
+    r#"
+      hello.*
+    "#,
+    ).unwrap(), @r###"
+    ---
+    Indirection:
+      base:
+        Ident: hello
+      field: Star
+    "###);
+}
