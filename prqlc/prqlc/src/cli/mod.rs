@@ -687,18 +687,14 @@ sort full
                 exprs:
                 - FuncCall:
                     name:
-                      Ident:
-                      - from
+                      Ident: from
                     args:
-                    - Ident:
-                      - x
+                    - Ident: x
                 - FuncCall:
                     name:
-                      Ident:
-                      - select
+                      Ident: select
                     args:
-                    - Ident:
-                      - y
+                    - Ident: y
           span: 1:0-17
         "###);
     }

@@ -76,9 +76,20 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
             // have this awkward construction in the meantime.
             let other = args
                 .remove("target")
-                .map(|v| match v.kind {
-                    ExprKind::Ident(value) => Ok(value.to_string()),
-                    _ => Err("target must be a string literal".to_string()),
+                .map(|v| {
+                    match v.kind {
+                        ExprKind::Ident(name) => return Ok(name.to_string()),
+                        ExprKind::Indirection {
+                            base,
+                            field: IndirectionKind::Name(field),
+                        } => {
+                            if let ExprKind::Ident(name) = base.kind {
+                                return Ok(name.to_string() + "." + &field);
+                            }
+                        }
+                        _ => {}
+                    };
+                    Err("target must be a string literal".to_string())
                 })
                 .transpose()
                 .map_err(|msg| Simple::custom(span, msg))?

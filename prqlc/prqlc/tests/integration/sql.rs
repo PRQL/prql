@@ -3604,11 +3604,11 @@ fn test_direct_table_references() {
     )
     .unwrap_err(), @r###"
     Error:
-       ╭─[:3:14]
+       ╭─[:3:15]
        │
      3 │     select s"{x}.field"
-       │              ─┬─
-       │               ╰─── table instance cannot be referenced directly
+       │               ┬
+       │               ╰── table instance cannot be referenced directly
        │
        │ Help: did you forget to specify the column name?
     ───╯
