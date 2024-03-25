@@ -1,1 +1,1 @@
-let input = read_parquet "artists.parquet"
+let input = std.read_parquet "artists.parquet"

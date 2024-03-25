@@ -41,7 +41,7 @@ fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from db.employees
     aggregate (
-        {salary_usd = (math.round 2 salary)}
+        {salary_usd = (std.math.round 2 salary)}
     )
     "###).unwrap(),
         @r###"
@@ -58,24 +58,24 @@ fn test_stdlib_math_module() {
     assert_snapshot!(compile(r#"
     from db.employees
     select {
-      salary_abs = math.abs salary,
-      salary_floor = math.floor salary,
-      salary_ceil = math.ceil salary,
-      salary_pi = math.pi,
-      salary_exp = math.exp salary,
-      salary_ln = math.ln salary,
-      salary_log10 = math.log10 salary,
-      salary_log = math.log 2 salary,
-      salary_sqrt = math.sqrt salary,
-      salary_degrees = math.degrees salary,
-      salary_radians = math.radians salary,
-      salary_cos = math.cos salary,
-      salary_acos = math.acos salary,
-      salary_sin = math.sin salary,
-      salary_asin = math.asin salary,
-      salary_tan = math.tan salary,
-      salary_atan = math.atan salary,
-      salary_pow = salary | math.pow 2,
+      salary_abs = std.math.abs salary,
+      salary_floor = std.math.floor salary,
+      salary_ceil = std.math.ceil salary,
+      salary_pi = std.math.pi,
+      salary_exp = std.math.exp salary,
+      salary_ln = std.math.ln salary,
+      salary_log10 = std.math.log10 salary,
+      salary_log = std.math.log 2 salary,
+      salary_sqrt = std.math.sqrt salary,
+      salary_degrees = std.math.degrees salary,
+      salary_radians = std.math.radians salary,
+      salary_cos = std.math.cos salary,
+      salary_acos = std.math.acos salary,
+      salary_sin = std.math.sin salary,
+      salary_asin = std.math.asin salary,
+      salary_tan = std.math.tan salary,
+      salary_atan = std.math.atan salary,
+      salary_pow = salary | std.math.pow 2,
     }
     "#).unwrap(), @r#"
     SELECT
@@ -110,24 +110,24 @@ fn test_stdlib_math_module_mssql() {
 
   from db.employees
   select {
-    salary_abs = math.abs salary,
-    salary_floor = math.floor salary,
-    salary_ceil = math.ceil salary,
-    salary_pi = math.pi,
-    salary_exp = math.exp salary,
-    salary_ln = math.ln salary,
-    salary_log10 = math.log10 salary,
-    salary_log = math.log 2 salary,
-    salary_sqrt = math.sqrt salary,
-    salary_degrees = math.degrees salary,
-    salary_radians = math.radians salary,
-    salary_cos = math.cos salary,
-    salary_acos = math.acos salary,
-    salary_sin = math.sin salary,
-    salary_asin = math.asin salary,
-    salary_tan = math.tan salary,
-    salary_atan = math.atan salary,
-    salary_pow = salary | math.pow 2,
+    salary_abs = std.math.abs salary,
+    salary_floor = std.math.floor salary,
+    salary_ceil = std.math.ceil salary,
+    salary_pi = std.math.pi,
+    salary_exp = std.math.exp salary,
+    salary_ln = std.math.ln salary,
+    salary_log10 = std.math.log10 salary,
+    salary_log = std.math.log 2 salary,
+    salary_sqrt = std.math.sqrt salary,
+    salary_degrees = std.math.degrees salary,
+    salary_radians = std.math.radians salary,
+    salary_cos = std.math.cos salary,
+    salary_acos = std.math.acos salary,
+    salary_sin = std.math.sin salary,
+    salary_asin = std.math.asin salary,
+    salary_tan = std.math.tan salary,
+    salary_atan = std.math.atan salary,
+    salary_pow = salary | std.math.pow 2,
   }
   "#).unwrap(), @r#"
   SELECT
@@ -160,17 +160,17 @@ fn test_stdlib_text_module() {
     assert_snapshot!(compile(r#"
     from db.employees
     select {
-      name_lower = name | text.lower,
-      name_upper = name | text.upper,
-      name_ltrim = name | text.ltrim,
-      name_rtrim = name | text.rtrim,
-      name_trim = name | text.trim,
-      name_length = name | text.length,
-      name_extract = name | text.extract 3 5,
-      name_replace = name | text.replace "pika" "chu",
-      name_starts_with = name | text.starts_with "pika",
-      name_contains = name | text.contains "pika",
-      name_ends_with = name | text.ends_with "pika",
+      name_lower = name | std.text.lower,
+      name_upper = name | std.text.upper,
+      name_ltrim = name | std.text.ltrim,
+      name_rtrim = name | std.text.rtrim,
+      name_trim = name | std.text.trim,
+      name_length = name | std.text.length,
+      name_extract = name | std.text.extract 3 5,
+      name_replace = name | std.text.replace "pika" "chu",
+      name_starts_with = name | std.text.starts_with "pika",
+      name_contains = name | std.text.contains "pika",
+      name_ends_with = name | std.text.ends_with "pika",
     }
     "#).unwrap(), @r###"
     SELECT
@@ -198,7 +198,7 @@ fn like_concat(#[case] dialect: sql::Dialect, #[case] expected_like: &'static st
     let query = r#"
   from db.employees
   select {
-    name_ends_with = name | text.contains "pika",
+    name_ends_with = name | std.text.contains "pika",
   }
   "#;
     let expected = format!(
@@ -231,7 +231,7 @@ fn date_to_text_operator(
     let query = r#"
     from db.invoices
     select {
-      invoice_date = invoice_date | date.to_text "%d/%m/%Y"
+      invoice_date = invoice_date | std.date.to_text "%d/%m/%Y"
     }"#;
     let expected = format!(
         r#"
@@ -329,7 +329,7 @@ fn test_precedence_03() {
     from db.numbers
     derive {
       sum_1 = a + b,
-      sum_2 = add a b,
+      sum_2 = std.add a b,
       g = -a
     }
     select {
@@ -491,10 +491,10 @@ fn test_append() {
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = func bottom top -> (top | append bottom | distinct)
+    let union = func bottom top -> (top | append bottom | module.distinct)
 
     from db.employees
-    union db.managers
+    module.union db.managers
     "###).unwrap(), @r###"
     SELECT
       *
@@ -510,11 +510,11 @@ fn test_append() {
 
     assert_snapshot!(compile(r###"
     let distinct = rel -> (_param.rel | group this (take 1))
-    let union = func bottom top -> (top | append bottom | distinct)
+    let union = func bottom top -> (top | append bottom | module.distinct)
 
     from db.employees
     append db.managers
-    union db.all_employees_of_some_other_company
+    module.union db.all_employees_of_some_other_company
     "###).unwrap(), @r###"
     SELECT
       *
@@ -635,11 +635,11 @@ fn test_remove_05() {
     prql target:sql.sqlite
 
     let distinct = rel -> (_param.rel | group this (take 1))
-    let except = func bottom top -> (top | distinct | remove bottom)
+    let except = func bottom top -> (top | module.distinct | remove bottom)
 
     from db.album
     select {artist_id, title}
-    except (from db.artist | select {artist_id, name})
+    module.except (from db.artist | select {artist_id, name})
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -669,10 +669,10 @@ fn test_remove_06() {
     prql target:sql.sqlite
 
     let distinct = rel -> (_param.rel | group this (take 1))
-    let except = func bottom top -> (top | distinct | remove bottom)
+    let except = func bottom top -> (top | module.distinct | remove bottom)
 
     from db.album
-    except db.artist
+    module.except db.artist
     "#).unwrap(),
         @r###"
     SELECT
@@ -746,11 +746,11 @@ fn test_intersect_03() {
 
     from db.album
     select artist_id
-    distinct
+    module.distinct
     intersect (
         from db.artist | select artist_id
     )
-    distinct
+    module.distinct
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -789,7 +789,7 @@ fn test_intersect_04() {
     intersect (
         from db.artist | select artist_id
     )
-    distinct
+    module.distinct
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -825,7 +825,7 @@ fn test_intersect_05() {
 
     from db.album
     select artist_id
-    distinct
+    module.distinct
     intersect (
         from db.artist | select artist_id
     )
@@ -928,7 +928,7 @@ fn test_quoting() {
     let UPPER = (
         from db.lower
     )
-    UPPER
+    module.UPPER
     join db.`some_schema.tablename` (==id)
     derive `from` = 5
     "###).unwrap()), @r###"
@@ -1046,7 +1046,7 @@ fn test_sorts_02() {
       sort index
       select {fieldA}
     )
-    x
+    module.x
     "###
     ).unwrap()), @r###"
     WITH table_0 AS (
@@ -2508,7 +2508,7 @@ fn test_bare_s_string() {
           GROUPING SETS
           ((b, c, d), (d), (b, d))
       """
-    grouping
+    module.grouping
     "#;
 
     let sql = compile(query).unwrap();
@@ -2532,7 +2532,7 @@ fn test_bare_s_string() {
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
     let query = r#"
     let a = s"select insensitive from rude"
-    a
+    module.a
     "#;
 
     let sql = compile(query).unwrap();
@@ -2554,7 +2554,7 @@ fn test_bare_s_string() {
     // Check a mixture of cases for good measure.
     let query = r#"
     let a = s"sElEcT insensitive from rude"
-    a
+    module.a
     "#;
 
     let sql = compile(query).unwrap();
@@ -2581,7 +2581,7 @@ fn test_bare_s_string() {
     FROM
       bar"
 
-    a
+    module.a
     "#;
 
     let sql = compile(query).unwrap();
@@ -2613,7 +2613,7 @@ fn test_table_definition_with_expr_call() {
     let query = r###"
     let e = take 4 (from db.employees)
 
-    e
+    module.e
     "###;
 
     let sql = compile(query).unwrap();
@@ -2775,8 +2775,8 @@ fn test_prql_to_sql_table() {
             }
         )
     )
-    newest_employees
-    join average_salaries (==country)
+    module.newest_employees
+    join module.average_salaries (==country)
     select {name, salary, average_country_salary}
     "#;
     let sql = compile(query).unwrap();
@@ -2908,7 +2908,7 @@ fn test_nonatomic_table() {
         take 50
         group country (aggregate {s"count(*)"})
     )
-    a
+    module.a
     join db.b (==country)
     select {name, salary, average_country_salary}
 "#;
@@ -3197,8 +3197,8 @@ from db.y_table
 select foo
 )
 
-x
-join y (foo == only_in_x)
+module.x
+join module.y (foo == only_in_x)
 "###;
 
     assert_snapshot!(compile(query).unwrap(),
@@ -3323,10 +3323,10 @@ fn test_toposort() {
     )
 
     let a = (
-        b
+        project.b
     )
 
-    b
+    project.b
     "###).unwrap(),
         @r###"
     WITH b AS (
@@ -3556,7 +3556,7 @@ fn test_table_s_string_05() {
     let weeks_between = start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
     let current_week = -> s"date(date_trunc('week', current_date))"
 
-    weeks_between @2022-06-03 (current_week + 4)
+    module.weeks_between @2022-06-03 (module.current_week + 4)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -3848,17 +3848,17 @@ fn test_static_analysis() {
 #[test]
 fn test_closures_and_pipelines() {
     assert_snapshot!(compile(
-        r#"
+    r#"
     let addthree = a b c -> s"{a} || {b} || {c}"
     let arg = myarg myfunc <func> -> ( myfunc myarg )
 
     from db.y
     select x = (
-        addthree "apples"
-        arg "bananas"
-        arg "citrus"
+        module.addthree "apples"
+        module.arg "bananas"
+        module.arg "citrus"
     )
-        "#).unwrap(),
+    "#).unwrap(),
         @r###"
     SELECT
       'apples' || 'bananas' || 'citrus' AS x
@@ -4022,7 +4022,7 @@ fn test_custom_transforms() {
     )
 
     from db.tab
-    my_transform
+    module.my_transform
     take 3
     "#).unwrap(),
         @r###"
@@ -4088,7 +4088,7 @@ fn test_name_inference() {
 #[test]
 fn test_from_text() {
     assert_snapshot!(compile(r#"
-    from_text format:csv """
+    std.from_text format:csv """
 a,b,c
 1,2,3
 4,5,6
@@ -4117,7 +4117,7 @@ a,b,c
     );
 
     assert_snapshot!(compile(r#"
-    from_text format:json '''
+    std.from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
     '''
     select {b, c}
@@ -4144,7 +4144,7 @@ a,b,c
     );
 
     assert_snapshot!(compile(r#"
-    from_text format:json '''{
+    std.from_text format:json '''{
         "columns": ["a", "b", "c"],
         "data": [
             [1, "x", false],
@@ -4323,7 +4323,7 @@ fn test_loop() {
 #[test]
 fn test_loop_2() {
     assert_snapshot!(compile(r#"
-    read_csv 'employees.csv'
+    std.read_csv 'employees.csv'
     filter last_name=="Mitchell"
     loop (
       join (db.employees | select {manager = this}) (manager.employee_id==this.reports_to)
@@ -4467,7 +4467,7 @@ fn test_datetime_parsing() {
 fn test_lower() {
     assert_snapshot!(compile(r#"
     from db.test_tables
-    derive {lower_name = (name | text.lower)}
+    derive {lower_name = (name | std.text.lower)}
     "#).unwrap(),
         @r###"
     SELECT
@@ -4483,7 +4483,7 @@ fn test_lower() {
 fn test_upper() {
     assert_snapshot!(compile(r#"
     from db.test_tables
-    derive {upper_name = text.upper name}
+    derive {upper_name = std.text.upper name}
     select {upper_name}
     "#).unwrap(),
         @r###"
@@ -4512,8 +4512,8 @@ fn test_1535() {
 #[test]
 fn test_read_parquet_duckdb() {
     assert_snapshot!(compile(r#"
-    read_parquet 'x.parquet'
-    join (read_parquet "y.parquet") (==foo)
+    std.read_parquet 'x.parquet'
+    join (std.read_parquet "y.parquet") (==foo)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -4604,7 +4604,7 @@ fn test_into() {
     from db.data
     into table_a
 
-    table_a
+    module.table_a
     select {x, y}
     "#).unwrap(),
         @r###"
@@ -4640,7 +4640,7 @@ fn test_array_01() {
         {a = 4, b = true},
     ]
 
-    let main = (my_relation | filter b)
+    let main = (module.my_relation | filter b)
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -4756,7 +4756,7 @@ fn test_double_stars() {
 fn test_lineage() {
     // #2627
     assert_snapshot!(compile(r#"
-    from_text """
+    std.from_text """
     a
     1
     2
@@ -4787,7 +4787,7 @@ fn test_lineage() {
 
     // #2392
     assert_snapshot!(compile(r#"
-    from_text format:json """{
+    std.from_text format:json """{
         "columns": ["a"],
         "data": [[1]]
     }"""
@@ -4817,7 +4817,8 @@ fn test_type_as_column_name() {
     )
 
     from db.foo
-    f"#)
+    module.f
+    "#)
     .unwrap(), @r###"
     SELECT
       date
@@ -5008,7 +5009,7 @@ fn test_relation_var_name_clashes_01() {
         r###"
     let table_0 = (from db.a)
 
-    table_0
+    project.table_0
     take 10
     filter x > 0
         "###,
@@ -5127,7 +5128,7 @@ fn test_table_declarations() {
       let another_table <[{ id = int, b = text }]>
     }
 
-    from db.my_schema.my_table | join db.another_table (==id) | take 10
+    from module.db.my_schema.my_table | join module.db.another_table (==id) | take 10
         "###,
     )
     .unwrap(), @r###"
@@ -5150,7 +5151,7 @@ fn test_param_declarations() {
         r###"
     let a <int>
 
-    from db.x | filter b == a
+    from db.x | filter b == module.a
         "###,
     )
     .unwrap(), @r###"
@@ -5186,9 +5187,9 @@ fn test_import() {
         let world = 1
     }
 
-    import a = hello.world
+    import a = module.hello.world
 
-    from db.x | select a
+    from db.x | select module.a
         "###,
     )
     .unwrap(), @r###"
@@ -5196,5 +5197,57 @@ fn test_import() {
       1
     FROM
       x
+    "###);
+}
+
+#[test]
+fn test_ordering_declarations() {
+    // declarations must be resolved in the correct order:
+    // - hello.world
+    // - foo.bar.baz
+    // - main
+
+    assert_snapshot!(compile(
+    r###"
+    let main = (from db.h | filter j == (module.foo.bar.baz + 1))
+
+    module foo {
+      module bar {
+        let baz = project.hello.world
+      }
+    }
+
+    module hello {
+      let world = 1
+    }
+    "###).unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      h
+    WHERE
+      j = 1 + 1
+    "###);
+}
+
+#[test]
+#[ignore]
+fn test_local_ref() {
+    assert_snapshot!(compile(
+        r###"
+    let hello = 10
+
+    from db.x
+    select {this.hello}
+    select {hello}
+        "###,
+    )
+    .unwrap(), @r###"
+    SELECT
+      *
+    FROM
+      h
+    WHERE
+      j = 1 + 1
     "###);
 }

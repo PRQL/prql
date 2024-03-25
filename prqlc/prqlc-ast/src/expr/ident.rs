@@ -144,7 +144,11 @@ impl<'de> Deserialize<'de> for Ident {
 }
 
 pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
-    for part in &ident.path {
+    let mut path = &ident.path[..];
+    if path.first().map_or(false, |f| f == "_local") {
+        path = &path[1..];
+    }
+    for part in path {
         display_ident_part(f, part)?;
         f.write_char('.')?;
     }

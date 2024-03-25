@@ -291,6 +291,7 @@ impl Command {
                 let mut root_module_def = prql_to_pl_tree(sources)?;
 
                 drop_module_def(&mut root_module_def.stmts, "std");
+                drop_module_def(&mut root_module_def.stmts, "_local");
 
                 pl_to_prql(&root_module_def)?.into_bytes()
             }
@@ -302,6 +303,7 @@ impl Command {
                 let mut restricted = prqlc::semantic::ast_expand::restrict_module_def(expanded);
 
                 drop_module_def(&mut restricted.stmts, "std");
+                drop_module_def(&mut restricted.stmts, "_local");
 
                 pl_to_prql(&restricted)?.into_bytes()
             }
@@ -323,6 +325,7 @@ impl Command {
                 // resolved PL, restricted back into AST
                 let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
                 drop_module_def(&mut root_module.stmts, "std");
+                drop_module_def(&mut root_module.stmts, "_local");
                 out.extend(pl_to_prql(&root_module)?.into_bytes());
 
                 out
@@ -638,7 +641,10 @@ sort full
             },
             &mut SourceTree::new(
                 [
-                    ("Project.prql".into(), "orders.x | select y".to_string()),
+                    (
+                        "Project.prql".into(),
+                        "project.orders.x | select y".to_string(),
+                    ),
                     (
                         "orders.prql".into(),
                         "let x = (from db.z | select {y, u})".to_string(),

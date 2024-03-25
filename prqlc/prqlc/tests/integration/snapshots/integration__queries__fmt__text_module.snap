@@ -1,24 +1,25 @@
 ---
 source: prqlc/prqlc/tests/integration/queries.rs
-expression: "# mssql:test\nfrom db.albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = title | text.lower,\n    up = title | text.upper,\n    ltrimmed = title | text.ltrim,\n    rtrimmed = title | text.rtrim,\n    trimmed = title | text.trim,\n    len = title | text.length,\n    subs = title | text.extract 2 5,\n    replace = title | text.replace \"al\" \"PIKA\",\n}\nsort {title}\nfilter (title | text.starts_with \"Black\") || (title | text.contains \"Sabbath\") || (title | text.ends_with \"os\")\n"
+expression: "# mssql:test\nfrom db.albums\nselect {\n    title,\n    title_and_spaces = f\"  {title}  \",\n    low = title | std.text.lower,\n    up = title | std.text.upper,\n    ltrimmed = title | std.text.ltrim,\n    rtrimmed = title | std.text.rtrim,\n    trimmed = title | std.text.trim,\n    len = title | std.text.length,\n    subs = title | std.text.extract 2 5,\n    replace = title | std.text.replace \"al\" \"PIKA\",\n}\nsort {title}\nfilter (title | std.text.starts_with \"Black\") || (title | std.text.contains \"Sabbath\") || (title | std.text.ends_with \"os\")\n"
 input_file: prqlc/prqlc/tests/integration/queries/text_module.prql
 ---
 from db.albums
 select {
   title,
   title_and_spaces = f"  {title}  ",
-  low = (title | text.lower),
-  up = (title | text.upper),
-  ltrimmed = (title | text.ltrim),
-  rtrimmed = (title | text.rtrim),
-  trimmed = (title | text.trim),
-  len = (title | text.length),
-  subs = (title | text.extract 2 5),
-  replace = (title | text.replace "al" "PIKA"),
+  low = (title | std.text.lower),
+  up = (title | std.text.upper),
+  ltrimmed = (title | std.text.ltrim),
+  rtrimmed = (title | std.text.rtrim),
+  trimmed = (title | std.text.trim),
+  len = (title | std.text.length),
+  subs = (title | std.text.extract 2 5),
+  replace = (title | std.text.replace "al" "PIKA"),
 }
 sort {title}
-filter ((title | text.starts_with "Black") || (
-  title
-  text.contains "Sabbath"
-)) || (title | text.ends_with "os")
-
+filter (
+  (title | std.text.starts_with "Black") || (
+    title
+    std.text.contains "Sabbath"
+  )
+) || (title | std.text.ends_with "os")

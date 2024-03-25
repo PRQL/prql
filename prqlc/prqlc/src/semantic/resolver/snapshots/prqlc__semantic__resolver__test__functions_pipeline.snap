@@ -6,6 +6,7 @@ expression: "resolve_derive(r#\"\n            from db.a\n            derive one 
     name: std.sum
     args:
       - Ident:
+          - _local
           - this
           - a
           - foo
@@ -24,13 +25,12 @@ expression: "resolve_derive(r#\"\n            from db.a\n            derive one 
         - - ~
           - kind:
               Primitive: Int
-            span: "0:4052-4055"
+            span: "0:4279-4282"
             name: ~
         - - ~
           - kind:
               Primitive: Float
-            span: "0:4059-4064"
+            span: "0:4286-4291"
             name: ~
-    span: "0:4052-4064"
+    span: "0:4279-4291"
     name: ~
-

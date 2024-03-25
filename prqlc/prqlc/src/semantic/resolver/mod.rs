@@ -17,7 +17,7 @@ mod types;
 pub struct Resolver<'a> {
     root_mod: &'a mut RootModule,
 
-    current_module_path: Vec<String>,
+    pub debug_current_decl: crate::ast::Ident,
 
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
@@ -34,12 +34,16 @@ pub struct ResolverOptions {}
 
 impl Resolver<'_> {
     pub fn new(root_mod: &mut RootModule, options: ResolverOptions) -> Resolver {
+        let mut id = IdGenerator::new();
+        let max_id = root_mod.span_map.keys().max().cloned().unwrap_or(0);
+        id.skip(max_id);
+
         Resolver {
             root_mod,
             options,
-            current_module_path: Vec::new(),
+            debug_current_decl: crate::ast::Ident::from_name("?"),
             in_func_call_name: false,
-            id: IdGenerator::new(),
+            id,
             generics: Default::default(),
         }
     }
@@ -123,7 +127,7 @@ pub(super) mod test {
 
             from db.employees
             derive {
-                net_salary = subtract gross_salary tax
+                net_salary = module.subtract gross_salary tax
             }
             "#
         )
@@ -135,10 +139,10 @@ pub(super) mod test {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             let lag_day = x -> s"lag_day_todo({x})"
-            let ret = x dividend_return ->  x / (lag_day x) - 1 + dividend_return
+            let ret = x dividend_return ->  x / (module.lag_day x) - 1 + dividend_return
 
             from db.a
-            derive (ret b c)
+            derive (module.ret b c)
             "#
         )
         .unwrap());
@@ -160,7 +164,7 @@ pub(super) mod test {
             let plus = x y -> x + y
 
             from db.a
-            derive {b = (sum foo | plus_one | plus 2)}
+            derive {b = (sum foo | module.plus_one | module.plus 2)}
             "#
         )
         .unwrap());
@@ -173,8 +177,8 @@ pub(super) mod test {
 
             from db.foo_table
             derive {
-                added = add_one bar to:3,
-                added_default = add_one bar
+                added = module.add_one bar to:3,
+                added_default = module.add_one bar
             }
             "#
         )

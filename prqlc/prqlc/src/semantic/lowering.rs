@@ -855,6 +855,7 @@ impl Lowerer {
                     );
                 }
             }
+
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
 
             pl::ExprKind::SString(items) => {

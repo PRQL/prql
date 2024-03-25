@@ -17,18 +17,19 @@ success: true
 exit_code: 0
 ----- stdout -----
 Module {
-    redirects: [
-        "this",
-        "that",
-        "_param",
-        "std",
-        "_generic",
-    ],
     names: {
-        "_param": Decl {
+        "_local": Decl {
             declared_at: None,
-            kind: LayeredModules(
-                [],
+            kind: Module(
+                Module {
+                    redirects: [
+                        "this",
+                        "that",
+                        "_param",
+                        "_generic",
+                    ],
+                    names: "... 40 entries ...",
+                },
             ),
             order: 0,
             annotations: [],
@@ -179,7 +180,7 @@ Module {
                     ),
                 },
             ),
-            order: 0,
+            order: 2,
             annotations: [],
         },
         "std": Decl {
@@ -191,7 +192,7 @@ Module {
                     names: "... 77 entries ...",
                 },
             ),
-            order: 0,
+            order: 1,
             annotations: [],
         },
     },
@@ -214,4 +215,3 @@ module db {
 let main <[{*..}]> = db.tracks
 
 ----- stderr -----
-

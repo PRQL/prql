@@ -155,7 +155,7 @@ let long_query = (
   filter ct > 200
   take 20
 )
-long_query
+module.long_query
   "#), @r###"
     success: true
     exit_code: 0

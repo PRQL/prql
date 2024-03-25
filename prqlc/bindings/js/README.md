@@ -76,7 +76,7 @@ console.log(sql);
 <html>
   <head>
     <script type="module">
-      import init, { compile } from './dist/web/prql_js.js';
+      import init, { compile } from "./dist/web/prql_js.js";
       await init();
 
       const sql = compile("from db.employees | select first_name");

@@ -3,5 +3,5 @@ let favorite_artists = [
   {artist_id = 7, last_listen = @2023-05-16},
 ]
 
-favorite_artists
-join side:left artists.input (==artist_id)
+project.favorite_artists
+join side:left project.artists.input (==artist_id)

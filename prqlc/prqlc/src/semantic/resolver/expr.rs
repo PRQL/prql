@@ -5,7 +5,7 @@ use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
-use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{NS_INFER, NS_LOCAL, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -17,24 +17,32 @@ impl PlFold for Resolver<'_> {
     fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
         Ok(match ty.kind {
             TyKind::Ident(ident) => {
-                self.root_mod.module.shadow(NS_THIS);
-                self.root_mod.module.shadow(NS_THAT);
+                self.root_mod.local_mut().shadow(NS_THIS);
+                self.root_mod.local_mut().shadow(NS_THAT);
 
                 let fq_ident = self.resolve_ident(&ident)?;
 
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
                 let decl_ty = decl.kind.as_ty().ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: None,
-                        expected: "a type".to_string(),
-                        found: decl.to_string(),
-                    })
+                    if decl.kind.is_unresolved() {
+                        Error::new_assert(format!(
+                            "bad resolution order: unresolved {fq_ident} while resolving {}",
+                            self.debug_current_decl
+                        ))
+                    } else {
+                        Error::new(Reason::Expected {
+                            who: None,
+                            expected: "a type".to_string(),
+                            found: decl.to_string(),
+                        })
+                    }
+                    .with_span(ty.span)
                 })?;
                 let mut ty = decl_ty.clone();
                 ty.name = ty.name.or(Some(fq_ident.name));
 
-                self.root_mod.module.unshadow(NS_THIS);
-                self.root_mod.module.unshadow(NS_THAT);
+                self.root_mod.local_mut().unshadow(NS_THIS);
+                self.root_mod.local_mut().unshadow(NS_THAT);
 
                 ty
             }
@@ -139,6 +147,13 @@ impl PlFold for Resolver<'_> {
                             found: "a type".to_string(),
                         })
                         .with_span(*span));
+                    }
+
+                    DeclKind::Unresolved(_) => {
+                        return Err(Error::new_assert(format!(
+                            "bad resolution order: unresolved {fq_ident} while resolving {}",
+                            self.debug_current_decl
+                        )));
                     }
 
                     _ => Expr {
@@ -251,7 +266,7 @@ impl Resolver<'_> {
         let except = self.coerce_into_tuple(expr)?;
 
         self.fold_expr(Expr::new(ExprKind::All {
-            within: Box::new(Expr::new(Ident::from_name(NS_THIS))),
+            within: Box::new(Expr::new(Ident::from_path(vec![NS_LOCAL, NS_THIS]))),
             except: Box::new(except),
         }))
     }

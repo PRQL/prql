@@ -9,6 +9,8 @@ use crate::ir::pl::{self, new_binop};
 use crate::semantic::{NS_THAT, NS_THIS};
 use crate::{Error, Result};
 
+use super::NS_LOCAL;
+
 /// An AST pass that maps AST to PL.
 pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
@@ -306,7 +308,13 @@ fn restrict_exprs(exprs: Vec<pl::Expr>) -> Vec<Expr> {
 fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
     match value {
         pl::ExprKind::Ident(v) => {
+            // HACK: remove the '_local' prefix
+            let skip_first = v.starts_with_part(NS_LOCAL);
+
             let mut parts = v.into_iter();
+            if skip_first {
+                parts.next();
+            }
             let mut base = Box::new(Expr::new(ExprKind::Ident(parts.next().unwrap())));
             for part in parts {
                 let field = IndirectionKind::Name(part);
@@ -508,6 +516,7 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
         }
         decl::DeclKind::Column(id) => new_internal_stmt(name, format!("column.{id}")),
         decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
+        decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "unresolved".to_string()),
 
         decl::DeclKind::Expr(mut expr) => StmtKind::VarDef(VarDef {
             kind: VarDefKind::Let,

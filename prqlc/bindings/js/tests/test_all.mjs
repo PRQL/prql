@@ -94,7 +94,10 @@ describe("prql-js", () => {
       const opts = new prql.CompileOptions();
 
       opts.target = "sql.any";
-      const res = prql.compile("prql target:sql.mssql\nfrom db.a | take 1", opts);
+      const res = prql.compile(
+        "prql target:sql.mssql\nfrom db.a | take 1",
+        opts,
+      );
       assert(res.includes("1 ROWS ONLY"));
     });
   });

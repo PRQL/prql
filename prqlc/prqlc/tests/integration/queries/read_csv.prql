@@ -1,5 +1,5 @@
 # sqlite:skip
 # postgres:skip
 # mysql:skip
-read_csv "data_file_root/media_types.csv"
+std.read_csv "data_file_root/media_types.csv"
 sort media_type_id

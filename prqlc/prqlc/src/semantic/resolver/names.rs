@@ -8,7 +8,9 @@ use crate::ast::Ident;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
-use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
+use crate::semantic::{
+    NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_SELF, NS_THAT, NS_THIS,
+};
 use crate::Error;
 use crate::WithErrorInfo;
 
@@ -16,19 +18,11 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        let mut ident = ident.clone().prepend(self.current_module_path.clone());
-
-        let mut res = self.resolve_ident_core(&ident);
-        for _ in 0..self.current_module_path.len() {
-            if res.is_ok() {
-                break;
-            }
-            ident = ident.pop_front().1.unwrap();
-            res = self.resolve_ident_core(&ident);
-        }
+        let mut res = self.resolve_ident_core(ident);
 
         match &res {
             Ok(fq_ident) => {
+                // handle imports
                 let decl = self.root_mod.module.get(fq_ident).unwrap();
                 if let DeclKind::Import(target) = &decl.kind {
                     let target = target.clone();
@@ -36,15 +30,25 @@ impl Resolver<'_> {
                 }
             }
             Err(e) => {
-                log::debug!(
-                    "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
-                    self.root_mod
-                );
+                if ident.iter().next().unwrap() == NS_LOCAL {
+                    log::debug!(
+                        "cannot resolve `{ident}`: `{e:?}`,\nthis={:#?}\nthat={:#?}\n_param={:#?}\n_generic={:#?}",
+                        self.root_mod.local().names.get(NS_THIS),
+                        self.root_mod.local().names.get(NS_THAT),
+                        self.root_mod.local().names.get(NS_PARAM),
+                        self.root_mod.local().names.get(NS_GENERIC),
+                    );
+                } else {
+                    log::debug!(
+                        "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
+                        self.root_mod.module
+                    );
+                }
 
                 // attach available names
                 let mut available_names = Vec::new();
-                available_names.extend(self.collect_columns_in_module(NS_THIS));
-                available_names.extend(self.collect_columns_in_module(NS_THAT));
+                available_names.extend(self.collect_columns_in_a_local_module(NS_THIS));
+                available_names.extend(self.collect_columns_in_a_local_module(NS_THAT));
                 if !available_names.is_empty() {
                     let available_names = available_names.iter().map(Ident::to_string).join(", ");
                     res = res.push_hint(format!("available columns: {available_names}"));
@@ -54,10 +58,10 @@ impl Resolver<'_> {
         res
     }
 
-    fn collect_columns_in_module(&mut self, mod_name: &str) -> Vec<Ident> {
+    fn collect_columns_in_a_local_module(&mut self, mod_name: &str) -> Vec<Ident> {
         let mut cols = Vec::new();
 
-        let Some(module) = self.root_mod.module.names.get(mod_name) else {
+        let Some(module) = self.root_mod.local().names.get(mod_name) else {
             return cols;
         };
 
@@ -113,9 +117,7 @@ impl Resolver<'_> {
             Ok(inferred_ident) => Ok(inferred_ident),
 
             // Was not able to infer.
-            Err(None) => Err(Error::new_simple(
-                format!("Unknown name `{}`", &ident).to_string(),
-            )),
+            Err(None) => Err(Error::new_simple(format!("Unknown name `{ident}`"))),
             Err(Some(msg)) => Err(msg),
         }
     }
@@ -220,7 +222,7 @@ impl Resolver<'_> {
 fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Error {
     let all_this = idents.iter().all(|d| d.starts_with_part(NS_THIS));
 
-    let mut chunks = Vec::new();
+    let mut candidates = Vec::new();
     for mut ident in idents {
         if all_this {
             let (_, rem) = ident.pop_front();
@@ -234,9 +236,9 @@ fn ambiguous_error(idents: HashSet<Ident>, replace_name: Option<&String>) -> Err
         if let Some(name) = replace_name {
             ident.name = name.clone();
         }
-        chunks.push(ident.to_string());
+        candidates.push(ident.to_string());
     }
-    chunks.sort();
-    let hint = format!("could be any of: {}", chunks.join(", "));
+    candidates.sort();
+    let hint = format!("could be any of: {}", candidates.join(", "));
     Error::new_simple("Ambiguous name").push_hint(hint)
 }

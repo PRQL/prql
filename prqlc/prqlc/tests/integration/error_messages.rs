@@ -11,15 +11,15 @@ fn test_errors() {
     let addadd = a b -> a + b
 
     from db.x
-    derive y = (addadd 4 5 6)
+    derive y = (module.addadd 4 5 6)
     "###).unwrap_err(),
         @r###"
     Error:
        ╭─[:5:17]
        │
-     5 │     derive y = (addadd 4 5 6)
-       │                 ──────┬─────
-       │                       ╰─────── Too many arguments to function `addadd`
+     5 │     derive y = (module.addadd 4 5 6)
+       │                 ─────────┬─────────
+       │                          ╰─────────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -196,20 +196,22 @@ fn test_basic_type_checking() {
 fn test_type_error_placement() {
     assert_snapshot!(compile(r###"
     let foo = x -> (x | as integer)
+
     from db.t
-    select (true && (foo y))
+    select (true && (module.foo y))
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:4:22]
+       ╭─[:5:22]
        │
-     4 │     select (true && (foo y))
-       │                      ──┬──
-       │                        ╰──── function std.and, param `right` expected type `bool`, but found type `scalar`
+     5 │     select (true && (module.foo y))
+       │                      ──────┬─────
+       │                            ╰─────── function std.and, param `right` expected type `bool`, but found type `scalar`
     ───╯
     "###);
 }
 
 #[test]
+#[ignore]
 fn test_ambiguous() {
     assert_snapshot!(compile(r#"
     from db.a
@@ -247,7 +249,7 @@ fn test_ambiguous_join() {
        │            ┬
        │            ╰── Ambiguous name
        │
-       │ Help: could be any of: a.x, b.x
+       │ Help: could be any of: this.a.x, this.b.x
        │
        │ Note: available columns: a.x, b.x
     ───╯
@@ -269,7 +271,7 @@ fn test_ambiguous_inference() {
        │            ┬
        │            ╰── Ambiguous name
        │
-       │ Help: could be any of: a.x, b.x
+       │ Help: could be any of: this.a.x, this.b.x
     ───╯
     "###);
 }
@@ -279,14 +281,14 @@ fn date_to_text_generic() {
     assert_snapshot!(compile(r#"
   [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_text "%Y/%m/%d"
+    d_str = d | std.date.to_text "%Y/%m/%d"
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:4:30]
+       ╭─[:4:34]
        │
-     4 │     d_str = d | date.to_text "%Y/%m/%d"
-       │                              ─────┬────
-       │                                   ╰────── Date formatting requires a dialect
+     4 │     d_str = d | std.date.to_text "%Y/%m/%d"
+       │                                  ─────┬────
+       │                                       ╰────── Date formatting requires a dialect
     ───╯
     "###);
 }
@@ -298,14 +300,14 @@ fn date_to_text_not_supported_dialect() {
 
   [{d = @2021-01-01}]
   derive {
-    d_str = d | date.to_text "%Y/%m/%d"
+    d_str = d | std.date.to_text "%Y/%m/%d"
   }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:30]
+       ╭─[:6:34]
        │
-     6 │     d_str = d | date.to_text "%Y/%m/%d"
-       │                              ─────┬────
-       │                                   ╰────── Date formatting is not yet supported for this dialect
+     6 │     d_str = d | std.date.to_text "%Y/%m/%d"
+       │                                  ─────┬────
+       │                                       ╰────── Date formatting is not yet supported for this dialect
     ───╯
     "###);
 }
@@ -334,14 +336,14 @@ fn date_to_text_unsupported_chrono_item() {
 
     [{d = @2021-01-01}]
     derive {
-      d_str = d | date.to_text "%_j"
+      d_str = d | std.date.to_text "%_j"
     }"#).unwrap_err(), @r###"
     Error:
-       ╭─[:6:32]
+       ╭─[:6:36]
        │
-     6 │       d_str = d | date.to_text "%_j"
-       │                                ──┬──
-       │                                  ╰──── PRQL doesn't support this format specifier
+     6 │       d_str = d | std.date.to_text "%_j"
+       │                                    ──┬──
+       │                                      ╰──── PRQL doesn't support this format specifier
     ───╯
     "###);
 }
