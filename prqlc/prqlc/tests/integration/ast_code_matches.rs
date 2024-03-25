@@ -17,12 +17,28 @@ fn test_expr_ast_code_matches() {
     -#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     +#[derive(Clone, PartialEq, Serialize, Deserialize)]
     @@ .. @@
+    -    Ident(String),
+    -    Indirection {
+    -        base: Box<Expr>,
+    -        field: IndirectionKind,
+    +    Ident(Ident),
+    +    All {
+    +        within: Box<Expr>,
+    +        except: Box<Expr>,
+    @@ .. @@
     -    Pipeline(Pipeline),
     @@ .. @@
     -    Range(Range),
     -    Binary(BinaryExpr),
     -    Unary(UnaryExpr),
     @@ .. @@
+    -#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+    -pub enum IndirectionKind {
+    -    Name(String),
+    -    Position(i64),
+    -    Star,
+    -}
+    -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct BinaryExpr {
     -    pub left: Box<Expr>,

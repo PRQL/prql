@@ -22,7 +22,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
     recursive(|expr| {
         let literal = select! { TokenKind::Literal(lit) => ExprKind::Literal(lit) };
 
-        let ident_kind = ident().map(ExprKind::Ident);
+        let ident_kind = ident_part().map(ExprKind::Ident);
 
         let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
@@ -131,6 +131,26 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
         .map_with_span(into_expr)
         .or(pipeline)
         .boxed();
+
+        // indirections
+        let term = term
+            .then(
+                ctrl('.')
+                    .ignore_then(choice((
+                        ident_part().map(IndirectionKind::Name),
+                        ctrl('*').to(IndirectionKind::Star),
+                        select! {
+                            TokenKind::Literal(Literal::Integer(i)) => IndirectionKind::Position(i)
+                        },
+                    )))
+                    .map_with_span(|f, s| (f, s))
+                    .repeated(),
+            )
+            .foldl(|base, (field, span)| {
+                let base = Box::new(base);
+                into_expr(ExprKind::Indirection { base, field }, span)
+            })
+            .boxed();
 
         // Unary operators
         let term = term
@@ -385,10 +405,9 @@ where
 }
 
 pub fn ident() -> impl Parser<TokenKind, Ident, Error = PError> {
-    let star = ctrl('*').to("*".to_string());
-
     ident_part()
-        .chain(ctrl('.').ignore_then(ident_part().or(star)).repeated())
+        .separated_by(ctrl('.'))
+        .at_least(1)
         .map(Ident::from_path::<String>)
 }
 
