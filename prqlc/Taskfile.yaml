@@ -35,6 +35,12 @@ tasks:
           --ignore-unknown \
           --log-level=warn
 
+  fmt-check:
+    desc: Validate that source files are formatted
+    cmds:
+      - cargo fmt --check {{.packages_core}} {{.packages_addon}}
+        {{.packages_bindings}}
+
   test-fast:
     desc: A fast test used for feedback during compiler development
     cmds:
@@ -53,6 +59,8 @@ tasks:
       # Use a different target dir so we don't poison the cache
       CARGO_LLVM_COV_TARGET_DIR: ../target-cov
     cmds:
+      - task: fmt-check
+
       - cmd: |
           cargo \
             llvm-cov --lcov --output-path lcov.info \

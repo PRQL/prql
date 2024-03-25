@@ -4,8 +4,8 @@ failure-output = "final"
 slow-timeout = {period = "500ms", terminate-after = 4}
 
 [[profile.default.overrides]]
-filter = 'test(prqlc::queries::results::)'
-slow-timeout = {period = "2s", terminate-after = 4}
+filter = 'test(queries::results::)'
+slow-timeout = {period = "4s", terminate-after = 4}
 test-group = 'test-dbs'
 
 [test-groups.test-dbs]

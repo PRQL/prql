@@ -84,7 +84,7 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          buildInputs = essentials;
+          buildInputs = essentials ++ bindings;
         };
         devShells.web = pkgs.mkShell {
           buildInputs = essentials ++ web;
