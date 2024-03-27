@@ -457,7 +457,7 @@ impl Lowerer {
         let lineage = expr.lineage.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
-        self.lower_pipeline(expr, None)?;
+        self.lower_relational_expr(expr, None)?;
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
         let columns = self.push_select(lineage, &mut transforms).with_span(span)?;
@@ -471,31 +471,50 @@ impl Lowerer {
         Ok(relation)
     }
 
-    // Result is stored in self.pipeline
-    fn lower_pipeline(&mut self, ast: pl::Expr, closure_param: Option<usize>) -> Result<()> {
-        let transform_call = match ast.kind {
-            pl::ExprKind::TransformCall(transform) => transform,
-            pl::ExprKind::Func(closure) => {
-                let param = closure.params.first();
-                let param = param.and_then(|p| p.name.parse::<usize>().ok());
-                return self.lower_pipeline(*closure.body, param);
+    /// HACK: Result is stored in self.pipeline
+    fn lower_relational_expr(&mut self, ast: pl::Expr, closure_param: Option<usize>) -> Result<()> {
+        // find the actual transform that we want to compile to relational pipeline
+        // this is non trivial, because sometimes the transforms will be wrapped into
+        // functions that are still waiting for arguments
+        // for example: this would happen when lowering loop's pipeline
+        match ast.kind {
+            // base case
+            pl::ExprKind::TransformCall(transform) => {
+                self.lower_transform_call(transform, closure_param, ast.span)?;
             }
+
+            // actually operate on func's body
+            pl::ExprKind::Func(func) => {
+                let param = func.params.first();
+                let param = param.and_then(|p| p.name.parse::<usize>().ok());
+                self.lower_relational_expr(*func.body, param)?;
+            }
+
+            // this relational expr is not a transform
             _ => {
                 if let Some(target) = ast.target_id {
                     if Some(target) == closure_param {
-                        // ast is a closure param, so we can skip pushing From
+                        // ast is a closure param, so don't need to push From
                         return Ok(());
                     }
                 }
 
                 let table_ref = self.lower_table_ref(ast)?;
                 self.pipeline.push(Transform::From(table_ref));
-                return Ok(());
             }
         };
+        Ok(())
+    }
 
+    /// HACK: Result is stored in self.pipeline
+    fn lower_transform_call(
+        &mut self,
+        transform_call: pl::TransformCall,
+        closure_param: Option<usize>,
+        span: Option<Span>,
+    ) -> Result<()> {
         // lower input table
-        self.lower_pipeline(*transform_call.input, closure_param)?;
+        self.lower_relational_expr(*transform_call.input, closure_param)?;
 
         // ... and continues with transforms created in this function
 
@@ -543,7 +562,7 @@ impl Lowerer {
                 let window = self.window.take().unwrap_or_default();
                 let range = self.lower_range(range)?;
 
-                validate_take_range(&range, ast.span)?;
+                validate_take_range(&range, span)?;
 
                 self.pipeline.push(Transform::Take(rq::Take {
                     range,
