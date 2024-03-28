@@ -1,5 +1,5 @@
 use std::collections::hash_map::RandomState;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
@@ -15,6 +15,8 @@ use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
+
+use super::{NS_LOCAL, NS_THIS};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:
@@ -59,6 +61,8 @@ pub fn lower_to_ir(
     for (fq_ident, (table, declared_at)) in tables {
         let is_main = fq_ident == main_ident;
 
+        log::debug!("lowering: {:#?}", table.expr.as_relation_var());
+
         l.lower_table_decl(table, fq_ident)
             .map_err(with_span_if_not_exists(|| get_span_of_id(&l, declared_at)))?;
 
@@ -77,7 +81,7 @@ pub fn lower_to_ir(
 }
 
 fn extern_ref_to_relation(
-    mut columns: Vec<TyTupleField>,
+    ty_tuple_fields: Vec<TyTupleField>,
     fq_ident: &Ident,
     database_module_path: &[String],
 ) -> Result<(rq::Relation, Option<String>), Error> {
@@ -100,16 +104,17 @@ fn extern_ref_to_relation(
     };
 
     // put wildcards last
-    columns.sort_by_key(|a| matches!(a, TyTupleField::Wildcard(_)));
+    let mut ty_tuple_fields = ty_tuple_fields;
+    ty_tuple_fields.sort_by_key(|a| matches!(a, TyTupleField::Wildcard(_)));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
-        columns: tuple_fields_to_relation_columns(columns),
+        columns: ty_tuple_to_relation_columns(ty_tuple_fields),
     };
     Ok((relation, None))
 }
 
-fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationColumn> {
+fn ty_tuple_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationColumn> {
     columns
         .into_iter()
         .map(|field| match field {
@@ -132,6 +137,7 @@ fn validate_query_def(query_def: &QueryDef) -> Result<()> {
 struct Lowerer {
     cid: IdGenerator<CId>,
     tid: IdGenerator<TId>,
+    id: IdGenerator<usize>,
 
     root_mod: RootModule,
     database_module_path: Vec<String>,
@@ -150,16 +156,17 @@ struct Lowerer {
 
     /// A buffer to be added into query tables
     table_buffer: Vec<TableDecl>,
+
+    local_this_id: Option<usize>,
 }
 
 #[derive(Clone, EnumAsInner, Debug)]
 enum LoweredTarget {
     /// Lowered node was a computed expression.
-    Compute(CId),
+    Column(CId),
 
-    /// Lowered node was a pipeline input.
-    /// Contains mapping from column names to CIds, along with order in frame.
-    Input(HashMap<RelationColumn, (CId, usize)>),
+    /// Lowered node was a tuple with following columns.
+    Relation(Vec<usize>),
 }
 
 impl Lowerer {
@@ -170,6 +177,13 @@ impl Lowerer {
 
             cid: IdGenerator::new(),
             tid: IdGenerator::new(),
+            id: {
+                // HACK: create id generator start starts at really large numbers
+                //   because we need to invent new ids after the resolver has finished.
+                let mut gen = IdGenerator::new();
+                gen.skip(100000000);
+                gen
+            },
 
             node_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
@@ -177,6 +191,8 @@ impl Lowerer {
             window: None,
             pipeline: Vec::new(),
             table_buffer: Vec::new(),
+
+            local_this_id: None,
         }
     }
 
@@ -222,7 +238,7 @@ impl Lowerer {
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
-                self.create_a_table_instance(id, None, tid)
+                self.create_table_instance(id, None, tid)
             }
             pl::ExprKind::TransformCall(_) => {
                 // pipeline that has to be pulled out into a table
@@ -244,7 +260,7 @@ impl Lowerer {
                 });
 
                 // return an instance of this new table
-                let table_ref = self.create_a_table_instance(id, None, tid);
+                let table_ref = self.create_table_instance(id, None, tid);
 
                 let redirects = zip(cids, table_ref.columns.iter().map(|(_, c)| *c)).collect();
                 self.redirect_mappings(redirects);
@@ -369,28 +385,17 @@ impl Lowerer {
     fn redirect_mappings(&mut self, redirects: HashMap<CId, CId>) {
         for target in self.node_mapping.values_mut() {
             match target {
-                LoweredTarget::Compute(cid) => {
+                LoweredTarget::Column(cid) => {
                     if let Some(new) = redirects.get(cid) {
                         *cid = *new;
                     }
                 }
-                LoweredTarget::Input(mapping) => {
-                    for (cid, _) in mapping.values_mut() {
-                        if let Some(new) = redirects.get(cid) {
-                            *cid = *new;
-                        }
-                    }
-                }
+                LoweredTarget::Relation(_) => todo!(),
             }
         }
     }
 
-    fn create_a_table_instance(
-        &mut self,
-        id: usize,
-        name: Option<String>,
-        tid: TId,
-    ) -> rq::TableRef {
+    fn create_table_instance(&mut self, id: usize, name: Option<String>, tid: TId) -> rq::TableRef {
         // create instance columns from table columns
         let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
@@ -402,14 +407,16 @@ impl Lowerer {
 
         log::debug!("... columns = {:?}", columns);
 
-        let input_cids: HashMap<_, _> = columns
-            .iter()
-            .cloned()
-            .enumerate()
-            .map(|(index, (col, cid))| (col, (cid, index)))
-            .collect();
+        let mut rel_columns = Vec::new();
+        for (_, cid) in &columns {
+            let id = self.id.gen();
+            self.node_mapping.insert(id, LoweredTarget::Column(*cid));
+
+            rel_columns.push(id);
+        }
         self.node_mapping
-            .insert(id, LoweredTarget::Input(input_cids));
+            .insert(id, LoweredTarget::Relation(rel_columns));
+
         rq::TableRef {
             source: tid,
             name,
@@ -418,7 +425,15 @@ impl Lowerer {
     }
 
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
-        // let _span = expr.span;
+        let relation_fields = expr.ty.as_ref().and_then(|t| t.as_relation()).unwrap();
+        let columns = relation_fields
+            .into_iter()
+            .map(|f| match f {
+                TyTupleField::Single(name, _) => RelationColumn::Single(name.clone()),
+                TyTupleField::Wildcard(_) => todo!(),
+            })
+            .collect_vec();
+
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_relational_expr(expr, None)?;
@@ -430,7 +445,7 @@ impl Lowerer {
 
         let relation = rq::Relation {
             kind: rq::RelationKind::Pipeline(transforms),
-            columns: vec![], // TODO
+            columns,
         };
         Ok(relation)
     }
@@ -444,7 +459,10 @@ impl Lowerer {
         match ast.kind {
             // base case
             pl::ExprKind::TransformCall(transform) => {
-                self.lower_transform_call(transform, closure_param, ast.span)?;
+                let tuple_fields = self.lower_transform_call(transform, closure_param, ast.span)?;
+
+                self.node_mapping
+                    .insert(ast.id.unwrap(), LoweredTarget::Relation(tuple_fields));
             }
 
             // actually operate on func's body
@@ -476,11 +494,13 @@ impl Lowerer {
         transform_call: pl::TransformCall,
         closure_param: Option<usize>,
         span: Option<Span>,
-    ) -> Result<()> {
+    ) -> Result<Vec<usize>> {
         // lower input table
+        let input_id = transform_call.input.id.unwrap();
         self.lower_relational_expr(*transform_call.input, closure_param)?;
 
         // ... and continues with transforms created in this function
+        self.local_this_id = Some(input_id);
 
         let window = rq::Window {
             frame: WindowFrame {
@@ -488,7 +508,7 @@ impl Lowerer {
                 range: self.lower_range(transform_call.frame.range)?,
             },
             partition: if let Some(partition) = transform_call.partition {
-                self.declare_as_columns(*partition, false)?
+                self.lower_and_flatten_tuple(*partition, false)?.1
             } else {
                 vec![]
             },
@@ -496,31 +516,42 @@ impl Lowerer {
         };
         self.window = Some(window);
 
-        match *transform_call.kind {
+        let new_fields: Option<Vec<usize>> = match *transform_call.kind {
             pl::TransformKind::Derive { assigns, .. } => {
-                self.declare_as_columns(*assigns, false)?;
+                let (ids, _cids) = self.lower_and_flatten_tuple(*assigns, false)?;
+                Some(ids)
             }
             pl::TransformKind::Select { assigns, .. } => {
-                let cids = self.declare_as_columns(*assigns, false)?;
+                let (ids, cids) = self.lower_and_flatten_tuple(*assigns, false)?;
+
                 self.pipeline.push(Transform::Select(cids));
+                Some(ids)
             }
             pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
 
                 self.pipeline.push(Transform::Filter(filter));
+
+                None
             }
             pl::TransformKind::Aggregate { assigns, .. } => {
                 let window = self.window.take();
 
-                let compute = self.declare_as_columns(*assigns, true)?;
+                let (ids, cids) = self.lower_and_flatten_tuple(*assigns, true)?;
 
                 let partition = window.unwrap().partition;
-                self.pipeline
-                    .push(Transform::Aggregate { partition, compute });
+                self.pipeline.push(Transform::Aggregate {
+                    partition,
+                    compute: cids,
+                });
+
+                Some(ids)
             }
             pl::TransformKind::Sort { by, .. } => {
                 let sorts = self.lower_sorts(by)?;
                 self.pipeline.push(Transform::Sort(sorts));
+
+                todo!()
             }
             pl::TransformKind::Take { range, .. } => {
                 let window = self.window.take().unwrap_or_default();
@@ -533,6 +564,8 @@ impl Lowerer {
                     partition: window.partition,
                     sort: window.sort,
                 }));
+
+                todo!()
             }
             pl::TransformKind::Join {
                 side, with, filter, ..
@@ -545,11 +578,15 @@ impl Lowerer {
                     filter: self.lower_expr(*filter)?,
                 };
                 self.pipeline.push(transform);
+
+                todo!()
             }
             pl::TransformKind::Append(bottom) => {
                 let bottom = self.lower_table_ref(*bottom)?;
 
                 self.pipeline.push(Transform::Append(bottom));
+
+                todo!()
             }
             pl::TransformKind::Loop(pipeline) => {
                 let relation = self.lower_relation(*pipeline)?;
@@ -559,16 +596,24 @@ impl Lowerer {
                 pipeline.pop();
 
                 self.pipeline.push(Transform::Loop(pipeline));
+
+                todo!()
             }
             pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(
                 "transform `{}` cannot be lowered.",
                 (*transform_call.kind).as_ref()
             ),
-        }
+        };
         self.window = None;
 
-        // result is stored in self.pipeline
-        Ok(())
+        if let Some(new_fields) = new_fields {
+            Ok(new_fields)
+        } else {
+            let input_target = self.node_mapping.get(&input_id).unwrap();
+            Ok(input_target.as_relation().unwrap().clone())
+        }
+
+        // resulting transforms are stored in self.pipeline
     }
 
     fn lower_range(&mut self, range: Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
@@ -581,162 +626,116 @@ impl Lowerer {
     fn lower_sorts(&mut self, by: Vec<ColumnSort<Box<pl::Expr>>>) -> Result<Vec<ColumnSort<CId>>> {
         by.into_iter()
             .map(|ColumnSort { column, direction }| {
-                let column = self.declare_as_column(*column, false)?;
+                let id = column.id.unwrap();
+                self.ensure_lowered(*column, false)?;
+                let column = *self.node_mapping.get(&id).unwrap().as_column().unwrap();
                 Ok(ColumnSort { direction, column })
             })
             .try_collect()
     }
 
-    fn declare_as_columns(&mut self, exprs: pl::Expr, is_aggregation: bool) -> Result<Vec<CId>> {
-        // special case: reference to a tuple that is a relational input
-        if exprs.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) && exprs.kind.is_ident() {
-            // return all contained columns
-            let input_id = exprs.target_id.as_ref().unwrap();
-            let id_mapping = self.node_mapping.get(input_id).unwrap();
-            let input_columns = id_mapping.as_input().unwrap();
-            return Ok(input_columns
-                .iter()
-                .sorted_by_key(|c| c.1 .1)
-                .map(|(_, (cid, _))| *cid)
-                .collect_vec());
+    /// Lowers an expression node.
+    /// If expr is a tuple, this tuple will flattened into a column of a relations, arbitrarily deep.
+    /// For example:
+    /// expr={a = 1, b = {c = 2, d = {e = 3}}, f = 4}
+    /// ... will be converted into:
+    /// ids=[a, b, f], cids=[a, b.c, b.d.e, f]
+    fn lower_and_flatten_tuple(
+        &mut self,
+        exprs: pl::Expr,
+        is_aggregation: bool,
+    ) -> Result<(Vec<usize>, Vec<CId>)> {
+        if exprs.ty.as_ref().unwrap().kind.is_tuple() {
+            let id = exprs.id.unwrap();
+            self.ensure_lowered(exprs, is_aggregation)?;
+
+            let ids = self.node_mapping.get(&id).unwrap().as_relation().unwrap();
+            let cids = self.flatten_tuple_fields_into_cids(&ids);
+            Ok((ids.clone(), cids))
+        } else {
+            todo!()
+        }
+    }
+
+    fn flatten_tuple_fields_into_cids(&self, ids: &[usize]) -> Vec<CId> {
+        let mut cids = Vec::new();
+        let mut ids_rev = ids.to_vec();
+        ids_rev.reverse();
+
+        while let Some(id) = ids_rev.pop() {
+            let target = self.node_mapping.get(&id).unwrap();
+
+            match target {
+                LoweredTarget::Column(cid) => cids.push(*cid),
+                LoweredTarget::Relation(column_ids) => {
+                    ids_rev.extend(column_ids.iter().rev());
+                }
+            }
         }
 
-        let mut r = Vec::new();
+        cids
+    }
 
-        match exprs.kind {
-            pl::ExprKind::All { within, except } => {
-                // special case: ExprKind::All
-                r.extend(self.find_selected_all(*within, Some(*except))?);
+    fn ensure_lowered(&mut self, expr_ast: pl::Expr, is_aggregation: bool) -> Result<()> {
+        let id = expr_ast.id.unwrap();
+        // short-circuit if this node has already been lowered
+        if self.node_mapping.contains_key(&id) {
+            return Ok(());
+        }
+
+        match expr_ast.kind {
+            pl::ExprKind::Ident(ident)
+                if ident.len() == 2 && ident.starts_with_path(&[NS_LOCAL, NS_THIS]) =>
+            {
+                let target = self.local_this_id.and_then(|id| self.node_mapping.get(&id));
+                let target = target.cloned().ok_or_else(|| {
+                    Error::new_assert("_local.this outside of a transform?")
+                        .with_span(expr_ast.span)
+                })?;
+                self.node_mapping.insert(id, target);
+            }
+            pl::ExprKind::Indirection { base, field } => {
+                let base_id = base.id.unwrap();
+                self.ensure_lowered(*base, is_aggregation)?;
+
+                let target = self
+                    .lookup_indirection(base_id, &field)
+                    .with_span(expr_ast.span)?
+                    .clone();
+
+                self.node_mapping.insert(id, target);
             }
             pl::ExprKind::Tuple(fields) => {
                 // tuple unpacking
-                for expr in fields {
-                    r.extend(self.declare_as_columns(expr, is_aggregation)?);
+                let mut ids = Vec::new();
+                for field in fields {
+                    ids.push(field.id.unwrap());
+                    self.ensure_lowered(field, is_aggregation)?;
                 }
+                self.node_mapping.insert(id, LoweredTarget::Relation(ids));
             }
             _ => {
-                // base case
-                r.push(self.declare_as_column(exprs, is_aggregation)?);
+                // lower expr and define a Compute
+                let expr = self.lower_expr(expr_ast)?;
+
+                // construct ColumnDef
+                let cid = self.cid.gen();
+                let compute = rq::Compute {
+                    id: cid,
+                    expr,
+                    window: None,
+                    is_aggregation,
+                };
+                self.node_mapping.insert(id, LoweredTarget::Column(cid));
+
+                self.pipeline.push(Transform::Compute(compute));
             }
-        }
-        Ok(r)
-    }
-
-    fn find_selected_all(
-        &mut self,
-        within: pl::Expr,
-        except: Option<pl::Expr>,
-    ) -> Result<Vec<CId>> {
-        let mut selected = self.declare_as_columns(within, false)?;
-        if let Some(except) = except {
-            let except: HashSet<_> = self.find_except_ids(except)?;
-            selected.retain(|t| !except.contains(t));
-        }
-        Ok(selected)
-    }
-
-    fn find_except_ids(&mut self, except: pl::Expr) -> Result<HashSet<CId>> {
-        let pl::ExprKind::Tuple(fields) = except.kind else {
-            return Ok(HashSet::new());
         };
-
-        let mut res = HashSet::new();
-        for e in fields {
-            if e.target_id.is_none() {
-                continue;
-            }
-
-            let id = e.target_id.unwrap();
-            match e.kind {
-                pl::ExprKind::Ident(_) if e.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) => {
-                    res.extend(self.find_selected_all(e, None).with_span(except.span)?);
-                }
-                pl::ExprKind::Ident(ident) => {
-                    res.insert(
-                        self.lookup_cid(id, Some(&ident.name))
-                            .with_span(except.span)?,
-                    );
-                }
-                pl::ExprKind::All { within, except } => {
-                    res.extend(self.find_selected_all(*within, Some(*except))?)
-                }
-                _ => {
-                    return Err(Error::new(Reason::Expected {
-                        who: None,
-                        expected: "an identifier".to_string(),
-                        found: write_pl(e),
-                    }));
-                }
-            }
-        }
-        Ok(res)
-    }
-
-    fn declare_as_column(
-        &mut self,
-        mut expr_ast: pl::Expr,
-        is_aggregation: bool,
-    ) -> Result<rq::CId> {
-        // short-circuit if this node has already been lowered
-        if let Some(LoweredTarget::Compute(lowered)) = self.node_mapping.get(&expr_ast.id.unwrap())
-        {
-            return Ok(*lowered);
-        }
-
-        // copy metadata before lowering
-        let alias = expr_ast.alias.clone();
-        let has_alias = alias.is_some();
-        let needs_window = expr_ast.needs_window;
-        expr_ast.needs_window = false;
-        let alias_for = if has_alias {
-            expr_ast.kind.as_ident().map(|x| x.name.clone())
-        } else {
-            None
-        };
-        let id = expr_ast.id.unwrap();
-
-        // lower
-        let expr = self.lower_expr(expr_ast)?;
-
-        // don't create new ColumnDef if expr is just a ColumnRef with no renaming
-        if let rq::ExprKind::ColumnRef(cid) = &expr.kind {
-            if !needs_window && (!has_alias || alias == alias_for) {
-                self.node_mapping.insert(id, LoweredTarget::Compute(*cid));
-                return Ok(*cid);
-            }
-        }
-
-        // determine window
-        let window = if needs_window {
-            self.window.clone()
-        } else {
-            None
-        };
-
-        // construct ColumnDef
-        let cid = self.cid.gen();
-        let compute = rq::Compute {
-            id: cid,
-            expr,
-            window,
-            is_aggregation,
-        };
-        self.node_mapping.insert(id, LoweredTarget::Compute(cid));
-
-        self.pipeline.push(Transform::Compute(compute));
-        Ok(cid)
+        Ok(())
     }
 
     fn lower_expr(&mut self, expr: pl::Expr) -> Result<rq::Expr> {
         let span = expr.span;
-
-        if expr.needs_window {
-            let span = expr.span;
-            let cid = self.declare_as_column(expr, false)?;
-
-            let kind = rq::ExprKind::ColumnRef(cid);
-            return Ok(rq::Expr { kind, span });
-        }
 
         let kind = match expr.kind {
             pl::ExprKind::Ident(ident) => {
@@ -744,20 +743,7 @@ impl Lowerer {
 
                 if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) {
                     // special case: tuple ref
-                    let expr = pl::Expr {
-                        kind: pl::ExprKind::Ident(ident),
-                        ..expr
-                    };
-                    let selected = self.find_selected_all(expr, None)?;
-
-                    if selected.len() == 1 {
-                        rq::ExprKind::ColumnRef(selected[0])
-                    } else {
-                        return Err(
-                            Error::new_simple("This wildcard usage is not yet supported.")
-                                .with_span(span),
-                        );
-                    }
+                    todo!();
                 } else if let Some(id) = expr.target_id {
                     // base case: column ref
                     let cid = self.lookup_cid(id, Some(&ident.name)).with_span(span)?;
@@ -769,21 +755,23 @@ impl Lowerer {
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            pl::ExprKind::All { within, except } => {
-                let selected = self.find_selected_all(*within, Some(*except))?;
-
-                if selected.len() == 1 {
-                    rq::ExprKind::ColumnRef(selected[0])
-                } else {
-                    return Err(
-                        Error::new_simple("This wildcard usage is not yet supported.")
-                            .with_span(span),
-                    );
-                }
+            pl::ExprKind::All { .. } => {
+                todo!();
             }
-            pl::ExprKind::Indirection { .. } => {
-                // TODO: I've started impl of this on feat-lower-indirections
-                todo!()
+
+            pl::ExprKind::Indirection { base, field } => {
+                let base_id = base.id.unwrap();
+                self.ensure_lowered(*base, false)?;
+
+                let target = self
+                    .lookup_indirection(base_id, &field)
+                    .with_span(expr.span)?
+                    .clone();
+
+                let cid = target
+                    .into_column()
+                    .expect("lower_expr to refer to columns only");
+                rq::ExprKind::ColumnRef(cid)
             }
 
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
@@ -875,32 +863,38 @@ impl Lowerer {
             .try_collect()
     }
 
-    fn lookup_cid(&mut self, id: usize, name: Option<&String>) -> Result<CId> {
-        let cid = match self.node_mapping.get(&id) {
-            Some(LoweredTarget::Compute(cid)) => *cid,
-            Some(LoweredTarget::Input(input_columns)) => {
-                let name = match name {
-                    Some(v) => RelationColumn::Single(Some(v.clone())),
-                    None => return Err(Error::new_simple(
-                        "This table contains unnamed columns that need to be referenced by name",
-                    )
-                    .with_span(self.root_mod.span_map.get(&id).cloned())
-                    .push_hint("the name may have been overridden later in the pipeline.")),
-                };
-                log::trace!("lookup cid of name={name:?} in input {input_columns:?}");
+    fn lookup_cid(&mut self, _id: usize, _name: Option<&String>) -> Result<CId> {
+        todo!()
+    }
 
-                if let Some((cid, _)) = input_columns.get(&name) {
-                    *cid
-                } else {
-                    panic!("cannot find cid by id={id} and name={name:?}");
-                }
-            }
-            None => {
-                return Err(Error::new_bug(3870))?;
-            }
-        };
+    fn lookup_indirection(
+        &self,
+        base_id: usize,
+        field: &prqlc_ast::IndirectionKind,
+    ) -> Result<&LoweredTarget> {
+        let base_target = self.node_mapping.get(&base_id).unwrap();
 
-        Ok(cid)
+        let mapped_relation = base_target.as_relation().ok_or_else(|| {
+            Error::new_assert("indirection on non-relation")
+                .push_hint(format!("base={base_target:?}"))
+                .push_hint(format!("field={field:?}"))
+        })?;
+
+        let pos = field
+            .as_position()
+            .expect("indirections to be resolved into positional");
+
+        let target_id = mapped_relation
+            .get(*pos as usize)
+            .expect("id to be lowered");
+
+        let target = self.node_mapping.get(target_id).ok_or_else(|| {
+            Error::new_assert("node not lowered yet")
+                .push_hint(format!("base_target={base_target:?}"))
+                .push_hint(format!("field={field:?}"))
+        })?;
+
+        Ok(target)
     }
 }
 

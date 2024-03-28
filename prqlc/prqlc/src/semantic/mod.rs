@@ -47,9 +47,6 @@ pub fn resolve(mut module_tree: ast::ModuleDef, options: ResolverOptions) -> Res
     // resolve name references between declarations
     let resolution_order = resolve_decls::resolve_decl_refs(&mut root_module)?;
 
-    eprintln!("before resolve:");
-    dbg!(&root_module);
-
     // resolve
     let mut resolver = Resolver::new(&mut root_module, options);
 

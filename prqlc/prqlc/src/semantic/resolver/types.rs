@@ -776,48 +776,6 @@ where
     e
 }
 
-/// Analogous to [crate::ir::pl::Lineage::rename()]
-pub fn rename_relation(ty_kind: &mut TyKind, alias: String) {
-    if let TyKind::Array(items_ty) = ty_kind {
-        rename_tuples(&mut items_ty.kind, alias);
-    }
-}
-
-fn rename_tuples(ty_kind: &mut TyKind, alias: String) {
-    flatten_tuples(ty_kind);
-
-    if let TyKind::Tuple(fields) = ty_kind {
-        let inner_fields = std::mem::take(fields);
-
-        let ty = Ty::new(TyKind::Tuple(inner_fields));
-        fields.push(TyTupleField::Single(Some(alias), Some(ty)));
-    }
-}
-
-fn flatten_tuples(ty_kind: &mut TyKind) {
-    if let TyKind::Tuple(fields) = ty_kind {
-        let mut new_fields = Vec::new();
-
-        for field in fields.drain(..) {
-            let TyTupleField::Single(name, Some(ty)) = field else {
-                new_fields.push(field);
-                continue;
-            };
-
-            // recurse
-            // let ty = ty.flatten_tuples();
-
-            let TyKind::Tuple(inner_fields) = ty.kind else {
-                new_fields.push(TyTupleField::Single(name, Some(ty)));
-                continue;
-            };
-            new_fields.extend(inner_fields);
-        }
-
-        fields.extend(new_fields);
-    }
-}
-
 pub fn is_super_type_of(superset: &Ty, subset: &Ty) -> bool {
     if superset.is_relation() && subset.is_relation() {
         return true;

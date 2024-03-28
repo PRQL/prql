@@ -6,7 +6,7 @@ use prqlc_ast::IndirectionKind;
 use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
-use crate::semantic::resolver::{flatten, types, Resolver};
+use crate::semantic::resolver::{flatten, Resolver};
 use crate::semantic::{NS_INFER, NS_LOCAL, NS_SELF, NS_STD, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
 use crate::{Error, Reason, Span, WithErrorInfo};
@@ -106,9 +106,14 @@ impl PlFold for Resolver<'_> {
                         kind: ExprKind::Ident(fq_ident),
                         ..node
                     },
-                    DeclKind::TupleField(_) => {
-                        panic!("this should not happen: indirections have their own code path")
-                    }
+                    DeclKind::TupleField(ty) => Expr {
+                        kind: ExprKind::Indirection {
+                            base: Box::new(Expr::new(fq_ident.pop().unwrap())),
+                            field: IndirectionKind::Position(entry.order as i64 - 1),
+                        },
+                        ty: ty.clone(),
+                        ..node
+                    },
 
                     DeclKind::TableDecl(_) => {
                         let ty = self.ty_of_table_decl(&fq_ident);
@@ -292,7 +297,26 @@ impl Resolver<'_> {
         if let Some(ty) = &mut r.ty {
             if ty.is_relation() {
                 if let Some(alias) = r.alias.take() {
-                    types::rename_relation(&mut ty.kind, alias);
+                    // This is relation wrapping operation.
+                    // Convert:
+                    //     alias = r
+                    // into:
+                    //     _local.select {alias = _local.this} r
+
+                    let expr = Expr::new(ExprKind::FuncCall(FuncCall {
+                        name: Box::new(Expr::new(ExprKind::Ident(Ident::from_path(vec![
+                            NS_LOCAL, "select",
+                        ])))),
+                        args: vec![
+                            Expr::new(ExprKind::Tuple(vec![Expr {
+                                alias: Some(alias),
+                                ..Expr::new(Ident::from_path(vec![NS_LOCAL, NS_THIS]))
+                            }])),
+                            *r,
+                        ],
+                        named_args: Default::default(),
+                    }));
+                    return self.fold_expr(expr);
                 }
             }
         }
