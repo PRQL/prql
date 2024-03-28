@@ -296,7 +296,7 @@ impl Command {
 
                 let mut out = Vec::new();
                 out.extend(serde_yaml::to_string(&expanded)?.into_bytes());
-                out.push('\n' as u8);
+                out.push(b'\n');
 
                 let mut restricted = prqlc::semantic::ast_expand::restrict_module_def(expanded);
 

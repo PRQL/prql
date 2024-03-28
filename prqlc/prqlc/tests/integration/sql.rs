@@ -5251,3 +5251,153 @@ fn test_local_ref() {
       j = 1 + 1
     "###);
 }
+
+#[test]
+fn query_01() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }
+
+    db.employees
+    select {e = {this.first_name}}
+    select {this.e.first_name}
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_02() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }
+
+    db.employees
+    select {e = {x = this.first_name}}
+    select {this.e.x}
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name AS x
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_03() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }
+
+    db.employees
+    select {e = this}
+    select {this.e.first_name}
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_04() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }
+
+    e = db.employees
+    select {this.e.first_name}
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_05() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }
+
+    e = db.employees
+    select {this.e.first_name}
+    filter (std.text.starts_with 'Jo' this.first_name)
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name
+    FROM
+      employees
+    WHERE
+      first_name LIKE CONCAT('Jo', '%')
+    "###
+    );
+}
+
+#[test]
+fn query_06() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }
+
+    db.employees
+    take 5..10
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name,
+      age
+    FROM
+      employees
+    LIMIT
+      6 OFFSET 4
+    "###
+    );
+}
+
+#[test]
+fn query_07() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ first_name = text, age = int}]>
+    }  
+
+    db.employees
+    select {e = {this}}
+
+    "###).unwrap(), @r###"
+    SELECT
+      first_name AS "e.first_name",
+      age AS "e.age"
+    FROM
+      employees
+    "###
+    );
+}

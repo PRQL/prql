@@ -109,17 +109,38 @@ fn extern_ref_to_relation(
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
-        columns: ty_tuple_to_relation_columns(ty_tuple_fields),
+        columns: ty_tuple_to_relation_columns(ty_tuple_fields, None),
     };
     Ok((relation, None))
 }
 
-fn ty_tuple_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationColumn> {
-    columns
+fn ty_tuple_to_relation_columns(
+    fields: Vec<TyTupleField>,
+    prefix: Option<String>,
+) -> Vec<RelationColumn> {
+    dbg!(&fields);
+    dbg!(&prefix);
+
+    fields
         .into_iter()
-        .map(|field| match field {
-            TyTupleField::Single(name, _) => RelationColumn::Single(name),
-            TyTupleField::Wildcard(_) => RelationColumn::Wildcard,
+        .flat_map(|field| match field {
+            TyTupleField::Single(mut name, ty) => {
+                if let Some(p) = &prefix {
+                    if let Some(n) = &mut name {
+                        *n = format!("{p}.{n}");
+                    } else {
+                        name = Some(p.clone());
+                    }
+                }
+
+                if ty.as_ref().map_or(false, |t| t.kind.is_tuple()) {
+                    let inner = ty.unwrap().kind.into_tuple().unwrap();
+                    return ty_tuple_to_relation_columns(inner, name);
+                }
+
+                vec![RelationColumn::Single(name)]
+            }
+            TyTupleField::Wildcard(_) => vec![RelationColumn::Wildcard],
         })
         .collect_vec()
 }
@@ -425,24 +446,21 @@ impl Lowerer {
     }
 
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
+        let id = expr.id.unwrap();
+
         let relation_fields = expr.ty.as_ref().and_then(|t| t.as_relation()).unwrap();
-        let columns = relation_fields
-            .into_iter()
-            .map(|f| match f {
-                TyTupleField::Single(name, _) => RelationColumn::Single(name.clone()),
-                TyTupleField::Wildcard(_) => todo!(),
-            })
-            .collect_vec();
+        let columns = ty_tuple_to_relation_columns(relation_fields.clone(), None);
 
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
         self.lower_relational_expr(expr, None)?;
 
-        let transforms = self.pipeline.drain(..).collect_vec();
-        // let columns = self.push_select(ty, &mut transforms).with_span(span)?;
-
+        let mut transforms = self.pipeline.drain(..).collect_vec();
         self.pipeline = prev_pipeline;
 
+        transforms.push(Transform::Select(
+            self.flatten_tuple_fields_into_cids(&[id]),
+        ));
         let relation = rq::Relation {
             kind: rq::RelationKind::Pipeline(transforms),
             columns,
@@ -508,7 +526,8 @@ impl Lowerer {
                 range: self.lower_range(transform_call.frame.range)?,
             },
             partition: if let Some(partition) = transform_call.partition {
-                self.lower_and_flatten_tuple(*partition, false)?.1
+                let ids = self.lower_and_flatten_tuple(*partition, false)?;
+                self.flatten_tuple_fields_into_cids(&ids)
             } else {
                 vec![]
             },
@@ -518,13 +537,11 @@ impl Lowerer {
 
         let new_fields: Option<Vec<usize>> = match *transform_call.kind {
             pl::TransformKind::Derive { assigns, .. } => {
-                let (ids, _cids) = self.lower_and_flatten_tuple(*assigns, false)?;
+                let ids = self.lower_and_flatten_tuple(*assigns, false)?;
                 Some(ids)
             }
             pl::TransformKind::Select { assigns, .. } => {
-                let (ids, cids) = self.lower_and_flatten_tuple(*assigns, false)?;
-
-                self.pipeline.push(Transform::Select(cids));
+                let ids = self.lower_and_flatten_tuple(*assigns, false)?;
                 Some(ids)
             }
             pl::TransformKind::Filter { filter, .. } => {
@@ -537,12 +554,12 @@ impl Lowerer {
             pl::TransformKind::Aggregate { assigns, .. } => {
                 let window = self.window.take();
 
-                let (ids, cids) = self.lower_and_flatten_tuple(*assigns, true)?;
+                let ids = self.lower_and_flatten_tuple(*assigns, true)?;
 
                 let partition = window.unwrap().partition;
                 self.pipeline.push(Transform::Aggregate {
                     partition,
-                    compute: cids,
+                    compute: self.flatten_tuple_fields_into_cids(&ids),
                 });
 
                 Some(ids)
@@ -551,7 +568,7 @@ impl Lowerer {
                 let sorts = self.lower_sorts(by)?;
                 self.pipeline.push(Transform::Sort(sorts));
 
-                todo!()
+                None
             }
             pl::TransformKind::Take { range, .. } => {
                 let window = self.window.take().unwrap_or_default();
@@ -565,7 +582,7 @@ impl Lowerer {
                     sort: window.sort,
                 }));
 
-                todo!()
+                None
             }
             pl::TransformKind::Join {
                 side, with, filter, ..
@@ -644,14 +661,13 @@ impl Lowerer {
         &mut self,
         exprs: pl::Expr,
         is_aggregation: bool,
-    ) -> Result<(Vec<usize>, Vec<CId>)> {
+    ) -> Result<Vec<usize>> {
         if exprs.ty.as_ref().unwrap().kind.is_tuple() {
             let id = exprs.id.unwrap();
             self.ensure_lowered(exprs, is_aggregation)?;
 
             let ids = self.node_mapping.get(&id).unwrap().as_relation().unwrap();
-            let cids = self.flatten_tuple_fields_into_cids(&ids);
-            Ok((ids.clone(), cids))
+            Ok(ids.clone())
         } else {
             todo!()
         }

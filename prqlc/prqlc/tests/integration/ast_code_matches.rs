@@ -37,7 +37,8 @@ fn test_expr_ast_code_matches() {
     -    Name(String),
     -    Position(i64),
     -    Star,
-    @@ .. @@
+    -}
+    -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct BinaryExpr {
     -    pub left: Box<Expr>,
@@ -49,21 +50,19 @@ fn test_expr_ast_code_matches() {
     -pub struct UnaryExpr {
     -    pub op: UnOp,
     -    pub expr: Box<Expr>,
-    -}
-    -
     @@ .. @@
-    -}
     -
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct GenericTypeParam {
     -    /// Assigned name of this generic type argument.
     -    pub name: String,
-    -
+    @@ .. @@
     -    /// Possible values of this type argument.
     -    /// For a given instance of this function, the argument must be
     -    /// exactly one of types in the domain.
     -    pub domain: Vec<Ty>,
-    @@ .. @@
+    -}
+    -
     -/// A value and a series of functions that are to be applied to that value one after another.
     -#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
     -pub struct Pipeline {

@@ -351,7 +351,7 @@ impl Resolver<'_> {
     ) -> Vec<Expr> {
         let mut res = Vec::new();
 
-        if let Some(_) = module.names.get(NS_INFER) {
+        if module.names.contains_key(NS_INFER) {
             let wildcard_field = Expr {
                 id: Some(id.gen()),
                 flatten: true,
