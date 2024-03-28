@@ -4,8 +4,6 @@ use strum::AsRefStr;
 
 use crate::{Ident, Span};
 
-use super::Literal;
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
@@ -24,12 +22,6 @@ pub enum TyKind {
     /// Type of a built-in primitive type
     Primitive(PrimitiveSet),
 
-    /// Type that contains only a one value
-    Singleton(Literal),
-
-    /// Union of sets (sum)
-    Union(Vec<(Option<String>, Ty)>),
-
     /// Type of tuples (product)
     Tuple(Vec<TyTupleField>),
 
@@ -38,10 +30,6 @@ pub enum TyKind {
 
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),
-
-    /// Type of every possible value. Super type of all other types.
-    /// The breaker of chains. Mother of types.
-    Any,
 
     /// Type that is the largest subtype of `base` while not a subtype of `exclude`.
     Difference { base: Box<Ty>, exclude: Box<Ty> },
@@ -103,14 +91,6 @@ impl Ty {
         Ty::new(TyKind::Array(Box::new(tuple)))
     }
 
-    pub fn never() -> Self {
-        Ty::new(TyKind::Union(Vec::new()))
-    }
-
-    pub fn is_never(&self) -> bool {
-        self.kind.as_union().map_or(false, |x| x.is_empty())
-    }
-
     pub fn as_relation(&self) -> Option<&Vec<TyTupleField>> {
         self.kind.as_array()?.kind.as_tuple()
     }
@@ -151,11 +131,5 @@ impl From<PrimitiveSet> for TyKind {
 impl From<TyFunc> for TyKind {
     fn from(value: TyFunc) -> Self {
         TyKind::Function(Some(value))
-    }
-}
-
-impl From<Literal> for TyKind {
-    fn from(value: Literal) -> Self {
-        TyKind::Singleton(value)
     }
 }

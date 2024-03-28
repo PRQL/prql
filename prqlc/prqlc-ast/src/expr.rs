@@ -133,10 +133,7 @@ pub struct GenericTypeParam {
     /// Assigned name of this generic type argument.
     pub name: String,
 
-    /// Possible values of this type argument.
-    /// For a given instance of this function, the argument must be
-    /// exactly one of types in the domain.
-    pub domain: Vec<Ty>,
+    pub bounds: Option<Vec<Ty>>,
 }
 
 /// A value and a series of functions that are to be applied to that value one after another.

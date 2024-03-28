@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::ast;
 use crate::ir::decl;
 use crate::ir::pl;
 use crate::utils::IdGenerator;
@@ -51,9 +50,9 @@ impl Context {
                     // hack: add type annotation to `main` var defs
                     if let pl::StmtKind::VarDef(def) = &mut kind {
                         if def.name == "main" && def.ty.is_none() {
-                            def.ty = Some(ast::Ty::new(ast::TyKind::Ident(ast::Ident::from_path(
-                                vec!["std", "relation"],
-                            ))));
+                            // def.ty = Some(crate::ast::Ty::new(crate::ast::TyKind::Ident(crate::ast::Ident::from_path(
+                            //     vec!["std", "relation"],
+                            // ))));
                         }
                     }
 

@@ -278,21 +278,17 @@ Generated with [prqlc](https://prql-lang.org/) {}.
                     if let Some(return_ty) = &func.return_ty {
                         docs.push_str("#### Returns\n");
                         match &return_ty.kind {
-                            TyKind::Any => docs.push_str("Any\n"),
                             TyKind::Ident(ident) => {
                                 docs.push_str(&format!("`{}`\n", ident.name));
                             }
                             TyKind::Primitive(primitive) => {
                                 docs.push_str(&format!("`{primitive}`\n"));
                             }
-                            TyKind::Singleton(literal) => {
-                                docs.push_str(&format!("`{literal}`\n"));
-                            }
-                            TyKind::Union(vec) => {
-                                for (_, ty) in vec {
-                                    docs.push_str(&format!("* {:?}\n", ty.kind));
-                                }
-                            }
+                            // TyKind::Union(vec) => {
+                            //     for (_, ty) in vec {
+                            //         docs.push_str(&format!("* {:?}\n", ty.kind));
+                            //     }
+                            // }
                             _ => docs.push_str("Not implemented\n"),
                         }
                     }

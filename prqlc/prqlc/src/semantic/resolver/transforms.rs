@@ -13,7 +13,7 @@ use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_LOCAL, NS_PARAM, NS_THIS};
 use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
-use super::types::{ty_tuple_kind, type_intersection};
+use super::types::ty_tuple_kind;
 use super::Resolver;
 
 impl Resolver<'_> {
@@ -528,9 +528,10 @@ impl Resolver<'_> {
             }
             TransformKind::Append(bottom) => {
                 let top = transform_call.input.ty.clone().unwrap();
-                let bottom = bottom.ty.clone().unwrap();
+                let _bottom = bottom.ty.clone().unwrap();
+                // TODO: bottom?
 
-                Some(type_intersection(top, bottom))
+                Some(top)
             }
         })
     }

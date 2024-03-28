@@ -7,7 +7,6 @@ use itertools::{Itertools, Position};
 use crate::ast::{Ty, TyFunc, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
-use crate::semantic::resolver::types;
 use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS};
 use crate::{Error, Span, WithErrorInfo};
 
@@ -77,7 +76,7 @@ impl Resolver<'_> {
 
         let needs_window = (closure.params.last())
             .and_then(|p| p.ty.as_ref())
-            .map(types::is_sub_type_of_array)
+            .map(|t| t.kind.is_array())
             .unwrap_or_default();
 
         // evaluate
@@ -162,16 +161,15 @@ impl Resolver<'_> {
     pub fn fold_function_types(&mut self, mut func: Box<Func>, id: usize) -> Result<Box<Func>> {
         // prepare generic arguments
         for generic_param in &func.generic_type_params {
-            // fold the domain
-            let domain: Vec<Ty> = generic_param
-                .domain
-                .iter()
-                .map(|t| self.fold_type(t.clone()))
-                .try_collect()?;
+            // TODO: fold bounds
+            // let domain: Vec<Ty> = generic_param
+            //     .bounds
+            //     .iter()
+            //     .map(|t| self.fold_type(t.clone()))
+            //     .try_collect()?;
 
             // register the generic type param in the resolver
             let generic_id = (id, generic_param.name.clone());
-            self.generics.insert(generic_id.clone(), domain);
 
             // insert _generic.name declaration
             let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
@@ -348,29 +346,30 @@ impl Resolver<'_> {
         param: &FuncParam,
         func_name: &Option<Ident>,
     ) -> Result<Result<Expr, Expr>> {
+        // fold
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // don't validate types of unresolved exprs
-        if arg.id.is_some() {
-            // validate type
+        if arg.id.is_none() {
+            return Ok(Ok(arg))
+        };
 
-            let expects_func = param
-                .ty
-                .as_ref()
-                .map(|t| t.kind.is_function())
-                .unwrap_or_default();
-            if !expects_func && arg.kind.is_func() {
-                return Ok(Err(arg));
-            }
-
-            let who = || {
-                func_name
-                    .as_ref()
-                    .map(|n| format!("function {n}, param `{}`", param.name))
-            };
-            self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
+        // validate type
+        let expects_func = param
+            .ty
+            .as_ref()
+            .map(|t| t.kind.is_function())
+            .unwrap_or_default();
+        if !expects_func && arg.kind.is_func() {
+            return Ok(Err(arg));
         }
 
+        let who = || {
+            func_name
+                .as_ref()
+                .map(|n| format!("function {n}, param `{}`", param.name))
+        };
+        self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
         Ok(Ok(arg))
     }
 

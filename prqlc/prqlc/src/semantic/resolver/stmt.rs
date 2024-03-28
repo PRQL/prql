@@ -1,4 +1,4 @@
-use crate::ast::Ty;
+use crate::ast::{Ty, TyKind};
 use crate::ir::decl::{DeclKind, TableDecl, TableExpr};
 use crate::ir::pl::*;
 use crate::Result;
@@ -71,11 +71,10 @@ impl super::Resolver<'_> {
                 let value = if let Some(value) = ty_def.value {
                     value
                 } else {
-                    Ty::new(Literal::Null)
+                    Ty::new(TyKind::Tuple(vec![]))
                 };
 
-                let ty = fold_type_opt(self, Some(value))?.unwrap();
-                let mut ty = super::types::normalize_type(ty);
+                let mut ty = fold_type_opt(self, Some(value))?.unwrap();
                 ty.name = Some(fq_ident.name.clone());
 
                 decl.kind = DeclKind::Ty(ty);

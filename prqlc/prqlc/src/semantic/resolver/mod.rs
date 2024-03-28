@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::ast::{Span, Ty};
 use crate::ir::decl::RootModule;
 use crate::utils::IdGenerator;
 
@@ -26,7 +27,7 @@ pub struct Resolver<'a> {
 
     pub options: ResolverOptions,
 
-    pub generics: HashMap<(usize, String), Vec<crate::ast::Ty>>,
+    pub generics: HashMap<(usize, String), Vec<(Ty, Option<Span>)>>,
 }
 
 #[derive(Default, Clone)]

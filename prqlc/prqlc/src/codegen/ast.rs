@@ -157,15 +157,18 @@ impl WriteSource for ExprKind {
                     r += opt.consume("<")?;
                     for generic_param in &c.generic_type_params {
                         r += opt.consume(&write_ident_part(&generic_param.name))?;
-                        r += opt.consume(": ")?;
-                        r += &opt.consume(
-                            SeparatedExprs {
-                                exprs: &generic_param.domain,
-                                inline: " | ",
-                                line_end: "|",
-                            }
-                            .write(opt.clone())?,
-                        )?;
+
+                        if let Some(bounds) = &generic_param.bounds {
+                            r += opt.consume(": ")?;
+                            r += &opt.consume(
+                                SeparatedExprs {
+                                    exprs: bounds,
+                                    inline: " | ",
+                                    line_end: " |",
+                                 }
+                                .write(opt.clone())?,
+                            )?;
+                        }
                     }
                     r += opt.consume("> ")?;
                 }

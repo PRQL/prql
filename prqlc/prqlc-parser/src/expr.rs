@@ -354,9 +354,8 @@ where
         .map_with_span(into_expr);
 
     let generic_args = ident_part()
-        .then_ignore(ctrl(':'))
-        .then(type_expr().separated_by(ctrl('|')))
-        .map(|(name, domain)| GenericTypeParam { name, domain })
+        .then(ctrl(':').ignore_then(type_expr().separated_by(ctrl('|'))).or_not())    
+        .map(|(name, bounds)| GenericTypeParam { name, bounds })
         .separated_by(ctrl(','))
         .at_least(1)
         .delimited_by(ctrl('<'), ctrl('>'))

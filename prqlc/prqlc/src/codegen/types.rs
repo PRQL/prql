@@ -37,27 +37,26 @@ impl WriteSource for TyKind {
         match &self {
             Ident(ident) => ident.write(opt),
             Primitive(prim) => Some(prim.to_string()),
-            Union(variants) => {
-                let parenthesize =
-                    // never must be parenthesized
-                    variants.is_empty() ||
-                    // named union must be parenthesized
-                    variants.iter().any(|(n, _)| n.is_some());
+            // Union(variants) => {
+            //     let parenthesize =
+            //         // never must be parenthesized
+            //         variants.is_empty() ||
+            //         // named union must be parenthesized
+            //         variants.iter().any(|(n, _)| n.is_some());
 
-                let variants: Vec<_> = variants.iter().map(|(n, t)| UnionVariant(n, t)).collect();
-                let sep_exprs = SeparatedExprs {
-                    exprs: &variants,
-                    inline: " || ",
-                    line_end: " ||",
-                };
+            //     let variants: Vec<_> = variants.iter().map(|(n, t)| UnionVariant(n, t)).collect();
+            //     let sep_exprs = SeparatedExprs {
+            //         exprs: &variants,
+            //         inline: " || ",
+            //         line_end: " ||",
+            //     };
 
-                if parenthesize {
-                    sep_exprs.write_between("(", ")", opt)
-                } else {
-                    sep_exprs.write(opt)
-                }
-            }
-            Singleton(lit) => Some(lit.to_string()),
+            //     if parenthesize {
+            //         sep_exprs.write_between("(", ")", opt)
+            //     } else {
+            //         sep_exprs.write(opt)
+            //     }
+            // }
             Tuple(elements) => SeparatedExprs {
                 exprs: elements,
                 inline: ", ",
@@ -77,7 +76,6 @@ impl WriteSource for TyKind {
                 r += &(*func.return_ty).as_ref().write(opt)?;
                 Some(r)
             }
-            Any => Some("anytype".to_string()),
             Difference { base, exclude } => {
                 let base = base.write(opt.clone())?;
                 let exclude = exclude.write(opt.clone())?;
