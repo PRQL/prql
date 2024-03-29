@@ -5428,3 +5428,64 @@ fn query_08() {
     "###
     );
 }
+
+
+#[test]
+fn query_09() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ id = int, first_name = text, age = int}]>
+    }
+    
+    from db.employees
+    select {a = !{this.first_name}}
+    "###).unwrap(), @r###"
+    SELECT
+      id AS "a.id",
+      age AS "a.age"
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_10() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ id = int, first_name = text, age = int}]>
+    }
+    
+    from db.employees
+    select !{this.first_name}
+    "###).unwrap(), @r###"
+    SELECT
+      id,
+      age
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_11() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ id = int, first_name = text, age = int}]>
+    }
+    
+    from db.employees
+    select !{first_name}
+    "###).unwrap(), @r###"
+    SELECT
+      id,
+      age
+    FROM
+      employees
+    "###
+    );
+}

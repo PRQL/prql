@@ -14,10 +14,28 @@ use super::NS_LOCAL;
 pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
     let kind = match expr.kind {
         ExprKind::Ident(v) => pl::ExprKind::Ident(Ident::from_name(v)),
-        ExprKind::Indirection { base, field } => pl::ExprKind::Indirection {
+        ExprKind::Indirection {
+            base,
+            field: IndirectionKind::Name(field),
+        } => pl::ExprKind::Indirection {
             base: expand_expr_box(base)?,
-            field,
+            field: pl::IndirectionKind::Name(field),
         },
+        ExprKind::Indirection {
+            base,
+            field: IndirectionKind::Position(field),
+        } => pl::ExprKind::Indirection {
+            base: expand_expr_box(base)?,
+            field: pl::IndirectionKind::Position(field),
+        },
+        ExprKind::Indirection {
+            base,
+            field: IndirectionKind::Star,
+        } => pl::ExprKind::All {
+            within: expand_expr_box(base)?,
+            except: Box::new(pl::Expr::new(pl::ExprKind::Tuple(vec![]))),
+        },
+
         ExprKind::Literal(v) => pl::ExprKind::Literal(v),
         ExprKind::Pipeline(v) => {
             let mut e = desugar_pipeline(v)?;
@@ -51,7 +69,7 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
                 args: Vec::new(),
                 env: HashMap::new(),
                 generic_type_params: v.generic_type_params,
-                implicit_closure: Default::default()
+                implicit_closure: Default::default(),
             }
             .into(),
         ),
@@ -306,7 +324,10 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
         }
         pl::ExprKind::Indirection { base, field } => ExprKind::Indirection {
             base: restrict_expr_box(base),
-            field,
+            field: match field {
+                pl::IndirectionKind::Name(name) => IndirectionKind::Name(name),
+                pl::IndirectionKind::Position(pos) => IndirectionKind::Position(pos),
+            },
         },
         pl::ExprKind::Literal(v) => ExprKind::Literal(v),
         pl::ExprKind::Tuple(v) => ExprKind::Tuple(restrict_exprs(v)),

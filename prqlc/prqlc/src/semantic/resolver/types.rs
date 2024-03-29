@@ -1,5 +1,6 @@
+use std::collections::HashSet;
+
 use itertools::Itertools;
-use prqlc_ast::IndirectionKind;
 
 use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
@@ -73,6 +74,23 @@ impl Resolver<'_> {
                 // TODO
                 let items_ty = variants.into_iter().next().unwrap();
                 TyKind::Array(Box::new(items_ty))
+            }
+
+            ExprKind::All { within, except } => {
+                let Some(within_ty) = Resolver::infer_type(within)? else {
+                    return Ok(None);
+                };
+                let Some(except_ty) = Resolver::infer_type(except)? else {
+                    return Ok(None);
+                };
+                let field_mask =
+                    ty_tuple_exclusion(&within_ty, &except_ty, within.span, except.span)?;
+
+                let new_fields = itertools::zip_eq(within_ty.kind.as_tuple().unwrap(), field_mask)
+                    .filter(|(_, p)| *p)
+                    .map(|(x, _)| x.clone())
+                    .collect();
+                TyKind::Tuple(new_fields)
             }
 
             _ => return Ok(None),
@@ -247,6 +265,43 @@ impl Resolver<'_> {
     pub fn resolve_generic_args_opt(&mut self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
         ty.map(|x| self.resolve_generic_args(x)).transpose()
     }
+}
+
+pub fn ty_tuple_exclusion(
+    within_ty: &Ty,
+    except_ty: &Ty,
+    within_span: Option<Span>,
+    except_span: Option<Span>,
+) -> Result<Vec<bool>> {
+    let TyKind::Tuple(within_fields) = &within_ty.kind else {
+        return Err(
+            Error::new_simple("fields can only be excluded from a tuple")
+                .push_hint(format!("got {}", write_ty(within_ty)))
+                .with_span(within_span),
+        );
+    };
+    let TyKind::Tuple(except_fields) = &except_ty.kind else {
+        return Err(Error::new_simple("expected excluding fields to be a tuple")
+            .push_hint(format!("got {}", write_ty(except_ty)))
+            .with_span(except_span));
+    };
+    let except_fields: HashSet<&String> = except_fields
+        .iter()
+        .map(|field| match field {
+            TyTupleField::Single(Some(name), _) => Ok(name),
+            _ => Err(Error::new_simple("excluding fields need to be named")),
+        })
+        .collect::<Result<_>>()
+        .with_span(except_span)?;
+
+    let mut mask = Vec::new();
+    for field in within_fields {
+        mask.push(match &field {
+            TyTupleField::Single(Some(name), _) => !except_fields.contains(&name),
+            _ => true,
+        });
+    }
+    Ok(mask)
 }
 
 fn infer_tuple_field_name(field: &Expr) -> Option<String> {

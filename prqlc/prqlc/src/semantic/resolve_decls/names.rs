@@ -1,4 +1,3 @@
-use ast::IndirectionKind;
 use itertools::Itertools;
 
 use crate::ir::decl;
@@ -173,7 +172,7 @@ impl pl::PlFold for NameResolver<'_> {
                     e.span = expr.span;
                     kind = pl::ExprKind::Indirection {
                         base: Box::new(e),
-                        field: ast::IndirectionKind::Name(indirection),
+                        field: pl::IndirectionKind::Name(indirection),
                     };
                 }
 
@@ -218,7 +217,7 @@ fn push_indirections_into_ident(mut expr: pl::Expr) -> pl::Expr {
     let mut indirections = Vec::new();
     while let pl::ExprKind::Indirection {
         base,
-        field: IndirectionKind::Name(name),
+        field: pl::IndirectionKind::Name(name),
     } = expr.kind
     {
         indirections.push((name, expr.span, expr.alias));
@@ -236,7 +235,7 @@ fn push_indirections_into_ident(mut expr: pl::Expr) -> pl::Expr {
         for (name, span, alias) in indirections {
             expr = pl::Expr::new(pl::ExprKind::Indirection {
                 base: Box::new(expr),
-                field: IndirectionKind::Name(name),
+                field: pl::IndirectionKind::Name(name),
             });
             expr.span = span;
             expr.alias = alias;

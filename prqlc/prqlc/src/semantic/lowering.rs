@@ -719,6 +719,32 @@ impl Lowerer {
                 }
                 LoweredTarget::Relation(ids)
             }
+            pl::ExprKind::All { within, except } => {
+                // this should never fail since it succeeded during resolution
+                let field_mask = super::resolver::ty_tuple_exclusion(
+                    within.ty.as_ref().unwrap(),
+                    except.ty.as_ref().unwrap(),
+                    None,
+                    None,
+                )
+                .unwrap();
+
+                // lower within
+                let within_id = within.id.unwrap();
+                self.ensure_lowered(*within, is_aggregation)?;
+                let within_target = self.node_mapping.get(&within_id).unwrap();
+                let within_ids = within_target.as_relation().ok_or_else(|| {
+                    Error::new_assert("indirection on non-relation")
+                        .push_hint(format!("within={within_target:?}"))
+                })?;
+
+                // apply mask
+                let ids = itertools::zip_eq(within_ids, field_mask)
+                    .filter(|(_, p)| *p)
+                    .map(|(x, _)| *x)
+                    .collect_vec();
+                LoweredTarget::Relation(ids)
+            }
             _ => {
                 // lower expr and define a Compute
                 let expr = self.lower_expr(expr_ast)?;
@@ -885,7 +911,7 @@ impl Lowerer {
     fn lookup_indirection(
         &self,
         base_id: usize,
-        field: &prqlc_ast::IndirectionKind,
+        field: &pl::IndirectionKind,
     ) -> Result<&LoweredTarget> {
         let base_target = self.node_mapping.get(&base_id).unwrap();
 

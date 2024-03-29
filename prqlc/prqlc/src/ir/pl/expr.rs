@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::ast::generic;
-use crate::ast::{GenericTypeParam, Ident, IndirectionKind, Literal, Span, Ty};
+use crate::ast::{GenericTypeParam, Ident, Literal, Span, Ty};
 use crate::codegen::write_ty;
 
 use super::TransformCall;
@@ -78,6 +78,12 @@ pub enum ExprKind {
     /// When used instead of function body, the function will be translated to a RQ operator.
     /// Contains ident of the RQ operator.
     Internal(String),
+}
+
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+pub enum IndirectionKind {
+    Name(String),
+    Position(i64),
 }
 
 /// Function call.

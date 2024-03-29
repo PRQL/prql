@@ -7,7 +7,6 @@ use crate::Result;
 use crate::ast::Ident;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
-use crate::ir::pl::{Expr, ExprKind};
 use crate::semantic::{
     NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_SELF, NS_THAT, NS_THIS,
 };
@@ -78,26 +77,10 @@ impl Resolver<'_> {
     }
 
     pub(super) fn resolve_ident_core(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        // special case: wildcard
-        if ident.name == "*" {
-            // TODO: we may want to raise an error if someone has passed `download*` in
-            // an attempt to query for all `download` columns and expects to be able
-            // to select a `download_2020_01_01` column later in the query. But
-            // sometimes we want to query for `*.parquet` files, and give them an
-            // alias. So we don't raise an error here, but if there's a way of
-            // differentiating the cases, we can implement that.
-            // if ident.name != "*" {
-            //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
-            // }
-            return self
-                .resolve_ident_wildcard(ident)
-                .map_err(Error::new_simple);
-        }
-
         // base case: direct lookup
         let decls = self.root_mod.module.lookup(ident);
         match decls.len() {
-            // no match: try match *
+            // no match: pass though
             0 => {}
 
             // single match, great!
@@ -107,11 +90,9 @@ impl Resolver<'_> {
             _ => return Err(ambiguous_error(decls, None)),
         }
 
-        let ident = ident.clone();
-
         // fallback case: try to match with NS_INFER and infer the declaration
         // from the original ident.
-        match self.resolve_ident_fallback(&ident, NS_INFER) {
+        match self.resolve_ident_fallback(ident, NS_INFER) {
             // The declaration and all needed parent modules were created
             // -> just return the fq ident
             Ok(inferred_ident) => Ok(inferred_ident),
@@ -185,37 +166,6 @@ impl Resolver<'_> {
         }
 
         Ok(module_ident + Ident::from_name(original.name.clone()))
-    }
-
-    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        let ident_self = ident.clone().pop().unwrap() + Ident::from_name(NS_SELF);
-        let mut res = self.root_mod.module.lookup(&ident_self);
-        if res.contains(&ident_self) {
-            res = HashSet::from_iter([ident_self]);
-        }
-        if res.len() != 1 {
-            return Err(format!("Unknown relation {ident}"));
-        }
-        let module_fq_self = res.into_iter().next().unwrap();
-
-        // Materialize into a tuple literal, containing idents.
-        let fields = self.construct_wildcard_include(&module_fq_self);
-
-        // This is just a workaround to return an Expr from this function.
-        // We wrap the expr into DeclKind::Expr and save it into the root module.
-        let cols_expr = Expr {
-            flatten: true,
-            ..Expr::new(ExprKind::Tuple(fields))
-        };
-        let cols_expr = DeclKind::Expr(Box::new(cols_expr));
-        let save_as = "_wildcard_match";
-        self.root_mod
-            .module
-            .names
-            .insert(save_as.to_string(), cols_expr.into());
-
-        // Then we can return ident to that decl.
-        Ok(Ident::from_name(save_as))
     }
 }
 

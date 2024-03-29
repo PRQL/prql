@@ -14,6 +14,8 @@ mod stmt;
 mod transforms;
 mod types;
 
+pub use types::ty_tuple_exclusion;
+
 type IdOfGenericArg = (usize, String);
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.

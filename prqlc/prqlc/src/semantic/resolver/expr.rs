@@ -1,14 +1,12 @@
 use crate::codegen::write_ty;
 use crate::Result;
 use itertools::Itertools;
-use prqlc_ast::IndirectionKind;
 
 use crate::ast::{Ty, TyKind, TyTupleField};
-use crate::ir::decl::{DeclKind, Module};
+use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, Resolver};
-use crate::semantic::{NS_INFER, NS_LOCAL, NS_SELF, NS_STD, NS_THAT, NS_THIS};
-use crate::utils::IdGenerator;
+use crate::semantic::{NS_LOCAL, NS_SELF, NS_STD, NS_THAT, NS_THIS};
 use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
@@ -106,14 +104,18 @@ impl PlFold for Resolver<'_> {
                         kind: ExprKind::Ident(fq_ident),
                         ..node
                     },
-                    DeclKind::TupleField(ty) => Expr {
-                        kind: ExprKind::Indirection {
-                            base: Box::new(Expr::new(fq_ident.pop().unwrap())),
-                            field: IndirectionKind::Position(entry.order as i64 - 1),
-                        },
-                        ty: ty.clone(),
-                        ..node
-                    },
+                    DeclKind::TupleField(ty) => {
+                        let base = Expr::new(fq_ident.pop().unwrap());
+                        let field = IndirectionKind::Position(entry.order as i64 - 1);
+                        let ty = ty.clone();
+
+                        let base = Box::new(self.fold_expr(base)?);
+                        Expr {
+                            kind: ExprKind::Indirection { base, field },
+                            ty,
+                            ..node
+                        }
+                    }
 
                     DeclKind::TableDecl(_) => {
                         let ty = self.ty_of_table_decl(&fq_ident);
@@ -171,7 +173,6 @@ impl PlFold for Resolver<'_> {
             }
 
             ExprKind::Indirection { base, field } => {
-                
                 let base = self.fold_expr(*base)?;
 
                 let ty = base.ty.as_ref().unwrap();
@@ -183,7 +184,19 @@ impl PlFold for Resolver<'_> {
                     .with_span(*span));
                 };
 
-                let (position, field) = match field {
+                // if let IndirectionKind::Star = field {
+                //     if node.alias.is_some() {
+                //         return Err(
+                //             Error::new_simple("alias not allowed on wildcards references")
+                //                 .with_span(*span),
+                //         );
+                //     }
+                //     Expr {
+                //         flatten: true,
+                //         ..base
+                //     }
+                // } else {
+                let (position, ty_field) = match field {
                     IndirectionKind::Name(field_name) => {
                         let field = fields.iter().find_position(|f| match f {
                             TyTupleField::Single(Some(n), _) => n == &field_name,
@@ -209,16 +222,13 @@ impl PlFold for Resolver<'_> {
                         };
                         (position, field)
                     }
-                    IndirectionKind::Star => todo!(),
                 };
-
-                let ty = field.as_single().unwrap().1.clone();
                 Expr {
+                    ty: ty_field.as_single().unwrap().1.clone(),
                     kind: ExprKind::Indirection {
                         base: Box::new(base),
                         field: IndirectionKind::Position(position),
                     },
-                    ty,
                     ..node
                 }
             }
@@ -333,55 +343,5 @@ impl Resolver<'_> {
             within: Box::new(Expr::new(Ident::from_path(vec![NS_LOCAL, NS_THIS]))),
             except: Box::new(except),
         }))
-    }
-
-    pub fn construct_wildcard_include(&mut self, module_fq_self: &Ident) -> Vec<Expr> {
-        let module_fq = module_fq_self.clone().pop().unwrap();
-
-        let decl = self.root_mod.module.get(&module_fq).unwrap();
-        let module = decl.kind.as_module().unwrap();
-
-        let prefix = module_fq.iter().collect_vec();
-        Self::construct_tuple_from_module(&mut self.id, &prefix, module)
-    }
-
-    pub fn construct_tuple_from_module(
-        id: &mut IdGenerator<usize>,
-        prefix: &[&String],
-        module: &Module,
-    ) -> Vec<Expr> {
-        let mut res = Vec::new();
-
-        if module.names.contains_key(NS_INFER) {
-            let wildcard_field = Expr {
-                id: Some(id.gen()),
-                flatten: true,
-                ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
-                ..Expr::new(Ident::from_name(NS_SELF))
-            };
-            return vec![wildcard_field];
-        }
-
-        for (name, decl) in module.names.iter().sorted_by_key(|(_, d)| d.order) {
-            res.push(match &decl.kind {
-                DeclKind::Module(submodule) => {
-                    let prefix = [prefix.to_vec(), vec![name]].concat();
-                    let sub_fields = Self::construct_tuple_from_module(id, &prefix, submodule);
-                    Expr {
-                        id: Some(id.gen()),
-                        alias: Some(name.clone()),
-                        ..Expr::new(ExprKind::Tuple(sub_fields))
-                    }
-                }
-                DeclKind::TupleField(ty) => Expr {
-                    id: Some(id.gen()),
-                    ty: ty.clone(),
-                    // alias: Some(name.clone()),
-                    ..Expr::new(Ident::from_path([prefix.to_vec(), vec![name]].concat()))
-                },
-                _ => continue,
-            });
-        }
-        res
     }
 }

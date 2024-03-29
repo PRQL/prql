@@ -366,3 +366,19 @@ fn available_columns() {
     ───╯
     "###);
 }
+
+#[test]
+fn alias_on_wildcard() {
+    assert_snapshot!(compile(r#"
+    from db.invoices
+    select {i = this.*}
+    "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:17]
+       │
+     3 │     select {i = this.*}
+       │                 ───┬──
+       │                    ╰──── alias not allowed on wildcards references
+    ───╯
+    "###);
+}
