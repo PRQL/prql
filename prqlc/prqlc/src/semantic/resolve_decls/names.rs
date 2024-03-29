@@ -220,25 +220,27 @@ fn push_indirections_into_ident(mut expr: pl::Expr) -> pl::Expr {
         field: pl::IndirectionKind::Name(name),
     } = expr.kind
     {
-        indirections.push((name, expr.span, expr.alias));
+        indirections.push((name, expr.span, expr.alias, expr.flatten));
         expr = *base;
     }
 
     if let pl::ExprKind::Ident(ident) = &mut expr.kind {
-        for (part, span, alias) in indirections.into_iter().rev() {
+        for (part, span, alias, flatten) in indirections.into_iter().rev() {
             ident.push(part);
             expr.span = ast::Span::merge_opt(expr.span, span);
             expr.alias = alias.or(expr.alias);
+            expr.flatten = flatten;
         }
     } else {
         // this is not on an ident - we have to revert it
-        for (name, span, alias) in indirections {
+        for (name, span, alias, flatten) in indirections {
             expr = pl::Expr::new(pl::ExprKind::Indirection {
                 base: Box::new(expr),
                 field: pl::IndirectionKind::Name(name),
             });
             expr.span = span;
             expr.alias = alias;
+            expr.flatten = flatten;
         }
     }
     expr

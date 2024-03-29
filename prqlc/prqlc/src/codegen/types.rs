@@ -89,9 +89,9 @@ impl WriteSource for TyKind {
 impl WriteSource for TyTupleField {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         match self {
-            Self::Wildcard(generic_el) => match generic_el {
-                Some(el) => Some(format!("{}..", el.write(opt)?)),
-                None => Some("*..".to_string()),
+            Self::Unpack(generic_el) => match generic_el {
+                Some(el) => Some(format!("..{}", el.write(opt)?)),
+                None => Some("..*".to_string()),
             },
             Self::Single(name, expr) => {
                 let mut r = String::new();

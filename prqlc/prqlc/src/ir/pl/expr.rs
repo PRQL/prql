@@ -42,7 +42,7 @@ pub struct Expr {
     /// When true on [ExprKind::Tuple], this list will be flattened when placed
     /// in some other list.
     // TODO: maybe we should have a special ExprKind instead of this flag?
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "is_false")]
     pub flatten: bool,
 }
 
@@ -202,4 +202,8 @@ impl std::fmt::Debug for Expr {
         }
         ds.finish()
     }
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
 }

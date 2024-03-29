@@ -106,7 +106,7 @@ impl Module {
 
     pub fn new_database() -> Module {
         let table_decl = DeclKind::TableDecl(TableDecl {
-            ty: Some(Ty::relation(vec![TyTupleField::Wildcard(None)])),
+            ty: Some(Ty::relation(vec![TyTupleField::Unpack(None)])),
             expr: TableExpr::LocalTable,
         });
 
@@ -307,7 +307,7 @@ impl Module {
                     // unnamed columns cannot be referenced
                 }
 
-                TyTupleField::Wildcard(ty) => {
+                TyTupleField::Unpack(ty) => {
                     let decl = Decl {
                         kind: DeclKind::Infer(Box::new(DeclKind::TupleField(ty.clone()))),
                         declared_at: None,

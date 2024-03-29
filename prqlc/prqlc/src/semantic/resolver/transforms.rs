@@ -600,7 +600,7 @@ impl Resolver<'_> {
 
         // validate that the return type is a relation
         // this can be removed after we have proper type checking for all std functions
-        let expected = Some(Ty::relation(vec![TyTupleField::Wildcard(None)]));
+        let expected = Some(Ty::relation(vec![TyTupleField::Unpack(None)]));
         self.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
             Some("pipeline".to_string())
         })?;

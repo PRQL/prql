@@ -38,16 +38,20 @@ impl Resolver<'_> {
             ExprKind::TransformCall(_) => return Ok(None), // TODO
             ExprKind::Tuple(fields) => {
                 let mut ty_fields: Vec<TyTupleField> = Vec::with_capacity(fields.len());
-                let has_other = false;
 
                 for field in fields {
                     let ty = Resolver::infer_type(field)?;
 
                     if field.flatten {
-                        if let Some(fields) = ty.as_ref().and_then(|x| x.kind.as_tuple()) {
-                            ty_fields.extend(fields.iter().cloned());
-                            continue;
+                        let ty = ty.clone().unwrap();
+                        match ty.kind {
+                            TyKind::Tuple(inner_fields) => {
+                                ty_fields.extend(inner_fields);
+                            }
+                            _ => ty_fields.push(TyTupleField::Unpack(Some(ty))),
                         }
+
+                        continue;
                     }
 
                     let name = field
@@ -56,10 +60,6 @@ impl Resolver<'_> {
                         .or_else(|| infer_tuple_field_name(field));
 
                     ty_fields.push(TyTupleField::Single(name, ty));
-                }
-
-                if has_other {
-                    ty_fields.push(TyTupleField::Wildcard(None));
                 }
                 ty_tuple_kind(ty_fields)
             }
@@ -234,8 +234,8 @@ impl Resolver<'_> {
                             TyTupleField::Single(name, ty) => {
                                 TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
                             }
-                            TyTupleField::Wildcard(ty) => {
-                                TyTupleField::Wildcard(self.resolve_generic_args_opt(ty)?)
+                            TyTupleField::Unpack(ty) => {
+                                TyTupleField::Unpack(self.resolve_generic_args_opt(ty)?)
                             }
                         })
                     })
@@ -375,7 +375,7 @@ fn restrict_type(ty: &mut Ty, sub_ty: Ty) {
                             // TODO: insert unnamed fields?
                         }
                     }
-                    TyTupleField::Wildcard(_) => todo!("remove TupleField::Wildcard"),
+                    TyTupleField::Unpack(_) => todo!("remove TupleField::Wildcard"),
                 }
             }
         }
@@ -408,7 +408,7 @@ where
     fn display_ty(ty: &Ty) -> String {
         if ty.name.is_none() {
             if let TyKind::Tuple(fields) = &ty.kind {
-                if fields.len() == 1 && fields[0].is_wildcard() {
+                if fields.len() == 1 && fields[0].is_unpack() {
                     return "a tuple".to_string();
                 }
             }

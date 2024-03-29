@@ -329,8 +329,8 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
                             TyTupleField::Single(name, ty) => {
                                 TyTupleField::Single(name, fold_type_opt(fold, ty)?)
                             }
-                            TyTupleField::Wildcard(ty) => {
-                                TyTupleField::Wildcard(fold_type_opt(fold, ty)?)
+                            TyTupleField::Unpack(ty) => {
+                                TyTupleField::Unpack(fold_type_opt(fold, ty)?)
                             }
                         })
                     })

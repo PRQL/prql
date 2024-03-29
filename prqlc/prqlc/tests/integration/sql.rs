@@ -5489,3 +5489,24 @@ fn query_11() {
     "###
     );
 }
+
+#[test]
+fn query_12() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ id = int, first_name = text, age = int}]>
+    }
+
+    from db.employees
+    select {e = {x = id, y = age}}
+    select {..e}
+    "###).unwrap(), @r###"
+    SELECT
+      id AS x,
+      age AS y
+    FROM
+      employees
+    "###
+    );
+}

@@ -21,7 +21,7 @@ impl Resolver<'_> {
 
         let has_wildcard = columns
             .iter()
-            .any(|c| matches!(c, TyTupleField::Wildcard(_)));
+            .any(|c| matches!(c, TyTupleField::Unpack(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }

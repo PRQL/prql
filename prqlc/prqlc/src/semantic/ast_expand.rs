@@ -42,7 +42,25 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
             e.alias = expr.alias.or(e.alias);
             return Ok(e);
         }
-        ExprKind::Tuple(v) => pl::ExprKind::Tuple(expand_exprs(v)?),
+        ExprKind::Tuple(mut v) => {
+            // maybe extract last element for unpacking
+            let mut last_unpacking = None;
+            if v.last()
+                .and_then(|v| v.kind.as_range())
+                .map_or(false, |x| x.start.is_none() && x.end.is_some())
+            {
+                last_unpacking = Some(v.pop().unwrap().kind.into_range().unwrap().end.unwrap());
+            }
+
+            let mut fields = expand_exprs(v)?;
+
+            if let Some(last) = last_unpacking {
+                let mut last = expand_expr(*last)?;
+                last.flatten = true;
+                fields.push(last);
+            }
+            pl::ExprKind::Tuple(fields)
+        }
         ExprKind::Array(v) => pl::ExprKind::Array(expand_exprs(v)?),
 
         ExprKind::Range(v) => expands_range(v)?,

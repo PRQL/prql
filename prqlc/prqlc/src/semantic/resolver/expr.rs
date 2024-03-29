@@ -46,6 +46,36 @@ impl PlFold for Resolver<'_> {
 
                 ty
             }
+            TyKind::Tuple(fields) => {
+                let mut new_fields = Vec::new();
+                for field in fields {
+                    match field {
+                        TyTupleField::Single(name, Some(ty)) => {
+                            // standard folding
+                            let ty = self.fold_type(ty)?;
+                            new_fields.push(TyTupleField::Single(name, Some(ty)));
+                        }
+                        TyTupleField::Unpack(Some(ty)) => {
+                            let ty = self.fold_type(ty)?;
+
+                            // inline unpack if it contains a tuple
+                            if let TyKind::Tuple(inner_fields) = ty.kind {
+                                new_fields.extend(inner_fields);
+                            } else {
+                                new_fields.push(TyTupleField::Unpack(Some(ty)));
+                            }
+                        }
+                        _ => {
+                            // standard folding
+                            new_fields.push(field);
+                        }
+                    }
+                }
+                Ty {
+                    kind: TyKind::Tuple(new_fields),
+                    ..ty
+                }
+            }
             _ => fold_type(self, ty)?,
         })
     }

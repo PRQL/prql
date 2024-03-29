@@ -44,29 +44,23 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
             .then_ignore(ctrl('='))
             .or_not()
             .then(nested_type_expr.clone())
-            .then(
-                filter(|x| {
-                    matches!(
-                        x,
-                        TokenKind::Range {
-                            bind_left: true,
-                            ..
-                        }
-                    )
-                })
-                .or_not(),
-            )
-            .map(|((name, ty), range)| {
-                if range.is_some() {
-                    TyTupleField::Wildcard(Some(ty))
-                } else {
-                    TyTupleField::Single(name, Some(ty))
-                }
-            })
+            .map(|(name, ty)| TyTupleField::Single(name, Some(ty)))
             .padded_by(new_line().repeated())
             .separated_by(ctrl(','))
-            .allow_trailing()
             .then_ignore(new_line().repeated())
+            .chain(
+                ctrl(',')
+                    .ignore_then(
+                        select! {
+                            TokenKind::Range { bind_right: true, bind_left: false } => ()
+                        }
+                        .ignore_then(nested_type_expr.clone())
+                        .map(|ty| TyTupleField::Unpack(Some(ty)))
+                        .or_not(),
+                    )
+                    .or_not()
+                    .flatten(),
+            )
             .delimited_by(ctrl('{'), ctrl('}'))
             .recover_with(nested_delimiters(
                 TokenKind::Control('{'),

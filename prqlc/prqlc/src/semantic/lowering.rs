@@ -103,9 +103,9 @@ fn extern_ref_to_relation(
             .push_hint(format!("If this is a table in the current database, move its declaration into module {database_module}")));
     };
 
-    // put wildcards last
+    // put unpack last
     let mut ty_tuple_fields = ty_tuple_fields;
-    ty_tuple_fields.sort_by_key(|a| matches!(a, TyTupleField::Wildcard(_)));
+    ty_tuple_fields.sort_by_key(|a| matches!(a, TyTupleField::Unpack(_)));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
@@ -137,7 +137,7 @@ fn ty_tuple_to_relation_columns(
 
                 vec![RelationColumn::Single(name)]
             }
-            TyTupleField::Wildcard(_) => vec![RelationColumn::Wildcard],
+            TyTupleField::Unpack(_) => vec![RelationColumn::Wildcard],
         })
         .collect_vec()
 }

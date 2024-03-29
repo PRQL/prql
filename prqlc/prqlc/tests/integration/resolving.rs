@@ -27,10 +27,27 @@ fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
 #[test]
 fn resolve_basic_01() {
     assert_snapshot!(resolve(r#"
+    module db {
+        let x <[{a = int, b = text, c = float}]>
+    }
+
     from db.x
     select {a, b}
     "#).unwrap(), @r###"
-    let main <[{a = ?, b = ?}]> = `(Select ...)`
+    let main <[{a = int, b = text}]> = `(Select ...)`
+    "###)
+}
+
+#[test]
+fn resolve_tuple_unpacking() {
+    assert_snapshot!(resolve(r#"
+    type Employee = {first_name = text, age = int}
+
+    let employees <[{ id = int, ..module.Employee }]>
+    "#).unwrap(), @r###"
+    type Employee = {first_name = text, age = int}
+
+    let employees <[{id = int, first_name = text, age = int}]> = internal local_table
     "###)
 }
 

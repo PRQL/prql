@@ -43,9 +43,11 @@ pub enum TyTupleField {
     /// Named tuple element.
     Single(Option<String>, Option<Ty>),
 
-    /// Placeholder for possibly many elements.
-    /// Means "and other unmentioned columns". Does not mean "all columns".
-    Wildcard(Option<Ty>),
+    /// Many tuple elements contained in a type that must eventually resolve to a tuple.
+    /// In most cases, this starts as a generic type argument.
+    // TODO: make this non-optional Ty
+    // TODO: merge this into TyTuple (that does not exist at the moment)
+    Unpack(Option<Ty>),
 }
 
 /// Built-in sets.
@@ -117,7 +119,7 @@ impl TyTupleField {
     pub fn ty(&self) -> Option<&Ty> {
         match self {
             TyTupleField::Single(_, ty) => ty.as_ref(),
-            TyTupleField::Wildcard(ty) => ty.as_ref(),
+            TyTupleField::Unpack(ty) => ty.as_ref(),
         }
     }
 }
