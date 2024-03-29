@@ -119,17 +119,11 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
-        // A temporary hack for allowing calling window functions from within
-        // aggregate and derive.
-        if expected.kind.is_array() && !found.kind.is_function() {
-            return Ok(());
-        }
-
         // if type is a generic, restrict the generic type arg
         match &expected.kind {
             TyKind::GenericArg(generic_id) => {
                 let inferred = self.generics.get_mut(generic_id).unwrap();
-                inferred.push((found.clone(), found.span.clone()));
+                inferred.push((found.clone(), found.span));
 
                 return Ok(());
             }
@@ -138,7 +132,7 @@ impl Resolver<'_> {
                     return Err(compose_type_error(found, expected, who).with_span(span));
                 };
 
-                return self.validate_type(found_items.as_mut(), &expected_items, span, who);
+                return self.validate_type(found_items.as_mut(), expected_items, span, who);
             }
             TyKind::Tuple(expected_fields) => {
                 let TyKind::Tuple(found_fields) = &mut found.kind else {
@@ -146,15 +140,21 @@ impl Resolver<'_> {
                 };
 
                 for (e, f) in itertools::zip_eq(expected_fields, found_fields) {
-                    match (e, f) {
-                        (TyTupleField::Single(_, Some(e)), TyTupleField::Single(_, Some(f))) => {
-                            self.validate_type(f, &e, span, who)?;
-                        }
-                        _ => {}
+                    if let (TyTupleField::Single(_, Some(e)), TyTupleField::Single(_, Some(f))) =
+                        (e, f)
+                    {
+                        self.validate_type(f, e, span, who)?;
                     }
                 }
 
                 return Ok(());
+            }
+            TyKind::Primitive(e) => {
+                if let TyKind::Primitive(f) = &found.kind {
+                    if e == f {
+                        return Ok(());
+                    }
+                }
             }
             _ => (),
         }
@@ -195,9 +195,12 @@ impl Resolver<'_> {
                 let inferred_types = self.generics.remove(&id).unwrap();
 
                 if inferred_types.len() != 1 {
-                    return Err(Error::new_simple(
-                        "cannot determine the type of generic arg",
-                    ));
+                    return Err(Error::new_simple(format!(
+                        "cannot determine the type of generic arg {}",
+                        id.1
+                    ))
+                    .with_span(ty.span)
+                    .push_hint(format!("got {} candidate types", inferred_types.len())));
                 }
                 let (ty, _span) = inferred_types.into_iter().next().unwrap();
                 return Ok(ty);

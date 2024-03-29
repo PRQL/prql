@@ -329,6 +329,7 @@ impl Module {
         );
     }
 
+    #[allow(dead_code)]
     pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String, ty: Option<Ty>) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();

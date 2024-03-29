@@ -14,6 +14,8 @@ mod stmt;
 mod transforms;
 mod types;
 
+type IdOfGenericArg = (usize, String);
+
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver<'a> {
     root_mod: &'a mut RootModule,
@@ -27,7 +29,7 @@ pub struct Resolver<'a> {
 
     pub options: ResolverOptions,
 
-    pub generics: HashMap<(usize, String), Vec<(Ty, Option<Span>)>>,
+    pub generics: HashMap<IdOfGenericArg, Vec<(Ty, Option<Span>)>>,
 }
 
 #[derive(Default, Clone)]

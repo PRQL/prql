@@ -62,26 +62,31 @@ let from = func <R>
   tbl <R>
   -> <R> tbl
 
+@(implicit_closure 0 this:1)
 let select = func <I, A>
   assigns <A>
   tbl <[I]>
   -> <[A]> internal select
 
+@(implicit_closure 0 this:1)
 let filter = func <T>
   condition <bool>
   tbl <[T]>
   -> <[T]> internal filter
 
+@(implicit_closure 0 this:1)
 let derive = func <I, A>
   assigns <A>
   tbl <[I]>
   -> <[{I, A}]> internal derive
 
+@(implicit_closure 0 this:1)
 let aggregate = func <I, A>
   assigns <A>
   tbl <[I]>
   -> <[A]> internal aggregate
 
+@(implicit_closure 0 this:1)
 let sort = func <I>
   by
   tbl <[I]>
@@ -92,6 +97,7 @@ let take = func <I>
   tbl <[I]>
   -> <[I]> internal take
 
+@(implicit_closure 2 this:3 that:1)
 let join = func <A, B>
   with <[B]>
   condition <bool>

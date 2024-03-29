@@ -1,11 +1,10 @@
 use enum_as_inner::EnumAsInner;
-use prqlc_ast::Ident;
 use serde::{Deserialize, Serialize};
 
-pub use crate::ast::stmt::QueryDef;
-use crate::ast::{Span, Ty};
+use super::{expr::Expr, FuncCall};
+use crate::ast::{Ident, Span, Ty};
 
-use super::expr::Expr;
+pub use crate::ast::stmt::QueryDef;
 
 // The following code is tested by the tests_misc crate to match stmt.rs in prqlc_ast.
 
@@ -61,4 +60,17 @@ pub struct ImportDef {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Annotation {
     pub expr: Box<Expr>,
+}
+
+impl Annotation {
+    /// Utility to match function calls by name and unpack its arguments.
+    pub fn as_func_call(&self, name: &str) -> Option<&FuncCall> {
+        let call = self.expr.kind.as_func_call()?;
+
+        let func_name = call.name.kind.as_ident()?;
+        if func_name.len() != 1 || func_name.name != name {
+            return None;
+        }
+        Some(call)
+    }
 }

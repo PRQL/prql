@@ -16,7 +16,7 @@ use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
-use super::{NS_LOCAL, NS_THIS};
+use super::{NS_LOCAL, NS_THAT, NS_THIS};
 
 /// Convert a resolved expression at path `main_path` relative to `root_mod`
 /// into RQ and make sure that:
@@ -118,9 +118,6 @@ fn ty_tuple_to_relation_columns(
     fields: Vec<TyTupleField>,
     prefix: Option<String>,
 ) -> Vec<RelationColumn> {
-    dbg!(&fields);
-    dbg!(&prefix);
-
     fields
         .into_iter()
         .flat_map(|field| match field {
@@ -179,6 +176,7 @@ struct Lowerer {
     table_buffer: Vec<TableDecl>,
 
     local_this_id: Option<usize>,
+    local_that_id: Option<usize>,
 }
 
 #[derive(Clone, EnumAsInner, Debug)]
@@ -214,6 +212,7 @@ impl Lowerer {
             table_buffer: Vec::new(),
 
             local_this_id: None,
+            local_that_id: None,
         }
     }
 
@@ -587,7 +586,9 @@ impl Lowerer {
             pl::TransformKind::Join {
                 side, with, filter, ..
             } => {
+                let with_id = with.id.unwrap();
                 let with = self.lower_table_ref(*with)?;
+                self.local_that_id = Some(with_id);
 
                 let transform = Transform::Join {
                     side,
@@ -596,7 +597,7 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
 
-                todo!()
+                Some(vec![input_id, with_id])
             }
             pl::TransformKind::Append(bottom) => {
                 let bottom = self.lower_table_ref(*bottom)?;
@@ -699,27 +700,15 @@ impl Lowerer {
             return Ok(());
         }
 
-        match expr_ast.kind {
-            pl::ExprKind::Ident(ident)
-                if ident.len() == 2 && ident.starts_with_path(&[NS_LOCAL, NS_THIS]) =>
-            {
-                let target = self.local_this_id.and_then(|id| self.node_mapping.get(&id));
-                let target = target.cloned().ok_or_else(|| {
-                    Error::new_assert("_local.this outside of a transform?")
-                        .with_span(expr_ast.span)
-                })?;
-                self.node_mapping.insert(id, target);
-            }
+        let target = match expr_ast.kind {
+            pl::ExprKind::Ident(ident) => self.lookup_ident(ident).with_span(expr_ast.span)?,
             pl::ExprKind::Indirection { base, field } => {
                 let base_id = base.id.unwrap();
                 self.ensure_lowered(*base, is_aggregation)?;
 
-                let target = self
-                    .lookup_indirection(base_id, &field)
+                self.lookup_indirection(base_id, &field)
                     .with_span(expr_ast.span)?
-                    .clone();
-
-                self.node_mapping.insert(id, target);
+                    .clone()
             }
             pl::ExprKind::Tuple(fields) => {
                 // tuple unpacking
@@ -728,7 +717,7 @@ impl Lowerer {
                     ids.push(field.id.unwrap());
                     self.ensure_lowered(field, is_aggregation)?;
                 }
-                self.node_mapping.insert(id, LoweredTarget::Relation(ids));
+                LoweredTarget::Relation(ids)
             }
             _ => {
                 // lower expr and define a Compute
@@ -742,11 +731,12 @@ impl Lowerer {
                     window: None,
                     is_aggregation,
                 };
-                self.node_mapping.insert(id, LoweredTarget::Column(cid));
-
                 self.pipeline.push(Transform::Compute(compute));
+
+                LoweredTarget::Column(cid)
             }
         };
+        self.node_mapping.insert(id, target);
         Ok(())
     }
 
@@ -754,25 +744,11 @@ impl Lowerer {
         let span = expr.span;
 
         let kind = match expr.kind {
-            pl::ExprKind::Ident(ident) => {
-                log::debug!("lowering ident {ident} (target {:?})", expr.target_id);
-
-                if expr.ty.as_ref().map_or(false, |x| x.kind.is_tuple()) {
-                    // special case: tuple ref
-                    todo!();
-                } else if let Some(id) = expr.target_id {
-                    // base case: column ref
-                    let cid = self.lookup_cid(id, Some(&ident.name)).with_span(span)?;
-
-                    rq::ExprKind::ColumnRef(cid)
-                } else {
-                    // fallback: unresolved ident
-                    // Let's hope that the database engine can resolve it.
-                    rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
-                }
-            }
-            pl::ExprKind::All { .. } => {
-                todo!();
+            pl::ExprKind::Ident(_) | pl::ExprKind::All { .. } => {
+                return Err(Error::new_assert(
+                    "unreachable code: should have been lowered earlier",
+                )
+                .with_span(span));
             }
 
             pl::ExprKind::Indirection { base, field } => {
@@ -879,8 +855,31 @@ impl Lowerer {
             .try_collect()
     }
 
-    fn lookup_cid(&mut self, _id: usize, _name: Option<&String>) -> Result<CId> {
-        todo!()
+    fn lookup_ident(&self, ident: Ident) -> Result<LoweredTarget, Error> {
+        if ident.path != [NS_LOCAL] {
+            return Err(Error::new_assert("non-local unresolved reference"));
+        }
+        let target_id = match ident.name.as_str() {
+            NS_THIS => self.local_this_id.as_ref(),
+            NS_THAT => self.local_that_id.as_ref(),
+            _ => {
+                return Err(Error::new_assert(format!(
+                    "unhandled local reference: {}",
+                    ident.name
+                )));
+            }
+        };
+        let Some(target_id) = target_id else {
+            return Err(Error::new_assert("local reference from non-local context")
+                .push_hint(format!("ident={ident}")));
+        };
+        let Some(target) = self.node_mapping.get(target_id) else {
+            return Err(
+                Error::new_assert("node not lowered yet").push_hint(format!("ident={ident}"))
+            );
+        };
+
+        Ok(target.clone())
     }
 
     fn lookup_indirection(

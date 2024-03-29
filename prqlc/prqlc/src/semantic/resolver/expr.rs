@@ -171,6 +171,7 @@ impl PlFold for Resolver<'_> {
             }
 
             ExprKind::Indirection { base, field } => {
+                
                 let base = self.fold_expr(*base)?;
 
                 let ty = base.ty.as_ref().unwrap();

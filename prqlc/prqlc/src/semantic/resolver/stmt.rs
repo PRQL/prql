@@ -27,10 +27,8 @@ impl super::Resolver<'_> {
             StmtKind::VarDef(var_def) => {
                 let mut def = self.fold_var_def(var_def)?;
 
-                if let Some(ExprKind::Func(closure)) = def.value.as_mut().map(|x| &mut x.kind) {
-                    if closure.name_hint.is_none() {
-                        closure.name_hint = Some(fq_ident.clone());
-                    }
+                if let Some(ExprKind::Func(func)) = def.value.as_mut().map(|x| &mut x.kind) {
+                    populate_func_metadata(func, &fq_ident, &decl.annotations);
                 }
 
                 let expected_ty = fold_type_opt(self, def.ty)?;
@@ -90,6 +88,33 @@ impl super::Resolver<'_> {
             module.unwrap().names.insert(fq_ident.name, decl);
         }
         Ok(())
+    }
+}
+
+/// In PRQL, func is just an expression and does not have a name (the same way
+/// as literals don't have a name). Regardless, we want to provide name hints for functions
+/// in error messages (i.e. `std.count requires 2 arguments, found 1`), so here we infer name
+/// and annotations for functions from its declaration.
+fn populate_func_metadata(func: &mut Box<Func>, fq_ident: &Ident, annotations: &[Annotation]) {
+    // populate name hint
+    if func.name_hint.is_none() {
+        func.name_hint = Some(fq_ident.clone());
+    }
+
+    // populate implicit closure config
+    if let Some(im_clos) = annotations
+        .iter()
+        .find_map(|a| a.as_func_call("implicit_closure"))
+    {
+        fn literal_as_u8(expr: Option<&Expr>) -> Option<u8> {
+            Some(*expr?.kind.as_literal()?.as_integer()? as u8)
+        }
+
+        func.implicit_closure = Some(Box::new(ImplicitClosureConfig {
+            param: literal_as_u8(im_clos.args.first()).unwrap(),
+            this: literal_as_u8(im_clos.named_args.get("this")),
+            that: literal_as_u8(im_clos.named_args.get("that")),
+        }));
     }
 }
 

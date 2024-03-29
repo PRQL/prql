@@ -51,6 +51,7 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
                 args: Vec::new(),
                 env: HashMap::new(),
                 generic_type_params: v.generic_type_params,
+                implicit_closure: Default::default()
             }
             .into(),
         ),

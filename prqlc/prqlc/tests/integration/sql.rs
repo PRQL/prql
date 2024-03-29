@@ -5401,3 +5401,30 @@ fn query_07() {
     "###
     );
 }
+
+#[test]
+fn query_08() {
+    assert_snapshot!(compile(
+    r###"
+    module db {
+      let employees <[{ id = int, first_name = text, age = int}]>
+    
+      let projects <[{ title = text, owner = int}]>
+    }
+
+    from db.employees
+    select {e = this}
+    join db.projects (this.e.id == that.owner)
+    "###).unwrap(), @r###"
+    SELECT
+      employees.id AS "e.id",
+      employees.first_name AS "e.first_name",
+      employees.age AS "e.age",
+      projects.title,
+      projects.owner
+    FROM
+      employees
+      JOIN projects ON employees.id = projects.owner
+    "###
+    );
+}

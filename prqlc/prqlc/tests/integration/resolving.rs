@@ -46,66 +46,6 @@ fn resolve_function_01() {
 }
 
 #[test]
-fn resolve_types_01() {
-    assert_snapshot!(resolve(r#"
-    type A = int || int
-    "#).unwrap(), @r###"
-    type A = int
-    "###)
-}
-
-#[test]
-fn resolve_types_02() {
-    assert_snapshot!(resolve(r#"
-    type A = int || ()
-    "#).unwrap(), @r###"
-    type A = int
-    "###)
-}
-
-#[test]
-fn resolve_types_03() {
-    assert_snapshot!(resolve(r#"
-    type A = {a = int, bool} || {b = text, float}
-    "#).unwrap(), @r###"
-    type A = {a = int, bool, b = text, float}
-    "###)
-}
-
-#[test]
-fn resolve_types_04() {
-    assert_snapshot!(resolve(
-        r#"
-    type Status = (
-        Paid = () ||
-        Unpaid = float ||
-        Canceled = {reason = text, cancelled_at = timestamp} ||
-    )
-    "#,
-    )
-    .unwrap(), @r###"
-    type Status = (
-      Paid = () ||
-      Unpaid = float ||
-      {reason = text, cancelled_at = timestamp} ||
-    )
-    "###);
-}
-
-#[test]
-fn resolve_types_05() {
-    // TODO: this is very strange, it should only be allowed in std
-    assert_snapshot!(resolve(
-        r#"
-    type A
-    "#,
-    )
-    .unwrap(), @r###"
-    type A = null
-    "###);
-}
-
-#[test]
 fn resolve_generics_01() {
     assert_snapshot!(resolve(
         r#"

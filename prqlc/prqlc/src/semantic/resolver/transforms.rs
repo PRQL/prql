@@ -621,6 +621,7 @@ impl Resolver<'_> {
 
             env: Default::default(),
             generic_type_params: Default::default(),
+            implicit_closure: None,
         });
         Ok(*expr_of_func(func, span))
     }

@@ -293,6 +293,7 @@ pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
         named_params: fold_func_param(fold, func.named_params)?,
         generic_type_params: func.generic_type_params, // recurse into this too?
         env: func.env,                                 // recurse into this too?
+        implicit_closure: func.implicit_closure,       // recurse into this too?
     })
 }
 

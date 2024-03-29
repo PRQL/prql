@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::zip;
 
 use crate::Result;
-use itertools::{Itertools, Position};
+use itertools::Itertools;
 
 use crate::ast::{Ty, TyFunc, TyKind};
 use crate::ir::decl::{Decl, DeclKind, Module};
@@ -56,13 +56,7 @@ impl Resolver<'_> {
             ..*closure
         });
 
-        if log::log_enabled!(log::Level::Debug) {
-            let name = closure
-                .name_hint
-                .clone()
-                .unwrap_or_else(|| Ident::from_name("<unnamed>"));
-            log::debug!("resolving args of function {}", name);
-        }
+        log::debug!("resolving args of function {}", closure.as_debug_name());
         let res = self.resolve_function_args(closure)?;
 
         let mut closure = match res {
@@ -72,7 +66,9 @@ impl Resolver<'_> {
             }
         };
 
-        closure.return_ty = self.resolve_generic_args_opt(closure.return_ty)?;
+        closure.return_ty = self
+            .resolve_generic_args_opt(closure.return_ty)
+            .with_span_fallback(span)?;
 
         let needs_window = (closure.params.last())
             .and_then(|p| p.ty.as_ref())
@@ -142,6 +138,7 @@ impl Resolver<'_> {
                 return_ty: Default::default(),
                 env: Default::default(),
                 generic_type_params: Default::default(),
+                implicit_closure: None,
             })))
         } else {
             // resolved, return result
@@ -170,6 +167,7 @@ impl Resolver<'_> {
 
             // register the generic type param in the resolver
             let generic_id = (id, generic_param.name.clone());
+            self.generics.insert(generic_id.clone(), Vec::new());
 
             // insert _generic.name declaration
             let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
@@ -188,8 +186,6 @@ impl Resolver<'_> {
             })
             .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
-
-        self.root_mod.local_mut().names.remove(NS_GENERIC);
         Ok(func)
     }
 
@@ -229,87 +225,46 @@ impl Resolver<'_> {
         &mut self,
         #[allow(clippy::boxed_local)] to_resolve: Box<Func>,
     ) -> Result<Result<Box<Func>, Box<Func>>> {
-        let mut closure = Box::new(Func {
+        let mut func = Box::new(Func {
             args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
             ..*to_resolve
         });
         let mut partial_application_position = None;
 
-        let func_name = &closure.name_hint;
+        let func_name = &func.name_hint;
 
-        let (relations, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
-            .enumerate()
-            .partition(|(_, (param, _))| {
-                let is_relation = param
-                    .ty
-                    .as_ref()
-                    .map(|t| t.is_relation())
-                    .unwrap_or_default();
+        let mut param_args = zip(&func.params, to_resolve.args)
+            .map(Box::new)
+            .map(Some)
+            .collect_vec();
 
-                is_relation
-            });
+        // pull out this and that
+        let impl_cl_pos = func.implicit_closure.as_ref().map(|i| i.param as usize);
+        let this_pos = func.implicit_closure.as_ref().and_then(|i| i.this);
+        let that_pos = func.implicit_closure.as_ref().and_then(|i| i.that);
 
-        let has_relations = !relations.is_empty();
+        // prepare order
+        let order = this_pos
+            .into_iter()
+            .chain(that_pos)
+            .map(|x| x as usize)
+            .chain(0..param_args.len())
+            .unique()
+            .collect_vec();
 
-        // resolve relational args
-        if has_relations {
-            self.root_mod.local_mut().shadow(NS_THIS);
-            self.root_mod.local_mut().shadow(NS_THAT);
+        for index in order {
+            let (param, mut arg) = *param_args[index].take().unwrap();
 
-            for (pos, (index, (param, mut arg))) in relations.into_iter().with_position() {
-                let is_last = matches!(pos, Position::Last | Position::Only);
-
-                // just fold the argument alone
-                if partial_application_position.is_none() {
-                    arg = self
-                        .fold_and_type_check(arg, param, func_name)?
-                        .unwrap_or_else(|a| {
-                            partial_application_position = Some(index);
-                            a
-                        });
-                }
-                log::debug!("resolved arg to {}", arg.kind.as_ref());
-
-                // add relation frame into scope
-                if partial_application_position.is_none() {
-                    let ty = arg.ty.as_ref().unwrap();
-                    if is_last {
+            if partial_application_position.is_none() {
+                if impl_cl_pos.map_or(false, |pos| pos == index) {
+                    if let Some(pos) = this_pos {
+                        let ty = func.args[pos as usize].ty.as_ref().unwrap();
                         self.root_mod.local_mut().insert_frame(ty, NS_THIS);
-                    } else {
+                    }
+                    if let Some(pos) = that_pos {
+                        let ty = func.args[pos as usize].ty.as_ref().unwrap();
                         self.root_mod.local_mut().insert_frame(ty, NS_THAT);
                     }
-                }
-
-                closure.args[index] = arg;
-            }
-        }
-
-        // resolve other positional
-        for (index, (param, mut arg)) in other {
-            if partial_application_position.is_none() {
-                if let ExprKind::Tuple(fields) = arg.kind {
-                    // if this is a tuple, resolve elements separately,
-                    // so they can be added to scope, before resolving subsequent elements.
-
-                    let mut fields_new = Vec::with_capacity(fields.len());
-                    for field in fields {
-                        let field = self.fold_within_namespace(field, &param.name)?;
-
-                        // add aliased columns into scope
-                        if let Some(alias) = field.alias.clone() {
-                            self.root_mod.local_mut().insert_frame_col(
-                                NS_THIS,
-                                alias,
-                                field.ty.clone(),
-                            );
-                        }
-                        fields_new.push(field);
-                    }
-
-                    // note that this tuple node has to be resolved itself
-                    // (it's elements are already resolved and so their resolving
-                    // should be skipped)
-                    arg.kind = ExprKind::Tuple(fields_new);
                 }
 
                 arg = self
@@ -318,25 +273,28 @@ impl Resolver<'_> {
                         partial_application_position = Some(index);
                         a
                     });
+
+                if impl_cl_pos.map_or(false, |pos| pos == index) {
+                    if this_pos.is_some() {
+                        self.root_mod.local_mut().unshadow(NS_THIS);
+                    }
+                    if that_pos.is_some() {
+                        self.root_mod.local_mut().unshadow(NS_THAT);
+                    }
+                }
             }
-
-            closure.args[index] = arg;
-        }
-
-        if has_relations {
-            self.root_mod.local_mut().unshadow(NS_THIS);
-            self.root_mod.local_mut().unshadow(NS_THAT);
+            func.args[index] = arg;
         }
 
         Ok(if let Some(position) = partial_application_position {
             log::debug!(
                 "partial application of {} at arg {position}",
-                closure.as_debug_name()
+                func.as_debug_name()
             );
 
-            Err(extract_partial_application(closure, position))
+            Err(extract_partial_application(func, position))
         } else {
-            Ok(closure)
+            Ok(func)
         })
     }
 
@@ -347,14 +305,15 @@ impl Resolver<'_> {
         func_name: &Option<Ident>,
     ) -> Result<Result<Expr, Expr>> {
         // fold
-        let mut arg = self.fold_within_namespace(arg, &param.name)?;
-
-        // don't validate types of unresolved exprs
-        if arg.id.is_none() {
-            return Ok(Ok(arg))
+        if param.name.starts_with("noresolve.") {
+            return Ok(Ok(arg));
         };
 
-        // validate type
+        self.root_mod.local_mut().shadow(NS_GENERIC);
+        let mut arg = self.fold_expr(arg)?;
+        self.root_mod.local_mut().unshadow(NS_GENERIC);
+
+        // special case: (I forgot why this is needed)
         let expects_func = param
             .ty
             .as_ref()
@@ -364,6 +323,7 @@ impl Resolver<'_> {
             return Ok(Err(arg));
         }
 
+        // validate type
         let who = || {
             func_name
                 .as_ref()
@@ -371,14 +331,6 @@ impl Resolver<'_> {
         };
         self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
         Ok(Ok(arg))
-    }
-
-    fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
-        if param_name.starts_with("noresolve.") {
-            return Ok(expr);
-        };
-
-        self.fold_expr(expr)
     }
 }
 
@@ -447,6 +399,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
         args: Default::default(),
         env: Default::default(),
         generic_type_params: Default::default(),
+        implicit_closure: Default::default(),
     })
 }
 

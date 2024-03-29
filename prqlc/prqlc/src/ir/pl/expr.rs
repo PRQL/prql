@@ -117,6 +117,8 @@ pub struct Func {
     /// Additional variables that the body of the function may need to be
     /// evaluated.
     pub env: HashMap<String, Expr>,
+
+    pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -127,6 +129,13 @@ pub struct FuncParam {
     pub ty: Option<Ty>,
 
     pub default_value: Option<Box<Expr>>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ImplicitClosureConfig {
+    pub param: u8,
+    pub this: Option<u8>,
+    pub that: Option<u8>,
 }
 
 pub type Range = generic::Range<Box<Expr>>;
