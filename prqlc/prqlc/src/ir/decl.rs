@@ -81,7 +81,7 @@ pub enum DeclKind {
     TupleField(Option<Ty>),
 
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
-    Infer(Box<DeclKind>),
+    Infer(InferTarget),
 
     Expr(Box<Expr>),
 
@@ -96,6 +96,13 @@ pub enum DeclKind {
     /// Created during the first pass of the AST, must not be present in
     /// a fully resolved module structure.
     Unresolved(StmtKind),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub enum InferTarget {
+    DatabaseModule,
+    Table,
+    TupleField(Option<Ty>),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -206,7 +213,7 @@ impl std::fmt::Display for DeclKind {
             }
             Self::InstanceOf(arg0, _) => write!(f, "InstanceOf: {arg0}"),
             Self::TupleField(arg0) => write!(f, "TupleField (target {arg0:?})"),
-            Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
+            Self::Infer(arg0) => write!(f, "Infer {arg0:?}"),
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
             Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),
             Self::QueryDef(_) => write!(f, "QueryDef"),

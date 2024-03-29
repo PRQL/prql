@@ -11,7 +11,7 @@ use super::{
     NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_MAIN, NS_PARAM,
     NS_QUERY_DEF, NS_SELF, NS_STD, NS_THAT, NS_THIS,
 };
-use crate::ir::decl::{Decl, DeclKind, Module, RootModule, TableDecl, TableExpr};
+use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule, TableDecl, TableExpr};
 
 impl Module {
     pub fn singleton<S: ToString>(name: S, entry: Decl) -> Module {
@@ -104,27 +104,27 @@ impl Module {
         }
     }
 
-    pub fn new_database() -> Module {
-        let table_decl = DeclKind::TableDecl(TableDecl {
+    pub fn new_table() -> TableDecl {
+        TableDecl {
             ty: Some(Ty::relation(vec![TyTupleField::Unpack(None)])),
             expr: TableExpr::LocalTable,
-        });
+        }
+    }
 
+    pub fn new_database() -> Module {
         let names = HashMap::from([
             (
                 NS_INFER.to_string(),
-                Decl::from(DeclKind::Infer(Box::new(table_decl.clone()))),
+                Decl::from(DeclKind::Infer(InferTarget::Table)),
             ),
             (
                 NS_INFER_MODULE.to_string(),
-                Decl::from(DeclKind::Infer(Box::new(DeclKind::Module(
-                    Module::default(),
-                )))),
+                Decl::from(DeclKind::Infer(InferTarget::DatabaseModule)),
             ),
         ]);
         Module {
             names,
-            infer_decl: Some(Box::new(Decl::from(table_decl))),
+            infer_decl: Some(Box::new(Decl::from(DeclKind::TableDecl(Self::new_table())))),
             ..Default::default()
         }
     }
@@ -309,7 +309,7 @@ impl Module {
 
                 TyTupleField::Unpack(ty) => {
                     let decl = Decl {
-                        kind: DeclKind::Infer(Box::new(DeclKind::TupleField(ty.clone()))),
+                        kind: DeclKind::Infer(InferTarget::TupleField(ty.clone())),
                         declared_at: None,
                         order: field_index + 1,
                         ..Default::default()

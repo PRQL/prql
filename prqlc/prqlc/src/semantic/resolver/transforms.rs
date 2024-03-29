@@ -365,16 +365,7 @@ impl Resolver<'_> {
                     }
                 };
 
-                let expr_id = text_expr.id.unwrap();
-
-                let columns: Vec<_> = res
-                    .columns
-                    .iter()
-                    .cloned()
-                    .map(|x| TyTupleField::Single(Some(x), None))
-                    .collect();
-
-                let ty = self.declare_table_for_literal(expr_id, Some(columns));
+                // let ty = self.declare_table_for_literal(expr_id, Some(columns));
 
                 let res = Expr::new(ExprKind::Array(
                     res.rows
@@ -389,7 +380,7 @@ impl Resolver<'_> {
                         .collect(),
                 ));
                 let res = Expr {
-                    ty: Some(ty),
+                    ty: None,
                     id: text_expr.id,
                     ..res
                 };

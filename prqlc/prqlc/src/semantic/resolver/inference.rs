@@ -1,8 +1,7 @@
 use crate::Result;
 
 use crate::ast::{Ident, Ty, TyTupleField};
-use crate::ir::decl::{Decl, TableDecl, TableExpr};
-use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
+use crate::ir::decl::{TableDecl, TableExpr};
 
 use super::Resolver;
 
@@ -19,9 +18,7 @@ impl Resolver<'_> {
             return Err(format!("Variable {table_ident:?} is not a relation."));
         };
 
-        let has_wildcard = columns
-            .iter()
-            .any(|c| matches!(c, TyTupleField::Unpack(_)));
+        let has_wildcard = columns.iter().any(|c| matches!(c, TyTupleField::Unpack(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
@@ -70,39 +67,5 @@ impl Resolver<'_> {
 
         ty.clone()
             .expect("a referenced relation to have its type resolved")
-    }
-
-    /// Declares a new table for a relation literal.
-    /// This is needed for column inference to work properly.
-    pub(super) fn declare_table_for_literal(
-        &mut self,
-        input_id: usize,
-        columns: Option<Vec<TyTupleField>>,
-    ) -> Ty {
-        let id = input_id;
-        let global_name = format!("_literal_{}", id);
-
-        // declare a new table in the `default_db` module
-        let default_db_ident = Ident::from_name(NS_DEFAULT_DB);
-        let default_db = self.root_mod.module.get_mut(&default_db_ident).unwrap();
-        let default_db = default_db.kind.as_module_mut().unwrap();
-
-        let infer_default = default_db.get(&Ident::from_name(NS_INFER)).unwrap().clone();
-        let mut infer_default = *infer_default.kind.into_infer().unwrap();
-
-        let table_decl = infer_default.as_table_decl_mut().unwrap();
-        table_decl.expr = TableExpr::None;
-
-        if let Some(columns) = columns {
-            table_decl.ty = Some(Ty::relation(columns));
-        }
-
-        default_db
-            .names
-            .insert(global_name.clone(), Decl::from(infer_default));
-
-        // produce a frame of that table
-        let table_fq = default_db_ident + Ident::from_name(global_name);
-        self.ty_of_table_decl(&table_fq)
     }
 }

@@ -106,9 +106,11 @@ pub const NS_LOCAL: &str = "_local";
 // refers to the containing module (direct parent)
 pub const NS_SELF: &str = "_self";
 
+// TODO: convert this to module annotation
 // implies we can infer new non-module declarations in the containing module
 pub const NS_INFER: &str = "_infer";
 
+// TODO: convert this to module annotation
 // implies we can infer new module declarations in the containing module
 pub const NS_INFER_MODULE: &str = "_infer_module";
 
