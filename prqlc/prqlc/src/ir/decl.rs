@@ -83,6 +83,9 @@ pub enum DeclKind {
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(InferTarget),
 
+    /// A generic argument. Contains a list of possible types that this param might occupy.
+    GenericParam(Vec<(Ty, Option<Span>)>),
+
     Expr(Box<Expr>),
 
     Ty(Ty),
@@ -216,6 +219,7 @@ impl std::fmt::Display for DeclKind {
             Self::Infer(arg0) => write!(f, "Infer {arg0:?}"),
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
             Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),
+            Self::GenericParam(_) => write!(f, "GenericParam"),
             Self::QueryDef(_) => write!(f, "QueryDef"),
             Self::Import(arg0) => write!(f, "Import {arg0}"),
             Self::Unresolved(_) => write!(f, "Unresolved"),

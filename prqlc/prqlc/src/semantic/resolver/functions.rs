@@ -4,7 +4,7 @@ use std::iter::zip;
 use crate::Result;
 use itertools::Itertools;
 
-use crate::ast::{Ty, TyFunc, TyKind};
+use crate::ast::{Ty, TyFunc};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS};
@@ -16,10 +16,9 @@ impl Resolver<'_> {
     pub fn fold_function(
         &mut self,
         closure: Box<Func>,
-        id: usize,
         span: Option<Span>,
     ) -> Result<Expr> {
-        let closure = self.fold_function_types(closure, id)?;
+        let closure = self.fold_function_types(closure)?;
 
         log::debug!(
             "func {} {}/{} params",
@@ -155,7 +154,7 @@ impl Resolver<'_> {
 
     /// Folds function types, so they are resolved to material types, ready for type checking.
     /// Requires id of the function call node, so it can be used to generic type arguments.
-    pub fn fold_function_types(&mut self, mut func: Box<Func>, id: usize) -> Result<Box<Func>> {
+    pub fn fold_function_types(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
         // prepare generic arguments
         for generic_param in &func.generic_type_params {
             // TODO: fold bounds
@@ -166,12 +165,8 @@ impl Resolver<'_> {
             //     .try_collect()?;
 
             // register the generic type param in the resolver
-            let generic_id = (id, generic_param.name.clone());
-            self.generics.insert(generic_id.clone(), Vec::new());
-
-            // insert _generic.name declaration
             let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
-            let decl = Decl::from(DeclKind::Ty(Ty::new(TyKind::GenericArg(generic_id))));
+            let decl = Decl::from(DeclKind::GenericParam(vec![]));
             self.root_mod.local_mut().insert(ident, decl).unwrap();
         }
 

@@ -23,23 +23,38 @@ impl PlFold for Resolver<'_> {
                 let fq_ident = self.resolve_ident(&ident)?;
 
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
-                let decl_ty = decl.kind.as_ty().ok_or_else(|| {
-                    if decl.kind.is_unresolved() {
-                        Error::new_assert(format!(
+                let ty = match &decl.kind {
+                    DeclKind::Ty(ty) => {
+                        // materialize into the referred type
+                        let mut ty = ty.clone();
+                        ty.name = ty.name.or(Some(fq_ident.name));
+                        ty
+                    }
+
+                    DeclKind::GenericParam(_) => {
+                        // leave as an ident
+                        Ty {
+                            kind: TyKind::Ident(fq_ident),
+                            ..ty
+                        }
+                    }
+
+                    DeclKind::Unresolved(_) => {
+                        return Err(Error::new_assert(format!(
                             "bad resolution order: unresolved {fq_ident} while resolving {}",
                             self.debug_current_decl
                         ))
-                    } else {
-                        Error::new(Reason::Expected {
+                        .with_span(ty.span))
+                    }
+                    _ => {
+                        return Err(Error::new(Reason::Expected {
                             who: None,
                             expected: "a type".to_string(),
                             found: decl.to_string(),
                         })
+                        .with_span(ty.span))
                     }
-                    .with_span(ty.span)
-                })?;
-                let mut ty = decl_ty.clone();
-                ty.name = ty.name.or(Some(fq_ident.name));
+                };
 
                 self.root_mod.local_mut().unshadow(NS_THIS);
                 self.root_mod.local_mut().unshadow(NS_THAT);
@@ -160,7 +175,7 @@ impl PlFold for Resolver<'_> {
 
                     DeclKind::Expr(expr) => match &expr.kind {
                         ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(closure.clone(), id)?;
+                            let closure = self.fold_function_types(closure.clone())?;
 
                             let expr = Expr::new(ExprKind::Func(closure));
 
@@ -286,10 +301,10 @@ impl PlFold for Resolver<'_> {
 
                 // fold function
                 let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, id, *span)?
+                self.fold_function(func, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
+            ExprKind::Func(closure) => self.fold_function(closure, *span)?,
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;

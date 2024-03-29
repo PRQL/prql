@@ -139,10 +139,16 @@ impl Resolver<'_> {
     {
         // if type is a generic, restrict the generic type arg
         match &expected.kind {
-            TyKind::GenericArg(generic_id) => {
-                let inferred = self.generics.get_mut(generic_id).unwrap();
-                inferred.push((found.clone(), found.span));
+            TyKind::Ident(fq_ident) => {
+                let Some(decl) = self.root_mod.module.get_mut(fq_ident) else {
+                    return Ok(());
+                };
 
+                let DeclKind::GenericParam(inferred_types) = &mut decl.kind else {
+                    return Ok(());
+                };
+
+                inferred_types.push((found.clone(), found.span));
                 return Ok(());
             }
             TyKind::Array(expected_items) => {
@@ -198,6 +204,7 @@ impl Resolver<'_> {
             | DeclKind::TableDecl(_)
             | DeclKind::Ty(_)
             | DeclKind::InstanceOf { .. }
+            | DeclKind::GenericParam(_)
             | DeclKind::Import(_)
             | DeclKind::Unresolved(_)
             | DeclKind::QueryDef(_) => {
@@ -209,18 +216,23 @@ impl Resolver<'_> {
     pub fn resolve_generic_args(&mut self, mut ty: Ty) -> Result<Ty, Error> {
         ty.kind = match ty.kind {
             // the meaningful part
-            TyKind::GenericArg(id) => {
-                let inferred_types = self.generics.remove(&id).unwrap();
+            TyKind::Ident(ref fq_ident) => {
+                let Some(decl) = self.root_mod.module.get_mut(fq_ident) else {
+                    return Ok(ty);
+                };
+                let DeclKind::GenericParam(inferred_types) = &mut decl.kind else {
+                    return Ok(ty);
+                };
 
                 if inferred_types.len() != 1 {
                     return Err(Error::new_simple(format!(
                         "cannot determine the type of generic arg {}",
-                        id.1
+                        fq_ident.name
                     ))
                     .with_span(ty.span)
                     .push_hint(format!("got {} candidate types", inferred_types.len())));
                 }
-                let (ty, _span) = inferred_types.into_iter().next().unwrap();
+                let (ty, _span) = inferred_types.drain(..).next().unwrap();
                 return Ok(ty);
             }
 

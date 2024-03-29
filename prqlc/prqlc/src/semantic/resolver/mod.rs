@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use crate::ast::{Span, Ty};
 use crate::ir::decl::RootModule;
 use crate::utils::IdGenerator;
 
@@ -16,8 +13,6 @@ mod types;
 
 pub use types::ty_tuple_exclusion;
 
-type IdOfGenericArg = (usize, String);
-
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver<'a> {
     root_mod: &'a mut RootModule,
@@ -30,8 +25,6 @@ pub struct Resolver<'a> {
     pub id: IdGenerator<usize>,
 
     pub options: ResolverOptions,
-
-    pub generics: HashMap<IdOfGenericArg, Vec<(Ty, Option<Span>)>>,
 }
 
 #[derive(Default, Clone)]
@@ -49,7 +42,6 @@ impl Resolver<'_> {
             debug_current_decl: crate::ast::Ident::from_name("?"),
             in_func_call_name: false,
             id,
-            generics: Default::default(),
         }
     }
 }

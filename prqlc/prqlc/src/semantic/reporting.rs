@@ -75,6 +75,7 @@ impl<'a> PlFold for Labeler<'a> {
                     let color = match &decl.kind {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Ty(_) => Color::Green,
+                        DeclKind::GenericParam(_) => Color::Green,
                         DeclKind::TupleField { .. } => Color::Yellow,
                         DeclKind::InstanceOf(_, _) => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
