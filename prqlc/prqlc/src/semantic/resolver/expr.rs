@@ -126,11 +126,24 @@ impl PlFold for Resolver<'_> {
 
         let r = match node.kind {
             ExprKind::Ident(ident) => {
-                log::debug!("resolving ident {ident}...");
-                let fq_ident = self.resolve_ident(&ident).with_span(node.span)?;
+                let mut indirections = Vec::new();
+
+                log::debug!("resolving ident {ident:?}...");
+                let fq_ident = if ident.starts_with_part(NS_LOCAL) {
+                    // resolve first 2 parts as ident and convert all other into indirections
+                    let mut parts = ident.into_iter();
+                    let local = parts.next().unwrap();
+                    let name_for_lookup = parts.next().unwrap();
+                    indirections = parts.collect();
+
+                    let name_for_lookup = Ident::from_path(vec![local, name_for_lookup]);
+                    self.resolve_ident(&name_for_lookup).with_span(node.span)?
+                } else {
+                    self.resolve_ident(&ident).with_span(node.span)?
+                };
                 let log_debug = !fq_ident.starts_with_part(NS_STD);
                 if log_debug {
-                    log::debug!("... resolved to {fq_ident}")
+                    log::debug!("... resolved to {fq_ident:?}")
                 }
                 let entry = self.root_mod.module.get(&fq_ident).unwrap();
                 if log_debug {
@@ -144,22 +157,16 @@ impl PlFold for Resolver<'_> {
                     fq_ident
                 };
 
-                match &entry.kind {
-                    DeclKind::Infer(_) => Expr {
+                let expr = match &entry.kind {
+                    DeclKind::Variable(ty) => Expr {
                         kind: ExprKind::Ident(fq_ident),
+                        ty: ty.clone(),
                         ..node
                     },
-                    DeclKind::TupleField(ty) => {
-                        let base = Expr::new(fq_ident.pop().unwrap());
-                        let field = IndirectionKind::Position(entry.order as i64 - 1);
-                        let ty = ty.clone();
 
-                        let base = Box::new(self.fold_expr(base)?);
-                        Expr {
-                            kind: ExprKind::Indirection { base, field },
-                            ty,
-                            ..node
-                        }
+                    DeclKind::TupleField => {
+                        indirections.push(fq_ident.name);
+                        Expr::new(ExprKind::Ident(Ident::from_path(fq_ident.path)))
                     }
 
                     DeclKind::TableDecl(_) => {
@@ -168,7 +175,6 @@ impl PlFold for Resolver<'_> {
                         Expr {
                             kind: ExprKind::Ident(fq_ident),
                             ty: Some(ty),
-                            alias: None,
                             ..node
                         }
                     }
@@ -188,12 +194,6 @@ impl PlFold for Resolver<'_> {
                         _ => self.fold_expr(expr.as_ref().clone())?,
                     },
 
-                    DeclKind::InstanceOf(_, ty) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
-                        ty: ty.clone(),
-                        ..node
-                    },
-
                     DeclKind::Ty(_) => {
                         return Err(Error::new(Reason::Expected {
                             who: None,
@@ -203,6 +203,7 @@ impl PlFold for Resolver<'_> {
                         .with_span(*span));
                     }
 
+                    DeclKind::Infer(_) => unreachable!(),
                     DeclKind::Unresolved(_) => {
                         return Err(Error::new_assert(format!(
                             "bad resolution order: unresolved {fq_ident} while resolving {}",
@@ -214,6 +215,20 @@ impl PlFold for Resolver<'_> {
                         kind: ExprKind::Ident(fq_ident),
                         ..node
                     },
+                };
+
+                if !indirections.is_empty() {
+                    let mut expr = expr;
+                    for indirection in indirections {
+                        expr = Expr::new(ExprKind::Indirection {
+                            base: Box::new(expr),
+                            field: IndirectionKind::Name(indirection),
+                        });
+                    }
+                    expr.flatten = node.flatten;
+                    self.fold_expr(expr)?
+                } else {
+                    expr
                 }
             }
 
@@ -229,28 +244,29 @@ impl PlFold for Resolver<'_> {
                     .with_span(*span));
                 };
 
-                // if let IndirectionKind::Star = field {
-                //     if node.alias.is_some() {
-                //         return Err(
-                //             Error::new_simple("alias not allowed on wildcards references")
-                //                 .with_span(*span),
-                //         );
-                //     }
-                //     Expr {
-                //         flatten: true,
-                //         ..base
-                //     }
-                // } else {
                 let (position, ty_field) = match field {
                     IndirectionKind::Name(field_name) => {
-                        let field = fields.iter().find_position(|f| match f {
+                        let mut field = fields.iter().find_position(|f| match f {
                             TyTupleField::Single(Some(n), _) => n == &field_name,
                             _ => false,
                         });
 
+                        // fallback: infer a field of a generic type argument
+                        if field.is_none() {
+                            if let Some((pos_of_unpack, generic_ident)) = fields
+                                .iter()
+                                .enumerate()
+                                .find_map(|(pos, x)| as_field_unpack_of_ident(x).map(|i| (pos, i)))
+                            {
+                                let (pos, ty_field) =
+                                    self.infer_tuple_field_of_generic(generic_ident, &field_name)?;
+                                field = Some((pos + pos_of_unpack, ty_field));
+                            }
+                        }
+
                         let Some((position, field)) = field else {
                             return Err(Error::new_simple(format!(
-                                "cannot lookup field {field_name} in tuple {}",
+                                "cannot lookup field `{field_name}` in tuple {}",
                                 write_ty(ty)
                             ))
                             .with_span(*span));
@@ -260,7 +276,7 @@ impl PlFold for Resolver<'_> {
                     IndirectionKind::Position(position) => {
                         let Some(field) = fields.get(position as usize) else {
                             return Err(Error::new_simple(format!(
-                                "cannot lookup field {position} in tuple {}, which only has {} fields",
+                                "cannot lookup field `{position}` in tuple {}, which only has {} fields",
                                 write_ty(ty),
                                 fields.len(),
                             )).with_span(*span));
@@ -333,6 +349,12 @@ impl PlFold for Resolver<'_> {
     }
 }
 
+fn as_field_unpack_of_ident(x: &TyTupleField) -> Option<&Ident> {
+    x.as_unpack()
+        .and_then(|x| x.as_ref())
+        .and_then(|x| x.kind.as_ident())
+}
+
 impl Resolver<'_> {
     fn finish_expr_resolve(
         &mut self,
@@ -348,7 +370,7 @@ impl Resolver<'_> {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Resolver::infer_type(&r)?;
+            r.ty = self.infer_type(&r)?;
         }
         if let Some(ty) = &mut r.ty {
             if ty.is_relation() {

@@ -66,7 +66,7 @@ impl Resolver<'_> {
         };
 
         closure.return_ty = self
-            .resolve_generic_args_opt(closure.return_ty)
+            .finalize_generic_args_opt(closure.return_ty)
             .with_span_fallback(span)?;
 
         let needs_window = (closure.params.last())
@@ -166,7 +166,7 @@ impl Resolver<'_> {
 
             // register the generic type param in the resolver
             let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
-            let decl = Decl::from(DeclKind::GenericParam(vec![]));
+            let decl = Decl::from(DeclKind::GenericParam(None));
             self.root_mod.local_mut().insert(ident, decl).unwrap();
         }
 

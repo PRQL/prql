@@ -2,15 +2,13 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 
-use crate::Result;
-
 use crate::ast::Ident;
-
-use crate::ir::decl::{Decl, DeclKind, InferTarget, Module};
+use crate::ir::decl::DeclKind;
 use crate::semantic::{
-    NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_SELF, NS_THAT, NS_THIS,
+    NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS,
 };
 use crate::Error;
+use crate::Result;
 use crate::WithErrorInfo;
 
 use super::Resolver;
@@ -69,7 +67,7 @@ impl Resolver<'_> {
         };
 
         for (ident, decl) in this.as_decls().into_iter().sorted_by_key(|x| x.1.order) {
-            if let DeclKind::TupleField(_) = decl.kind {
+            if let DeclKind::Variable(_) = decl.kind {
                 cols.push(ident);
             }
         }
@@ -134,38 +132,6 @@ impl Resolver<'_> {
             0 => Err(None),
             _ => Err(Some(ambiguous_error(decls, Some(&ident.name)))),
         }
-    }
-
-    /// Create a declaration of [original] from template provided by declaration of [infer_ident].
-    fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
-        let infer = self.root_mod.module.get(&infer_ident).unwrap();
-        let infer_target = infer.kind.as_infer().unwrap();
-
-        // prepare the new declaration
-        let new_decl = match infer_target {
-            InferTarget::DatabaseModule => DeclKind::Module(Module::new_database()),
-            InferTarget::Table => DeclKind::TableDecl(Module::new_table()),
-            InferTarget::TupleField(ty) => DeclKind::TupleField(ty.clone()),
-        };
-        let new_decl = Decl::from(new_decl);
-
-        // find the module to insert into
-        let module_ident = infer_ident.pop().unwrap();
-        let module = self.root_mod.module.get_mut(&module_ident).unwrap();
-        let module = module.kind.as_module_mut().unwrap();
-
-        // insert
-        module.names.insert(original.name.clone(), new_decl);
-
-        // if this was inferred to be a field of a tuple, go and infer table columns
-        if let Some(decl) = module.names.get(NS_SELF).cloned() {
-            if let DeclKind::InstanceOf(table_ident, _) = decl.kind {
-                log::debug!("inferring {original} to be from table {table_ident}");
-                self.infer_table_column(&table_ident, &original.name)?;
-            }
-        }
-
-        Ok(module_ident + Ident::from_name(original.name.clone()))
     }
 }
 

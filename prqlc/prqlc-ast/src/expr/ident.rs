@@ -4,7 +4,7 @@ use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer}
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Ident {
     pub path: Vec<String>,
     pub name: String,
@@ -19,7 +19,7 @@ impl Ident {
     }
 
     /// Creates a new ident from a non-empty path.
-    /// 
+    ///
     /// Panics if path is empty.
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
         let name = path.pop().unwrap().to_string();
@@ -95,6 +95,15 @@ impl Ident {
 
     pub fn starts_with_part(&self, prefix: &str) -> bool {
         self.starts_with_path(&[prefix])
+    }
+}
+
+impl std::fmt::Debug for Ident {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list()
+            .entries(&self.path)
+            .entry(&self.name)
+            .finish()
     }
 }
 

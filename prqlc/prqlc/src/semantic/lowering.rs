@@ -6,7 +6,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
-use crate::ast::TyTupleField;
+use crate::ast::{TyKind, TyTupleField};
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, PlFold, QueryDef};
@@ -78,68 +78,6 @@ pub fn lower_to_ir(
         relation: main_relation.unwrap(),
     };
     Ok((query, l.root_mod))
-}
-
-fn extern_ref_to_relation(
-    ty_tuple_fields: Vec<TyTupleField>,
-    fq_ident: &Ident,
-    database_module_path: &[String],
-) -> Result<(rq::Relation, Option<String>), Error> {
-    let extern_name = if fq_ident.starts_with_path(database_module_path) {
-        let relative_to_database: Vec<&String> =
-            fq_ident.iter().skip(database_module_path.len()).collect();
-        if relative_to_database.is_empty() {
-            None
-        } else {
-            Some(Ident::from_path(relative_to_database))
-        }
-    } else {
-        None
-    };
-
-    let Some(extern_name) = extern_name else {
-        let database_module = Ident::from_path(database_module_path.to_vec());
-        return Err(Error::new_simple("this table is not in the current database")
-            .push_hint(format!("If this is a table in the current database, move its declaration into module {database_module}")));
-    };
-
-    // put unpack last
-    let mut ty_tuple_fields = ty_tuple_fields;
-    ty_tuple_fields.sort_by_key(|a| matches!(a, TyTupleField::Unpack(_)));
-
-    let relation = rq::Relation {
-        kind: rq::RelationKind::ExternRef(extern_name),
-        columns: ty_tuple_to_relation_columns(ty_tuple_fields, None),
-    };
-    Ok((relation, None))
-}
-
-fn ty_tuple_to_relation_columns(
-    fields: Vec<TyTupleField>,
-    prefix: Option<String>,
-) -> Vec<RelationColumn> {
-    fields
-        .into_iter()
-        .flat_map(|field| match field {
-            TyTupleField::Single(mut name, ty) => {
-                if let Some(p) = &prefix {
-                    if let Some(n) = &mut name {
-                        *n = format!("{p}.{n}");
-                    } else {
-                        name = Some(p.clone());
-                    }
-                }
-
-                if ty.as_ref().map_or(false, |t| t.kind.is_tuple()) {
-                    let inner = ty.unwrap().kind.into_tuple().unwrap();
-                    return ty_tuple_to_relation_columns(inner, name);
-                }
-
-                vec![RelationColumn::Single(name)]
-            }
-            TyTupleField::Unpack(_) => vec![RelationColumn::Wildcard],
-        })
-        .collect_vec()
 }
 
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
@@ -227,9 +165,7 @@ impl Lowerer {
                 // a CTE
                 (self.lower_relation(*expr)?, Some(fq_ident.name.clone()))
             }
-            TableExpr::LocalTable => {
-                extern_ref_to_relation(columns, &fq_ident, &self.database_module_path)?
-            }
+            TableExpr::LocalTable => self.extern_ref_to_relation(columns, &fq_ident)?,
             TableExpr::Param(_) => unreachable!(),
             TableExpr::None => return Ok(()),
         };
@@ -428,7 +364,7 @@ impl Lowerer {
         log::debug!("... columns = {:?}", columns);
 
         let mut rel_columns = Vec::new();
-        for (_, cid) in &columns {
+        for (_rel_col, cid) in &columns {
             let id = self.id.gen();
             self.node_mapping.insert(id, LoweredTarget::Column(*cid));
 
@@ -444,11 +380,110 @@ impl Lowerer {
         }
     }
 
+    fn extern_ref_to_relation(
+        &self,
+        ty_tuple_fields: Vec<TyTupleField>,
+        fq_ident: &Ident,
+    ) -> Result<(rq::Relation, Option<String>), Error> {
+        let extern_name = if fq_ident.starts_with_path(&self.database_module_path) {
+            let relative_to_database: Vec<&String> = fq_ident
+                .iter()
+                .skip(self.database_module_path.len())
+                .collect();
+            if relative_to_database.is_empty() {
+                None
+            } else {
+                Some(Ident::from_path(relative_to_database))
+            }
+        } else {
+            None
+        };
+
+        let Some(extern_name) = extern_name else {
+            let database_module = Ident::from_path(self.database_module_path.clone());
+            return Err(Error::new_simple("this table is not in the current database")
+                .push_hint(format!("If this is a table in the current database, move its declaration into module {database_module}")));
+        };
+
+        // put unpack last
+        let mut ty_tuple_fields = ty_tuple_fields;
+        ty_tuple_fields.sort_by_key(|a| matches!(a, TyTupleField::Unpack(_)));
+
+        let relation = rq::Relation {
+            kind: rq::RelationKind::ExternRef(extern_name),
+            columns: self.ty_tuple_to_relation_columns(ty_tuple_fields, None)?,
+        };
+        Ok((relation, None))
+    }
+
+    fn ty_tuple_to_relation_columns(
+        &self,
+        fields: Vec<TyTupleField>,
+        prefix: Option<String>,
+    ) -> Result<Vec<RelationColumn>> {
+        let mut new_fields = Vec::with_capacity(fields.len());
+
+        for field in fields {
+            match field {
+                TyTupleField::Single(mut name, ty) => {
+                    if let Some(p) = &prefix {
+                        if let Some(n) = &mut name {
+                            *n = format!("{p}.{n}");
+                        } else {
+                            name = Some(p.clone());
+                        }
+                    }
+
+                    if ty.as_ref().map_or(false, |t| t.kind.is_tuple()) {
+                        let inner = ty.unwrap().kind.into_tuple().unwrap();
+                        new_fields.extend(self.ty_tuple_to_relation_columns(inner, name)?);
+                    } else {
+                        new_fields.push(RelationColumn::Single(name));
+                    }
+                }
+                TyTupleField::Unpack(Some(ty)) => {
+                    let TyKind::Ident(fq_ident) = ty.kind else {
+                        return Err(Error::new_assert(
+                            "unpack should contain only ident of a generic, probably",
+                        ));
+                    };
+                    let decl = self.root_mod.module.get(&fq_ident).unwrap();
+                    let DeclKind::GenericParam(inferred_ty) = &decl.kind else {
+                        return Err(Error::new_assert(
+                            "unpack should contain only ident of a generic, probably",
+                        ));
+                    };
+
+                    let Some((ty, _)) = inferred_ty else {
+                        // no info about the type
+                        new_fields.push(RelationColumn::Wildcard);
+                        continue;
+                    };
+
+                    let TyKind::Tuple(ty_fields) = &ty.kind else {
+                        return Err(Error::new_assert("unpack can only contain a tuple type"));
+                    };
+
+                    for field in ty_fields {
+                        let (name, _ty) = field.as_single().unwrap(); // generic cannot contain unpacks, right?
+                        new_fields.push(RelationColumn::Single(name.clone()));
+                    }
+
+                    // we are not sure about this type (because it is still a generic)
+                    // so we must append "all other unmentioned columns"
+                    new_fields.push(RelationColumn::Wildcard);
+                }
+                TyTupleField::Unpack(None) => todo!("make Unpack contain a non Option-al Ty"),
+            }
+        }
+        Ok(new_fields)
+    }
+
     fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
         let id = expr.id.unwrap();
 
         let relation_fields = expr.ty.as_ref().and_then(|t| t.as_relation()).unwrap();
-        let columns = ty_tuple_to_relation_columns(relation_fields.clone(), None);
+        let columns = self.ty_tuple_to_relation_columns(relation_fields.clone(), None)?;
 
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
@@ -883,7 +918,8 @@ impl Lowerer {
 
     fn lookup_ident(&self, ident: Ident) -> Result<LoweredTarget, Error> {
         if ident.path != [NS_LOCAL] {
-            return Err(Error::new_assert("non-local unresolved reference"));
+            return Err(Error::new_assert("non-local unresolved reference")
+                .push_hint(format!("ident={ident:?}")));
         }
         let target_id = match ident.name.as_str() {
             NS_THIS => self.local_this_id.as_ref(),
@@ -915,7 +951,7 @@ impl Lowerer {
     ) -> Result<&LoweredTarget> {
         let base_target = self.node_mapping.get(&base_id).unwrap();
 
-        let mapped_relation = base_target.as_relation().ok_or_else(|| {
+        let base_relation = base_target.as_relation().ok_or_else(|| {
             Error::new_assert("indirection on non-relation")
                 .push_hint(format!("base={base_target:?}"))
                 .push_hint(format!("field={field:?}"))
@@ -925,9 +961,11 @@ impl Lowerer {
             .as_position()
             .expect("indirections to be resolved into positional");
 
-        let target_id = mapped_relation
-            .get(*pos as usize)
-            .expect("id to be lowered");
+        let target_id = base_relation.get(*pos as usize).ok_or_else(|| {
+            Error::new_assert("bad lowering: tuple field position out of bounds")
+                .push_hint(format!("base relation={base_relation:?}"))
+                .push_hint(format!("pos={pos}"))
+        })?;
 
         let target = self.node_mapping.get(target_id).ok_or_else(|| {
             Error::new_assert("node not lowered yet")

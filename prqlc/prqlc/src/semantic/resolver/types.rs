@@ -12,7 +12,7 @@ use crate::{Error, Reason, Span, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn infer_type(expr: &Expr) -> Result<Option<Ty>> {
+    pub fn infer_type(&self, expr: &Expr) -> Result<Option<Ty>> {
         if let Some(ty) = &expr.ty {
             return Ok(Some(ty.clone()));
         }
@@ -40,7 +40,7 @@ impl Resolver<'_> {
                 let mut ty_fields: Vec<TyTupleField> = Vec::with_capacity(fields.len());
 
                 for field in fields {
-                    let ty = Resolver::infer_type(field)?;
+                    let ty = self.infer_type(field)?;
 
                     if field.flatten {
                         let ty = ty.clone().unwrap();
@@ -57,7 +57,7 @@ impl Resolver<'_> {
                     let name = field
                         .alias
                         .clone()
-                        .or_else(|| infer_tuple_field_name(field));
+                        .or_else(|| self.infer_tuple_field_name(field));
 
                     ty_fields.push(TyTupleField::Single(name, ty));
                 }
@@ -66,7 +66,7 @@ impl Resolver<'_> {
             ExprKind::Array(items) => {
                 let mut variants = Vec::with_capacity(items.len());
                 for item in items {
-                    let item_ty = Resolver::infer_type(item)?;
+                    let item_ty = self.infer_type(item)?;
                     if let Some(item_ty) = item_ty {
                         variants.push(item_ty);
                     }
@@ -77,10 +77,10 @@ impl Resolver<'_> {
             }
 
             ExprKind::All { within, except } => {
-                let Some(within_ty) = Resolver::infer_type(within)? else {
+                let Some(within_ty) = self.infer_type(within)? else {
                     return Ok(None);
                 };
-                let Some(except_ty) = Resolver::infer_type(except)? else {
+                let Some(except_ty) = self.infer_type(except)? else {
                     return Ok(None);
                 };
                 let field_mask =
@@ -144,11 +144,12 @@ impl Resolver<'_> {
                     return Ok(());
                 };
 
-                let DeclKind::GenericParam(inferred_types) = &mut decl.kind else {
+                let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
                     return Ok(());
                 };
 
-                inferred_types.push((found.clone(), found.span));
+                // TODO: check that we are not overriding here
+                *inferred_type = Some((found.clone(), found.span));
                 return Ok(());
             }
             TyKind::Array(expected_items) => {
@@ -186,96 +187,119 @@ impl Resolver<'_> {
         Err(compose_type_error(found, expected, who).with_span(span))
     }
 
-    /// Saves information that declaration identified by `fq_ident` must be of type `sub_ty`.
-    /// Param `sub_ty` must be a sub type of the current type of the declaration.
-    #[allow(dead_code)]
-    pub fn push_type_info(&mut self, fq_ident: &Ident, sub_ty: Ty) {
-        let decl = self.root_mod.module.get_mut(fq_ident).unwrap();
-
-        match &mut decl.kind {
-            DeclKind::Expr(expr) => {
-                restrict_type_opt(&mut expr.ty, Some(sub_ty));
-            }
-
-            DeclKind::Module(_)
-            | DeclKind::LayeredModules(_)
-            | DeclKind::TupleField(_)
-            | DeclKind::Infer(_)
-            | DeclKind::TableDecl(_)
-            | DeclKind::Ty(_)
-            | DeclKind::InstanceOf { .. }
-            | DeclKind::GenericParam(_)
-            | DeclKind::Import(_)
-            | DeclKind::Unresolved(_)
-            | DeclKind::QueryDef(_) => {
-                panic!("declaration {decl} is not able to have a type")
-            }
-        }
-    }
-
-    pub fn resolve_generic_args(&mut self, mut ty: Ty) -> Result<Ty, Error> {
+    pub fn finalize_generic_args(&self, mut ty: Ty) -> Result<Ty, Error> {
         ty.kind = match ty.kind {
             // the meaningful part
             TyKind::Ident(ref fq_ident) => {
-                let Some(decl) = self.root_mod.module.get_mut(fq_ident) else {
-                    return Ok(ty);
-                };
-                let DeclKind::GenericParam(inferred_types) = &mut decl.kind else {
+                let decl = self.root_mod.module.get(fq_ident).unwrap();
+                let DeclKind::GenericParam(inferred_type) = &decl.kind else {
                     return Ok(ty);
                 };
 
-                if inferred_types.len() != 1 {
+                let Some((ty, _span)) = inferred_type.as_ref() else {
                     return Err(Error::new_simple(format!(
                         "cannot determine the type of generic arg {}",
                         fq_ident.name
                     ))
-                    .with_span(ty.span)
-                    .push_hint(format!("got {} candidate types", inferred_types.len())));
-                }
-                let (ty, _span) = inferred_types.drain(..).next().unwrap();
-                return Ok(ty);
+                    .with_span(ty.span));
+                };
+                return Ok(ty.clone());
             }
 
             // recurse into container types
-            // this could probably be implemented with folding, but I don't want another full fold impl
-            TyKind::Tuple(fields) => TyKind::Tuple(
-                fields
-                    .into_iter()
-                    .map(|field| -> Result<_, Error> {
-                        Ok(match field {
-                            TyTupleField::Single(name, ty) => {
-                                TyTupleField::Single(name, self.resolve_generic_args_opt(ty)?)
-                            }
-                            TyTupleField::Unpack(ty) => {
-                                TyTupleField::Unpack(self.resolve_generic_args_opt(ty)?)
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
-            TyKind::Array(ty) => TyKind::Array(Box::new(self.resolve_generic_args(*ty)?)),
+            // this could probably be implemented with folding, but I'm lazy
+            TyKind::Primitive(p) => TyKind::Primitive(p),
+            TyKind::Tuple(fields) => {
+                let mut new_fields = Vec::with_capacity(fields.len());
+
+                for field in fields {
+                    match field {
+                        TyTupleField::Single(name, ty) => {
+                            let ty = self.finalize_generic_args_opt(ty)?;
+                            new_fields.push(TyTupleField::Single(name, ty));
+                        }
+                        TyTupleField::Unpack(ty) => {
+                            let resolved = self.finalize_generic_args_opt(ty)?;
+                            new_fields.push(TyTupleField::Unpack(resolved));
+                        }
+                    }
+                }
+                TyKind::Tuple(new_fields)
+            }
+            TyKind::Array(ty) => TyKind::Array(Box::new(self.finalize_generic_args(*ty)?)),
             TyKind::Function(func) => TyKind::Function(
                 func.map(|f| -> Result<_, Error> {
                     Ok(TyFunc {
                         args: f
                             .args
                             .into_iter()
-                            .map(|a| self.resolve_generic_args_opt(a))
+                            .map(|a| self.finalize_generic_args_opt(a))
                             .try_collect()?,
-                        return_ty: Box::new(self.resolve_generic_args_opt(*f.return_ty)?),
+                        return_ty: Box::new(self.finalize_generic_args_opt(*f.return_ty)?),
                         name_hint: f.name_hint,
                     })
                 })
                 .transpose()?,
             ),
-
-            _ => ty.kind,
         };
         Ok(ty)
     }
 
-    pub fn resolve_generic_args_opt(&mut self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
-        ty.map(|x| self.resolve_generic_args(x)).transpose()
+    pub fn finalize_generic_args_opt(&self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
+        ty.map(|x| self.finalize_generic_args(x)).transpose()
+    }
+
+    fn infer_tuple_field_name(&self, field: &Expr) -> Option<String> {
+        // at this stage, this expr should already be fully resolved
+        // this means that any indirections will be tuple positional
+        // so we check for that and pull the name from the type of the base
+
+        let ExprKind::Indirection {
+            base,
+            field: IndirectionKind::Position(pos),
+        } = &field.kind
+        else {
+            return None;
+        };
+
+        let ty = base.ty.as_ref()?;
+        self.apply_ty_tuple_indirection(ty, *pos as usize)
+    }
+
+    fn apply_ty_tuple_indirection(&self, ty: &Ty, pos: usize) -> Option<String> {
+        match &ty.kind {
+            TyKind::Tuple(fields) => {
+                // this tuple might contain Unpacks (which affect positions of fields after them)
+                // so we need to resolve this type full first.
+
+                let unpack_pos = (fields.iter())
+                    .position(|f| f.is_unpack())
+                    .unwrap_or(fields.len());
+                if pos < unpack_pos {
+                    // unpacks don't interfere with preceding fields
+                    let field = fields.get(pos)?;
+
+                    field.as_single().unwrap().0.clone()
+                } else {
+                    let pos_within_unpack = pos - unpack_pos;
+
+                    let unpack_ty = fields.get(unpack_pos)?.as_unpack().unwrap();
+                    let unpack_ty = unpack_ty.as_ref().unwrap();
+
+                    self.apply_ty_tuple_indirection(unpack_ty, pos_within_unpack)
+                }
+            }
+
+            TyKind::Ident(fq_ident) => {
+                let decl = self.root_mod.module.get(dbg!(fq_ident)).unwrap();
+                let inferred_type = decl.kind.as_generic_param()?;
+                let (inferred_type, _) = inferred_type.as_ref()?;
+
+                self.apply_ty_tuple_indirection(inferred_type, pos)
+            }
+
+            _ => None,
+        }
     }
 }
 
@@ -316,25 +340,6 @@ pub fn ty_tuple_exclusion(
     Ok(mask)
 }
 
-fn infer_tuple_field_name(field: &Expr) -> Option<String> {
-    // at this stage, this expr should already be fully resolved
-    // this means that any indirections will be tuple positional
-    // so we check for that and pull the name from the type of the base
-
-    let ExprKind::Indirection {
-        base,
-        field: IndirectionKind::Position(pos),
-    } = &field.kind
-    else {
-        return None;
-    };
-
-    let base_ty = base.ty.as_ref()?;
-    let base_field = base_ty.kind.as_tuple()?.get(*pos as usize)?;
-
-    base_field.as_single()?.0.clone()
-}
-
 pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {
     let mut res: Vec<TyTupleField> = Vec::with_capacity(fields.len());
     for field in fields {
@@ -351,66 +356,6 @@ pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {
         res.push(field);
     }
     TyKind::Tuple(res)
-}
-
-fn restrict_type_opt(ty: &mut Option<Ty>, sub_ty: Option<Ty>) {
-    let Some(sub_ty) = sub_ty else {
-        return;
-    };
-    if let Some(ty) = ty {
-        restrict_type(ty, sub_ty)
-    } else {
-        *ty = Some(sub_ty);
-    }
-}
-
-fn restrict_type(ty: &mut Ty, sub_ty: Ty) {
-    match (&mut ty.kind, sub_ty.kind) {
-        (TyKind::Primitive(_), _) => {}
-
-        (TyKind::Tuple(tuple), TyKind::Tuple(sub_tuple)) => {
-            for sub_field in sub_tuple {
-                match sub_field {
-                    TyTupleField::Single(sub_name, sub_ty) => {
-                        if let Some(sub_name) = sub_name {
-                            let existing = tuple
-                                .iter_mut()
-                                .filter_map(|x| x.as_single_mut())
-                                .find(|f| f.0.as_ref() == Some(&sub_name));
-
-                            if let Some((_, existing)) = existing {
-                                restrict_type_opt(existing, sub_ty)
-                            } else {
-                                tuple.push(TyTupleField::Single(Some(sub_name), sub_ty));
-                            }
-                        } else {
-                            // TODO: insert unnamed fields?
-                        }
-                    }
-                    TyTupleField::Unpack(_) => todo!("remove TupleField::Wildcard"),
-                }
-            }
-        }
-
-        (TyKind::Array(ty), TyKind::Array(sub_ty)) => restrict_type(ty, *sub_ty),
-
-        (TyKind::Function(ty), TyKind::Function(sub_ty)) => {
-            if sub_ty.is_none() {
-                return;
-            }
-            if ty.is_none() {
-                *ty = sub_ty;
-                return;
-            }
-            if let (Some(func), Some(sub_func)) = (ty, sub_ty) {
-                todo!("restrict function {func:?} to function {sub_func:?}")
-            }
-        }
-
-        _ => {
-            panic!("trying to restrict a type with a non sub type")
-        }
-    }
 }
 
 fn compose_type_error<F>(found_ty: &mut Ty, expected: &Ty, who: &F) -> Error

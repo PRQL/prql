@@ -37,10 +37,6 @@ pub struct Module {
 
     /// A declaration that has been shadowed (overwritten) by this module.
     pub shadowed: Option<Box<Decl>>,
-
-    /// When a reference into this module does not exist, this declaration will
-    /// be instantiated instead.
-    pub infer_decl: Option<Box<Decl>>,
 }
 
 /// A struct containing information about a single declaration
@@ -71,20 +67,22 @@ pub enum DeclKind {
     /// Nested namespaces that do lookup in layers from top to bottom, stopping at first match.
     LayeredModules(Vec<Module>),
 
+    // TODO: merge this into Expr
     TableDecl(TableDecl),
 
-    InstanceOf(Ident, Option<Ty>),
+    /// A function parameter (usually the implicit `this` param)
+    // TODO: make this type non-optional
+    Variable(Option<Ty>),
 
-    /// A single column. Contains id of target which is either:
-    /// - an input relation that is source of this column or
-    /// - a column expression.
-    TupleField(Option<Ty>),
+    TupleField,
 
     /// Contains a default value to be created in parent namespace when NS_INFER is matched.
     Infer(InferTarget),
 
-    /// A generic argument. Contains a list of possible types that this param might occupy.
-    GenericParam(Vec<(Ty, Option<Span>)>),
+    /// A generic type argument.
+    /// It contains inferred type that we found during type validation.
+    /// Span describes the node that proposed that type.
+    GenericParam(Option<(Ty, Option<Span>)>),
 
     Expr(Box<Expr>),
 
@@ -105,7 +103,7 @@ pub enum DeclKind {
 pub enum InferTarget {
     DatabaseModule,
     Table,
-    TupleField(Option<Ty>),
+    TupleField,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -214,8 +212,10 @@ impl std::fmt::Display for DeclKind {
                     ty.as_ref().map(write_ty).unwrap_or_default()
                 )
             }
-            Self::InstanceOf(arg0, _) => write!(f, "InstanceOf: {arg0}"),
-            Self::TupleField(arg0) => write!(f, "TupleField (target {arg0:?})"),
+            Self::Variable(arg0) => {
+                write!(f, "Variable of type {}", write_ty(arg0.as_ref().unwrap()))
+            }
+            Self::TupleField => write!(f, "TupleField"),
             Self::Infer(arg0) => write!(f, "Infer {arg0:?}"),
             Self::Expr(arg0) => write!(f, "Expr: {}", write_pl(*arg0.clone())),
             Self::Ty(arg0) => write!(f, "Ty: {}", write_ty(arg0)),

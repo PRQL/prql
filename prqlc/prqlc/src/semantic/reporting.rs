@@ -76,8 +76,8 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Ty(_) => Color::Green,
                         DeclKind::GenericParam(_) => Color::Green,
-                        DeclKind::TupleField { .. } => Color::Yellow,
-                        DeclKind::InstanceOf(_, _) => Color::Yellow,
+                        DeclKind::Variable { .. } => Color::Yellow,
+                        DeclKind::TupleField => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
                         DeclKind::Module(module) => {
                             self.label_module(module);

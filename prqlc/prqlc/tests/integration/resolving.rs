@@ -11,16 +11,32 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
 
     // resolved PL, restricted back into AST
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);
-    drop_module_defs(&mut root_module.stmts, &["std", "db", "_local"]);
+    drop_irrelevant_stuff(
+        &mut root_module.stmts,
+        &["std", "_local", "_infer", "_infer_module", "_generic"],
+    );
 
     prqlc::pl_to_prql(&root_module)
 }
 
-fn drop_module_defs(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
-    stmts.retain(|x| {
-        x.kind
-            .as_module_def()
-            .map_or(true, |m| !to_drop.contains(&m.name.as_str()))
+fn drop_irrelevant_stuff(stmts: &mut Vec<prqlc_ast::stmt::Stmt>, to_drop: &[&str]) {
+    stmts.retain_mut(|x| {
+        match &mut x.kind {
+            prqlc_ast::StmtKind::ModuleDef(m) => {
+                if to_drop.contains(&m.name.as_str()) {
+                    return false;
+                }
+
+                drop_irrelevant_stuff(&mut m.stmts, to_drop);
+            }
+            prqlc_ast::StmtKind::VarDef(v) => {
+                if to_drop.contains(&v.name.as_str()) {
+                    return false;
+                }
+            }
+            _ => (),
+        }
+        true
     });
 }
 
@@ -34,6 +50,10 @@ fn resolve_basic_01() {
     from db.x
     select {a, b}
     "#).unwrap(), @r###"
+    module db {
+      let x <[{a = int, b = text, c = float}]> = internal local_table
+    }
+
     let main <[{a = int, b = text}]> = `(Select ...)`
     "###)
 }
@@ -47,6 +67,9 @@ fn resolve_tuple_unpacking() {
     "#).unwrap(), @r###"
     type Employee = {first_name = text, age = int}
 
+    module db {
+    }
+
     let employees <[{id = int, first_name = text, age = int}]> = internal local_table
     "###)
 }
@@ -58,6 +81,9 @@ fn resolve_function_01() {
       param_1 + 1
     )
     "#).unwrap(), @r###"
+    module db {
+    }
+
     let my_func = func param_1 <param_1_type> -> <Ret_ty> std.add param_1 1
     "###)
 }
@@ -77,8 +103,62 @@ fn resolve_generics_01() {
       std.add a 1
     )
 
+    module db {
+    }
+
     let my_float <float> = `(std.add ...)`
 
     let my_int <int> = `(std.add ...)`
+    "###);
+}
+
+#[test]
+fn table_inference_01() {
+    assert_snapshot!(resolve(
+        r#"
+    from db.employees
+    "#,
+    )
+    .unwrap(), @r###"
+    module db {
+      let employees <[{.._generic.G108}]> = internal local_table
+    }
+
+    let main <[{.._generic.G108}]> = db.employees
+    "###);
+}
+
+#[test]
+fn table_inference_02() {
+    assert_snapshot!(resolve(
+        r#"
+    from db.employees
+    select {id, age}
+    "#,
+    )
+    .unwrap(), @r###"
+    module db {
+      let employees <[{.._generic.G111}]> = internal local_table
+    }
+
+    let main <[{id = _generic.G117, age = _generic.G121}]> = `(Select ...)`
+    "###);
+}
+
+#[test]
+fn table_inference_03() {
+    assert_snapshot!(resolve(
+        r#"
+    from db.employees
+    select {e = this}
+    select {e.name}
+    "#,
+    )
+    .unwrap(), @r###"
+    module db {
+      let employees <[{.._generic.G114}]> = internal local_table
+    }
+
+    let main <[{name = _generic.G124}]> = `(Select ...)`
     "###);
 }

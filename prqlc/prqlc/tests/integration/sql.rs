@@ -5429,7 +5429,6 @@ fn query_08() {
     );
 }
 
-
 #[test]
 fn query_09() {
     assert_snapshot!(compile(
@@ -5501,6 +5500,22 @@ fn query_12() {
     from db.employees
     select {e = {x = id, y = age}}
     select {..e}
+    "###).unwrap(), @r###"
+    SELECT
+      id AS x,
+      age AS y
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn query_13() {
+    assert_snapshot!(compile(
+    r###"
+    from db.employees
+    select {x = id, y = age}
     "###).unwrap(), @r###"
     SELECT
       id AS x,

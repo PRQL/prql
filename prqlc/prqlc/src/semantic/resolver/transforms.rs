@@ -579,7 +579,7 @@ impl Resolver<'_> {
             vec![dummy],
         )));
 
-        let env = Module::singleton(param_name, Decl::from(DeclKind::TupleField(None)));
+        let env = Module::singleton(param_name, Decl::from(DeclKind::Variable(None)));
         self.root_mod.local_mut().stack_push(NS_PARAM, env);
 
         let mut pipeline = self.fold_expr(pipeline)?;

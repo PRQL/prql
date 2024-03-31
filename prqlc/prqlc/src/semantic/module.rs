@@ -8,8 +8,8 @@ use crate::ir::pl::{Expr, Ident};
 use crate::Error;
 
 use super::{
-    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_MAIN, NS_PARAM,
-    NS_QUERY_DEF, NS_SELF, NS_STD, NS_THAT, NS_THIS,
+    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_MAIN,
+    NS_PARAM, NS_QUERY_DEF, NS_SELF, NS_STD, NS_THAT, NS_THIS,
 };
 use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule, TableDecl, TableExpr};
 
@@ -94,13 +94,13 @@ impl Module {
                             Ident::from_name(NS_PARAM),
                             Ident::from_name(NS_GENERIC),
                         ],
-                        infer_decl: None,
                     })),
                 ),
             ]),
             shadowed: None,
-            redirects: vec![],
-            infer_decl: None,
+            redirects: vec![
+                Ident::from_name(NS_GENERIC),
+            ],
         }
     }
 
@@ -124,7 +124,6 @@ impl Module {
         ]);
         Module {
             names,
-            infer_decl: Some(Box::new(Decl::from(DeclKind::TableDecl(Self::new_table())))),
             ..Default::default()
         }
     }
@@ -293,9 +292,9 @@ impl Module {
 
         for (field_index, field) in fields.iter().enumerate() {
             match field {
-                TyTupleField::Single(Some(name), ty) => {
+                TyTupleField::Single(Some(name), ..) => {
                     let decl = Decl {
-                        kind: DeclKind::TupleField(ty.clone()),
+                        kind: DeclKind::TupleField,
                         declared_at: None,
                         order: field_index + 1,
                         ..Default::default()
@@ -307,9 +306,9 @@ impl Module {
                     // unnamed columns cannot be referenced
                 }
 
-                TyTupleField::Unpack(ty) => {
+                TyTupleField::Unpack(_) => {
                     let decl = Decl {
-                        kind: DeclKind::Infer(InferTarget::TupleField(ty.clone())),
+                        kind: DeclKind::Infer(InferTarget::TupleField),
                         declared_at: None,
                         order: field_index + 1,
                         ..Default::default()
@@ -322,21 +321,17 @@ impl Module {
         // insert namespace._self with correct type
         namespace.names.insert(
             NS_SELF.to_string(),
-            Decl::from(DeclKind::InstanceOf(
-                Ident::from_name(""),
-                Some(*tuple_ty.clone()),
-            )),
+            Decl::from(DeclKind::Variable(Some(*tuple_ty.clone()))),
         );
     }
 
     #[allow(dead_code)]
-    pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String, ty: Option<Ty>) {
+    pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String) {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        namespace
-            .names
-            .insert(name, DeclKind::TupleField(ty).into());
+        let decl = Decl::from(DeclKind::TupleField);
+        namespace.names.insert(name, decl);
     }
 
     pub fn shadow(&mut self, ident: &str) {

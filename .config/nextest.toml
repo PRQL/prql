@@ -1,6 +1,6 @@
 [profile.default]
 fail-fast = false
-failure-output = "final"
+failure-output = "immediate"
 status-level = "slow"
 slow-timeout = {period = "500ms", terminate-after = 4}
 

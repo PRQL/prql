@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::ir::decl;
 use crate::ir::pl::{self, ImportDef, PlFold};
-use crate::semantic::{NS_DEFAULT_DB, NS_LOCAL, NS_STD, NS_THIS};
+use crate::semantic::{NS_DEFAULT_DB, NS_INFER, NS_LOCAL, NS_STD, NS_THIS};
 use crate::{ast, utils, Error};
 use crate::{Result, WithErrorInfo};
 
@@ -310,28 +310,26 @@ fn lookup_within_module(
 
     let mut module = module;
     for i in 0..steps.len() {
-        let decl = match module.names.get(&steps[i]) {
-            Some(decl) => decl,
+        match module.names.get(&steps[i]) {
+            Some(decl) => match &decl.kind {
+                decl::DeclKind::Module(inner) => {
+                    module = inner;
+                }
+                _ => {
+                    let indirections = steps.drain((i + 1)..).collect_vec();
+                    return Ok((steps, indirections));
+                }
+            },
             _ => {
-                if let Some(decl) = &module.infer_decl {
-                    // declaration was not found, but this module will infer the decl
-                    decl.as_ref()
+                if module.names.contains_key(NS_INFER) {
+                    // declaration was not found, but this module can infer declarations
+                    return Ok((steps, vec![]));
                 } else {
                     // declaration not found
                     return Err(Error::new_simple(format!("`{}` does not exist", steps[i])));
                 }
             }
         };
-
-        match &decl.kind {
-            decl::DeclKind::Module(inner) => {
-                module = inner;
-            }
-            _ => {
-                let indirections = steps.drain((i + 1)..).collect_vec();
-                return Ok((steps, indirections));
-            }
-        }
     }
 
     Err(Error::new_simple("direct references modules not allowed"))

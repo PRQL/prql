@@ -536,13 +536,11 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             ty: table_decl.ty,
         }),
 
-        decl::DeclKind::InstanceOf(ident, _) => {
-            new_internal_stmt(name, format!("instance_of.{ident}"))
-        }
-        decl::DeclKind::TupleField(_) => new_internal_stmt(name, "column.?".into()),
-        decl::DeclKind::Infer(_) => new_internal_stmt(name, "infer".to_string()),
-        decl::DeclKind::GenericParam(_) => new_internal_stmt(name, "generic_param".to_string()),
-        decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "unresolved".to_string()),
+        decl::DeclKind::Variable(_) => new_internal_stmt(name, "_variable".into()),
+        decl::DeclKind::TupleField => new_internal_stmt(name, "_tuple_field".into()),
+        decl::DeclKind::Infer(_) => new_internal_stmt(name, "_infer".to_string()),
+        decl::DeclKind::GenericParam(_) => new_internal_stmt(name, "_generic_param".to_string()),
+        decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "_unresolved".to_string()),
 
         decl::DeclKind::Expr(mut expr) => StmtKind::VarDef(VarDef {
             kind: VarDefKind::Let,
