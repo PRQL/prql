@@ -199,8 +199,8 @@ jobs:
       # 20 workflow limit.
       oss:
         ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-latest", "macos-14",
-        "windows-latest"]' || '["ubuntu-latest"]' }}
+        == 'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
 
   test-js:
     needs: rules
@@ -210,8 +210,8 @@ jobs:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '["ubuntu-latest", "macos-latest", "macos-14",
-        "windows-latest"]' || '["ubuntu-latest"]' }}
+        'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
+        '["ubuntu-latest"]' }}
 
   test-dotnet:
     needs: rules
@@ -232,8 +232,7 @@ jobs:
       # Currently we never run windows
       oss:
         ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-latest", "macos-14"]' ||
-        '["ubuntu-latest"]' }}
+        == 'true') && '["ubuntu-latest", "macos-14"]' || '["ubuntu-latest"]' }}
 
   test-elixir:
     needs: rules
@@ -297,10 +296,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # Excluding until https://github.com/PRQL/prql/issues/4362 is resolved.
-          # - os: macos-latest
-          #   target: x86_64-apple-darwin
-          #   features: default,test-dbs
           - os: macos-14
             target: aarch64-apple-darwin
             features: default,test-dbs
@@ -636,9 +631,6 @@ jobs:
           - os: macos-14
             target: aarch64-apple-darwin
             features: default,test-dbs
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             features: default
@@ -672,9 +664,6 @@ jobs:
             features: default
           - os: macos-14
             target: aarch64-apple-darwin
-            features: default,test-dbs
-          - os: macos-latest
-            target: x86_64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
