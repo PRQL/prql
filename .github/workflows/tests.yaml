@@ -297,9 +297,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            features: default,test-dbs
+          # Excluding until https://github.com/PRQL/prql/issues/4362 is resolved.
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   features: default,test-dbs
           - os: macos-14
             target: aarch64-apple-darwin
             features: default,test-dbs

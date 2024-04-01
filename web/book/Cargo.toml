@@ -33,9 +33,9 @@ anstream = {version = "0.6.13"}
 globset = "0.4.14"
 insta = {workspace = true}
 log = {workspace = true}
-regex = "1.10.3"
-serde_json = "1.0.114"
-serde_yaml = "0.9.33"
+regex = "1.10.4"
+serde_json = "1.0.115"
+serde_yaml = "0.9.34"
 similar-asserts = "1.5.0"
 walkdir = "2.5.0"
 
