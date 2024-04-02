@@ -25,7 +25,7 @@ jobs:
 
       # Website requires Hugo
       - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v2.6.0
+        uses: peaceiris/actions-hugo@v3.0.0
 
       - uses: baptiste0928/cargo-install@v3
         with:
