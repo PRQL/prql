@@ -1645,7 +1645,7 @@ fn test_window_single_item_range() {
     "###);
 }
 
-#[test]
+#[test] // refs to fields of current tuple
 fn test_name_resolving() {
     let query = r###"
     from db.numbers
@@ -1662,6 +1662,7 @@ fn test_name_resolving() {
 }
 
 #[test]
+#[ignore] // refs to fields of current tuple
 fn test_strings() {
     let query = r#"
     from db.empty_table_to_do

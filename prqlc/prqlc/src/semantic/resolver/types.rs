@@ -93,6 +93,22 @@ impl Resolver<'_> {
                 TyKind::Tuple(new_fields)
             }
 
+            ExprKind::Case(cases) => {
+                let case_tys: Vec<Option<Ty>> = cases
+                    .iter()
+                    .map(|c| self.infer_type(&c.value))
+                    .try_collect()?;
+
+                let Some(inferred_ty) = case_tys.iter().find_map(|x| x.as_ref()) else {
+                    return Err(Error::new_simple(
+                        "cannot infer type of any of the branches of this case statement",
+                    )
+                    .with_span(expr.span));
+                };
+
+                return Ok(Some(inferred_ty.clone()));
+            }
+
             _ => return Ok(None),
         };
         Ok(Some(Ty {
@@ -137,19 +153,16 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
-        // if type is a generic, restrict the generic type arg
+        if let TyKind::Ident(fq_ident) = &found.kind {
+            // if found type is a generic, infer that it must be the expected type
+            self.infer_type_of_generic(fq_ident, expected.clone(), span)?;
+            return Ok(());
+        }
+
         match &expected.kind {
             TyKind::Ident(fq_ident) => {
-                let Some(decl) = self.root_mod.module.get_mut(fq_ident) else {
-                    return Ok(());
-                };
-
-                let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
-                    return Ok(());
-                };
-
-                // TODO: check that we are not overriding here
-                *inferred_type = Some((found.clone(), found.span));
+                // if expected type is a generic, infer that it must be the found type
+                self.infer_type_of_generic(fq_ident, found.clone(), found.span)?;
                 return Ok(());
             }
             TyKind::Array(expected_items) => {

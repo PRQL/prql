@@ -572,7 +572,7 @@ impl Lowerer {
         let new_fields: Option<Vec<usize>> = match *transform_call.kind {
             pl::TransformKind::Derive { assigns, .. } => {
                 let ids = self.lower_and_flatten_tuple(*assigns, false)?;
-                Some(ids)
+                Some([vec![input_id], ids].concat())
             }
             pl::TransformKind::Select { assigns, .. } => {
                 let ids = self.lower_and_flatten_tuple(*assigns, false)?;

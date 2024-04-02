@@ -539,8 +539,12 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
         decl::DeclKind::Variable(_) => new_internal_stmt(name, "_variable".into()),
         decl::DeclKind::TupleField => new_internal_stmt(name, "_tuple_field".into()),
         decl::DeclKind::Infer(_) => new_internal_stmt(name, "_infer".to_string()),
-        decl::DeclKind::GenericParam(_) => new_internal_stmt(name, "_generic_param".to_string()),
         decl::DeclKind::Unresolved(_) => new_internal_stmt(name, "_unresolved".to_string()),
+
+        decl::DeclKind::GenericParam(arg) => StmtKind::TypeDef(TypeDef {
+            name,
+            value: arg.map(|a| a.0),
+        }),
 
         decl::DeclKind::Expr(mut expr) => StmtKind::VarDef(VarDef {
             kind: VarDefKind::Let,

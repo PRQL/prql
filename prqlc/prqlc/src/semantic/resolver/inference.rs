@@ -2,7 +2,7 @@ use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, TableDecl, TableExpr};
 use crate::semantic::NS_GENERIC;
-use crate::{Error, Result, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 use super::Resolver;
 
@@ -88,15 +88,46 @@ impl Resolver<'_> {
         };
         let fields_of_generic = inferred_type.0.kind.as_tuple_mut().unwrap();
 
-        // push the type info into the candidate for the generic type
-        fields_of_generic.push(TyTupleField::Single(
-            Some(field_name.to_string()),
-            Some(Ty::new(TyKind::Ident(ty_of_field))),
-        ));
-        Ok((
-            fields_of_generic.len() - 1, // position within the generic
-            fields_of_generic.last().unwrap(),
-        ))
+        let existing = fields_of_generic.iter().position(|f| {
+            f.as_single()
+                .and_then(|x| x.0.as_ref())
+                .map_or(false, |n| n == field_name)
+        });
+
+        if let Some(pos) = existing {
+            let existing = fields_of_generic.get(pos).unwrap();
+            Ok((pos, existing))
+        } else {
+            // push the type info into the candidate for the generic type
+            fields_of_generic.push(TyTupleField::Single(
+                Some(field_name.to_string()),
+                Some(Ty::new(TyKind::Ident(ty_of_field))),
+            ));
+            Ok((
+                fields_of_generic.len() - 1, // position within the generic
+                fields_of_generic.last().unwrap(),
+            ))
+        }
+    }
+
+    pub fn infer_type_of_generic(
+        &mut self,
+        ident_of_generic: &Ident,
+        ty: Ty,
+        span: Option<Span>,
+    ) -> Result<()> {
+        log::debug!("inferring that {ident_of_generic} is {}", write_ty(&ty));
+
+        let Some(decl) = self.root_mod.module.get_mut(ident_of_generic) else {
+            return Err(Error::new_assert("unresolved type ident"));
+        };
+        let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
+            return Err(Error::new_assert("unresolved type ident"));
+        };
+
+        // TODO: check that we are not overriding here
+        *inferred_type = Some((ty, span));
+        Ok(())
     }
 
     /// Converts a identifier that points to a table declaration to lineage of that table.

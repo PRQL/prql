@@ -13,11 +13,7 @@ use crate::{Error, Span, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn fold_function(
-        &mut self,
-        closure: Box<Func>,
-        span: Option<Span>,
-    ) -> Result<Expr> {
+    pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
         let closure = self.fold_function_types(closure)?;
 
         log::debug!(
@@ -67,6 +63,7 @@ impl Resolver<'_> {
 
         closure.return_ty = self
             .finalize_generic_args_opt(closure.return_ty)
+            .push_hint(format!("func name={:?}", closure.name_hint))
             .with_span_fallback(span)?;
 
         let needs_window = (closure.params.last())
