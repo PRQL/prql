@@ -134,7 +134,7 @@ let remove = bottom top -> (
 )
 let loop = func
   pipeline
-  top 
+  top
   -> internal loop
 
 ## Aggregate functions

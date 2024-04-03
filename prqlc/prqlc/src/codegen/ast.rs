@@ -165,7 +165,7 @@ impl WriteSource for ExprKind {
                                     exprs: bounds,
                                     inline: " | ",
                                     line_end: " |",
-                                 }
+                                }
                                 .write(opt.clone())?,
                             )?;
                         }
