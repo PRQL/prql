@@ -1,13 +1,12 @@
-use crate::codegen::write_ty;
-use crate::Result;
 use itertools::Itertools;
 
 use crate::ast::{Ty, TyKind, TyTupleField};
+use crate::codegen::write_ty;
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, Resolver};
-use crate::semantic::{NS_LOCAL, NS_SELF, NS_STD, NS_THAT, NS_THIS};
-use crate::{Error, Reason, Span, WithErrorInfo};
+use crate::semantic::{NS_LOCAL, NS_SELF, NS_STD, NS_THIS};
+use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -15,84 +14,7 @@ impl PlFold for Resolver<'_> {
     }
 
     fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
-        Ok(match ty.kind {
-            TyKind::Ident(ident) => {
-                self.root_mod.local_mut().shadow(NS_THIS);
-                self.root_mod.local_mut().shadow(NS_THAT);
-
-                let fq_ident = self.resolve_ident(&ident)?;
-
-                let decl = self.root_mod.module.get(&fq_ident).unwrap();
-                let ty = match &decl.kind {
-                    DeclKind::Ty(ty) => {
-                        // materialize into the referred type
-                        let mut ty = ty.clone();
-                        ty.name = ty.name.or(Some(fq_ident.name));
-                        ty
-                    }
-
-                    DeclKind::GenericParam(_) => {
-                        // leave as an ident
-                        Ty {
-                            kind: TyKind::Ident(fq_ident),
-                            ..ty
-                        }
-                    }
-
-                    DeclKind::Unresolved(_) => {
-                        return Err(Error::new_assert(format!(
-                            "bad resolution order: unresolved {fq_ident} while resolving {}",
-                            self.debug_current_decl
-                        ))
-                        .with_span(ty.span))
-                    }
-                    _ => {
-                        return Err(Error::new(Reason::Expected {
-                            who: None,
-                            expected: "a type".to_string(),
-                            found: decl.to_string(),
-                        })
-                        .with_span(ty.span))
-                    }
-                };
-
-                self.root_mod.local_mut().unshadow(NS_THIS);
-                self.root_mod.local_mut().unshadow(NS_THAT);
-
-                ty
-            }
-            TyKind::Tuple(fields) => {
-                let mut new_fields = Vec::new();
-                for field in fields {
-                    match field {
-                        TyTupleField::Single(name, Some(ty)) => {
-                            // standard folding
-                            let ty = self.fold_type(ty)?;
-                            new_fields.push(TyTupleField::Single(name, Some(ty)));
-                        }
-                        TyTupleField::Unpack(Some(ty)) => {
-                            let ty = self.fold_type(ty)?;
-
-                            // inline unpack if it contains a tuple
-                            if let TyKind::Tuple(inner_fields) = ty.kind {
-                                new_fields.extend(inner_fields);
-                            } else {
-                                new_fields.push(TyTupleField::Unpack(Some(ty)));
-                            }
-                        }
-                        _ => {
-                            // standard folding
-                            new_fields.push(field);
-                        }
-                    }
-                }
-                Ty {
-                    kind: TyKind::Tuple(new_fields),
-                    ..ty
-                }
-            }
-            _ => fold_type(self, ty)?,
-        })
+        self.fold_type_actual(ty)
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
@@ -236,59 +158,12 @@ impl PlFold for Resolver<'_> {
                 let base = self.fold_expr(*base)?;
 
                 let ty = base.ty.as_ref().unwrap();
-                let TyKind::Tuple(fields) = &ty.kind else {
-                    return Err(Error::new_simple(format!(
-                        "cannot lookup fields in type {}",
-                        write_ty(ty)
-                    ))
-                    .with_span(*span));
-                };
-
-                let (position, ty_field) = match field {
-                    IndirectionKind::Name(field_name) => {
-                        let mut field = fields.iter().find_position(|f| match f {
-                            TyTupleField::Single(Some(n), _) => n == &field_name,
-                            _ => false,
-                        });
-
-                        // fallback: infer a field of a generic type argument
-                        if field.is_none() {
-                            if let Some((pos_of_unpack, generic_ident)) = fields
-                                .iter()
-                                .enumerate()
-                                .find_map(|(pos, x)| as_field_unpack_of_ident(x).map(|i| (pos, i)))
-                            {
-                                let (pos, ty_field) =
-                                    self.infer_tuple_field_of_generic(generic_ident, &field_name)?;
-                                field = Some((pos + pos_of_unpack, ty_field));
-                            }
-                        }
-
-                        let Some((position, field)) = field else {
-                            return Err(Error::new_simple(format!(
-                                "cannot lookup field `{field_name}` in tuple {}",
-                                write_ty(ty)
-                            ))
-                            .with_span(*span));
-                        };
-                        (position as i64, field)
-                    }
-                    IndirectionKind::Position(position) => {
-                        let Some(field) = fields.get(position as usize) else {
-                            return Err(Error::new_simple(format!(
-                                "cannot lookup field `{position}` in tuple {}, which only has {} fields",
-                                write_ty(ty),
-                                fields.len(),
-                            )).with_span(*span));
-                        };
-                        (position, field)
-                    }
-                };
+                let (position, ty) = self.resolve_indirection(&ty, &field, 0).with_span(*span)?;
                 Expr {
-                    ty: ty_field.as_single().unwrap().1.clone(),
+                    ty,
                     kind: ExprKind::Indirection {
                         base: Box::new(base),
-                        field: IndirectionKind::Position(position),
+                        field: IndirectionKind::Position(position as i64),
                     },
                     ..node
                 }
@@ -349,12 +224,6 @@ impl PlFold for Resolver<'_> {
     }
 }
 
-fn as_field_unpack_of_ident(x: &TyTupleField) -> Option<&Ident> {
-    x.as_unpack()
-        .and_then(|x| x.as_ref())
-        .and_then(|x| x.kind.as_ident())
-}
-
 impl Resolver<'_> {
     fn finish_expr_resolve(
         &mut self,
@@ -410,5 +279,112 @@ impl Resolver<'_> {
             within: Box::new(Expr::new(Ident::from_path(vec![NS_LOCAL, NS_THIS]))),
             except: Box::new(except),
         }))
+    }
+
+    pub fn resolve_indirection(
+        &mut self,
+        base: &Ty,
+        indirection: &IndirectionKind,
+        pos_offset: usize,
+    ) -> Result<(usize, Option<Ty>)> {
+        // special case: generic type param inference
+        if let TyKind::Ident(fq_ident) = &base.kind {
+            // base should be resolved, so idents can only be fully-qualified references
+            // to generic type parameters
+            let generic_decl = self.root_mod.module.get(fq_ident).unwrap();
+            let candidate_ty = generic_decl.kind.as_generic_param().unwrap();
+
+            // if candidate is a tuple
+            if let Some((candidate_ty, _)) = candidate_ty {
+                let candidate_ty = candidate_ty.clone();
+
+                // try to resolve indirection in the existing candidate
+                let res = self.resolve_indirection(&candidate_ty, indirection, pos_offset);
+                if res.is_ok() {
+                    return res;
+                } else {
+                    // fallback to inferring a new tuple field
+                    if candidate_ty.kind.is_tuple() {
+                        return Ok(self.infer_tuple_field_of_generic(
+                            fq_ident,
+                            indirection,
+                            pos_offset,
+                        ));
+                    }
+                }
+            } else {
+                return Ok(self.infer_tuple_field_of_generic(fq_ident, indirection, pos_offset));
+            }
+        }
+
+        let TyKind::Tuple(fields) = &base.kind else {
+            let mut e = Error::new_simple(format!(
+                "cannot lookup fields in {} type",
+                base.kind.as_ref().to_lowercase()
+            ));
+            if let TyKind::Ident(fq_ident) = &base.kind {
+                let generic_decl = self.root_mod.module.get(fq_ident).unwrap();
+                let candidate_ty = generic_decl.kind.as_generic_param().unwrap();
+                if let Some((candidate_ty, _)) = candidate_ty {
+                    e = e.push_hint(format!("generic={}", write_ty(candidate_ty)))
+                }
+            }
+
+            return Err(e);
+        };
+
+        match indirection {
+            IndirectionKind::Name(field_name) => {
+                // lookup in Single fields
+                let mut res = fields
+                    .iter()
+                    .enumerate()
+                    .find_map(|(pos, field)| match field {
+                        TyTupleField::Single(Some(n), f_ty) if n == field_name => {
+                            Some((pos, f_ty.clone()))
+                        }
+                        _ => None,
+                    });
+
+                // fallback: look into Unpacks
+                if res.is_none() {
+                    for (pos, ty_field) in fields.iter().enumerate() {
+                        let TyTupleField::Unpack(Some(unpack_ty)) = ty_field else {
+                            continue;
+                        };
+                        match self.resolve_indirection(unpack_ty, indirection, pos) {
+                            Ok(r) => {
+                                res = Some(r);
+                                break;
+                            }
+                            Err(e) => {
+                                log::debug!("cannot lookup into Unpack: {e:?}");
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                res.ok_or_else(|| {
+                    Error::new_simple(format!(
+                        "cannot lookup field `{field_name}` in tuple {}",
+                        write_ty(base)
+                    ))
+                })
+            }
+            IndirectionKind::Position(position) => {
+                let pos = *position as usize + pos_offset;
+
+                let Some(field) = fields.get(pos) else {
+                    return Err(Error::new_simple(format!(
+                        "cannot lookup field `{position}` in tuple {}, which only has {} fields",
+                        write_ty(base),
+                        fields.len(),
+                    )));
+                };
+                let ty = field.as_single().unwrap().1.clone();
+                Ok((pos, ty))
+            }
+        }
     }
 }

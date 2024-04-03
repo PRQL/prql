@@ -1,17 +1,77 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
-use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
+use crate::ast::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
+use crate::semantic::{NS_LOCAL, NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
 use super::Resolver;
 
 impl Resolver<'_> {
+    /// Visit a type in the main resolver pass.
+    /// Resolves type idents & inlines tuple Unpacks.
+    // This function is named fold_type_actual, because fold_type must be in
+    // expr.rs, where we implement PlFold.
+    pub fn fold_type_actual(&mut self, ty: Ty) -> Result<Ty> {
+        Ok(match ty.kind {
+            TyKind::Ident(ident) => {
+                self.root_mod.local_mut().shadow(NS_THIS);
+                self.root_mod.local_mut().shadow(NS_THAT);
+
+                let fq_ident = self.resolve_ident(&ident)?;
+
+                let decl = self.root_mod.module.get(&fq_ident).unwrap();
+                let ty = match &decl.kind {
+                    DeclKind::Ty(ty) => {
+                        // materialize into the referred type
+                        let mut ty = ty.clone();
+                        ty.name = ty.name.or(Some(fq_ident.name));
+                        ty
+                    }
+
+                    DeclKind::GenericParam(_) => {
+                        // leave as an ident
+                        Ty {
+                            kind: TyKind::Ident(fq_ident),
+                            ..ty
+                        }
+                    }
+
+                    DeclKind::Unresolved(_) => {
+                        return Err(Error::new_assert(format!(
+                            "bad resolution order: unresolved {fq_ident} while resolving {}",
+                            self.debug_current_decl
+                        ))
+                        .with_span(ty.span))
+                    }
+                    _ => {
+                        return Err(Error::new(Reason::Expected {
+                            who: None,
+                            expected: "a type".to_string(),
+                            found: decl.to_string(),
+                        })
+                        .with_span(ty.span))
+                    }
+                };
+
+                self.root_mod.local_mut().unshadow(NS_THIS);
+                self.root_mod.local_mut().unshadow(NS_THAT);
+
+                ty
+            }
+            TyKind::Tuple(fields) => Ty {
+                kind: TyKind::Tuple(fold_and_flatten_ty_tuple_fields(self, fields)?),
+                ..ty
+            },
+            _ => fold_type(self, ty)?,
+        })
+    }
+
     pub fn infer_type(&self, expr: &Expr) -> Result<Option<Ty>> {
         if let Some(ty) = &expr.ty {
             return Ok(Some(ty.clone()));
@@ -19,7 +79,7 @@ impl Resolver<'_> {
 
         let kind = match &expr.kind {
             ExprKind::Literal(ref literal) => match literal {
-                Literal::Null => TyKind::Tuple(vec![]),
+                Literal::Null => return Ok(None), // TODO
                 Literal::Integer(_) => TyKind::Primitive(PrimitiveSet::Int),
                 Literal::Float(_) => TyKind::Primitive(PrimitiveSet::Float),
                 Literal::Boolean(_) => TyKind::Primitive(PrimitiveSet::Bool),
@@ -129,7 +189,7 @@ impl Resolver<'_> {
         F: Fn() -> Option<String>,
     {
         let Some(expected) = expected else {
-            // expected is none: there is no validation to be done
+            // expected is none: there is no validation to be done and no generic to be inferred
             return Ok(());
         };
 
@@ -153,6 +213,12 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
+        if let TyKind::Ident(fq_ident) = &expected.kind {
+            // if expected type is a generic, infer that it must be the found type
+            self.infer_type_of_generic(fq_ident, found.clone(), found.span)?;
+            return Ok(());
+        }
+
         if let TyKind::Ident(fq_ident) = &found.kind {
             // if found type is a generic, infer that it must be the expected type
             self.infer_type_of_generic(fq_ident, expected.clone(), span)?;
@@ -160,11 +226,7 @@ impl Resolver<'_> {
         }
 
         match &expected.kind {
-            TyKind::Ident(fq_ident) => {
-                // if expected type is a generic, infer that it must be the found type
-                self.infer_type_of_generic(fq_ident, found.clone(), found.span)?;
-                return Ok(());
-            }
+            TyKind::Ident(_) => unreachable!(),
             TyKind::Array(expected_items) => {
                 let TyKind::Array(found_items) = &mut found.kind else {
                     return Err(compose_type_error(found, expected, who).with_span(span));
@@ -198,68 +260,6 @@ impl Resolver<'_> {
         }
 
         Err(compose_type_error(found, expected, who).with_span(span))
-    }
-
-    pub fn finalize_generic_args(&self, mut ty: Ty) -> Result<Ty, Error> {
-        ty.kind = match ty.kind {
-            // the meaningful part
-            TyKind::Ident(ref fq_ident) => {
-                let decl = self.root_mod.module.get(fq_ident).unwrap();
-                let DeclKind::GenericParam(inferred_type) = &decl.kind else {
-                    return Ok(ty);
-                };
-
-                let Some((ty, _span)) = inferred_type.as_ref() else {
-                    return Err(Error::new_simple(format!(
-                        "cannot determine the type of generic arg {}",
-                        fq_ident.name
-                    ))
-                    .with_span(ty.span));
-                };
-                return Ok(ty.clone());
-            }
-
-            // recurse into container types
-            // this could probably be implemented with folding, but I'm lazy
-            TyKind::Primitive(p) => TyKind::Primitive(p),
-            TyKind::Tuple(fields) => {
-                let mut new_fields = Vec::with_capacity(fields.len());
-
-                for field in fields {
-                    match field {
-                        TyTupleField::Single(name, ty) => {
-                            let ty = self.finalize_generic_args_opt(ty)?;
-                            new_fields.push(TyTupleField::Single(name, ty));
-                        }
-                        TyTupleField::Unpack(ty) => {
-                            let resolved = self.finalize_generic_args_opt(ty)?;
-                            new_fields.push(TyTupleField::Unpack(resolved));
-                        }
-                    }
-                }
-                TyKind::Tuple(new_fields)
-            }
-            TyKind::Array(ty) => TyKind::Array(Box::new(self.finalize_generic_args(*ty)?)),
-            TyKind::Function(func) => TyKind::Function(
-                func.map(|f| -> Result<_, Error> {
-                    Ok(TyFunc {
-                        args: f
-                            .args
-                            .into_iter()
-                            .map(|a| self.finalize_generic_args_opt(a))
-                            .try_collect()?,
-                        return_ty: Box::new(self.finalize_generic_args_opt(*f.return_ty)?),
-                        name_hint: f.name_hint,
-                    })
-                })
-                .transpose()?,
-            ),
-        };
-        Ok(ty)
-    }
-
-    pub fn finalize_generic_args_opt(&self, ty: Option<Ty>) -> Result<Option<Ty>, Error> {
-        ty.map(|x| self.finalize_generic_args(x)).transpose()
     }
 
     fn infer_tuple_field_name(&self, field: &Expr) -> Option<String> {
@@ -304,7 +304,7 @@ impl Resolver<'_> {
             }
 
             TyKind::Ident(fq_ident) => {
-                let decl = self.root_mod.module.get(dbg!(fq_ident)).unwrap();
+                let decl = self.root_mod.module.get(fq_ident).unwrap();
                 let inferred_type = decl.kind.as_generic_param()?;
                 let (inferred_type, _) = inferred_type.as_ref()?;
 
@@ -421,4 +421,122 @@ where
         e = e.push_hint(format!("Type `{expected_name}` expands to `{expanded}`"));
     }
     e
+}
+
+pub fn fold_and_flatten_ty_tuple_fields<F: ?Sized + PlFold>(
+    fold: &mut F,
+    fields: Vec<TyTupleField>,
+) -> Result<Vec<TyTupleField>> {
+    let mut new_fields = Vec::new();
+    for field in fields {
+        match field {
+            TyTupleField::Single(name, Some(ty)) => {
+                // standard folding
+                let ty = fold.fold_type(ty)?;
+                new_fields.push(TyTupleField::Single(name, Some(ty)));
+            }
+            TyTupleField::Unpack(Some(ty)) => {
+                let ty = fold.fold_type(ty)?;
+
+                // inline unpack if it contains a tuple
+                if let TyKind::Tuple(inner_fields) = ty.kind {
+                    new_fields.extend(inner_fields);
+                } else {
+                    new_fields.push(TyTupleField::Unpack(Some(ty)));
+                }
+            }
+            _ => {
+                // standard folding
+                new_fields.push(field);
+            }
+        }
+    }
+    Ok(new_fields)
+}
+
+/// Replaces references to generic type parameters with resolved argument types.
+pub struct GenericArgInliner {
+    local: bool,
+    args: HashMap<String, Ty>,
+}
+
+impl GenericArgInliner {
+    pub fn run(local: bool, args: HashMap<String, Ty>, ty: Ty) -> Ty {
+        GenericArgInliner { local, args }.fold_type(ty).unwrap()
+    }
+}
+
+impl PlFold for GenericArgInliner {
+    fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
+        if let TyKind::Ident(fq_ident) = &ty.kind {
+            let is_local = fq_ident.starts_with_part(NS_LOCAL);
+            if self.local == is_local {
+                if let Some(arg) = self.args.get(&fq_ident.name) {
+                    return Ok(arg.clone());
+                }
+            }
+        }
+        fold_type(self, ty)
+    }
+}
+
+/// Replaces references to generic type parameters with (partially) resolved argument types
+/// and makes makes the type "human friendly".
+pub struct TypePreviewer<'r> {
+    resolver: &'r super::Resolver<'r>,
+}
+
+impl<'r> TypePreviewer<'r> {
+    pub fn run(resolver: &'r super::Resolver<'r>, ty: Ty) -> Ty {
+        TypePreviewer { resolver }.fold_type(ty).unwrap()
+    }
+}
+
+impl PlFold for TypePreviewer<'_> {
+    fn fold_type(&mut self, mut ty: Ty) -> Result<Ty> {
+        ty.kind = match ty.kind {
+            TyKind::Ident(fq_ident) => {
+                let root_mod = &self.resolver.root_mod.module;
+                let decl = root_mod.get(&fq_ident).unwrap();
+
+                let candidate = decl.kind.as_generic_param().unwrap();
+
+                if let Some((candidate, _)) = candidate {
+                    let mut previewed = self.fold_type(candidate.clone()).unwrap();
+                    if let TyKind::Tuple(fields) = &mut previewed.kind {
+                        fields.push(TyTupleField::Unpack(None));
+                    }
+
+                    previewed.kind
+                } else {
+                    TyKind::Ident(Ident::from_name("?"))
+                }
+            }
+            TyKind::Tuple(fields) => {
+                let mut fields = fold_and_flatten_ty_tuple_fields(self, fields)?;
+
+                // clear types of fields that are just Ident("?")
+                for field in &mut fields {
+                    let ty = match field {
+                        TyTupleField::Single(_, ty) => ty,
+                        TyTupleField::Unpack(ty) => ty,
+                    };
+                    let is_unknown = ty
+                        .as_ref()
+                        .and_then(|t| t.kind.as_ident())
+                        .map_or(false, |i| i.name == "?");
+                    if is_unknown {
+                        *ty = None
+                    }
+                }
+                TyKind::Tuple(fields)
+            }
+            TyKind::Array(ty) => TyKind::Array(Box::new(self.fold_type(*ty)?)),
+            TyKind::Function(func) => {
+                TyKind::Function(func.map(|f| func_ty_func(self, f)).transpose()?)
+            }
+            TyKind::Primitive(_) => ty.kind,
+        };
+        Ok(ty)
+    }
 }

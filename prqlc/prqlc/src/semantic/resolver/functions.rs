@@ -54,43 +54,45 @@ impl Resolver<'_> {
         log::debug!("resolving args of function {}", closure.as_debug_name());
         let res = self.resolve_function_args(closure)?;
 
-        let mut closure = match res {
+        let mut func = match res {
             Ok(func) => func,
             Err(func) => {
                 return Ok(*expr_of_func(func, span));
             }
         };
 
-        closure.return_ty = self
-            .finalize_generic_args_opt(closure.return_ty)
-            .push_hint(format!("func name={:?}", closure.name_hint))
+        let generic_args = self
+            .finalize_function_generic_args(&func)
             .with_span_fallback(span)?;
+        func.return_ty = func
+            .return_ty
+            .map(|ty| super::types::GenericArgInliner::run(true, generic_args, ty));
 
-        let needs_window = (closure.params.last())
+        let needs_window = (func.params.last())
             .and_then(|p| p.ty.as_ref())
             .map(|t| t.kind.is_array())
             .unwrap_or_default();
 
         // evaluate
-        let res = if let ExprKind::Internal(operator_name) = &closure.body.kind {
+        let res = if let ExprKind::Internal(operator_name) = &func.body.kind {
             // special case: functions that have internal body
 
             if operator_name.starts_with("std.") {
                 Expr {
-                    ty: closure.return_ty,
+                    ty: func.return_ty,
                     needs_window,
                     ..Expr::new(ExprKind::RqOperator {
                         name: operator_name.clone(),
-                        args: closure.args,
+                        args: func.args,
                     })
                 }
             } else {
-                let expr = self.resolve_special_func(closure, needs_window)?;
+                let expr = self.resolve_special_func(func, needs_window)?;
                 self.fold_expr(expr)?
             }
         } else {
             // base case: materialize
-            self.materialize_function(closure)?
+            self.materialize_function(func)?
         };
 
         // pop the env
@@ -179,6 +181,28 @@ impl Resolver<'_> {
             .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
         Ok(func)
+    }
+
+    fn finalize_function_generic_args(&mut self, func: &Box<Func>) -> Result<HashMap<String, Ty>> {
+        let mut res = HashMap::new();
+
+        for generic_param in &func.generic_type_params {
+            let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
+            let decl = self.root_mod.local_mut().get_mut(&ident).unwrap();
+
+            let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
+                panic!()
+            };
+
+            let Some((ty, _span)) = inferred_type.take() else {
+                return Err(Error::new_simple(format!(
+                    "cannot determine the type {}",
+                    generic_param.name
+                )));
+            };
+            res.insert(ident.name, ty);
+        }
+        Ok(res)
     }
 
     pub fn apply_args_to_closure(

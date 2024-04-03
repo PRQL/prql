@@ -321,39 +321,43 @@ pub fn fold_type_opt<T: ?Sized + PlFold>(fold: &mut T, ty: Option<Ty>) -> Result
 pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
     Ok(Ty {
         kind: match ty.kind {
-            TyKind::Tuple(fields) => TyKind::Tuple(
-                fields
-                    .into_iter()
-                    .map(|field| -> Result<_> {
-                        Ok(match field {
-                            TyTupleField::Single(name, ty) => {
-                                TyTupleField::Single(name, fold_type_opt(fold, ty)?)
-                            }
-                            TyTupleField::Unpack(ty) => {
-                                TyTupleField::Unpack(fold_type_opt(fold, ty)?)
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
+            TyKind::Tuple(fields) => TyKind::Tuple(fold_ty_tuple_fields(fold, fields)?),
             TyKind::Array(ty) => TyKind::Array(Box::new(fold.fold_type(*ty)?)),
-            TyKind::Function(func) => TyKind::Function(
-                func.map(|f| -> Result<_> {
-                    Ok(TyFunc {
-                        args: f
-                            .args
-                            .into_iter()
-                            .map(|a| fold_type_opt(fold, a))
-                            .try_collect()?,
-                        return_ty: Box::new(fold_type_opt(fold, *f.return_ty)?),
-                        name_hint: f.name_hint,
-                    })
-                })
-                .transpose()?,
-            ),
+            TyKind::Function(func) => {
+                TyKind::Function(func.map(|f| func_ty_func(fold, f)).transpose()?)
+            }
             TyKind::Ident(_) | TyKind::Primitive(_) => ty.kind,
         },
         span: ty.span,
         name: ty.name,
     })
+}
+
+pub fn func_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFunc> {
+    Ok(TyFunc {
+        args: f
+            .args
+            .into_iter()
+            .map(|a| fold_type_opt(fold, a))
+            .try_collect()?,
+        return_ty: Box::new(fold_type_opt(fold, *f.return_ty)?),
+        name_hint: f.name_hint,
+    })
+}
+
+pub fn fold_ty_tuple_fields<F: ?Sized + PlFold>(
+    fold: &mut F,
+    fields: Vec<TyTupleField>,
+) -> Result<Vec<TyTupleField>> {
+    Ok(fields
+        .into_iter()
+        .map(|field| -> Result<_> {
+            Ok(match field {
+                TyTupleField::Single(name, ty) => {
+                    TyTupleField::Single(name, fold_type_opt(fold, ty)?)
+                }
+                TyTupleField::Unpack(ty) => TyTupleField::Unpack(fold_type_opt(fold, ty)?),
+            })
+        })
+        .try_collect()?)
 }

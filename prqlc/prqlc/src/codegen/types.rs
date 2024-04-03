@@ -85,7 +85,7 @@ impl WriteSource for TyTupleField {
         match self {
             Self::Unpack(generic_el) => match generic_el {
                 Some(el) => Some(format!("..{}", el.write(opt)?)),
-                None => Some("..*".to_string()),
+                None => Some("..".to_string()),
             },
             Self::Single(name, expr) => {
                 let mut r = String::new();

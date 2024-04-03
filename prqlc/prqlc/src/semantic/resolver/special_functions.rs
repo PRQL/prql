@@ -7,13 +7,12 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::*;
 
-use crate::ast::{Ty, TyKind, TyTupleField};
+use crate::ast::{Ty, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_LOCAL, NS_PARAM, NS_THIS};
 use crate::{Error, Reason, Result, WithErrorInfo, COMPILER_VERSION};
 
-use super::types::ty_tuple_kind;
 use super::Resolver;
 
 impl Resolver<'_> {
@@ -423,9 +422,8 @@ impl Resolver<'_> {
             frame: WindowFrame::default(),
             sort: Vec::new(),
         };
-        let ty = self.infer_type_of_special_func(&transform_call)?;
         Ok(Expr {
-            ty,
+            ty: func.return_ty,
             ..Expr::new(ExprKind::TransformCall(transform_call))
         })
     }
@@ -450,80 +448,6 @@ impl Resolver<'_> {
             expr.span = span;
 
             self.fold_expr(expr)?
-        })
-    }
-
-    /// Figure out the type of a function call, if this function is a *special function*.
-    /// (declared in std module & requires special handling).
-    pub fn infer_type_of_special_func(
-        &mut self,
-        transform_call: &TransformCall,
-    ) -> Result<Option<Ty>> {
-        // Long term plan is to make this function obsolete with generic function parameters.
-        // In other words, I hope to make our type system powerful enough to express return
-        // type of all std module functions.
-
-        Ok(match transform_call.kind.as_ref() {
-            TransformKind::Select { assigns } => assigns
-                .ty
-                .clone()
-                .map(|x| Ty::new(TyKind::Array(Box::new(x)))),
-            TransformKind::Derive { assigns } => {
-                let input = transform_call.input.ty.clone().unwrap();
-                let input = input.into_relation().unwrap();
-
-                let derived = assigns.ty.clone().unwrap();
-                let derived = derived.kind.into_tuple().unwrap();
-
-                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
-                    [input, derived].concat(),
-                ))))))
-            }
-            TransformKind::Aggregate { assigns } => {
-                let tuple = assigns.ty.clone().unwrap();
-
-                Some(Ty::new(TyKind::Array(Box::new(tuple))))
-            }
-            TransformKind::Filter { .. }
-            | TransformKind::Sort { .. }
-            | TransformKind::Take { .. } => transform_call.input.ty.clone(),
-            TransformKind::Join { with, .. } => {
-                let input = transform_call.input.ty.clone().unwrap();
-                let input = input.into_relation().unwrap();
-
-                let with_name = with.alias.clone();
-                let with = with.ty.clone().unwrap();
-                let with = with.kind.into_array().unwrap();
-                let with = TyTupleField::Single(with_name, Some(*with));
-
-                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
-                    [input, vec![with]].concat(),
-                ))))))
-            }
-            TransformKind::Group { pipeline, by } => {
-                let by = by.ty.clone().unwrap();
-                let by = by.kind.into_tuple().unwrap();
-
-                let pipeline = pipeline.ty.clone().unwrap();
-                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
-                let pipeline = pipeline.return_ty.unwrap().into_relation().unwrap();
-
-                Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
-                    [by, pipeline].concat(),
-                ))))))
-            }
-            TransformKind::Window { pipeline, .. } | TransformKind::Loop(pipeline) => {
-                let pipeline = pipeline.ty.clone().unwrap();
-                let pipeline = pipeline.kind.into_function().unwrap().unwrap();
-                *pipeline.return_ty
-            }
-            TransformKind::Append(bottom) => {
-                let top = transform_call.input.ty.clone().unwrap();
-                let _bottom = bottom.ty.clone().unwrap();
-                // TODO: bottom?
-
-                Some(top)
-            }
         })
     }
 }

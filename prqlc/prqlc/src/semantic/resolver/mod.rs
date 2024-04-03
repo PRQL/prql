@@ -6,9 +6,9 @@ mod flatten;
 mod functions;
 mod inference;
 mod names;
+mod special_functions;
 mod static_eval;
 mod stmt;
-mod transforms;
 mod types;
 
 pub use types::ty_tuple_exclusion;

@@ -1,15 +1,12 @@
 use std::collections::HashSet;
 
-use itertools::Itertools;
-
-use crate::ast::Ident;
+use crate::ast::{Ident, Ty};
+use crate::codegen;
 use crate::ir::decl::DeclKind;
 use crate::semantic::{
-    NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS,
+    NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_SELF, NS_THAT, NS_THIS,
 };
-use crate::Error;
-use crate::Result;
-use crate::WithErrorInfo;
+use crate::{Error, Result, WithErrorInfo};
 
 use super::Resolver;
 
@@ -29,11 +26,12 @@ impl Resolver<'_> {
             Err(e) => {
                 if ident.iter().next().unwrap() == NS_LOCAL {
                     log::debug!(
-                        "cannot resolve `{ident}`: `{e:?}`,\nthis={:#?}\nthat={:#?}\n_param={:#?}\n_generic={:#?}",
+                        "cannot resolve `{ident}`: `{e:?}`,\nthis={:#?}\nthat={:#?}\n_param={:#?}\n_generic={:#?}\n_generic={:#?}",
                         self.root_mod.local().names.get(NS_THIS),
                         self.root_mod.local().names.get(NS_THAT),
                         self.root_mod.local().names.get(NS_PARAM),
                         self.root_mod.local().names.get(NS_GENERIC),
+                        self.root_mod.module.names.get(NS_GENERIC),
                     );
                 } else {
                     log::debug!(
@@ -43,35 +41,26 @@ impl Resolver<'_> {
                 }
 
                 // attach available names
-                let mut available_names = Vec::new();
-                available_names.extend(self.collect_columns_in_a_local_module(NS_THIS));
-                available_names.extend(self.collect_columns_in_a_local_module(NS_THAT));
-                if !available_names.is_empty() {
-                    let available_names = available_names.iter().map(Ident::to_string).join(", ");
-                    res = res.push_hint(format!("available columns: {available_names}"));
+                if let Some(this_ty) = self.get_local_self_ty(NS_THIS) {
+                    let this_ty = super::types::TypePreviewer::run(self, this_ty.clone());
+                    res = res.push_hint(format!("this = {}", codegen::write_ty(&this_ty)));
+                }
+                if let Some(that_ty) = self.get_local_self_ty(NS_THAT) {
+                    let that_ty = super::types::TypePreviewer::run(self, that_ty.clone());
+                    res = res.push_hint(format!("that = {}", codegen::write_ty(&that_ty)));
                 }
             }
         }
         res
     }
 
-    fn collect_columns_in_a_local_module(&mut self, mod_name: &str) -> Vec<Ident> {
-        let mut cols = Vec::new();
+    fn get_local_self_ty(&self, mod_name: &str) -> Option<&Ty> {
+        let module = self.root_mod.local().names.get(mod_name)?;
+        let module = module.kind.as_module()?;
 
-        let Some(module) = self.root_mod.local().names.get(mod_name) else {
-            return cols;
-        };
-
-        let DeclKind::Module(this) = &module.kind else {
-            return cols;
-        };
-
-        for (ident, decl) in this.as_decls().into_iter().sorted_by_key(|x| x.1.order) {
-            if let DeclKind::Variable(_) = decl.kind {
-                cols.push(ident);
-            }
-        }
-        cols
+        let self_decl = module.names.get(NS_SELF)?;
+        let self_ty = self_decl.kind.as_variable()?;
+        self_ty.as_ref()
     }
 
     pub(super) fn resolve_ident_core(&mut self, ident: &Ident) -> Result<Ident, Error> {

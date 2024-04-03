@@ -1,8 +1,9 @@
 use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, TableDecl, TableExpr};
+use crate::ir::pl::IndirectionKind;
 use crate::semantic::NS_GENERIC;
-use crate::{Error, Result, Span, WithErrorInfo};
+use crate::{Error, Result, Span};
 
 use super::Resolver;
 
@@ -59,54 +60,58 @@ impl Resolver<'_> {
 
     /// When we refer to `Generic.my_field`, this function pushes information that `Generic`
     /// is a tuple with a field `my_field` into the generic type argument.
+    ///
+    /// Contract:
+    /// - ident must be fq ident of a generic type param,
+    /// - generic candidate either not exist yet or be a tuple,
+    /// - generic candidate tuple must already contain the indirection target.
     pub fn infer_tuple_field_of_generic(
         &mut self,
         ident_of_generic: &Ident,
-        field_name: &str,
-    ) -> Result<(usize, &TyTupleField)> {
+        indirection: &IndirectionKind,
+        pos_offset: usize,
+    ) -> (usize, Option<Ty>) {
         // generate the type of inferred field (to be an unknown type - a new generic)
         // (this has to be done early in this function since we borrow self later)
         let ty_of_field = self.init_new_global_generic();
+        let ty = Ty::new(TyKind::Ident(ty_of_field));
 
         let ident = ident_of_generic;
         let generic_decl = self.root_mod.module.get_mut(ident).unwrap();
-        let inferred_type = generic_decl.kind.as_generic_param_mut().unwrap();
+        let candidate = generic_decl.kind.as_generic_param_mut().unwrap();
 
-        // if there is no candidates yet, propose a new type
-        if inferred_type.is_none() {
-            *inferred_type = Some((Ty::new(TyKind::Tuple(vec![])), None));
+        // if there is no candidate yet, propose a new tuple type
+        if candidate.is_none() {
+            *candidate = Some((Ty::new(TyKind::Tuple(vec![])), None));
         }
-        let inferred_type = inferred_type.as_mut().unwrap();
+        let (candidate_ty, _) = candidate.as_mut().unwrap();
+        let candidate_fields = candidate_ty.kind.as_tuple_mut().unwrap();
 
-        // unpack the generic as a tuple
-        if !inferred_type.0.kind.is_tuple() {
-            return Err(Error::new_simple(format!(
-                "cannot lookup fields in type {}",
-                write_ty(&inferred_type.0)
-            ))
-            .push_hint("inferring type of a generic argument"));
-        };
-        let fields_of_generic = inferred_type.0.kind.as_tuple_mut().unwrap();
+        // create new field(s)
+        match indirection {
+            IndirectionKind::Name(field_name) => {
+                candidate_fields.push(TyTupleField::Single(
+                    Some(field_name.clone()),
+                    Some(ty.clone()),
+                ));
 
-        let existing = fields_of_generic.iter().position(|f| {
-            f.as_single()
-                .and_then(|x| x.0.as_ref())
-                .map_or(false, |n| n == field_name)
-        });
+                let pos_within_candidate = candidate_fields.len() - 1;
+                (pos_offset + pos_within_candidate, Some(ty))
+            }
+            IndirectionKind::Position(pos) => {
+                let pos = *pos as usize;
+                let pos_within_candidate = pos - pos_offset;
 
-        if let Some(pos) = existing {
-            let existing = fields_of_generic.get(pos).unwrap();
-            Ok((pos, existing))
-        } else {
-            // push the type info into the candidate for the generic type
-            fields_of_generic.push(TyTupleField::Single(
-                Some(field_name.to_string()),
-                Some(Ty::new(TyKind::Ident(ty_of_field))),
-            ));
-            Ok((
-                fields_of_generic.len() - 1, // position within the generic
-                fields_of_generic.last().unwrap(),
-            ))
+                // fill-in padding fields
+                for _ in 0..(pos_within_candidate - candidate_fields.len()) {
+                    // TODO: these should all be generics
+                    candidate_fields.push(TyTupleField::Single(None, None));
+                }
+
+                // push the actual field
+                candidate_fields.push(TyTupleField::Single(None, Some(ty.clone())));
+                (pos, Some(ty))
+            }
         }
     }
 
