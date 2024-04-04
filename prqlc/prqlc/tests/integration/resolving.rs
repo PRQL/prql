@@ -54,7 +54,7 @@ fn resolve_basic_01() {
       let x <[{a = int, b = text, c = float}]> = internal local_table
     }
 
-    let main <[{a = int, b = text}]> = `(Select ...)`
+    let main <[{a = int, b = text}]> = `(select ...)`
     "###)
 }
 
@@ -191,7 +191,7 @@ fn table_inference_02() {
       let employees <[{.._generic.G112}]> = internal local_table
     }
 
-    let main <[{id = _generic.G118, age = _generic.G122}]> = `(Select ...)`
+    let main <[{id = _generic.G118, age = _generic.G122}]> = `(select ...)`
     "###);
 }
 
@@ -209,6 +209,6 @@ fn table_inference_03() {
       let employees <[{.._generic.G115}]> = internal local_table
     }
 
-    let main <[{name = _generic.G125}]> = `(Select ...)`
+    let main <[{name = _generic.G124}]> = `(select ...)`
     "###);
 }

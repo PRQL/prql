@@ -1,3 +1,6 @@
+mod flatten;
+mod special_functions;
+
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::iter::zip;
@@ -162,8 +165,9 @@ impl Lowerer {
 
         let (relation, name) = match expr {
             TableExpr::RelationVar(expr) => {
-                // a CTE
-                (self.lower_relation(*expr)?, Some(fq_ident.name.clone()))
+                let expr = flatten::Flattener::run(*expr)?;
+
+                (self.lower_relation(expr)?, Some(fq_ident.name.clone()))
             }
             TableExpr::LocalTable => self.extern_ref_to_relation(columns, &fq_ident)?,
             TableExpr::Param(_) => unreachable!(),
@@ -1114,12 +1118,13 @@ impl PlFold for TableDepsCollector {
                 }
                 expr.kind
             }
-            pl::ExprKind::TransformCall(tc) => {
-                pl::ExprKind::TransformCall(self.fold_transform_call(tc)?)
-            }
+            pl::ExprKind::RqOperator { name, args } => pl::ExprKind::RqOperator {
+                name,
+                args: self.fold_exprs(args)?,
+            },
             pl::ExprKind::Func(func) => pl::ExprKind::Func(Box::new(self.fold_func(*func)?)),
 
-            // optimization: don't recurse into anything else than TransformCalls and Func
+            // optimization: don't recurse into anything else than RqOperator and Func
             _ => expr.kind,
         };
         Ok(expr)

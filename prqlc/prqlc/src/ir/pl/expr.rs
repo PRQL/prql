@@ -125,6 +125,7 @@ pub struct Func {
     pub env: HashMap<String, Expr>,
 
     pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
+    pub coerce_tuple: Option<u8>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

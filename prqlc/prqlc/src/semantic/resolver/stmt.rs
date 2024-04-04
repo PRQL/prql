@@ -101,20 +101,28 @@ fn populate_func_metadata(func: &mut Box<Func>, fq_ident: &Ident, annotations: &
         func.name_hint = Some(fq_ident.clone());
     }
 
-    // populate implicit closure config
+    fn literal_as_u8(expr: Option<&Expr>) -> Option<u8> {
+        Some(*expr?.kind.as_literal()?.as_integer()? as u8)
+    }
+
+    // populate implicit_closure config
     if let Some(im_clos) = annotations
         .iter()
         .find_map(|a| a.as_func_call("implicit_closure"))
     {
-        fn literal_as_u8(expr: Option<&Expr>) -> Option<u8> {
-            Some(*expr?.kind.as_literal()?.as_integer()? as u8)
-        }
-
         func.implicit_closure = Some(Box::new(ImplicitClosureConfig {
             param: literal_as_u8(im_clos.args.first()).unwrap(),
             this: literal_as_u8(im_clos.named_args.get("this")),
             that: literal_as_u8(im_clos.named_args.get("that")),
         }));
+    }
+
+    // populate coerce_tuple config
+    if let Some(coerce_tuple) = annotations
+        .iter()
+        .find_map(|a| a.as_func_call("coerce_tuple"))
+    {
+        func.coerce_tuple = Some(literal_as_u8(coerce_tuple.args.first()).unwrap());
     }
 }
 

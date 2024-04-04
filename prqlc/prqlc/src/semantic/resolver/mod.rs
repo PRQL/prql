@@ -2,11 +2,9 @@ use crate::ir::decl::RootModule;
 use crate::utils::IdGenerator;
 
 mod expr;
-mod flatten;
 mod functions;
 mod inference;
 mod names;
-mod special_functions;
 mod static_eval;
 mod stmt;
 mod types;
@@ -47,7 +45,7 @@ impl Resolver<'_> {
 }
 
 #[cfg(test)]
-pub(super) mod test {
+pub(in crate::semantic) mod test {
     use crate::{Errors, Result};
     use insta::assert_yaml_snapshot;
 

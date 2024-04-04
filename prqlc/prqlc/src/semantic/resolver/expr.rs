@@ -4,11 +4,10 @@ use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::semantic::resolver::{flatten, Resolver};
 use crate::semantic::{NS_LOCAL, NS_SELF, NS_STD, NS_THIS};
 use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
-impl PlFold for Resolver<'_> {
+impl PlFold for super::Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
         unreachable!()
     }
@@ -20,7 +19,7 @@ impl PlFold for Resolver<'_> {
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
         let value = match var_def.value {
             Some(value) if matches!(value.kind, ExprKind::Func(_)) => Some(value),
-            Some(value) => Some(Box::new(flatten::Flattener::fold(self.fold_expr(*value)?))),
+            Some(value) => Some(Box::new(self.fold_expr(*value)?)),
             None => None,
         };
 
@@ -224,7 +223,7 @@ impl PlFold for Resolver<'_> {
     }
 }
 
-impl Resolver<'_> {
+impl super::Resolver<'_> {
     fn finish_expr_resolve(
         &mut self,
         expr: Expr,

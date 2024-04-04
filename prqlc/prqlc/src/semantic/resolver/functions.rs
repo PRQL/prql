@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use crate::Result;
 use itertools::Itertools;
 
 use crate::ast::{Ty, TyFunc};
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS};
-use crate::{Error, Span, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 use super::Resolver;
 
@@ -76,19 +75,13 @@ impl Resolver<'_> {
         // evaluate
         let res = if let ExprKind::Internal(operator_name) = &func.body.kind {
             // special case: functions that have internal body
-
-            if operator_name.starts_with("std.") {
-                Expr {
-                    ty: func.return_ty,
-                    needs_window,
-                    ..Expr::new(ExprKind::RqOperator {
-                        name: operator_name.clone(),
-                        args: func.args,
-                    })
-                }
-            } else {
-                let expr = self.resolve_special_func(func, needs_window)?;
-                self.fold_expr(expr)?
+            Expr {
+                ty: func.return_ty,
+                needs_window,
+                ..Expr::new(ExprKind::RqOperator {
+                    name: operator_name.clone(),
+                    args: func.args,
+                })
             }
         } else {
             // base case: materialize
@@ -136,7 +129,8 @@ impl Resolver<'_> {
                 return_ty: Default::default(),
                 env: Default::default(),
                 generic_type_params: Default::default(),
-                implicit_closure: None,
+                implicit_closure: Default::default(),
+                coerce_tuple: Default::default(),
             })))
         } else {
             // resolved, return result
@@ -270,6 +264,7 @@ impl Resolver<'_> {
 
         for index in order {
             let (param, mut arg) = *param_args[index].take().unwrap();
+            let should_coerce_tuple = func.coerce_tuple.map_or(false, |i| i as usize == index);
 
             if partial_application_position.is_none() {
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
@@ -284,7 +279,7 @@ impl Resolver<'_> {
                 }
 
                 arg = self
-                    .fold_function_arg(arg, param, func_name)?
+                    .fold_function_arg(arg, param, func_name, should_coerce_tuple)?
                     .unwrap_or_else(|a| {
                         partial_application_position = Some(index);
                         a
@@ -319,6 +314,7 @@ impl Resolver<'_> {
         arg: Expr,
         param: &FuncParam,
         func_name: &Option<Ident>,
+        coerce_tuple: bool,
     ) -> Result<Result<Expr, Expr>> {
         // fold
         if param.name.starts_with("noresolve.") {
@@ -328,6 +324,10 @@ impl Resolver<'_> {
         self.root_mod.local_mut().shadow(NS_GENERIC);
         let mut arg = self.fold_expr(arg)?;
         self.root_mod.local_mut().unshadow(NS_GENERIC);
+
+        if coerce_tuple {
+            arg = self.coerce_into_tuple(arg)?;
+        }
 
         // special case: (I forgot why this is needed)
         let expects_func = param
@@ -347,6 +347,27 @@ impl Resolver<'_> {
         };
         self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
         Ok(Ok(arg))
+    }
+
+    /// Wraps non-tuple Exprs into a singleton Tuple.
+    pub(super) fn coerce_into_tuple(&mut self, expr: Expr) -> Result<Expr> {
+        let is_tuple_ty = expr.ty.as_ref().unwrap().kind.is_tuple() && !expr.kind.is_all();
+        Ok(if is_tuple_ty {
+            // a helpful check for a common anti-pattern
+            if let Some(alias) = expr.alias {
+                return Err(Error::new_simple(format!("unexpected assign to `{alias}`"))
+                    .push_hint(format!("move assign into the tuple: `{{{alias} = ...}}`"))
+                    .with_span(expr.span));
+            }
+
+            expr
+        } else {
+            let span = expr.span;
+            let mut expr = Expr::new(ExprKind::Tuple(vec![expr]));
+            expr.span = span;
+
+            self.fold_expr(expr)?
+        })
     }
 }
 
@@ -416,6 +437,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
         env: Default::default(),
         generic_type_params: Default::default(),
         implicit_closure: Default::default(),
+        coerce_tuple: Default::default(),
     })
 }
 

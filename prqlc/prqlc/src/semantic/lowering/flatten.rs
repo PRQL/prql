@@ -1,15 +1,13 @@
 use std::collections::HashMap;
 
-use crate::Result;
-
 use crate::ir::pl::{
     fold_column_sorts, fold_transform_kind, ColumnSort, Expr, ExprKind, PlFold, TransformCall,
     TransformKind, WindowFrame,
 };
+use crate::Result;
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
 /// Sets partition, window and sort of [TransformCall].
-#[derive(Default, Debug)]
 pub struct Flattener {
     /// Sort affects downstream transforms in a pipeline.
     /// Because transform pipelines are represented by nested [TransformCall]s,
@@ -44,9 +42,15 @@ pub struct Flattener {
 }
 
 impl Flattener {
-    pub fn fold(expr: Expr) -> Expr {
-        let mut f = Flattener::default();
-        f.fold_expr(expr).unwrap()
+    pub fn run(expr: Expr) -> Result<Expr> {
+        let mut f = Flattener {
+            sort: Default::default(),
+            sort_undone: Default::default(),
+            partition: Default::default(),
+            window: Default::default(),
+            replace_map: Default::default(),
+        };
+        f.fold_expr(expr)
     }
 }
 
@@ -55,6 +59,12 @@ impl PlFold for Flattener {
         if let Some(target) = &expr.target_id {
             if let Some(replacement) = self.replace_map.remove(target) {
                 return Ok(replacement);
+            }
+        }
+
+        if let ExprKind::RqOperator { name, .. } = &expr.kind {
+            if !name.starts_with("std.") {
+                expr = super::special_functions::resolve_special_func(expr)?
             }
         }
 

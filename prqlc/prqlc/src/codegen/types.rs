@@ -25,7 +25,7 @@ impl WriteSource for Option<&Ty> {
     fn write(&self, opt: WriteOpt) -> Option<String> {
         match self {
             Some(ty) => ty.write(opt),
-            None => Some("infer".to_string()),
+            None => Some("?".to_string()),
         }
     }
 }
