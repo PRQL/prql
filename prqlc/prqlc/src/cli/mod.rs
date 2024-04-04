@@ -164,12 +164,6 @@ pub enum DebugCommand {
     /// Parse & resolve, but don't lower into RQ
     Resolve(IoArgs),
 
-    /// Parse & evaluate expression down to a value
-    ///
-    /// Cannot contain references to tables or any other outside sources.
-    /// Meant as a playground for testing out language design decisions.
-    Eval(IoArgs),
-
     /// Parse, resolve & combine source with comments annotating relation type
     Annotate(IoArgs),
 
@@ -359,23 +353,6 @@ impl Command {
                 // combine with source
                 combine_prql_and_frames(&source, frames).as_bytes().to_vec()
             }
-            Command::Debug(DebugCommand::Eval(_)) => {
-                let root_mod = prql_to_pl_tree(sources)?;
-
-                let mut res = String::new();
-                for stmt in root_mod.stmts {
-                    if let ast::StmtKind::VarDef(def) = stmt.kind {
-                        res += &format!("## {}\n", def.name);
-
-                        let val = semantic::eval(*def.value.unwrap())
-                            .map_err(|e| prqlc::ErrorMessages::from(e).composed(sources))?;
-                        res += &semantic::write_pl(val);
-                        res += "\n\n";
-                    }
-                }
-
-                res.into_bytes()
-            }
             Command::Experimental(ExperimentalCommand::GenerateDocs(_)) => {
                 let module_ref = prql_to_pl_tree(sources)?;
 
@@ -453,8 +430,7 @@ impl Command {
             | Debug(
                 DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
-                | DebugCommand::Annotate(io_args)
-                | DebugCommand::Eval(io_args),
+                | DebugCommand::Annotate(io_args),
             ) => io_args,
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args,
             _ => unreachable!(),
@@ -496,8 +472,7 @@ impl Command {
             | Debug(
                 DebugCommand::Resolve(io_args)
                 | DebugCommand::ExpandPL(io_args)
-                | DebugCommand::Annotate(io_args)
-                | DebugCommand::Eval(io_args),
+                | DebugCommand::Annotate(io_args),
             ) => io_args.output.clone(),
             Experimental(ExperimentalCommand::GenerateDocs(io_args)) => io_args.output.clone(),
             _ => unreachable!(),

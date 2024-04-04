@@ -364,19 +364,6 @@ fn debug() {
 
     ----- stderr -----
     "###);
-
-    assert_cmd_snapshot!(prqlc_command()
-        .args(["debug", "eval"])
-        .pass_stdin("2 + 2"), @r###"
-    success: true
-    exit_code: 0
-    ----- stdout -----
-    ## main
-    4
-
-
-    ----- stderr -----
-    "###);
 }
 
 #[test]
