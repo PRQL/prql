@@ -3,6 +3,7 @@ use chumsky::prelude::*;
 use prqlc_ast::*;
 
 use crate::expr::ident;
+use crate::span::ParserSpan;
 
 use super::common::*;
 use super::lexer::TokenKind;
@@ -40,40 +41,32 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
             )
             .map(TyKind::Function);
 
-        let tuple = ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(nested_type_expr.clone())
-            .map(|(name, ty)| TyTupleField::Single(name, Some(ty)))
-            .padded_by(new_line().repeated())
-            .separated_by(ctrl(','))
-            .then_ignore(new_line().repeated())
-            .chain(
-                ctrl(',')
-                    .ignore_then(
-                        select! {
-                            TokenKind::Range { bind_right: true, bind_left: false } => ()
-                        }
-                        .ignore_then(nested_type_expr.clone())
-                        .map(|ty| TyTupleField::Unpack(Some(ty)))
-                        .or_not(),
-                    )
-                    .or_not()
-                    .flatten(),
-            )
-            .delimited_by(ctrl('{'), ctrl('}'))
-            .recover_with(nested_delimiters(
-                TokenKind::Control('{'),
-                TokenKind::Control('}'),
-                [
-                    (TokenKind::Control('{'), TokenKind::Control('}')),
-                    (TokenKind::Control('('), TokenKind::Control(')')),
-                    (TokenKind::Control('['), TokenKind::Control(']')),
-                ],
-                |_| vec![],
-            ))
-            .map(TyKind::Tuple)
-            .labelled("tuple");
+        let tuple = choice((
+            select! { TokenKind::Range { bind_right: true, bind_left: _ } => () }
+                .ignore_then(nested_type_expr.clone())
+                .map(|ty| TyTupleField::Unpack(Some(ty))),
+            ident_part()
+                .then_ignore(ctrl('='))
+                .or_not()
+                .then(nested_type_expr.clone())
+                .map(|(name, ty)| TyTupleField::Single(name, Some(ty))),
+        ))
+        .padded_by(new_line().repeated())
+        .separated_by(ctrl(','))
+        .allow_trailing()
+        .delimited_by(ctrl('{'), ctrl('}'))
+        .recover_with(nested_delimiters(
+            TokenKind::Control('{'),
+            TokenKind::Control('}'),
+            [
+                (TokenKind::Control('{'), TokenKind::Control('}')),
+                (TokenKind::Control('('), TokenKind::Control(')')),
+                (TokenKind::Control('['), TokenKind::Control(']')),
+            ],
+            |_| vec![],
+        ))
+        .map(TyKind::Tuple)
+        .labelled("tuple");
 
         // let union_parenthesized = ident_part()
         //     .then_ignore(ctrl('='))
@@ -131,7 +124,25 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
         //             into_ty(TyKind::Union(all), span)
         //         }
         //     })
-        term
+
+        // exclude
+        term.clone()
+            .then(ctrl('-').ignore_then(term).repeated())
+            .foldl(|left, right| {
+                let left_span = left.span.as_ref().unwrap();
+                let right_span = right.span.as_ref().unwrap();
+                let span = ParserSpan(Span {
+                    start: left_span.start,
+                    end: right_span.end,
+                    source_id: left_span.source_id,
+                });
+
+                let kind = TyKind::Exclude {
+                    base: Box::new(left),
+                    except: Box::new(right),
+                };
+                into_ty(kind, span)
+            })
     })
     .labelled("type expression")
 }

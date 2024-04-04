@@ -183,7 +183,7 @@ impl Resolver<'_> {
         Ok(func)
     }
 
-    fn finalize_function_generic_args(&mut self, func: &Box<Func>) -> Result<HashMap<String, Ty>> {
+    fn finalize_function_generic_args(&mut self, func: &Func) -> Result<HashMap<String, Ty>> {
         let mut res = HashMap::new();
 
         for generic_param in &func.generic_type_params {
@@ -284,7 +284,7 @@ impl Resolver<'_> {
                 }
 
                 arg = self
-                    .fold_and_type_check(arg, param, func_name)?
+                    .fold_function_arg(arg, param, func_name)?
                     .unwrap_or_else(|a| {
                         partial_application_position = Some(index);
                         a
@@ -314,7 +314,7 @@ impl Resolver<'_> {
         })
     }
 
-    fn fold_and_type_check(
+    fn fold_function_arg(
         &mut self,
         arg: Expr,
         param: &FuncParam,

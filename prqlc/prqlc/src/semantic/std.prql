@@ -105,11 +105,12 @@ let join = func <A, B>
   tbl <[A]>
   -> <[{A, B}]> internal join
 
-# let group = func <B, I: B, A>
-#   by<B>
-#   pipeline <func [I - B] -> [A]>
-#   tbl <[I]>
-#   -> <[{B, A}]> internal group
+@(implicit_closure 0 this:2)
+let group = func <I, B, PO>
+  by<B>
+  pipeline <func [I - B] -> [PO]>
+  tbl <[I]>
+  -> <[{..B, ..PO}]> internal group
 
 let window = func
   rows:0..-1

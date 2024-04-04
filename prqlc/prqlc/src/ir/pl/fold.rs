@@ -326,6 +326,10 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
             TyKind::Function(func) => {
                 TyKind::Function(func.map(|f| func_ty_func(fold, f)).transpose()?)
             }
+            TyKind::Exclude { base, except } => TyKind::Exclude {
+                base: Box::new(fold.fold_type(*base)?),
+                except: Box::new(fold.fold_type(*except)?),
+            },
             TyKind::Ident(_) | TyKind::Primitive(_) => ty.kind,
         },
         span: ty.span,
@@ -349,7 +353,7 @@ pub fn fold_ty_tuple_fields<F: ?Sized + PlFold>(
     fold: &mut F,
     fields: Vec<TyTupleField>,
 ) -> Result<Vec<TyTupleField>> {
-    Ok(fields
+    fields
         .into_iter()
         .map(|field| -> Result<_> {
             Ok(match field {
@@ -359,5 +363,5 @@ pub fn fold_ty_tuple_fields<F: ?Sized + PlFold>(
                 TyTupleField::Unpack(ty) => TyTupleField::Unpack(fold_type_opt(fold, ty)?),
             })
         })
-        .try_collect()?)
+        .try_collect()
 }

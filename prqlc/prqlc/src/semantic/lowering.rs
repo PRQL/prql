@@ -756,13 +756,11 @@ impl Lowerer {
             }
             pl::ExprKind::All { within, except } => {
                 // this should never fail since it succeeded during resolution
-                let field_mask = super::resolver::ty_tuple_exclusion(
-                    within.ty.as_ref().unwrap(),
-                    except.ty.as_ref().unwrap(),
-                    None,
-                    None,
-                )
-                .unwrap();
+                let base_ty = within.ty.as_ref().unwrap();
+                let except_ty = except.ty.as_ref().unwrap();
+                let field_mask = super::resolver::ty_tuple_exclusion_mask(base_ty, except_ty)
+                    .unwrap() // result (these two surely are tuples)
+                    .unwrap(); // option (these two don't contain generic type args)
 
                 // lower within
                 let within_id = within.id.unwrap();

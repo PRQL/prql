@@ -30,6 +30,10 @@ pub enum TyKind {
 
     /// Type of functions with defined params and return types.
     Function(Option<TyFunc>),
+
+    /// Tuples that have fields of `base` tuple, but don't have fields of `except` tuple.
+    /// Implies that `base` has all fields of `except`.
+    Exclude { base: Box<Ty>, except: Box<Ty> },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]

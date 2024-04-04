@@ -13,8 +13,10 @@ use crate::{Error, Reason, Span, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    /// Visit a type in the main resolver pass.
-    /// Resolves type idents & inlines tuple Unpacks.
+    /// Visit a type in the main resolver pass. It will:
+    /// - resolve [TyKind::Ident] to material types (expect for the ones that point to generic type arguments),
+    /// - inline [TyTupleField::Unpack],
+    /// - inline [TyKind::Exclude].
     // This function is named fold_type_actual, because fold_type must be in
     // expr.rs, where we implement PlFold.
     pub fn fold_type_actual(&mut self, ty: Ty) -> Result<Ty> {
@@ -27,11 +29,13 @@ impl Resolver<'_> {
 
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
                 let ty = match &decl.kind {
-                    DeclKind::Ty(ty) => {
+                    DeclKind::Ty(ref_ty) => {
                         // materialize into the referred type
-                        let mut ty = ty.clone();
-                        ty.name = ty.name.or(Some(fq_ident.name));
-                        ty
+                        Ty {
+                            kind: ref_ty.kind.clone(),
+                            name: ref_ty.name.clone().or(Some(fq_ident.name)),
+                            span: ty.span,
+                        }
                     }
 
                     DeclKind::GenericParam(_) => {
@@ -65,9 +69,18 @@ impl Resolver<'_> {
                 ty
             }
             TyKind::Tuple(fields) => Ty {
-                kind: TyKind::Tuple(fold_and_flatten_ty_tuple_fields(self, fields)?),
+                kind: TyKind::Tuple(ty_fold_and_inline_tuple_fields(self, fields)?),
                 ..ty
             },
+            TyKind::Exclude { base, except } => {
+                let base = self.fold_type(*base)?;
+                let except = self.fold_type(*except)?;
+
+                Ty {
+                    kind: ty_tuple_exclusion(base, except)?,
+                    ..ty
+                }
+            }
             _ => fold_type(self, ty)?,
         })
     }
@@ -143,14 +156,7 @@ impl Resolver<'_> {
                 let Some(except_ty) = self.infer_type(except)? else {
                     return Ok(None);
                 };
-                let field_mask =
-                    ty_tuple_exclusion(&within_ty, &except_ty, within.span, except.span)?;
-
-                let new_fields = itertools::zip_eq(within_ty.kind.as_tuple().unwrap(), field_mask)
-                    .filter(|(_, p)| *p)
-                    .map(|(x, _)| x.clone())
-                    .collect();
-                TyKind::Tuple(new_fields)
+                ty_tuple_exclusion(within_ty, except_ty)?
             }
 
             ExprKind::Case(cases) => {
@@ -174,7 +180,7 @@ impl Resolver<'_> {
         Ok(Some(Ty {
             kind,
             name: None,
-            span: None,
+            span: expr.span,
         }))
     }
 
@@ -316,32 +322,65 @@ impl Resolver<'_> {
     }
 }
 
-pub fn ty_tuple_exclusion(
-    within_ty: &Ty,
-    except_ty: &Ty,
-    within_span: Option<Span>,
-    except_span: Option<Span>,
-) -> Result<Vec<bool>> {
-    let TyKind::Tuple(within_fields) = &within_ty.kind else {
-        return Err(
-            Error::new_simple("fields can only be excluded from a tuple")
-                .push_hint(format!("got {}", write_ty(within_ty)))
-                .with_span(within_span),
-        );
+pub fn ty_tuple_exclusion(base: Ty, except: Ty) -> Result<TyKind> {
+    let mask = ty_tuple_exclusion_mask(&base, &except)?;
+
+    if let Some(mask) = mask {
+        let new_fields = itertools::zip_eq(base.kind.as_tuple().unwrap(), mask)
+            .filter(|(_, p)| *p)
+            .map(|(x, _)| x.clone())
+            .collect();
+
+        Ok(TyKind::Tuple(new_fields))
+    } else {
+        Ok(TyKind::Exclude {
+            base: Box::new(base),
+            except: Box::new(except),
+        })
+    }
+}
+
+/// Computes the "field mask", which is a vector of booleans indicating if a field of
+/// base tuple type should appear in the resulting type.
+///
+/// Returns `None` if:
+/// - base or exclude is a generic type argument, or
+/// - either of the types contains Unpack.
+pub fn ty_tuple_exclusion_mask(base: &Ty, except: &Ty) -> Result<Option<Vec<bool>>> {
+    let within_fields = match &base.kind {
+        TyKind::Tuple(f) => f,
+
+        // this is a generic, exclusion cannot be inlined
+        TyKind::Ident(_) => return Ok(None),
+
+        _ => {
+            return Err(
+                Error::new_simple("fields can only be excluded from a tuple")
+                    .push_hint(format!("got {}", write_ty_kind(&base.kind)))
+                    .with_span(base.span),
+            )
+        }
     };
-    let TyKind::Tuple(except_fields) = &except_ty.kind else {
-        return Err(Error::new_simple("expected excluding fields to be a tuple")
-            .push_hint(format!("got {}", write_ty(except_ty)))
-            .with_span(except_span));
+    let except_fields = match &except.kind {
+        TyKind::Tuple(f) => f,
+
+        // this is a generic, exclusion cannot be inlined
+        TyKind::Ident(_) => return Ok(None),
+
+        _ => {
+            return Err(Error::new_simple("expected excluding fields to be a tuple")
+                .push_hint(format!("got {}", write_ty_kind(&except.kind)))
+                .with_span(except.span));
+        }
     };
     let except_fields: HashSet<&String> = except_fields
         .iter()
         .map(|field| match field {
             TyTupleField::Single(Some(name), _) => Ok(name),
-            _ => Err(Error::new_simple("excluding fields need to be named")),
+            _ => Err(Error::new_simple("excluding fields must be named")),
         })
         .collect::<Result<_>>()
-        .with_span(except_span)?;
+        .with_span(except.span)?;
 
     let mut mask = Vec::new();
     for field in within_fields {
@@ -350,7 +389,7 @@ pub fn ty_tuple_exclusion(
             _ => true,
         });
     }
-    Ok(mask)
+    Ok(Some(mask))
 }
 
 pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {
@@ -423,7 +462,7 @@ where
     e
 }
 
-pub fn fold_and_flatten_ty_tuple_fields<F: ?Sized + PlFold>(
+pub fn ty_fold_and_inline_tuple_fields<F: ?Sized + PlFold>(
     fold: &mut F,
     fields: Vec<TyTupleField>,
 ) -> Result<Vec<TyTupleField>> {
@@ -513,7 +552,7 @@ impl PlFold for TypePreviewer<'_> {
                 }
             }
             TyKind::Tuple(fields) => {
-                let mut fields = fold_and_flatten_ty_tuple_fields(self, fields)?;
+                let mut fields = ty_fold_and_inline_tuple_fields(self, fields)?;
 
                 // clear types of fields that are just Ident("?")
                 for field in &mut fields {
@@ -531,11 +570,7 @@ impl PlFold for TypePreviewer<'_> {
                 }
                 TyKind::Tuple(fields)
             }
-            TyKind::Array(ty) => TyKind::Array(Box::new(self.fold_type(*ty)?)),
-            TyKind::Function(func) => {
-                TyKind::Function(func.map(|f| func_ty_func(self, f)).transpose()?)
-            }
-            TyKind::Primitive(_) => ty.kind,
+            _ => return fold_type(self, ty),
         };
         Ok(ty)
     }

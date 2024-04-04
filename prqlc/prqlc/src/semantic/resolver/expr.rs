@@ -158,7 +158,7 @@ impl PlFold for Resolver<'_> {
                 let base = self.fold_expr(*base)?;
 
                 let ty = base.ty.as_ref().unwrap();
-                let (position, ty) = self.resolve_indirection(&ty, &field, 0).with_span(*span)?;
+                let (position, ty) = self.resolve_indirection(ty, &field, 0).with_span(*span)?;
                 Expr {
                     ty,
                     kind: ExprKind::Indirection {

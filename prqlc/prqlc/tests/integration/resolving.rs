@@ -59,7 +59,7 @@ fn resolve_basic_01() {
 }
 
 #[test]
-fn resolve_tuple_unpacking() {
+fn resolve_ty_tuple_unpack() {
     assert_snapshot!(resolve(r#"
     type Employee = {first_name = text, age = int}
 
@@ -72,6 +72,56 @@ fn resolve_tuple_unpacking() {
 
     let employees <[{id = int, first_name = text, age = int}]> = internal local_table
     "###)
+}
+
+#[test]
+fn resolve_ty_exclude() {
+    assert_snapshot!(resolve(r#"
+    type X = {a = int, b = text}
+    type Y = {b = text}
+    type Z = module.X - module.Y
+    "#).unwrap(), @r###"
+    type X = {a = int, b = text}
+
+    type Y = {b = text}
+
+    type Z = {a = int}
+
+    module db {
+    }
+    "###);
+    
+    assert_snapshot!(resolve(r#"
+    type X = {a = int, b = text}
+    type Y = text
+    type Z = module.X - module.Y
+    "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:25]
+       │
+     4 │     type Z = module.X - module.Y
+       │                         ────┬───
+       │                             ╰───── expected excluding fields to be a tuple
+       │
+       │ Help: got text
+    ───╯
+    "###);
+    
+    assert_snapshot!(resolve(r#"
+    type X = text
+    type Y = {a = int}
+    type Z = module.X - module.Y
+    "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:14]
+       │
+     4 │     type Z = module.X - module.Y
+       │              ────┬───
+       │                  ╰───── fields can only be excluded from a tuple
+       │
+       │ Help: got text
+    ───╯
+    "###);
 }
 
 #[test]
@@ -121,10 +171,10 @@ fn table_inference_01() {
     )
     .unwrap(), @r###"
     module db {
-      let employees <[{.._generic.G108}]> = internal local_table
+      let employees <[{.._generic.G109}]> = internal local_table
     }
 
-    let main <[{.._generic.G108}]> = db.employees
+    let main <[{.._generic.G109}]> = db.employees
     "###);
 }
 
@@ -138,10 +188,10 @@ fn table_inference_02() {
     )
     .unwrap(), @r###"
     module db {
-      let employees <[{.._generic.G111}]> = internal local_table
+      let employees <[{.._generic.G112}]> = internal local_table
     }
 
-    let main <[{id = _generic.G117, age = _generic.G121}]> = `(Select ...)`
+    let main <[{id = _generic.G118, age = _generic.G122}]> = `(Select ...)`
     "###);
 }
 
@@ -156,9 +206,9 @@ fn table_inference_03() {
     )
     .unwrap(), @r###"
     module db {
-      let employees <[{.._generic.G114}]> = internal local_table
+      let employees <[{.._generic.G115}]> = internal local_table
     }
 
-    let main <[{name = _generic.G124}]> = `(Select ...)`
+    let main <[{name = _generic.G125}]> = `(Select ...)`
     "###);
 }

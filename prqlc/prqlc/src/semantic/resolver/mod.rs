@@ -11,7 +11,7 @@ mod static_eval;
 mod stmt;
 mod types;
 
-pub use types::ty_tuple_exclusion;
+pub use types::ty_tuple_exclusion_mask;
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver<'a> {
