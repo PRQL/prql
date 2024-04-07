@@ -12,4 +12,4 @@ task web:run-playground
 ```
 
 ...or use the commands which that command calls from
-[our Taskfile](../Taskfile.yml).
+[our Taskfile](../Taskfile.yaml).
