@@ -24,6 +24,9 @@ includes:
   lutra:
     taskfile: ./lutra
     dir: ./lutra
+  web:
+    taskfile: ./web
+    dir: ./web
 
 vars:
   # Keep in sync with .vscode/extensions.json
@@ -238,7 +241,7 @@ tasks:
       # caching.
       - cargo build --all-targets
       - cargo doc
-      - task: build-web
+      - task: web:build
       - task: build-each-crate
 
   build-each-crate:
@@ -342,24 +345,6 @@ tasks:
       - cargo llvm-cov --lcov --output-path lcov.info
         --features=default,test-dbs
 
-  build-web:
-    desc:
-      Build the web products for distribution - Website, Book, and Playground.
-    dir: web
-    cmds:
-      - cd website && hugo --minify
-      - cd book && mdbook build
-      - mkdir -p website/public
-      # Copy the book into the website path, using rsync so it only copies new files
-      - rsync -ai --checksum --delete book/book/ website/public/book/
-      # (we don't use `build-playground-dependencies`, since that uses the dev profile)
-      - cd playground && npm ci && npm run build
-      # We place the playground app in a nested path, because we want to use
-      # prql-lang.org/playground with an iframe containing the playground.
-      # Possibly there's a more elegant way of doing this...
-      - rsync -ai --checksum --delete playground/dist/
-        website/public/playground/playground/
-
   test-js:
     dir: prqlc/bindings/js
     cmds:
@@ -379,46 +364,6 @@ tasks:
     desc: Run pre-commit
     cmds:
       - pre-commit run -a
-
-  run-website:
-    desc: Build & serve the static website for interactive development.
-    dir: web/website
-    cmds:
-      - hugo server
-
-  run-book:
-    desc: Build & serve the book for interactive development.
-    dir: web/book
-    cmds:
-      - mdbook serve --port=3000
-
-  run-playground:
-    desc: Build & serve the playground for interactive development.
-    dir: web/playground
-    env:
-      PROFILE: dev
-    cmds:
-      - task: build-playground-dependencies
-      - npm run dev
-
-  build-playground-dependencies:
-    # Check if npm dependencies for the playground need to be updated
-    # Use task's sources/generates to see if package.json,
-    # or anything in crates or bindings was updated after the
-    # node_modules was rebuilt
-    desc: Install deps, checking whether a dependency recently changed
-    dir: web/playground
-    env:
-      PROFILE: dev
-    cmds:
-      - npm ci
-    # Note that now we have `PROFILE: dev`, the build is much much faster, and
-    # we could remove this sources check if it became inconvenient.
-    sources:
-      - package.json
-      - package-lock.json
-      - ../../prqlc/**/*.rs
-      - ../../prqlc/bindings/**/*.rs
 
   build-php:
     - cargo build --package prqlc-c --release
@@ -470,22 +415,3 @@ tasks:
 #     - curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
 #     - apt install -y nodejs
 #     - cd /app/playground/ ; npm install
-
-# These tasks have been factored out in favor of the remaining tasks
-# run-web:
-#   desc: Build & serve the website & playground.
-#   summary:
-#     Note that this only live-reloads the static website; and requires
-#     rerunning to pick up playground & book changes.
-#   dir: web/website
-#   cmds:
-#     - task: build-web
-#     # Then start web server with rendering to disk, so it picks up the playground files.
-#     - hugo server --renderToDisk
-
-# run-playground-cached:
-#   desc: Build & serve the playground, without rebuilding rust code.
-#   dir: web/playground
-#   cmds:
-#     - task: install-playground-dependencies
-#     - npm start

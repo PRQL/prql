@@ -428,11 +428,11 @@ The website components will run locally with:
 
 ```sh
 # Run the main website
-task run-website
+task web:run-website
 # Run the PRQL online book
-task run-book
+task web:run-book
 # Run the PRQL playground
-task run-playground
+task web:run-playground
 ```
 
 ## Bindings
