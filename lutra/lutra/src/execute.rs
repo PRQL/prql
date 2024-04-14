@@ -47,7 +47,7 @@ fn execute_one(project: &ProjectCompiled, pipeline_ident: &Ident) -> Result<Rela
     };
     log::debug!("executing sql: {pipeline}");
 
-    let batches = connector_arrow::query_one(&mut conn, pipeline)?;
+    let batches = connector_arrow::query(&mut conn, pipeline)?;
 
     Ok(batches)
 }
