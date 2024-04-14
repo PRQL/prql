@@ -219,32 +219,27 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
-        if let TyKind::Ident(fq_ident) = &expected.kind {
-            // if expected type is a generic, infer that it must be the found type
-            self.infer_type_of_generic(fq_ident, found.clone(), found.span)?;
-            return Ok(());
-        }
+        match (&mut found.kind, &expected.kind) {
+            // base case
+            (TyKind::Primitive(f), TyKind::Primitive(e)) if e == f => Ok(()),
 
-        if let TyKind::Ident(fq_ident) = &found.kind {
-            // if found type is a generic, infer that it must be the expected type
-            self.infer_type_of_generic(fq_ident, expected.clone(), span)?;
-            return Ok(());
-        }
-
-        match &expected.kind {
-            TyKind::Ident(_) => unreachable!(),
-            TyKind::Array(expected_items) => {
-                let TyKind::Array(found_items) = &mut found.kind else {
-                    return Err(compose_type_error(found, expected, who).with_span(span));
-                };
-
-                return self.validate_type(found_items.as_mut(), expected_items, span, who);
+            // generics: infer
+            (_, TyKind::Ident(expected_fq)) => {
+                // if expected type is a generic, infer that it must be the found type
+                self.infer_type_of_generic(expected_fq, found.clone(), found.span)?;
+                Ok(())
             }
-            TyKind::Tuple(expected_fields) => {
-                let TyKind::Tuple(found_fields) = &mut found.kind else {
-                    return Err(compose_type_error(found, expected, who).with_span(span));
-                };
+            (TyKind::Ident(found_fq), _) => {
+                // if found type is a generic, infer that it must be the expected type
+                self.infer_type_of_generic(found_fq, expected.clone(), span)?;
+                Ok(())
+            }
 
+            // containers: recurse
+            (TyKind::Array(found_items), TyKind::Array(expected_items)) => {
+                self.validate_type(found_items.as_mut(), expected_items, span, who)
+            }
+            (TyKind::Tuple(found_fields), TyKind::Tuple(expected_fields)) => {
                 for (e, f) in itertools::zip_eq(expected_fields, found_fields) {
                     if let (TyTupleField::Single(_, Some(e)), TyTupleField::Single(_, Some(f))) =
                         (e, f)
@@ -253,19 +248,10 @@ impl Resolver<'_> {
                     }
                 }
 
-                return Ok(());
+                Ok(())
             }
-            TyKind::Primitive(e) => {
-                if let TyKind::Primitive(f) = &found.kind {
-                    if e == f {
-                        return Ok(());
-                    }
-                }
-            }
-            _ => (),
+            _ => Err(compose_type_error(found, expected, who).with_span(span)),
         }
-
-        Err(compose_type_error(found, expected, who).with_span(span))
     }
 
     fn infer_tuple_field_name(&self, field: &Expr) -> Option<String> {
