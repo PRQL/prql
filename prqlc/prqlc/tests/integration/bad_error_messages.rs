@@ -213,6 +213,14 @@ fn a_arrow_b() {
     assert_snapshot!(compile(r###"
     x -> y
     "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280
+    [E0001] Error:
+       ╭─[:2:5]
+       │
+     2 │     x -> y
+       │     ───┬───
+       │        ╰───── Missing main pipeline
+       │
+       │ Help: main is not a relational variable
+    ───╯
     "###);
 }

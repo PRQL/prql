@@ -212,3 +212,31 @@ fn table_inference_03() {
     let main <[{name = _generic.G124}]> = `(select ...)`
     "###);
 }
+
+#[test]
+fn high_order_func() {
+    assert_snapshot!(resolve(
+    r#"
+    let neg = func <T> num<T> -> <T> -num
+    let map = func <E, M>
+        mapper <func E -> M>
+        elements <[E]>
+        -> <[M]> s"an array of mapped elements"
+    
+    let ints = [1, 2, 3]
+    let negated = (module.map module.neg module.ints)
+    "#,
+    )
+    .unwrap(), @r###"
+    module db {
+    }
+
+    let ints <[int]> = [1, 2, 3]
+
+    let map = func <EM> mapper <func E -> M> elements <[E]> -> <[M]> s"an array of mapped elements"
+
+    let neg = func <T> num <T> -> <T> std.neg num
+
+    let negated <[int]> = s"an array of mapped elements"
+    "###);
+}

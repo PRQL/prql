@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use itertools::Itertools;
 
@@ -6,7 +6,7 @@ use crate::ast::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::semantic::{NS_THAT, NS_THIS};
+use crate::semantic::{NS_GENERIC, NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -28,12 +28,19 @@ impl Resolver<'_> {
                 let fq_ident = self.resolve_ident(&ident)?;
 
                 let decl = self.root_mod.module.get(&fq_ident).unwrap();
+                let mut fold_again = false;
                 let ty = match &decl.kind {
                     DeclKind::Ty(ref_ty) => {
                         // materialize into the referred type
+                        fold_again = true;
+                        let inferred_name = if fq_ident.starts_with_part(NS_GENERIC) {
+                            None
+                        } else {
+                            Some(fq_ident.name)
+                        };
                         Ty {
                             kind: ref_ty.kind.clone(),
-                            name: ref_ty.name.clone().or(Some(fq_ident.name)),
+                            name: ref_ty.name.clone().or(inferred_name),
                             span: ty.span,
                         }
                     }
@@ -66,7 +73,11 @@ impl Resolver<'_> {
                 self.root_mod.local_mut().unshadow(NS_THIS);
                 self.root_mod.local_mut().unshadow(NS_THAT);
 
-                ty
+                if fold_again {
+                    self.fold_type_actual(ty)?
+                } else {
+                    ty
+                }
             }
             TyKind::Tuple(fields) => Ty {
                 kind: TyKind::Tuple(ty_fold_and_inline_tuple_fields(self, fields)?),
@@ -211,7 +222,7 @@ impl Resolver<'_> {
     /// Validates that found node has expected type. Returns assumed type of the node.
     pub fn validate_type<F>(
         &mut self,
-        found: &mut Ty,
+        found: &Ty,
         expected: &Ty,
         span: Option<Span>,
         who: &F,
@@ -219,7 +230,7 @@ impl Resolver<'_> {
     where
         F: Fn() -> Option<String>,
     {
-        match (&mut found.kind, &expected.kind) {
+        match (&found.kind, &expected.kind) {
             // base case
             (TyKind::Primitive(f), TyKind::Primitive(e)) if e == f => Ok(()),
 
@@ -237,17 +248,39 @@ impl Resolver<'_> {
 
             // containers: recurse
             (TyKind::Array(found_items), TyKind::Array(expected_items)) => {
-                self.validate_type(found_items.as_mut(), expected_items, span, who)
+                // co-variant contained type
+                self.validate_type(found_items, expected_items, span, who)
             }
             (TyKind::Tuple(found_fields), TyKind::Tuple(expected_fields)) => {
                 for (e, f) in itertools::zip_eq(expected_fields, found_fields) {
                     if let (TyTupleField::Single(_, Some(e)), TyTupleField::Single(_, Some(f))) =
                         (e, f)
                     {
+                        // co-variant contained type
                         self.validate_type(f, e, span, who)?;
                     }
                 }
 
+                Ok(())
+            }
+            (TyKind::Function(Some(f_func)), TyKind::Function(Some(e_func)))
+                if f_func.args.len() == e_func.args.len() =>
+            {
+                for (f_arg, e_arg) in itertools::zip_eq(&f_func.args, &e_func.args) {
+                    if let Some((f_arg, e_arg)) = Option::zip(f_arg.as_ref(), e_arg.as_ref()) {
+                        // contra-variant contained types
+                        self.validate_type(e_arg, f_arg, span, who)?;
+                    }
+                }
+
+                // return types
+                if let Some((f_ret, e_ret)) = Option::zip(
+                    Option::as_ref(&f_func.return_ty),
+                    Option::as_ref(&e_func.return_ty),
+                ) {
+                    // co-variant contained type
+                    self.validate_type(f_ret, e_ret, span, who)?;
+                }
                 Ok(())
             }
             _ => Err(compose_type_error(found, expected, who).with_span(span)),
@@ -396,7 +429,7 @@ pub fn ty_tuple_kind(fields: Vec<TyTupleField>) -> TyKind {
     TyKind::Tuple(res)
 }
 
-fn compose_type_error<F>(found_ty: &mut Ty, expected: &Ty, who: &F) -> Error
+fn compose_type_error<F>(found_ty: &Ty, expected: &Ty, who: &F) -> Error
 where
     F: Fn() -> Option<String>,
 {
@@ -477,31 +510,6 @@ pub fn ty_fold_and_inline_tuple_fields<F: ?Sized + PlFold>(
         }
     }
     Ok(new_fields)
-}
-
-/// Replaces references to generic type parameters with resolved argument types.
-pub struct GenericArgInliner {
-    prefix: Vec<String>,
-    args: HashMap<String, Ty>,
-}
-
-impl GenericArgInliner {
-    pub fn run(prefix: Vec<String>, args: HashMap<String, Ty>, ty: Ty) -> Ty {
-        GenericArgInliner { prefix, args }.fold_type(ty).unwrap()
-    }
-}
-
-impl PlFold for GenericArgInliner {
-    fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
-        if let TyKind::Ident(fq_ident) = &ty.kind {
-            if fq_ident.starts_with_path(&self.prefix) && fq_ident.len() == self.prefix.len() + 1 {
-                if let Some(arg) = self.args.get(&fq_ident.name) {
-                    return Ok(arg.clone());
-                }
-            }
-        }
-        fold_type(self, ty)
-    }
 }
 
 /// Replaces references to generic type parameters with (partially) resolved argument types

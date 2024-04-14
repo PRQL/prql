@@ -4,6 +4,7 @@ use std::iter::zip;
 use itertools::Itertools;
 
 use crate::ast::{Ty, TyFunc};
+use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS};
@@ -65,12 +66,11 @@ impl Resolver<'_> {
             }
         };
 
-        let generic_args = self
-            .finalize_function_generic_args(&func)
+        self.finalize_function_generic_args(&func)
             .with_span_fallback(span)?;
-        func.return_ty = func
-            .return_ty
-            .map(|ty| super::types::GenericArgInliner::run(generic_args.0, generic_args.1, ty));
+
+        // run fold again, so idents that used to point to generics get inlined
+        func.return_ty = func.return_ty.map(|ty| self.fold_type(ty)).transpose()?;
 
         let needs_window = (func.params.last())
             .and_then(|p| p.ty.as_ref())
@@ -205,12 +205,7 @@ impl Resolver<'_> {
         Ok(func)
     }
 
-    fn finalize_function_generic_args(
-        &mut self,
-        func: &Func,
-    ) -> Result<(Vec<String>, HashMap<String, Ty>)> {
-        let mut res = HashMap::new();
-
+    fn finalize_function_generic_args(&mut self, func: &Func) -> Result<()> {
         let generics_mod_path = vec![NS_GENERIC.to_string(), func.initial_id.unwrap().to_string()];
 
         for generic_param in &func.generic_type_params {
@@ -218,12 +213,15 @@ impl Resolver<'_> {
                 path: generics_mod_path.clone(),
                 name: generic_param.name.clone(),
             };
-            log::debug!("finalizing {ident}");
 
             let decl = self.root_mod.module.get_mut(&ident).unwrap();
 
             let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
-                panic!()
+                // this case means that we have already finalized this generic arg and should never happen
+                // hack: this case does happen, because our resolution order is all over the place,
+                //    so I had to add "finalize_function_generic_args" into "resolve_function_arg".
+                //    This only sorta makes sense, so I want to mark this case as "will remove in the future".
+                continue;
             };
 
             let Some((ty, _span)) = inferred_type.take() else {
@@ -232,9 +230,10 @@ impl Resolver<'_> {
                     generic_param.name
                 )));
             };
-            res.insert(ident.name, ty);
+            log::debug!("finalizing {ident} into {}", write_ty(&ty));
+            decl.kind = DeclKind::Ty(ty);
         }
-        Ok((generics_mod_path, res))
+        Ok(())
     }
 
     pub fn apply_args_to_closure(
@@ -384,6 +383,14 @@ impl Resolver<'_> {
                 .map(|n| format!("function {n}, param `{}`", param.name))
         };
         self.validate_expr_type(&mut arg, param.ty.as_ref(), &who)?;
+
+        // special case: the arg is a func, finalize it generic arguments
+        // (this is somewhat of a hack that is needed because of our weird resolution order)
+        if let ExprKind::Func(func) = &arg.kind {
+            self.finalize_function_generic_args(func)
+                .with_span_fallback(arg.span)?;
+        }
+
         Ok(Ok(arg))
     }
 
