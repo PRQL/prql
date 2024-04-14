@@ -124,6 +124,8 @@ pub struct Func {
     /// evaluated.
     pub env: HashMap<String, Expr>,
 
+    pub initial_id: Option<usize>,
+
     pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
     pub coerce_tuple: Option<u8>,
 }

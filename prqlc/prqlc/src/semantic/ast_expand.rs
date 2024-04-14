@@ -89,6 +89,7 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
                 generic_type_params: v.generic_type_params,
                 implicit_closure: Default::default(),
                 coerce_tuple: Default::default(),
+                initial_id: None,
             }
             .into(),
         ),

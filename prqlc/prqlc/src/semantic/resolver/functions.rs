@@ -12,8 +12,13 @@ use crate::{Error, Result, Span, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn fold_function(&mut self, closure: Box<Func>, span: Option<Span>) -> Result<Expr> {
-        let closure = self.fold_function_types(closure)?;
+    pub fn fold_function(
+        &mut self,
+        closure: Box<Func>,
+        func_id: usize,
+        span: Option<Span>,
+    ) -> Result<Expr> {
+        let closure = self.fold_function_types(closure, func_id)?;
 
         log::debug!(
             "func {} {}/{} params",
@@ -65,7 +70,7 @@ impl Resolver<'_> {
             .with_span_fallback(span)?;
         func.return_ty = func
             .return_ty
-            .map(|ty| super::types::GenericArgInliner::run(true, generic_args, ty));
+            .map(|ty| super::types::GenericArgInliner::run(generic_args.0, generic_args.1, ty));
 
         let needs_window = (func.params.last())
             .and_then(|p| p.ty.as_ref())
@@ -131,6 +136,7 @@ impl Resolver<'_> {
                 generic_type_params: Default::default(),
                 implicit_closure: Default::default(),
                 coerce_tuple: Default::default(),
+                initial_id: None,
             })))
         } else {
             // resolved, return result
@@ -147,20 +153,42 @@ impl Resolver<'_> {
 
     /// Folds function types, so they are resolved to material types, ready for type checking.
     /// Requires id of the function call node, so it can be used to generic type arguments.
-    pub fn fold_function_types(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
-        // prepare generic arguments
-        for generic_param in &func.generic_type_params {
-            // TODO: fold bounds
-            // let domain: Vec<Ty> = generic_param
-            //     .bounds
-            //     .iter()
-            //     .map(|t| self.fold_type(t.clone()))
-            //     .try_collect()?;
+    pub fn fold_function_types(
+        &mut self,
+        mut func: Box<Func>,
+        func_id: usize,
+    ) -> Result<Box<Func>> {
+        if func.initial_id.is_none() {
+            func.initial_id = Some(func_id);
 
-            // register the generic type param in the resolver
-            let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
-            let decl = Decl::from(DeclKind::GenericParam(None));
-            self.root_mod.local_mut().insert(ident, decl).unwrap();
+            // prepare generic arguments
+            for generic_param in &func.generic_type_params {
+                // TODO: fold bounds
+                // let domain: Vec<Ty> = generic_param
+                //     .bounds
+                //     .iter()
+                //     .map(|t| self.fold_type(t.clone()))
+                //     .try_collect()?;
+
+                // register the generic type param in the resolver
+                let generic_ident = Ident::from_path(vec![
+                    NS_GENERIC.to_string(),
+                    func_id.to_string(),
+                    generic_param.name.clone(),
+                ]);
+                let generic = Decl::from(DeclKind::GenericParam(None));
+                self.root_mod
+                    .module
+                    .insert(generic_ident.clone(), generic)
+                    .unwrap();
+
+                let import_ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
+                let import = Decl::from(DeclKind::Import(generic_ident.clone()));
+                self.root_mod
+                    .local_mut()
+                    .insert(import_ident, import)
+                    .unwrap();
+            }
         }
 
         func.params = func
@@ -177,12 +205,22 @@ impl Resolver<'_> {
         Ok(func)
     }
 
-    fn finalize_function_generic_args(&mut self, func: &Func) -> Result<HashMap<String, Ty>> {
+    fn finalize_function_generic_args(
+        &mut self,
+        func: &Func,
+    ) -> Result<(Vec<String>, HashMap<String, Ty>)> {
         let mut res = HashMap::new();
 
+        let generics_mod_path = vec![NS_GENERIC.to_string(), func.initial_id.unwrap().to_string()];
+
         for generic_param in &func.generic_type_params {
-            let ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
-            let decl = self.root_mod.local_mut().get_mut(&ident).unwrap();
+            let ident = Ident {
+                path: generics_mod_path.clone(),
+                name: generic_param.name.clone(),
+            };
+            log::debug!("finalizing {ident}");
+
+            let decl = self.root_mod.module.get_mut(&ident).unwrap();
 
             let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
                 panic!()
@@ -196,7 +234,7 @@ impl Resolver<'_> {
             };
             res.insert(ident.name, ty);
         }
-        Ok(res)
+        Ok((generics_mod_path, res))
     }
 
     pub fn apply_args_to_closure(
@@ -438,6 +476,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
         generic_type_params: Default::default(),
         implicit_closure: Default::default(),
         coerce_tuple: Default::default(),
+        initial_id: None,
     })
 }
 

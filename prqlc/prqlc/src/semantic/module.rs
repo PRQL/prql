@@ -98,7 +98,7 @@ impl Module {
                 ),
             ]),
             shadowed: None,
-            redirects: vec![Ident::from_name(NS_GENERIC)],
+            redirects: vec![],
         }
     }
 

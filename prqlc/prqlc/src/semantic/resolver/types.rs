@@ -6,7 +6,7 @@ use crate::ast::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::semantic::{NS_LOCAL, NS_THAT, NS_THIS};
+use crate::semantic::{NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -481,21 +481,20 @@ pub fn ty_fold_and_inline_tuple_fields<F: ?Sized + PlFold>(
 
 /// Replaces references to generic type parameters with resolved argument types.
 pub struct GenericArgInliner {
-    local: bool,
+    prefix: Vec<String>,
     args: HashMap<String, Ty>,
 }
 
 impl GenericArgInliner {
-    pub fn run(local: bool, args: HashMap<String, Ty>, ty: Ty) -> Ty {
-        GenericArgInliner { local, args }.fold_type(ty).unwrap()
+    pub fn run(prefix: Vec<String>, args: HashMap<String, Ty>, ty: Ty) -> Ty {
+        GenericArgInliner { prefix, args }.fold_type(ty).unwrap()
     }
 }
 
 impl PlFold for GenericArgInliner {
     fn fold_type(&mut self, ty: Ty) -> Result<Ty> {
         if let TyKind::Ident(fq_ident) = &ty.kind {
-            let is_local = fq_ident.starts_with_part(NS_LOCAL);
-            if self.local == is_local {
+            if fq_ident.starts_with_path(&self.prefix) && fq_ident.len() == self.prefix.len() + 1 {
                 if let Some(arg) = self.args.get(&fq_ident.name) {
                     return Ok(arg.clone());
                 }
