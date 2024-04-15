@@ -155,21 +155,14 @@ impl WriteSource for ExprKind {
                 let mut r = "func ".to_string();
                 if !c.generic_type_params.is_empty() {
                     r += opt.consume("<")?;
-                    for generic_param in &c.generic_type_params {
-                        r += opt.consume(&write_ident_part(&generic_param.name))?;
-
-                        if let Some(bounds) = &generic_param.bounds {
-                            r += opt.consume(": ")?;
-                            r += &opt.consume(
-                                SeparatedExprs {
-                                    exprs: bounds,
-                                    inline: " | ",
-                                    line_end: " |",
-                                }
-                                .write(opt.clone())?,
-                            )?;
+                    r += opt.consume(
+                        &SeparatedExprs {
+                            exprs: &c.generic_type_params,
+                            inline: ", ",
+                            line_end: ",",
                         }
-                    }
+                        .write(opt.clone())?,
+                    )?;
                     r += opt.consume("> ")?;
                 }
 
@@ -222,6 +215,25 @@ impl WriteSource for ExprKind {
             Param(id) => Some(format!("${id}")),
             Internal(operator_name) => Some(format!("internal {operator_name}")),
         }
+    }
+}
+
+impl WriteSource for GenericTypeParam {
+    fn write(&self, mut opt: WriteOpt) -> Option<String> {
+        let mut r = opt.consume(write_ident_part(&self.name))?;
+
+        if let Some(bounds) = &self.bounds {
+            r += opt.consume(": ")?;
+            r += &opt.consume(
+                SeparatedExprs {
+                    exprs: bounds,
+                    inline: " | ",
+                    line_end: " |",
+                }
+                .write(opt.clone())?,
+            )?;
+        }
+        Some(r)
     }
 }
 

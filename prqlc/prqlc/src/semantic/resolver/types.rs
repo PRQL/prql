@@ -48,6 +48,7 @@ impl Resolver<'_> {
                     DeclKind::GenericParam(_) => {
                         // leave as an ident
                         Ty {
+                            name: Some(fq_ident.name.clone()),
                             kind: TyKind::Ident(fq_ident),
                             ..ty
                         }

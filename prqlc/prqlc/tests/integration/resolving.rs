@@ -174,7 +174,7 @@ fn table_inference_01() {
       let employees <[{.._generic.G109}]> = internal local_table
     }
 
-    let main <[{.._generic.G109}]> = db.employees
+    let main <[{..G109}]> = db.employees
     "###);
 }
 
@@ -191,7 +191,7 @@ fn table_inference_02() {
       let employees <[{.._generic.G112}]> = internal local_table
     }
 
-    let main <[{id = _generic.G118, age = _generic.G122}]> = `(select ...)`
+    let main <[{id = G118, age = G122}]> = `(select ...)`
     "###);
 }
 
@@ -209,12 +209,12 @@ fn table_inference_03() {
       let employees <[{.._generic.G115}]> = internal local_table
     }
 
-    let main <[{name = _generic.G124}]> = `(select ...)`
+    let main <[{name = G124}]> = `(select ...)`
     "###);
 }
 
 #[test]
-fn high_order_func() {
+fn high_order_func_01() {
     assert_snapshot!(resolve(
     r#"
     let neg = func <T> num<T> -> <T> -num
@@ -233,10 +233,51 @@ fn high_order_func() {
 
     let ints <[int]> = [1, 2, 3]
 
-    let map = func <EM> mapper <func E -> M> elements <[E]> -> <[M]> s"an array of mapped elements"
+    let map = func <E, M> mapper <func E -> M> elements <[E]> -> <[M]> s"an array of mapped elements"
 
     let neg = func <T> num <T> -> <T> std.neg num
 
     let negated <[int]> = s"an array of mapped elements"
+    "###);
+}
+
+#[test]
+fn high_order_func_02() {
+    assert_snapshot!(resolve(
+    r#"
+    let convert_to_one = func <X> x <X> -> <int> 1
+
+    let both = func <I, O>
+      mapper <func I -> O>
+      input <{I, I}>
+      -> <{O, O}> {
+        (mapper input.0),
+        (mapper input.1),
+      }
+    
+    let both_ones = (module.both module.convert_to_one)
+
+    let main = (module.both_ones {'hello', 'world'})
+    "#,
+    )
+    .unwrap(), @r###"
+    let both = func <I, O> mapper <func I -> O> input <{I, I}> -> <{O, O}> {
+      mapper input.0,
+      mapper input.1,
+    }
+
+    let both_ones <func {I, I} -> {O, O}> = (
+      func <I, O> mapper <func I -> O> input <{I, I}> -> <{O, O}> {
+        mapper input.0,
+        mapper input.1,
+      }
+    ) convert_to_one
+
+    let convert_to_one = func <X> x <X> -> <int> 1
+
+    module db {
+    }
+
+    let main <{int, int}> = {1, 1}
     "###);
 }
