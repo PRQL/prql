@@ -101,9 +101,6 @@ pub struct FuncCall {
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Func {
-    /// Name of the function. Used for user-facing messages only.
-    pub name_hint: Option<Ident>,
-
     /// Type requirement for the function body expression.
     pub return_ty: Option<Ty>,
 
@@ -120,11 +117,7 @@ pub struct Func {
     pub generic_type_params: Vec<GenericTypeParam>,
 
     pub initial_id: Option<usize>,
-
-    pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
-    pub coerce_tuple: Option<u8>,
 }
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncParam {
     pub name: String,
@@ -136,15 +129,8 @@ pub struct FuncParam {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ImplicitClosureConfig {
-    pub param: u8,
-    pub this: Option<u8>,
-    pub that: Option<u8>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncApplication {
-    pub func: Box<Func>, // TODO: change this to Expr
+    pub func: Box<Expr>, // TODO: change this to Expr
 
     pub args: Vec<Expr>,
 }

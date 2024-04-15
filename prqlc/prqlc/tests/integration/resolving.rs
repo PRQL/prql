@@ -125,20 +125,6 @@ fn resolve_ty_exclude() {
 }
 
 #[test]
-fn resolve_function_01() {
-    assert_snapshot!(resolve(r#"
-    let my_func = func param_1 <param_1_type> -> <Ret_ty> (
-      param_1 + 1
-    )
-    "#).unwrap(), @r###"
-    module db {
-    }
-
-    let my_func = func param_1 <param_1_type> -> <Ret_ty> std.add param_1 1
-    "###)
-}
-
-#[test]
 fn resolve_generics_01() {
     assert_snapshot!(resolve(
         r#"
@@ -146,6 +132,34 @@ fn resolve_generics_01() {
         
     let my_int = module.add_one 1
     let my_float = module.add_one 1.0
+    "#,
+    )
+    .unwrap(), @r###"
+    let add_one = func <A: int | float> a <A> -> <A> (
+      std.add a 1
+    )
+
+    module db {
+    }
+
+    let my_float <float> = `(std.add ...)`
+
+    let my_int <int> = `(std.add ...)`
+    "###);
+}
+
+#[test]
+fn resolve_generics_02() {
+    assert_snapshot!(resolve(
+    r#"
+    let neg = func <T> num<T> -> <T> -num
+    let map = func <E, M>
+        mapper <func E -> M>
+        elements <[E]>
+        -> <[M]> s"an array of mapped elements"
+
+    let ints = [1, 2, 3]
+    let negated = (module.map module.neg module.ints)
     "#,
     )
     .unwrap(), @r###"

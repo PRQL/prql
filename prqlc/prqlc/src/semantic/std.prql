@@ -101,7 +101,7 @@ let take = func <I>
   tbl <[I]>
   -> <[I]> internal take
 
-@(implicit_closure 2 this:3 that:1)
+@(implicit_closure 1 this:2 that:0)
 let join = func <A, B>
   with <[B]>
   condition <bool>

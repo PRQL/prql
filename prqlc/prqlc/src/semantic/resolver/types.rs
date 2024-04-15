@@ -1,13 +1,13 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use prqlc_ast::TyFunc;
 
 use crate::ast::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
-use crate::ir::decl::DeclKind;
+use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use crate::semantic::{NS_GENERIC, NS_THAT, NS_THIS};
+use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -34,7 +34,9 @@ impl Resolver<'_> {
                     DeclKind::Ty(ref_ty) => {
                         // materialize into the referred type
                         fold_again = true;
-                        let inferred_name = if fq_ident.starts_with_part(NS_GENERIC) {
+                        let inferred_name = if fq_ident.starts_with_part(NS_GENERIC)
+                            || fq_ident.starts_with_part(NS_LOCAL)
+                        {
                             None
                         } else {
                             Some(fq_ident.name)
@@ -189,9 +191,10 @@ impl Resolver<'_> {
             }
 
             ExprKind::Func(func) => TyKind::Function(Some(TyFunc {
-                name_hint: func.name_hint.clone(),
+                name_hint: None,
                 params: func.params.iter().map(|p| p.ty.clone()).collect_vec(),
                 return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
+                generic_type_params: func.generic_type_params.clone(),
             })),
 
             _ => return Ok(None),
@@ -282,8 +285,6 @@ impl Resolver<'_> {
                 }
 
                 // return types
-                dbg!(&f_func.return_ty);
-                dbg!(&e_func.return_ty);
                 if let Some((f_ret, e_ret)) = Option::zip(
                     Option::as_ref(&f_func.return_ty),
                     Option::as_ref(&e_func.return_ty),
@@ -348,6 +349,56 @@ impl Resolver<'_> {
 
             _ => None,
         }
+    }
+
+    /// Instantiate generic type parameters into generic type arguments.
+    ///
+    /// When resolving a type of reference to a variable, we cannot just use the type
+    /// of the variable as the type of the reference. That's because the variable might contain
+    /// generic type arguments that need to differ between references to the same variable.
+    ///
+    /// For example:
+    /// ```prql
+    /// let plus_one = func <T> x<T> -> <T> x + 1
+    ///
+    /// let a = plus_one 1
+    /// let b = plus_one 1.5
+    /// ```
+    ///
+    /// Here, the first reference to `plus_one` must resolve with T=int and the second with T=float.
+    ///
+    /// This struct makes sure that distinct instanced of T are created from generic type param T.
+    pub fn instantiate_type<'r>(&mut self, ty: Ty, id: usize) -> Ty {
+        let TyKind::Function(Some(ty_func)) = &ty.kind else {
+            return ty;
+        };
+        if ty_func.generic_type_params.is_empty() {
+            return ty;
+        }
+        let prev_scope = Ident::from_path(vec![NS_LOCAL, NS_GENERIC]);
+        let new_scope = Ident::from_path(vec![NS_GENERIC.to_string(), id.to_string()]);
+
+        let mut ident_mapping: HashMap<Ident, Ty> =
+            HashMap::with_capacity(ty_func.generic_type_params.len());
+
+        for gtp in &ty_func.generic_type_params {
+            let new_ident = new_scope.clone() + Ident::from_name(&gtp.name);
+
+            let decl = Decl::from(DeclKind::GenericParam(
+                gtp.bound.as_ref().map(|t| (t.clone(), None)),
+            ));
+            self.root_mod
+                .module
+                .insert(new_ident.clone(), decl)
+                .unwrap();
+
+            ident_mapping.insert(
+                prev_scope.clone() + Ident::from_name(&gtp.name),
+                Ty::new(TyKind::Ident(new_ident)),
+            );
+        }
+
+        TypeReplacer::on_ty(ty, ident_mapping)
     }
 }
 
@@ -572,6 +623,36 @@ impl PlFold for TypePreviewer<'_> {
                     }
                 }
                 TyKind::Tuple(fields)
+            }
+            _ => return fold_type(self, ty),
+        };
+        Ok(ty)
+    }
+}
+
+pub struct TypeReplacer {
+    mapping: HashMap<Ident, Ty>,
+}
+
+impl TypeReplacer {
+    pub fn on_ty<'r>(ty: Ty, mapping: HashMap<Ident, Ty>) -> Ty {
+        TypeReplacer { mapping }.fold_type(ty).unwrap()
+    }
+
+    pub fn on_func<'r>(func: Func, mapping: HashMap<Ident, Ty>) -> Func {
+        TypeReplacer { mapping }.fold_func(func).unwrap()
+    }
+}
+
+impl PlFold for TypeReplacer {
+    fn fold_type(&mut self, mut ty: Ty) -> Result<Ty> {
+        ty.kind = match ty.kind {
+            TyKind::Ident(ident) => {
+                if let Some(new_ty) = self.mapping.get(&ident) {
+                    return Ok(new_ty.clone());
+                } else {
+                    TyKind::Ident(ident)
+                }
             }
             _ => return fold_type(self, ty),
         };

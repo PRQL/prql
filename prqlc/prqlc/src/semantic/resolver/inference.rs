@@ -1,3 +1,5 @@
+use prqlc_ast::error::WithErrorInfo;
+
 use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
 use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, TableDecl, TableExpr};
@@ -121,13 +123,21 @@ impl Resolver<'_> {
         ty: Ty,
         span: Option<Span>,
     ) -> Result<()> {
-        log::debug!("inferring that {ident_of_generic} is {}", write_ty(&ty));
+        if let TyKind::Ident(ty_ident) = &ty.kind {
+            if ty_ident == ident_of_generic {
+                // don't infer that T is T
+                return Ok(());
+            }
+        }
+
+        log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
 
         let Some(decl) = self.root_mod.module.get_mut(ident_of_generic) else {
-            return Err(Error::new_assert("unresolved type ident"));
+            return Err(Error::new_assert("type not found"));
         };
         let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {
-            return Err(Error::new_assert("unresolved type ident"));
+            return Err(Error::new_assert("expected a generic type param")
+                .push_hint(format!("found {:?}", decl.kind)));
         };
 
         if let Some(existing) = inferred_type {

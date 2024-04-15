@@ -222,16 +222,9 @@ impl WriteSource for GenericTypeParam {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = opt.consume(write_ident_part(&self.name))?;
 
-        if let Some(bounds) = &self.bounds {
+        if let Some(bound) = &self.bound {
             r += opt.consume(": ")?;
-            r += &opt.consume(
-                SeparatedExprs {
-                    exprs: bounds,
-                    inline: " | ",
-                    line_end: " |",
-                }
-                .write(opt.clone())?,
-            )?;
+            r += &opt.consume(bound.write(opt.clone())?)?;
         }
         Some(r)
     }

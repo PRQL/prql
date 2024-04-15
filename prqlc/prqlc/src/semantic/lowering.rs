@@ -1,4 +1,5 @@
 mod flatten;
+mod inline;
 mod special_functions;
 
 use std::collections::hash_map::RandomState;
@@ -12,7 +13,7 @@ use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ast::{TyKind, TyTupleField};
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
-use crate::ir::pl::{self, Ident, PlFold, QueryDef};
+use crate::ir::pl::{self, FuncApplication, Ident, PlFold, QueryDef};
 use crate::ir::rq::{self, CId, RelationColumn, RelationalQuery, TId, TableDecl, Transform};
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
@@ -63,8 +64,6 @@ pub fn lower_to_ir(
     let mut main_relation = None;
     for (fq_ident, (table, declared_at)) in tables {
         let is_main = fq_ident == main_ident;
-
-        log::debug!("lowering: {:#?}", table.expr.as_relation_var());
 
         l.lower_table_decl(table, fq_ident)
             .map_err(with_span_if_not_exists(|| get_span_of_id(&l, declared_at)))?;
@@ -165,7 +164,10 @@ impl Lowerer {
 
         let (relation, name) = match expr {
             TableExpr::RelationVar(expr) => {
-                let expr = flatten::Flattener::run(*expr)?;
+                let expr = inline::Inliner::run(&self.root_mod, *expr);
+                let expr = flatten::Flattener::run(expr)?;
+
+                log::debug!("lowering: {:#?}", expr);
 
                 (self.lower_relation(expr)?, Some(fq_ident.name.clone()))
             }
@@ -179,7 +181,7 @@ impl Lowerer {
             .entry(fq_ident)
             .or_insert_with(|| self.tid.gen());
 
-        log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
+        log::debug!("lowered table {name:?}, columns = {:?}", relation.columns);
 
         let table = TableDecl { id, name, relation };
         self.table_buffer.push(table);
@@ -1121,10 +1123,12 @@ impl PlFold for TableDepsCollector {
                 }
                 expr.kind
             }
-            pl::ExprKind::RqOperator { name, args } => pl::ExprKind::RqOperator {
-                name,
-                args: self.fold_exprs(args)?,
-            },
+            pl::ExprKind::FuncApplication(FuncApplication { func, args }) => {
+                pl::ExprKind::FuncApplication(FuncApplication {
+                    func: Box::new(self.fold_expr(*func)?),
+                    args: self.fold_exprs(args)?,
+                })
+            }
             pl::ExprKind::Func(func) => pl::ExprKind::Func(Box::new(self.fold_func(*func)?)),
 
             // optimization: don't recurse into anything else than RqOperator and Func

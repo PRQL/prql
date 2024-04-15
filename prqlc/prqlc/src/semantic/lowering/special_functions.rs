@@ -82,26 +82,27 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
             (TransformKind::Take { range }, tbl)
         }
         "join" => {
-            let [side, with, filter, tbl] = unpack::<4>(args);
+            let [with, filter, tbl] = unpack::<3>(args);
 
             let side = {
-                let span = side.span;
-                let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
-                match ident.name.as_str() {
-                    "inner" => JoinSide::Inner,
-                    "left" => JoinSide::Left,
-                    "right" => JoinSide::Right,
-                    "full" => JoinSide::Full,
+                JoinSide::Inner
+                // let span = side.span;
+                // let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                // match ident.name.as_str() {
+                //     "inner" => JoinSide::Inner,
+                //     "left" => JoinSide::Left,
+                //     "right" => JoinSide::Right,
+                //     "full" => JoinSide::Full,
 
-                    found => {
-                        return Err(Error::new(Reason::Expected {
-                            who: Some("`side`".to_string()),
-                            expected: "inner, left, right or full".to_string(),
-                            found: found.to_string(),
-                        })
-                        .with_span(span))
-                    }
-                }
+                //     found => {
+                //         return Err(Error::new(Reason::Expected {
+                //             who: Some("`side`".to_string()),
+                //             expected: "inner, left, right or full".to_string(),
+                //             found: found.to_string(),
+                //         })
+                //         .with_span(span))
+                //     }
+                // }
             };
 
             (TransformKind::Join { side, with, filter }, tbl)

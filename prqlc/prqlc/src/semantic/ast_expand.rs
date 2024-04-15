@@ -81,10 +81,7 @@ pub fn expand_expr(expr: Expr) -> Result<pl::Expr> {
                 body: expand_expr_box(v.body)?,
                 params: expand_func_params(v.params)?,
                 named_params: expand_func_params(v.named_params)?,
-                name_hint: None,
                 generic_type_params: v.generic_type_params,
-                implicit_closure: Default::default(),
-                coerce_tuple: Default::default(),
                 initial_id: None,
             }
             .into(),
@@ -368,7 +365,7 @@ fn restrict_expr_kind(value: pl::ExprKind) -> ExprKind {
             .into(),
         ),
         pl::ExprKind::FuncApplication(v) => ExprKind::FuncCall(FuncCall {
-            name: Box::new(Expr::new(restrict_expr_kind(pl::ExprKind::Func(v.func)))),
+            name: restrict_expr_box(v.func),
             args: restrict_exprs(v.args),
             named_args: Default::default(),
         }),

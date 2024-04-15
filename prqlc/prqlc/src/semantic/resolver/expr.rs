@@ -5,7 +5,7 @@ use crate::codegen::write_ty;
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::{NS_LOCAL, NS_SELF, NS_STD, NS_THIS};
-use crate::{Error, Reason, Result, Span, WithErrorInfo};
+use crate::{Error, Result, Span, WithErrorInfo};
 
 impl PlFold for super::Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -97,19 +97,24 @@ impl PlFold for super::Resolver<'_> {
                         }
                     }
 
-                    DeclKind::Expr(expr) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
-                        ty: Some(expr.ty.clone().unwrap()),
-                        ..node
-                    },
+                    DeclKind::Expr(expr) => {
+                        // keep as ident, but pull in the type
+                        let ty = expr.ty.clone().unwrap();
+
+                        // if the type contains generics, we need to instantiate those
+                        // generics into current function scope
+                        let ty = self.instantiate_type(ty, id);
+
+                        Expr {
+                            kind: ExprKind::Ident(fq_ident),
+                            ty: Some(ty),
+                            ..node
+                        }
+                    }
 
                     DeclKind::Ty(_) => {
-                        return Err(Error::new(Reason::Expected {
-                            who: None,
-                            expected: "a value".to_string(),
-                            found: "a type".to_string(),
-                        })
-                        .with_span(*span));
+                        return Err(Error::new_simple("expected a value, but found a type")
+                            .with_span(*span));
                     }
 
                     DeclKind::Infer(_) => unreachable!(),
@@ -172,28 +177,16 @@ impl PlFold for super::Resolver<'_> {
                 // fold function name
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let mut name = Box::new(self.fold_expr(*name)?);
+                let func = Box::new(self.fold_expr(*name)?);
                 self.in_func_call_name = old;
 
-                // hack: materialize ident into the actual function
-                if let ExprKind::Ident(fq_ident) = &name.kind {
-                    let decl = self.root_mod.module.get(fq_ident).unwrap();
-                    if let DeclKind::Expr(expr) = &decl.kind {
-                        name = expr.clone();
-                    }
-                }
-
-                let func = name.try_cast(|n| n.into_func(), None, "a function")?;
-
-                // fold function
-                let func = self.apply_args_to_function(func, args, named_args)?;
-                self.fold_func_application(func, *span)?
+                // convert to function application
+                let fn_app = self.apply_args_to_function(func, args, named_args)?;
+                self.resolve_func_application(fn_app, *span)?
             }
 
             ExprKind::Func(func) => {
-                let func = self.fold_function_types(func, id)?;
-
-                let func = Box::new(self.resolve_function_body(*func)?);
+                let func = self.resolve_func(func)?;
                 Expr {
                     kind: ExprKind::Func(func),
                     ..node
@@ -255,7 +248,7 @@ impl super::Resolver<'_> {
 
                     let expr = Expr::new(ExprKind::FuncCall(FuncCall {
                         name: Box::new(Expr::new(ExprKind::Ident(Ident::from_path(vec![
-                            NS_LOCAL, "select",
+                            NS_STD, "select",
                         ])))),
                         args: vec![
                             Expr::new(ExprKind::Tuple(vec![Expr {

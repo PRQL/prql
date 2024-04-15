@@ -101,7 +101,7 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Func(func) => Func(Box::new(fold.fold_func(*func)?)),
         FuncApplication(func_app) => FuncApplication(super::expr::FuncApplication {
-            func: Box::new(fold.fold_func(*func_app.func)?),
+            func: Box::new(fold.fold_expr(*func_app.func)?),
             args: fold.fold_exprs(func_app.args)?,
         }),
 
@@ -285,15 +285,12 @@ pub fn fold_transform_kind<T: ?Sized + PlFold>(
 
 pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
     Ok(Func {
-        name_hint: func.name_hint,
         body: Box::new(fold.fold_expr(*func.body)?),
         return_ty: fold_type_opt(fold, func.return_ty)?,
         params: fold_func_param(fold, func.params)?,
         named_params: fold_func_param(fold, func.named_params)?,
         initial_id: func.initial_id,
         generic_type_params: func.generic_type_params, // recurse into this too?
-        implicit_closure: func.implicit_closure,       // recurse into this too?
-        coerce_tuple: func.coerce_tuple,               // recurse into this too?
     })
 }
 
@@ -324,7 +321,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
             TyKind::Tuple(fields) => TyKind::Tuple(fold_ty_tuple_fields(fold, fields)?),
             TyKind::Array(ty) => TyKind::Array(Box::new(fold.fold_type(*ty)?)),
             TyKind::Function(func) => {
-                TyKind::Function(func.map(|f| func_ty_func(fold, f)).transpose()?)
+                TyKind::Function(func.map(|f| fold_ty_func(fold, f)).transpose()?)
             }
             TyKind::Exclude { base, except } => TyKind::Exclude {
                 base: Box::new(fold.fold_type(*base)?),
@@ -337,7 +334,7 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
     })
 }
 
-pub fn func_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFunc> {
+pub fn fold_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFunc> {
     Ok(TyFunc {
         params: f
             .params
@@ -346,6 +343,7 @@ pub fn func_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFun
             .try_collect()?,
         return_ty: Box::new(fold_type_opt(fold, *f.return_ty)?),
         name_hint: f.name_hint,
+        generic_type_params: f.generic_type_params,
     })
 }
 

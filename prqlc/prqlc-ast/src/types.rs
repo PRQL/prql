@@ -2,7 +2,7 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::{Ident, Span};
+use crate::{GenericTypeParam, Ident, Span};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ty {
@@ -72,9 +72,14 @@ pub enum PrimitiveSet {
 // Type of a function
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
+    // TODO: this should probably be removed
     pub name_hint: Option<Ident>,
+
     pub params: Vec<Option<Ty>>,
+
     pub return_ty: Box<Option<Ty>>,
+
+    pub generic_type_params: Vec<GenericTypeParam>,
 }
 
 impl Ty {

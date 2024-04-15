@@ -1,9 +1,9 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::Ty;
+use crate::ast::{Ident, Ty};
 use crate::ir::generic::WindowKind;
-use crate::ir::pl::{Expr, ExprKind, Func, FuncCall, Range};
+use crate::ir::pl::{Expr, ExprKind, FuncCall, Range};
 
 impl FuncCall {
     pub fn new_simple(name: Expr, args: Vec<Expr>) -> Self {
@@ -22,7 +22,23 @@ pub enum TyOrExpr {
     Expr(Box<Expr>),
 }
 
-impl Func {
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
+pub struct FuncMetadata {
+    /// Name of the function. Used for user-facing messages only.
+    pub name_hint: Option<Ident>,
+
+    pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
+    pub coerce_tuple: Option<u8>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ImplicitClosureConfig {
+    pub param: u8,
+    pub this: Option<u8>,
+    pub that: Option<u8>,
+}
+
+impl FuncMetadata {
     pub(crate) fn as_debug_name(&self) -> &str {
         let ident = self.name_hint.as_ref();
 
