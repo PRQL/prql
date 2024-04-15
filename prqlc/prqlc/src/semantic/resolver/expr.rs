@@ -17,15 +17,12 @@ impl PlFold for super::Resolver<'_> {
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
-        let value = match var_def.value {
-            Some(value) if matches!(value.kind, ExprKind::Func(_)) => Some(value),
-            Some(value) => Some(Box::new(self.fold_expr(*value)?)),
-            None => None,
-        };
-
         Ok(VarDef {
             name: var_def.name,
-            value,
+            value: match var_def.value {
+                Some(value) => Some(Box::new(self.fold_expr(*value)?)),
+                None => None,
+            },
             ty: var_def.ty.map(|x| self.fold_type(x)).transpose()?,
         })
     }
@@ -100,19 +97,10 @@ impl PlFold for super::Resolver<'_> {
                         }
                     }
 
-                    DeclKind::Expr(expr) => match &expr.kind {
-                        ExprKind::Func(closure) => {
-                            let closure = self.fold_function_types(closure.clone(), id)?;
-
-                            let expr = Expr::new(ExprKind::Func(closure));
-
-                            if self.in_func_call_name {
-                                expr
-                            } else {
-                                self.fold_expr(expr)?
-                            }
-                        }
-                        _ => self.fold_expr(expr.as_ref().clone())?,
+                    DeclKind::Expr(expr) => Expr {
+                        kind: ExprKind::Ident(fq_ident),
+                        ty: Some(expr.ty.clone().unwrap()),
+                        ..node
                     },
 
                     DeclKind::Ty(_) => {
@@ -184,17 +172,33 @@ impl PlFold for super::Resolver<'_> {
                 // fold function name
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
-                let name = Box::new(self.fold_expr(*name)?);
+                let mut name = Box::new(self.fold_expr(*name)?);
                 self.in_func_call_name = old;
+
+                // hack: materialize ident into the actual function
+                if let ExprKind::Ident(fq_ident) = &name.kind {
+                    let decl = self.root_mod.module.get(fq_ident).unwrap();
+                    if let DeclKind::Expr(expr) = &decl.kind {
+                        name = expr.clone();
+                    }
+                }
 
                 let func = name.try_cast(|n| n.into_func(), None, "a function")?;
 
                 // fold function
-                let func = self.apply_args_to_closure(func, args, named_args)?;
-                self.fold_function(func, id, *span)?
+                let func = self.apply_args_to_function(func, args, named_args)?;
+                self.fold_func_application(func, *span)?
             }
 
-            ExprKind::Func(closure) => self.fold_function(closure, id, *span)?,
+            ExprKind::Func(func) => {
+                let func = self.fold_function_types(func, id)?;
+
+                let func = Box::new(self.resolve_function_body(*func)?);
+                Expr {
+                    kind: ExprKind::Func(func),
+                    ..node
+                }
+            }
 
             ExprKind::Tuple(exprs) => {
                 let exprs = self.fold_exprs(exprs)?;

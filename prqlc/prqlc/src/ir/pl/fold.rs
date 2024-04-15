@@ -99,7 +99,11 @@ pub fn fold_expr_kind<T: ?Sized + PlFold>(fold: &mut T, expr_kind: ExprKind) -> 
         Case(cases) => Case(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
-        Func(closure) => Func(Box::new(fold.fold_func(*closure)?)),
+        Func(func) => Func(Box::new(fold.fold_func(*func)?)),
+        FuncApplication(func_app) => FuncApplication(super::expr::FuncApplication {
+            func: Box::new(fold.fold_func(*func_app.func)?),
+            args: fold.fold_exprs(func_app.args)?,
+        }),
 
         TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
         RqOperator { name, args } => RqOperator {
@@ -283,17 +287,11 @@ pub fn fold_func<T: ?Sized + PlFold>(fold: &mut T, func: Func) -> Result<Func> {
     Ok(Func {
         name_hint: func.name_hint,
         body: Box::new(fold.fold_expr(*func.body)?),
-        args: func
-            .args
-            .into_iter()
-            .map(|item| fold.fold_expr(item))
-            .try_collect()?,
         return_ty: fold_type_opt(fold, func.return_ty)?,
         params: fold_func_param(fold, func.params)?,
         named_params: fold_func_param(fold, func.named_params)?,
         initial_id: func.initial_id,
         generic_type_params: func.generic_type_params, // recurse into this too?
-        env: func.env,                                 // recurse into this too?
         implicit_closure: func.implicit_closure,       // recurse into this too?
         coerce_tuple: func.coerce_tuple,               // recurse into this too?
     })
@@ -341,8 +339,8 @@ pub fn fold_type<T: ?Sized + PlFold>(fold: &mut T, ty: Ty) -> Result<Ty> {
 
 pub fn func_ty_func<F: ?Sized + PlFold>(fold: &mut F, f: TyFunc) -> Result<TyFunc> {
     Ok(TyFunc {
-        args: f
-            .args
+        params: f
+            .params
             .into_iter()
             .map(|a| fold_type_opt(fold, a))
             .try_collect()?,

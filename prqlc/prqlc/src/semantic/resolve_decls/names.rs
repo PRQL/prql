@@ -248,7 +248,7 @@ fn push_indirections_into_ident(mut expr: pl::Expr) -> pl::Expr {
 
 impl NameResolver<'_> {
     /// Returns resolved fully-qualified ident and a list of indirections
-    fn resolve_ident(&mut self, ident: ast::Ident) -> Result<(Vec<String>, Vec<String>)> {
+    fn resolve_ident(&mut self, mut ident: ast::Ident) -> Result<(Vec<String>, Vec<String>)> {
         // this is the name we are looking for
         let first = ident.iter().next().unwrap();
         let mod_path = match first.as_str() {
@@ -264,6 +264,47 @@ impl NameResolver<'_> {
             NS_DEFAULT_DB => Some(vec![NS_DEFAULT_DB.to_string()]),
             NS_THIS => Some(vec![NS_LOCAL.to_string(), NS_THIS.to_string()]),
             "prql" => Some(vec![NS_STD.to_string(), "prql".to_string()]),
+
+            // transforms
+            "from" |
+            "select" |
+            "filter" |
+            "derive" |
+            "aggregate" |
+            "sort" |
+            "take" |
+            "join" |
+            "group" |
+            "window" |
+            "append" |
+            "intersect" |
+            "remove" |
+            "loop" |
+            // agg
+            "min" |
+            "max" |
+            "sum" |
+            "average" |
+            "stddev" |
+            "all" |
+            "any" |
+            "concat_array" |
+            "count" |
+            "count_distinct" |
+            "lag" |
+            "lead" |
+            "first" |
+            "last" |
+            "rank" |
+            "rank_dense" |
+            "row_number" |
+            // utils
+            "in" |
+            "as" => {
+                ident = ident.prepend(vec![NS_STD.to_string()]);
+                Some(vec![NS_STD.to_string()])
+            }
+
             _ => None,
         };
         let mod_decl = mod_path
@@ -271,7 +312,7 @@ impl NameResolver<'_> {
             .and_then(|p| self.root.module.get_submodule(p));
 
         // let decl = find_lookup_base(&self.root.module, self.decl_module_path, name);
-        let (ident, indirections) = if let Some(module) = mod_decl {
+        Ok(if let Some(module) = mod_decl {
             let mod_path = mod_path.unwrap();
             // module found
 
@@ -297,8 +338,7 @@ impl NameResolver<'_> {
             let first = steps.next().unwrap();
             let indirections = steps.collect_vec();
             (vec![NS_LOCAL.to_string(), first], indirections)
-        };
-        Ok((ident, indirections))
+        })
     }
 }
 

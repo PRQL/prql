@@ -34,59 +34,7 @@ impl Module {
                 (
                     NS_LOCAL.to_string(),
                     Decl::from(DeclKind::Module(Module {
-                        names: HashMap::from_iter(
-                            [
-                                "array",
-                                "scalar",
-                                "tuple",
-                                "range",
-                                "relation",
-                                "transform",
-                                // transforms
-                                "from",
-                                "select",
-                                "filter",
-                                "derive",
-                                "aggregate",
-                                "sort",
-                                "take",
-                                "join",
-                                "group",
-                                "window",
-                                "append",
-                                "intersect",
-                                "remove",
-                                "loop",
-                                // agg
-                                "min",
-                                "max",
-                                "sum",
-                                "average",
-                                "stddev",
-                                "all",
-                                "any",
-                                "concat_array",
-                                "count",
-                                "count_distinct",
-                                "lag",
-                                "lead",
-                                "first",
-                                "last",
-                                "rank",
-                                "rank_dense",
-                                "row_number",
-                                // utils
-                                "in",
-                                "as",
-                            ]
-                            .into_iter()
-                            .map(|s| {
-                                (
-                                    s.to_string(),
-                                    Decl::from(DeclKind::Import(Ident::from_path(vec!["std", s]))),
-                                )
-                            }),
-                        ),
+                        names: Default::default(),
                         shadowed: None,
                         redirects: vec![
                             Ident::from_name(NS_THIS),
@@ -367,6 +315,7 @@ impl Module {
             .and_then(|stack| stack.pop())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn into_exprs(self) -> HashMap<String, Expr> {
         self.names
             .into_iter()
@@ -374,6 +323,7 @@ impl Module {
             .collect()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn from_exprs(exprs: HashMap<String, Expr>) -> Module {
         Module {
             names: exprs

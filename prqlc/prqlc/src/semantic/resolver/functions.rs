@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-use std::iter::zip;
-
 use itertools::Itertools;
+use std::collections::HashMap;
 
 use crate::ast::{Ty, TyFunc};
 use crate::codegen::write_ty;
@@ -13,144 +11,6 @@ use crate::{Error, Result, Span, WithErrorInfo};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn fold_function(
-        &mut self,
-        closure: Box<Func>,
-        func_id: usize,
-        span: Option<Span>,
-    ) -> Result<Expr> {
-        let closure = self.fold_function_types(closure, func_id)?;
-
-        log::debug!(
-            "func {} {}/{} params",
-            closure.as_debug_name(),
-            closure.args.len(),
-            closure.params.len()
-        );
-
-        if closure.args.len() > closure.params.len() {
-            return Err(Error::new_simple(format!(
-                "Too many arguments to function `{}`",
-                closure.as_debug_name()
-            ))
-            .with_span(span));
-        }
-
-        let enough_args = closure.args.len() == closure.params.len();
-        if !enough_args {
-            return Ok(*expr_of_func(closure, span));
-        }
-
-        // make sure named args are pushed into params
-        let closure = if !closure.named_params.is_empty() {
-            self.apply_args_to_closure(closure, [].into(), [].into())?
-        } else {
-            closure
-        };
-
-        // push the env
-        let closure_env = Module::from_exprs(closure.env);
-        self.root_mod.local_mut().stack_push(NS_PARAM, closure_env);
-        let closure = Box::new(Func {
-            env: HashMap::new(),
-            ..*closure
-        });
-
-        log::debug!("resolving args of function {}", closure.as_debug_name());
-        let res = self.resolve_function_args(closure)?;
-
-        let mut func = match res {
-            Ok(func) => func,
-            Err(func) => {
-                return Ok(*expr_of_func(func, span));
-            }
-        };
-
-        self.finalize_function_generic_args(&func)
-            .with_span_fallback(span)?;
-
-        // run fold again, so idents that used to point to generics get inlined
-        func.return_ty = func.return_ty.map(|ty| self.fold_type(ty)).transpose()?;
-
-        let needs_window = (func.params.last())
-            .and_then(|p| p.ty.as_ref())
-            .map(|t| t.kind.is_array())
-            .unwrap_or_default();
-
-        // evaluate
-        let res = if let ExprKind::Internal(operator_name) = &func.body.kind {
-            // special case: functions that have internal body
-            Expr {
-                ty: func.return_ty,
-                needs_window,
-                ..Expr::new(ExprKind::RqOperator {
-                    name: operator_name.clone(),
-                    args: func.args,
-                })
-            }
-        } else {
-            // base case: materialize
-            self.materialize_function(func)?
-        };
-
-        // pop the env
-        self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
-
-        Ok(Expr { span, ..res })
-    }
-
-    #[allow(clippy::boxed_local)]
-    fn materialize_function(&mut self, closure: Box<Func>) -> Result<Expr> {
-        log::debug!("stack_push for {}", closure.as_debug_name());
-
-        let (func_env, body, return_ty) = env_of_closure(*closure);
-
-        self.root_mod.local_mut().stack_push(NS_PARAM, func_env);
-
-        // fold again, to resolve inner variables & functions
-        let body = self.fold_expr(body)?;
-
-        // remove param decls
-        log::debug!("stack_pop: {:?}", body.id);
-        let func_env = self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
-
-        Ok(if let ExprKind::Func(mut inner_closure) = body.kind {
-            // body couldn't been resolved - construct a closure to be evaluated later
-
-            inner_closure.env = func_env.into_exprs();
-
-            let (got, missing) = inner_closure.params.split_at(inner_closure.args.len());
-            let missing = missing.to_vec();
-            inner_closure.params = got.to_vec();
-
-            Expr::new(ExprKind::Func(Box::new(Func {
-                name_hint: None,
-                args: vec![],
-                params: missing,
-                body: Box::new(Expr::new(ExprKind::Func(inner_closure))),
-
-                // these don't matter
-                named_params: Default::default(),
-                return_ty: Default::default(),
-                env: Default::default(),
-                generic_type_params: Default::default(),
-                implicit_closure: Default::default(),
-                coerce_tuple: Default::default(),
-                initial_id: None,
-            })))
-        } else {
-            // resolved, return result
-
-            // make sure to use the resolved type
-            let mut body = body;
-            if let Some(ret_ty) = *return_ty {
-                body.ty = Some(ret_ty);
-            }
-
-            body
-        })
-    }
-
     /// Folds function types, so they are resolved to material types, ready for type checking.
     /// Requires id of the function call node, so it can be used to generic type arguments.
     pub fn fold_function_types(
@@ -205,10 +65,81 @@ impl Resolver<'_> {
         Ok(func)
     }
 
-    fn finalize_function_generic_args(&mut self, func: &Func) -> Result<()> {
-        let generics_mod_path = vec![NS_GENERIC.to_string(), func.initial_id.unwrap().to_string()];
+    pub fn resolve_function_body(&mut self, mut func: Func) -> Result<Func> {
+        // prepare params scope
+        log::trace!("stack_push for {}", func.as_debug_name());
+        let func_env = params_env_of_func(&func);
+        self.root_mod.local_mut().stack_push(NS_PARAM, func_env);
 
-        for generic_param in &func.generic_type_params {
+        func.body = Box::new(self.fold_expr(*func.body)?);
+
+        // pop params scope
+        log::trace!("stack_pop for {:?}", func.as_debug_name());
+        let _func_env = self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
+
+        // validate that the body has correct type
+
+        let who = || func.name_hint.clone().map(|n| format!("function {n}"));
+        self.validate_expr_type(&mut func.body, func.return_ty.as_ref(), &who)?;
+
+        Ok(func)
+    }
+
+    pub fn fold_func_application(
+        &mut self,
+        fn_app: FuncApplication,
+        span: Option<Span>,
+    ) -> Result<Expr> {
+        log::debug!(
+            "func {} {}/{} params",
+            fn_app.func.as_debug_name(),
+            fn_app.args.len(),
+            fn_app.func.params.len()
+        );
+
+        if fn_app.args.len() > fn_app.func.params.len() {
+            return Err(Error::new_simple(format!(
+                "Too many arguments to function `{}`",
+                fn_app.func.as_debug_name()
+            ))
+            .with_span(span));
+        }
+
+        let enough_args = fn_app.args.len() == fn_app.func.params.len();
+        if !enough_args {
+            return Ok(*expr_of_func(fn_app, span));
+        }
+
+        log::debug!("resolving args of function {}", fn_app.func.as_debug_name());
+        let res = self.resolve_function_args(fn_app)?;
+
+        let mut app = match res {
+            Ok(func) => func,
+            Err(func) => {
+                return Ok(Expr::new(ExprKind::Func(func)));
+            }
+        };
+
+        self.finalize_function_generic_args(&app)
+            .with_span_fallback(span)?;
+
+        // run fold again, so idents that used to point to generics get inlined
+        app.func.return_ty = app
+            .func
+            .return_ty
+            .map(|ty| self.fold_type(ty))
+            .transpose()?;
+
+        Ok(*expr_of_func(app, span))
+    }
+
+    fn finalize_function_generic_args(&mut self, app: &FuncApplication) -> Result<()> {
+        let generics_mod_path = vec![
+            NS_GENERIC.to_string(),
+            app.func.initial_id.unwrap().to_string(),
+        ];
+
+        for generic_param in &app.func.generic_type_params {
             let ident = Ident {
                 path: generics_mod_path.clone(),
                 name: generic_param.name.clone(),
@@ -236,59 +167,62 @@ impl Resolver<'_> {
         Ok(())
     }
 
-    pub fn apply_args_to_closure(
+    pub fn apply_args_to_function(
         &mut self,
-        mut closure: Box<Func>,
+        func: Box<Func>,
         args: Vec<Expr>,
         mut named_args: HashMap<String, Expr>,
-    ) -> Result<Box<Func>> {
-        // named arguments are consumed only by the first function
+    ) -> Result<FuncApplication> {
+        let mut func_app = FuncApplication {
+            func,
+            args: Vec::new(),
+        };
 
         // named
-        for mut param in closure.named_params.drain(..) {
+        for mut param in func_app.func.named_params.drain(..) {
             let param_name = param.name.split('.').last().unwrap_or(&param.name);
             let default = param.default_value.take().unwrap();
 
             let arg = named_args.remove(param_name).unwrap_or(*default);
 
-            closure.args.push(arg);
-            closure.params.insert(closure.args.len() - 1, param);
+            func_app.args.push(arg);
+            func_app.func.params.insert(func_app.args.len() - 1, param);
         }
         if let Some((name, _)) = named_args.into_iter().next() {
             // TODO: report all remaining named_args as separate errors
             return Err(Error::new_simple(format!(
                 "unknown named argument `{name}` to closure {:?}",
-                closure.name_hint
+                func_app.func.name_hint
             )));
         }
 
         // positional
-        closure.args.extend(args);
-        Ok(closure)
+        func_app.args.extend(args);
+        Ok(func_app)
     }
 
     /// Resolves function arguments. Will return `Err(func)` is partial application is required.
     fn resolve_function_args(
         &mut self,
-        #[allow(clippy::boxed_local)] to_resolve: Box<Func>,
-    ) -> Result<Result<Box<Func>, Box<Func>>> {
-        let mut func = Box::new(Func {
+        to_resolve: FuncApplication,
+    ) -> Result<Result<FuncApplication, Box<Func>>> {
+        let mut app = FuncApplication {
+            func: to_resolve.func,
             args: vec![Expr::new(Literal::Null); to_resolve.args.len()],
-            ..*to_resolve
-        });
+        };
         let mut partial_application_position = None;
 
-        let func_name = &func.name_hint;
+        let func_name = &app.func.name_hint;
 
-        let mut param_args = zip(&func.params, to_resolve.args)
+        let mut param_args = itertools::zip_eq(&app.func.params, to_resolve.args)
             .map(Box::new)
             .map(Some)
             .collect_vec();
 
         // pull out this and that
-        let impl_cl_pos = func.implicit_closure.as_ref().map(|i| i.param as usize);
-        let this_pos = func.implicit_closure.as_ref().and_then(|i| i.this);
-        let that_pos = func.implicit_closure.as_ref().and_then(|i| i.that);
+        let impl_cl_pos = app.func.implicit_closure.as_ref().map(|i| i.param as usize);
+        let this_pos = app.func.implicit_closure.as_ref().and_then(|i| i.this);
+        let that_pos = app.func.implicit_closure.as_ref().and_then(|i| i.that);
 
         // prepare order
         let order = this_pos
@@ -301,16 +235,16 @@ impl Resolver<'_> {
 
         for index in order {
             let (param, mut arg) = *param_args[index].take().unwrap();
-            let should_coerce_tuple = func.coerce_tuple.map_or(false, |i| i as usize == index);
+            let should_coerce_tuple = app.func.coerce_tuple.map_or(false, |i| i as usize == index);
 
             if partial_application_position.is_none() {
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
                     if let Some(pos) = this_pos {
-                        let ty = func.args[pos as usize].ty.as_ref().unwrap();
+                        let ty = app.args[pos as usize].ty.as_ref().unwrap();
                         self.root_mod.local_mut().insert_frame(ty, NS_THIS);
                     }
                     if let Some(pos) = that_pos {
-                        let ty = func.args[pos as usize].ty.as_ref().unwrap();
+                        let ty = app.args[pos as usize].ty.as_ref().unwrap();
                         self.root_mod.local_mut().insert_frame(ty, NS_THAT);
                     }
                 }
@@ -331,18 +265,18 @@ impl Resolver<'_> {
                     }
                 }
             }
-            func.args[index] = arg;
+            app.args[index] = arg;
         }
 
         Ok(if let Some(position) = partial_application_position {
             log::debug!(
                 "partial application of {} at arg {position}",
-                func.as_debug_name()
+                app.func.as_debug_name()
             );
 
-            Err(extract_partial_application(func, position))
+            Err(extract_partial_application(app, position))
         } else {
-            Ok(func)
+            Ok(app)
         })
     }
 
@@ -386,7 +320,7 @@ impl Resolver<'_> {
 
         // special case: the arg is a func, finalize it generic arguments
         // (this is somewhat of a hack that is needed because of our weird resolution order)
-        if let ExprKind::Func(func) = &arg.kind {
+        if let ExprKind::FuncApplication(func) = &arg.kind {
             self.finalize_function_generic_args(func)
                 .with_span_fallback(arg.span)?;
         }
@@ -416,7 +350,7 @@ impl Resolver<'_> {
     }
 }
 
-fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func> {
+fn extract_partial_application(mut func: FuncApplication, position: usize) -> Box<Func> {
     // Input:
     // Func {
     //     params: [x, y, z],
@@ -457,7 +391,7 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
     // it with the parent func.
 
     let arg = func.args.get_mut(position).unwrap();
-    let arg_func = arg.kind.as_func_mut().unwrap();
+    let arg_func = arg.kind.as_func_application_mut().unwrap();
 
     let param_name = format!("_partial_{}", arg.id.unwrap());
     let substitute_arg = Expr::new(Ident::from_path(vec![
@@ -471,15 +405,13 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
     Box::new(Func {
         name_hint: None,
         return_ty: None,
-        body: Box::new(Expr::new(ExprKind::Func(func))),
+        body: Box::new(Expr::new(ExprKind::FuncApplication(func))),
         params: vec![FuncParam {
             name: param_name,
             ty: None,
             default_value: None,
         }],
         named_params: Default::default(),
-        args: Default::default(),
-        env: Default::default(),
         generic_type_params: Default::default(),
         implicit_closure: Default::default(),
         coerce_tuple: Default::default(),
@@ -487,37 +419,49 @@ fn extract_partial_application(mut func: Box<Func>, position: usize) -> Box<Func
     })
 }
 
-fn env_of_closure(closure: Func) -> (Module, Expr, Box<Option<Ty>>) {
+fn params_env_of_func(func: &Func) -> Module {
     let mut func_env = Module::default();
 
-    for (param, arg) in zip(closure.params, closure.args) {
+    for param in &func.params {
         let v = Decl {
-            declared_at: arg.id,
-            kind: DeclKind::Expr(Box::new(arg)),
+            kind: DeclKind::Variable(param.ty.clone()),
             ..Default::default()
         };
         let param_name = param.name.split('.').last().unwrap();
         func_env.names.insert(param_name.to_string(), v);
     }
-
-    (func_env, *closure.body, Box::new(closure.return_ty))
+    func_env
 }
 
-pub fn expr_of_func(func: Box<Func>, span: Option<Span>) -> Box<Expr> {
-    let ty = TyFunc {
-        args: func
-            .params
-            .iter()
-            .skip(func.args.len())
-            .map(|a| a.ty.clone())
-            .collect(),
-        return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
-        name_hint: func.name_hint.clone(),
+pub fn expr_of_func(func_app: FuncApplication, span: Option<Span>) -> Box<Expr> {
+    let body_ty = func_app
+        .func
+        .return_ty
+        .as_ref()
+        .or(func_app.func.body.ty.as_ref());
+    let body_ty = body_ty.cloned();
+
+    let ty_func_params: Vec<_> = func_app
+        .func
+        .params
+        .iter()
+        .skip(func_app.args.len())
+        .map(|p| p.ty.clone())
+        .collect();
+
+    let ty = if ty_func_params.is_empty() {
+        body_ty
+    } else {
+        Some(Ty::new(TyFunc {
+            params: ty_func_params,
+            return_ty: Box::new(body_ty),
+            name_hint: func_app.func.name_hint.clone(),
+        }))
     };
 
     Box::new(Expr {
-        ty: Some(Ty::new(ty)),
+        ty,
         span,
-        ..Expr::new(ExprKind::Func(func))
+        ..Expr::new(ExprKind::FuncApplication(func_app))
     })
 }

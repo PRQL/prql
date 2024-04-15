@@ -325,6 +325,7 @@ impl Command {
                 let mut root_module = semantic::ast_expand::restrict_module(root_module.module);
                 drop_module_def(&mut root_module.stmts, "std");
                 drop_module_def(&mut root_module.stmts, "_local");
+                drop_module_def(&mut root_module.stmts, "_generic");
                 out.extend(pl_to_prql(&root_module)?.into_bytes());
 
                 out

@@ -90,7 +90,7 @@ fn resolve_ty_exclude() {
     module db {
     }
     "###);
-    
+
     assert_snapshot!(resolve(r#"
     type X = {a = int, b = text}
     type Y = text
@@ -106,7 +106,7 @@ fn resolve_ty_exclude() {
        │ Help: got text
     ───╯
     "###);
-    
+
     assert_snapshot!(resolve(r#"
     type X = text
     type Y = {a = int}

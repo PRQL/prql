@@ -68,7 +68,7 @@ impl WriteSource for TyKind {
             Function(Some(func)) => {
                 let mut r = "func ".to_string();
 
-                for t in &func.args {
+                for t in &func.params {
                     r += &t.as_ref().write(opt.clone())?;
                     r += " ";
                 }

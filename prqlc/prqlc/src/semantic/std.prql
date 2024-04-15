@@ -127,17 +127,17 @@ let window = func
   -> internal window
 
 let append = bottom top -> internal append
-let intersect = bottom top -> (
-  t = top
-  join (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
-  select t.*
-)
-let remove = bottom top -> (
-  t = top
-  join side:left (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
-  filter (std.tuple_every (std.tuple_map std._is_null b.*))
-  select t.*
-)
+# let intersect = bottom top -> (
+#   t = top
+#   join (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
+#   select t.*
+# )
+# let remove = bottom top -> (
+#   t = top
+#   join side:left (b = bottom) (std.tuple_every (std.tuple_map std._eq (std.tuple_zip t.* b.*)))
+#   filter (std.tuple_every (std.tuple_map std._is_null b.*))
+#   select t.*
+# )
 let loop = func
   pipeline
   top
@@ -146,38 +146,38 @@ let loop = func
 ## Aggregate functions
 # These return either a scalar when used within `aggregate`, or a column when used anywhere else.
 
-let min = column <array> -> <int> internal std.min
+let min = column -> <int> internal std.min
 
-let max = column <array> -> <int> internal std.max
+let max = column -> <int> internal std.max
 
-let sum = column <array> -> <int> internal std.sum
+let sum = column -> <int> internal std.sum
 
-let average = column <array> -> <float> internal std.average
+let average = column -> <float> internal std.average
 
-let stddev = column <array> -> <float> internal std.stddev
+let stddev = column -> <float> internal std.stddev
 
-let all = column <array> -> <bool> internal std.all
+let all = column -> <bool> internal std.all
 
-let any = column <array> -> <bool> internal std.any
+let any = column -> <bool> internal std.any
 
-let concat_array = column <array> -> <text> internal std.concat_array
+let concat_array = column -> <text> internal std.concat_array
 
 # Counts number of items in the column.
 # Note that the count will include null values.
-let count = column<array> -> <int> internal count
+let count = colum -> <int> internal count
 
 # Deprecated in favour of filterning input to the [std.count] function (not yet implemented).
 @{deprecated}
-let count_distinct = column <array> -> internal std.count_distinct
+let count_distinct = column -> internal std.count_distinct
 
 ## Window functions
-let lag =   offset <int>    column <array> -> internal std.lag
-let lead =  offset <int>    column <array> -> internal std.lead
-let first      = column <array> -> internal std.first
-let last       = column <array> -> internal std.last
-let rank       = column <array> -> internal std.rank
-let rank_dense = column <array> -> internal std.rank_dense
-let row_number = column <array> -> internal row_number
+let lag =   offset <int>    column -> internal std.lag
+let lead =  offset <int>    column -> internal std.lead
+let first      = column -> internal std.first
+let last       = column -> internal std.last
+let rank       = column -> internal std.rank
+let rank_dense = column -> internal std.rank_dense
+let row_number = column -> internal row_number
 
 # Mathematical functions
 module math {
@@ -211,7 +211,7 @@ let tuple_every = func list -> <bool> internal tuple_every
 let tuple_map = func fn <func> list -> internal tuple_map
 let tuple_zip = func a b -> internal tuple_zip
 let _eq = func a -> internal _eq
-let _is_null = func a -> _param.a == null
+let _is_null = func a -> a == null
 
 ## Misc
 let from_text = input<text> `noresolve.format`:csv -> internal from_text

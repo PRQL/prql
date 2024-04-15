@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
+use prqlc_ast::TyFunc;
 
 use crate::ast::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
@@ -187,6 +188,12 @@ impl Resolver<'_> {
                 return Ok(Some(inferred_ty.clone()));
             }
 
+            ExprKind::Func(func) => TyKind::Function(Some(TyFunc {
+                name_hint: func.name_hint.clone(),
+                params: func.params.iter().map(|p| p.ty.clone()).collect_vec(),
+                return_ty: Box::new(func.return_ty.clone().or_else(|| func.body.ty.clone())),
+            })),
+
             _ => return Ok(None),
         };
         Ok(Some(Ty {
@@ -265,9 +272,9 @@ impl Resolver<'_> {
                 Ok(())
             }
             (TyKind::Function(Some(f_func)), TyKind::Function(Some(e_func)))
-                if f_func.args.len() == e_func.args.len() =>
+                if f_func.params.len() == e_func.params.len() =>
             {
-                for (f_arg, e_arg) in itertools::zip_eq(&f_func.args, &e_func.args) {
+                for (f_arg, e_arg) in itertools::zip_eq(&f_func.params, &e_func.params) {
                     if let Some((f_arg, e_arg)) = Option::zip(f_arg.as_ref(), e_arg.as_ref()) {
                         // contra-variant contained types
                         self.validate_type(e_arg, f_arg, span, who)?;
@@ -275,6 +282,8 @@ impl Resolver<'_> {
                 }
 
                 // return types
+                dbg!(&f_func.return_ty);
+                dbg!(&e_func.return_ty);
                 if let Some((f_ret, e_ret)) = Option::zip(
                     Option::as_ref(&f_func.return_ty),
                     Option::as_ref(&e_func.return_ty),

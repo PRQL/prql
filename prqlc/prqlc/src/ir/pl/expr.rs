@@ -63,6 +63,8 @@ pub enum ExprKind {
     Array(Vec<Expr>),
     FuncCall(FuncCall),
     Func(Box<Func>),
+    FuncApplication(FuncApplication),
+
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -117,13 +119,6 @@ pub struct Func {
     /// Generic type arguments within this function.
     pub generic_type_params: Vec<GenericTypeParam>,
 
-    /// Arguments that have already been provided.
-    pub args: Vec<Expr>,
-
-    /// Additional variables that the body of the function may need to be
-    /// evaluated.
-    pub env: HashMap<String, Expr>,
-
     pub initial_id: Option<usize>,
 
     pub implicit_closure: Option<Box<ImplicitClosureConfig>>,
@@ -145,6 +140,13 @@ pub struct ImplicitClosureConfig {
     pub param: u8,
     pub this: Option<u8>,
     pub that: Option<u8>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct FuncApplication {
+    pub func: Box<Func>, // TODO: change this to Expr
+
+    pub args: Vec<Expr>,
 }
 
 pub type Range = generic::Range<Box<Expr>>;

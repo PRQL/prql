@@ -1,12 +1,17 @@
 use crate::ast::{Ty, TyKind};
 use crate::ir::decl::{DeclKind, TableDecl, TableExpr};
 use crate::ir::pl::*;
+use crate::semantic::NS_STD;
 use crate::Result;
 
 impl super::Resolver<'_> {
     /// Entry point to the resolver.
     /// fq_ident must point to an unresolved declaration.
     pub fn resolve_decl(&mut self, fq_ident: Ident) -> Result<()> {
+        if !fq_ident.starts_with_part(NS_STD) {
+            log::debug!("resolving decl {fq_ident}");
+        }
+
         // take decl out of the module
         let mut decl = {
             let module = self.root_mod.module.get_submodule_mut(&fq_ident.path);
@@ -24,14 +29,13 @@ impl super::Resolver<'_> {
                 unreachable!("module def cannot be unresolved at this point")
                 // it should have been converted into Module in resolve_decls::init_module_tree
             }
-            StmtKind::VarDef(var_def) => {
-                let mut def = self.fold_var_def(var_def)?;
-
-                if let Some(ExprKind::Func(func)) = def.value.as_mut().map(|x| &mut x.kind) {
+            StmtKind::VarDef(mut var_def) => {
+                if let Some(ExprKind::Func(func)) = var_def.value.as_mut().map(|x| &mut x.kind) {
                     populate_func_metadata(func, &fq_ident, &decl.annotations);
                 }
 
-                let expected_ty = fold_type_opt(self, def.ty)?;
+                let def = self.fold_var_def(var_def)?;
+                let expected_ty = def.ty;
 
                 decl.kind = match def.value {
                     Some(mut def_value) => {

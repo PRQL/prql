@@ -130,7 +130,11 @@ impl Resolver<'_> {
             return Err(Error::new_assert("unresolved type ident"));
         };
 
-        // TODO: check that we are not overriding here
+        if let Some(existing) = inferred_type {
+            let existing = existing.clone();
+            return self.validate_type(&ty, &existing.0, existing.1, &|| None);
+        }
+
         *inferred_type = Some((ty, span));
         Ok(())
     }

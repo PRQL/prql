@@ -212,8 +212,11 @@ impl std::fmt::Display for DeclKind {
                     ty.as_ref().map(write_ty).unwrap_or_default()
                 )
             }
-            Self::Variable(arg0) => {
-                write!(f, "Variable of type {}", write_ty(arg0.as_ref().unwrap()))
+            Self::Variable(Some(arg0)) => {
+                write!(f, "Variable of type {}", write_ty(arg0))
+            }
+            Self::Variable(None) => {
+                write!(f, "Variable of unknown type")
             }
             Self::TupleField => write!(f, "TupleField"),
             Self::Infer(arg0) => write!(f, "Infer {arg0:?}"),
