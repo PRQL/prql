@@ -38,7 +38,7 @@ prqlc-parser = {path = "../prqlc-parser", version = "0.11.5" }
 
 anstream = {version = "0.6.13", features = ["auto"]}
 ariadne = "0.4.0"
-chrono = "0.4.37"
+chrono = "0.4.38"
 csv = "1.3.0"
 enum-as-inner = "0.6.0"
 itertools = {workspace = true}
@@ -59,7 +59,7 @@ strum_macros = "0.26.2"
 
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
-anyhow = {version = "1.0.81", features = ["backtrace"], optional = true}
+anyhow = {version = "1.0.82", features = ["backtrace"], optional = true}
 atty = {version = "0.2.14", optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
@@ -97,7 +97,7 @@ insta-cmd = {workspace = true}
 rstest = "0.18.2"
 similar = {version = "2.4.0"}
 similar-asserts = "1.5.0"
-test_each_file = "0.3.0"
+test_each_file = "0.3.1"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 criterion = {version = "0.5.1"}
