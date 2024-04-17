@@ -62,7 +62,7 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - February 2024
+## Current Status - April 2024
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either with our supported integrations, or within your own tools,
@@ -71,16 +71,11 @@ using one of our supported language bindings.
 PRQL still has some bugs and some missing features, and is probably only ready
 to be rolled out to non-technical teams for fairly simple queries.
 
-We released [0.11.0](https://github.com/PRQL/prql/releases/tag/0.10.0) in
-December. It contains three new packages of standard functions — `date`, `text`
-& `math` — as well as smaller improvements and lots of internal work on our
-compiler. Here's our current [Roadmap](https://prql-lang.org/roadmap/).
+In particular, we're working on a new resolver, which will let us squash many
+bugs and simplify our code a lot. It'll also let us scale the language without
+scaling the complexity of the compiler.
 
-<!-- TODO: add back when we get them
-and our
-[Milestones](https://github.com/PRQL/prql/milestones). -->
-
-Our immediate focus for the code is on:
+While we work on that, we're also focusing on
 
 - Ensuring our supported features feel extremely robust; resolving any
   [priority bugs](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Apriority).
