@@ -367,14 +367,14 @@ pub fn format_prql(prql: &str) -> Result<String, ErrorMessages> {
 
 #[test]
 fn test_format_prql() {
-    use insta::assert_display_snapshot;
+    use insta::assert_snapshot;
 
-    assert_display_snapshot!(format_prql( "from db.employees | select {name, age}").unwrap(), @r###"
+    assert_snapshot!(format_prql( "from db.employees | select {name, age}").unwrap(), @r###"
     from db.employees
     select {name, age}
     "###);
 
-    assert_display_snapshot!(format_prql( r#"
+    assert_snapshot!(format_prql( r#"
     # test comment
     from db.employees # inline comment
     # another test comment
