@@ -311,15 +311,6 @@ pub fn prql_to_pl(prql: &str) -> Result<ast::ModuleDef, ErrorMessages> {
     prql_to_pl_tree(&source_tree)
 }
 
-// pub fn fmt(prql: &str) -> Result<String> {
-//     let source_tree = SourceTree::from(prql);
-//     let pl = prql_to_pl_tree(&source_tree)?;
-
-//     for x in pl.stmts {
-//         x.
-
-// }
-
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl_tree(prql: &SourceTree) -> Result<ast::ModuleDef, ErrorMessages> {
     parser::parse(prql).map_err(|e| ErrorMessages::from(e).composed(prql))
@@ -364,6 +355,16 @@ pub fn format_prql(prql: &str) -> Result<String, ErrorMessages> {
     )
     .unwrap())
 }
+#[test]
+fn test_format_comment_basic() {
+    use insta::assert_snapshot;
+    assert_snapshot!(format_prql( r#"
+    from db.employees # inline comment
+    "#
+).unwrap(), @r###"
+    from db.employees # inline comment
+    "###);
+}
 
 #[test]
 fn test_format_prql() {
@@ -375,13 +376,15 @@ fn test_format_prql() {
     "###);
 
     assert_snapshot!(format_prql( r#"
+        # test comment
+        from db.employees # inline comment
+        # another test comment
+        select {name, age}"#
+    ).unwrap(), @r###"
     # test comment
     from db.employees # inline comment
-    # another test comment
-    select {name, age}"#
-).unwrap(), @r###"
-    # test comment
-    from db.employees # in
+     # another test comment
+
     # another test comment
     select {name, age}
     "###);

@@ -15,25 +15,29 @@ pub(crate) fn write_expr(expr: &Expr) -> String {
 }
 
 fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
+    // dbg!(&node, &parent);
     let parent_strength = binding_strength(parent);
     opt.context_strength = opt.context_strength.max(parent_strength);
 
-    node.write(opt)
+    // FIXME: this is extremely hacky. Our issue is that in:
+    //
+    //   from a.b  # comment
+    //
+    // ...we're writing both `from a.b` and `a.b`, so we need to know which of
+    // these to write comments for. I'm sure there are better ways to do it.
+    let comments = opt.enable_comments;
+    opt.enable_comments = false;
+    let out = node.write(opt.clone());
+    opt.enable_comments = comments;
+    out
 }
 
 impl WriteSource for Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
-        // let span = self.span;
-        // let tokens = opt.tokens;
-        // let comment =
         let mut r = String::new();
 
         if let Some(span) = self.span {
             if let Some(comment) = find_comment_before(span, &opt.tokens) {
-                // dbg!(&span);
-                // dbg!(&self);
-                // dbg!(&comment);
-
                 r += &comment.to_string();
             }
         }
@@ -58,14 +62,29 @@ impl WriteSource for Expr {
             }
         };
 
-        if let Some(span) = self.span {
-            let comments = find_comments_after(span, &opt.tokens);
-            // dbg!(&span);
-            // dbg!(&self);
-            // dbg!(&comments);
+        if opt.enable_comments {
+            if let Some(span) = self.span {
+                // TODO: change underlying function so we can remove this
+                if opt.tokens.0.is_empty() {
+                    return Some(r);
+                }
 
-            for c in comments {
-                r += &c.kind.to_string();
+                let comments = find_comments_after(span, &opt.tokens);
+                // if !comments.is_empty() {
+                //     dbg!(&self, &span, &opt.tokens, &comments);
+                // }
+
+                for c in comments {
+                    match c.kind {
+                        // TODO: these are defined here since the debug
+                        // representations aren't quite right (NewLine is `new
+                        // line` as is used in error messages). But we should
+                        // probably move them onto the Struct.
+                        TokenKind::Comment(s) => r += format!(" #{}", s).as_str(),
+                        TokenKind::NewLine => r += "\n",
+                        _ => unreachable!(),
+                    }
+                }
             }
         }
         Some(r)
@@ -345,13 +364,6 @@ pub fn write_ident_part(s: &str) -> String {
     }
 }
 
-// impl WriteSource for ModuleDef {
-//     fn write(&self, mut opt: WriteOpt) -> Option<String> {
-//         codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap()
-//     }}
-
-// impl WriteSource for ModuleDef {
-
 /// Find a comment before a span. If there's exactly one newline, then the
 /// comment is included; otherwise it's included after the current line.
 fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
@@ -372,7 +384,7 @@ fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
     }
 }
 
-/// Find a comment before a span. If there's exactly one newline, then the
+/// Find a comment after a span. If there's exactly one newline, then the
 /// comment is included; otherwise it's included after the current line.
 fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
     let mut out = vec![];
@@ -382,11 +394,13 @@ fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
         .iter()
         // FIXME: why isn't this working?
         // .position(|t| t.1.start == span.start && t.1.end == span.end)
-        .position(|t| t.span.start == span.start)
+        .position(|t| t.span.end == span.end)
         .unwrap_or_else(|| panic!("{:?}, {:?}", &tokens, &span));
-    for token in tokens.0.iter().skip(index) {
+    // dbg!(index, span, &tokens);
+    for token in tokens.0.iter().skip(index + 1) {
+        // match dbg!(token).kind {
         match token.kind {
-            TokenKind::NewLine | TokenKind::Comment(_) => out.push(dbg!(token.clone())),
+            TokenKind::NewLine | TokenKind::Comment(_) => out.push(token.clone()),
             _ => break,
         }
     }
@@ -560,6 +574,32 @@ mod test {
             .exactly_one()
             .unwrap();
         stmt.write(WriteOpt::default()).unwrap()
+    }
+
+    #[test]
+    fn test_find_comments_after() {
+        use insta::assert_debug_snapshot;
+        let tokens = prqlc_parser::lex_source(
+            r#"
+        let a = 5  # comment
+        "#,
+        )
+        .unwrap();
+
+        // This is the `5`
+        let span = Span {
+            start: 17,
+            end: 18,
+            source_id: 0,
+        };
+
+        let comment = find_comments_after(span, &tokens);
+        assert_debug_snapshot!(comment, @r###"
+    [
+        20..29: Comment(" comment"),
+        29..30: NewLine,
+    ]
+    "###);
     }
 
     #[test]

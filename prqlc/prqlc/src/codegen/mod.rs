@@ -6,7 +6,7 @@ pub(crate) use types::{write_ty, write_ty_kind};
 
 use prqlc_parser::TokenVec;
 
-pub trait WriteSource {
+pub trait WriteSource: std::fmt::Debug {
     /// Converts self to its source representation according to specified
     /// options.
     ///
@@ -78,6 +78,9 @@ pub struct WriteOpt {
     /// The lexer tokens that were used to produce this source; used for
     /// comments.
     pub tokens: TokenVec,
+
+    // TODO: remove
+    pub enable_comments: bool,
 }
 
 impl Default for WriteOpt {
@@ -91,6 +94,7 @@ impl Default for WriteOpt {
             context_strength: 0,
             unbound_expr: false,
             tokens: TokenVec(vec![]),
+            enable_comments: true,
         }
     }
 }
@@ -131,6 +135,7 @@ impl WriteOpt {
     }
 }
 
+#[derive(Debug, Clone)]
 struct SeparatedExprs<'a, T: WriteSource> {
     exprs: &'a [T],
     inline: &'static str,
