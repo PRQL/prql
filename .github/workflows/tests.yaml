@@ -7,6 +7,8 @@ on:
     # Add `labeled`, so we can trigger a new run by adding a `pr-nightly`
     # label, which we then use to trigger a `nightly` run.
     types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
   push:
     branches:
       - main
@@ -197,7 +199,7 @@ jobs:
       # 20 workflow limit.
       oss:
         ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        == 'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
   test-js:
@@ -208,7 +210,7 @@ jobs:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
   test-dotnet:
@@ -230,8 +232,7 @@ jobs:
       # Currently we never run windows
       oss:
         ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-latest"]' || '["ubuntu-latest"]'
-        }}
+        == 'true') && '["ubuntu-latest", "macos-14"]' || '["ubuntu-latest"]' }}
 
   test-elixir:
     needs: rules
@@ -259,7 +260,7 @@ jobs:
       # don't want to have to run it on, for example, every dependency change.
       needs.rules.outputs.taskfile == 'true' ||
       needs.rules.outputs.nightly-schedule == 'true'
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -295,8 +296,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -306,13 +307,10 @@ jobs:
             target: x86_64-unknown-linux-gnu
             # One test with no features
             features: ""
-          # Note that we run wasm in the standard `test-rust` job.
 
           # TODO: potentially enable these
           # - os: ubuntu-latest
           #   target: aarch64-unknown-linux-musl
-          # - os: macos-latest
-          #   target: aarch64-apple-darwin
 
     uses: ./.github/workflows/test-rust.yaml
     with:
@@ -549,18 +547,20 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
-      - test-msrv
+      - test-deps-min-versions
       - test-dotnet
       - test-elixir
+      - test-grammars
       - test-java
       - test-js
-      - test-grammars
-      - test-prqlc-c
+      - test-msrv
       - test-php
+      - test-prqlc-c
       - test-python
       - test-rust
       - test-rust-main
       - test-taskfile
+      - time-compilation
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
@@ -594,18 +594,20 @@ jobs:
               "measure-code-cov",
               "nightly",
               "publish-web",
-              "test-msrv",
+              "test-deps-min-versions",
               "test-dotnet",
               "test-elixir",
+              "test-grammars",
               "test-java",
               "test-js",
-              "test-prqlc-c",
-              "test-grammars",
+              "test-msrv",
               "test-php",
+              "test-prqlc-c",
               "test-python",
               "test-rust",
               "test-rust-main",
-              "test-taskfile"
+              "test-taskfile",
+              "time-compilation"
             ]
 
   build-prqlc:
@@ -626,10 +628,8 @@ jobs:
           #
           # - os: ubuntu-latest
           #   target: aarch64-unknown-linux-musl
-          # - os: macos-latest
-          #   target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -662,8 +662,8 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             features: default
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc

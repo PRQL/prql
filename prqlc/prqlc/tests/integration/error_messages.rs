@@ -3,14 +3,14 @@
 //! See also [test_bad_error_messages.rs](test_bad_error_messages.rs) for error
 //! messages which need to be improved.
 use super::sql::compile;
-use insta::assert_display_snapshot;
+use insta::assert_snapshot;
 
 #[test]
 fn test_errors() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     let addadd = a b -> a + b
 
-    from db.x
+    from x
     derive y = (addadd 4 5 6)
     "###).unwrap_err(),
         @r###"
@@ -23,21 +23,21 @@ fn test_errors() {
     ───╯
     "###);
 
-    assert_display_snapshot!(compile(r###"
-    from db.a select b
+    assert_snapshot!(compile(r###"
+    from a select b
     "###).unwrap_err(),
         @r###"
     Error:
        ╭─[:2:5]
        │
-     2 │     from db.a select b
-       │     ─────────┬────────
-       │              ╰────────── Too many arguments to function `from`
+     2 │     from a select b
+       │     ───────┬───────
+       │            ╰───────── Too many arguments to function `from`
     ───╯
     "###);
 
-    assert_display_snapshot!(compile(r###"
-    from db.x
+    assert_snapshot!(compile(r###"
+    from x
     select a
     select b
     "###).unwrap_err(),
@@ -48,11 +48,13 @@ fn test_errors() {
      4 │     select b
        │            ┬
        │            ╰── Unknown name `b`
+       │
+       │ Help: available columns: x.a
     ───╯
     "###);
 
-    assert_display_snapshot!(compile(r###"
-    from db.employees
+    assert_snapshot!(compile(r###"
+    from employees
     take 1.8
     "###).unwrap_err(),
         @r###"
@@ -65,7 +67,7 @@ fn test_errors() {
     ───╯
     "###);
 
-    assert_display_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r###"
+    assert_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r###"
     Error:
        ╭─[:1:23]
        │
@@ -89,7 +91,7 @@ fn test_errors() {
     ───╯
     "###);
 
-    assert_display_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
+    assert_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
     Error:
        ╭─[:1:7]
        │
@@ -102,8 +104,8 @@ fn test_errors() {
 
 #[test]
 fn array_instead_of_tuple() {
-    assert_display_snapshot!(compile(r###"
-    from db.employees
+    assert_snapshot!(compile(r###"
+    from employees
     select {e = this}
     select [e.first_name, e.last_name]
     "###).unwrap_err(), @r###"
@@ -120,11 +122,11 @@ fn array_instead_of_tuple() {
 #[test]
 fn test_union_all_sqlite() {
     // TODO: `SQLiteDialect` would be better as `sql.sqlite` or `sqlite`.
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     prql target:sql.sqlite
 
-    from db.film
-    remove db.film2
+    from film
+    remove film2
     "###).unwrap_err(), @r###"
     Error: The dialect SQLiteDialect does not support EXCEPT ALL
     ↳ Hint: providing more column information will allow the query to be translated to an anti-join.
@@ -133,9 +135,9 @@ fn test_union_all_sqlite() {
 
 #[test]
 fn test_regex_dialect() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     prql target:sql.mssql
-    from db.foo
+    from foo
     filter bar ~= 'love'
     "###).unwrap_err(), @r###"
     Error:
@@ -150,8 +152,8 @@ fn test_regex_dialect() {
 
 #[test]
 fn test_bad_function_type() {
-    assert_display_snapshot!(compile(r###"
-    from db.tracks
+    assert_snapshot!(compile(r###"
+    from tracks
     group foo (take)
     "###,
     )
@@ -173,8 +175,8 @@ fn test_bad_function_type() {
 // FIXME: This would be nice to catch those errors again
 // See https://github.com/PRQL/prql/issues/3127#issuecomment-1849032396
 fn test_basic_type_checking() {
-    assert_display_snapshot!(compile(r#"
-    from db.foo
+    assert_snapshot!(compile(r#"
+    from foo
     select (a && b) + c
     "#)
     .unwrap_err(), @r###"
@@ -192,9 +194,9 @@ fn test_basic_type_checking() {
 // Note that the ``` Help: Type `bool` expands to `bool` ``` is not that useful
 #[test]
 fn test_type_error_placement() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     let foo = x -> (x | as integer)
-    from db.t
+    from t
     select (true && (foo y))
     "###).unwrap_err(), @r###"
     Error:
@@ -209,8 +211,8 @@ fn test_type_error_placement() {
 
 #[test]
 fn test_ambiguous() {
-    assert_display_snapshot!(compile(r#"
-    from db.a
+    assert_snapshot!(compile(r#"
+    from a
     derive date = x
     select date
     "#)
@@ -223,16 +225,18 @@ fn test_ambiguous() {
        │              ╰─── Ambiguous name
        │
        │ Help: could be any of: std.date, this.date
+       │
+       │ Note: available columns: date
     ───╯
     "###);
 }
 
 #[test]
 fn test_ambiguous_join() {
-    assert_display_snapshot!(compile(r#"
-    from db.a
+    assert_snapshot!(compile(r#"
+    from a
     select x
-    join (db.b | select {x}) true
+    join (from b | select {x}) true
     select x
     "#)
     .unwrap_err(), @r###"
@@ -244,15 +248,17 @@ fn test_ambiguous_join() {
        │            ╰── Ambiguous name
        │
        │ Help: could be any of: a.x, b.x
+       │
+       │ Note: available columns: a.x, b.x
     ───╯
     "###);
 }
 
 #[test]
 fn test_ambiguous_inference() {
-    assert_display_snapshot!(compile(r#"
-    from db.a
-    join db.b(==b_id)
+    assert_snapshot!(compile(r#"
+    from a
+    join b(==b_id)
     select x
     "#)
     .unwrap_err(), @r###"
@@ -270,7 +276,7 @@ fn test_ambiguous_inference() {
 
 #[test]
 fn date_to_text_generic() {
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
   [{d = @2021-01-01}]
   derive {
     d_str = d | date.to_text "%Y/%m/%d"
@@ -287,10 +293,10 @@ fn date_to_text_generic() {
 
 #[test]
 fn date_to_text_not_supported_dialect() {
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
   prql target:sql.bigquery
 
-  [{d = @2021-01-01}]
+  from [{d = @2021-01-01}]
   derive {
     d_str = d | date.to_text "%Y/%m/%d"
   }"#).unwrap_err(), @r###"
@@ -306,8 +312,8 @@ fn date_to_text_not_supported_dialect() {
 
 #[test]
 fn date_to_text_with_column_format() {
-    assert_display_snapshot!(compile(r#"
-  from db.dates_to_display
+    assert_snapshot!(compile(r#"
+  from dates_to_display
   select {my_date, my_format}
   select {std.date.to_text my_date my_format}
   "#).unwrap_err(), @r###"
@@ -323,10 +329,10 @@ fn date_to_text_with_column_format() {
 
 #[test]
 fn date_to_text_unsupported_chrono_item() {
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     prql target:sql.duckdb
 
-    [{d = @2021-01-01}]
+    from [{d = @2021-01-01}]
     derive {
       d_str = d | date.to_text "%_j"
     }"#).unwrap_err(), @r###"
@@ -336,6 +342,25 @@ fn date_to_text_unsupported_chrono_item() {
      6 │       d_str = d | date.to_text "%_j"
        │                                ──┬──
        │                                  ╰──── PRQL doesn't support this format specifier
+    ───╯
+    "###);
+}
+
+#[test]
+fn available_columns() {
+    assert_snapshot!(compile(r#"
+    from invoices
+    select foo
+    select bar
+    "#).unwrap_err(), @r###"
+    Error:
+       ╭─[:4:12]
+       │
+     4 │     select bar
+       │            ─┬─
+       │             ╰─── Unknown name `bar`
+       │
+       │ Help: available columns: invoices.foo
     ───╯
     "###);
 }

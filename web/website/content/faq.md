@@ -164,7 +164,7 @@ PRQL clearly delineates two operations with two transforms:
   exactly one output row for every input row.
 
   ```prql
-  from db.employees
+  from employees
   select name = f"{first_name} {last_name}"
   ```
 
@@ -172,7 +172,7 @@ PRQL clearly delineates two operations with two transforms:
   function like `sum` or `min`.
 
   ```prql
-  from db.employees
+  from employees
   aggregate [total_salary = sum salary]
   ```
 
@@ -181,7 +181,7 @@ same semantics on the group as it would on a whole table — another example of
 PRQL's orthogonality.
 
 ```prql
-from db.employees
+from employees
 group department (
   aggregate [total_salary = sum salary]
 )

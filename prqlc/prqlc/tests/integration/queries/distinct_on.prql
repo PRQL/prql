@@ -1,5 +1,5 @@
 # mssql:test
-from db.tracks
+from tracks
 select {genre_id, media_type_id, album_id}
 group {genre_id, media_type_id} (sort {-album_id} | take 1)
 sort {-genre_id, media_type_id}

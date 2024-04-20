@@ -3,7 +3,7 @@
 //! ```
 //! use prql_compiler_macros::prql_to_sql;
 //!
-//! let sql: &str = prql_to_sql!("from db.albums | select {title, artist_id}");
+//! let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //! assert_eq!(sql, "SELECT title, artist_id FROM albums");
 //! ```
 //!

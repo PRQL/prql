@@ -9,21 +9,21 @@ filter boolean_expression
 ## Examples
 
 ```prql
-from db.employees
+from employees
 filter age > 25
 ```
 
 ```prql
-from db.employees
+from employees
 filter (age > 25 || department != "IT")
 ```
 
 ```prql
-from db.employees
+from employees
 filter (department | in ["IT", "HR"])
 ```
 
 ```prql
-from db.employees
+from employees
 filter (age | in 25..40)
 ```

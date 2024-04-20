@@ -198,7 +198,7 @@ fn collect_book_examples() -> Result<Vec<Example>> {
 
             // Iterate through the markdown file, getting examples.
             while let Some(event) = parser.next() {
-                if let Event::Start(Tag::Heading(..)) = event.clone() {
+                if let Event::Start(Tag::Heading { .. }) = event.clone() {
                     if let Some(Event::Text(pulldown_cmark::CowStr::Borrowed(heading))) =
                         parser.next()
                     {

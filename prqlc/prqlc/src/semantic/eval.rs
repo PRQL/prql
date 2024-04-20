@@ -450,7 +450,7 @@ fn zip_relations(l: Expr, r: Expr) -> ExprKind {
 #[cfg(test)]
 mod test {
 
-    use insta::assert_display_snapshot;
+    use insta::assert_snapshot;
 
     use crate::semantic::write_pl;
 
@@ -469,7 +469,7 @@ mod test {
 
     #[test]
     fn basic() {
-        assert_display_snapshot!(eval(r"
+        assert_snapshot!(eval(r"
             [std.floor (3.5 + 2.9) + 3, 3]
         ").unwrap(),
             @"[9, 3]"
@@ -478,7 +478,7 @@ mod test {
 
     #[test]
     fn tuples() {
-        assert_display_snapshot!(eval(r"
+        assert_snapshot!(eval(r"
               {{a_a = 4, a_b = false}, b = 2.1 + 3.6, c = [false, true, false]}
         ").unwrap(),
             @"{{a_a = 4, a_b = false}, b = 5.7, c = [false, true, false]}"
@@ -487,7 +487,7 @@ mod test {
 
     #[test]
     fn pipelines() {
-        assert_display_snapshot!(eval(r"
+        assert_snapshot!(eval(r"
             (4.5 | std.floor | std.neg)
         ").unwrap(),
             @"-4"
@@ -496,7 +496,7 @@ mod test {
 
     #[test]
     fn transforms() {
-        assert_display_snapshot!(eval(r"
+        assert_snapshot!(eval(r"
             [
                 { b = 4, c = false },
                 { b = 5, c = true },
@@ -512,7 +512,7 @@ mod test {
 
     #[test]
     fn window() {
-        assert_display_snapshot!(eval(r"
+        assert_snapshot!(eval(r"
             [
                 { b = 4, c = false },
                 { b = 5, c = true },
@@ -526,7 +526,7 @@ mod test {
 
     #[test]
     fn columnar() {
-        assert_display_snapshot!(eval(r"
+        assert_snapshot!(eval(r"
             [
                 { b = 4, c = false },
                 { b = 5, c = true },

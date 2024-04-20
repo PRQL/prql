@@ -46,6 +46,7 @@ pub enum Reason {
     },
     Bug {
         issue: Option<i32>,
+        details: Option<String>,
     },
 }
 
@@ -62,6 +63,21 @@ impl Error {
 
     pub fn new_simple<S: ToString>(reason: S) -> Self {
         Error::new(Reason::Simple(reason.to_string()))
+    }
+
+    pub fn new_bug(issue_no: i32) -> Self {
+        Error::new(Reason::Bug {
+            issue: Some(issue_no),
+            details: None,
+        })
+    }
+
+    /// Used for things that you *think* should never happen, but are not sure.
+    pub fn new_assert<S: ToString>(details: S) -> Self {
+        Error::new(Reason::Bug {
+            issue: None,
+            details: Some(details.to_string()),
+        })
     }
 }
 
@@ -81,14 +97,19 @@ impl std::fmt::Display for Reason {
             }
             Reason::Unexpected { found } => write!(f, "unexpected {found}"),
             Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
-            Reason::Bug { issue } => match issue {
-                Some(issue) => write!(
-                    f,
-                    "internal compiler error; tracked at https://github.com/PRQL/prql/issues/{}",
-                    issue
-                ),
-                None => write!(f, "internal compiler error"),
-            },
+            Reason::Bug { issue, details } => {
+                write!(f, "internal compiler error")?;
+                if let Some(details) = details {
+                    write!(f, "; {details}")?;
+                }
+                if let Some(issue_no) = issue {
+                    write!(
+                        f,
+                        "; tracked at https://github.com/PRQL/prql/issues/{issue_no}"
+                    )?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -171,7 +192,7 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use insta::{assert_debug_snapshot, assert_display_snapshot};
+    use insta::{assert_debug_snapshot, assert_snapshot};
 
     // Helper function to create a simple Error object
     fn create_simple_error() -> Error {
@@ -182,12 +203,12 @@ mod tests {
 
     #[test]
     fn display() {
-        assert_display_snapshot!(create_simple_error(),
+        assert_snapshot!(create_simple_error(),
             @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
         );
 
         let errors = Errors(vec![create_simple_error()]);
-        assert_display_snapshot!(errors,
+        assert_snapshot!(errors,
             @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
         );
         assert_debug_snapshot!(errors, @r###"

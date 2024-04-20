@@ -1,6 +1,6 @@
 label: Friendly syntax
 prql: |
-  from db.track_plays
+  from track_plays
   filter plays > 10_000                # Readable numbers
   filter (length | in 60..240)         # Ranges with `..`
   filter recorded > @2008-01-01        # Simple date literals

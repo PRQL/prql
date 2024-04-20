@@ -24,7 +24,7 @@ pub use self::utils::*;
 pub use crate::ast::{BinOp, BinaryExpr, Ident, Literal, UnOp, UnaryExpr, ValueAndUnit};
 
 pub fn print_mem_sizes() {
-    use crate::ast::{PrimitiveSet, TupleField, Ty, TyFunc, TyKind};
+    use crate::ast::{PrimitiveSet, Ty, TyFunc, TyKind, TyTupleField};
     use crate::ir::{decl, generic, pl, rq};
     use crate::sql::internal::SqlTransform;
     use crate::{ErrorMessage, ErrorMessages, SourceTree, Span};
@@ -82,7 +82,7 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "TableExternRef", size_of::<TableExternRef>());
     println!("{:16}= {}", "TransformCall", size_of::<TransformCall>());
     println!("{:16}= {}", "TransformKind", size_of::<TransformKind>());
-    println!("{:16}= {}", "TupleField", size_of::<TupleField>());
+    println!("{:16}= {}", "TupleField", size_of::<TyTupleField>());
     println!("{:16}= {}", "Ty", size_of::<Ty>());
     println!("{:16}= {}", "TyFunc", size_of::<TyFunc>());
     println!("{:16}= {}", "TyKind", size_of::<TyKind>());

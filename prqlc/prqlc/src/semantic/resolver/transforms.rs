@@ -8,7 +8,7 @@ use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::generic::{SortDirection, WindowKind};
 use crate::ir::pl::*;
 
-use crate::ast::{TupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::semantic::ast_expand::{restrict_null_literal, try_restrict_range};
 use crate::semantic::resolver::functions::expr_of_func;
 use crate::semantic::{write_pl, NS_PARAM, NS_THIS};
@@ -373,7 +373,7 @@ impl Resolver<'_> {
                     .columns
                     .iter()
                     .cloned()
-                    .map(|x| TupleField::Single(Some(x), None))
+                    .map(|x| TyTupleField::Single(Some(x), None))
                     .collect();
 
                 let frame =
@@ -451,7 +451,7 @@ impl Resolver<'_> {
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("assign to `{alias}`"),
                 })
-                .push_hint(format!("move assign into the tuple: `{{{alias} = ...}}`"))
+                .push_hint(format!("move assign into the tuple: `[{alias} = ...]`"))
                 .with_span(expr.span));
             }
 
@@ -506,7 +506,7 @@ impl Resolver<'_> {
                 let with_name = with.alias.clone();
                 let with = with.ty.clone().unwrap();
                 let with = with.kind.into_array().unwrap();
-                let with = TupleField::Single(with_name, Some(*with));
+                let with = TyTupleField::Single(with_name, Some(*with));
 
                 Some(Ty::new(TyKind::Array(Box::new(Ty::new(ty_tuple_kind(
                     [input, vec![with]].concat(),
@@ -541,7 +541,7 @@ impl Resolver<'_> {
 
 fn range_is_empty(range: &(Option<i64>, Option<i64>)) -> bool {
     match (&range.0, &range.1) {
-        (Some(s), Some(e)) => s >= e,
+        (Some(s), Some(e)) => s > e,
         _ => false,
     }
 }
@@ -601,7 +601,7 @@ impl Resolver<'_> {
 
         // validate that the return type is a relation
         // this can be removed after we have proper type checking for all std functions
-        let expected = Some(Ty::relation(vec![TupleField::Wildcard(None)]));
+        let expected = Some(Ty::relation(vec![TyTupleField::Wildcard(None)]));
         self.validate_expr_type(&mut pipeline, expected.as_ref(), &|| {
             Some("pipeline".to_string())
         })?;
@@ -1079,7 +1079,7 @@ mod tests {
         // distinct query #292
 
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from db.c_invoice
+        from c_invoice
         select invoice_no
         group invoice_no (
             take 1
@@ -1132,7 +1132,7 @@ mod tests {
         // oops, two arguments #339
         let result = parse_resolve_and_lower(
             "
-        from db.c_invoice
+        from c_invoice
         aggregate average amount
         ",
         );
@@ -1141,7 +1141,7 @@ mod tests {
         // oops, two arguments
         let result = parse_resolve_and_lower(
             "
-        from db.c_invoice
+        from c_invoice
         group issued_at (aggregate average amount)
         ",
         );
@@ -1150,7 +1150,7 @@ mod tests {
         // correct function call
         let ctx = crate::semantic::test::parse_and_resolve(
             "
-        from db.c_invoice
+        from c_invoice
         group issued_at (
             aggregate (average amount)
         )
@@ -1166,7 +1166,7 @@ mod tests {
     #[test]
     fn test_transform_sort() {
         assert_yaml_snapshot!(parse_resolve_and_lower("
-        from db.invoices
+        from invoices
         sort {issued_at, -amount, +num_of_articles}
         sort issued_at
         sort (-issued_at)

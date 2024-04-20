@@ -1,7 +1,7 @@
 use crate::Result;
 use itertools::Itertools;
 
-use crate::ast::{TupleField, Ty, TyKind};
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
@@ -162,6 +162,7 @@ impl PlFold for Resolver<'_> {
                 named_args,
             }) => {
                 // fold function name
+                self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
                 let name = Box::new(self.fold_expr(*name)?);
@@ -278,7 +279,7 @@ impl Resolver<'_> {
                 id: Some(id.gen()),
                 target_id: decl.declared_at,
                 flatten: true,
-                ty: Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(None)]))),
+                ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
                 ..Expr::new(Ident::from_name(NS_SELF))
             };
             return vec![wildcard_field];
@@ -314,8 +315,8 @@ fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .columns
             .iter()
             .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
+                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TyTupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
                     Some(Ty::new(Literal::Null)),
                 ),

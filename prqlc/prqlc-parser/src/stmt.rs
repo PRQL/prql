@@ -37,7 +37,7 @@ fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
 
         annotation
             .repeated()
-            .then(choice((type_def(), var_def(), module_def)))
+            .then(choice((module_def, type_def(), import_def(), var_def())))
             .map_with_span(into_stmt)
             .separated_by(new_line().repeated().at_least(1))
             .allow_leading()
@@ -76,9 +76,20 @@ fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
             // have this awkward construction in the meantime.
             let other = args
                 .remove("target")
-                .map(|v| match v.kind {
-                    ExprKind::Ident(value) => Ok(value.to_string()),
-                    _ => Err("target must be a string literal".to_string()),
+                .map(|v| {
+                    match v.kind {
+                        ExprKind::Ident(name) => return Ok(name.to_string()),
+                        ExprKind::Indirection {
+                            base,
+                            field: IndirectionKind::Name(field),
+                        } => {
+                            if let ExprKind::Ident(name) = base.kind {
+                                return Ok(name.to_string() + "." + &field);
+                            }
+                        }
+                        _ => {}
+                    };
+                    Err("target must be a string literal".to_string())
                 })
                 .transpose()
                 .map_err(|msg| Simple::custom(span, msg))?
@@ -147,4 +158,12 @@ fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
         .then(ctrl('=').ignore_then(type_expr()).or_not())
         .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }))
         .labelled("type definition")
+}
+
+fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
+    keyword("import")
+        .ignore_then(ident_part().then_ignore(ctrl('=')).or_not())
+        .then(ident())
+        .map(|(alias, name)| StmtKind::ImportDef(ImportDef { name, alias }))
+        .labelled("import statement")
 }

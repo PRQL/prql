@@ -6,7 +6,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
-use crate::ast::TupleField;
+use crate::ast::TyTupleField;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
@@ -79,7 +79,7 @@ pub fn lower_to_ir(
 }
 
 fn extern_ref_to_relation(
-    mut columns: Vec<TupleField>,
+    mut columns: Vec<TyTupleField>,
     fq_ident: &Ident,
     database_module_path: &[String],
 ) -> Result<(rq::Relation, Option<String>), Error> {
@@ -102,7 +102,7 @@ fn extern_ref_to_relation(
     };
 
     // put wildcards last
-    columns.sort_by_key(|a| matches!(a, TupleField::Wildcard(_)));
+    columns.sort_by_key(|a| matches!(a, TyTupleField::Wildcard(_)));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
@@ -111,12 +111,12 @@ fn extern_ref_to_relation(
     Ok((relation, None))
 }
 
-fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationColumn> {
+fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationColumn> {
     columns
         .into_iter()
         .map(|field| match field {
-            TupleField::Single(name, _) => RelationColumn::Single(name),
-            TupleField::Wildcard(_) => RelationColumn::Wildcard,
+            TyTupleField::Single(name, _) => RelationColumn::Single(name),
+            TyTupleField::Wildcard(_) => RelationColumn::Wildcard,
         })
         .collect_vec()
 }
@@ -916,7 +916,10 @@ impl Lowerer {
             }
 
             pl::ExprKind::Internal(_) => {
-                panic!("Unresolved lowering: {}", write_pl(expr))
+                return Err(Error::new_assert(format!(
+                    "Unresolved lowering: {}",
+                    write_pl(expr)
+                )))
             }
         };
 
@@ -962,7 +965,7 @@ impl Lowerer {
                 }
             }
             None => {
-                return Err(Error::new(Reason::Bug { issue: Some(3870) }))?;
+                return Err(Error::new_bug(3870))?;
             }
         };
 

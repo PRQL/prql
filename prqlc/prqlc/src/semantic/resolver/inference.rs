@@ -1,7 +1,7 @@
 use crate::Result;
 use itertools::Itertools;
 
-use crate::ast::{Ident, TupleField, Ty};
+use crate::ast::{Ident, Ty, TyTupleField};
 use crate::ir::decl::{Decl, TableDecl, TableExpr};
 use crate::ir::pl::{Lineage, LineageColumn, LineageInput};
 use crate::semantic::{NS_DEFAULT_DB, NS_INFER};
@@ -21,20 +21,22 @@ impl Resolver<'_> {
             return Err(format!("Variable {table_ident:?} is not a relation."));
         };
 
-        let has_wildcard = columns.iter().any(|c| matches!(c, TupleField::Wildcard(_)));
+        let has_wildcard = columns
+            .iter()
+            .any(|c| matches!(c, TyTupleField::Wildcard(_)));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
         let exists = columns.iter().any(|c| match c {
-            TupleField::Single(Some(n), _) => n == col_name,
+            TyTupleField::Single(Some(n), _) => n == col_name,
             _ => false,
         });
         if exists {
             return Ok(());
         }
 
-        columns.push(TupleField::Single(Some(col_name.to_string()), None));
+        columns.push(TyTupleField::Single(Some(col_name.to_string()), None));
 
         // also add into input tables of this table expression
         if let TableExpr::RelationVar(expr) = &table_decl.expr {
@@ -87,14 +89,14 @@ impl Resolver<'_> {
 
         for col in columns {
             let col = match col {
-                TupleField::Wildcard(_) => LineageColumn::All {
+                TyTupleField::Wildcard(_) => LineageColumn::All {
                     input_id,
                     except: columns
                         .iter()
                         .flat_map(|c| c.as_single().map(|x| x.0).cloned().flatten())
                         .collect(),
                 },
-                TupleField::Single(col_name, _) => LineageColumn::Single {
+                TyTupleField::Single(col_name, _) => LineageColumn::Single {
                     name: col_name
                         .clone()
                         .map(|col_name| Ident::from_path(vec![input_name.clone(), col_name])),
@@ -114,7 +116,7 @@ impl Resolver<'_> {
     pub(super) fn declare_table_for_literal(
         &mut self,
         input_id: usize,
-        columns: Option<Vec<TupleField>>,
+        columns: Option<Vec<TyTupleField>>,
         name_hint: Option<String>,
     ) -> Lineage {
         let id = input_id;

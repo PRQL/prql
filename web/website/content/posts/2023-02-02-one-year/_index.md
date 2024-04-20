@@ -105,7 +105,7 @@ let take_oldest = n rel -> (
     take n
 )
 
-from db.invoices
+from invoices
 take_oldest 3
 ```
 
@@ -116,7 +116,7 @@ take_oldest 3
 
 The design of prqlc strives to have a complexity bottleneck with an intermediate
 representation named
-[Relation Query](https://docs.rs/prqlc/latest/prqlc/ast/rq/index.html) or RQ for
+[Relation Query](https://docs.rs/prqlc/latest/prqlc/ir/rq/index.html) or RQ for
 short. Think of it as equivalent to a [Substrait plan](https://substrait.io/).
 
 Its goal is the ability to express any operation possible in SQL while

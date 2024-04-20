@@ -2,7 +2,7 @@ label: Dialects
 prql: |
   prql target:sql.mssql  # Will generate TOP rather than LIMIT
 
-  from db.employees
+  from employees
   sort age
   take 10
 sql: |

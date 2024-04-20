@@ -1,18 +1,12 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from db.dept_emp\nselect {de = this}\njoin (db.salaries | select {s = this}) side:left (s.emp_no == de.emp_no && s\"\"\"\n  ({s.from_date}, {s.to_date})\n  OVERLAPS\n  ({de.from_date}, {de.to_date})\n\"\"\")\n"
+expression: "from de=dept_emp\njoin s=salaries side:left (s.emp_no == de.emp_no && s\"\"\"\n  ({s.from_date}, {s.to_date})\n  OVERLAPS\n  ({de.from_date}, {de.to_date})\n\"\"\")\n"
 ---
-WITH table_0 AS (
-  SELECT
-    *
-  FROM
-    salaries
-)
 SELECT
-  dept_emp.*,
-  table_0.*
+  de.*,
+  s.*
 FROM
-  dept_emp
-  LEFT JOIN table_0 ON table_0.emp_no = dept_emp.emp_no
-  AND (table_0.from_date, table_0.to_date) OVERLAPS (dept_emp.from_date, dept_emp.to_date)
+  dept_emp AS de
+  LEFT JOIN salaries AS s ON s.emp_no = de.emp_no
+  AND (s.from_date, s.to_date) OVERLAPS (de.from_date, de.to_date)
 

@@ -6,7 +6,7 @@ PostgreSQL that returns the PostgreSQL version, so if we want to use that, we
 use an s-string:
 
 ```prql
-from db.my_table
+from my_table
 select db_version = s"version()"
 ```
 
@@ -20,7 +20,7 @@ let average = column -> s"AVG({column})"
 So this compiles using the function:
 
 ```prql
-from db.employees
+from employees
 aggregate {average salary}
 ```
 
@@ -33,9 +33,8 @@ adjust the quotes of the S-string. For example, instead of `s'CONCAT("hello", "w
 Here's an example of a more involved use of an s-string:
 
 ```prql
-from db.dept_emp
-select {de = this}
-join (db.salaries | select {s = this}) side:left (s.emp_no == de.emp_no && s"""
+from de=dept_emp
+join s=salaries side:left (s.emp_no == de.emp_no && s"""
   ({s.from_date}, {s.to_date})
   OVERLAPS
   ({de.from_date}, {de.to_date})
@@ -53,8 +52,8 @@ expression like Python.
 We can also use s-strings to produce a full table:
 
 ```prql
-s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
-join s"SELECT * FROM salaries" (==id)
+from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+join s = s"SELECT * FROM salaries" (==id)
 ```
 
 ```admonish note
@@ -69,7 +68,7 @@ should implement it in PRQL or PRQL's stdlib. If you often require an s-string,
 To output braces from an s-string, use double braces:
 
 ```prql
-from db.employees
+from employees
 derive {
   has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
 }
@@ -86,7 +85,7 @@ wrong. The generated SQL code is as if we had written
 `salary + (benefits / 365)`.
 
 ```prql
-from db.employees
+from employees
 derive {
   gross_salary = salary + benefits,
   daily_rate = s"{gross_salary} / 365"
@@ -96,7 +95,7 @@ derive {
 Instead, the numerator `{gross_salary}` must be encased in parentheses:
 
 ```prql
-from db.employees
+from employees
 derive {
   gross_salary = salary + benefits,
   daily_rate = s"({gross_salary}) / 365"

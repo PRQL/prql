@@ -58,9 +58,9 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
             )
             .map(|((name, ty), range)| {
                 if range.is_some() {
-                    TupleField::Wildcard(Some(ty))
+                    TyTupleField::Wildcard(Some(ty))
                 } else {
-                    TupleField::Single(name, Some(ty))
+                    TyTupleField::Single(name, Some(ty))
                 }
             })
             .padded_by(new_line().repeated())

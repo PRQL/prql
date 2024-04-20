@@ -1,11 +1,12 @@
 ---
 source: web/book/tests/documentation/book.rs
-expression: "from db.tracks\njoin side:inner db.artists (\n  this.id==that.artist_id\n)\n"
+expression: "from tracks\njoin side:left artists (\n  # This adds a `country` condition, as an alternative to filtering\n  artists.id==tracks.artist_id && artists.country=='UK'\n)\n"
 ---
 SELECT
   tracks.*,
   artists.*
 FROM
   tracks
-  JOIN artists ON tracks.id = artists.artist_id
+  LEFT JOIN artists ON artists.id = tracks.artist_id
+  AND artists.country = 'UK'
 

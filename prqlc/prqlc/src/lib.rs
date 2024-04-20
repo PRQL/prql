@@ -39,7 +39,7 @@
 //!     ```
 //!     # fn main() -> Result<(), prqlc::ErrorMessages> {
 //!     let sql = prqlc::compile(
-//!         "from db.albums | select {title, artist_id}",
+//!         "from albums | select {title, artist_id}",
 //!          &prqlc::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
@@ -51,7 +51,7 @@
 //!
 //!     For inline strings, use the `prql-compiler-macros` crate; for example:
 //!     ```ignore
-//!     let sql: &str = prql_to_sql!("from db.albums | select {title, artist_id}");
+//!     let sql: &str = prql_to_sql!("from albums | select {title, artist_id}");
 //!     ```
 //!
 //!     For compiling whole files (`.prql` to `.sql`), call `prqlc`
@@ -100,6 +100,7 @@ pub mod sql;
 mod utils;
 
 pub use crate::ast::error::{Error, Errors, MessageKind, Reason, WithErrorInfo};
+use anstream::adapter::strip_str;
 pub use error_message::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use ir::Span;
 pub use prqlc_ast as ast;
@@ -119,7 +120,8 @@ use strum::VariantNames;
 ///
 /// This is a wrapper for:
 /// - [prql_to_pl] — Build PL AST from a PRQL string
-/// - [pl_to_rq] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
+/// - [pl_to_rq] — Finds variable references, validates functions calls,
+///   determines frames and converts PL to RQ.
 /// - [rq_to_sql] — Convert RQ AST into an SQL string.
 /// # Example
 /// Use the prql compiler to convert a PRQL string to SQLite dialect
@@ -127,19 +129,16 @@ use strum::VariantNames;
 /// ```
 /// use prqlc::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from db.employees | select {name,age}";
-/// let opts = Options {
-///     format: false,
-///     target: Target::Sql(Some(Dialect::SQLite)),
-///     signature_comment: false,
-///     color: false,
-/// };
+/// let prql = "from employees | select {name,age}";
+/// let opts = Options::default().with_target(Target::Sql(Some(Dialect::SQLite))).with_signature_comment(false).with_format(false);
 /// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
 /// assert_eq!("SELECT name, age FROM employees", sql)
 ///
 /// ```
-/// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
+/// See [`sql::Options`](sql/struct.Options.html) and
+/// [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL
+/// dialects.
 pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     let sources = SourceTree::from(prql);
 
@@ -147,7 +146,22 @@ pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
         .and_then(parser::parse)
         .and_then(|ast| semantic::resolve_and_lower(ast, &[], None).map_err(Errors::from))
         .and_then(|rq| sql::compile(rq, options).map_err(Errors::from))
-        .map_err(|e| ErrorMessages::from(e).composed(&sources))
+        .map_err(|e| {
+            let error_messages = ErrorMessages::from(e).composed(&sources);
+            match options.display {
+                DisplayOptions::AnsiColor => error_messages,
+                DisplayOptions::Plain => ErrorMessages {
+                    inner: error_messages
+                        .inner
+                        .into_iter()
+                        .map(|e| ErrorMessage {
+                            display: e.display.map(|s| strip_str(&s).to_string()),
+                            ..e
+                        })
+                        .collect(),
+                },
+            }
+        })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,16 +225,21 @@ pub struct Options {
     /// Defaults to true.
     pub signature_comment: bool,
 
-    /// Whether to use ANSI colors in error messages. This is deprecated and has
-    /// no effect.
+    /// Deprecated: use `display` instead.
+    pub color: bool,
+
+    /// Whether to use ANSI colors in error messages. This may be extended to
+    /// other formats in the future.
     ///
-    /// Instead, in order of preference:
-    /// - Use a library such as `anstream` to encapsulate the presentation
-    ///   logic.
+    /// Note that we don't generally recommend threading a `color` option
+    /// through an entire application. Instead, in order of preferences:
+    /// - Use a library such as `anstream` to encapsulate presentation logic and
+    ///   automatically disable colors when not connected to a TTY.
     /// - Set an environment variable such as `CLI_COLOR=0` to disable any
     ///   colors coming back from this library.
-    /// - Strip colors from the output (possibly also with a library such as `anstream`)
-    pub color: bool,
+    /// - Strip colors from the output (possibly also with a library such as
+    ///   `anstream`).
+    pub display: DisplayOptions,
 }
 
 impl Default for Options {
@@ -229,7 +248,8 @@ impl Default for Options {
             format: true,
             target: Target::Sql(None),
             signature_comment: true,
-            color: false,
+            color: true,
+            display: DisplayOptions::AnsiColor,
         }
     }
 }
@@ -263,6 +283,21 @@ impl Options {
         self.color = color;
         self
     }
+
+    pub fn with_display(mut self, display: DisplayOptions) -> Self {
+        self.display = display;
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+#[non_exhaustive]
+pub enum DisplayOptions {
+    /// Plain text
+    Plain,
+    /// With ANSI colors
+    AnsiColor,
 }
 
 #[doc = include_str!("../README.md")]

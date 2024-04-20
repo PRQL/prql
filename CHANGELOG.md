@@ -10,13 +10,6 @@
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
 
-- _Breaking_: References to database tables now require an explicit `db.`
-  prefix. Example:
-  ```prql no-eval
-  from db.my_table
-  join db.another_table (==some_id)
-  ```
-
 **Fixes**:
 
 **Documentation**:
@@ -31,6 +24,8 @@
 
 - The syntax highlighter package for Sublime Text is now
   [published](https://packagecontrol.io/packages/PRQL) (@vanillajonathan).
+- The [VSCode Great Icons](https://marketplace.visualstudio.com/items?itemName=emmanuelbeziat.vscode-great-icons)
+  icon pack extension shows a database icon for `.prql` files. (@EmmanuelBeziat)
 
 **Internal changes**:
 
