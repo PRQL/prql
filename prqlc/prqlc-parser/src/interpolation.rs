@@ -1,4 +1,4 @@
-use chumsky::{error::Cheap, prelude::*};
+use chumsky::prelude::*;
 use itertools::Itertools;
 use prqlc_ast::expr::*;
 
@@ -97,7 +97,7 @@ fn parse_interpolate() {
     "###);
 }
 
-fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
+fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = LError> {
     let expr = ident_part()
         .map_with_span(move |name, s| (name, offset_span(span_base, s)))
         .separated_by(just('.'))
@@ -134,10 +134,19 @@ fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Erro
     expr.or(string).repeated().then_ignore(end())
 }
 
-fn offset_span(base: ParserSpan, range: std::ops::Range<usize>) -> ParserSpan {
+// fn offset_span(base: ParserSpan, range: std::ops::Range<usize>) -> ParserSpan {
+//     ParserSpan(Span {
+//         start: base.0.start + range.start,
+//         end: base.0.start + range.end,
+//         source_id: base.0.source_id,
+//     })
+// }
+
+fn offset_span(base: ParserSpan, range: ParserSpan) -> ParserSpan {
+    // base + range
     ParserSpan(Span {
-        start: base.0.start + range.start,
-        end: base.0.start + range.end,
+        start: base.0.start + range.0.start,
+        end: base.0.start + range.0.end,
         source_id: base.0.source_id,
     })
 }

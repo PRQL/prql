@@ -1,9 +1,23 @@
 use std::ops::{Add, Deref, DerefMut, Sub};
 
+use serde::{Deserialize, Serialize};
+
 use crate::Span;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct ParserSpan(pub crate::Span);
+
+// impl From<ParserSpan> for Span {
+//     fn from(span: ParserSpan) -> Self {
+//         span.0
+//     }
+// }
+
+// impl From<ParserSpan> for std::ops::Range<usize> {
+//     fn from(value: ParserSpan) -> Self {
+//         value.0.into()
+//     }
+// }
 
 impl Deref for ParserSpan {
     type Target = Span;

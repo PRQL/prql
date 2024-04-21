@@ -1,5 +1,4 @@
 use chumsky::{
-    error::Cheap,
     prelude::*,
     text::{newline, Character},
 };
@@ -10,7 +9,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
     pub kind: TokenKind,
-    pub span: std::ops::Range<usize>,
+    // pub span: Span,
+    pub span: crate::span::ParserSpan,
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -66,8 +66,10 @@ pub enum TokenKind {
     LineWrap(Vec<TokenKind>),
 }
 
+pub type LError = Simple<char, crate::span::ParserSpan>;
+
 /// Lex chars to tokens until the end of the input
-pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
+pub fn lexer() -> impl Parser<char, Vec<Token>, Error = LError> {
     lex_token()
         .repeated()
         .then_ignore(ignored())
@@ -75,7 +77,7 @@ pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Cheap<char>> {
 }
 
 /// Lex chars to a single token
-pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
+pub fn lex_token() -> impl Parser<char, Token, Error = LError> {
     let control_multi = choice((
         just("->").to(TokenKind::ArrowThin),
         just("=>").to(TokenKind::ArrowFat),
@@ -155,18 +157,18 @@ pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
     ))
 }
 
-fn ignored() -> impl Parser<char, (), Error = Cheap<char>> {
+fn ignored() -> impl Parser<char, (), Error = LError> {
     whitespace().repeated().ignored()
 }
 
-fn whitespace() -> impl Parser<char, (), Error = Cheap<char>> {
+fn whitespace() -> impl Parser<char, (), Error = LError> {
     filter(|x: &char| x.is_inline_whitespace())
         .repeated()
         .at_least(1)
         .ignored()
 }
 
-fn line_wrap() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
+fn line_wrap() -> impl Parser<char, TokenKind, Error = LError> {
     newline()
         .ignore_then(
             whitespace()
@@ -180,7 +182,7 @@ fn line_wrap() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
         .map(TokenKind::LineWrap)
 }
 
-fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
+fn comment() -> impl Parser<char, TokenKind, Error = LError> {
     just('#').ignore_then(choice((
         just('!').ignore_then(
             newline()
@@ -197,7 +199,7 @@ fn comment() -> impl Parser<char, TokenKind, Error = Cheap<char>> {
     )))
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
+pub fn ident_part() -> impl Parser<char, String, Error = LError> + Clone {
     let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated());
 
@@ -206,7 +208,7 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> + Clone {
     plain.or(backticks).collect()
 }
 
-fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
+fn literal() -> impl Parser<char, Literal, Error = LError> {
     let binary_notation = just("0b")
         .then_ignore(just("_").or_not())
         .ignore_then(
@@ -270,7 +272,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
             } else if let Ok(f) = str.parse::<f64>() {
                 Ok(Literal::Float(f))
             } else {
-                Err(Cheap::expected_input_found(span, None, None))
+                Err(LError::expected_input_found(span, None, None))
             }
         })
         .labelled("number");
@@ -307,7 +309,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
                 let unit = unit.to_string();
                 Ok(ValueAndUnit { n, unit })
             } else {
-                Err(Cheap::expected_input_found(span, None, None))
+                Err(LError::expected_input_found(span, None, None))
             }
         })
         .map(Literal::ValueAndUnit);
@@ -391,7 +393,7 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     ))
 }
 
-fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
+fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = LError> {
     choice((
         quoted_string_of_quote(&'"', escaped),
         quoted_string_of_quote(&'\'', escaped),
@@ -403,7 +405,7 @@ fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>
 fn quoted_string_of_quote(
     quote: &char,
     escaping: bool,
-) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
+) -> impl Parser<char, Vec<char>, Error = LError> + '_ {
     let opening = just(*quote).repeated().at_least(1);
 
     opening.then_with(move |opening| {
@@ -431,7 +433,7 @@ fn quoted_string_of_quote(
     })
 }
 
-fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
+fn escaped_character() -> impl Parser<char, char, Error = LError> {
     just('\\').ignore_then(choice((
         just('\\'),
         just('/'),
@@ -448,7 +450,7 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
                 .collect::<String>()
                 .validate(|digits, span, emit| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
-                        emit(Cheap::expected_input_found(span, None, None));
+                        emit(LError::expected_input_found(span, None, None));
                         '\u{FFFD}' // Unicode replacement character
                     })
                 })
@@ -461,7 +463,7 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
                 .collect::<String>()
                 .validate(|digits, span, emit| {
                     char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
-                        emit(Cheap::expected_input_found(span, None, None));
+                        emit(LError::expected_input_found(span, None, None));
                         '\u{FFFD}'
                     })
                 }),
@@ -469,13 +471,13 @@ fn escaped_character() -> impl Parser<char, char, Error = Cheap<char>> {
     )))
 }
 
-fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
+fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = LError> {
     filter(|c: &char| c.is_ascii_digit())
         .repeated()
         .exactly(count)
 }
 
-fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
+fn end_expr() -> impl Parser<char, (), Error = LError> {
     choice((
         end(),
         one_of(",)]}\t >").ignored(),
@@ -574,6 +576,7 @@ impl std::fmt::Debug for Token {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct TokenVec(pub Vec<Token>);
 
 impl std::fmt::Debug for TokenVec {

@@ -138,7 +138,7 @@ fn prepare_stream(
 ) -> Stream<TokenKind, ParserSpan, impl Iterator<Item = (TokenKind, ParserSpan)> + Sized> {
     let tokens = tokens
         .into_iter()
-        .map(move |token| (token.kind, ParserSpan::new(source_id, token.span)));
+        .map(move |token| (token.kind, ParserSpan::new(source_id, token.span.into())));
     let len = source.chars().count();
     let eoi = ParserSpan(Span {
         start: len,
@@ -148,7 +148,7 @@ fn prepare_stream(
     Stream::from_iter(eoi, tokens)
 }
 
-fn convert_lexer_error(source: &str, e: chumsky::error::Cheap<char>, source_id: u16) -> Error {
+fn convert_lexer_error(source: &str, e: lexer::LError, source_id: u16) -> Error {
     // We want to slice based on the chars, not the bytes, so can't just index
     // into the str.
     let found = source

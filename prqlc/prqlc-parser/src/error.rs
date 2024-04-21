@@ -44,11 +44,7 @@ impl Display for LexerError {
     }
 }
 
-pub(crate) fn convert_lexer_error(
-    source: &str,
-    e: chumsky::error::Cheap<char>,
-    source_id: u16,
-) -> Error {
+pub(crate) fn convert_lexer_error(source: &str, e: LError, source_id: u16) -> Error {
     // TODO: is there a neater way of taking a span? We want to take it based on
     // the chars, not the bytes, so can't just index into the str.
     let found = source
