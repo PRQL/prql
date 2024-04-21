@@ -12,10 +12,15 @@ version.workspace = true
 cli = ["clap"]
 default = ["cli"]
 
+[lib]
+doctest = false
+test = false
+
 [[bin]]
 name = "lutra"
 path = "src/cli.rs"
 required-features = ["cli"]
+test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {workspace = true}

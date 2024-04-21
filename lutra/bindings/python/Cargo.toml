@@ -12,6 +12,7 @@ version.workspace = true
 [lib]
 crate-type = ["cdylib"]
 doc = false
+test = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 arrow = {version = "49.0", features = ["pyarrow"], default-features = false}
