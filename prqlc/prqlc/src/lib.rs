@@ -69,8 +69,10 @@
 //!
 //! The following [feature flags](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) are available:
 //!
-//! * `serde_yaml`: adapts the `Serialize` implementation for [`crate::ast::expr::ExprKind::Literal`]
-//!   to `serde_yaml`, which doesn't support the serialization of nested enums
+//! * `serde_yaml`: adapts the `Serialize` implementation for
+//!   [`crate::ast::expr::ExprKind::Literal`] within
+//!   [`prqlc::ir::rq::expr::ExprKind`] to a custom one for `serde_yaml`, which
+//!   doesn't support the serialization of nested enums.
 //!
 //! ## Large binary sizes
 //!
