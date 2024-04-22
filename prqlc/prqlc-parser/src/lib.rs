@@ -242,10 +242,12 @@ fn test_lex_source() {
 
     assert_debug_snapshot!(lex_source("5 + 3"), @r###"
     Ok(
-        TokenVec (
-          0..1: Literal(Integer(5)),
-          2..3: Control('+'),
-          4..5: Literal(Integer(3)),
+        TokenVec(
+            [
+                0..1: Literal(Integer(5)),
+                2..3: Control('+'),
+                4..5: Literal(Integer(3)),
+            ],
         ),
     )
     "###);
