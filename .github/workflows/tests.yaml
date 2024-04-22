@@ -135,11 +135,11 @@ jobs:
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
           contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
-          github.event.schedule }}" >>"$GITHUB_OUTPUT"
+          github.event_name == 'schedule' }}" >>"$GITHUB_OUTPUT"
 
       - id: nightly-schedule
         run:
-          echo "run=${{ github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
+          echo "run=${{ github.event_name == 'schedule' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -689,9 +689,10 @@ jobs:
     needs:
       - check-ok-to-merge
     if:
-      # We care that it's on a schedule as well as it running on nightly — we
+      # We check that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.schedule && contains(needs.*.result, 'failure')
+      always() && (github.event_name == 'schedule') && contains(needs.*.result,
+      'failure')
     permissions:
       contents: read
       issues: write
