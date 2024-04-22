@@ -3,20 +3,22 @@ source: prqlc/prqlc/tests/integration/queries.rs
 expression: tokens
 input_file: prqlc/prqlc/tests/integration/queries/read_csv.prql
 ---
-TokenVec (
-  0..13: Comment(" sqlite:skip"),
-  13..14: NewLine,
-  14..29: Comment(" postgres:skip"),
-  29..30: NewLine,
-  30..42: Comment(" mysql:skip"),
-  42..43: NewLine,
-  43..47: Ident("from"),
-  48..49: Control('('),
-  49..57: Ident("read_csv"),
-  58..90: Literal(String("data_file_root/media_types.csv")),
-  90..91: Control(')'),
-  91..92: NewLine,
-  92..96: Ident("sort"),
-  97..110: Ident("media_type_id"),
-  110..111: NewLine,
+TokenVec(
+    [
+        0..13: Comment(" sqlite:skip"),
+        13..14: NewLine,
+        14..29: Comment(" postgres:skip"),
+        29..30: NewLine,
+        30..42: Comment(" mysql:skip"),
+        42..43: NewLine,
+        43..47: Ident("from"),
+        48..49: Control('('),
+        49..57: Ident("read_csv"),
+        58..90: Literal(String("data_file_root/media_types.csv")),
+        90..91: Control(')'),
+        91..92: NewLine,
+        92..96: Ident("sort"),
+        97..110: Ident("media_type_id"),
+        110..111: NewLine,
+    ],
 )
