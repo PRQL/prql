@@ -372,7 +372,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
             let sql_parser_datetime = match vau.unit.as_str() {
                 "years" => DateTimeField::Year,
                 "months" => DateTimeField::Month,
-                "weeks" => DateTimeField::Week,
+                "weeks" => DateTimeField::Week(None),
                 "days" => DateTimeField::Day,
                 "hours" => DateTimeField::Hour,
                 "minutes" => DateTimeField::Minute,
@@ -675,6 +675,7 @@ fn translate_windowed(
     );
 
     let window = WindowSpec {
+        window_name: None,
         partition_by: try_into_exprs(window.partition, ctx, span)?,
         order_by: (window.sort)
             .into_iter()
