@@ -16,7 +16,8 @@ join side:{inner|left|right|full} rel (condition)
   relations and then filter the result by the condition. It supports two
   additional features:
   - _Names [`this` & `that`](../../syntax/keywords.md#this--that)_: Along name
-    `this`, which refers to the first input relation, `condition` can use name `that`, which refers to the second input relation.
+    `this`, which refers to the first input relation, `condition` can use name
+    `that`, which refers to the second input relation.
   - _Self equality operator_: If the condition is an equality comparison between
     two columns with the same name (i.e. `(this.col == that.col)`), it can be
     expressed with only `(==col)`.
