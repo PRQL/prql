@@ -50,10 +50,10 @@ pub enum TokenKind {
     // Aesthetics only
     Comment(String),
     DocComment(String),
-    /// Vec contains comments between the newline and the line wrap
+    /// Vec containing comments between the newline and the line wrap
     // Currently we include the comments with the LineWrap token. This isn't
     // ideal, but I'm not sure of an easy way of having them be separate.
-    // - The line wrap span technically include the comments — on a newline,
+    // - The line wrap span technically includes the comments — on a newline,
     //   we need to look ahead to _after_ the comments to see if there's a
     //   line wrap, and exclude the newline if there is.
     // - We can only pass one token back

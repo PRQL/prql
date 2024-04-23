@@ -24,7 +24,8 @@
 
 - The syntax highlighter package for Sublime Text is now
   [published](https://packagecontrol.io/packages/PRQL) (@vanillajonathan).
-- The [VSCode Great Icons](https://marketplace.visualstudio.com/items?itemName=emmanuelbeziat.vscode-great-icons)
+- The
+  [VSCode Great Icons](https://marketplace.visualstudio.com/items?itemName=emmanuelbeziat.vscode-great-icons)
   icon pack extension shows a database icon for `.prql` files. (@EmmanuelBeziat)
 
 **Internal changes**:
