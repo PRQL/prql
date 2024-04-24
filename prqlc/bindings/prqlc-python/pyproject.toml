@@ -27,7 +27,7 @@ module-name = "prqlc"
 [project.optional-dependencies]
 test = [
   "pytest >= 7",
-  "mypy == 1.9.0",
+  "mypy == 1.10.0",
 ]
 
 [tool.ruff]
