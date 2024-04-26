@@ -447,7 +447,7 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
         return Err(
             Error::new_simple("No rows provided for `from_text`".to_string()).push_hint(
                 "add a newline, then a row of data following the column. If using \
-                the json format, ensure `data` isnt empty",
+                the json format, ensure `data` isn't empty",
             ),
         );
     }
