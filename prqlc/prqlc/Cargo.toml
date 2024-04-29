@@ -14,7 +14,7 @@ metadata.msrv = "1.70.0"
 [features]
 cli = [
   "anyhow",
-  "atty",
+  "is-terminal",
   "clap_complete_command",
   "clap_complete",
   "clap",
@@ -33,8 +33,8 @@ test-dbs = ["anyhow", "duckdb", "glob", "rusqlite", "tokio"]
 test-dbs-external = ["anyhow", "duckdb", "glob", "mysql", "pg_bigdecimal", "postgres", "rusqlite", "tiberius", "tokio", "tokio-util"]
 
 [dependencies]
-prqlc-ast = {path = "../prqlc-ast", version = "0.11.5" }
-prqlc-parser = {path = "../prqlc-parser", version = "0.11.5" }
+prqlc-ast = {path = "../prqlc-ast", version = "0.11.5"}
+prqlc-parser = {path = "../prqlc-parser", version = "0.11.5"}
 
 anstream = {version = "0.6.13", features = ["auto"]}
 ariadne = "0.4.0"
@@ -60,13 +60,13 @@ strum_macros = "0.26.2"
 # unique dependencies from the CLI, marked as optional and included in the 'cli'
 # feature
 anyhow = {version = "1.0.82", features = ["backtrace"], optional = true}
-atty = {version = "0.2.14", optional = true}
 clap = {version = "4.4.18", features = ["derive", "env", "wrap_help"], optional = true}
 clap_complete_command = {version = "0.5.1", optional = true}
 clio = {version = "0.3.3", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.3", optional = true}
 colorchoice-clap = {version = "1.0.0", optional = true}
 env_logger = {version = "0.10.2", features = ["color"], optional = true}
+is-terminal = {version = "0.4.0", optional = true}
 notify = {version = "6.1.1", optional = true}
 walkdir = {version = "2.5.0", optional = true}
 
