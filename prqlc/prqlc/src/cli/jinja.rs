@@ -44,12 +44,9 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext)> {
     let mut blocks = Vec::new();
     let mut current_block = Vec::new();
 
-    for res in minijinja::machinery::tokenize(
-        source,
-        false,
-        SyntaxConfig::default(),
-        WhitespaceConfig::default(),
-    ) {
+    for res in
+        minijinja::machinery::tokenize(source, false, SyntaxConfig, WhitespaceConfig::default())
+    {
         let (token, span) = res?;
 
         if let Token::TemplateData(data) = token {
