@@ -12,6 +12,7 @@ use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
+use is_terminal::IsTerminal;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::env;
@@ -464,8 +465,7 @@ impl Command {
         //
         // See https://github.com/PRQL/prql/issues/3228 for details on us not
         // yet using `input.is_tty()`.
-        // if input.is_tty() {
-        if input.path() == Path::new("-") && atty::is(atty::Stream::Stdin) {
+        if input.path() == Path::new("-") && std::io::stdin().is_terminal() {
             #[cfg(unix)]
             eprintln!("Enter PRQL, then press ctrl-d to compile:\n");
             #[cfg(windows)]
