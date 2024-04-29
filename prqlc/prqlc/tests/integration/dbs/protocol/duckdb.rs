@@ -43,6 +43,7 @@ impl DbProtocolHandler for duckdb::Connection {
                     ValueRef::Blob(_) => "BLOB".to_string(),
                     ValueRef::Date32(v) => v.to_string(),
                     ValueRef::Time64(u, v) => format!("{v} {u:?}"),
+                    #[allow(unreachable_patterns)]
                     _ => unimplemented!(),
                 };
                 columns.push(value);
