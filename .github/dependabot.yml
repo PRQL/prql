@@ -16,28 +16,10 @@ updates:
     # We exclude labels throughout because of https://github.com/dependabot/dependabot-core/issues/7645#issuecomment-1986212847
     labels: []
 
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: daily
-    commit-message:
-      prefix: "chore: "
-    labels: []
-
   - package-ecosystem: "npm"
-    directory: "/prqlc/bindings/js"
-    schedule:
-      interval: daily
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-patch
-    commit-message:
-      prefix: "chore: "
-    labels: []
-
-  - package-ecosystem: "npm"
-    directory: "/web/playground"
+    directories:
+      - "/prqlc/bindings/js"
+      - "/web/playground"
     schedule:
       interval: daily
     ignore:
@@ -56,28 +38,16 @@ updates:
       prefix: "chore: "
     labels: []
 
-  - directory: ".github/actions/build-python"
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - ".github/actions/build-python"
+      - ".github/actions/build-prqlc"
+      - ".github/actions/time-compilation"
     commit-message:
       prefix: "chore: "
-    package-ecosystem: "github-actions"
     schedule:
-      interval: "daily"
-    labels: []
-
-  - directory: ".github/actions/build-prqlc"
-    commit-message:
-      prefix: "chore: "
-    package-ecosystem: "github-actions"
-    schedule:
-      interval: "daily"
-    labels: []
-
-  - directory: ".github/actions/time-compilation"
-    commit-message:
-      prefix: "chore: "
-    package-ecosystem: "github-actions"
-    schedule:
-      interval: "daily"
+      interval: daily
     labels: []
 
   - package-ecosystem: pip
