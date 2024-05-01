@@ -49,5 +49,5 @@ runs:
     - name: Upload wheels
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.package }}-${{ inputs.target }}-wheels
+        name: ${{ inputs.package }}-${{ runner.os }}-${{ inputs.target }}-wheels
         path: target/python
