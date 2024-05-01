@@ -479,17 +479,6 @@ jobs:
       # This needs to compare to the string `'true'`, because of GHA awkwardness
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
-  time-compilation:
-    runs-on: ubuntu-latest
-    needs: rules
-    if: needs.rules.outputs.nightly == 'true'
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - uses: ./.github/actions/time-compilation
-        with:
-          use_cache: true
-
   test-msrv:
     runs-on: ubuntu-latest
     needs: rules
