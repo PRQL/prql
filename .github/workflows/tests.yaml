@@ -414,17 +414,15 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
       - run:
-          # TODO: move to using `codecov.json` since that has branch & region
-          # coverage. But the coverage is lower, and I haven't spent the time to
-          # evaluate whether that's accurate or not yet.
-          #
-          # cargo llvm-cov --codecov --output-path=codecov.json --features=test-dbs
+          # We considered moving to using `codecov.json` with
+          # `--codecov --output-path=codecov.json` since that has branch & region
+          # coverage. But the coverage is lower, in a way that doesn't represent
+          # what is useful coverage
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v4
         with:
-          # files: codecov.json
           files: cobertura.xml
           fail_ci_if_error: true
           # This isn't strictly necessary, but as discussed in
@@ -437,10 +435,9 @@ jobs:
           # that.)
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
-          # path: codecov.json
           path: cobertura.xml
 
   test-grammars:

@@ -26,9 +26,9 @@ jobs:
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
           package: prqlc-python
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: prqlc-python-wheels
+          pattern: prqlc-python-*-wheels
           path: target/python
       - uses: actions/setup-python@v5
         with:

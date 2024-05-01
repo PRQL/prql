@@ -47,7 +47,7 @@ runs:
           --release -o target/python --target universal2-apple-darwin -m
           ${{steps.package-path.outputs.package_path}}
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.package }}-wheels
+        name: ${{ inputs.package }}-${{ inputs.target }}-wheels
         path: target/python
