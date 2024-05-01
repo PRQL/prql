@@ -546,7 +546,6 @@ jobs:
       - test-rust
       - test-rust-main
       - test-taskfile
-      - time-compilation
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
