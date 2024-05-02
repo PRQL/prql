@@ -3,7 +3,7 @@ description: "Use maturin to build python dists."
 inputs:
   target:
     description: Build target, or 'source' for source distribution
-    required: false
+    required: true
   profile:
     description: Build profile option; `dev` or `release`.
     required: true

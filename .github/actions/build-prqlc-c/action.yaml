@@ -89,8 +89,7 @@ runs:
     - name: Upload prqlc-c
       uses: actions/upload-artifact@v4
       with:
-        name:
-          prqlc_c-${{ runner.os }}-${{ inputs.target }}-${{ inputs.profile }}
+        name: prqlc_c-${{ inputs.target }}-${{ inputs.profile }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name
