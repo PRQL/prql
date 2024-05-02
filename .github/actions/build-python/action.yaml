@@ -54,6 +54,6 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name:
-          ${{ inputs.package }}-${{ runner.os }}-${{ inputs.target }}${{
+          ${{ inputs.package }}-${{ runner.os }}-${{ inputs.target }}-${{
           inputs.profile }}-wheels
         path: target/python
