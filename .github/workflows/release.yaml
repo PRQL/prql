@@ -139,8 +139,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          # `*` covers all OSes
-          pattern: prqlc-*-${{ matrix.target }}-release
+          pattern: prqlc-${{ matrix.target }}-release
       - name: Copy files into .deb package
         run: |
           tar -xf prqlc-*.tar.gz
@@ -196,8 +195,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          # `*` covers all OSes
-          name: prqlc-*-${{ matrix.target }}-release
+          name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .rpm package
         run: |
           tar -xf prqlc-*.tar.gz
@@ -309,7 +307,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          # `*` covers os and target
+          # `*` covers target
           pattern: ${{ matrix.package }}-*-release-wheels
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
