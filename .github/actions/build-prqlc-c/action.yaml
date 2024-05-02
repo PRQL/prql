@@ -46,8 +46,7 @@ runs:
 
     - if: runner.os == 'Windows' && inputs.profile == 'release'
       shell: bash
-      run: |
-        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
+      run: echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
@@ -90,7 +89,7 @@ runs:
     - name: Upload prqlc-c
       uses: actions/upload-artifact@v4
       with:
-        name: prqlc_c-${{ inputs.target }}-${{ inputs.profile }}
+        name: prqlc_c-${{ inputs.target }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name

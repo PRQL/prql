@@ -137,8 +137,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download a Build Artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: prqlc-${{ matrix.target }}
       - name: Copy files into .deb package
@@ -194,8 +193,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download a Build Artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: prqlc-${{ matrix.target }}
       - name: Copy files into .rpm package
