@@ -95,7 +95,7 @@ runs:
     - name: Upload prqlc
       uses: actions/upload-artifact@v4
       with:
-        name: prqlc-${{ runner.os}}-${{ inputs.target }}-${{ inputs.profile }}
+        name: prqlc-${{ runner.os }}-${{ inputs.target }}-${{ inputs.profile }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name
