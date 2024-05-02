@@ -172,7 +172,7 @@ jobs:
             powerful, pipelined SQL replacement.
       - uses: actions/upload-artifact@v4
         with:
-          name: artifact-deb
+          name: deb-${{ matrix.target }}
           path: |
             ./*.deb
       - name: Release
