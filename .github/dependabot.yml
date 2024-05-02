@@ -42,6 +42,7 @@ updates:
     directories:
       - "/"
       - ".github/actions/build-python"
+      - ".github/actions/build-prqlc"
       - ".github/actions/build-prqlc-c"
       - ".github/actions/time-compilation"
     commit-message:

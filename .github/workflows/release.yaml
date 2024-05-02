@@ -272,6 +272,7 @@ jobs:
           - prqlc-python
           - lutra-python
         target: [x86_64]
+        profile: [release]
         # Also produce more targets for ubuntu:
         include:
           - os: ubuntu-latest
@@ -306,7 +307,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: ${{ matrix.package }}-*-wheels
+          # `*` covers os and target
+          pattern: ${{ matrix.package }}-*-release-wheels
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
