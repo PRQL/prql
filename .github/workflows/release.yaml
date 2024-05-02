@@ -272,7 +272,6 @@ jobs:
           - prqlc-python
           - lutra-python
         target: [x86_64]
-        profile: [release]
         # Also produce more targets for ubuntu:
         include:
           - os: ubuntu-latest
@@ -294,6 +293,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           package: ${{ matrix.package }}
+          profile: release
 
   publish-python:
     runs-on: ubuntu-latest

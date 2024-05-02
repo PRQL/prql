@@ -30,7 +30,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           # `*` covers all targets (we could make this explicit...)
-          pattern: prqlc-python-${{ runner.os }}-*-${{ inputs.profile }}-wheels
+          pattern: prqlc-python-${{ runner.os }}-*-dev-wheels
           path: target/python
       - uses: actions/setup-python@v5
         with:
