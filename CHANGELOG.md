@@ -27,7 +27,7 @@
 - The
   [VSCode Great Icons](https://marketplace.visualstudio.com/items?itemName=emmanuelbeziat.vscode-great-icons)
   icon pack extension shows a database icon for `.prql` files. (@EmmanuelBeziat)
-- [tokei](https://github.com/XAMPPRocky/tokei), a source lines of code counter now has
+- [Tokei](https://github.com/XAMPPRocky/tokei), a source lines of code counter now has
   support for `.prql` files. (@vanillajonathan)
 
 **Internal changes**:
