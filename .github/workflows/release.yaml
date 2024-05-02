@@ -139,7 +139,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: prqlc-${{ matrix.target }}-release
+          # `*` covers all OSes
+          pattern: prqlc-*-${{ matrix.target }}-release
       - name: Copy files into .deb package
         run: |
           tar -xf prqlc-*.tar.gz
@@ -195,7 +196,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: prqlc-${{ matrix.target }}-release
+          # `*` covers all OSes
+          name: prqlc-*-${{ matrix.target }}-release
       - name: Copy files into .rpm package
         run: |
           tar -xf prqlc-*.tar.gz
