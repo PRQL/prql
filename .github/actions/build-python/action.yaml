@@ -2,7 +2,9 @@ name: build-wheel
 description: "Use maturin to build python dists."
 inputs:
   target:
-    description: Build target, or 'source' for source distribution
+    description:
+      Maturin build target, or 'source' for source distribution. Currently only
+      used for Linux, otherwise defaults to the platform.
     required: true
   profile:
     description: Build profile option; `dev` or `release`.
@@ -46,6 +48,8 @@ runs:
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
+        # We override the target with `universal2-apple-darwin`. Probably we
+        # should use the target from the input or at least ensure it matches.
         args:
           --profile=${{ inputs.profile }} -o target/python --target
           universal2-apple-darwin -m
@@ -54,6 +58,7 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name:
+          # We could avoid the OS here if we handled the target more explicitly.
           ${{ inputs.package }}-${{ runner.os }}-${{ inputs.target }}-${{
-          inputs.profile }}-wheels
+          inputs.profile }}
         path: target/python
