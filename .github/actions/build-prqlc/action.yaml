@@ -93,9 +93,9 @@ runs:
         7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE README.md
 
     - name: Upload prqlc
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: prqlc-${{ inputs.target }}
+        name: prqlc-${{ inputs.target }}-${{ inputs.profile }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name

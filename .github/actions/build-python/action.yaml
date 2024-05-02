@@ -2,8 +2,13 @@ name: build-wheel
 description: "Use maturin to build python dists."
 inputs:
   target:
-    description: Build target, or 'source' for source distribution
-    required: false
+    description:
+      Maturin build target, or 'source' for source distribution. Currently only
+      used for Linux, otherwise defaults to the platform.
+    required: true
+  profile:
+    description: Build profile option; `dev` or `release`.
+    required: true
   package:
     description: Package name
     required: true
@@ -30,24 +35,30 @@ runs:
         manylinux: auto
         command: build
         args:
-          --release -o target/python -m
+          --profile=${{ inputs.profile }} -o target/python -m
           ${{steps.package-path.outputs.package_path}}
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'Windows' && inputs.target != 'source'
       with:
         command: build
         args:
-          --release -o target/python -m
+          --profile=${{ inputs.profile }} -o target/python -m
           ${{steps.package-path.outputs.package_path}}
     - uses: PyO3/maturin-action@v1
       if: runner.os == 'macOS' && inputs.target != 'source'
       with:
         command: build
+        # We override the target with `universal2-apple-darwin`. Probably we
+        # should use the target from the input or at least ensure it matches.
         args:
-          --release -o target/python --target universal2-apple-darwin -m
+          --profile=${{ inputs.profile }} -o target/python --target
+          universal2-apple-darwin -m
           ${{steps.package-path.outputs.package_path}}
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.package }}-wheels
+        name:
+          # We could avoid the OS here if we handled the target more explicitly.
+          ${{ inputs.package }}-${{ runner.os }}-${{ inputs.target }}-${{
+          inputs.profile }}
         path: target/python
