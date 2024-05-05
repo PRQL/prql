@@ -458,3 +458,16 @@ fn normalize_prqlc(cmd: &mut Command) -> &mut Command {
         .env_remove("RUST_BACKTRACE")
         .env_remove("RUST_LOG")
 }
+
+#[test]
+fn compile_no_prql_files() {
+    assert_cmd_snapshot!(prqlc_command().args(["compile", "README.md"]), @r###"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+
+    ----- stderr -----
+    Error: No `.prql` files found in the source tree
+
+    "###);
+}

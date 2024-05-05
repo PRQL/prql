@@ -59,13 +59,7 @@ pub enum LangTag {
 /// For example: ```prql no-test
 pub fn code_block_lang_tags(event: &Event) -> Option<Vec<LangTag>> {
     if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) = event {
-        Some(
-            lang.to_string()
-                .split(' ')
-                .map(LangTag::from_str)
-                .try_collect()
-                .ok()?,
-        )
+        Some(lang.split(' ').map(LangTag::from_str).try_collect().ok()?)
     } else {
         None
     }
