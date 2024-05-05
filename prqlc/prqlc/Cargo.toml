@@ -36,9 +36,9 @@ test-dbs-external = ["anyhow", "duckdb", "glob", "mysql", "pg_bigdecimal", "post
 prqlc-ast = {path = "../prqlc-ast", version = "0.11.5"}
 prqlc-parser = {path = "../prqlc-parser", version = "0.11.5"}
 
-anstream = {version = "0.6.13", features = ["auto"]}
+anstream = {version = "0.6.14", features = ["auto"]}
 # 0.4.1 causes breaking changes; TODO: resolve
-ariadne = "=0.4.0"
+ariadne = "=0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
 enum-as-inner = "0.6.0"
@@ -83,7 +83,7 @@ minijinja = {version = "=2.0.1", features = ["unstable_machinery"], optional = t
 # rather than dev-dependencies, because dev-dependencies can't be optional.
 
 # TODO: 0.10.2 causes small breaking changes; resolve
-duckdb = {version = "=0.10.1", optional = true, features = ["bundled", "chrono"]}
+duckdb = {version = "=0.10.2", optional = true, features = ["bundled", "chrono"]}
 glob = {version = "0.3.1", optional = true}
 mysql = {version = "25", optional = true}
 pg_bigdecimal = {version = "0.1.0", optional = true}
