@@ -1,7 +1,7 @@
 ---
-source: prqlc/prql-compiler/tests/integration/queries.rs
+source: prqlc/prqlc/tests/integration/queries.rs
 expression: "# mssql:test\nfrom tracks\nselect {genre_id, media_type_id, album_id}\ngroup {genre_id, media_type_id} (sort {-album_id} | take 1)\nsort {-genre_id, media_type_id}\n"
-input_file: prqlc/prql-compiler/tests/integration/queries/distinct_on.prql
+input_file: prqlc/prqlc/tests/integration/queries/distinct_on.prql
 ---
 from tracks
 select {genre_id, media_type_id, album_id}

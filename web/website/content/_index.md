@@ -194,13 +194,17 @@ integrations_section:
       link: https://github.com/ywelsch/duckdb-prql
       text: A DuckDB extension to execute PRQL
 
+    - label: "PostgreSQL"
+      link: https://github.com/kaspermarstal/plprql
+      text: Write PRQL functions in PostgreSQL
+
 bindings_section:
   enable: true
   title: "Bindings"
   section_id: "bindings"
   sections:
-    - link: https://pypi.org/project/prql-python
-      label: "prql-python"
+    - link: https://pypi.org/project/prqlc
+      label: "prqlc-python"
       text: Python bindings for prqlc.
 
     - link: https://www.npmjs.com/package/prql-js

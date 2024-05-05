@@ -22,27 +22,32 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - name: Build wheel
-        uses: ./.github/actions/build-prql-python
+        uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.os == 'ubuntu-latest' && 'x86_64' || '' }}
-      - uses: actions/download-artifact@v3
+          package: prqlc-python
+          profile: dev
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          # `*` covers all targets (we could make this explicit...)
+          pattern: prqlc-python-${{ runner.os }}-*-dev
           path: target/python
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.10"
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install nox
-        run: pipx install nox
+        # run: pipx install nox
+        run: pip install nox
         shell: bash
       - name: Cache Nox
         uses: actions/cache@v4
         with:
           path: .nox
-          key: nox-${{ hashFiles('prqlc/bindings/python/pyproject.toml') }}
+          key:
+            nox-${{ hashFiles('prqlc/bindings/prqlc-python/pyproject.toml') }}
       - name: Run tests and typing
         shell: bash
-        run: nox -s tests typing -f prqlc/bindings/python/noxfile.py
+        run: nox -s tests typing -f prqlc/bindings/prqlc-python/noxfile.py

@@ -1,11 +1,10 @@
 use std::ops::Range;
 
-use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
 use crate::ir::pl::*;
-use crate::Span;
+use crate::{Result, Span};
 
 pub fn label_references(root_mod: &RootModule, source_id: String, source: String) -> Vec<u8> {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
@@ -86,6 +85,7 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::LayeredModules(_) => Color::Cyan,
                         DeclKind::Infer(_) => Color::White,
                         DeclKind::QueryDef(_) => Color::White,
+                        DeclKind::Import(_) => Color::White,
                     };
 
                     let location = decl

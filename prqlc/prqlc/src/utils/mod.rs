@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 pub use toposort::toposort;
 
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
 pub trait OrMap<T> {

@@ -43,9 +43,7 @@ jobs:
             target: x86_64-unknown-linux-musl
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
+          - os: macos-14
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -59,15 +57,30 @@ jobs:
         with:
           target: ${{ matrix.target }}
           profile: release
+          features: cli
       - name: Upload release artifact
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
+      - name: test the CLI works
+        # TODO: Add for Windows too (but will require unzipping rather than
+        # un-taring)
+        #
+        # Currently filtering by x86, since that's the same as those not
+        # cross-compiled. But we'll have to refine this in the future.
+        if:
+          ${{ contains(matrix.target, 'x86') && matrix.target !=
+          'x86_64-pc-windows-msvc' }}
+        run: |
+          # `prqlc` is an existing path at the root
+          mkdir -p temp_path
+          tar xzf ${{ steps.build-artifact.outputs.artifact-name }} -C temp_path
+          ./temp_path/prqlc --help
 
   build-prqlc-c:
-    # Currently a copy/paste of `build-prqlc`.
+    # Mostly a copy/paste of `build-prqlc`.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -77,9 +90,7 @@ jobs:
             target: x86_64-unknown-linux-musl
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
+          - os: macos-14
             target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -95,7 +106,7 @@ jobs:
           profile: release
       - name: Upload release artifact
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           append_body: true
           files: ${{ steps.build-artifact.outputs.artifact-name }}
@@ -126,10 +137,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download a Build Artifact
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: prqlc-${{ matrix.target }}
+          name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .deb package
         run: |
           tar -xf prqlc-*.tar.gz
@@ -160,14 +170,13 @@ jobs:
 
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: artifact-deb
-          path: |
-            ./*.deb
+          name: deb-${{ matrix.target }}
+          path: ./*.deb
       - name: Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: prqlc_*.deb
 
@@ -183,10 +192,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download a Build Artifact
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: prqlc-${{ matrix.target }}
+          name: prqlc-${{ matrix.target }}-release
       - name: Copy files into .rpm package
         run: |
           tar -xf prqlc-*.tar.gz
@@ -219,7 +227,7 @@ jobs:
             PRQL is a modern language for transforming data — a simple,
             powerful, pipelined SQL replacement.
           license: Apache-2.0
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: artifact-rpm
           path: |
@@ -228,7 +236,7 @@ jobs:
       - run: rm prqlc-debuginfo-*.rpm
       - name: Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: prqlc-*.rpm
 
@@ -258,29 +266,55 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
+        package:
+          - prqlc-python
+          - lutra-python
+        target: [x86_64]
         include:
+          # MacOS with universal builds
+          - os: macos-14
+            package: prqlc-python
+            target: universal2-apple-darwin
+          - os: macos-14
+            package: lutra-python
+            target: universal2-apple-darwin
+          # Also produce more targets for ubuntu:
           - os: ubuntu-latest
-            target: x86_64
-          - os: ubuntu-latest
+            package: prqlc-python
             target: aarch64
           - os: ubuntu-latest
+            package: prqlc-python
+            target: source
+          - os: ubuntu-latest
+            package: lutra-python
+            target: aarch64
+          - os: ubuntu-latest
+            package: lutra-python
             target: source
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: ./.github/actions/build-prql-python
+      - uses: ./.github/actions/build-python
         with:
           target: ${{ matrix.target }}
+          package: ${{ matrix.package }}
+          profile: release
 
-  publish-prql-python:
+  publish-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     if: github.event_name == 'release'
+    strategy:
+      matrix:
+        package:
+          - prqlc-python
+          - lutra-python
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          # `*` covers target & OS
+          pattern: ${{ matrix.package }}-*-release
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
@@ -294,7 +328,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: wasm-pack
 
@@ -321,7 +355,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-release
       # Currently, we can only check prqlc-ast which is not dependent other local crates with --dry-run.

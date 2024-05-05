@@ -1,0 +1,21 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "# youngest employee from each department\nfrom employees\ngroup department (\n  sort age\n  take 1\n)\n"
+---
+WITH table_0 AS (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (
+      PARTITION BY department
+      ORDER BY
+        age
+    ) AS _expr_0
+  FROM
+    employees
+)
+SELECT
+  *
+FROM
+  table_0
+WHERE
+  _expr_0 <= 1

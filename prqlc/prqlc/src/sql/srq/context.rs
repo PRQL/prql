@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::Result;
+use crate::Result;
 use enum_as_inner::EnumAsInner;
 use serde::Serialize;
 

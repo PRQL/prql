@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
 use crate::ir::rq::{RelationKind, RelationalQuery, RqFold, Transform};

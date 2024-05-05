@@ -4,7 +4,7 @@
 //! experienced contributors who would like a quick issue to fix:
 //! - Find where the error is being raised now, generally just search for a part
 //!   of the message.
-//! - Add `dbg` macros to the code to see what's going on.
+//! - Add `` macros to the code to see what's going on.
 //! - Write a better message / find a better place to raise a message.
 //! - Run `cargo insta test --accept`, and move the test out of this file into
 //!   `test_error_messages.rs`. If it's only partially solved, add a TODO and
@@ -16,11 +16,11 @@
 //! So instead, add the error message as a test here.
 
 use super::sql::compile;
-use insta::assert_display_snapshot;
+use insta::assert_snapshot;
 
 #[test]
 fn test_bad_error_messages() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from film
     group
     "###).unwrap_err(), @r###"
@@ -38,7 +38,7 @@ fn test_bad_error_messages() {
     "###);
 
     // This should suggest parentheses (this might not be an easy one to solve)
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     let f = country -> country == "Canada"
 
     from employees
@@ -54,7 +54,7 @@ fn test_bad_error_messages() {
     "###);
 
     // Really complicated error message for something so fundamental
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     select tracks
     from artists
     "###).unwrap_err(), @r###"
@@ -68,7 +68,7 @@ fn test_bad_error_messages() {
     "###);
 
     // It's better if we can tell them to put in {} braces
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from artists
     sort -name
     "###).unwrap_err(), @r###"
@@ -79,7 +79,7 @@ fn test_bad_error_messages() {
 
 #[test]
 fn empty_interpolations() {
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     from x
     select f"{}"
     "#).unwrap_err(), @r###"
@@ -96,16 +96,16 @@ fn empty_interpolations() {
 #[test]
 fn select_with_extra_fstr() {
     // Should complain in the same way as `select lower "mooo"`
-    assert_display_snapshot!(compile(r#"
+    assert_snapshot!(compile(r#"
     from foo
     select lower f"{x}/{y}"
     "#).unwrap_err(), @r###"
     Error:
-       ╭─[:3:20]
+       ╭─[:3:21]
        │
      3 │     select lower f"{x}/{y}"
-       │                    ─┬─
-       │                     ╰─── Unknown name `x`
+       │                     ┬
+       │                     ╰── Unknown name `x`
     ───╯
     "###);
 }
@@ -115,7 +115,7 @@ fn select_with_extra_fstr() {
 fn misplaced_type_error() {
     // This one should point at `foo` in `select (... foo)`
     // (preferably in addition to the error that is currently generated)
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     let foo = 123
     from t
     select (true && foo)
@@ -132,7 +132,7 @@ fn misplaced_type_error() {
 
 #[test]
 fn invalid_lineage_in_transform() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
   from tbl
   group id (
     sort -val
@@ -145,7 +145,7 @@ fn invalid_lineage_in_transform() {
 
 #[test]
 fn test_hint_missing_args() {
-    assert_display_snapshot!(compile(r###"
+    assert_snapshot!(compile(r###"
     from film
     select {film_id, lag film_id}
     "###).unwrap_err(), @r###"
@@ -163,15 +163,15 @@ fn test_hint_missing_args() {
 
 #[test]
 fn test_relation_literal_contains_literals() {
-    assert_display_snapshot!(compile(r###"
-    from [{a=(1+1)}]
+    assert_snapshot!(compile(r###"
+    [{a=(1+1)}]
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:2:14]
+       ╭─[:2:9]
        │
-     2 │     from [{a=(1+1)}]
-       │              ──┬──
-       │                ╰──── relation literal expected literals, but found ``(std.add ...)``
+     2 │     [{a=(1+1)}]
+       │         ──┬──
+       │           ╰──── relation literal expected literals, but found ``(std.add ...)``
     ───╯
     "###)
 }
@@ -179,9 +179,10 @@ fn test_relation_literal_contains_literals() {
 #[test]
 fn nested_groups() {
     // Nested `group` gives a very abstract & internally-focused error message
-    assert_display_snapshot!(compile(r###"
-    from inv=invoices
-    join item=invoice_items (==invoice_id)
+    assert_snapshot!(compile(r###"
+    from invoices
+    select {inv = this}
+    join item = invoice_items (==invoice_id)
 
     group { inv.billing_city } (
 
@@ -192,6 +193,25 @@ fn nested_groups() {
       )
     )
     "###).unwrap_err(), @r###"
-    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+    Error:
+        ╭─[:2:5]
+        │
+      2 │ ╭─▶     from invoices
+        ┆ ┆
+     13 │ ├─▶     )
+        │ │
+        │ ╰─────────── internal compiler error; tracked at https://github.com/PRQL/prql/issues/3870
+    ────╯
+    "###);
+}
+
+#[test]
+fn a_arrow_b() {
+    // This is fairly low priority, given how idiosyncratic the query is. If
+    // we find other cases, we should increase the priority.
+    assert_snapshot!(compile(r###"
+    x -> y
+    "###).unwrap_err(), @r###"
+    Error: internal compiler error; tracked at https://github.com/PRQL/prql/issues/4280
     "###);
 }

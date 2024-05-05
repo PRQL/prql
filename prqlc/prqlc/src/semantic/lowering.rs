@@ -2,11 +2,11 @@ use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
-use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use prqlc_ast::TupleField;
 
+use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
+use crate::ast::TyTupleField;
 use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, Ident, Lineage, LineageColumn, PlFold, QueryDef};
@@ -16,18 +16,24 @@ use crate::ir::rq::{
 use crate::semantic::write_pl;
 use crate::utils::{toposort, IdGenerator};
 use crate::COMPILER_VERSION;
-use crate::{Error, Reason, Span, WithErrorInfo};
-use prqlc_ast::expr::generic::{InterpolateItem, Range, SwitchCase};
+use crate::{Error, Reason, Result, Span, WithErrorInfo};
 
-use super::NS_DEFAULT_DB;
-
-/// Convert AST into IR and make sure that:
+/// Convert a resolved expression at path `main_path` relative to `root_mod`
+/// into RQ and make sure that:
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved expressions.
+///
+/// All table references must reside within module at `database_module_path`.
+/// They are compiled to table identifiers, using their path relative to the database module.
+/// For example, with `database_module_path=my_database`:
+/// - `my_database.my_table` will compile to `"my_table"`,
+/// - `my_database.my_schema.my_table` will compile to `"my_schema.my_table"`,
+/// - `my_table` will error out saying that this table does not reside in current database.
 pub fn lower_to_ir(
     root_mod: RootModule,
     main_path: &[String],
+    database_module_path: &[String],
 ) -> Result<(RelationalQuery, RootModule)> {
     // find main
     log::debug!("lookup for main pipeline in {main_path:?}");
@@ -50,12 +56,13 @@ pub fn lower_to_ir(
     let tables = toposort_tables(tables, &main_ident);
 
     // lower tables
-    let mut l = Lowerer::new(root_mod);
+    let mut l = Lowerer::new(root_mod, database_module_path);
     let mut main_relation = None;
-    for (fq_ident, table) in tables {
+    for (fq_ident, (table, declared_at)) in tables {
         let is_main = fq_ident == main_ident;
 
-        l.lower_table_decl(table, fq_ident)?;
+        l.lower_table_decl(table, fq_ident)
+            .map_err(with_span_if_not_exists(|| get_span_of_id(&l, declared_at)))?;
 
         if is_main {
             let main_table = l.table_buffer.pop().unwrap();
@@ -72,33 +79,44 @@ pub fn lower_to_ir(
 }
 
 fn extern_ref_to_relation(
-    mut columns: Vec<TupleField>,
+    mut columns: Vec<TyTupleField>,
     fq_ident: &Ident,
-) -> (rq::Relation, Option<String>) {
-    let extern_name = if fq_ident.starts_with_part(NS_DEFAULT_DB) {
-        let (_, remainder) = fq_ident.clone().pop_front();
-        remainder.unwrap()
+    database_module_path: &[String],
+) -> Result<(rq::Relation, Option<String>), Error> {
+    let extern_name = if fq_ident.starts_with_path(database_module_path) {
+        let relative_to_database: Vec<&String> =
+            fq_ident.iter().skip(database_module_path.len()).collect();
+        if relative_to_database.is_empty() {
+            None
+        } else {
+            Some(Ident::from_path(relative_to_database))
+        }
     } else {
-        // tables that are not from default_db
-        todo!()
+        None
+    };
+
+    let Some(extern_name) = extern_name else {
+        let database_module = Ident::from_path(database_module_path.to_vec());
+        return Err(Error::new_simple("this table is not in the current database")
+            .push_hint(format!("If this is a table in the current database, move its declaration into module {database_module}")));
     };
 
     // put wildcards last
-    columns.sort_by_key(|a| matches!(a, TupleField::Wildcard(_)));
+    columns.sort_by_key(|a| matches!(a, TyTupleField::Wildcard(_)));
 
     let relation = rq::Relation {
         kind: rq::RelationKind::ExternRef(extern_name),
         columns: tuple_fields_to_relation_columns(columns),
     };
-    (relation, None)
+    Ok((relation, None))
 }
 
-fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationColumn> {
+fn tuple_fields_to_relation_columns(columns: Vec<TyTupleField>) -> Vec<RelationColumn> {
     columns
         .into_iter()
         .map(|field| match field {
-            TupleField::Single(name, _) => RelationColumn::Single(name),
-            TupleField::Wildcard(_) => RelationColumn::Wildcard,
+            TyTupleField::Single(name, _) => RelationColumn::Single(name),
+            TyTupleField::Wildcard(_) => RelationColumn::Wildcard,
         })
         .collect_vec()
 }
@@ -106,7 +124,7 @@ fn tuple_fields_to_relation_columns(columns: Vec<TupleField>) -> Vec<RelationCol
 fn validate_query_def(query_def: &QueryDef) -> Result<()> {
     if let Some(requirement) = &query_def.version {
         if !requirement.matches(&COMPILER_VERSION) {
-            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler.").into());
+            return Err(Error::new_simple("This query uses a version of PRQL that is not supported by prqlc. Please upgrade the compiler."));
         }
     }
     Ok(())
@@ -118,6 +136,7 @@ struct Lowerer {
     tid: IdGenerator<TId>,
 
     root_mod: RootModule,
+    database_module_path: Vec<String>,
 
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
@@ -146,9 +165,10 @@ enum LoweredTarget {
 }
 
 impl Lowerer {
-    fn new(root_mod: RootModule) -> Self {
+    fn new(root_mod: RootModule, database_module_path: &[String]) -> Self {
         Lowerer {
             root_mod,
+            database_module_path: database_module_path.to_vec(),
 
             cid: IdGenerator::new(),
             tid: IdGenerator::new(),
@@ -173,7 +193,9 @@ impl Lowerer {
                 // a CTE
                 (self.lower_relation(*expr)?, Some(fq_ident.name.clone()))
             }
-            TableExpr::LocalTable => extern_ref_to_relation(columns, &fq_ident),
+            TableExpr::LocalTable => {
+                extern_ref_to_relation(columns, &fq_ident, &self.database_module_path)?
+            }
             TableExpr::Param(_) => unreachable!(),
             TableExpr::None => return Ok(()),
         };
@@ -250,7 +272,7 @@ impl Lowerer {
 
                 // pull columns from the table decl
                 let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.get(0).unwrap();
+                let input = frame.inputs.first().unwrap();
 
                 let table_decl = self.root_mod.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
@@ -284,7 +306,7 @@ impl Lowerer {
 
                 // pull columns from the table decl
                 let frame = expr.lineage.as_ref().unwrap();
-                let input = frame.inputs.get(0).unwrap();
+                let input = frame.inputs.first().unwrap();
 
                 let table_decl = self.root_mod.module.get(&input.table).unwrap();
                 let table_decl = table_decl.kind.as_table_decl().unwrap();
@@ -374,8 +396,7 @@ impl Lowerer {
                     found: format!("`{}`", write_pl(expr.clone())),
                 })
                 .push_hint("are you missing `from` statement?")
-                .with_span(expr.span)
-                .into())
+                .with_span(expr.span))
             }
         })
     }
@@ -718,8 +739,7 @@ impl Lowerer {
                         who: None,
                         expected: "an identifier".to_string(),
                         found: write_pl(e),
-                    })
-                    .into());
+                    }));
                 }
             }
         }
@@ -809,8 +829,7 @@ impl Lowerer {
                     } else {
                         return Err(
                             Error::new_simple("This wildcard usage is not yet supported.")
-                                .with_span(span)
-                                .into(),
+                                .with_span(span),
                         );
                     }
                 } else if let Some(id) = expr.target_id {
@@ -832,8 +851,7 @@ impl Lowerer {
                 } else {
                     return Err(
                         Error::new_simple("This wildcard usage is not yet supported.")
-                            .with_span(span)
-                            .into(),
+                            .with_span(span),
                     );
                 }
             }
@@ -877,8 +895,7 @@ impl Lowerer {
                 return Err(
                     Error::new_simple("table instance cannot be referenced directly")
                         .push_hint("did you forget to specify the column name?")
-                        .with_span(span)
-                        .into(),
+                        .with_span(span),
                 );
             }
 
@@ -895,12 +912,14 @@ impl Lowerer {
                     found: format!("`{}`", write_pl(expr.clone())),
                 })
                 .push_hint("this is probably a 'bad type' error (we are working on that)")
-                .with_span(expr.span)
-                .into());
+                .with_span(expr.span));
             }
 
             pl::ExprKind::Internal(_) => {
-                panic!("Unresolved lowering: {}", write_pl(expr))
+                return Err(Error::new_assert(format!(
+                    "Unresolved lowering: {}",
+                    write_pl(expr)
+                )))
             }
         };
 
@@ -935,8 +954,7 @@ impl Lowerer {
                         "This table contains unnamed columns that need to be referenced by name",
                     )
                     .with_span(self.root_mod.span_map.get(&id).cloned())
-                    .push_hint("the name may have been overridden later in the pipeline.")
-                    .into()),
+                    .push_hint("the name may have been overridden later in the pipeline.")),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");
 
@@ -947,7 +965,7 @@ impl Lowerer {
                 }
             }
             None => {
-                return Err(Error::new(Reason::Bug { issue: Some(3870) }))?;
+                return Err(Error::new_bug(3870))?;
             }
         };
 
@@ -997,8 +1015,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
             expected: "a positive int range".to_string(),
             found: range_display,
         })
-        .with_span(span)
-        .into())
+        .with_span(span))
     } else {
         Ok(())
     }
@@ -1008,12 +1025,12 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
 struct TableExtractor {
     path: Vec<String>,
 
-    tables: Vec<(Ident, decl::TableDecl)>,
+    tables: Vec<(Ident, (decl::TableDecl, Option<usize>))>,
 }
 
 impl TableExtractor {
     /// Finds table declarations in a module, recursively.
-    fn extract(root_module: &Module) -> Vec<(Ident, decl::TableDecl)> {
+    fn extract(root_module: &Module) -> Vec<(Ident, (decl::TableDecl, Option<usize>))> {
         let mut te = TableExtractor::default();
         te.extract_from_module(root_module);
         te.tables
@@ -1030,7 +1047,8 @@ impl TableExtractor {
                 }
                 DeclKind::TableDecl(table) => {
                     let fq_ident = Ident::from_path(self.path.clone());
-                    self.tables.push((fq_ident, table.clone()));
+                    self.tables
+                        .push((fq_ident, (table.clone(), entry.declared_at)));
                 }
                 _ => {}
             }
@@ -1043,14 +1061,14 @@ impl TableExtractor {
 /// are not needed for the main pipeline. To do this, it needs to collect references
 /// between pipelines.
 fn toposort_tables(
-    tables: Vec<(Ident, decl::TableDecl)>,
+    tables: Vec<(Ident, (decl::TableDecl, Option<usize>))>,
     main_table: &Ident,
-) -> Vec<(Ident, decl::TableDecl)> {
+) -> Vec<(Ident, (decl::TableDecl, Option<usize>))> {
     let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
 
     let mut dependencies: Vec<(Ident, Vec<Ident>)> = Vec::new();
     for (ident, table) in &tables {
-        let deps = if let TableExpr::RelationVar(e) = &table.expr {
+        let deps = if let TableExpr::RelationVar(e) = &table.0.expr {
             TableDepsCollector::collect(*e.clone())
         } else {
             vec![]
@@ -1103,5 +1121,22 @@ impl PlFold for TableDepsCollector {
             _ => expr.kind,
         };
         Ok(expr)
+    }
+}
+
+fn get_span_of_id(l: &Lowerer, id: Option<usize>) -> Option<Span> {
+    id.and_then(|id| l.root_mod.span_map.get(&id)).cloned()
+}
+
+fn with_span_if_not_exists<'a, F>(get_span: F) -> impl FnOnce(Error) -> Error + 'a
+where
+    F: FnOnce() -> Option<Span> + 'a,
+{
+    move |e| {
+        if e.span.is_some() {
+            return e;
+        }
+
+        e.with_span(get_span())
     }
 }

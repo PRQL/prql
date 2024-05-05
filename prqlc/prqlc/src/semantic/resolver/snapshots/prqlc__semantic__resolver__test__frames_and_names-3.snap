@@ -7,18 +7,18 @@ columns:
       name:
         - e
         - emp_no
-      target_id: 128
+      target_id: 129
       target_name: ~
   - Single:
       name:
         - e
         - gender
-      target_id: 129
+      target_id: 130
       target_name: ~
   - Single:
       name:
         - emp_salary
-      target_id: 147
+      target_id: 148
       target_name: ~
 inputs:
   - id: 122

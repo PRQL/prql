@@ -1,6 +1,6 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](https://github.com/PRQL/prql/).
+JavaScript bindings for [`prqlc`](https://github.com/PRQL/prql/).
 
 ## Installation
 
@@ -16,6 +16,8 @@ Currently these functions are exposed
 function compile(prql_query: string, options?: CompileOptions): string;
 
 function prql_to_pl(prql_query: string): string;
+
+function pl_to_prql(pl_json: string): string;
 
 function pl_to_rq(pl_json: string): string;
 
@@ -73,18 +75,12 @@ console.log(sql);
 ```html
 <html>
   <head>
-    <script src="./node_modules/prql-js/dist/web/prql_js.js"></script>
-    <script>
-      const { compile } = wasm_bindgen;
+    <script type="module">
+      import init, { compile } from "./dist/web/prql_js.js";
+      await init();
 
-      async function run() {
-        await wasm_bindgen("./node_modules/prql-js/dist/web/prql_js_bg.wasm");
-        const sql = compile("from employees | select first_name");
-
-        console.log(sql);
-      }
-
-      run();
+      const sql = compile("from employees | select first_name");
+      console.log(sql);
     </script>
   </head>
 

@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
-use prqlc_ast::stmt::QueryDef;
-use prqlc_ast::{Literal, Span, TupleField, Ty, TyKind};
+use crate::ast::QueryDef;
+use crate::ast::{Literal, Span, Ty, TyKind, TyTupleField};
+use crate::Result;
 
 use crate::ir::pl::{Annotation, Expr, Ident, Lineage, LineageColumn};
 use crate::Error;
@@ -48,7 +48,7 @@ impl Module {
             (
                 NS_INFER.to_string(),
                 Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
-                    ty: Some(Ty::relation(vec![TupleField::Wildcard(None)])),
+                    ty: Some(Ty::relation(vec![TyTupleField::Wildcard(None)])),
                     expr: TableExpr::LocalTable,
                 })))),
             ),
@@ -110,30 +110,27 @@ impl Module {
         let mut ns = self;
 
         for (index, part) in fq_ident.path.iter().enumerate() {
-            let decl = ns.names.get(part);
-            if let Some(decl) = decl {
-                match &decl.kind {
-                    DeclKind::Module(inner) => {
-                        ns = inner;
-                    }
-                    DeclKind::LayeredModules(stack) => {
-                        let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
-                        let mut found = false;
-                        for n in stack.iter().rev() {
-                            if n.names.contains_key(next) {
-                                ns = n;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if !found {
-                            return None;
-                        }
-                    }
-                    _ => return None,
+            let decl = ns.names.get(part)?;
+
+            match &decl.kind {
+                DeclKind::Module(inner) => {
+                    ns = inner;
                 }
-            } else {
-                return None;
+                DeclKind::LayeredModules(stack) => {
+                    let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
+                    let mut found = false;
+                    for n in stack.iter().rev() {
+                        if n.names.contains_key(next) {
+                            ns = n;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        return None;
+                    }
+                }
+                _ => return None,
             }
         }
 
@@ -232,7 +229,7 @@ impl Module {
                             .flat_map(|x| x.into_single())
                             .find(|(name, _)| name.as_ref() == Some(input_name))
                             .and_then(|(_, ty)| ty)
-                            .or(Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(
+                            .or(Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(
                                 None,
                             )]))));
 
@@ -396,6 +393,33 @@ impl Module {
 
         res
     }
+
+    /// Recursively finds all declarations with an annotation that has a specific name.
+    pub fn find_by_annotation_name(&self, annotation_name: &Ident) -> Vec<Ident> {
+        let mut res = Vec::new();
+
+        for (name, decl) in &self.names {
+            if let DeclKind::Module(module) = &decl.kind {
+                let nested = module.find_by_annotation_name(annotation_name);
+                res.extend(nested.into_iter().map(|x| x.prepend(vec![name.clone()])));
+            }
+
+            let has_annotation = decl_has_annotation(decl, annotation_name);
+            if has_annotation {
+                res.push(Ident::from_name(name));
+            }
+        }
+        res
+    }
+}
+
+fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
+    for ann in &decl.annotations {
+        if super::is_ident_or_func_call(&ann.expr, annotation_name) {
+            return true;
+        }
+    }
+    false
 }
 
 type HintAndSpan = (Option<String>, Option<Span>);
@@ -410,7 +434,9 @@ impl RootModule {
     ) -> Result<()> {
         let existing = self.module.get(&ident);
         if existing.is_some() {
-            return Err(Error::new_simple(format!("duplicate declarations of {ident}")).into());
+            return Err(Error::new_simple(format!(
+                "duplicate declarations of {ident}"
+            )));
         }
 
         let decl = Decl {
@@ -489,6 +515,11 @@ impl RootModule {
     pub fn find_mains(&self) -> Vec<Ident> {
         self.module.find_by_suffix(NS_MAIN)
     }
+
+    /// Finds declarations that are annotated with a specific name.
+    pub fn find_by_annotation_name(&self, annotation_name: &Ident) -> Vec<Ident> {
+        self.module.find_by_annotation_name(annotation_name)
+    }
 }
 
 pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
@@ -497,8 +528,8 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .columns
             .iter()
             .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
+                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TyTupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
                     Some(Ty::new(Literal::Null)),
                 ),
@@ -510,7 +541,7 @@ pub fn ty_of_lineage(lineage: &Lineage) -> Ty {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::pl::{Expr, ExprKind, Literal};
+    use crate::ir::pl::ExprKind;
 
     // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
     #[test]

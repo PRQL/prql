@@ -11,16 +11,16 @@ use crate::types::type_expr;
 
 use super::common::*;
 use super::expr::*;
-use super::lexer::Token;
+use super::lexer::TokenKind;
 
-pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
+pub fn source() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     query_def()
         .or_not()
         .chain(module_contents())
         .then_ignore(end())
 }
 
-fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
+fn module_contents() -> impl Parser<TokenKind, Vec<Stmt>, Error = PError> {
     recursive(|module_contents| {
         let module_def = keyword("module")
             .ignore_then(ident_part())
@@ -28,7 +28,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
             .map(|(name, stmts)| StmtKind::ModuleDef(ModuleDef { name, stmts }))
             .labelled("module definition");
 
-        let annotation = just(Token::Annotate)
+        let annotation = just(TokenKind::Annotate)
             .ignore_then(expr())
             .then_ignore(new_line().repeated())
             .map(|expr| Annotation {
@@ -37,7 +37,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
 
         annotation
             .repeated()
-            .then(choice((type_def(), var_def(), module_def)))
+            .then(choice((module_def, type_def(), import_def(), var_def())))
             .map_with_span(into_stmt)
             .separated_by(new_line().repeated().at_least(1))
             .allow_leading()
@@ -45,7 +45,7 @@ fn module_contents() -> impl Parser<Token, Vec<Stmt>, Error = PError> {
     })
 }
 
-fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
+fn query_def() -> impl Parser<TokenKind, Stmt, Error = PError> {
     new_line()
         .repeated()
         .ignore_then(keyword("prql"))
@@ -76,9 +76,20 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
             // have this awkward construction in the meantime.
             let other = args
                 .remove("target")
-                .map(|v| match v.kind {
-                    ExprKind::Ident(value) => Ok(value.to_string()),
-                    _ => Err("target must be a string literal".to_string()),
+                .map(|v| {
+                    match v.kind {
+                        ExprKind::Ident(name) => return Ok(name.to_string()),
+                        ExprKind::Indirection {
+                            base,
+                            field: IndirectionKind::Name(field),
+                        } => {
+                            if let ExprKind::Ident(name) = base.kind {
+                                return Ok(name.to_string() + "." + &field);
+                            }
+                        }
+                        _ => {}
+                    };
+                    Err("target must be a string literal".to_string())
                 })
                 .transpose()
                 .map_err(|msg| Simple::custom(span, msg))?
@@ -103,12 +114,11 @@ fn query_def() -> impl Parser<Token, Stmt, Error = PError> {
         .labelled("query header")
 }
 
-fn var_def() -> impl Parser<Token, StmtKind, Error = PError> {
+fn var_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
     let let_ = keyword("let")
         .ignore_then(ident_part())
         .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
-        .then_ignore(ctrl('='))
-        .then(expr_call().map(Box::new))
+        .then(ctrl('=').ignore_then(expr_call()).map(Box::new).or_not())
         .map(|((name, ty), value)| {
             StmtKind::VarDef(VarDef {
                 name,
@@ -133,7 +143,7 @@ fn var_def() -> impl Parser<Token, StmtKind, Error = PError> {
             StmtKind::VarDef(VarDef {
                 name,
                 kind,
-                value,
+                value: Some(value),
                 ty: None,
             })
         })
@@ -142,10 +152,18 @@ fn var_def() -> impl Parser<Token, StmtKind, Error = PError> {
     let_.or(main_or_into)
 }
 
-fn type_def() -> impl Parser<Token, StmtKind, Error = PError> {
+fn type_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
     keyword("type")
         .ignore_then(ident_part())
         .then(ctrl('=').ignore_then(type_expr()).or_not())
         .map(|(name, value)| StmtKind::TypeDef(TypeDef { name, value }))
         .labelled("type definition")
+}
+
+fn import_def() -> impl Parser<TokenKind, StmtKind, Error = PError> {
+    keyword("import")
+        .ignore_then(ident_part().then_ignore(ctrl('=')).or_not())
+        .then(ident())
+        .map(|(alias, name)| StmtKind::ImportDef(ImportDef { name, alias }))
+        .labelled("import statement")
 }

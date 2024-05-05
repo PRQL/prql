@@ -1,0 +1,9 @@
+---
+source: web/book/tests/documentation/book.rs
+expression: "from db.`artists.parquet`\n"
+---
+SELECT
+  *
+FROM
+  "artists.parquet"
+

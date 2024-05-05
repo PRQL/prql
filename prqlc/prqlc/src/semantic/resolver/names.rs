@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 
-use anyhow::Result;
+use itertools::Itertools;
 
-use prqlc_ast::expr::Ident;
+use crate::Result;
+
+use crate::ast::Ident;
 
 use crate::ir::decl::{Decl, DeclKind, Module};
 use crate::ir::pl::{Expr, ExprKind};
-use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THIS};
+use crate::semantic::{NS_INFER, NS_INFER_MODULE, NS_SELF, NS_THAT, NS_THIS};
 use crate::Error;
 use crate::WithErrorInfo;
 
@@ -14,7 +16,7 @@ use super::Resolver;
 
 impl Resolver<'_> {
     pub(super) fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, Error> {
-        let r = if let Some(default_namespace) = self.default_namespace.clone() {
+        let mut res = if let Some(default_namespace) = self.default_namespace.clone() {
             self.resolve_ident_core(ident, Some(&default_namespace))
         } else {
             let mut ident = ident.clone().prepend(self.current_module_path.clone());
@@ -30,13 +32,50 @@ impl Resolver<'_> {
             res
         };
 
-        if let Err(e) = &r {
-            log::debug!(
-                "cannot resolve `{ident}`: `{e}`, root_mod={:#?}",
-                self.root_mod
-            );
+        match &res {
+            Ok(fq_ident) => {
+                let decl = self.root_mod.module.get(fq_ident).unwrap();
+                if let DeclKind::Import(target) = &decl.kind {
+                    let target = target.clone();
+                    return self.resolve_ident(&target);
+                }
+            }
+            Err(e) => {
+                log::debug!(
+                    "cannot resolve `{ident}`: `{e:?}`, root_mod={:#?}",
+                    self.root_mod
+                );
+
+                // attach available names
+                let mut available_names = Vec::new();
+                available_names.extend(self.collect_columns_in_module(NS_THIS));
+                available_names.extend(self.collect_columns_in_module(NS_THAT));
+                if !available_names.is_empty() {
+                    let available_names = available_names.iter().map(Ident::to_string).join(", ");
+                    res = res.push_hint(format!("available columns: {available_names}"));
+                }
+            }
         }
-        r
+        res
+    }
+
+    fn collect_columns_in_module(&mut self, mod_name: &str) -> Vec<Ident> {
+        let mut cols = Vec::new();
+
+        let Some(module) = self.root_mod.module.names.get(mod_name) else {
+            return cols;
+        };
+
+        let DeclKind::Module(this) = &module.kind else {
+            return cols;
+        };
+
+        for (ident, decl) in this.as_decls().into_iter().sorted_by_key(|x| x.1.order) {
+            if let DeclKind::Column(_) = decl.kind {
+                cols.push(ident);
+            }
+        }
+        cols
     }
 
     pub(super) fn resolve_ident_core(

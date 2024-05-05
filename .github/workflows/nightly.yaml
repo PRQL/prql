@@ -38,6 +38,8 @@ jobs:
       - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Only used in tests. Waiting for tiberius to publish a new release.
+          ignore: "RUSTSEC-2024-0336"
 
   cargo-bench:
     runs-on: ubuntu-latest
@@ -93,7 +95,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: rustup override set nightly-2023-11-22
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-udeps
       # Once with all targets, once without, to find anything that should be in

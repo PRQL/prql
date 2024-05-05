@@ -18,7 +18,10 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use minijinja::machinery::{Span, Token};
+use minijinja::{
+    machinery::{Span, Token, WhitespaceConfig},
+    syntax::SyntaxConfig,
+};
 use regex::Regex;
 
 const ANCHOR_PREFIX: &str = "_jinja_";
@@ -41,7 +44,9 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext)> {
     let mut blocks = Vec::new();
     let mut current_block = Vec::new();
 
-    for res in minijinja::machinery::tokenize(source, false) {
+    for res in
+        minijinja::machinery::tokenize(source, false, SyntaxConfig, WhitespaceConfig::default())
+    {
         let (token, span) = res?;
 
         if let Token::TemplateData(data) = token {
@@ -159,14 +164,18 @@ mod test {
                     Span {
                         start_line: 2,
                         start_col: 9,
+                        start_offset: 0,
                         end_line: 12_123_123,
                         end_col: 2_930_293,
+                        end_offset: 0
                     },
                     Span {
                         start_line: 7_893_648,
                         start_col: 79678,
+                        start_offset: 0,
                         end_line: 3,
                         end_col: 31,
+                        end_offset: 0
                     }
                 ]
             ),

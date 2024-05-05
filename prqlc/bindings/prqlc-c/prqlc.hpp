@@ -102,8 +102,7 @@ extern "C" {
 CompileResult compile(const char *prql_query, const Options *options);
 
 /// Build PL AST from a PRQL string. PL in documented in the
-/// [prql-compiler Rust
-/// crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/pl).
+/// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ir/pl).
 ///
 /// Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
 ///
@@ -117,8 +116,8 @@ CompileResult compile(const char *prql_query, const Options *options);
 CompileResult prql_to_pl(const char *prql_query);
 
 /// Finds variable references, validates functions calls, determines frames and
-/// converts PL to RQ. PL and RQ are documented in the [prql-compiler Rust
-/// crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast).
+/// converts PL to RQ. PL and RQ are documented in the [prqlc Rust
+/// crate](https://docs.rs/prqlc/latest/prqlc/ast).
 ///
 /// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out`
 /// buffer.
@@ -133,8 +132,7 @@ CompileResult prql_to_pl(const char *prql_query);
 CompileResult pl_to_rq(const char *pl_json);
 
 /// Convert RQ AST into an SQL string. RQ is documented in the
-/// [prql-compiler Rust
-/// crate](https://docs.rs/prql-compiler/latest/prql_compiler/ir/rq).
+/// [prqlc Rust crate](https://docs.rs/prqlc/latest/prqlc/ir/rq).
 ///
 /// Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
 ///

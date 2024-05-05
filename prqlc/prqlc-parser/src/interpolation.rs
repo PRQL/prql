@@ -36,13 +36,10 @@ fn parse_interpolate() {
         Expr {
             expr: Expr {
                 kind: Ident(
-                    Ident {
-                        path: [],
-                        name: "a",
-                    },
+                    "a",
                 ),
                 span: Some(
-                    0:7-10,
+                    0:8-9,
                 ),
                 alias: None,
             },
@@ -84,13 +81,10 @@ fn parse_interpolate() {
         Expr {
             expr: Expr {
                 kind: Ident(
-                    Ident {
-                        path: [],
-                        name: "a",
-                    },
+                    "a",
                 ),
                 span: Some(
-                    0:13-16,
+                    0:14-15,
                 ),
                 alias: None,
             },
@@ -105,21 +99,28 @@ fn parse_interpolate() {
 
 fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
+        .map_with_span(move |name, s| (name, offset_span(span_base, s)))
         .separated_by(just('.'))
         .at_least(1)
+        .map(|ident_parts| {
+            let mut parts = ident_parts.into_iter();
+
+            let (first, first_span) = parts.next().unwrap();
+            let mut base = Box::new(into_expr(ExprKind::Ident(first), first_span));
+
+            for (part, span) in parts {
+                let field = IndirectionKind::Name(part);
+                base = Box::new(into_expr(ExprKind::Indirection { base, field }, span));
+            }
+            base
+        })
         .then(
             just(':')
                 .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
                 .or_not(),
         )
         .delimited_by(just('{'), just('}'))
-        .map_with_span(move |(ident, format), s| {
-            let ident = ExprKind::Ident(Ident::from_path(ident));
-            let expr = into_expr(ident, offset_span(span_base, s));
-            let expr = Box::new(expr);
-
-            InterpolateItem::Expr { expr, format }
-        });
+        .map(|(expr, format)| InterpolateItem::Expr { expr, format });
 
     // Convert double braces to single braces, and fail on any single braces.
     let string = (just("{{").to('{'))

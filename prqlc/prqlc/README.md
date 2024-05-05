@@ -166,7 +166,7 @@ tools.
 ## Library
 
 For more usage examples and the library documentation, check out the
-[`prqlc` documentation](https://docs.rs/prql-compiler/).
+[`prqlc` documentation](https://docs.rs/prqlc/).
 
 ### Library installation
 
@@ -181,14 +181,15 @@ Compile a PRQL string to a SQLite dialect string:
 ```rust
 // In a file src/main.rs
 
-use prqlc::{compile, Options, Target, sql::Dialect};
+use prqlc::{compile, Options, DisplayOptions, Target, sql::Dialect};
 
 let prql = "from employees | select {name, age}";
 let opts = &Options {
     format: false,
     target: Target::Sql(Some(Dialect::SQLite)),
     signature_comment: false,
-    color: false,
+    display: DisplayOptions::Plain,
+    ..Default::default()
 };
 let sql = compile(&prql, opts).unwrap();
 assert_eq!("SELECT name, age FROM employees", sql);

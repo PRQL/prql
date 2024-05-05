@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 
-use prqlc_ast::expr::*;
-use prqlc_ast::stmt::*;
+use crate::ast::*;
 use regex::Regex;
 
 use crate::codegen::SeparatedExprs;
@@ -54,7 +53,24 @@ impl WriteSource for ExprKind {
         use ExprKind::*;
 
         match &self {
-            Ident(ident) => ident.write(opt),
+            Ident(ident) => Some(write_ident_part(ident)),
+            Indirection { base, field } => {
+                let mut r = base.write(opt.clone())?;
+                opt.consume_width(r.len() as u16)?;
+
+                r += opt.consume(".")?;
+                match field {
+                    IndirectionKind::Name(n) => {
+                        r += opt.consume(n)?;
+                    }
+                    IndirectionKind::Position(i) => {
+                        r += &opt.consume(i.to_string())?;
+                    }
+                    IndirectionKind::Star => r += "*",
+                }
+                Some(r)
+            }
+
             Pipeline(pipeline) => SeparatedExprs {
                 inline: " | ",
                 line_end: "",
@@ -346,20 +362,31 @@ impl WriteSource for Stmt {
                 r += "\n";
             }
             StmtKind::VarDef(var_def) => match var_def.kind {
-                VarDefKind::Let => {
+                _ if var_def.value.is_none() || var_def.ty.is_some() => {
                     let typ = if let Some(ty) = &var_def.ty {
                         format!("<{}> ", ty.write(opt.clone())?)
                     } else {
                         "".to_string()
                     };
 
-                    r += opt.consume(&format!("let {} {}= ", var_def.name, typ))?;
+                    r += opt.consume(&format!("let {} {}", var_def.name, typ))?;
 
-                    r += &var_def.value.write(opt)?;
+                    if let Some(val) = &var_def.value {
+                        r += opt.consume("= ")?;
+                        r += &val.write(opt)?;
+                    }
+                    r += "\n";
+                }
+
+                VarDefKind::Let => {
+                    r += opt.consume(&format!("let {} = ", var_def.name))?;
+
+                    r += &var_def.value.as_ref().unwrap().write(opt)?;
                     r += "\n";
                 }
                 VarDefKind::Into | VarDefKind::Main => {
-                    match &var_def.value.kind {
+                    let val = var_def.value.as_ref().unwrap();
+                    match &val.kind {
                         ExprKind::Pipeline(pipeline) => {
                             for expr in &pipeline.exprs {
                                 r += &expr.write(opt.clone())?;
@@ -367,7 +394,8 @@ impl WriteSource for Stmt {
                             }
                         }
                         _ => {
-                            r += &var_def.value.write(opt)?;
+                            r += &val.write(opt)?;
+                            r += "\n";
                         }
                     }
 
@@ -395,6 +423,15 @@ impl WriteSource for Stmt {
                 opt.indent -= 1;
                 r += &opt.write_indent();
                 r += "}\n";
+            }
+            StmtKind::ImportDef(import_def) => {
+                r += "import ";
+                if let Some(alias) = &import_def.alias {
+                    r += &write_ident_part(alias);
+                    r += " = ";
+                }
+                r += &import_def.name.write(opt)?;
+                r += "\n";
             }
         }
         Some(r)
@@ -433,20 +470,20 @@ impl WriteSource for SwitchCase {
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
-    use similar_asserts::assert_eq;
 
     use super::*;
 
+    #[track_caller]
     fn assert_is_formatted(input: &str) {
-        let stmt = format_single_stmt(input);
-
-        assert_eq!(input.trim(), stmt.trim());
+        let formatted = format_single_stmt(input);
+        similar_asserts::assert_eq!(input.trim(), formatted.trim());
     }
 
     fn format_single_stmt(query: &str) -> String {
         use itertools::Itertools;
         let stmt = crate::prql_to_pl(query)
             .unwrap()
+            .stmts
             .into_iter()
             .exactly_one()
             .unwrap();
@@ -455,12 +492,10 @@ mod test {
 
     #[test]
     fn test_pipeline() {
-        let short = Expr::new(ExprKind::Ident(Ident::from_path(vec!["short"])));
-        let long = Expr::new(ExprKind::Ident(Ident::from_path(vec![
-            "some_module",
-            "submodule",
-            "a_really_long_name",
-        ])));
+        let short = Expr::new(ExprKind::Ident("short".to_string()));
+        let long = Expr::new(ExprKind::Ident(
+            "some_really_long_and_really_long_name".to_string(),
+        ));
 
         let mut opt = WriteOpt {
             indent: 1,
@@ -481,8 +516,8 @@ mod test {
         assert_snapshot!(pipeline.write(opt.clone()).unwrap(), @r###"
         (
             short
-            some_module.submodule.a_really_long_name
-            some_module.submodule.a_really_long_name
+            some_really_long_and_really_long_name
+            some_really_long_and_really_long_name
             short
           )
         "###);
@@ -511,7 +546,20 @@ mod test {
         assert_is_formatted(r#"sort {-duration}"#);
 
         assert_is_formatted(r#"select a = -b"#);
-        assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#)
+        assert_is_formatted(r#"join `project-bar.dataset.table` (==col_bax)"#);
+    }
+
+    #[test]
+    fn test_binary() {
+        assert_is_formatted(r#"let a = 5 * (4 + 3) ?? (5 / 2) // 2 == 1 and true"#);
+
+        // TODO: associativity is not handled correctly
+        // assert_is_formatted(r#"let a = 5 / 2 / 2"#);
+    }
+
+    #[test]
+    fn test_func() {
+        assert_is_formatted(r#"let a = func x y:false -> x and y"#);
     }
 
     #[test]
@@ -543,15 +591,73 @@ group {title, country} (aggregate {
     fn test_range() {
         assert_is_formatted(
             r#"
-from foo
-is_negative = -100..0
+let negative = -100..0
 "#,
         );
 
         assert_is_formatted(
             r#"
-from foo
-is_negative = -(100..0)
+let negative = -(100..0)
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let negative = -100..
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let negative = ..-100
+"#,
+        );
+    }
+
+    #[test]
+    fn test_annotation() {
+        assert_is_formatted(
+            r#"
+@deprecated
+module hello {
+}
+"#,
+        );
+    }
+
+    #[test]
+    fn test_var_def() {
+        assert_is_formatted(
+            r#"
+let a
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let a <int>
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+let a = 5
+"#,
+        );
+
+        assert_is_formatted(
+            r#"
+5
+into a
+"#,
+        );
+    }
+
+    #[test]
+    fn test_query_def() {
+        assert_is_formatted(
+            r#"
+prql version:"^0.9" target:sql.sqlite
 "#,
         );
     }

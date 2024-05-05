@@ -2,7 +2,6 @@
 //! then to a String. We use sqlparser because it's trivial to create the string
 //! once it's in their AST (it's just `.to_string()`). It also lets us support a
 //! few dialects of SQL immediately.
-use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
@@ -10,12 +9,11 @@ use sqlparser::ast::{
     TableFactor, TableWithJoins,
 };
 
+use crate::ast::generic::InterpolateItem;
 use crate::ir::pl::{JoinSide, Literal};
 use crate::ir::rq::{CId, Expr, ExprKind, RelationLiteral, RelationalQuery};
 use crate::utils::{BreakUp, Pluck};
-use crate::Error;
-use crate::WithErrorInfo;
-use prqlc_ast::expr::generic::InterpolateItem;
+use crate::{Error, Result, WithErrorInfo};
 
 use super::gen_expr::*;
 use super::gen_projection::*;
@@ -100,7 +98,7 @@ fn translate_select_pipeline(
         if let Some(from) = from.last_mut() {
             from.joins = joins;
         } else {
-            return Err(anyhow!("Cannot use `join` without `from`"));
+            unreachable!()
         }
     }
 
@@ -233,7 +231,7 @@ fn translate_set_ops_pipeline(
     mut top: sql_ast::Query,
     mut pipeline: Vec<Transform>,
     context: &mut Context,
-) -> Result<sql_ast::Query, anyhow::Error> {
+) -> Result<sql_ast::Query> {
     // reverse, so it's easier (and O(1)) to pop
     pipeline.reverse();
 
@@ -418,6 +416,7 @@ fn translate_cte(cte: Cte, ctx: &mut Context) -> Result<(sql_ast::Cte, bool)> {
         alias: simple_table_alias(cte_name),
         query: Box::new(query),
         from: None,
+        materialized: None,
     };
     Ok((cte, recursive))
 }
@@ -442,6 +441,15 @@ fn translate_relation_literal(data: RelationLiteral, ctx: &Context) -> Result<sq
         }));
 
         selects.push(body)
+    }
+
+    if selects.is_empty() {
+        return Err(
+            Error::new_simple("No rows provided for `from_text`".to_string()).push_hint(
+                "add a newline, then a row of data following the column. If using \
+                the json format, ensure `data` isn't empty",
+            ),
+        );
     }
 
     let mut body = selects.remove(0);
@@ -485,8 +493,7 @@ pub(super) fn translate_query_sstring(
 
     Err(
         Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
-            .push_hint("this is a limitation by current compiler implementation")
-            .into(),
+            .push_hint("this is a limitation by current compiler implementation"),
     )
 }
 
@@ -561,6 +568,7 @@ fn default_select() -> Select {
         having: None,
         named_window: vec![],
         qualify: None,
+        value_table_mode: None,
     }
 }
 

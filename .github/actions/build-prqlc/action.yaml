@@ -45,8 +45,7 @@ runs:
 
     - if: runner.os == 'Windows' && inputs.profile == 'release'
       shell: bash
-      run: |
-        echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
+      run: echo 'RUSTFLAGS=-Ctarget-feature=+crt-static' >>"$GITHUB_ENV"
 
     - if: inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
@@ -78,9 +77,10 @@ runs:
       run: |
         export ARTIFACT_NAME="prqlc-v${{ github.ref_type == 'tag' && github.ref_name || 0 }}-${{ matrix.target }}.tar.gz"
         echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >>"$GITHUB_ENV"
-        cd target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}
-        cp ../../../prqlc/prqlc/README.md .
-        tar czf "../../../${ARTIFACT_NAME}" prqlc ../../../LICENSE README.md
+        TEMP_DIR=$(mktemp -d)
+        cp prqlc/prqlc/README.md LICENSE "${TEMP_DIR}/"
+        cp -r target/${{ matrix.target }}/${{ inputs.profile == 'release' && 'release' || 'debug' }}/prqlc "${TEMP_DIR}/"
+        tar czf "${ARTIFACT_NAME}" -C "$TEMP_DIR" .
 
     - name: Create artifact for Windows
       shell: bash
@@ -93,9 +93,9 @@ runs:
         7z a "../../../${ARTIFACT_NAME}" prqlc.exe ../../../LICENSE README.md
 
     - name: Upload prqlc
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: prqlc-${{ inputs.target }}
+        name: prqlc-${{ inputs.target }}-${{ inputs.profile }}
         path: ${{ env.ARTIFACT_NAME }}
 
     - id: echo-artifact-name

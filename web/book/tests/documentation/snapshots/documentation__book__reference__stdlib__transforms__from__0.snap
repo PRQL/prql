@@ -1,9 +1,0 @@
----
-source: web/book/tests/documentation/book.rs
-expression: "from artists\n"
----
-SELECT
-  *
-FROM
-  artists
-

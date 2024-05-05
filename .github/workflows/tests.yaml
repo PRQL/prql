@@ -7,6 +7,8 @@ on:
     # Add `labeled`, so we can trigger a new run by adding a `pr-nightly`
     # label, which we then use to trigger a `nightly` run.
     types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
   push:
     branches:
       - main
@@ -61,7 +63,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
@@ -109,7 +111,7 @@ jobs:
               - prqlc/bindings/prqlc-c/**
               - .github/workflows/test-php.yaml
             python:
-              - prqlc/bindings/python/**
+              - prqlc/bindings/prqlc-python/**
               - .github/workflows/test-python.yaml
             rust:
               - "**/*.rs"
@@ -133,11 +135,11 @@ jobs:
         run:
           echo "run=${{ steps.changes.outputs.nightly == 'true' ||
           contains(github.event.pull_request.labels.*.name, 'pr-nightly') ||
-          github.event.schedule }}" >>"$GITHUB_OUTPUT"
+          github.event_name == 'schedule' }}" >>"$GITHUB_OUTPUT"
 
       - id: nightly-schedule
         run:
-          echo "run=${{ github.event.schedule == 'true' }}" >>"$GITHUB_OUTPUT"
+          echo "run=${{ github.event_name == 'schedule' }}" >>"$GITHUB_OUTPUT"
 
       - id: main
         run:
@@ -197,7 +199,7 @@ jobs:
       # 20 workflow limit.
       oss:
         ${{ (needs.rules.outputs.python == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        == 'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
   test-js:
@@ -208,7 +210,7 @@ jobs:
       # Only run on ubuntu unless there's a lang-specific change or we're running nightly.
       oss:
         ${{ (needs.rules.outputs.js == 'true' || needs.rules.outputs.nightly ==
-        'true') && '["ubuntu-latest", "macos-latest", "windows-latest"]' ||
+        'true') && '["ubuntu-latest", "macos-14", "windows-latest"]' ||
         '["ubuntu-latest"]' }}
 
   test-dotnet:
@@ -230,8 +232,7 @@ jobs:
       # Currently we never run windows
       oss:
         ${{ (needs.rules.outputs.java == 'true' || needs.rules.outputs.nightly
-        == 'true') && '["ubuntu-latest", "macos-latest"]' || '["ubuntu-latest"]'
-        }}
+        == 'true') && '["ubuntu-latest", "macos-14"]' || '["ubuntu-latest"]' }}
 
   test-elixir:
     needs: rules
@@ -259,7 +260,7 @@ jobs:
       # don't want to have to run it on, for example, every dependency change.
       needs.rules.outputs.taskfile == 'true' ||
       needs.rules.outputs.nightly-schedule == 'true'
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
@@ -271,13 +272,13 @@ jobs:
           # The mac rust cache key. It's not _that_ useful since this will build
           # much more, but it's better than nothing. We can't have our own
           # cache, since we're out of cache space and this workflow takes 1.5GB.
-          shared-key: rust-x86_64-apple-darwin-test-dbs
+          shared-key: rust-x86_64-apple-darwin
           save-if: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Required because of https://github.com/cargo-bins/cargo-binstall/issues/1254
@@ -295,8 +296,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -306,13 +307,10 @@ jobs:
             target: x86_64-unknown-linux-gnu
             # One test with no features
             features: ""
-          # Note that we run wasm in the standard `test-rust` job.
 
           # TODO: potentially enable these
           # - os: ubuntu-latest
           #   target: aarch64-unknown-linux-musl
-          # - os: macos-latest
-          #   target: aarch64-apple-darwin
 
     uses: ./.github/workflows/test-rust.yaml
     with:
@@ -372,11 +370,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: mdbook
       # the link checker
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: hyperlink
       - run: ./.github/workflows/scripts/set_version.sh
@@ -396,11 +394,18 @@ jobs:
   measure-code-cov:
     runs-on: ubuntu-latest
     needs: rules
+    # Annoyingly, dependabot doesn't get the `${{ secrets.CODECOV_TOKEN }}`
+    # secret, but codecov expects one given it's not a forked PR. So to avoid
+    # failing, we skip this. (Ideally dependabot would either come from a fork
+    # and not be this special case...). If codecov.io either recognizes this
+    # case or stops requiring tokens while remaining reliable, we can remove
+    # this exception.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
       - run: ./.github/workflows/scripts/set_version.sh
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-llvm-cov
       - name: 💰 Cache
@@ -409,17 +414,15 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           prefix-key: ${{ env.version }}
       - run:
-          # TODO: move to using `codecov.json` since that has branch & region
-          # coverage. But the coverage is lower, and I haven't spent the time to
-          # evaluate whether that's accurate or not yet.
-          #
-          # cargo llvm-cov --codecov --output-path=codecov.json --features=test-dbs
+          # We considered moving to using `codecov.json` with
+          # `--codecov --output-path=codecov.json` since that has branch & region
+          # coverage. But the coverage is lower, in a way that doesn't represent
+          # what is useful coverage
           cargo llvm-cov --cobertura --output-path=cobertura.xml
           --no-default-features --features=default,test-dbs
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
-          # files: codecov.json
           files: cobertura.xml
           fail_ci_if_error: true
           # This isn't strictly necessary, but as discussed in
@@ -432,10 +435,9 @@ jobs:
           # that.)
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
-          # path: codecov.json
           path: cobertura.xml
 
   test-grammars:
@@ -477,17 +479,6 @@ jobs:
       # This needs to compare to the string `'true'`, because of GHA awkwardness
       push: ${{ needs.rules.outputs.devcontainer-push == 'true' }}
 
-  time-compilation:
-    runs-on: ubuntu-latest
-    needs: rules
-    if: needs.rules.outputs.nightly == 'true'
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v4
-      - uses: ./.github/actions/time-compilation
-        with:
-          use_cache: true
-
   test-msrv:
     runs-on: ubuntu-latest
     needs: rules
@@ -495,7 +486,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-msrv
         # Note this currently uses a manually maintained key in
@@ -513,19 +504,21 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v4
-      - run: rustup toolchain add nightly
-      - uses: baptiste0928/cargo-install@v2
+      - run: rustup override set nightly-2023-11-22
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-hack
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-minimal-versions
+      - run: ./.github/workflows/scripts/set_version.sh
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          prefix-key: ${{ env.version }}
       - name: Verify minimum rust version
-        run: cargo minimal-versions test
+        run: cargo minimal-versions test --direct
 
   check-ok-to-merge:
     # This indicates to GitHub whether everything in this workflow has passed
@@ -540,14 +533,15 @@ jobs:
       - lint-megalinter
       - nightly
       - publish-web
-      - test-msrv
+      - test-deps-min-versions
       - test-dotnet
       - test-elixir
+      - test-grammars
       - test-java
       - test-js
-      - test-grammars
-      - test-prqlc-c
+      - test-msrv
       - test-php
+      - test-prqlc-c
       - test-python
       - test-rust
       - test-rust-main
@@ -582,20 +576,23 @@ jobs:
               "check-links-book",
               "check-links-markdown",
               "lint-megalinter",
+              "measure-code-cov",
               "nightly",
               "publish-web",
-              "test-msrv",
+              "test-deps-min-versions",
               "test-dotnet",
               "test-elixir",
+              "test-grammars",
               "test-java",
               "test-js",
-              "test-prqlc-c",
-              "test-grammars",
+              "test-msrv",
               "test-php",
+              "test-prqlc-c",
               "test-python",
               "test-rust",
               "test-rust-main",
-              "test-taskfile"
+              "test-taskfile",
+              "time-compilation"
             ]
 
   build-prqlc:
@@ -616,10 +613,8 @@ jobs:
           #
           # - os: ubuntu-latest
           #   target: aarch64-unknown-linux-musl
-          # - os: macos-latest
-          #   target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -652,8 +647,8 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             features: default
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
             features: default,test-dbs
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -679,9 +674,10 @@ jobs:
     needs:
       - check-ok-to-merge
     if:
-      # We care that it's on a schedule as well as it running on nightly — we
+      # We check that it's on a schedule as well as it running on nightly — we
       # don't want to trigger just on a `pr-nightly` label
-      always() && github.event.schedule && contains(needs.*.result, 'failure')
+      always() && (github.event_name == 'schedule') && contains(needs.*.result,
+      'failure')
     permissions:
       contents: read
       issues: write

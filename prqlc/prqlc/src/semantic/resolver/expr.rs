@@ -1,14 +1,13 @@
-use anyhow::Result;
+use crate::Result;
 use itertools::Itertools;
 
-use prqlc_ast::{Span, TupleField, Ty, TyKind};
-
+use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::ir::decl::{DeclKind, Module};
 use crate::ir::pl::*;
 use crate::semantic::resolver::{flatten, types, Resolver};
 use crate::semantic::{NS_INFER, NS_SELF, NS_THAT, NS_THIS};
 use crate::utils::IdGenerator;
-use crate::{Error, Reason, WithErrorInfo};
+use crate::{Error, Reason, Span, WithErrorInfo};
 
 impl PlFold for Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -44,10 +43,10 @@ impl PlFold for Resolver<'_> {
     }
 
     fn fold_var_def(&mut self, var_def: VarDef) -> Result<VarDef> {
-        let value = if matches!(var_def.value.kind, ExprKind::Func(_)) {
-            var_def.value
-        } else {
-            Box::new(flatten::Flattener::fold(self.fold_expr(*var_def.value)?))
+        let value = match var_def.value {
+            Some(value) if matches!(value.kind, ExprKind::Func(_)) => Some(value),
+            Some(value) => Some(Box::new(flatten::Flattener::fold(self.fold_expr(*value)?))),
+            None => None,
         };
 
         Ok(VarDef {
@@ -139,8 +138,7 @@ impl PlFold for Resolver<'_> {
                             expected: "a value".to_string(),
                             found: "a type".to_string(),
                         })
-                        .with_span(*span)
-                        .into());
+                        .with_span(*span));
                     }
 
                     _ => Expr {
@@ -214,7 +212,7 @@ impl Resolver<'_> {
         alias: Option<String>,
         span: Option<Span>,
     ) -> Result<Expr> {
-        let mut r = Box::new(self.static_eval(expr)?);
+        let mut r = Box::new(self.maybe_static_eval(expr)?);
 
         r.id = r.id.or(Some(id));
         r.alias = r.alias.or(alias);
@@ -281,7 +279,7 @@ impl Resolver<'_> {
                 id: Some(id.gen()),
                 target_id: decl.declared_at,
                 flatten: true,
-                ty: Some(Ty::new(TyKind::Tuple(vec![TupleField::Wildcard(None)]))),
+                ty: Some(Ty::new(TyKind::Tuple(vec![TyTupleField::Wildcard(None)]))),
                 ..Expr::new(Ident::from_name(NS_SELF))
             };
             return vec![wildcard_field];
@@ -317,8 +315,8 @@ fn ty_of_lineage(lineage: &Lineage) -> Ty {
             .columns
             .iter()
             .map(|col| match col {
-                LineageColumn::All { .. } => TupleField::Wildcard(None),
-                LineageColumn::Single { name, .. } => TupleField::Single(
+                LineageColumn::All { .. } => TyTupleField::Wildcard(None),
+                LineageColumn::Single { name, .. } => TyTupleField::Single(
                     name.as_ref().map(|i| i.name.clone()),
                     Some(Ty::new(Literal::Null)),
                 ),

@@ -1,14 +1,14 @@
 #![cfg(target_family = "wasm")]
 
-use std::str::FromStr;
+use std::{default::Default, str::FromStr};
 
-use prql_compiler::Target;
+use prqlc::Target;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
     return_or_throw(
-        prql_compiler::compile(prql_query, &options.map(|x| x.into()).unwrap_or_default())
+        prqlc::compile(prql_query, &options.map(|x| x.into()).unwrap_or_default())
             .map_err(|e| e.composed(&prql_query.into())),
     )
 }
@@ -17,8 +17,17 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<Stri
 pub fn prql_to_pl(prql_query: &str) -> Option<String> {
     return_or_throw(
         Ok(prql_query)
-            .and_then(prql_compiler::prql_to_pl)
-            .and_then(prql_compiler::json::from_pl),
+            .and_then(prqlc::prql_to_pl)
+            .and_then(|x| prqlc::json::from_pl(&x)),
+    )
+}
+
+#[wasm_bindgen]
+pub fn pl_to_prql(pl_json: &str) -> Option<String> {
+    return_or_throw(
+        Ok(pl_json)
+            .and_then(prqlc::json::to_pl)
+            .and_then(|x| prqlc::pl_to_prql(&x)),
     )
 }
 
@@ -26,9 +35,9 @@ pub fn prql_to_pl(prql_query: &str) -> Option<String> {
 pub fn pl_to_rq(pl_json: &str) -> Option<String> {
     return_or_throw(
         Ok(pl_json)
-            .and_then(prql_compiler::json::to_pl)
-            .and_then(prql_compiler::pl_to_rq)
-            .and_then(prql_compiler::json::from_rq),
+            .and_then(prqlc::json::to_pl)
+            .and_then(prqlc::pl_to_rq)
+            .and_then(|x| prqlc::json::from_rq(&x)),
     )
 }
 
@@ -36,8 +45,8 @@ pub fn pl_to_rq(pl_json: &str) -> Option<String> {
 pub fn rq_to_sql(rq_json: &str) -> Option<String> {
     return_or_throw(
         Ok(rq_json)
-            .and_then(prql_compiler::json::to_rq)
-            .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default())),
+            .and_then(prqlc::json::to_rq)
+            .and_then(|x| prqlc::rq_to_sql(x, &prqlc::Options::default())),
     )
 }
 
@@ -62,7 +71,7 @@ pub struct CompileOptions {
 
 #[wasm_bindgen]
 pub fn get_targets() -> Vec<JsValue> {
-    prql_compiler::Target::names()
+    prqlc::Target::names()
         .iter()
         .map(|t| JsValue::from_str(t))
         .collect()
@@ -100,21 +109,21 @@ impl CompileOptions {
     }
 }
 
-impl From<CompileOptions> for prql_compiler::Options {
+impl From<CompileOptions> for prqlc::Options {
     fn from(o: CompileOptions) -> Self {
         let target = Target::from_str(&o.target).unwrap_or_default();
 
-        prql_compiler::Options {
+        prqlc::Options {
             format: o.format,
             target,
             signature_comment: o.signature_comment,
-            // TODO: offer this option in the API
-            color: false,
+            display: prqlc::DisplayOptions::Plain,
+            ..Default::default()
         }
     }
 }
 
-fn return_or_throw(result: Result<String, prql_compiler::ErrorMessages>) -> Option<String> {
+fn return_or_throw(result: Result<String, prqlc::ErrorMessages>) -> Option<String> {
     // When the `console_error_panic_hook` feature is enabled, we can call the
     // `set_panic_hook` function at least once during initialization, and then
     // we will get better error messages if our code ever panics. See

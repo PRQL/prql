@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::Span;
 
+/// A prqlc error. Used internally, exposed as prqlc::ErrorMessage.
 #[derive(Debug, Clone)]
 pub struct Error {
     /// Message kind. Currently only Error is implemented.
@@ -16,6 +17,7 @@ pub struct Error {
     pub code: Option<&'static str>,
 }
 
+/// Multiple prqlc errors. Used internally, exposed as prqlc::ErrorMessages.
 #[derive(Debug, Clone)]
 pub struct Errors(pub Vec<Error>);
 
@@ -44,6 +46,7 @@ pub enum Reason {
     },
     Bug {
         issue: Option<i32>,
+        details: Option<String>,
     },
 }
 
@@ -60,6 +63,21 @@ impl Error {
 
     pub fn new_simple<S: ToString>(reason: S) -> Self {
         Error::new(Reason::Simple(reason.to_string()))
+    }
+
+    pub fn new_bug(issue_no: i32) -> Self {
+        Error::new(Reason::Bug {
+            issue: Some(issue_no),
+            details: None,
+        })
+    }
+
+    /// Used for things that you *think* should never happen, but are not sure.
+    pub fn new_assert<S: ToString>(details: S) -> Self {
+        Error::new(Reason::Bug {
+            issue: None,
+            details: Some(details.to_string()),
+        })
     }
 }
 
@@ -79,15 +97,26 @@ impl std::fmt::Display for Reason {
             }
             Reason::Unexpected { found } => write!(f, "unexpected {found}"),
             Reason::NotFound { name, namespace } => write!(f, "{namespace} `{name}` not found"),
-            Reason::Bug { issue } => match issue {
-                Some(issue) => write!(
-                    f,
-                    "internal compiler error; tracked at https://github.com/PRQL/prql/issues/{}",
-                    issue
-                ),
-                None => write!(f, "internal compiler error"),
-            },
+            Reason::Bug { issue, details } => {
+                write!(f, "internal compiler error")?;
+                if let Some(details) = details {
+                    write!(f, "; {details}")?;
+                }
+                if let Some(issue_no) = issue {
+                    write!(
+                        f,
+                        "; tracked at https://github.com/PRQL/prql/issues/{issue_no}"
+                    )?;
+                }
+                Ok(())
+            }
         }
+    }
+}
+
+impl From<Error> for Errors {
+    fn from(error: Error) -> Self {
+        Errors(vec![error])
     }
 }
 
@@ -142,36 +171,6 @@ impl WithErrorInfo for Error {
     }
 }
 
-#[cfg(feature = "anyhow")]
-impl WithErrorInfo for anyhow::Error {
-    fn push_hint<S: Into<String>>(self, hint: S) -> Self {
-        self.downcast_ref::<Error>()
-            .map(|e| e.clone().push_hint(hint).into())
-            .unwrap_or(self)
-    }
-
-    fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
-        self.downcast_ref::<Error>()
-            .map(|e| e.clone().with_hints(hints).into())
-            .unwrap_or(self)
-    }
-
-    // Add a span of an expression onto the error. We need this implementation
-    // because we often pass `anyhow::Error`, and still want to try adding a
-    // span. So we need to try downcasting it to our error type first, and that
-    // fails, we return the original error.
-    fn with_span(self, span: Option<Span>) -> Self {
-        self.downcast_ref::<Error>()
-            .map(|e| e.clone().with_span(span).into())
-            .unwrap_or(self)
-    }
-    fn with_code(self, code: &'static str) -> Self {
-        self.downcast_ref::<Error>()
-            .map(|e| e.clone().with_code(code).into())
-            .unwrap_or(self)
-    }
-}
-
 impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
     fn with_hints<S: Into<String>, I: IntoIterator<Item = S>>(self, hints: I) -> Self {
         self.map_err(|e| e.with_hints(hints))
@@ -193,7 +192,7 @@ impl<T, E: WithErrorInfo> WithErrorInfo for Result<T, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use insta::{assert_debug_snapshot, assert_display_snapshot};
+    use insta::{assert_debug_snapshot, assert_snapshot};
 
     // Helper function to create a simple Error object
     fn create_simple_error() -> Error {
@@ -204,12 +203,12 @@ mod tests {
 
     #[test]
     fn display() {
-        assert_display_snapshot!(create_simple_error(),
+        assert_snapshot!(create_simple_error(),
             @r###"Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }"###
         );
 
         let errors = Errors(vec![create_simple_error()]);
-        assert_display_snapshot!(errors,
+        assert_snapshot!(errors,
             @r###"Errors([Error { kind: Error, span: None, reason: Simple("A simple error message"), hints: ["take a hint"], code: Some("E001") }])"###
         );
         assert_debug_snapshot!(errors, @r###"
@@ -303,34 +302,6 @@ mod tests {
                 ),
             },
         )
-        "###);
-    }
-
-    #[cfg(feature = "anyhow")]
-    #[test]
-    fn test_anyhow_error_integration() {
-        use anyhow::Error as AnyhowError;
-
-        assert_debug_snapshot!(
-            AnyhowError::new(Error::new_simple("simple message"))
-            .push_hint("Hint for anyhow")
-            .with_hints(vec!["Replace hint for anyhow"])
-            .with_code("E001")
-            .with_span(None), 
-            @r###"
-        Error {
-            kind: Error,
-            span: None,
-            reason: Simple(
-                "simple message",
-            ),
-            hints: [
-                "Replace hint for anyhow",
-            ],
-            code: Some(
-                "E001",
-            ),
-        }
         "###);
     }
 }

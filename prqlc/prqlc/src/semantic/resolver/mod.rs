@@ -28,7 +28,7 @@ pub struct Resolver<'a> {
 
     pub options: ResolverOptions,
 
-    pub generics: HashMap<(usize, String), Vec<prqlc_ast::Ty>>,
+    pub generics: HashMap<(usize, String), Vec<crate::ast::Ty>>,
 }
 
 #[derive(Default, Clone)]
@@ -50,7 +50,7 @@ impl Resolver<'_> {
 
 #[cfg(test)]
 pub(super) mod test {
-    use anyhow::Result;
+    use crate::{Errors, Result};
     use insta::assert_yaml_snapshot;
 
     use crate::ir::pl::{Expr, Lineage, PlFold};
@@ -70,17 +70,17 @@ pub(super) mod test {
         }
     }
 
-    fn parse_and_resolve(query: &str) -> Result<Expr> {
+    fn parse_and_resolve(query: &str) -> Result<Expr, Errors> {
         let ctx = crate::semantic::test::parse_and_resolve(query)?;
         let (main, _) = ctx.find_main_rel(&[]).unwrap();
         Ok(*main.clone().into_relation_var().unwrap())
     }
 
-    fn resolve_lineage(query: &str) -> Result<Lineage> {
+    fn resolve_lineage(query: &str) -> Result<Lineage, Errors> {
         Ok(parse_and_resolve(query)?.lineage.unwrap())
     }
 
-    fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
+    fn resolve_derive(query: &str) -> Result<Vec<Expr>, Errors> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call().unwrap();
         let exprs = derive
