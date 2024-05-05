@@ -542,6 +542,9 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
                 source
                     .get_line_text(source.line(printed_lines_count).unwrap())
                     .unwrap()
+                    // Ariadne 0.4.1 added a line break at the end of the line, so we
+                    // trim it.
+                    .trim_end()
                     .to_string(),
             );
             printed_lines_count += 1;
@@ -553,6 +556,9 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
         let chars: String = source
             .get_line_text(source.line(printed_lines_count).unwrap())
             .unwrap()
+            // Ariadne 0.4.1 added a line break at the end of the line, so we
+            // trim it.
+            .trim_end()
             .to_string();
         printed_lines_count += 1;
 

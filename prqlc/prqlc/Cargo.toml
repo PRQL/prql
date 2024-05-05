@@ -37,8 +37,7 @@ prqlc-ast = {path = "../prqlc-ast", version = "0.11.5"}
 prqlc-parser = {path = "../prqlc-parser", version = "0.11.5"}
 
 anstream = {version = "0.6.13", features = ["auto"]}
-# 0.4.1 causes breaking changes; TODO: resolve
-ariadne = "=0.4.0"
+ariadne = "0.4.1"
 chrono = "0.4.38"
 csv = "1.3.0"
 enum-as-inner = "0.6.0"
