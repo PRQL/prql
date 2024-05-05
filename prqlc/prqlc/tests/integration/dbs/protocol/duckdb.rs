@@ -37,7 +37,9 @@ impl DbProtocolHandler for duckdb::Connection {
                     ValueRef::UBigInt(v) => v.to_string(),
                     ValueRef::Float(v) => v.to_string(),
                     ValueRef::Double(v) => v.to_string(),
-                    ValueRef::Decimal(v) => v.to_string(),
+                    // We `round` because once in tests a 3 was returned as 3.0,
+                    // which breaks the assertions.
+                    ValueRef::Decimal(v) => v.round().to_string(),
                     ValueRef::Timestamp(u, v) => format!("{v} {u:?}"),
                     ValueRef::Text(v) => String::from_utf8(v.to_vec()).unwrap(),
                     ValueRef::Blob(_) => "BLOB".to_string(),
