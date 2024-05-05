@@ -266,7 +266,7 @@ where
 {
     let term = term.map_with_span(|e, s| (e, s)).boxed();
 
-    (term.clone())
+    term.clone()
         .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
             let span = ParserSpan(Span {
