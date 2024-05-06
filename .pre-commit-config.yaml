@@ -96,5 +96,5 @@ repos:
 
 ci:
   # Currently network access isn't supported in the CI product.
-  skip: [fmt, markdown-link-check, prettier]
+  skip: [fmt, markdown-link-check]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
