@@ -179,7 +179,6 @@ dependencies = [
  "arrow-schema 49.0.0",
  "arrow-select 49.0.0",
  "arrow-string 49.0.0",
- "pyo3",
 ]
 
 [[package]]
@@ -198,6 +197,7 @@ dependencies = [
  "arrow-schema 51.0.0",
  "arrow-select 51.0.0",
  "arrow-string 51.0.0",
+ "pyo3",
 ]
 
 [[package]]
@@ -297,7 +297,6 @@ dependencies = [
  "arrow-select 49.0.0",
  "base64 0.21.7",
  "chrono",
- "comfy-table",
  "half",
  "lexical-core",
  "num",
@@ -413,9 +412,6 @@ name = "arrow-schema"
 version = "49.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09e28a5e781bf1b0f981333684ad13f5901f4cd2f20589eab7cf1797da8fc167"
-dependencies = [
- "bitflags 2.4.2",
-]
 
 [[package]]
 name = "arrow-schema"
@@ -2266,7 +2262,7 @@ name = "lutra"
 version = "0.11.5"
 dependencies = [
  "anyhow",
- "arrow 49.0.0",
+ "arrow 51.0.0",
  "clap 4.4.18",
  "connector_arrow",
  "env_logger",
@@ -2282,7 +2278,7 @@ dependencies = [
 name = "lutra-python"
 version = "0.11.5"
 dependencies = [
- "arrow 49.0.0",
+ "arrow 51.0.0",
  "itertools 0.12.1",
  "lutra",
  "pyo3",
