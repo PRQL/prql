@@ -569,6 +569,8 @@ fn default_select() -> Select {
         named_window: vec![],
         qualify: None,
         value_table_mode: None,
+        window_before_qualify: false,
+        connect_by: None,
     }
 }
 

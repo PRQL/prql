@@ -4,7 +4,8 @@ use itertools::Itertools;
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Fetch, Function, FunctionArg, FunctionArgExpr,
-    ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    FunctionArgumentList, ObjectName, OrderByExpr, SelectItem, UnaryOperator, Value,
+    WindowFrameBound, WindowSpec,
 };
 use std::cmp::Ordering;
 
@@ -219,7 +220,7 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.dialect.has_concat_function() {
         let concat_args = collect_concat_args(expr);
 
-        let args = concat_args
+        let args_list = concat_args
             .iter()
             .map(|a| {
                 translate_expr((*a).clone(), ctx)
@@ -227,15 +228,19 @@ fn process_concat(expr: &Expr, ctx: &mut Context) -> Result<sql_ast::Expr> {
             })
             .try_collect()?;
 
+        let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
+            args: args_list,
+            clauses: vec![],
+            duplicate_treatment: None,
+        });
+
         Ok(sql_ast::Expr::Function(Function {
             name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
             args,
             over: None,
-            distinct: false,
-            special: false,
-            order_by: vec![],
             filter: None,
             null_treatment: None,
+            within_group: vec![],
         }))
     } else {
         let concat_args = collect_concat_args(expr);
@@ -451,15 +456,19 @@ fn translate_datetime_literal_with_sqlite_function(
         _ => unreachable!(),
     };
 
+    let args = sql_ast::FunctionArguments::List(FunctionArgumentList {
+        args: vec![arg],
+        clauses: vec![],
+        duplicate_treatment: None,
+    });
+
     sql_ast::Expr::Function(Function {
         name: ObjectName(vec![sql_ast::Ident::new(func_name)]),
-        args: vec![arg],
+        args,
         over: None,
-        distinct: false,
-        special: false,
-        order_by: vec![],
         filter: None,
         null_treatment: None,
+        within_group: vec![],
     })
 }
 
