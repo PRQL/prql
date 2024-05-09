@@ -98,4 +98,4 @@ general channels such as GitHub or Discord, feel free to reach out to:
 
 Thank you to those who have previously served on the core team:
 
-- [**@charlie-sanders**](https://github.com/charlie-sanders) — Charlie Sanders
+- **@charlie-sanders** — Charlie Sanders

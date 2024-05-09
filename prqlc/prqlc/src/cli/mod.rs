@@ -12,6 +12,7 @@ use ariadne::Source;
 use clap::{CommandFactory, Parser, Subcommand, ValueHint};
 use clio::has_extension;
 use clio::Output;
+use is_terminal::IsTerminal;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::env;
@@ -464,8 +465,7 @@ impl Command {
         //
         // See https://github.com/PRQL/prql/issues/3228 for details on us not
         // yet using `input.is_tty()`.
-        // if input.is_tty() {
-        if input.path() == Path::new("-") && atty::is(atty::Stream::Stdin) {
+        if input.path() == Path::new("-") && std::io::stdin().is_terminal() {
             #[cfg(unix)]
             eprintln!("Enter PRQL, then press ctrl-d to compile:\n");
             #[cfg(windows)]
@@ -542,6 +542,9 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
                 source
                     .get_line_text(source.line(printed_lines_count).unwrap())
                     .unwrap()
+                    // Ariadne 0.4.1 added a line break at the end of the line, so we
+                    // trim it.
+                    .trim_end()
                     .to_string(),
             );
             printed_lines_count += 1;
@@ -553,6 +556,9 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Lineage)>) -> String
         let chars: String = source
             .get_line_text(source.line(printed_lines_count).unwrap())
             .unwrap()
+            // Ariadne 0.4.1 added a line break at the end of the line, so we
+            // trim it.
+            .trim_end()
             .to_string();
         printed_lines_count += 1;
 
