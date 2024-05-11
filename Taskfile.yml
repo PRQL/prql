@@ -115,13 +115,7 @@ tasks:
 
   install-cargo-tools-binstall:
     cmds:
-      # Currently pinning 1.1.2 because of https://github.com/cargo-bins/cargo-binstall/issues/1292, and using `+stable` because it's not supported by 1.68.2.
-      - cmd:
-          # curl -L --proto '=https' --tlsv1.2 -sSf
-          # https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh
-          # | bash ||
-          rustup toolchain add stable && cargo +stable install --locked
-          cargo-binstall --version=1.1.2
+      - cmd: cargo install --locked cargo-binstall
         platforms: [linux, darwin]
       - "cargo binstall -y --locked {{.cargo_crates}}"
 
@@ -290,7 +284,8 @@ tasks:
       # TODO:
       # - We could add `prqlc-c` here.
       # - We deliberately don't test some other bindings, such as `prql-php`,
-      #   given they require more dependencies and aren't yet supported.
+      #   given they require more dependencies and aren't yet Supported. They
+      #   run in CI.
       - task: test-lint
       - task: test-rust
       - task: test-js
@@ -387,25 +382,11 @@ tasks:
     dir: prqlc/bindings/php
     cmds:
       - vendor/bin/phpunit tests
-# The next three tasks are not used for either:
+# The next two tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
 #  - the "desktop setup" - it uses other tasks in the Taskfile.yml
 # They remain in the Taskfile.yml as a hint if they should ever be needed
-
-# install-brew:
-#   # Initially added for building Docker container
-#   status:
-#     - which brew
-#   cmds:
-#     # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
-#     - useradd -m -s /bin/zsh linuxbrew
-#     - usermod -aG sudo linuxbrew
-#     - mkdir -p /home/linuxbrew/.linuxbrew
-#     - chown -R linuxbrew /home/linuxbrew/.linuxbrew
-#     - export HOMEBREW_INSTALL_FROM_API=1
-#     - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-#     - chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
 
 # install-hugo:
 #   cmds:
