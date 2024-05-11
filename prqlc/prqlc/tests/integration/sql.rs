@@ -1231,7 +1231,7 @@ fn test_interval() {
     assert_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      start + INTERVAL 10 DAY AS first_check_in
+      "start" + INTERVAL 10 DAY AS first_check_in
     FROM
       projects
     "###);
@@ -1245,7 +1245,7 @@ fn test_interval() {
     assert_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      start + INTERVAL '10' DAY AS first_check_in
+      "start" + INTERVAL '10' DAY AS first_check_in
     FROM
       projects
     "###);

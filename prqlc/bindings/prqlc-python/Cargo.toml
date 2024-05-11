@@ -16,7 +16,7 @@ doc = false
 doctest = false
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-pyo3 = {version = "0.20.2", features = ["abi3-py37"]}
+pyo3 = {version = "0.20.3", features = ["abi3-py37"]}
 
 [dependencies]
 # Renamed to avoid conflicts in lib.rs
@@ -26,7 +26,7 @@ prqlc_lib = {package = "prqlc", path = "../../prqlc", default-features = false}
 insta = {workspace = true}
 
 [build-dependencies]
-pyo3-build-config = "0.20.2"
+pyo3-build-config = "0.21.2"
 
 [package.metadata.release]
 tag-name = "{{version}}"
