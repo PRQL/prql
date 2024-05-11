@@ -108,6 +108,7 @@ pub fn lex_token() -> impl Parser<char, Token, Error = Cheap<char>> {
         just("internal"),
         just("func"),
         just("import"),
+        just("enum"),
     ))
     .then_ignore(end_expr())
     .map(|x| x.to_string())
