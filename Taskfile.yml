@@ -27,6 +27,9 @@ includes:
   web:
     taskfile: ./web
     dir: ./web
+  python:
+    taskfile: ./prqlc/bindings/prqlc-python
+    dir: ./prqlc/bindings/prqlc-python
 
 vars:
   # Keep in sync with .vscode/extensions.json
@@ -243,6 +246,7 @@ tasks:
       - cargo doc
       - task: web:build
       - task: build-each-crate
+      - task: python:build
 
   build-each-crate:
     summary: |
@@ -284,7 +288,6 @@ tasks:
 
     cmds:
       # TODO:
-      # - Add `prqlc-python` tests.
       # - We could add `prqlc-c` here.
       # - We deliberately don't test some other bindings, such as `prql-php`,
       #   given they require more dependencies and aren't yet supported.
@@ -292,6 +295,7 @@ tasks:
       - task: test-rust
       - task: test-js
       - cargo insta test --accept --target=wasm32-unknown-unknown
+      - task: python:test
       - task: build-all
 
   test-rust:
