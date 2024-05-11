@@ -59,9 +59,9 @@ fn resolve_types_01() {
 #[test]
 fn resolve_types_02() {
     assert_snapshot!(resolve(r#"
-    type A = int || ()
+    type A = int || {}
     "#).unwrap(), @r###"
-    type A = int
+    type A = int || {}
     "###)
 }
 
@@ -78,16 +78,15 @@ fn resolve_types_03() {
 fn resolve_types_04() {
     assert_snapshot!(resolve(
         r#"
-    type Status = (
-        Paid = () ||
-        Unpaid = float ||
-        Canceled = {reason = text, cancelled_at = timestamp} ||
-    )
+    type Status = enum {
+        Paid = {},
+        Unpaid = float,
+        Canceled = {reason = text, cancelled_at = timestamp},
+    }
     "#,
     )
     .unwrap(), @r###"
     type Status = (
-      Paid = () ||
       Unpaid = float ||
       {reason = text, cancelled_at = timestamp} ||
     )
