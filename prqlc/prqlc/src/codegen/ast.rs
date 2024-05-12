@@ -14,7 +14,6 @@ pub(crate) fn write_expr(expr: &Expr) -> String {
 }
 
 fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) -> Option<String> {
-    // dbg!(&node, &parent);
     let parent_strength = binding_strength(parent);
     opt.context_strength = opt.context_strength.max(parent_strength);
 
@@ -26,7 +25,7 @@ fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) 
     // these to write comments for. I'm sure there are better ways to do it.
     let enable_comments = opt.enable_comments;
     opt.enable_comments = false;
-    let out = dbg!(node.write(opt.clone()));
+    let out = node.write(opt.clone());
     opt.enable_comments = enable_comments;
     out
 }
@@ -69,9 +68,6 @@ impl WriteSource for Expr {
                 }
 
                 let comments = find_comments_after(span, &opt.tokens);
-                // if !comments.is_empty() {
-                //     dbg!(&self, &span, &opt.tokens, &comments);
-                // }
 
                 // If the first item is a comment, it's an inline comment, and
                 // so add two spaces
@@ -86,7 +82,7 @@ impl WriteSource for Expr {
                 }
 
                 for c in comments {
-                    match dbg!(c.kind) {
+                    match c.kind {
                         // TODO: these are defined here since the debug
                         // representations aren't quite right (NewLine is `new
                         // line` as is used in error messages). But we should
@@ -628,7 +624,8 @@ mod test {
             "#,
         )
         .unwrap();
-        let span = dbg!(tokens.clone())
+        let span = tokens
+            .clone()
             .0
             .iter()
             .find(|t| t.kind == TokenKind::Literal(Literal::Integer(5)))
