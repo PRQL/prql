@@ -5,22 +5,15 @@ vars:
   venv_dir: "../../../target/venv"
 
 tasks:
-  fmt:
-    desc: "Format"
-    cmds:
-      - black .
-      - ruff check
-
   build:
     desc: Build
     vars:
-      mode: "debug"
+      profile: "dev"
     cmds:
       - cmd: |
           maturin build \
-            {{if eq .mode "release"}}--release{{end}} \
-            -o {{.build_dir}} \
-            -m Cargo.toml
+            --profile={{.profile}} \
+            --out={{.build_dir}}
 
   init-venv:
     status:
@@ -34,8 +27,7 @@ tasks:
     cmds:
       - cmd: |
           source {{.venv_dir}}/bin/activate
-          pip install {{.build_dir}}/prql_python-*.whl
-          pip install -r requirements.txt
+          pip install .[dev]
       - cmd: |
           source {{.venv_dir}}/bin/activate
-          pytest
+          python -m pytest

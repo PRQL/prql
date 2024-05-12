@@ -81,25 +81,32 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
             .map(TyKind::Tuple)
             .labelled("tuple");
 
-        let union_parenthesized = ident_part()
-            .then_ignore(ctrl('='))
-            .or_not()
-            .then(nested_type_expr.clone())
-            .padded_by(new_line().repeated())
-            .separated_by(just(TokenKind::Or))
-            .allow_trailing()
-            .then_ignore(new_line().repeated())
-            .delimited_by(ctrl('('), ctrl(')'))
-            .recover_with(nested_delimiters(
-                TokenKind::Control('('),
-                TokenKind::Control(')'),
-                [
-                    (TokenKind::Control('{'), TokenKind::Control('}')),
-                    (TokenKind::Control('('), TokenKind::Control(')')),
-                    (TokenKind::Control('['), TokenKind::Control(']')),
-                ],
-                |_| vec![],
-            ))
+        let enum_ = keyword("enum")
+            .ignore_then(
+                ident_part()
+                    .then(ctrl('=').ignore_then(nested_type_expr.clone()).or_not())
+                    .map(|(name, ty)| {
+                        (
+                            Some(name),
+                            ty.unwrap_or_else(|| Ty::new(TyKind::Tuple(vec![]))),
+                        )
+                    })
+                    .padded_by(new_line().repeated())
+                    .separated_by(ctrl(','))
+                    .allow_trailing()
+                    .then_ignore(new_line().repeated())
+                    .delimited_by(ctrl('{'), ctrl('}'))
+                    .recover_with(nested_delimiters(
+                        TokenKind::Control('{'),
+                        TokenKind::Control('}'),
+                        [
+                            (TokenKind::Control('{'), TokenKind::Control('}')),
+                            (TokenKind::Control('('), TokenKind::Control(')')),
+                            (TokenKind::Control('['), TokenKind::Control(']')),
+                        ],
+                        |_| vec![],
+                    )),
+            )
             .map(TyKind::Union)
             .labelled("union");
 
@@ -120,7 +127,7 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
             .map(TyKind::Array)
             .labelled("array");
 
-        let term = choice((basic, ident, func, tuple, array, union_parenthesized))
+        let term = choice((basic, ident, func, tuple, array, enum_))
             .map_with_span(into_ty)
             .boxed();
 
