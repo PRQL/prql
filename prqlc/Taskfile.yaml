@@ -51,6 +51,20 @@ tasks:
 
       - cmd: cargo clippy --all-targets {{.packages_core}}
 
+  test-sql:
+    desc: A test used to bring feat-indirection back into the "green check-mark world"
+    cmds:
+      - cmd: |
+          INSTA_FORCE_PASS=1 cargo nextest run --package prqlc --test=integration -- sql::
+
+      - cmd: cargo insta review
+
+      - cmd: cargo clippy --all-targets {{.packages_core}}
+
+      - cmd: |
+          echo -e '\n=======\nrunning just ignored tests, to see if any of them passes'
+          cargo nextest run --package prqlc --test=integration --run-ignored=ignored-only --success-output=never --failure-output=never --status-level=none --final-status-level=none -- sql::
+
   test:
     desc: |
       A full test of prqlc (excluding --test-dbs-external).

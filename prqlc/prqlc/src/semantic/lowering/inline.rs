@@ -17,10 +17,10 @@ impl<'a> Inliner<'a> {
         i.fold_expr(expr).unwrap()
     }
 
-    fn lookup_func(&self, ident: &Expr) -> Option<(Ident, &Box<Func>)> {
+    fn lookup_func(&self, ident: &Expr) -> Option<(Ident, &Func)> {
         let fq_ident = ident.kind.as_ident()?;
 
-        let func_decl = self.root_mod.module.get(&fq_ident).unwrap();
+        let func_decl = self.root_mod.module.get(fq_ident).unwrap();
         let func_decl = func_decl.kind.as_expr()?;
         let func = func_decl.kind.as_func()?;
         Some((fq_ident.clone(), func))

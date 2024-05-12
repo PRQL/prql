@@ -368,7 +368,7 @@ impl Resolver<'_> {
     /// Here, the first reference to `plus_one` must resolve with T=int and the second with T=float.
     ///
     /// This struct makes sure that distinct instanced of T are created from generic type param T.
-    pub fn instantiate_type<'r>(&mut self, ty: Ty, id: usize) -> Ty {
+    pub fn instantiate_type(&mut self, ty: Ty, id: usize) -> Ty {
         let TyKind::Function(Some(ty_func)) = &ty.kind else {
             return ty;
         };
@@ -635,11 +635,11 @@ pub struct TypeReplacer {
 }
 
 impl TypeReplacer {
-    pub fn on_ty<'r>(ty: Ty, mapping: HashMap<Ident, Ty>) -> Ty {
+    pub fn on_ty(ty: Ty, mapping: HashMap<Ident, Ty>) -> Ty {
         TypeReplacer { mapping }.fold_type(ty).unwrap()
     }
 
-    pub fn on_func<'r>(func: Func, mapping: HashMap<Ident, Ty>) -> Func {
+    pub fn on_func(func: Func, mapping: HashMap<Ident, Ty>) -> Func {
         TypeReplacer { mapping }.fold_func(func).unwrap()
     }
 }

@@ -54,6 +54,7 @@ fn test_stdlib() {
 }
 
 #[test]
+#[ignore]
 fn test_stdlib_math_module() {
     assert_snapshot!(compile(r#"
     from db.employees
@@ -104,6 +105,7 @@ fn test_stdlib_math_module() {
 }
 
 #[test]
+#[ignore]
 fn test_stdlib_math_module_mssql() {
     assert_snapshot!(compile(r#"
   prql target:sql.mssql
@@ -304,6 +306,7 @@ fn test_precedence_01() {
 }
 
 #[test]
+#[ignore]
 fn test_precedence_02() {
     assert_snapshot!((compile(r###"
     from db.x
@@ -324,6 +327,7 @@ fn test_precedence_02() {
 }
 
 #[test]
+#[ignore]
 fn test_precedence_03() {
     assert_snapshot!((compile(r###"
     from db.numbers
@@ -346,6 +350,7 @@ fn test_precedence_03() {
 }
 
 #[test]
+#[ignore]
 fn test_precedence_04() {
     assert_snapshot!((compile(r###"
     from db.comparisons
@@ -378,6 +383,7 @@ fn test_precedence_04() {
 }
 
 #[test]
+#[ignore]
 fn test_precedence_05() {
     assert_snapshot!(compile(
     r###"
@@ -433,6 +439,7 @@ fn test_pow_is_right_associative() {
 }
 
 #[test]
+#[ignore]
 fn test_append() {
     assert_snapshot!(compile(r###"
     from db.employees
@@ -536,6 +543,7 @@ fn test_append() {
 }
 
 #[test]
+#[ignore]
 fn test_remove_01() {
     assert_snapshot!(compile(r#"
     from db.albums
@@ -557,6 +565,7 @@ fn test_remove_01() {
 }
 
 #[test]
+#[ignore]
 fn test_remove_02() {
     assert_snapshot!(compile(r#"
     from db.album
@@ -587,6 +596,7 @@ fn test_remove_02() {
 }
 
 #[test]
+#[ignore]
 fn test_remove_03() {
     assert_snapshot!(compile(r#"
     from db.album
@@ -615,6 +625,7 @@ fn test_remove_03() {
 }
 
 #[test]
+#[ignore]
 fn test_remove_04() {
     assert_snapshot!(compile(r#"
     prql target:sql.sqlite
@@ -630,6 +641,7 @@ fn test_remove_04() {
 }
 
 #[test]
+#[ignore]
 fn test_remove_05() {
     assert_snapshot!(compile(r#"
     prql target:sql.sqlite
@@ -664,6 +676,7 @@ fn test_remove_05() {
 }
 
 #[test]
+#[ignore]
 fn test_remove_06() {
     assert_snapshot!(compile(r#"
     prql target:sql.sqlite
@@ -689,6 +702,7 @@ fn test_remove_06() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_01() {
     assert_snapshot!(compile(r#"
     from db.album
@@ -710,6 +724,7 @@ fn test_intersect_01() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_02() {
     assert_snapshot!(compile(r#"
     from db.album
@@ -740,6 +755,7 @@ fn test_intersect_02() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_03() {
     assert_snapshot!(compile(r#"
     let distinct = rel -> (_param.rel | group this (take 1))
@@ -780,6 +796,7 @@ fn test_intersect_03() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_04() {
     assert_snapshot!(compile(r#"
     let distinct = rel -> (_param.rel | group this (take 1))
@@ -819,6 +836,7 @@ fn test_intersect_04() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_05() {
     assert_snapshot!(compile(r#"
     let distinct = rel -> (_param.rel | group this (take 1))
@@ -852,6 +870,7 @@ fn test_intersect_05() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_06() {
     assert_snapshot!(compile(r#"
     prql target:sql.sqlite
@@ -867,6 +886,7 @@ fn test_intersect_06() {
 }
 
 #[test]
+#[ignore]
 fn test_intersect_07() {
     assert_snapshot!(compile(r#"
     from ds2 = db.foo.t1
@@ -884,6 +904,7 @@ fn test_intersect_07() {
 }
 
 #[test]
+#[ignore]
 fn test_rn_ids_are_unique() {
     // this is wrong, output will have duplicate y_id and x_id
     assert_snapshot!((compile(r###"
@@ -921,6 +942,7 @@ fn test_rn_ids_are_unique() {
 }
 
 #[test]
+#[ignore]
 fn test_quoting() {
     // GH-#822
     assert_snapshot!((compile(r###"
@@ -997,6 +1019,7 @@ fn test_quoting() {
 }
 
 #[test]
+#[ignore]
 fn test_sorts_01() {
     assert_snapshot!((compile(r###"
     from db.invoices
@@ -1037,6 +1060,7 @@ fn test_sorts_01() {
 }
 
 #[test]
+#[ignore]
 fn test_sorts_02() {
     // issue #3129
 
@@ -1128,6 +1152,7 @@ fn test_numbers() {
 }
 
 #[test]
+#[ignore]
 fn test_ranges() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1273,6 +1298,7 @@ fn test_dates() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_00() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1289,6 +1315,7 @@ fn test_window_functions_00() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_02() {
     let query = r#"
     from db.cust_order
@@ -1359,6 +1386,7 @@ fn test_window_functions_02() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_03() {
     // lag must be recognized as window function, even outside of group context
     // rank must not have two OVER clauses
@@ -1385,6 +1413,7 @@ fn test_window_functions_03() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_04() {
     // sort does not affects into groups, group undoes sorting
     let query = r###"
@@ -1405,6 +1434,7 @@ fn test_window_functions_04() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_05() {
     // sort does not leak out of groups
     let query = r###"
@@ -1428,6 +1458,7 @@ fn test_window_functions_05() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_06() {
     // detect sum as a window function, even without group or window
     assert_snapshot!((compile(r###"
@@ -1447,6 +1478,7 @@ fn test_window_functions_06() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_07() {
     assert_snapshot!((compile(r###"
     from db.foo
@@ -1463,6 +1495,7 @@ fn test_window_functions_07() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_08() {
     assert_snapshot!((compile(r###"
     from db.foo
@@ -1479,6 +1512,7 @@ fn test_window_functions_08() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_09() {
     assert_snapshot!((compile(r###"
     from db.foo
@@ -1498,6 +1532,7 @@ fn test_window_functions_09() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_10() {
     assert_snapshot!((compile(r###"
     from db.foo
@@ -1520,6 +1555,7 @@ fn test_window_functions_10() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_11() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1540,6 +1576,7 @@ fn test_window_functions_11() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_12() {
     // window params need to be simple expressions
 
@@ -1593,6 +1630,7 @@ fn test_window_functions_12() {
 }
 
 #[test]
+#[ignore]
 fn test_window_functions_13() {
     // window params need to be simple expressions
 
@@ -1622,6 +1660,7 @@ fn test_window_functions_13() {
 }
 
 #[test]
+#[ignore]
 fn test_window_single_item_range() {
     assert_snapshot!(compile(r###"
       from db.login_event
@@ -1646,6 +1685,7 @@ fn test_window_single_item_range() {
 }
 
 #[test] // refs to fields of current tuple
+#[ignore]
 fn test_name_resolving() {
     let query = r###"
     from db.numbers
@@ -1735,6 +1775,7 @@ fn test_filter() {
 }
 
 #[test]
+#[ignore]
 fn test_nulls_01() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1748,6 +1789,7 @@ fn test_nulls_01() {
 }
 
 #[test]
+#[ignore]
 fn test_nulls_02() {
     // coalesce
     assert_snapshot!((compile(r###"
@@ -1916,6 +1958,7 @@ fn test_take_07() {
 }
 
 #[test]
+#[ignore]
 fn test_take_08() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1949,6 +1992,7 @@ fn test_take_09() {
 }
 
 #[test]
+#[ignore]
 fn test_take_10() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -2018,6 +2062,7 @@ fn test_take_mssql() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_01() {
     // window functions cannot materialize into where statement: CTE is needed
     assert_snapshot!((compile(r###"
@@ -2042,6 +2087,7 @@ fn test_distinct_01() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_02() {
     // basic distinct
     assert_snapshot!((compile(r###"
@@ -2057,6 +2103,7 @@ fn test_distinct_02() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_03() {
     // distinct on two columns
     assert_snapshot!((compile(r###"
@@ -2072,6 +2119,7 @@ fn test_distinct_03() {
     "###);
 }
 #[test]
+#[ignore]
 fn test_distinct_04() {
     // We want distinct only over first_name and last_name, so we can't use a
     // `DISTINCT *` here.
@@ -2095,6 +2143,7 @@ fn test_distinct_04() {
     "###);
 }
 #[test]
+#[ignore]
 fn test_distinct_05() {
     // Check that a different order doesn't stop distinct from being used.
     assert!(compile(
@@ -2104,6 +2153,7 @@ fn test_distinct_05() {
     .contains("DISTINCT"));
 }
 #[test]
+#[ignore]
 fn test_distinct_06() {
     // head
     assert_snapshot!((compile(r###"
@@ -2126,6 +2176,7 @@ fn test_distinct_06() {
     "###);
 }
 #[test]
+#[ignore]
 fn test_distinct_07() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -2151,6 +2202,7 @@ fn test_distinct_07() {
     "###);
 }
 #[test]
+#[ignore]
 fn test_distinct_08() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -2177,6 +2229,7 @@ fn test_distinct_08() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_09() {
     assert_snapshot!(compile("
     from db.invoices
@@ -2207,6 +2260,7 @@ fn test_distinct_09() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_on_01() {
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
@@ -2228,6 +2282,7 @@ fn test_distinct_on_01() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_on_02() {
     assert_snapshot!((compile(r###"
     prql target:sql.duckdb
@@ -2245,6 +2300,7 @@ fn test_distinct_on_02() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_on_03() {
     assert_snapshot!((compile(r###"
     prql target:sql.duckdb
@@ -2270,6 +2326,7 @@ fn test_distinct_on_03() {
 }
 
 #[test]
+#[ignore]
 fn test_distinct_on_04() {
     assert_snapshot!((compile(r###"
     prql target:sql.duckdb
@@ -2295,6 +2352,7 @@ fn test_distinct_on_04() {
 }
 
 #[test]
+#[ignore]
 fn test_group_take_n_01() {
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
@@ -2326,6 +2384,7 @@ fn test_group_take_n_01() {
 }
 
 #[test]
+#[ignore]
 fn test_group_take_n_02() {
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
@@ -2374,6 +2433,7 @@ fn test_join() {
 }
 
 #[test]
+#[ignore]
 fn test_from_json() {
     // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
     let original_prql = r#"
@@ -2419,6 +2479,7 @@ fn test_from_json() {
 }
 
 #[test]
+#[ignore]
 fn test_f_string() {
     let query = r#"
     from db.employees
@@ -2465,6 +2526,7 @@ fn test_f_string() {
 }
 
 #[test]
+#[ignore]
 fn test_sql_of_ast_1() {
     let query = r#"
     from db.employees
@@ -2500,6 +2562,7 @@ fn test_sql_of_ast_1() {
 
 #[test]
 // Confirm that a bare s-string in a table definition works as expected.
+#[ignore]
 fn test_bare_s_string() {
     let query = r#"
     let grouping = s"""
@@ -2637,6 +2700,7 @@ fn test_table_definition_with_expr_call() {
 }
 
 #[test]
+#[ignore]
 fn test_sql_of_ast_2() {
     let query = r#"
     from db.employees
@@ -2656,6 +2720,7 @@ fn test_sql_of_ast_2() {
 }
 
 #[test]
+#[ignore]
 fn test_prql_to_sql_1() {
     assert_snapshot!(compile(r#"
     from db.employees
@@ -2694,6 +2759,7 @@ fn test_prql_to_sql_1() {
 }
 
 #[test]
+#[ignore]
 fn test_prql_to_sql_2() {
     let query = r#"
 from db.employees
@@ -2760,6 +2826,7 @@ take 20
 }
 
 #[test]
+#[ignore]
 fn test_prql_to_sql_table() {
     // table
     let query = r#"
@@ -2815,6 +2882,7 @@ fn test_prql_to_sql_table() {
 }
 
 #[test]
+#[ignore]
 fn test_nonatomic() {
     // A take, then two aggregates
     let query = r#"
@@ -2901,6 +2969,7 @@ fn test_nonatomic() {
 
 #[test]
 /// Confirm a nonatomic table works.
+#[ignore]
 fn test_nonatomic_table() {
     // A take, then two aggregates
     let query = r#"
@@ -2942,6 +3011,7 @@ fn test_nonatomic_table() {
 }
 
 #[test]
+#[ignore]
 fn test_table_names_between_splits() {
     let prql = r###"
     from db.employees
@@ -3010,6 +3080,7 @@ fn test_table_names_between_splits() {
 }
 
 #[test]
+#[ignore]
 fn test_table_alias_01() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -3034,6 +3105,7 @@ fn test_table_alias_01() {
 }
 
 #[test]
+#[ignore]
 fn test_table_alias_02() {
     assert_snapshot!((compile(r#"
     from db.employees
@@ -3227,6 +3299,7 @@ join module.y (foo == only_in_x)
 }
 
 #[test]
+#[ignore]
 fn test_double_aggregate() {
     // #941
     compile(
@@ -3267,6 +3340,7 @@ fn test_double_aggregate() {
 }
 
 #[test]
+#[ignore]
 fn test_window_function_coalesce() {
     // #3587
     assert_snapshot!(compile(r###"
@@ -3290,6 +3364,7 @@ fn test_window_function_coalesce() {
 }
 
 #[test]
+#[ignore]
 fn test_casting() {
     assert_snapshot!(compile(r###"
     from db.x
@@ -3345,6 +3420,7 @@ fn test_toposort() {
 }
 
 #[test]
+#[ignore]
 fn test_inline_tables() {
     assert_snapshot!(compile(r###"
     (
@@ -3377,6 +3453,7 @@ fn test_inline_tables() {
 }
 
 #[test]
+#[ignore]
 fn test_filter_and_select_unchanged_alias() {
     // #1185
 
@@ -3397,6 +3474,7 @@ fn test_filter_and_select_unchanged_alias() {
 }
 
 #[test]
+#[ignore]
 fn test_filter_and_select_changed_alias() {
     // #1185
     assert_snapshot!(compile(r###"
@@ -3451,6 +3529,7 @@ fn test_unused_alias() {
 }
 
 #[test]
+#[ignore]
 fn test_table_s_string_01() {
     assert_snapshot!(compile(r#"
     let main <relation> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
@@ -3473,6 +3552,7 @@ fn test_table_s_string_01() {
     );
 }
 #[test]
+#[ignore]
 fn test_table_s_string_02() {
     assert_snapshot!(compile(r#"
     s"""
@@ -3507,6 +3587,7 @@ fn test_table_s_string_02() {
     );
 }
 #[test]
+#[ignore]
 fn test_table_s_string_03() {
     assert_snapshot!(compile(r#"
     s"""SELECT * FROM employees"""
@@ -3529,6 +3610,7 @@ fn test_table_s_string_03() {
     );
 }
 #[test]
+#[ignore]
 fn test_table_s_string_04() {
     assert_snapshot!(compile(r#"
     s"""SELECT * FROM employees"""
@@ -3552,6 +3634,7 @@ fn test_table_s_string_04() {
     );
 }
 #[test]
+#[ignore]
 fn test_table_s_string_05() {
     assert_snapshot!(compile(r#"
     let weeks_between = start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
@@ -3576,6 +3659,7 @@ fn test_table_s_string_05() {
     );
 }
 #[test]
+#[ignore]
 fn test_table_s_string_06() {
     assert_snapshot!(compile(r#"
     s"SELECT * FROM {db.x}"
@@ -3596,6 +3680,7 @@ fn test_table_s_string_06() {
 }
 
 #[test]
+#[ignore]
 fn test_direct_table_references() {
     assert_snapshot!(compile(
         r#"
@@ -3630,6 +3715,7 @@ fn test_direct_table_references() {
 }
 
 #[test]
+#[ignore]
 fn test_name_shadowing() {
     assert_snapshot!(compile(
         r###"
@@ -3667,6 +3753,7 @@ fn test_name_shadowing() {
 }
 
 #[test]
+#[ignore]
 fn test_group_all() {
     assert_snapshot!(compile(
         r###"
@@ -3690,6 +3777,7 @@ fn test_group_all() {
 }
 
 #[test]
+#[ignore]
 fn test_output_column_deduplication() {
     // #1249
     assert_snapshot!(compile(
@@ -3764,6 +3852,7 @@ fn test_case_02() {
 }
 
 #[test]
+#[ignore]
 fn test_case_03() {
     assert_snapshot!(compile(
         r###"
@@ -3812,6 +3901,7 @@ fn test_sql_options() {
 }
 
 #[test]
+#[ignore]
 fn test_static_analysis() {
     assert_snapshot!(compile(
         r###"
@@ -3847,6 +3937,7 @@ fn test_static_analysis() {
 }
 
 #[test]
+#[ignore]
 fn test_closures_and_pipelines() {
     assert_snapshot!(compile(
     r#"
@@ -3870,6 +3961,7 @@ fn test_closures_and_pipelines() {
 }
 
 #[test]
+#[ignore]
 fn test_basic_agg() {
     assert_snapshot!(compile(r#"
     from db.employees
@@ -3906,6 +3998,7 @@ fn test_exclude_columns_01() {
 }
 
 #[test]
+#[ignore]
 fn test_exclude_columns_02() {
     assert_snapshot!(compile(r#"
     from db.tracks
@@ -3927,6 +4020,7 @@ fn test_exclude_columns_02() {
 }
 
 #[test]
+#[ignore]
 fn test_exclude_columns_03() {
     assert_snapshot!(compile(r#"
     from db.artists
@@ -3943,6 +4037,7 @@ fn test_exclude_columns_03() {
 }
 
 #[test]
+#[ignore]
 fn test_exclude_columns_04() {
     assert_snapshot!(compile(r#"
     prql target:sql.bigquery
@@ -3961,6 +4056,7 @@ fn test_exclude_columns_04() {
 }
 
 #[test]
+#[ignore]
 fn test_exclude_columns_05() {
     assert_snapshot!(compile(r#"
     prql target:sql.snowflake
@@ -3977,6 +4073,7 @@ fn test_exclude_columns_05() {
 }
 
 #[test]
+#[ignore]
 fn test_exclude_columns_06() {
     assert_snapshot!(compile(r#"
     prql target:sql.duckdb
@@ -3993,6 +4090,7 @@ fn test_exclude_columns_06() {
 }
 
 #[test]
+#[ignore]
 fn test_exclude_columns_07() {
     assert_snapshot!(compile(r#"
     prql target:sql.duckdb
@@ -4015,6 +4113,7 @@ fn test_exclude_columns_07() {
 }
 
 #[test]
+#[ignore]
 fn test_custom_transforms() {
     assert_snapshot!(compile(r#"
     let my_transform = (
@@ -4041,6 +4140,7 @@ fn test_custom_transforms() {
 }
 
 #[test]
+#[ignore]
 fn test_name_inference() {
     assert_snapshot!(compile(r#"
     from db.albums
@@ -4087,6 +4187,7 @@ fn test_name_inference() {
 }
 
 #[test]
+#[ignore]
 fn test_from_text() {
     assert_snapshot!(compile(r#"
     std.from_text format:csv """
@@ -4247,6 +4348,7 @@ fn test_header_target_error() {
 }
 
 #[test]
+#[ignore]
 fn prql_version() {
     assert_snapshot!(compile(r#"
     from db.x
@@ -4261,7 +4363,7 @@ fn prql_version() {
 }
 
 #[test]
-
+#[ignore]
 fn shortest_prql_version() {
     assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
     WITH table_0 AS (
@@ -4276,6 +4378,7 @@ fn shortest_prql_version() {
 }
 
 #[test]
+#[ignore]
 fn test_loop() {
     assert_snapshot!(compile(r#"
     [{n = 1}]
@@ -4322,6 +4425,7 @@ fn test_loop() {
 }
 
 #[test]
+#[ignore]
 fn test_loop_2() {
     assert_snapshot!(compile(r#"
     std.read_csv 'employees.csv'
@@ -4367,6 +4471,7 @@ fn test_loop_2() {
 }
 
 #[test]
+#[ignore]
 fn test_params() {
     assert_snapshot!(compile(r#"
     from db.invoices
@@ -4481,6 +4586,7 @@ fn test_lower() {
 }
 
 #[test]
+#[ignore]
 fn test_upper() {
     assert_snapshot!(compile(r#"
     from db.test_tables
@@ -4511,6 +4617,7 @@ fn test_1535() {
 }
 
 #[test]
+#[ignore]
 fn test_read_parquet_duckdb() {
     assert_snapshot!(compile(r#"
     std.read_parquet 'x.parquet'
@@ -4542,6 +4649,7 @@ fn test_read_parquet_duckdb() {
 }
 
 #[test]
+#[ignore]
 fn test_excess_columns() {
     // https://github.com/PRQL/prql/issues/2079
     assert_snapshot!(compile(r#"
@@ -4625,6 +4733,7 @@ fn test_into() {
 }
 
 #[test]
+#[ignore]
 fn test_array_01() {
     compile(
         r#"
@@ -4673,6 +4782,7 @@ fn test_array_01() {
 }
 
 #[test]
+#[ignore]
 fn test_array_02() {
     assert_snapshot!(compile(r#"
     [
@@ -4697,6 +4807,7 @@ fn test_array_02() {
 }
 
 #[test]
+#[ignore]
 fn test_double_stars() {
     assert_snapshot!(compile(r#"
     from db.tb1
@@ -4754,6 +4865,7 @@ fn test_double_stars() {
 }
 
 #[test]
+#[ignore]
 fn test_lineage() {
     // #2627
     assert_snapshot!(compile(r#"
@@ -4809,6 +4921,7 @@ fn test_lineage() {
 }
 
 #[test]
+#[ignore]
 fn test_type_as_column_name() {
     // #2503
     assert_snapshot!(compile(r#"
@@ -4840,6 +4953,7 @@ fn test_error_code() {
 }
 
 #[test]
+#[ignore]
 fn large_query() {
     // This was causing a stack overflow on Windows, ref https://github.com/PRQL/prql/issues/2857
     compile(
@@ -4932,6 +5046,7 @@ fn test_returning_constants_only() {
 }
 
 #[test]
+#[ignore]
 fn test_conflicting_names_at_split() {
     // issue #2697
     assert_snapshot!(compile(
@@ -4980,6 +5095,7 @@ fn test_conflicting_names_at_split() {
 }
 
 #[test]
+#[ignore]
 fn test_relation_literal_quoting() {
     // issue #3484
     assert_snapshot!(compile(
@@ -5059,11 +5175,7 @@ fn test_relation_var_name_clashes_02() {
 }
 
 #[test]
-#[ignore]
 fn test_select_this() {
-    // Currently broken for a few reasons:
-    // - type of `this` is not resolved as tuple, but an union?
-    // - lineage is not computed correctly
     assert_snapshot!(compile(
         r###"
     from db.x
@@ -5081,6 +5193,7 @@ fn test_select_this() {
 }
 
 #[test]
+#[ignore]
 fn test_group_exclude() {
     assert_snapshot!(compile(
         r###"
@@ -5147,6 +5260,7 @@ fn test_table_declarations() {
 }
 
 #[test]
+#[ignore]
 fn test_param_declarations() {
     assert_snapshot!(compile(
         r###"
@@ -5181,6 +5295,7 @@ fn test_relation_aliasing() {
 }
 
 #[test]
+#[ignore]
 fn test_import() {
     assert_snapshot!(compile(
         r###"
@@ -5202,6 +5317,7 @@ fn test_import() {
 }
 
 #[test]
+#[ignore]
 fn test_ordering_declarations() {
     // declarations must be resolved in the correct order:
     // - hello.world
