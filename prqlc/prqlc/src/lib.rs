@@ -408,10 +408,9 @@ fn test_format_prql() {
         # another test comment
         select {name}"#
     ).unwrap(), @r###"
-    # test comment
-    from employees # inline comment
-
+    from employees  # inline comment
     # another test comment
+
     select {name}
     "###);
 }
