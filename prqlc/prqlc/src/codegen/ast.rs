@@ -369,7 +369,7 @@ pub fn write_ident_part(s: &str) -> String {
 //     }}
 
 /// Find a comment before a span. If there's exactly one newline prior, then the
-/// comment is included here. Any furthur above are included with the prior token.
+/// comment is included here. Any further above are included with the prior token.
 fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
     // index of the span in the token vec
     let index = tokens
