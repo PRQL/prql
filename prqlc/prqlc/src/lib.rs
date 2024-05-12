@@ -375,7 +375,8 @@ fn test_format_comment_basic() {
     from db.employees # inline comment
     "#
 ).unwrap(), @r###"
-    from db.employees # inline comment
+    from db.employees  # inline comment
+
     "###);
 }
 
@@ -395,10 +396,10 @@ fn test_format_prql() {
         "#
     ).unwrap(), @r###"
     from employees
-     # test comment
-
     # test comment
+
     select {name}
+
     "###);
 
     assert_snapshot!(format_prql( r#"

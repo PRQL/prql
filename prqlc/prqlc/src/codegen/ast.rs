@@ -24,10 +24,10 @@ fn write_within<T: WriteSource>(node: &T, parent: &ExprKind, mut opt: WriteOpt) 
     //
     // ...we're writing both `from a.b` and `a.b`, so we need to know which of
     // these to write comments for. I'm sure there are better ways to do it.
-    let comments = opt.enable_comments;
+    let enable_comments = opt.enable_comments;
     opt.enable_comments = false;
-    let out = node.write(opt.clone());
-    opt.enable_comments = comments;
+    let out = dbg!(node.write(opt.clone()));
+    opt.enable_comments = enable_comments;
     out
 }
 
@@ -35,11 +35,11 @@ impl WriteSource for Expr {
     fn write(&self, mut opt: WriteOpt) -> Option<String> {
         let mut r = String::new();
 
-        if let Some(span) = self.span {
-            if let Some(comment) = find_comment_before(span, &opt.tokens) {
-                r += &comment.to_string();
-            }
-        }
+        // if let Some(span) = self.span {
+        //     if let Some(comment) = find_comment_before(span, &opt.tokens) {
+        //         r += &comment.to_string();
+        //     }
+        // }
         if let Some(alias) = &self.alias {
             r += opt.consume(alias)?;
             r += opt.consume(" = ")?;
@@ -73,13 +73,25 @@ impl WriteSource for Expr {
                 //     dbg!(&self, &span, &opt.tokens, &comments);
                 // }
 
+                // If the first item is a comment, it's an inline comment, and
+                // so add two spaces
+                if matches!(
+                    comments.first(),
+                    Some(Token {
+                        kind: TokenKind::Comment(_),
+                        ..
+                    })
+                ) {
+                    r += "  ";
+                }
+
                 for c in comments {
-                    match c.kind {
+                    match dbg!(c.kind) {
                         // TODO: these are defined here since the debug
                         // representations aren't quite right (NewLine is `new
                         // line` as is used in error messages). But we should
                         // probably move them onto the Struct.
-                        TokenKind::Comment(s) => r += format!(" #{}", s).as_str(),
+                        TokenKind::Comment(s) => r += format!("#{}", s).as_str(),
                         TokenKind::NewLine => r += "\n",
                         _ => unreachable!(),
                     }
@@ -368,28 +380,27 @@ pub fn write_ident_part(s: &str) -> String {
 //         codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap()
 //     }}
 
-/// Find a comment before a span. If there's exactly one newline prior, then the
-/// comment is included here. Any further above are included with the prior token.
-fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
-    // index of the span in the token vec
-    let index = tokens
-        .0
-        .iter()
-        .position(|t| t.span.start == span.start && t.span.end == span.end)?;
-    if index <= 1 {
-        return None;
-    }
-    let prior_token = &tokens.0[index - 1].kind;
-    let prior_2_token = &tokens.0[index - 2].kind;
-    if matches!(prior_token, TokenKind::NewLine) && matches!(prior_2_token, TokenKind::Comment(_)) {
-        Some(prior_2_token.clone())
-    } else {
-        None
-    }
-}
+// /// Find a comment before a span. If there's exactly one newline prior, then the
+// /// comment is included here. Any furthur above are included with the prior token.
+// fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
+//     // index of the span in the token vec
+//     let index = tokens
+//         .0
+//         .iter()
+//         .position(|t| t.span.start == span.start && t.span.end == span.end)?;
+//     if index <= 1 {
+//         return None;
+//     }
+//     let prior_token = &tokens.0[index - 1].kind;
+//     let prior_2_token = &tokens.0[index - 2].kind;
+//     if matches!(prior_token, TokenKind::NewLine) && matches!(prior_2_token, TokenKind::Comment(_)) {
+//         Some(prior_2_token.clone())
+//     } else {
+//         None
+//     }
+// }
 
-/// Find a comment after a span. If there's exactly one newline, then the
-/// comment is included; otherwise it's included after the current line.
+/// Find comments after a given span.
 fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
     // index of the span in the token vec
     let index = tokens
@@ -580,32 +591,32 @@ mod test {
         stmt.write(WriteOpt::default()).unwrap()
     }
 
-    #[test]
-    fn test_find_comment_before() {
-        let tokens = lex_source(
-            r#"
-            # comment
-            let a = 5
-            "#,
-        )
-        .unwrap();
-        let span = tokens
-            .clone()
-            .0
-            .iter()
-            .find(|t| t.kind == TokenKind::Keyword("let".to_string()))
-            .unwrap()
-            .span
-            .clone();
-        let comment = find_comment_before(span.into(), &tokens);
-        assert_debug_snapshot!(comment, @r###"
-        Some(
-            Comment(
-                " comment",
-            ),
-        )
-        "###);
-    }
+    // #[test]
+    // fn test_find_comment_before() {
+    //     let tokens = lex_source(
+    //         r#"
+    //         # comment
+    //         let a = 5
+    //         "#,
+    //     )
+    //     .unwrap();
+    //     let span = tokens
+    //         .clone()
+    //         .0
+    //         .iter()
+    //         .find(|t| t.kind == TokenKind::Keyword("let".to_string()))
+    //         .unwrap()
+    //         .span
+    //         .clone();
+    //     let comment = find_comment_before(span.into(), &tokens);
+    //     assert_debug_snapshot!(comment, @r###"
+    //     Some(
+    //         Comment(
+    //             " comment",
+    //         ),
+    //     )
+    //     "###);
+    // }
 
     #[test]
     fn test_find_comments_after() {
