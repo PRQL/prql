@@ -87,6 +87,12 @@ impl From<Error> for ErrorMessage {
     }
 }
 
+impl From<Vec<ErrorMessage>> for ErrorMessages {
+    fn from(errors: Vec<ErrorMessage>) -> Self {
+        ErrorMessages { inner: errors }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ErrorMessages {
     pub inner: Vec<ErrorMessage>,

@@ -17,6 +17,7 @@ fn help() {
 
     Commands:
       parse             Parse into PL AST
+      lex               Lex into Tokens
       fmt               Parse & generate PRQL code back
       collect           Parse the whole project and collect it into a single PRQL source file
       debug             Commands for meant for debugging, prone to change
@@ -469,5 +470,51 @@ fn compile_no_prql_files() {
     ----- stderr -----
     Error: No `.prql` files found in the source tree
 
+    "###);
+}
+
+#[test]
+fn lex() {
+    assert_cmd_snapshot!(prqlc_command().args(["lex"]).pass_stdin("from tracks"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    - kind: !Ident from
+      span:
+        start: 0
+        end: 4
+    - kind: !Ident tracks
+      span:
+        start: 5
+        end: 11
+
+    ----- stderr -----
+    "###);
+
+    assert_cmd_snapshot!(prqlc_command().args(["lex", "--format=json"]).pass_stdin("from tracks"), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    [
+      {
+        "kind": {
+          "Ident": "from"
+        },
+        "span": {
+          "start": 0,
+          "end": 4
+        }
+      },
+      {
+        "kind": {
+          "Ident": "tracks"
+        },
+        "span": {
+          "start": 5,
+          "end": 11
+        }
+      }
+    ]
+    ----- stderr -----
     "###);
 }

@@ -22,10 +22,10 @@ use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
 
-use prqlc::ast;
 use prqlc::semantic;
 use prqlc::semantic::reporting::{collect_frames, label_references};
 use prqlc::semantic::NS_DEFAULT_DB;
+use prqlc::{ast, prql_to_tokens};
 use prqlc::{ir::pl::Lineage, ir::Span};
 use prqlc::{pl_to_prql, pl_to_rq_tree, prql_to_pl, prql_to_pl_tree, rq_to_sql, SourceTree};
 use prqlc::{Options, Target};
@@ -73,6 +73,14 @@ struct Cli {
 enum Command {
     /// Parse into PL AST
     Parse {
+        #[command(flatten)]
+        io_args: IoArgs,
+        #[arg(value_enum, long, default_value = "yaml")]
+        format: Format,
+    },
+
+    /// Lex into Tokens
+    Lex {
         #[command(flatten)]
         io_args: IoArgs,
         #[arg(value_enum, long, default_value = "yaml")]
@@ -288,6 +296,17 @@ impl Command {
                     Format::Yaml => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
+            Command::Lex { format, .. } => {
+                let s = sources.sources.values().exactly_one().or_else(|_| {
+                    // TODO: allow multiple sources
+                    bail!("Currently `lex` only works with a single source, but found multiple sources")
+                })?;
+                let tokens = prql_to_tokens(s)?;
+                match format {
+                    Format::Json => serde_json::to_string_pretty(&tokens)?.into_bytes(),
+                    Format::Yaml => serde_yaml::to_string(&tokens)?.into_bytes(),
+                }
+            }
             Command::Collect(_) => {
                 let mut root_module_def = prql_to_pl_tree(sources)?;
 
@@ -429,7 +448,7 @@ impl Command {
                 }
             }
 
-            _ => unreachable!(),
+            _ => unreachable!("Other commands shouldn't reach `execute`"),
         })
     }
 
@@ -438,11 +457,10 @@ impl Command {
         // `input`, rather than matching on them and grabbing `input` from
         // `self`? But possibly if everything moves to `io_args`, then this is
         // quite reasonable?
-        use Command::{
-            Collect, Debug, Experimental, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
-        };
+        use Command::*;
         let io_args = match self {
             Parse { io_args, .. }
+            | Lex { io_args, .. }
             | Collect(io_args)
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
@@ -481,10 +499,11 @@ impl Command {
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
         use Command::{
-            Collect, Debug, Experimental, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
+            Collect, Debug, Experimental, Lex, Parse, Resolve, SQLAnchor, SQLCompile, SQLPreprocess,
         };
         let mut output = match self {
             Parse { io_args, .. }
+            | Lex { io_args, .. }
             | Collect(io_args)
             | Resolve { io_args, .. }
             | SQLCompile { io_args, .. }
@@ -813,6 +832,44 @@ sort full
           - Sort:
             - direction: Asc
               column: 2
+        "###);
+    }
+
+    #[test]
+    fn lex() {
+        let output = Command::execute(
+            &Command::Lex {
+                io_args: IoArgs::default(),
+                format: Format::Yaml,
+            },
+            &mut "from x | select y".into(),
+            "",
+        )
+        .unwrap();
+
+        // TODO: terser output; maybe serialize span as `0..4`? Remove the
+        // `!Ident` complication?
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - kind: !Ident from
+          span:
+            start: 0
+            end: 4
+        - kind: !Ident x
+          span:
+            start: 5
+            end: 6
+        - kind: !Control '|'
+          span:
+            start: 7
+            end: 8
+        - kind: !Ident select
+          span:
+            start: 9
+            end: 15
+        - kind: !Ident y
+          span:
+            start: 16
+            end: 17
         "###);
     }
 }

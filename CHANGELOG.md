@@ -9,6 +9,7 @@
 - Initial implementation of an experimental documentation generator that
   generates Markdown documentation from `.prql` files. (@vanillajonathan,
   #4152).
+- Add `prqlc lex` command to the CLI (@max-sixty)
 
 **Fixes**:
 

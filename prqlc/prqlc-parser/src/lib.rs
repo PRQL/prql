@@ -10,13 +10,12 @@ mod types;
 use chumsky::error::SimpleReason;
 use chumsky::{prelude::*, Stream};
 
-use prqlc_ast::error::Reason;
-use prqlc_ast::error::{Error, WithErrorInfo};
+use prqlc_ast::error::{Error, Reason, WithErrorInfo};
 use prqlc_ast::stmt::*;
 use prqlc_ast::Span;
 
-use lexer::TokenKind;
-use lexer::{Token, TokenVec};
+use lexer::Token;
+pub use lexer::{TokenKind, TokenVec};
 use span::ParserSpan;
 
 /// Build PRQL AST from a PRQL query string.
