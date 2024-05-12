@@ -2,10 +2,9 @@ use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 use prqlc_parser::{Token, TokenKind, TokenVec};
-
-use crate::ast::*;
 use regex::Regex;
 
+use crate::ast::*;
 use crate::codegen::SeparatedExprs;
 
 use super::{WriteOpt, WriteSource};
@@ -364,8 +363,13 @@ pub fn write_ident_part(s: &str) -> String {
     }
 }
 
-/// Find a comment before a span. If there's exactly one newline, then the
-/// comment is included; otherwise it's included after the current line.
+// impl WriteSource for ModuleDef {
+//     fn write(&self, mut opt: WriteOpt) -> Option<String> {
+//         codegen::WriteSource::write(&pl.stmts, codegen::WriteOpt::default()).unwrap()
+//     }}
+
+/// Find a comment before a span. If there's exactly one newline prior, then the
+/// comment is included here. Any furthur above are included with the prior token.
 fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
     // index of the span in the token vec
     let index = tokens
@@ -387,7 +391,6 @@ fn find_comment_before(span: Span, tokens: &TokenVec) -> Option<TokenKind> {
 /// Find a comment after a span. If there's exactly one newline, then the
 /// comment is included; otherwise it's included after the current line.
 fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
-    let mut out = vec![];
     // index of the span in the token vec
     let index = tokens
         .0
@@ -396,9 +399,9 @@ fn find_comments_after(span: Span, tokens: &TokenVec) -> Vec<Token> {
         // .position(|t| t.1.start == span.start && t.1.end == span.end)
         .position(|t| t.span.end == span.end)
         .unwrap_or_else(|| panic!("{:?}, {:?}", &tokens, &span));
-    // dbg!(index, span, &tokens);
+
+    let mut out = vec![];
     for token in tokens.0.iter().skip(index + 1) {
-        // match dbg!(token).kind {
         match token.kind {
             TokenKind::NewLine | TokenKind::Comment(_) => out.push(token.clone()),
             _ => break,
@@ -555,7 +558,8 @@ impl WriteSource for SwitchCase {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_snapshot;
+    use insta::{assert_debug_snapshot, assert_snapshot};
+    use prqlc_parser::lex_source;
 
     use super::*;
 
@@ -577,29 +581,60 @@ mod test {
     }
 
     #[test]
-    fn test_find_comments_after() {
-        use insta::assert_debug_snapshot;
-        let tokens = prqlc_parser::lex_source(
+    fn test_find_comment_before() {
+        let tokens = lex_source(
             r#"
-        let a = 5  # comment
-        "#,
+            # comment
+            let a = 5
+            "#,
         )
         .unwrap();
-
-        // This is the `5`
-        let span = Span {
-            start: 17,
-            end: 18,
-            source_id: 0,
-        };
-
-        let comment = find_comments_after(span, &tokens);
+        let span = tokens
+            .clone()
+            .0
+            .iter()
+            .find(|t| t.kind == TokenKind::Keyword("let".to_string()))
+            .unwrap()
+            .span
+            .clone();
+        let comment = find_comment_before(span.into(), &tokens);
         assert_debug_snapshot!(comment, @r###"
-    [
-        20..29: Comment(" comment"),
-        29..30: NewLine,
-    ]
-    "###);
+        Some(
+            Comment(
+                " comment",
+            ),
+        )
+        "###);
+    }
+
+    #[test]
+    fn test_find_comments_after() {
+        let tokens = lex_source(
+            r#"
+            let a = 5 # on side
+            # below
+            # and another
+            "#,
+        )
+        .unwrap();
+        let span = dbg!(tokens.clone())
+            .0
+            .iter()
+            .find(|t| t.kind == TokenKind::Literal(Literal::Integer(5)))
+            .unwrap()
+            .span
+            .clone();
+        let comment = find_comments_after(span.into(), &tokens);
+        assert_debug_snapshot!(comment, @r###"
+        [
+            23..32: Comment(" on side"),
+            32..33: NewLine,
+            45..52: Comment(" below"),
+            52..53: NewLine,
+            65..78: Comment(" and another"),
+            78..79: NewLine,
+        ]
+        "###);
     }
 
     #[test]

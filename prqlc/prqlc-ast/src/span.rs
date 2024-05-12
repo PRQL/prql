@@ -17,6 +17,15 @@ impl From<Span> for Range<usize> {
         a.start..a.end
     }
 }
+impl From<Range<usize>> for Span {
+    fn from(range: Range<usize>) -> Self {
+        Span {
+            start: range.start,
+            end: range.end,
+            source_id: 0, // Default value as Range<usize> does not provide a source_id
+        }
+    }
+}
 
 impl Debug for Span {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

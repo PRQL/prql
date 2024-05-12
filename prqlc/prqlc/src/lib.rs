@@ -389,17 +389,29 @@ fn test_format_prql() {
     "###);
 
     assert_snapshot!(format_prql( r#"
+        from employees 
         # test comment
-        from db.employees # inline comment
+        select {name}
+        "#
+    ).unwrap(), @r###"
+    from employees
+     # test comment
+
+    # test comment
+    select {name}
+    "###);
+
+    assert_snapshot!(format_prql( r#"
+        # test comment
+        from employees # inline comment
         # another test comment
-        select {name, age}"#
+        select {name}"#
     ).unwrap(), @r###"
     # test comment
-    from db.employees # inline comment
-     # another test comment
+    from employees # inline comment
 
     # another test comment
-    select {name, age}
+    select {name}
     "###);
 }
 
