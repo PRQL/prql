@@ -8,9 +8,9 @@ info:
     - powershell
   env:
     CLICOLOR_FORCE: ""
-    RUST_LOG: ""
-    RUST_BACKTRACE: ""
     NO_COLOR: "1"
+    RUST_BACKTRACE: ""
+    RUST_LOG: ""
 ---
 success: true
 exit_code: 0
@@ -44,6 +44,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             [CompletionResult]::new('-V', 'V ', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('--version', 'version', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
+            [CompletionResult]::new('lex', 'lex', [CompletionResultType]::ParameterValue, 'Lex into Tokens')
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
             [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
@@ -59,6 +60,13 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;parse' {
+            [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
+            [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'prqlc;lex' {
             [CompletionResult]::new('--format', 'format', [CompletionResultType]::ParameterName, 'format')
             [CompletionResult]::new('--color', 'color', [CompletionResultType]::ParameterName, 'Controls when to use color')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
@@ -223,6 +231,7 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
         }
         'prqlc;help' {
             [CompletionResult]::new('parse', 'parse', [CompletionResultType]::ParameterValue, 'Parse into PL AST')
+            [CompletionResult]::new('lex', 'lex', [CompletionResultType]::ParameterValue, 'Lex into Tokens')
             [CompletionResult]::new('fmt', 'fmt', [CompletionResultType]::ParameterValue, 'Parse & generate PRQL code back')
             [CompletionResult]::new('collect', 'collect', [CompletionResultType]::ParameterValue, 'Parse the whole project and collect it into a single PRQL source file')
             [CompletionResult]::new('debug', 'debug', [CompletionResultType]::ParameterValue, 'Commands for meant for debugging, prone to change')
@@ -238,6 +247,9 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
             break
         }
         'prqlc;help;parse' {
+            break
+        }
+        'prqlc;help;lex' {
             break
         }
         'prqlc;help;fmt' {
@@ -307,4 +319,3 @@ Register-ArgumentCompleter -Native -CommandName 'prqlc' -ScriptBlock {
 }
 
 ----- stderr -----
-

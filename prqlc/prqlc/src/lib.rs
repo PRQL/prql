@@ -113,6 +113,7 @@ pub static COMPILER_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid prqlc version number"));
 
 use once_cell::sync::Lazy;
+use prqlc_parser::TokenVec;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
@@ -305,6 +306,16 @@ pub enum DisplayOptions {
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]
 pub struct ReadmeDoctests;
+
+/// Lex PRQL source into tokens.
+pub fn prql_to_tokens(prql: &str) -> Result<TokenVec, ErrorMessages> {
+    prqlc_parser::lex_source(prql).map_err(|e| {
+        e.into_iter()
+            .map(|e| e.into())
+            .collect::<Vec<ErrorMessage>>()
+            .into()
+    })
+}
 
 /// Parse PRQL into a PL AST
 // TODO: rename this to `prql_to_pl_simple`
