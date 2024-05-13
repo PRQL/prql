@@ -499,7 +499,7 @@ impl Lowerer {
         self.pipeline = prev_pipeline;
 
         transforms.push(Transform::Select(
-            self.flatten_tuple_fields_into_cids(&[id]),
+            self.flatten_tuple_fields_into_cids(&[id])?,
         ));
         let relation = rq::Relation {
             kind: rq::RelationKind::Pipeline(transforms),
@@ -567,7 +567,7 @@ impl Lowerer {
             },
             partition: if let Some(partition) = transform_call.partition {
                 let ids = self.lower_and_flatten_tuple(*partition, false)?;
-                self.flatten_tuple_fields_into_cids(&ids)
+                self.flatten_tuple_fields_into_cids(&ids)?
             } else {
                 vec![]
             },
@@ -599,7 +599,7 @@ impl Lowerer {
                 let partition = window.unwrap().partition;
                 self.pipeline.push(Transform::Aggregate {
                     partition,
-                    compute: self.flatten_tuple_fields_into_cids(&ids),
+                    compute: self.flatten_tuple_fields_into_cids(&ids)?,
                 });
 
                 Some(ids)
@@ -715,13 +715,15 @@ impl Lowerer {
         }
     }
 
-    fn flatten_tuple_fields_into_cids(&self, ids: &[usize]) -> Vec<CId> {
+    fn flatten_tuple_fields_into_cids(&self, ids: &[usize]) -> Result<Vec<CId>> {
         let mut cids = Vec::new();
         let mut ids_rev = ids.to_vec();
         ids_rev.reverse();
 
         while let Some(id) = ids_rev.pop() {
-            let target = self.node_mapping.get(&id).unwrap();
+            let target = self.node_mapping.get(&id).ok_or_else(|| {
+                Error::new_assert("not lowered yet").push_hint(format!("id={id}"))
+            })?;
 
             match target {
                 LoweredTarget::Column(cid) => cids.push(*cid),
@@ -731,11 +733,13 @@ impl Lowerer {
             }
         }
 
-        cids
+        Ok(cids)
     }
 
-    fn ensure_lowered(&mut self, expr_ast: pl::Expr, is_aggregation: bool) -> Result<()> {
-        let id = expr_ast.id.unwrap();
+    fn ensure_lowered(&mut self, mut expr_ast: pl::Expr, is_aggregation: bool) -> Result<()> {
+        let id = self.get_id(&mut expr_ast);
+        let expr_ast = expr_ast;
+
         // short-circuit if this node has already been lowered
         if self.node_mapping.contains_key(&id) {
             return Ok(());
@@ -754,8 +758,8 @@ impl Lowerer {
             pl::ExprKind::Tuple(fields) => {
                 // tuple unpacking
                 let mut ids = Vec::new();
-                for field in fields {
-                    ids.push(field.id.unwrap());
+                for mut field in fields {
+                    ids.push(self.get_id(&mut field));
                     self.ensure_lowered(field, is_aggregation)?;
                 }
                 LoweredTarget::Relation(ids)
@@ -981,6 +985,23 @@ impl Lowerer {
         })?;
 
         Ok(target)
+    }
+
+    fn get_id(&mut self, expr: &mut pl::Expr) -> usize {
+        // This *should* throw an error, because resolver *should not* emit exprs without ids.
+        // But we do create new exprs in special_functions, so I guess it is fine to generate
+        // new ids here?
+        //
+        //     Error::new_assert("expression not resolved during lowering")
+        //         .push_hint(format!("expr = {expr:?}"))
+        //
+
+        if expr.id.is_none() {
+            let id = self.id.gen();
+            log::debug!("generated id {id}");
+            expr.id = Some(id);
+        }
+        expr.id.unwrap()
     }
 }
 

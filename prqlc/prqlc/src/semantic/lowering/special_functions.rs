@@ -197,10 +197,10 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
                     let start = restrict_null_literal(start);
                     let end = restrict_null_literal(end);
 
-                    let start = start.map(|s| new_binop(*value.clone(), &["std", "gte"], s));
-                    let end = end.map(|e| new_binop(*value, &["std", "lte"], e));
+                    let start = start.map(|s| new_binop(*value.clone(), "std.gte", s));
+                    let end = end.map(|e| new_binop(*value, "std.lte", e));
 
-                    let res = maybe_binop(start, &["std", "and"], end);
+                    let res = maybe_binop(start, "std.and", end);
                     let res =
                         res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
                     return Ok(res);
@@ -226,7 +226,7 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
 
             let mut res = None;
             for item in list {
-                res = maybe_binop(res, &["std", "and"], Some(item));
+                res = maybe_binop(res, "std.and", Some(item));
             }
             let res = res.unwrap_or_else(|| Expr::new(ExprKind::Literal(Literal::Boolean(true))));
 
@@ -271,7 +271,7 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
             let list = list.kind.into_tuple().unwrap();
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
-            let res = maybe_binop(Some(a), &["std", "eq"], Some(b)).unwrap();
+            let res = maybe_binop(Some(a), "std.eq", Some(b)).unwrap();
             return Ok(res);
         }
 
@@ -401,6 +401,20 @@ fn into_literal_range(range: (Expr, Expr)) -> Result<(Option<i64>, Option<i64>)>
 fn unpack<const P: usize>(func_args: Vec<Expr>) -> [Box<Expr>; P] {
     let boxed = func_args.into_iter().map(Box::new).collect_vec();
     boxed.try_into().expect("bad special function cast")
+}
+
+fn maybe_binop(left: Option<Expr>, op_name: &str, right: Option<Expr>) -> Option<Expr> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(new_binop(left, op_name, right)),
+        (left, right) => left.or(right),
+    }
+}
+
+fn new_binop(left: Expr, op_name: &str, right: Expr) -> Expr {
+    Expr::new(ExprKind::RqOperator {
+        name: op_name.to_string(),
+        args: vec![left, right],
+    })
 }
 
 mod from_text {

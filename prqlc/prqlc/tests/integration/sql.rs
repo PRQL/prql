@@ -1152,7 +1152,6 @@ fn test_numbers() {
 }
 
 #[test]
-#[ignore]
 fn test_ranges() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -3960,7 +3959,6 @@ fn test_closures_and_pipelines() {
 }
 
 #[test]
-#[ignore]
 fn test_basic_agg() {
     assert_snapshot!(compile(r#"
     from db.employees
