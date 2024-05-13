@@ -32,10 +32,27 @@ fn help() {
       help              Print this message or the help of the given subcommand(s)
 
     Options:
-          --color <WHEN>  Controls when to use color [default: auto] [possible values: auto, always,
-                          never]
-      -h, --help          Print help
-      -V, --version       Print version
+          --color <WHEN>
+              Controls when to use color
+              
+              [default: auto]
+              [possible values: auto, always, never]
+
+      -v, --verbose...
+              More v's, More vebose logging:
+              -v shows warnings
+              -vv shows info
+              -vvv shows debug
+              -vvvv shows trace
+
+      -q, --quiet...
+              Silences logging output
+
+      -h, --help
+              Print help (see a summary with '-h')
+
+      -V, --version
+              Print version
 
     ----- stderr -----
     "###);
@@ -122,6 +139,16 @@ fn compile_help() {
               
               [default: auto]
               [possible values: auto, always, never]
+
+      -v, --verbose...
+              More v's, More vebose logging:
+              -v shows warnings
+              -vv shows info
+              -vvv shows debug
+              -vvvv shows trace
+
+      -q, --quiet...
+              Silences logging output
 
       -h, --help
               Print help (see a summary with '-h')
