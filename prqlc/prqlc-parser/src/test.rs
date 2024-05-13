@@ -1,10 +1,10 @@
 #![cfg(test)]
 
+use crate::ast::expr::*;
+use crate::ast::stmt::*;
+use crate::err::error::*;
 use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 use itertools::Itertools;
-use prqlc_ast::error::*;
-use prqlc_ast::expr::*;
-use prqlc_ast::stmt::*;
 
 /// Helper that does not track source_ids
 fn parse_single(source: &str) -> Result<Vec<Stmt>, Vec<Error>> {

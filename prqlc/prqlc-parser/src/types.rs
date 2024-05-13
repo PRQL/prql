@@ -1,6 +1,7 @@
 use chumsky::prelude::*;
 
-use prqlc_ast::*;
+use crate::ast::*;
+use crate::err::parse_error::PError;
 
 use crate::expr::ident;
 

@@ -12,11 +12,15 @@ version.workspace = true
 doctest = false
 
 [dependencies]
-itertools = {workspace = true}
 prqlc-ast = {path = "../prqlc-ast", version = "0.11.5" }
-semver = {version = "1.0.23"}
 serde = {workspace = true}
 serde_yaml = {workspace = true, optional = true}
+enum-as-inner = "0.6.0"
+semver = {version = "1.0.22", features = ["serde"]}
+strum = {version = "0.26.2", features = ["std", "derive"]}
+itertools = {workspace = true}
+log = {workspace = true}
+
 
 # Chumsky's default features have issues when running in wasm (though we only
 # see it when compiling on macOS), so we only include features when running
@@ -27,6 +31,8 @@ chumsky = "0.9.2"
 stacker = "0.1.15"
 [target.'cfg(target_family="wasm")'.dependencies]
 chumsky = {version = "0.9.2", features = ["ahash", "std"], default-features = false}
+
+
 
 [dev-dependencies]
 insta = {workspace = true}

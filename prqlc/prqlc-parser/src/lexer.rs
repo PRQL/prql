@@ -4,7 +4,7 @@ use chumsky::{
     text::{newline, Character},
 };
 
-use prqlc_ast::expr::*;
+use crate::ast::expr::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]

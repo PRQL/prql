@@ -12,7 +12,8 @@ use std::collections::HashMap;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::{Span, Ty};
+use crate::span::Span;
+use crate::Ty;
 
 impl Expr {
     pub fn new<K: Into<ExprKind>>(kind: K) -> Self {

@@ -1,5 +1,5 @@
+use crate::ast::Ident;
 use enum_as_inner::EnumAsInner;
-use prqlc_ast::Ident;
 use serde::{Deserialize, Serialize};
 
 pub use crate::ast::stmt::QueryDef;

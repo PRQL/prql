@@ -1,30 +1,88 @@
-use chumsky::{error::Cheap, prelude::*};
+use chumsky::prelude::*;
 use itertools::Itertools;
-use prqlc_ast::expr::*;
 
-use crate::Span;
+use crate::ast::expr::*;
+use crate::ast::Literal;
+use crate::ast::{string_stream, Span};
+use crate::err::parse_error::{ChumError, PError};
+use crate::lexer::TokenKind;
 
-use super::common::{into_expr, PError};
-use super::lexer::*;
-use super::span::ParserSpan;
+use super::common::into_expr;
 
 /// Parses interpolated strings
-pub fn parse(string: String, span_base: ParserSpan) -> Result<Vec<InterpolateItem>, Vec<PError>> {
-    let res = parser(span_base).parse(string);
+pub fn parse(string: String, span_base: Span) -> Result<Vec<InterpolateItem>, Vec<PError>> {
+    let prepped_stream = string_stream(string, span_base);
+
+    let res = interpolated_parser().parse(prepped_stream);
 
     match res {
-        Ok(items) => Ok(items),
+        Ok(items) => {
+            log::trace!("interpolated string ok: {:?}", items);
+            Ok(items)
+        }
         Err(errors) => Err(errors
             .into_iter()
-            .map(|err| Simple::expected_input_found(offset_span(span_base, err.span()), None, None))
+            .map(|err| {
+                log::debug!("interpolated string error (lex inside parse): {:?}", err);
+                err.map(|c| TokenKind::Literal(Literal::String(c.to_string())))
+            })
             .collect_vec()),
     }
+}
+
+fn interpolated_parser() -> impl Parser<char, Vec<InterpolateItem>, Error = ChumError<char>> {
+    let expr = interpolate_ident_part()
+        .map_with_span(move |name, s| (name, s))
+        .separated_by(just('.'))
+        .at_least(1)
+        .map(|ident_parts| {
+            let mut parts = ident_parts.into_iter();
+
+            let (first, first_span) = parts.next().unwrap();
+            let mut base = Box::new(into_expr(ExprKind::Ident(first), first_span));
+
+            for (part, span) in parts {
+                let field = IndirectionKind::Name(part);
+                base = Box::new(into_expr(ExprKind::Indirection { base, field }, span));
+            }
+            base
+        })
+        .labelled("interpolated string variable")
+        .then(
+            just(':')
+                .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                .or_not(),
+        )
+        .delimited_by(just('{'), just('}'))
+        .map(|(expr, format)| InterpolateItem::Expr { expr, format });
+
+    // Convert double braces to single braces, and fail on any single braces.
+    let string = just("{{")
+        .to('{')
+        .or(just("}}").to('}'))
+        .or(none_of("{}"))
+        .repeated()
+        .at_least(1)
+        .collect::<String>()
+        .map(InterpolateItem::String);
+
+    expr.or(string).repeated().then_ignore(end())
+}
+
+pub fn interpolate_ident_part() -> impl Parser<char, String, Error = ChumError<char>> + Clone {
+    let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
+        .chain(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
+        .labelled("interpolated string");
+
+    let backticks = none_of('`').repeated().delimited_by(just('`'), just('`'));
+
+    plain.or(backticks.labelled("interp:backticks")).collect()
 }
 
 #[test]
 fn parse_interpolate() {
     use insta::assert_debug_snapshot;
-    let span_base = ParserSpan::new(0, 0..0);
+    let span_base = Span::new(0, 0..0);
 
     assert_debug_snapshot!(
         parse("concat({a})".to_string(), span_base).unwrap(),
@@ -95,49 +153,4 @@ fn parse_interpolate() {
         ),
     ]
     "###);
-}
-
-fn parser(span_base: ParserSpan) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
-    let expr = ident_part()
-        .map_with_span(move |name, s| (name, offset_span(span_base, s)))
-        .separated_by(just('.'))
-        .at_least(1)
-        .map(|ident_parts| {
-            let mut parts = ident_parts.into_iter();
-
-            let (first, first_span) = parts.next().unwrap();
-            let mut base = Box::new(into_expr(ExprKind::Ident(first), first_span));
-
-            for (part, span) in parts {
-                let field = IndirectionKind::Name(part);
-                base = Box::new(into_expr(ExprKind::Indirection { base, field }, span));
-            }
-            base
-        })
-        .then(
-            just(':')
-                .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
-                .or_not(),
-        )
-        .delimited_by(just('{'), just('}'))
-        .map(|(expr, format)| InterpolateItem::Expr { expr, format });
-
-    // Convert double braces to single braces, and fail on any single braces.
-    let string = (just("{{").to('{'))
-        .or(just("}}").to('}'))
-        .or(none_of("{}"))
-        .repeated()
-        .at_least(1)
-        .collect::<String>()
-        .map(InterpolateItem::String);
-
-    expr.or(string).repeated().then_ignore(end())
-}
-
-fn offset_span(base: ParserSpan, range: std::ops::Range<usize>) -> ParserSpan {
-    ParserSpan(Span {
-        start: base.0.start + range.start,
-        end: base.0.start + range.end,
-        source_id: base.0.source_id,
-    })
 }
