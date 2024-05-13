@@ -237,9 +237,8 @@ module date {
 }
 
 ## File-reading functions, primarily for DuckDB
-let read_parquet = source<text> -> internal std.read_parquet
-let read_csv = source<text> -> internal std.read_csv
-
+let read_parquet = func <R: {}> source<text> -> <[R]> internal std.read_parquet
+# let read_csv = func <R: {}> source<text> -> <[R]> internal std.read_csv
 
 ## PRQL compiler functions
 module `prql` {

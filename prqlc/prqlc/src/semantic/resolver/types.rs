@@ -23,7 +23,10 @@ impl Resolver<'_> {
     pub fn fold_type_actual(&mut self, ty: Ty) -> Result<Ty> {
         Ok(match ty.kind {
             TyKind::Ident(ident) => {
-                let decl = self.get_ident(&ident, true).unwrap();
+                let decl = self.get_ident(&ident, true).ok_or_else(|| {
+                    Error::new_assert("cannot find type ident")
+                        .push_hint(format!("ident={ident:?}"))
+                })?;
 
                 let mut fold_again = false;
                 let ty = match &decl.kind {

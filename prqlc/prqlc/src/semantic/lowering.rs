@@ -254,31 +254,31 @@ impl Lowerer {
                 // });
 
                 // return an instance of this new table
-                // self.create_a_table_instance(id, None, tid)
+                // self.create_table_instance(id, None, tid)
             }
-            pl::ExprKind::RqOperator { .. } => {
-                todo!();
-
-                // let id = expr.id.unwrap();
-
+            pl::ExprKind::RqOperator { name, args } => {
                 // create a new table
-                // let tid = self.tid.gen();
+                let id = expr.id.unwrap();
+                let tid = self.tid.gen();
 
                 // lower the expr
-                // let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
-                // let relation = rq::Relation {
-                //     kind: rq::RelationKind::BuiltInFunction { name, args },
-                //     columns: tuple_fields_to_relation_columns(vec![]),
-                // };
+                let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
 
-                // self.table_buffer.push(TableDecl {
-                //     id: tid,
-                //     name: None,
-                //     relation,
-                // });
+                let relation_fields = expr.ty.unwrap().into_relation().unwrap();
+                let columns = self.ty_tuple_to_relation_columns(relation_fields, None)?;
+                let relation = rq::Relation {
+                    kind: rq::RelationKind::BuiltInFunction { name, args },
+                    columns,
+                };
 
-                // // return an instance of this new table
-                // self.create_a_table_instance(id, None, tid)
+                self.table_buffer.push(TableDecl {
+                    id: tid,
+                    name: None,
+                    relation,
+                });
+
+                // return an instance of this new table
+                self.create_table_instance(id, None, tid)
             }
 
             pl::ExprKind::Array(_) => {
@@ -328,7 +328,7 @@ impl Lowerer {
                 });
 
                 // return an instance of this new table
-                self.create_a_table_instance(id, None, tid)
+                self.create_table_instance(id, None, tid)
                  */
             }
 

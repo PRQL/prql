@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use prqlc_ast::GenericTypeParam;
+use prqlc_ast::{GenericTypeParam, TyKind};
 use std::collections::HashMap;
 
 use crate::ast::{Ty, TyFunc};
@@ -20,15 +20,14 @@ impl Resolver<'_> {
         // prepare generic arguments
         let mut scope = scope::Scope::new();
         for generic_param in &func.generic_type_params {
-            // TODO: fold bounds
-            // let domain: Vec<Ty> = generic_param
-            //     .bounds
-            //     .iter()
-            //     .map(|t| self.fold_type(t.clone()))
-            //     .try_collect()?;
+            let bound: Option<Ty> = generic_param
+                .bound
+                .clone()
+                .map(|b| self.fold_type(b))
+                .transpose()?;
 
             // register the generic type param in the resolver
-            let generic = Decl::from(DeclKind::GenericParam(None));
+            let generic = Decl::from(DeclKind::GenericParam(bound.map(|b| (b, None))));
             scope.generics.insert(generic_param.name.clone(), generic);
         }
         self.scopes.push(scope);
@@ -66,15 +65,11 @@ impl Resolver<'_> {
                 let inferred_type = inferred_generic.kind.into_generic_param().unwrap();
 
                 match inferred_type {
-                    Some((inferred_type, _))
-                        if !inferred_type
-                            .kind
-                            .as_tuple()
-                            .map_or(false, |fields| fields.iter().any(|f| f.is_unpack())) =>
-                    {
+                    Some((inferred_type, _)) if !inferred_type.kind.is_tuple() => {
                         // The bounds of this generic type param restrict it to a single type.
                         // In other words: we have enough information to conclude that this param can only be one specific type.
                         // So we can finalize it to that type and inline any references to the param.
+                        log::debug!("finalizing generic param {}", gtp.name);
 
                         finalized_args.insert(
                             Ident::from_path(vec![NS_LOCAL, NS_GENERIC, &gtp.name]),
@@ -168,17 +163,7 @@ impl Resolver<'_> {
             return Ok(*expr_of_func_application(fn_app, *fn_ty.return_ty, span));
         }
 
-        // push generic type args
-        for generic_param in &fn_ty.generic_type_params {
-            // register the generic type param in the resolver
-            let generic_ident = Ident::from_path(vec![
-                NS_GENERIC.to_string(),
-                fn_app.func.id.unwrap().to_string(),
-                generic_param.name.clone(),
-            ]);
-            let generic = Decl::from(DeclKind::GenericParam(None));
-            self.root_mod.module.insert(generic_ident, generic).unwrap();
-        }
+        self.init_function_generic_args(&fn_ty, fn_app.func.id.unwrap());
 
         log::debug!("resolving args of function {}", metadata.as_debug_name());
         let res = self.resolve_function_args(fn_app, &metadata)?;
@@ -255,6 +240,33 @@ impl Resolver<'_> {
         }
 
         res
+    }
+
+    fn init_function_generic_args(&mut self, fn_ty: &TyFunc, func_id: usize) {
+        for generic_param in &fn_ty.generic_type_params {
+            // register the generic type param in the resolver
+            let generic_ident = Ident::from_path(vec![
+                NS_GENERIC.to_string(),
+                func_id.to_string(),
+                generic_param.name.clone(),
+            ]);
+
+            let candidate = generic_param.bound.clone().map(|mut b| {
+                if let TyKind::Tuple(fields) = &mut b.kind {
+                    // bounds that are tuples mean "a tuple with at least these fields"
+                    // so we need a global generic to track information about the other fields
+
+                    let generic = self.init_new_global_generic();
+                    let generic = Ty::new(TyKind::Ident(generic));
+                    fields.push(prqlc_ast::TyTupleField::Unpack(Some(generic)));
+                }
+
+                (b, None)
+            });
+
+            let generic = Decl::from(DeclKind::GenericParam(candidate));
+            self.root_mod.module.insert(generic_ident, generic).unwrap();
+        }
     }
 
     fn finalize_function_generic_args(&mut self, fn_ty: &TyFunc, func_id: usize) -> Result<()> {

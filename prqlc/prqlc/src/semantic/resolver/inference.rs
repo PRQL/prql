@@ -10,7 +10,7 @@ use crate::{Error, Result, Span};
 use super::Resolver;
 
 impl Resolver<'_> {
-    fn init_new_global_generic(&mut self) -> Ident {
+    pub fn init_new_global_generic(&mut self) -> Ident {
         let a_unique_number = self.id.gen();
         let param_name = format!("G{a_unique_number}");
         let ident = Ident::from_path(vec![NS_GENERIC.to_string(), param_name]);

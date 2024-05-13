@@ -4612,7 +4612,6 @@ fn test_1535() {
 }
 
 #[test]
-#[ignore]
 fn test_read_parquet_duckdb() {
     assert_snapshot!(compile(r#"
     std.read_parquet 'x.parquet'
