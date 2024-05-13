@@ -80,7 +80,7 @@ let filter = func <T>
 let derive = func <I, A>
   assigns <A>
   tbl <[I]>
-  -> <[{I, A}]> internal derive
+  -> <[{I, ..A}]> internal derive
 
 @(coerce_tuple 0)
 @(implicit_closure 0 this:1)
@@ -115,7 +115,7 @@ let group = func <I, B, PO>
   by<B>
   pipeline <func [I - B] -> [PO]>
   tbl <[I]>
-  -> <[{..B, ..PO}]> internal group
+  -> <[{B, ..PO}]> internal group
 
 let window = func
   rows:0..-1

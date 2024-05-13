@@ -66,6 +66,23 @@ pub fn type_expr() -> impl Parser<TokenKind, Ty, Error = PError> {
             ],
             |_| vec![],
         ))
+        .try_map(|fields, span| {
+            let without_last = &fields[0..fields.len().saturating_sub(1)];
+
+            if let Some(unpack) = without_last.iter().find_map(|f| f.as_unpack()) {
+                let span = unpack
+                    .as_ref()
+                    .and_then(|s| s.span)
+                    .map(ParserSpan)
+                    .unwrap_or(span);
+                return Err(PError::custom(
+                    span,
+                    "unpacking must come after all other fields",
+                ));
+            }
+
+            Ok(fields)
+        })
         .map(TyKind::Tuple)
         .labelled("tuple");
 

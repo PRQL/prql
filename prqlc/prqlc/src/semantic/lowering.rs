@@ -825,9 +825,9 @@ impl Lowerer {
                     .with_span(expr.span)?
                     .clone();
 
-                let cid = target
-                    .into_column()
-                    .expect("lower_expr to refer to columns only");
+                let cid = target.into_column().map_err(|_| {
+                    Error::new_assert("lower_expr to refer to columns only").with_span(span)
+                })?;
                 rq::ExprKind::ColumnRef(cid)
             }
 

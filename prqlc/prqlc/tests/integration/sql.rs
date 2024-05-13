@@ -306,6 +306,10 @@ fn test_precedence_01() {
 #[test]
 #[ignore]
 fn test_precedence_02() {
+    // needs to change behavior: don't allow references to previous assignments in tuples
+    //   temp_c cannot be referred to from assignment to temp_f
+    //   this implies that db.x contains a column temp_c too.
+
     assert_snapshot!((compile(r###"
     from db.x
     derive {
@@ -4583,7 +4587,6 @@ fn test_lower() {
 }
 
 #[test]
-#[ignore]
 fn test_upper() {
     assert_snapshot!(compile(r#"
     from db.test_tables
