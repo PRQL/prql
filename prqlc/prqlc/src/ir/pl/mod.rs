@@ -37,7 +37,6 @@ pub fn print_mem_sizes() {
     println!("{:16}= {}", "decl::DeclKind", size_of::<decl::DeclKind>());
     println!("{:16}= {}", "decl::Module", size_of::<decl::Module>());
     println!("{:16}= {}", "decl::TableDecl", size_of::<decl::TableDecl>());
-    println!("{:16}= {}", "decl::TableExpr", size_of::<decl::TableExpr>());
     println!("{:16}= {}", "ErrorMessage", size_of::<ErrorMessage>());
     println!("{:16}= {}", "ErrorMessages", size_of::<ErrorMessages>());
     println!("{:16}= {}", "ExprKind", size_of::<ExprKind>());

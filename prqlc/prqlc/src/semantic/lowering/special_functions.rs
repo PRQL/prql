@@ -617,8 +617,8 @@ mod tests {
         )
         .unwrap();
         let (res, _) = ctx.find_main_rel(&[]).unwrap().clone();
-        let expr = res.clone().into_relation_var().unwrap();
-        let expr = crate::semantic::resolver::test::erase_ids(*expr);
+        let expr = res.clone();
+        let expr = crate::semantic::resolver::test::erase_ids(expr);
         assert_yaml_snapshot!(expr);
     }
 

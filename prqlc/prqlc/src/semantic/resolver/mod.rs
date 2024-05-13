@@ -82,7 +82,7 @@ pub(in crate::semantic) mod test {
     fn parse_and_resolve(query: &str) -> Result<Expr, Errors> {
         let ctx = crate::semantic::test::parse_and_resolve(query)?;
         let (main, _) = ctx.find_main_rel(&[]).unwrap();
-        Ok(*main.clone().into_relation_var().unwrap())
+        Ok(main.clone())
     }
 
     fn resolve_lineage(query: &str) -> Result<Ty, Errors> {

@@ -11,7 +11,7 @@ use itertools::Itertools;
 
 use crate::ast::generic::{InterpolateItem, Range, SwitchCase};
 use crate::ast::{TyKind, TyTupleField};
-use crate::ir::decl::{self, DeclKind, Module, RootModule, TableExpr};
+use crate::ir::decl::{DeclKind, Module, RootModule};
 use crate::ir::generic::{ColumnSort, WindowFrame};
 use crate::ir::pl::{self, FuncApplication, Ident, PlFold, QueryDef};
 use crate::ir::rq::{self, CId, RelationColumn, RelationalQuery, TId, TableDecl, Transform};
@@ -156,24 +156,18 @@ impl Lowerer {
         }
     }
 
-    fn lower_table_decl(&mut self, table: decl::TableDecl, fq_ident: Ident) -> Result<()> {
-        let decl::TableDecl { ty, expr } = table;
+    fn lower_table_decl(&mut self, expr: pl::Expr, fq_ident: Ident) -> Result<()> {
+        let columns = expr.ty.clone().unwrap().into_relation().unwrap();
 
-        // TODO: can this panic?
-        let columns = ty.unwrap().into_relation().unwrap();
+        let (relation, name) = if let pl::ExprKind::Param(_) = &expr.kind {
+            self.extern_ref_to_relation(columns, &fq_ident)?
+        } else {
+            let expr = inline::Inliner::run(&self.root_mod, expr);
+            let expr = flatten::Flattener::run(expr)?;
 
-        let (relation, name) = match expr {
-            TableExpr::RelationVar(expr) => {
-                let expr = inline::Inliner::run(&self.root_mod, *expr);
-                let expr = flatten::Flattener::run(expr)?;
+            log::debug!("lowering: {:#?}", expr);
 
-                log::debug!("lowering: {:#?}", expr);
-
-                (self.lower_relation(expr)?, Some(fq_ident.name.clone()))
-            }
-            TableExpr::LocalTable => self.extern_ref_to_relation(columns, &fq_ident)?,
-            TableExpr::Param(_) => unreachable!(),
-            TableExpr::None => return Ok(()),
+            (self.lower_relation(expr)?, Some(fq_ident.name.clone()))
         };
 
         let id = *self
@@ -1057,12 +1051,12 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
 struct TableExtractor {
     path: Vec<String>,
 
-    tables: Vec<(Ident, (decl::TableDecl, Option<usize>))>,
+    tables: Vec<(Ident, (pl::Expr, Option<usize>))>,
 }
 
 impl TableExtractor {
     /// Finds table declarations in a module, recursively.
-    fn extract(root_module: &Module) -> Vec<(Ident, (decl::TableDecl, Option<usize>))> {
+    fn extract(root_module: &Module) -> Vec<(Ident, (pl::Expr, Option<usize>))> {
         let mut te = TableExtractor::default();
         te.extract_from_module(root_module);
         te.tables
@@ -1077,10 +1071,10 @@ impl TableExtractor {
                 DeclKind::Module(ns) => {
                     self.extract_from_module(ns);
                 }
-                DeclKind::TableDecl(table) => {
+                DeclKind::Expr(expr) if expr.ty.as_ref().unwrap().is_relation() => {
                     let fq_ident = Ident::from_path(self.path.clone());
                     self.tables
-                        .push((fq_ident, (table.clone(), entry.declared_at)));
+                        .push((fq_ident, (*expr.clone(), entry.declared_at)));
                 }
                 _ => {}
             }
@@ -1093,18 +1087,14 @@ impl TableExtractor {
 /// are not needed for the main pipeline. To do this, it needs to collect references
 /// between pipelines.
 fn toposort_tables(
-    tables: Vec<(Ident, (decl::TableDecl, Option<usize>))>,
+    tables: Vec<(Ident, (pl::Expr, Option<usize>))>,
     main_table: &Ident,
-) -> Vec<(Ident, (decl::TableDecl, Option<usize>))> {
+) -> Vec<(Ident, (pl::Expr, Option<usize>))> {
     let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
 
     let mut dependencies: Vec<(Ident, Vec<Ident>)> = Vec::new();
     for (ident, table) in &tables {
-        let deps = if let TableExpr::RelationVar(e) = &table.0.expr {
-            TableDepsCollector::collect(*e.clone())
-        } else {
-            vec![]
-        };
+        let deps = TableDepsCollector::collect(table.0.clone());
 
         dependencies.push((ident.clone(), deps));
     }

@@ -2,7 +2,7 @@ use prqlc_ast::error::WithErrorInfo;
 
 use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
-use crate::ir::decl::{Decl, DeclKind, TableDecl};
+use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::IndirectionKind;
 use crate::semantic::NS_GENERIC;
 use crate::{Error, Result, Span};
@@ -107,14 +107,5 @@ impl Resolver<'_> {
 
         *inferred_type = Some((ty, span));
         Ok(())
-    }
-
-    /// Converts a identifier that points to a table declaration to lineage of that table.
-    pub fn ty_of_table_decl(&mut self, table_fq: &Ident) -> Ty {
-        let table_decl = self.root_mod.module.get(table_fq).unwrap();
-        let TableDecl { ty, .. } = table_decl.kind.as_table_decl().unwrap();
-
-        ty.clone()
-            .expect("a referenced relation to have its type resolved")
     }
 }

@@ -511,19 +511,6 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
                 stmts: restrict_module(module).stmts,
             })
         }
-        decl::DeclKind::TableDecl(table_decl) => StmtKind::VarDef(VarDef {
-            kind: VarDefKind::Let,
-            name: name.clone(),
-            value: Some(Box::new(match table_decl.expr {
-                decl::TableExpr::RelationVar(expr) => restrict_expr(*expr),
-                decl::TableExpr::LocalTable => Expr::new(ExprKind::Internal("local_table".into())),
-                decl::TableExpr::None => {
-                    Expr::new(ExprKind::Internal("literal_tracker".to_string()))
-                }
-                decl::TableExpr::Param(id) => Expr::new(ExprKind::Param(id)),
-            })),
-            ty: table_decl.ty,
-        }),
 
         decl::DeclKind::Variable(_) => new_internal_stmt(name, "_variable".into()),
         decl::DeclKind::TupleField => new_internal_stmt(name, "_tuple_field".into()),

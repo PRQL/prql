@@ -67,9 +67,6 @@ pub enum DeclKind {
     /// Nested namespaces that do lookup in layers from top to bottom, stopping at first match.
     LayeredModules(Vec<Module>),
 
-    // TODO: merge this into Expr
-    TableDecl(TableDecl),
-
     /// A function parameter (usually the implicit `this` param)
     // TODO: make this type non-optional
     Variable(Option<Ty>),
@@ -116,19 +113,7 @@ pub struct TableDecl {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, EnumAsInner)]
-pub enum TableExpr {
-    /// In SQL, this is a CTE
-    RelationVar(Box<Expr>),
-
-    /// Actual table in a database. In SQL it can be referred to by name.
-    LocalTable,
-
-    /// No expression (this decl just tracks a relation literal).
-    None,
-
-    /// A placeholder for a relation that will be provided later.
-    Param(String),
-}
+pub enum TableExpr {}
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TableColumn {
@@ -204,13 +189,6 @@ impl std::fmt::Display for DeclKind {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDecl(TableDecl { ty, expr }) => {
-                write!(
-                    f,
-                    "TableDecl: {} {expr:?}",
-                    ty.as_ref().map(write_ty).unwrap_or_default()
-                )
-            }
             Self::Variable(Some(arg0)) => {
                 write!(f, "Variable of type {}", write_ty(arg0))
             }

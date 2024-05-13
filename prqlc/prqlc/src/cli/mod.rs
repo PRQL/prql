@@ -351,7 +351,7 @@ impl Command {
                 let ctx = semantic::resolve(root_mod, Default::default())?;
 
                 let frames = if let Ok((main, _)) = ctx.find_main_rel(&[]) {
-                    collect_frames(*main.clone().into_relation_var().unwrap())
+                    collect_frames(main.clone())
                 } else {
                     vec![]
                 };

@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use crate::ast::QueryDef;
-use crate::ast::{Span, Ty, TyTupleField};
+use crate::ast::Span;
 use crate::Result;
 
-use crate::ir::pl::Ident;
+use crate::ir::pl::{Expr, Ident};
 use crate::Error;
 
 use super::{NS_DEFAULT_DB, NS_INFER, NS_MAIN, NS_QUERY_DEF, NS_STD};
-use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule, TableDecl, TableExpr};
+use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule};
 
 impl Module {
     pub fn singleton<S: ToString>(name: S, entry: Decl) -> Module {
@@ -31,13 +31,6 @@ impl Module {
             ]),
             shadowed: None,
             redirects: vec![],
-        }
-    }
-
-    pub fn new_table() -> TableDecl {
-        TableDecl {
-            ty: Some(Ty::relation(vec![TyTupleField::Unpack(None)])),
-            expr: TableExpr::LocalTable,
         }
     }
 
@@ -237,7 +230,7 @@ type HintAndSpan = (Option<String>, Option<Span>);
 impl RootModule {
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
-    pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), HintAndSpan> {
+    pub fn find_main_rel(&self, path: &[String]) -> Result<(&Expr, Ident), HintAndSpan> {
         let (decl, ident) = self.find_main(path).map_err(|x| (x, None))?;
 
         let span = decl
@@ -245,10 +238,11 @@ impl RootModule {
             .and_then(|id| self.span_map.get(&id))
             .cloned();
 
-        let decl = (decl.kind.as_table_decl())
+        let decl = (decl.kind.as_expr())
+            .filter(|e| e.ty.as_ref().unwrap().is_relation())
             .ok_or((Some(format!("{ident} is not a relational variable")), span))?;
 
-        Ok((&decl.expr, ident))
+        Ok((decl.as_ref(), ident))
     }
 
     pub fn find_main(&self, path: &[String]) -> Result<(&Decl, Ident), Option<String>> {

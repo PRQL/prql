@@ -90,16 +90,6 @@ impl PlFold for super::Resolver<'_> {
                             // Expr::new(ExprKind::Ident(Ident::from_path(ident.path)))
                         }
 
-                        DeclKind::TableDecl(_) => {
-                            let ty = self.ty_of_table_decl(&ident);
-
-                            Expr {
-                                kind: ExprKind::Ident(ident),
-                                ty: Some(ty),
-                                ..node
-                            }
-                        }
-
                         DeclKind::Expr(expr) => {
                             // keep as ident, but pull in the type
                             let ty = expr.ty.clone().unwrap();

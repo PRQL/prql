@@ -3,7 +3,7 @@ use std::ops::Range;
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use crate::ast::Ty;
-use crate::ir::decl::{DeclKind, Module, RootModule, TableDecl, TableExpr};
+use crate::ir::decl::{DeclKind, Module, RootModule};
 use crate::ir::pl::*;
 use crate::{Result, Span};
 
@@ -40,11 +40,7 @@ struct Labeler<'a> {
 impl<'a> Labeler<'a> {
     fn label_module(&mut self, module: &Module) {
         for (_, decl) in module.names.iter() {
-            if let DeclKind::TableDecl(TableDecl {
-                expr: TableExpr::RelationVar(expr),
-                ..
-            }) = &decl.kind
-            {
+            if let DeclKind::Expr(expr) = &decl.kind {
                 self.fold_expr(*expr.clone()).unwrap();
             }
         }
@@ -78,7 +74,6 @@ impl<'a> PlFold for Labeler<'a> {
                         DeclKind::GenericParam(_) => Color::Green,
                         DeclKind::Variable { .. } => Color::Yellow,
                         DeclKind::TupleField => Color::Yellow,
-                        DeclKind::TableDecl { .. } => Color::Red,
                         DeclKind::Module(module) => {
                             self.label_module(module);
 
@@ -96,16 +91,7 @@ impl<'a> PlFold for Labeler<'a> {
                         .and_then(|id| self.get_span_lines(id))
                         .unwrap_or_default();
 
-                    let decl = match &decl.kind {
-                        DeclKind::TableDecl(TableDecl { ty, .. }) => {
-                            format!(
-                                "table {}",
-                                ty.as_ref().and_then(|t| t.name.clone()).unwrap_or_default()
-                            )
-                        }
-                        _ => decl.to_string(),
-                    };
-
+                    let decl = decl.to_string();
                     (format!("{decl}{location}"), color)
                 } else if let Some(decl_id) = node.target_id {
                     let lines = self.get_span_lines(decl_id).unwrap_or_default();

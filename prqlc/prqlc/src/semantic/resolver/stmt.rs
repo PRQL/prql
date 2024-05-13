@@ -1,5 +1,5 @@
 use crate::ast::{Ty, TyKind};
-use crate::ir::decl::{DeclKind, TableDecl, TableExpr};
+use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::NS_STD;
 use crate::Result;
@@ -43,25 +43,13 @@ impl super::Resolver<'_> {
                             self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
                         }
 
-                        prepare_expr_decl(def_value)
+                        DeclKind::Expr(def_value)
                     }
                     None => {
-                        // var value is not provided
-
-                        // is this a relation?
-                        if expected_ty.as_ref().map_or(false, |t| t.is_relation()) {
-                            // treat this var as a TableDecl
-                            DeclKind::TableDecl(TableDecl {
-                                ty: expected_ty,
-                                expr: TableExpr::LocalTable,
-                            })
-                        } else {
-                            // treat this var as a param
-                            let mut expr =
-                                Box::new(Expr::new(ExprKind::Param(fq_ident.name.clone())));
-                            expr.ty = expected_ty;
-                            DeclKind::Expr(expr)
-                        }
+                        // var value is not provided: treat this var as a param
+                        let mut expr = Box::new(Expr::new(ExprKind::Param(fq_ident.name.clone())));
+                        expr.ty = expected_ty;
+                        DeclKind::Expr(expr)
                     }
                 };
             }
@@ -88,16 +76,5 @@ impl super::Resolver<'_> {
             module.unwrap().names.insert(fq_ident.name, decl);
         }
         Ok(())
-    }
-}
-
-fn prepare_expr_decl(value: Box<Expr>) -> DeclKind {
-    if value.ty.as_ref().map_or(false, |t| t.is_relation()) {
-        let ty = value.ty.clone();
-        let expr = TableExpr::RelationVar(value);
-
-        DeclKind::TableDecl(TableDecl { ty, expr })
-    } else {
-        DeclKind::Expr(value)
     }
 }

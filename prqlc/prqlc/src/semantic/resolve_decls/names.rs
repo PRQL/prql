@@ -419,10 +419,10 @@ impl<'a> ModuleLookup<'a> {
             let relation = ast::Ty::relation(vec![ast::TyTupleField::Unpack(Some(generic_param))]);
 
             // create the table decl
-            decl::Decl::from(decl::DeclKind::TableDecl(decl::TableDecl {
+            decl::Decl::from(decl::DeclKind::Expr(Box::new(pl::Expr {
                 ty: Some(relation),
-                expr: decl::TableExpr::LocalTable,
-            }))
+                ..pl::Expr::new(pl::ExprKind::Param("".to_string()))
+            })))
         } else {
             // infer a database module
             Decl::from(DeclKind::Module(decl::Module::new_database()))
