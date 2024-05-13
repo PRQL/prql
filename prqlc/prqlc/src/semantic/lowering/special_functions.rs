@@ -329,7 +329,10 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
 
         "prql_version" => {
             let ver = COMPILER_VERSION.to_string();
-            return Ok(Expr::new(ExprKind::Literal(Literal::String(ver))));
+            return Ok(Expr {
+                kind: ExprKind::Literal(Literal::String(ver)),
+                ..expr
+            });
         }
 
         "count" | "row_number" => {

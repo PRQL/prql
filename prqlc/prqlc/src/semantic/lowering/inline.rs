@@ -17,11 +17,15 @@ impl<'a> Inliner<'a> {
         i.fold_expr(expr).unwrap()
     }
 
+    fn lookup_expr(&self, fq_ident: &Ident) -> Option<&Expr> {
+        let decl = self.root_mod.module.get(fq_ident)?;
+        let expr_decl = decl.kind.as_expr()?;
+        Some(expr_decl)
+    }
+
     fn lookup_func(&self, ident: &Expr) -> Option<(Ident, &Func)> {
         let fq_ident = ident.kind.as_ident()?;
-
-        let func_decl = self.root_mod.module.get(fq_ident).unwrap();
-        let func_decl = func_decl.kind.as_expr()?;
+        let func_decl = self.lookup_expr(fq_ident)?;
         let func = func_decl.kind.as_func()?;
         Some((fq_ident.clone(), func))
     }
@@ -47,6 +51,20 @@ impl<'a> PlFold for Inliner<'a> {
                     // function a relational expression?
                     // it is gonna error out in lowering so we might as well do it earlier
                     ExprKind::FuncApplication(FuncApplication { func, args })
+                }
+            }
+            ExprKind::Ident(fq_ident) => {
+                if let Some(expr) = self.lookup_expr(&fq_ident) {
+                    if let ExprKind::Internal(internal) = &expr.kind {
+                        ExprKind::RqOperator {
+                            name: internal.clone(),
+                            args: vec![],
+                        }
+                    } else {
+                        ExprKind::Ident(fq_ident)
+                    }
+                } else {
+                    ExprKind::Ident(fq_ident)
                 }
             }
             k => fold_expr_kind(self, k)?,

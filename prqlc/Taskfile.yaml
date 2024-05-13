@@ -63,7 +63,7 @@ tasks:
 
       - cmd: |
           echo -e '\n=======\nrunning just ignored tests, to see if any of them passes'
-          cargo nextest run --package prqlc --test=integration --run-ignored=ignored-only --success-output=never --failure-output=never --status-level=none --final-status-level=none -- sql::
+          cargo nextest run --package prqlc --test=integration --run-ignored=ignored-only --success-output=never --failure-output=never --status-level=pass --final-status-level=none -- sql::
 
   test:
     desc: |

@@ -54,7 +54,6 @@ fn test_stdlib() {
 }
 
 #[test]
-#[ignore]
 fn test_stdlib_math_module() {
     assert_snapshot!(compile(r#"
     from db.employees
@@ -105,7 +104,6 @@ fn test_stdlib_math_module() {
 }
 
 #[test]
-#[ignore]
 fn test_stdlib_math_module_mssql() {
     assert_snapshot!(compile(r#"
   prql target:sql.mssql
@@ -4348,7 +4346,6 @@ fn test_header_target_error() {
 }
 
 #[test]
-#[ignore]
 fn prql_version() {
     assert_snapshot!(compile(r#"
     from db.x

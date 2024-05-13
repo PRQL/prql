@@ -184,7 +184,7 @@ module math {
   let abs = column -> <int> internal std.math.abs
   let floor = column -> <int> internal std.math.floor
   let ceil = column -> <int> internal std.math.ceil
-  let pi = -> <float> internal std.math.pi
+  let pi <float> = internal std.math.pi
   let exp = column -> <int> internal std.math.exp
   let ln = column -> <int> internal std.math.ln
   let log10 = column -> <int> internal std.math.log10
@@ -243,8 +243,8 @@ let read_csv = source<text> -> internal std.read_csv
 
 ## PRQL compiler functions
 module `prql` {
-  let version = -> <text> internal prql_version
+  let version <text> = internal prql_version
 }
 
 # Deprecated, will be removed in 0.12.0
-let prql_version = -> <text> internal prql_version
+let prql_version <text> = internal prql_version

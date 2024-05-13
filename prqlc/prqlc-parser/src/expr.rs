@@ -24,6 +24,11 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let ident_kind = ident_part().map(ExprKind::Ident);
 
+        let internal = keyword("internal")
+            .ignore_then(ident())
+            .map(|x| x.to_string())
+            .map(ExprKind::Internal);
+
         let nested_expr = pipeline(lambda_func(expr.clone()).or(func_call(expr.clone()))).boxed();
 
         let tuple = ident_part()
@@ -121,6 +126,7 @@ pub fn expr() -> impl Parser<TokenKind, Expr, Error = PError> + Clone {
 
         let term = choice((
             literal,
+            internal,
             tuple,
             array,
             interpolation,
@@ -347,12 +353,6 @@ where
         .then(ctrl(':').ignore_then(expr.clone().map(Box::new)).or_not())
         .boxed();
 
-    let internal = keyword("internal")
-        .ignore_then(ident())
-        .map(|x| x.to_string())
-        .map(ExprKind::Internal)
-        .map_with_span(into_expr);
-
     let generic_args = ident_part()
         .then(ctrl(':').ignore_then(type_expr()).or_not())
         .map(|(name, bound)| GenericTypeParam { name, bound })
@@ -372,13 +372,16 @@ where
                 .allow_trailing(),
         ),
         // plain
-        param.repeated().map(|params| (Vec::new(), params)),
+        param
+            .repeated()
+            .at_least(1)
+            .map(|params| (Vec::new(), params)),
     ))
     .then_ignore(just(TokenKind::ArrowThin))
     // return type
     .then(type_expr().delimited_by(ctrl('<'), ctrl('>')).or_not())
     // body
-    .then(choice((internal, func_call(expr))))
+    .then(func_call(expr))
     .map(|(((generic_type_params, params), return_ty), body)| {
         let (pos, name) = params
             .into_iter()
