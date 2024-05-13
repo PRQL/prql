@@ -2,7 +2,7 @@ use prqlc_ast::error::WithErrorInfo;
 
 use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
-use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, TableDecl, TableExpr};
+use crate::ir::decl::{Decl, DeclKind, InferTarget, TableDecl};
 use crate::ir::pl::IndirectionKind;
 use crate::semantic::NS_GENERIC;
 use crate::{Error, Result, Span};
@@ -17,24 +17,8 @@ impl Resolver<'_> {
 
         // prepare the new declaration
         let new_decl = match infer_target {
-            InferTarget::DatabaseModule => Decl::from(DeclKind::Module(Module::new_database())),
-            InferTarget::Table => {
-                // TODO: move this inference into the first pass (resolve_decl)
-
-                // generate a new global generic type argument
-                let ident = self.init_new_global_generic();
-
-                // prepare the table type
-                let generic_param = Ty::new(TyKind::Ident(ident));
-                let relation = Ty::relation(vec![TyTupleField::Unpack(Some(generic_param))]);
-
-                // create the table decl
-                Decl::from(DeclKind::TableDecl(TableDecl {
-                    ty: Some(relation),
-                    expr: TableExpr::LocalTable,
-                }))
-            }
             InferTarget::TupleField { .. } => Decl::from(DeclKind::TupleField),
+            _ => unreachable!(),
         };
 
         // find the module to insert into
@@ -65,8 +49,8 @@ impl Resolver<'_> {
     ///
     /// Contract:
     /// - ident must be fq ident of a generic type param,
-    /// - generic candidate either not exist yet or be a tuple,
-    /// - generic candidate tuple must already contain the indirection target.
+    /// - generic candidate either must not exist yet or be a tuple,
+    /// - if it is a tuple, it must already contain the indirection target.
     pub fn infer_tuple_field_of_generic(
         &mut self,
         ident_of_generic: &Ident,

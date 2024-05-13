@@ -3,9 +3,7 @@ use std::collections::HashSet;
 use crate::ast::{Ident, Ty};
 use crate::codegen;
 use crate::ir::decl::DeclKind;
-use crate::semantic::{
-    NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_PARAM, NS_SELF, NS_THAT, NS_THIS,
-};
+use crate::semantic::{NS_GENERIC, NS_INFER, NS_LOCAL, NS_PARAM, NS_SELF, NS_THAT, NS_THIS};
 use crate::{Error, Result, WithErrorInfo};
 
 use super::Resolver;
@@ -90,7 +88,7 @@ impl Resolver<'_> {
         }
     }
 
-    /// Try lookup of the ident with name replaced. If unsuccessful, recursively retry parent ident.
+    /// Try lookup of the ident with name replaced.
     fn resolve_ident_fallback(
         &mut self,
         ident: &Ident,
@@ -99,17 +97,7 @@ impl Resolver<'_> {
         let infer_ident = ident.clone().with_name(name_replacement);
 
         // lookup of infer_ident
-        let mut decls = self.root_mod.module.lookup(&infer_ident);
-
-        if decls.is_empty() {
-            if let Some(parent) = infer_ident.clone().pop() {
-                // try to infer parent
-                let _ = self.resolve_ident_fallback(&parent, NS_INFER_MODULE)?;
-
-                // module was successfully inferred, retry the lookup
-                decls = self.root_mod.module.lookup(&infer_ident)
-            }
-        }
+        let decls = self.root_mod.module.lookup(&infer_ident);
 
         match decls.len() {
             1 => {

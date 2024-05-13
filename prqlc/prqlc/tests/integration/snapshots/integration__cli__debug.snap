@@ -42,42 +42,7 @@ Module {
                         "_infer": Decl {
                             declared_at: None,
                             kind: Infer(
-                                TableDecl(
-                                    TableDecl {
-                                        ty: Some(
-                                            Ty {
-                                                kind: Array(
-                                                    Ty {
-                                                        kind: Tuple(
-                                                            [
-                                                                Wildcard(
-                                                                    None,
-                                                                ),
-                                                            ],
-                                                        ),
-                                                        span: None,
-                                                        name: None,
-                                                    },
-                                                ),
-                                                span: None,
-                                                name: None,
-                                            },
-                                        ),
-                                        expr: LocalTable,
-                                    },
-                                ),
-                            ),
-                            order: 0,
-                            annotations: [],
-                        },
-                        "_infer_module": Decl {
-                            declared_at: None,
-                            kind: Infer(
-                                Module(
-                                    Module {
-                                        names: {},
-                                    },
-                                ),
+                                InferTarget::Table
                             ),
                             order: 0,
                             annotations: [],

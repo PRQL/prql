@@ -1,8 +1,9 @@
 use itertools::Itertools;
 
-use crate::ir::decl;
+use crate::ir::decl::{self, Decl, DeclKind, InferTarget};
 use crate::ir::pl::{self, ImportDef, PlFold};
-use crate::semantic::{NS_DEFAULT_DB, NS_INFER, NS_LOCAL, NS_STD, NS_THIS};
+use crate::semantic::{NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_LOCAL, NS_STD, NS_THIS};
+use crate::utils::IdGenerator;
 use crate::{ast, utils, Error};
 use crate::{Result, WithErrorInfo};
 
@@ -15,6 +16,7 @@ pub fn resolve_decl_refs(root: &mut decl::RootModule) -> Result<Vec<pl::Ident>> 
     let refs = {
         let mut r = ModuleRefResolver {
             root,
+            generic_name: IdGenerator::new(),
             refs: Default::default(),
             current_path: Vec::new(),
         };
@@ -46,6 +48,7 @@ pub fn resolve_decl_refs(root: &mut decl::RootModule) -> Result<Vec<pl::Ident>> 
 /// Collects references of each declaration.
 struct ModuleRefResolver<'a> {
     root: &'a mut decl::RootModule,
+    generic_name: IdGenerator<usize>,
     current_path: Vec<String>,
 
     // TODO: maybe make these ids, instead of Ident?
@@ -86,6 +89,7 @@ impl ModuleRefResolver<'_> {
             path.push(name);
             let mut r = NameResolver {
                 root: self.root,
+                generic_name: &mut self.generic_name,
                 decl_module_path: &path[0..(path.len() - 1)],
                 refs: Vec::new(),
             };
@@ -117,7 +121,8 @@ impl ModuleRefResolver<'_> {
 
 /// Traverses AST and resolves all global (non-local) identifiers.
 struct NameResolver<'a> {
-    root: &'a decl::RootModule,
+    root: &'a mut decl::RootModule,
+    generic_name: &'a mut IdGenerator<usize>,
     decl_module_path: &'a [String],
     refs: Vec<pl::Ident>,
 }
@@ -309,7 +314,7 @@ impl NameResolver<'_> {
         };
         let mod_decl = mod_path
             .as_ref()
-            .and_then(|p| self.root.module.get_submodule(p));
+            .and_then(|p| self.root.module.get_submodule_mut(p));
 
         // let decl = find_lookup_base(&self.root.module, self.decl_module_path, name);
         Ok(if let Some(module) = mod_decl {
@@ -318,7 +323,9 @@ impl NameResolver<'_> {
 
             // now find the decl within that module
             if let Some(ident_within) = ident.pop_front().1 {
-                let (path, indirections) = lookup_within_module(module, ident_within)?;
+                let mut module_lookup = ModuleLookup::new(self.generic_name);
+
+                let (path, indirections) = module_lookup.run(module, ident_within)?;
 
                 // prepend the ident with the module path
                 // this will make this ident a fully-qualified ident
@@ -327,6 +334,7 @@ impl NameResolver<'_> {
 
                 self.refs.push(ast::Ident::from_path(fq_ident.clone()));
 
+                module_lookup.finish(self.root);
                 (fq_ident, indirections)
             } else {
                 // there is no inner ident - we return the fq path to the module
@@ -342,35 +350,108 @@ impl NameResolver<'_> {
     }
 }
 
-fn lookup_within_module(
-    module: &decl::Module,
-    ident_within: ast::Ident,
-) -> Result<(Vec<String>, Vec<String>)> {
-    let mut steps = ident_within.into_iter().collect_vec();
+struct ModuleLookup<'a> {
+    generic_name: &'a mut IdGenerator<usize>,
 
-    let mut module = module;
-    for i in 0..steps.len() {
-        match module.names.get(&steps[i]) {
-            Some(decl) => match &decl.kind {
-                decl::DeclKind::Module(inner) => {
-                    module = inner;
-                }
-                _ => {
-                    let indirections = steps.drain((i + 1)..).collect_vec();
-                    return Ok((steps, indirections));
-                }
-            },
-            _ => {
-                if module.names.contains_key(NS_INFER) {
-                    // declaration was not found, but this module can infer declarations
-                    return Ok((steps, vec![]));
-                } else {
-                    // declaration not found
-                    return Err(Error::new_simple(format!("`{}` does not exist", steps[i])));
-                }
-            }
-        };
+    generated_generics: Vec<(String, Decl)>,
+}
+
+impl<'a> ModuleLookup<'a> {
+    fn new(generic_name: &'a mut IdGenerator<usize>) -> Self {
+        ModuleLookup {
+            generic_name,
+            generated_generics: Vec::new(),
+        }
     }
 
-    Err(Error::new_simple("direct references modules not allowed"))
+    fn run(
+        &mut self,
+        module: &mut decl::Module,
+        ident_within: ast::Ident,
+    ) -> Result<(Vec<String>, Vec<String>)> {
+        let mut steps = ident_within.into_iter().collect_vec();
+
+        let mut module = module;
+        for i in 0..steps.len() {
+            let is_last = i == steps.len() - 1;
+
+            let decl = self.run_step(module, &steps[i], is_last)?;
+            if let decl::DeclKind::Module(inner) = &mut decl.kind {
+                module = inner;
+                continue;
+            } else {
+                // we've found a declaration that is not a module:
+                // this and preceding steps are identifier, steps following are indirections
+                let indirections = steps.drain((i + 1)..).collect_vec();
+                return Ok((steps, indirections));
+            }
+        }
+
+        Err(Error::new_simple("direct references modules not allowed"))
+    }
+
+    fn run_step<'m>(
+        &mut self,
+        module: &'m mut decl::Module,
+        step: &str,
+        is_last: bool,
+    ) -> Result<&'m mut decl::Decl> {
+        if module.names.contains_key(step) {
+            return Ok(module.names.get_mut(step).unwrap());
+        }
+
+        let infer_decl = module.names.get(NS_INFER);
+        let can_infer_tables = infer_decl
+            .and_then(|i| i.kind.as_infer())
+            .map_or(false, |i| matches!(i, InferTarget::Table));
+        if !can_infer_tables {
+            return Err(Error::new_simple(format!("`{}` does not exist", step)));
+        }
+
+        let decl = if is_last {
+            // infer a table
+
+            // generate a new global generic type argument
+            let ident = self.init_new_global_generic();
+
+            // prepare the table type
+            let generic_param = ast::Ty::new(ast::TyKind::Ident(ident));
+            let relation = ast::Ty::relation(vec![ast::TyTupleField::Unpack(Some(generic_param))]);
+
+            // create the table decl
+            decl::Decl::from(decl::DeclKind::TableDecl(decl::TableDecl {
+                ty: Some(relation),
+                expr: decl::TableExpr::LocalTable,
+            }))
+        } else {
+            // infer a database module
+            Decl::from(DeclKind::Module(decl::Module::new_database()))
+        };
+
+        module.names.insert(step.to_string(), decl);
+        Ok(module.names.get_mut(step).unwrap())
+    }
+
+    fn init_new_global_generic(&mut self) -> ast::Ident {
+        let a_unique_number = self.generic_name.gen();
+        let param_name = format!("T{a_unique_number}");
+        let ident = ast::Ident::from_path(vec![NS_GENERIC, &param_name]);
+        let decl = Decl::from(DeclKind::GenericParam(None));
+
+        self.generated_generics.push((param_name, decl));
+        ident
+    }
+
+    fn finish(self, root: &mut decl::RootModule) {
+        let generic_mod = root
+            .module
+            .names
+            .entry(NS_GENERIC.to_string())
+            .or_insert_with(|| decl::Decl::from(decl::DeclKind::Module(decl::Module::default())));
+        let generic_mod = generic_mod.kind.as_module_mut().unwrap();
+
+        for (name, decl) in self.generated_generics {
+            generic_mod.names.insert(name, decl);
+        }
+    }
 }

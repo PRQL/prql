@@ -13,7 +13,7 @@ fn resolve(prql_source: &str) -> Result<String, ErrorMessages> {
     let mut root_module = prqlc::semantic::ast_expand::restrict_module(root_module.module);
     drop_irrelevant_stuff(
         &mut root_module.stmts,
-        &["std", "_local", "_infer", "_infer_module", "_generic"],
+        &["std", "_local", "_infer", "_generic"],
     );
 
     prqlc::pl_to_prql(&root_module)

@@ -52,7 +52,9 @@ tasks:
       - cmd: cargo clippy --all-targets {{.packages_core}}
 
   test-sql:
-    desc: A test used to bring feat-indirection back into the "green check-mark world"
+    desc:
+      A test used to bring feat-indirection back into the "green check-mark
+      world"
     cmds:
       - cmd: |
           INSTA_FORCE_PASS=1 cargo nextest run --package prqlc --test=integration -- sql::

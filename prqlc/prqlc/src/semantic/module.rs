@@ -8,8 +8,8 @@ use crate::ir::pl::{Expr, Ident};
 use crate::Error;
 
 use super::{
-    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_INFER_MODULE, NS_LOCAL, NS_MAIN, NS_PARAM,
-    NS_QUERY_DEF, NS_SELF, NS_STD, NS_THAT, NS_THIS,
+    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_LOCAL, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
+    NS_STD, NS_THAT, NS_THIS,
 };
 use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule, TableDecl, TableExpr};
 
@@ -58,16 +58,10 @@ impl Module {
     }
 
     pub fn new_database() -> Module {
-        let names = HashMap::from([
-            (
-                NS_INFER.to_string(),
-                Decl::from(DeclKind::Infer(InferTarget::Table)),
-            ),
-            (
-                NS_INFER_MODULE.to_string(),
-                Decl::from(DeclKind::Infer(InferTarget::DatabaseModule)),
-            ),
-        ]);
+        let names = HashMap::from([(
+            NS_INFER.to_string(),
+            Decl::from(DeclKind::Infer(InferTarget::Table)),
+        )]);
         Module {
             names,
             ..Default::default()

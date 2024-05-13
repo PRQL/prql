@@ -101,7 +101,6 @@ pub enum DeclKind {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum InferTarget {
-    DatabaseModule,
     Table,
     TupleField,
 }
