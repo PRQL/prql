@@ -4,7 +4,7 @@ use prqlc_ast::error::WithErrorInfo;
 
 use crate::ir::decl::RootModule;
 use crate::ir::pl::*;
-use crate::semantic::{NS_LOCAL, NS_PARAM};
+use crate::semantic::NS_LOCAL;
 use crate::{Error, Result};
 
 pub struct Inliner<'a> {
@@ -104,8 +104,8 @@ impl PlFold for FuncInliner<'_> {
                     );
                 }
 
-                if fq_ident.starts_with_path(&[NS_LOCAL, NS_PARAM]) {
-                    assert_eq!(fq_ident.path.len(), 2);
+                if fq_ident.starts_with_path(&[NS_LOCAL]) {
+                    assert_eq!(fq_ident.len(), 2);
                     let param_name = fq_ident.name;
 
                     let param = self.param_args.get(param_name.as_str()).unwrap();

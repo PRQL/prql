@@ -4,7 +4,8 @@ use crate::ast::{Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
-use crate::semantic::{NS_LOCAL, NS_SELF, NS_STD, NS_THIS};
+use crate::semantic::resolver::scope::LookupResult;
+use crate::semantic::{NS_LOCAL, NS_STD, NS_THIS};
 use crate::{Error, Result, Span, WithErrorInfo};
 
 impl PlFold for super::Resolver<'_> {
@@ -44,105 +45,94 @@ impl PlFold for super::Resolver<'_> {
 
         let r = match node.kind {
             ExprKind::Ident(ident) => {
-                let mut indirections = Vec::new();
-
                 log::debug!("resolving ident {ident:?}...");
-                let fq_ident = if ident.starts_with_part(NS_LOCAL) {
-                    // resolve first 2 parts as ident and convert all other into indirections
-                    let mut parts = ident.into_iter();
-                    let local = parts.next().unwrap();
-                    let name_for_lookup = parts.next().unwrap();
-                    indirections = parts.collect();
 
-                    let name_for_lookup = Ident::from_path(vec![local, name_for_lookup]);
-                    self.resolve_ident(&name_for_lookup).with_span(node.span)?
-                } else {
-                    self.resolve_ident(&ident).with_span(node.span)?
-                };
-                let log_debug = !fq_ident.starts_with_part(NS_STD);
-                if log_debug {
-                    log::debug!("... resolved to {fq_ident:?}")
-                }
-                let entry = self.root_mod.module.get(&fq_ident).unwrap();
-                if log_debug {
-                    log::debug!("... which is {entry}");
-                }
+                let result = self.lookup_ident(&ident, false).with_span(node.span)?;
 
-                // strip `._self` suffix
-                let fq_ident = if fq_ident.name == NS_SELF {
-                    fq_ident.pop().unwrap()
-                } else {
-                    fq_ident
-                };
+                if let LookupResult::Indirect {
+                    real_name,
+                    indirections,
+                } = result
+                {
+                    let mut ident = ident;
+                    ident.name = real_name;
 
-                let expr = match &entry.kind {
-                    DeclKind::Variable(ty) => Expr {
-                        kind: ExprKind::Ident(fq_ident),
-                        ty: ty.clone(),
+                    let mut expr = Expr {
+                        kind: ExprKind::Ident(ident),
                         ..node
-                    },
-
-                    DeclKind::TupleField => {
-                        indirections.push(fq_ident.name);
-                        Expr::new(ExprKind::Ident(Ident::from_path(fq_ident.path)))
-                    }
-
-                    DeclKind::TableDecl(_) => {
-                        let ty = self.ty_of_table_decl(&fq_ident);
-
-                        Expr {
-                            kind: ExprKind::Ident(fq_ident),
-                            ty: Some(ty),
-                            ..node
-                        }
-                    }
-
-                    DeclKind::Expr(expr) => {
-                        // keep as ident, but pull in the type
-                        let ty = expr.ty.clone().unwrap();
-
-                        // if the type contains generics, we need to instantiate those
-                        // generics into current function scope
-                        let ty = self.instantiate_type(ty, id);
-
-                        Expr {
-                            kind: ExprKind::Ident(fq_ident),
-                            ty: Some(ty),
-                            ..node
-                        }
-                    }
-
-                    DeclKind::Ty(_) => {
-                        return Err(Error::new_simple("expected a value, but found a type")
-                            .with_span(*span));
-                    }
-
-                    DeclKind::Infer(_) => unreachable!(),
-                    DeclKind::Unresolved(_) => {
-                        return Err(Error::new_assert(format!(
-                            "bad resolution order: unresolved {fq_ident} while resolving {}",
-                            self.debug_current_decl
-                        )));
-                    }
-
-                    _ => Expr {
-                        kind: ExprKind::Ident(fq_ident),
-                        ..node
-                    },
-                };
-
-                if !indirections.is_empty() {
-                    let mut expr = expr;
+                    };
                     for indirection in indirections {
                         expr = Expr::new(ExprKind::Indirection {
                             base: Box::new(expr),
-                            field: IndirectionKind::Name(indirection),
+                            field: indirection,
                         });
                     }
                     expr.flatten = node.flatten;
                     self.fold_expr(expr)?
                 } else {
-                    expr
+                    let decl = self.get_ident(&ident, false).unwrap();
+
+                    let log_debug = !ident.starts_with_part(NS_STD);
+                    if log_debug {
+                        log::debug!("... resolved to {decl}");
+                    }
+
+                    match &decl.kind {
+                        DeclKind::Variable(ty) => Expr {
+                            kind: ExprKind::Ident(ident),
+                            ty: ty.clone(),
+                            ..node
+                        },
+
+                        DeclKind::TupleField => {
+                            unimplemented!();
+                            // indirections.push(IndirectionKind::Name(ident.name));
+                            // Expr::new(ExprKind::Ident(Ident::from_path(ident.path)))
+                        }
+
+                        DeclKind::TableDecl(_) => {
+                            let ty = self.ty_of_table_decl(&ident);
+
+                            Expr {
+                                kind: ExprKind::Ident(ident),
+                                ty: Some(ty),
+                                ..node
+                            }
+                        }
+
+                        DeclKind::Expr(expr) => {
+                            // keep as ident, but pull in the type
+                            let ty = expr.ty.clone().unwrap();
+
+                            // if the type contains generics, we need to instantiate those
+                            // generics into current function scope
+                            let ty = self.instantiate_type(ty, id);
+
+                            Expr {
+                                kind: ExprKind::Ident(ident),
+                                ty: Some(ty),
+                                ..node
+                            }
+                        }
+
+                        DeclKind::Ty(_) => {
+                            return Err(Error::new_simple("expected a value, but found a type")
+                                .with_span(*span));
+                        }
+
+                        DeclKind::Infer(_) => unreachable!(),
+                        DeclKind::Unresolved(_) => {
+                            return Err(Error::new_assert(format!(
+                                "bad resolution order: unresolved {ident} while resolving {}",
+                                self.debug_current_decl
+                            )));
+                        }
+
+                        _ => Expr {
+                            kind: ExprKind::Ident(ident),
+                            ..node
+                        },
+                    }
                 }
             }
 

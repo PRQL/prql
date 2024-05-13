@@ -1,16 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::ast::QueryDef;
 use crate::ast::{Span, Ty, TyTupleField};
 use crate::Result;
 
-use crate::ir::pl::{Expr, Ident};
+use crate::ir::pl::Ident;
 use crate::Error;
 
-use super::{
-    NS_DEFAULT_DB, NS_GENERIC, NS_INFER, NS_LOCAL, NS_MAIN, NS_PARAM, NS_QUERY_DEF, NS_SELF,
-    NS_STD, NS_THAT, NS_THIS,
-};
+use super::{NS_DEFAULT_DB, NS_INFER, NS_MAIN, NS_QUERY_DEF, NS_STD};
 use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule, TableDecl, TableExpr};
 
 impl Module {
@@ -31,19 +28,6 @@ impl Module {
                     Decl::from(DeclKind::Module(Module::new_database())),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
-                (
-                    NS_LOCAL.to_string(),
-                    Decl::from(DeclKind::Module(Module {
-                        names: Default::default(),
-                        shadowed: None,
-                        redirects: vec![
-                            Ident::from_name(NS_THIS),
-                            Ident::from_name(NS_THAT),
-                            Ident::from_name(NS_PARAM),
-                            Ident::from_name(NS_GENERIC),
-                        ],
-                    })),
-                ),
             ]),
             shadowed: None,
             redirects: vec![],
@@ -166,114 +150,6 @@ impl Module {
         Some(res)
     }
 
-    pub fn lookup(&self, ident: &Ident) -> HashSet<Ident> {
-        fn lookup_in(module: &Module, ident: Ident) -> HashSet<Ident> {
-            let (prefix, ident) = ident.pop_front();
-
-            if let Some(ident) = ident {
-                if let Some(entry) = module.names.get(&prefix) {
-                    let redirected = match &entry.kind {
-                        DeclKind::Module(ns) => ns.lookup(&ident),
-                        DeclKind::LayeredModules(stack) => {
-                            let mut r = HashSet::new();
-                            for ns in stack.iter().rev() {
-                                r = ns.lookup(&ident);
-
-                                if !r.is_empty() {
-                                    break;
-                                }
-                            }
-                            r
-                        }
-                        _ => HashSet::new(),
-                    };
-
-                    return redirected
-                        .into_iter()
-                        .map(|i| Ident::from_name(&prefix) + i)
-                        .collect();
-                }
-            } else if let Some(decl) = module.names.get(&prefix) {
-                if let DeclKind::Module(inner) = &decl.kind {
-                    if inner.names.contains_key(NS_SELF) {
-                        return HashSet::from([Ident::from_path(vec![
-                            prefix,
-                            NS_SELF.to_string(),
-                        ])]);
-                    }
-                }
-
-                return HashSet::from([Ident::from_name(prefix)]);
-            }
-            HashSet::new()
-        }
-
-        log::trace!("lookup: {ident}");
-
-        let mut res = HashSet::new();
-
-        res.extend(lookup_in(self, ident.clone()));
-
-        for redirect in &self.redirects {
-            log::trace!("... following redirect {redirect}");
-            let r = lookup_in(self, redirect.clone() + ident.clone());
-            log::trace!("... result of redirect {redirect}: {r:?}");
-            res.extend(r);
-        }
-        res
-    }
-
-    pub(super) fn insert_frame(&mut self, ty: &Ty, namespace: &str) {
-        let namespace = self.names.entry(namespace.to_string()).or_default();
-        let namespace = namespace.kind.as_module_mut().unwrap();
-
-        let tuple_ty = ty.kind.as_array().unwrap();
-        let fields = tuple_ty.kind.as_tuple().unwrap();
-
-        for (field_index, field) in fields.iter().enumerate() {
-            match field {
-                TyTupleField::Single(Some(name), ..) => {
-                    let decl = Decl {
-                        kind: DeclKind::TupleField,
-                        declared_at: None,
-                        order: field_index + 1,
-                        ..Default::default()
-                    };
-                    namespace.names.insert(name.clone(), decl);
-                }
-
-                TyTupleField::Single(None, _) => {
-                    // unnamed columns cannot be referenced
-                }
-
-                TyTupleField::Unpack(_) => {
-                    let decl = Decl {
-                        kind: DeclKind::Infer(InferTarget::TupleField),
-                        declared_at: None,
-                        order: field_index + 1,
-                        ..Default::default()
-                    };
-                    namespace.names.insert(NS_INFER.to_string(), decl);
-                }
-            }
-        }
-
-        // insert namespace._self with correct type
-        namespace.names.insert(
-            NS_SELF.to_string(),
-            Decl::from(DeclKind::Variable(Some(*tuple_ty.clone()))),
-        );
-    }
-
-    #[allow(dead_code)]
-    pub(super) fn insert_frame_col(&mut self, namespace: &str, name: String) {
-        let namespace = self.names.entry(namespace.to_string()).or_default();
-        let namespace = namespace.kind.as_module_mut().unwrap();
-
-        let decl = Decl::from(DeclKind::TupleField);
-        namespace.names.insert(name, decl);
-    }
-
     pub fn shadow(&mut self, ident: &str) {
         let shadowed = self.names.remove(ident).map(Box::new);
         let entry = DeclKind::Module(Module {
@@ -290,47 +166,6 @@ impl Module {
             if let Some(shadowed) = ns.shadowed {
                 self.names.insert(ident.to_string(), *shadowed);
             }
-        }
-    }
-
-    pub fn stack_push(&mut self, ident: &str, namespace: Module) {
-        let entry = self
-            .names
-            .entry(ident.to_string())
-            .or_insert_with(|| DeclKind::LayeredModules(Vec::new()).into());
-        let stack = entry.kind.as_layered_modules_mut().unwrap();
-
-        stack.push(namespace);
-    }
-
-    pub fn stack_pop(&mut self, ident: &str) -> Option<Module> {
-        (self.names.get_mut(ident))
-            .and_then(|e| e.kind.as_layered_modules_mut())
-            .and_then(|stack| stack.pop())
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn into_exprs(self) -> HashMap<String, Expr> {
-        self.names
-            .into_iter()
-            .map(|(k, v)| (k, *v.kind.into_expr().unwrap()))
-            .collect()
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_exprs(exprs: HashMap<String, Expr>) -> Module {
-        Module {
-            names: exprs
-                .into_iter()
-                .map(|(key, expr)| {
-                    let decl = Decl {
-                        kind: DeclKind::Expr(Box::new(expr)),
-                        ..Default::default()
-                    };
-                    (key, decl)
-                })
-                .collect(),
-            ..Default::default()
         }
     }
 
@@ -400,16 +235,6 @@ fn decl_has_annotation(decl: &Decl, annotation_name: &Ident) -> bool {
 type HintAndSpan = (Option<String>, Option<Span>);
 
 impl RootModule {
-    pub fn local(&self) -> &Module {
-        let decl = self.module.names.get(NS_LOCAL).unwrap();
-        decl.kind.as_module().unwrap()
-    }
-
-    pub fn local_mut(&mut self) -> &mut Module {
-        let decl = self.module.names.get_mut(NS_LOCAL).unwrap();
-        decl.kind.as_module_mut().unwrap()
-    }
-
     /// Finds that main pipeline given a path to either main itself or its parent module.
     /// Returns main expr and fq ident of the decl.
     pub fn find_main_rel(&self, path: &[String]) -> Result<(&TableExpr, Ident), HintAndSpan> {
@@ -487,26 +312,7 @@ impl RootModule {
 mod tests {
     use super::*;
     use crate::ast::Literal;
-    use crate::ir::pl::ExprKind;
-
-    // TODO: tests / docstrings for `stack_pop` & `stack_push` & `insert_frame`
-    #[test]
-    fn test_module() {
-        let mut module = Module::default();
-
-        let ident = Ident::from_name("test_name");
-        let expr: Expr = Expr::new(ExprKind::Literal(Literal::Integer(42)));
-        let decl: Decl = DeclKind::Expr(Box::new(expr)).into();
-
-        assert!(module.insert(ident.clone(), decl.clone()).is_ok());
-        assert_eq!(module.get(&ident).unwrap(), &decl);
-        assert_eq!(module.get_mut(&ident).unwrap(), &decl);
-
-        // Lookup
-        let lookup_result = module.lookup(&ident);
-        assert_eq!(lookup_result.len(), 1);
-        assert!(lookup_result.contains(&ident));
-    }
+    use crate::ir::pl::{Expr, ExprKind};
 
     #[test]
     fn test_module_shadow_unshadow() {

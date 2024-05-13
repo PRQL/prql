@@ -329,7 +329,6 @@ fn test_precedence_02() {
 }
 
 #[test]
-#[ignore]
 fn test_precedence_03() {
     assert_snapshot!((compile(r###"
     from db.numbers
@@ -385,7 +384,6 @@ fn test_precedence_04() {
 }
 
 #[test]
-#[ignore]
 fn test_precedence_05() {
     assert_snapshot!(compile(
     r###"
@@ -2481,7 +2479,6 @@ fn test_from_json() {
 }
 
 #[test]
-#[ignore]
 fn test_f_string() {
     let query = r#"
     from db.employees

@@ -2,7 +2,7 @@ use prqlc_ast::error::WithErrorInfo;
 
 use crate::ast::{Ident, Ty, TyKind, TyTupleField};
 use crate::codegen::write_ty;
-use crate::ir::decl::{Decl, DeclKind, InferTarget, TableDecl};
+use crate::ir::decl::{Decl, DeclKind, TableDecl};
 use crate::ir::pl::IndirectionKind;
 use crate::semantic::NS_GENERIC;
 use crate::{Error, Result, Span};
@@ -10,30 +10,6 @@ use crate::{Error, Result, Span};
 use super::Resolver;
 
 impl Resolver<'_> {
-    /// Create a declaration of [original] from template provided by declaration of [infer_ident].
-    pub fn infer_decl(&mut self, infer_ident: Ident, original: &Ident) -> Result<Ident, String> {
-        let infer = self.root_mod.module.get(&infer_ident).unwrap();
-        let infer_target = infer.kind.as_infer().unwrap();
-
-        // prepare the new declaration
-        let new_decl = match infer_target {
-            InferTarget::TupleField { .. } => Decl::from(DeclKind::TupleField),
-            _ => unreachable!(),
-        };
-
-        // find the module to insert into
-        let module_ident = infer_ident.pop().unwrap();
-        let module = self.root_mod.module.get_mut(&module_ident).unwrap();
-        let module = module.kind.as_module_mut().unwrap();
-
-        // insert
-        module.names.insert(original.name.clone(), new_decl);
-
-        // TODO: if this was inferred to be a field of a tuple, go and infer table columns
-
-        Ok(module_ident + Ident::from_name(original.name.clone()))
-    }
-
     fn init_new_global_generic(&mut self) -> Ident {
         let a_unique_number = self.id.gen();
         let param_name = format!("G{a_unique_number}");
@@ -116,7 +92,7 @@ impl Resolver<'_> {
 
         log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
 
-        let Some(decl) = self.root_mod.module.get_mut(ident_of_generic) else {
+        let Some(decl) = self.get_ident(ident_of_generic, true) else {
             return Err(Error::new_assert("type not found"));
         };
         let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {

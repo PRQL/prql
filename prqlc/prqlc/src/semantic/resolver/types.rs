@@ -7,7 +7,7 @@ use crate::ast::{PrimitiveSet, Ty, TyKind, TyTupleField};
 use crate::codegen::{write_ty, write_ty_kind};
 use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
+use crate::semantic::{NS_GENERIC, NS_LOCAL};
 use crate::Result;
 use crate::{Error, Reason, Span, WithErrorInfo};
 
@@ -23,23 +23,19 @@ impl Resolver<'_> {
     pub fn fold_type_actual(&mut self, ty: Ty) -> Result<Ty> {
         Ok(match ty.kind {
             TyKind::Ident(ident) => {
-                self.root_mod.local_mut().shadow(NS_THIS);
-                self.root_mod.local_mut().shadow(NS_THAT);
+                let decl = self.get_ident(&ident, true).unwrap();
 
-                let fq_ident = self.resolve_ident(&ident)?;
-
-                let decl = self.root_mod.module.get(&fq_ident).unwrap();
                 let mut fold_again = false;
                 let ty = match &decl.kind {
                     DeclKind::Ty(ref_ty) => {
                         // materialize into the referred type
                         fold_again = true;
-                        let inferred_name = if fq_ident.starts_with_part(NS_GENERIC)
-                            || fq_ident.starts_with_part(NS_LOCAL)
+                        let inferred_name = if ident.starts_with_part(NS_GENERIC)
+                            || ident.starts_with_part(NS_LOCAL)
                         {
                             None
                         } else {
-                            Some(fq_ident.name)
+                            Some(ident.name)
                         };
                         Ty {
                             kind: ref_ty.kind.clone(),
@@ -51,15 +47,15 @@ impl Resolver<'_> {
                     DeclKind::GenericParam(_) => {
                         // leave as an ident
                         Ty {
-                            name: Some(fq_ident.name.clone()),
-                            kind: TyKind::Ident(fq_ident),
+                            name: Some(ident.name.clone()),
+                            kind: TyKind::Ident(ident),
                             ..ty
                         }
                     }
 
                     DeclKind::Unresolved(_) => {
                         return Err(Error::new_assert(format!(
-                            "bad resolution order: unresolved {fq_ident} while resolving {}",
+                            "bad resolution order: unresolved {ident} while resolving {}",
                             self.debug_current_decl
                         ))
                         .with_span(ty.span))
@@ -73,9 +69,6 @@ impl Resolver<'_> {
                         .with_span(ty.span))
                     }
                 };
-
-                self.root_mod.local_mut().unshadow(NS_THIS);
-                self.root_mod.local_mut().unshadow(NS_THAT);
 
                 if fold_again {
                     self.fold_type_actual(ty)?
@@ -375,7 +368,7 @@ impl Resolver<'_> {
         if ty_func.generic_type_params.is_empty() {
             return ty;
         }
-        let prev_scope = Ident::from_path(vec![NS_LOCAL, NS_GENERIC]);
+        let prev_scope = Ident::from_path(vec![NS_LOCAL]);
         let new_scope = Ident::from_path(vec![NS_GENERIC.to_string(), id.to_string()]);
 
         let mut ident_mapping: HashMap<Ident, Ty> =

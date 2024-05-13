@@ -183,10 +183,13 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
             let [pattern, value] = unpack::<2>(args);
 
             if pattern.ty.as_ref().map_or(false, |x| x.kind.is_array()) {
-                return Ok(Expr::new(ExprKind::RqOperator {
-                    name: "std.array_in".to_string(),
-                    args: vec![*value, *pattern],
-                }));
+                return Ok(Expr {
+                    kind: ExprKind::RqOperator {
+                        name: "std.array_in".to_string(),
+                        args: vec![*value, *pattern],
+                    },
+                    ..expr
+                });
             }
 
             let pattern = match try_restrict_range(*pattern) {
@@ -203,6 +206,10 @@ pub fn resolve_special_func(expr: Expr) -> Result<Expr> {
                     return Ok(res);
                 }
                 Err(expr) => expr,
+            };
+            let pattern = Expr {
+                kind: pattern.kind,
+                ..expr
             };
 
             return Err(Error::new(Reason::Expected {

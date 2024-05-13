@@ -5,6 +5,7 @@ mod expr;
 mod functions;
 mod inference;
 mod names;
+mod scope;
 mod static_eval;
 mod stmt;
 mod types;
@@ -23,6 +24,8 @@ pub struct Resolver<'a> {
     pub id: IdGenerator<usize>,
 
     pub options: ResolverOptions,
+
+    scopes: Vec<scope::Scope>,
 }
 
 #[derive(Default, Clone)]
@@ -40,7 +43,16 @@ impl Resolver<'_> {
             debug_current_decl: crate::ast::Ident::from_name("?"),
             in_func_call_name: false,
             id,
+            scopes: Vec::new(),
         }
+    }
+
+    #[allow(dead_code)]
+    fn scope_mut(&mut self) -> &mut scope::Scope {
+        if self.scopes.is_empty() {
+            self.scopes.push(scope::Scope::new());
+        }
+        self.scopes.last_mut().unwrap()
     }
 }
 

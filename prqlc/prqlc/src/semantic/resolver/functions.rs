@@ -4,11 +4,12 @@ use std::collections::HashMap;
 
 use crate::ast::{Ty, TyFunc};
 use crate::codegen::write_ty;
-use crate::ir::decl::{Decl, DeclKind, Module};
+use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_PARAM, NS_THAT, NS_THIS};
+use crate::semantic::{NS_GENERIC, NS_LOCAL, NS_THAT, NS_THIS};
 use crate::{Error, Result, Span, WithErrorInfo};
 
+use super::scope::{self, Scope};
 use super::types::TypeReplacer;
 use super::Resolver;
 
@@ -17,6 +18,7 @@ impl Resolver<'_> {
     /// Requires id of the function call node, so it can be used to generic type arguments.
     pub fn resolve_func(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
         // prepare generic arguments
+        let mut scope = scope::Scope::new();
         for generic_param in &func.generic_type_params {
             // TODO: fold bounds
             // let domain: Vec<Ty> = generic_param
@@ -26,14 +28,10 @@ impl Resolver<'_> {
             //     .try_collect()?;
 
             // register the generic type param in the resolver
-            let generic_ident =
-                Ident::from_path(vec![NS_GENERIC.to_string(), generic_param.name.clone()]);
             let generic = Decl::from(DeclKind::GenericParam(None));
-            self.root_mod
-                .local_mut()
-                .insert(generic_ident, generic)
-                .unwrap();
+            scope.generics.insert(generic_param.name.clone(), generic);
         }
+        self.scopes.push(scope);
 
         // fold types
         func.params = func
@@ -49,26 +47,22 @@ impl Resolver<'_> {
         func.return_ty = fold_type_opt(self, func.return_ty)?;
 
         // prepare params scope
-        let func_env = params_env_of_func(&func);
-        self.root_mod.local_mut().stack_push(NS_PARAM, func_env);
+        prepare_scope_of_func(self.scopes.last_mut().unwrap(), &func);
 
         func.body = Box::new(self.fold_expr(*func.body)?);
 
         // pop params scope
-        let _func_env = self.root_mod.local_mut().stack_pop(NS_PARAM).unwrap();
+        let mut scope = self.scopes.pop().unwrap();
 
         // validate that the body has correct type
         self.validate_expr_type(&mut func.body, func.return_ty.as_ref(), &|| None)?;
 
         // pop generic types
         if !func.generic_type_params.is_empty() {
-            let generic_mod = self.root_mod.local_mut().names.remove(NS_GENERIC).unwrap();
-            let mut generic_mod = generic_mod.kind.into_module().unwrap();
-
             let mut new_generic_type_params = Vec::new();
             let mut finalized_args = HashMap::new();
             for gtp in func.generic_type_params {
-                let inferred_generic = generic_mod.names.remove(&gtp.name).unwrap();
+                let inferred_generic = scope.generics.swap_remove(&gtp.name).unwrap();
                 let inferred_type = inferred_generic.kind.into_generic_param().unwrap();
 
                 match inferred_type {
@@ -177,12 +171,13 @@ impl Resolver<'_> {
         // push generic type args
         for generic_param in &fn_ty.generic_type_params {
             // register the generic type param in the resolver
-            let generic_ident = Ident::from_path(vec![NS_GENERIC, generic_param.name.as_str()]);
+            let generic_ident = Ident::from_path(vec![
+                NS_GENERIC.to_string(),
+                fn_app.func.id.unwrap().to_string(),
+                generic_param.name.clone(),
+            ]);
             let generic = Decl::from(DeclKind::GenericParam(None));
-            self.root_mod
-                .local_mut()
-                .insert(generic_ident, generic)
-                .unwrap();
+            self.root_mod.module.insert(generic_ident, generic).unwrap();
         }
 
         log::debug!("resolving args of function {}", metadata.as_debug_name());
@@ -334,14 +329,16 @@ impl Resolver<'_> {
 
             if partial_application_position.is_none() {
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
+                    let mut scope = scope::Scope::new();
                     if let Some(pos) = this_pos {
                         let ty = app.args[pos as usize].ty.as_ref().unwrap();
-                        self.root_mod.local_mut().insert_frame(ty, NS_THIS);
+                        prepare_scope_of_implicit_closure_param(&mut scope, NS_THIS, ty);
                     }
                     if let Some(pos) = that_pos {
                         let ty = app.args[pos as usize].ty.as_ref().unwrap();
-                        self.root_mod.local_mut().insert_frame(ty, NS_THAT);
+                        prepare_scope_of_implicit_closure_param(&mut scope, NS_THAT, ty);
                     }
+                    self.scopes.push(scope);
                 }
 
                 arg = self
@@ -352,12 +349,7 @@ impl Resolver<'_> {
                     });
 
                 if impl_cl_pos.map_or(false, |pos| pos == index) {
-                    if this_pos.is_some() {
-                        self.root_mod.local_mut().unshadow(NS_THIS);
-                    }
-                    if that_pos.is_some() {
-                        self.root_mod.local_mut().unshadow(NS_THAT);
-                    }
+                    self.scopes.pop();
                 }
             }
             app.args[index] = arg;
@@ -387,9 +379,7 @@ impl Resolver<'_> {
         // return Ok(Ok(arg));
         // };
 
-        self.root_mod.local_mut().shadow(NS_GENERIC);
         let mut arg = self.fold_expr(arg)?;
-        self.root_mod.local_mut().unshadow(NS_GENERIC);
 
         if coerce_tuple {
             arg = self.coerce_into_tuple(arg)?;
@@ -490,7 +480,6 @@ fn extract_partial_application(mut func: FuncApplication, position: usize) -> Bo
     let param_name = format!("_partial_{}", arg.id.unwrap());
     let substitute_arg = Expr::new(Ident::from_path(vec![
         NS_LOCAL.to_string(),
-        NS_PARAM.to_string(),
         param_name.clone(),
     ]));
     arg_func.args.push(substitute_arg);
@@ -510,18 +499,23 @@ fn extract_partial_application(mut func: FuncApplication, position: usize) -> Bo
     })
 }
 
-fn params_env_of_func(func: &Func) -> Module {
-    let mut func_env = Module::default();
-
+fn prepare_scope_of_func(scope: &mut Scope, func: &Func) {
     for param in &func.params {
         let v = Decl {
             kind: DeclKind::Variable(param.ty.clone()),
             ..Default::default()
         };
         let param_name = param.name.split('.').last().unwrap();
-        func_env.names.insert(param_name.to_string(), v);
+        scope.params.insert(param_name.to_string(), v);
     }
-    func_env
+}
+
+fn prepare_scope_of_implicit_closure_param(scope: &mut Scope, namespace: &str, ty: &Ty) {
+    let tuple_ty = ty.kind.as_array().unwrap();
+    scope.params.insert(
+        namespace.to_string(),
+        Decl::from(DeclKind::Variable(Some(*tuple_ty.clone()))),
+    );
 }
 
 pub fn expr_of_func_application(
