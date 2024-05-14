@@ -217,6 +217,10 @@ impl super::Resolver<'_> {
         if r.ty.is_none() {
             r.ty = self.infer_type(&r)?;
         }
+        if r.ty.is_none() {
+            let generic = self.init_new_global_generic();
+            r.ty = Some(Ty::new(TyKind::Ident(generic)));
+        }
         if let Some(ty) = &mut r.ty {
             if ty.is_relation() {
                 if let Some(alias) = r.alias.take() {

@@ -1774,7 +1774,6 @@ fn test_filter() {
 }
 
 #[test]
-#[ignore]
 fn test_nulls_01() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1788,7 +1787,6 @@ fn test_nulls_01() {
 }
 
 #[test]
-#[ignore]
 fn test_nulls_02() {
     // coalesce
     assert_snapshot!((compile(r###"
@@ -2698,7 +2696,6 @@ fn test_table_definition_with_expr_call() {
 }
 
 #[test]
-#[ignore]
 fn test_sql_of_ast_2() {
     let query = r#"
     from db.employees
@@ -3775,7 +3772,6 @@ fn test_group_all() {
 }
 
 #[test]
-#[ignore]
 fn test_output_column_deduplication() {
     // #1249
     assert_snapshot!(compile(
