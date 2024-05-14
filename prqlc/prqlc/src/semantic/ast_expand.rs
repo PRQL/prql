@@ -503,14 +503,6 @@ fn restrict_decl(name: String, value: decl::Decl) -> Option<Stmt> {
             name,
             stmts: restrict_module(module).stmts,
         }),
-        decl::DeclKind::LayeredModules(mut stack) => {
-            let module = stack.pop()?;
-
-            StmtKind::ModuleDef(ModuleDef {
-                name,
-                stmts: restrict_module(module).stmts,
-            })
-        }
 
         decl::DeclKind::Variable(_) => new_internal_stmt(name, "_variable".into()),
         decl::DeclKind::TupleField => new_internal_stmt(name, "_tuple_field".into()),

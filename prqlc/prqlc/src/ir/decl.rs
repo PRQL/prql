@@ -64,9 +64,6 @@ pub enum DeclKind {
     /// A nested namespace
     Module(Module),
 
-    /// Nested namespaces that do lookup in layers from top to bottom, stopping at first match.
-    LayeredModules(Vec<Module>),
-
     /// A function parameter (usually the implicit `this` param)
     // TODO: make this type non-optional
     Variable(Option<Ty>),
@@ -188,7 +185,6 @@ impl std::fmt::Display for DeclKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
-            Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
             Self::Variable(Some(arg0)) => {
                 write!(f, "Variable of type {}", write_ty(arg0))
             }

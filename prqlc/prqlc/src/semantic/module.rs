@@ -83,28 +83,13 @@ impl Module {
     pub fn get(&self, fq_ident: &Ident) -> Option<&Decl> {
         let mut ns = self;
 
-        for (index, part) in fq_ident.path.iter().enumerate() {
+        for part in fq_ident.path.iter() {
             let decl = ns.names.get(part)?;
 
-            match &decl.kind {
-                DeclKind::Module(inner) => {
-                    ns = inner;
-                }
-                DeclKind::LayeredModules(stack) => {
-                    let next = fq_ident.path.get(index + 1).unwrap_or(&fq_ident.name);
-                    let mut found = false;
-                    for n in stack.iter().rev() {
-                        if n.names.contains_key(next) {
-                            ns = n;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if !found {
-                        return None;
-                    }
-                }
-                _ => return None,
+            if let DeclKind::Module(inner) = &decl.kind {
+                ns = inner;
+            } else {
+                return None;
             }
         }
 
