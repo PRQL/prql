@@ -10,9 +10,9 @@ use crate::{Error, Result, Span};
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub fn init_new_global_generic(&mut self) -> Ident {
+    pub fn init_new_global_generic(&mut self, prefix: &str) -> Ident {
         let a_unique_number = self.id.gen();
-        let param_name = format!("G{a_unique_number}");
+        let param_name = format!("{prefix}{a_unique_number}");
         let ident = Ident::from_path(vec![NS_GENERIC.to_string(), param_name]);
         let decl = Decl::from(DeclKind::GenericParam(None));
 
@@ -35,7 +35,7 @@ impl Resolver<'_> {
     ) -> (usize, Option<Ty>) {
         // generate the type of inferred field (to be an unknown type - a new generic)
         // (this has to be done early in this function since we borrow self later)
-        let ty_of_field = self.init_new_global_generic();
+        let ty_of_field = self.init_new_global_generic("T");
         let ty = Ty::new(TyKind::Ident(ty_of_field));
 
         let ident = ident_of_generic;

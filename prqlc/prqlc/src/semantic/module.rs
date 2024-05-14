@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
-use crate::ast::QueryDef;
-use crate::ast::Span;
-use crate::Result;
-
+use crate::ast::{QueryDef, Span};
+use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule};
 use crate::ir::pl::{Expr, Ident};
-use crate::Error;
+use crate::{Error, Result};
 
 use super::{NS_DEFAULT_DB, NS_INFER, NS_MAIN, NS_QUERY_DEF, NS_STD};
-use crate::ir::decl::{Decl, DeclKind, InferTarget, Module, RootModule};
 
 impl Module {
     pub fn singleton<S: ToString>(name: S, entry: Decl) -> Module {

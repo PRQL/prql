@@ -4,7 +4,6 @@ mod special_functions;
 
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
-use std::iter::zip;
 
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
@@ -54,7 +53,7 @@ pub fn lower_to_ir(
     validate_query_def(&def)?;
 
     // find all tables in the root module
-    let tables = TableExtractor::extract(&root_mod.module);
+    let tables = TableExtractor::extract(&root_mod);
 
     // prune and toposort
     let tables = toposort_tables(tables, &main_ident);
@@ -106,14 +105,16 @@ struct Lowerer {
     /// mapping from [Ident] of [crate::ast::TableDef] into [TId]s
     table_mapping: HashMap<Ident, TId>,
 
-    // current window for any new column defs
-    window: Option<rq::Window>,
+    /// A buffer to be added into query tables
+    table_buffer: Vec<TableDecl>,
 
+    // --- Fields after here make sense only in context of "current pipeline".
+    // (they should maybe be moved into a separate struct to make this clear)
     /// A buffer to be added into current pipeline
     pipeline: Vec<Transform>,
 
-    /// A buffer to be added into query tables
-    table_buffer: Vec<TableDecl>,
+    /// current window for any new column defs
+    window: Option<rq::Window>,
 
     local_this_id: Option<usize>,
     local_that_id: Option<usize>,
@@ -182,55 +183,61 @@ impl Lowerer {
         Ok(())
     }
 
-    /// Lower an expression into a instance of a table in the query
+    fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
+        let id = expr.id.unwrap();
+
+        // look at the type of the expr and determine what will be the columns of the output relation
+        let relation_fields = expr.ty.as_ref().and_then(|t| t.as_relation()).unwrap();
+        let columns = self.ty_tuple_to_relation_columns(relation_fields.clone(), None)?;
+
+        // take out the pipeline that we might have been previously working on
+        let prev_pipeline = self.pipeline.drain(..).collect_vec();
+
+        self.lower_relational_expr(expr, None)?;
+
+        // retrieve resulting pipeline and replace the previous one
+        let mut transforms = self.pipeline.drain(..).collect_vec();
+        self.pipeline = prev_pipeline;
+
+        // push a select to the end of the pipeline
+        transforms.push(Transform::Select(
+            self.flatten_tuple_fields_into_cids(&[id])?,
+        ));
+        Ok(rq::Relation {
+            kind: rq::RelationKind::Pipeline(transforms),
+            columns,
+        })
+    }
+
+    /// Lower an expression into a new instance of a table in the query
     fn lower_table_ref(&mut self, expr: pl::Expr) -> Result<rq::TableRef> {
-        let expr = expr;
+        let id = expr.id.unwrap();
 
-        Ok(match expr.kind {
+        // find the tid (table id) of the table that we will create a new instance of
+        let tid = match expr.kind {
             pl::ExprKind::Ident(fq_table_name) => {
-                // ident that refer to table: create an instance of the table
-                let id = expr.id.unwrap();
-                let tid = *self.table_mapping.get(&fq_table_name).unwrap();
+                // ident that refers to table: lookup the existing table by name
 
+                // We know that table exists, because it has been previously extracted
+                // and lowered in topological order (if it hasn't, that would be a bug).
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
-                self.create_table_instance(id, None, tid)
+                self.table_mapping.get(&fq_table_name).cloned().unwrap()
             }
             pl::ExprKind::TransformCall(_) => {
-                // pipeline that has to be pulled out into a table
-                let id = expr.id.unwrap();
+                // this function is requesting a table new table instance, but we got a pipeline
+                // -> we need to pull the pipeline out into a standalone table
 
-                // create a new table
-                let tid = self.tid.gen();
-
+                // lower the relation
                 let relation = self.lower_relation(expr)?;
 
-                let last_transform = &relation.kind.as_pipeline().unwrap().last().unwrap();
-                let cids = last_transform.as_select().unwrap().clone();
-
                 log::debug!("lowering inline table, columns = {:?}", relation.columns);
-                self.table_buffer.push(TableDecl {
-                    id: tid,
-                    name: None,
-                    relation,
-                });
 
-                // return an instance of this new table
-                let table_ref = self.create_table_instance(id, None, tid);
-
-                let redirects = zip(cids, table_ref.columns.iter().map(|(_, c)| *c)).collect();
-                self.redirect_mappings(redirects);
-
-                table_ref
+                // define the relation as a new table
+                self.create_table(relation)
             }
             pl::ExprKind::SString(_items) => {
-                // let id = expr.id.unwrap();
-
-                // create a new table
-                // let tid = self.tid.gen();
-
                 // pull columns from the table decl
-                // TODO: can this panic?
 
                 todo!();
 
@@ -241,20 +248,10 @@ impl Lowerer {
                 //     columns: tuple_fields_to_relation_columns(columns),
                 // };
 
-                // self.table_buffer.push(TableDecl {
-                //     id: tid,
-                //     name: None,
-                //     relation,
-                // });
-
-                // return an instance of this new table
-                // self.create_table_instance(id, None, tid)
+                // define the relation as a new table
+                // self.create_table(relation)
             }
             pl::ExprKind::RqOperator { name, args } => {
-                // create a new table
-                let id = expr.id.unwrap();
-                let tid = self.tid.gen();
-
                 // lower the expr
                 let args = args.into_iter().map(|a| self.lower_expr(a)).try_collect()?;
 
@@ -265,27 +262,14 @@ impl Lowerer {
                     columns,
                 };
 
-                self.table_buffer.push(TableDecl {
-                    id: tid,
-                    name: None,
-                    relation,
-                });
-
-                // return an instance of this new table
-                self.create_table_instance(id, None, tid)
+                self.create_table(relation)
             }
 
             pl::ExprKind::Array(_) => {
                 todo!();
 
                 /*
-                let id = expr.id.unwrap();
-
-                // create a new table
-                let tid = self.tid.gen();
-
                 // pull columns from the table decl
-
 
                 let lit = RelationLiteral {
                     columns: vec![],
@@ -315,15 +299,9 @@ impl Lowerer {
                     columns,
                 };
 
-                self.table_buffer.push(TableDecl {
-                    id: tid,
-                    name: None,
-                    relation,
-                });
-
-                // return an instance of this new table
-                self.create_table_instance(id, None, tid)
-                 */
+                // create a new table
+                // self.create_table(relation)
+                */
             }
 
             _ => {
@@ -335,23 +313,23 @@ impl Lowerer {
                 .push_hint("are you missing `from` statement?")
                 .with_span(expr.span))
             }
-        })
+        };
+        Ok(self.create_table_instance(id, tid))
     }
 
-    fn redirect_mappings(&mut self, redirects: HashMap<CId, CId>) {
-        for target in self.node_mapping.values_mut() {
-            match target {
-                LoweredTarget::Column(cid) => {
-                    if let Some(new) = redirects.get(cid) {
-                        *cid = *new;
-                    }
-                }
-                LoweredTarget::Relation(_) => todo!(),
-            }
-        }
+    /// Declare a new table as the supplied relation.
+    /// Generates and returns the new table id.
+    fn create_table(&mut self, relation: rq::Relation) -> TId {
+        let tid = self.tid.gen();
+        self.table_buffer.push(TableDecl {
+            id: tid,
+            name: None,
+            relation,
+        });
+        tid
     }
 
-    fn create_table_instance(&mut self, id: usize, name: Option<String>, tid: TId) -> rq::TableRef {
+    fn create_table_instance(&mut self, id: usize, tid: TId) -> rq::TableRef {
         // create instance columns from table columns
         let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
@@ -375,7 +353,7 @@ impl Lowerer {
 
         rq::TableRef {
             source: tid,
-            name,
+            name: None,
             columns,
         }
     }
@@ -479,30 +457,9 @@ impl Lowerer {
         Ok(new_fields)
     }
 
-    fn lower_relation(&mut self, expr: pl::Expr) -> Result<rq::Relation> {
-        let id = expr.id.unwrap();
-
-        let relation_fields = expr.ty.as_ref().and_then(|t| t.as_relation()).unwrap();
-        let columns = self.ty_tuple_to_relation_columns(relation_fields.clone(), None)?;
-
-        let prev_pipeline = self.pipeline.drain(..).collect_vec();
-
-        self.lower_relational_expr(expr, None)?;
-
-        let mut transforms = self.pipeline.drain(..).collect_vec();
-        self.pipeline = prev_pipeline;
-
-        transforms.push(Transform::Select(
-            self.flatten_tuple_fields_into_cids(&[id])?,
-        ));
-        let relation = rq::Relation {
-            kind: rq::RelationKind::Pipeline(transforms),
-            columns,
-        };
-        Ok(relation)
-    }
-
-    /// HACK: Result is stored in self.pipeline
+    /// Lower a relational expression (or a function that returns a relational expression) to a pipeline.
+    ///
+    /// **Result is stored in self.pipeline**
     fn lower_relational_expr(&mut self, ast: pl::Expr, closure_param: Option<usize>) -> Result<()> {
         // find the actual transform that we want to compile to relational pipeline
         // this is non trivial, because sometimes the transforms will be wrapped into
@@ -540,7 +497,7 @@ impl Lowerer {
         Ok(())
     }
 
-    /// HACK: Result is stored in self.pipeline
+    /// **Result is stored in self.pipeline**
     fn lower_transform_call(
         &mut self,
         transform_call: pl::TransformCall,
@@ -1056,9 +1013,9 @@ struct TableExtractor {
 
 impl TableExtractor {
     /// Finds table declarations in a module, recursively.
-    fn extract(root_module: &Module) -> Vec<(Ident, (pl::Expr, Option<usize>))> {
+    fn extract(root: &RootModule) -> Vec<(Ident, (pl::Expr, Option<usize>))> {
         let mut te = TableExtractor::default();
-        te.extract_from_module(root_module);
+        te.extract_from_module(&root.module);
         te.tables
     }
 

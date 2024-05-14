@@ -256,7 +256,7 @@ impl Resolver<'_> {
                     // bounds that are tuples mean "a tuple with at least these fields"
                     // so we need a global generic to track information about the other fields
 
-                    let generic = self.init_new_global_generic();
+                    let generic = self.init_new_global_generic("G");
                     let generic = Ty::new(TyKind::Ident(generic));
                     fields.push(prqlc_ast::TyTupleField::Unpack(Some(generic)));
                 }

@@ -218,7 +218,7 @@ impl super::Resolver<'_> {
             r.ty = self.infer_type(&r)?;
         }
         if r.ty.is_none() {
-            let generic = self.init_new_global_generic();
+            let generic = self.init_new_global_generic("E");
             r.ty = Some(Ty::new(TyKind::Ident(generic)));
         }
         if let Some(ty) = &mut r.ty {
