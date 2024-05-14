@@ -35,7 +35,7 @@ impl Resolver<'_> {
     ) -> (usize, Option<Ty>) {
         // generate the type of inferred field (to be an unknown type - a new generic)
         // (this has to be done early in this function since we borrow self later)
-        let ty_of_field = self.init_new_global_generic("T");
+        let ty_of_field = self.init_new_global_generic("F");
         let ty = Ty::new(TyKind::Ident(ty_of_field));
 
         let ident = ident_of_generic;

@@ -163,10 +163,10 @@ impl Resolver<'_> {
             return Ok(*expr_of_func_application(fn_app, *fn_ty.return_ty, span));
         }
 
-        self.init_function_generic_args(&fn_ty, fn_app.func.id.unwrap());
+        self.init_func_app_generic_args(&fn_ty, fn_app.func.id.unwrap());
 
         log::debug!("resolving args of function {}", metadata.as_debug_name());
-        let res = self.resolve_function_args(fn_app, &metadata)?;
+        let res = self.resolve_func_app_args(fn_app, &metadata)?;
 
         let app = match res {
             Ok(func) => func,
@@ -175,7 +175,7 @@ impl Resolver<'_> {
             }
         };
 
-        self.finalize_function_generic_args(&fn_ty, app.func.id.unwrap())
+        self.finalize_func_app_generic_args(&fn_ty, app.func.id.unwrap())
             .with_span_fallback(span)?;
 
         // run fold again, so idents that used to point to generics get inlined
@@ -242,7 +242,7 @@ impl Resolver<'_> {
         res
     }
 
-    fn init_function_generic_args(&mut self, fn_ty: &TyFunc, func_id: usize) {
+    fn init_func_app_generic_args(&mut self, fn_ty: &TyFunc, func_id: usize) {
         for generic_param in &fn_ty.generic_type_params {
             // register the generic type param in the resolver
             let generic_ident = Ident::from_path(vec![
@@ -256,7 +256,7 @@ impl Resolver<'_> {
                     // bounds that are tuples mean "a tuple with at least these fields"
                     // so we need a global generic to track information about the other fields
 
-                    let generic = self.init_new_global_generic("G");
+                    let generic = self.init_new_global_generic("A");
                     let generic = Ty::new(TyKind::Ident(generic));
                     fields.push(prqlc_ast::TyTupleField::Unpack(Some(generic)));
                 }
@@ -269,7 +269,7 @@ impl Resolver<'_> {
         }
     }
 
-    fn finalize_function_generic_args(&mut self, fn_ty: &TyFunc, func_id: usize) -> Result<()> {
+    fn finalize_func_app_generic_args(&mut self, fn_ty: &TyFunc, func_id: usize) -> Result<()> {
         for generic_param in &fn_ty.generic_type_params {
             let ident = Ident::from_path(vec![
                 NS_GENERIC.to_string(),
@@ -300,7 +300,7 @@ impl Resolver<'_> {
     }
 
     /// Resolves function arguments. Will return `Err(func)` is partial application is required.
-    fn resolve_function_args(
+    fn resolve_func_app_args(
         &mut self,
         to_resolve: FuncApplication,
         metadata: &FuncMetadata,
@@ -354,7 +354,7 @@ impl Resolver<'_> {
                 }
 
                 arg = self
-                    .fold_function_arg(arg, param, func_name, should_coerce_tuple)?
+                    .resolve_func_app_arg(arg, param, func_name, should_coerce_tuple)?
                     .unwrap_or_else(|a| {
                         partial_application_position = Some(index);
                         a
@@ -379,7 +379,7 @@ impl Resolver<'_> {
         })
     }
 
-    fn fold_function_arg(
+    fn resolve_func_app_arg(
         &mut self,
         arg: Expr,
         param: &Option<Ty>,

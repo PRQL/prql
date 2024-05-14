@@ -1,8 +1,12 @@
+use std::collections::HashMap;
+
 use crate::ast::{Ty, TyKind};
-use crate::ir::decl::DeclKind;
+use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl::*;
-use crate::semantic::NS_STD;
+use crate::semantic::{NS_GENERIC, NS_STD};
 use crate::Result;
+
+use super::types::TypeReplacer;
 
 impl super::Resolver<'_> {
     /// Entry point to the resolver.
@@ -43,6 +47,12 @@ impl super::Resolver<'_> {
                             self.validate_expr_type(&mut def_value, expected_ty.as_ref(), &who)?;
                         }
 
+                        // finalize global generics
+                        if let Some(mapping) = self.finalize_global_generics() {
+                            let ty = def_value.ty.unwrap();
+                            def_value.ty = Some(TypeReplacer::on_ty(ty, mapping));
+                        }
+
                         DeclKind::Expr(def_value)
                     }
                     None => {
@@ -76,5 +86,45 @@ impl super::Resolver<'_> {
             module.unwrap().names.insert(fq_ident.name, decl);
         }
         Ok(())
+    }
+
+    pub fn finalize_global_generics(&mut self) -> Option<HashMap<Ident, Ty>> {
+        let generics = self.root_mod.module.names.get_mut(NS_GENERIC)?;
+        let generics = generics.kind.as_module_mut()?;
+
+        let mut type_mapping = HashMap::new();
+
+        let mut new_generics = Vec::new();
+        for (name, decl) in generics.names.drain() {
+            if let DeclKind::GenericParam(Some((candidate, span))) = decl.kind {
+                // TODO: reject GenericParam(None) with 'cannot infer type, add annotations'
+
+                if candidate.kind.is_tuple() {
+                    // don't finalize tuples because they might not be complete yet
+                    new_generics.push((
+                        name,
+                        Decl {
+                            kind: DeclKind::GenericParam(Some((candidate, span))),
+                            ..decl
+                        },
+                    ));
+                } else {
+                    // finalize this generic
+                    type_mapping.insert(
+                        Ident::from_path(vec![NS_GENERIC.to_string(), name]),
+                        candidate,
+                    );
+                }
+            } else {
+                new_generics.push((name, decl));
+            }
+        }
+        generics.names.extend(new_generics);
+
+        if type_mapping.is_empty() {
+            None
+        } else {
+            Some(type_mapping)
+        }
     }
 }
