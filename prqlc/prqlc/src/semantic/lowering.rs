@@ -236,20 +236,21 @@ impl Lowerer {
                 // define the relation as a new table
                 self.create_table(relation)
             }
-            pl::ExprKind::SString(_items) => {
+            pl::ExprKind::SString(items) => {
                 // pull columns from the table decl
 
-                todo!();
-
                 // lower the expr
-                // let items = self.lower_interpolations(items)?;
-                // let relation = rq::Relation {
-                //     kind: rq::RelationKind::SString(items),
-                //     columns: tuple_fields_to_relation_columns(columns),
-                // };
+                let items = self.lower_interpolations(items)?;
+
+                let relation_fields = expr.ty.unwrap().into_relation().unwrap();
+                let columns = self.ty_tuple_to_relation_columns(relation_fields, None)?;
+                let relation = rq::Relation {
+                    kind: rq::RelationKind::SString(items),
+                    columns,
+                };
 
                 // define the relation as a new table
-                // self.create_table(relation)
+                self.create_table(relation)
             }
             pl::ExprKind::RqOperator { name, args } => {
                 // lower the expr
@@ -265,34 +266,38 @@ impl Lowerer {
                 self.create_table(relation)
             }
 
-            pl::ExprKind::Array(_) => {
-                todo!();
-
-                /*
+            pl::ExprKind::Array(items) => {
                 // pull columns from the table decl
 
-                let lit = RelationLiteral {
-                    columns: vec![],
-                    rows: elements
+                let relation_fields = expr.ty.unwrap().into_relation().unwrap();
+                let columns = self.ty_tuple_to_relation_columns(relation_fields, None)?;
+
+                let lit = rq::RelationLiteral {
+                    columns: columns
+                        .iter()
+                        .map(|c| c.as_single().cloned().unwrap().unwrap_or_else(String::new))
+                        .collect_vec(),
+                    rows: items
                         .into_iter()
-                        .map(|row| {
-                            row.kind
-                                .into_tuple()
-                                .unwrap()
+                        .map(|row| match row.kind {
+                            pl::ExprKind::Tuple(fields) => fields
                                 .into_iter()
-                                .map(|element| {
-                                    element.try_cast(
-                                        |x| x.into_literal(),
-                                        Some("relation literal"),
-                                        "literals",
+                                .map(|element| match element.kind {
+                                    pl::ExprKind::Literal(lit) => Ok(lit),
+                                    _ => Err(Error::new_simple(
+                                        "relation literals currently support only literals",
                                     )
+                                    .with_span(element.span)),
                                 })
-                                .try_collect()
+                                .try_collect(),
+                            _ => Err(Error::new_simple(
+                                "relation literals currently support only plain tuples",
+                            )
+                            .with_span(row.span)),
                         })
                         .try_collect()?,
                 };
 
-                let columns = vec![];
                 log::debug!("lowering literal relation table, columns = {columns:?}");
                 let relation = rq::Relation {
                     kind: rq::RelationKind::Literal(lit),
@@ -300,8 +305,7 @@ impl Lowerer {
                 };
 
                 // create a new table
-                // self.create_table(relation)
-                */
+                self.create_table(relation)
             }
 
             _ => {

@@ -4355,7 +4355,6 @@ fn prql_version() {
 }
 
 #[test]
-#[ignore]
 fn shortest_prql_version() {
     assert_snapshot!(compile(r#"[{version = prql.version}]"#).unwrap(),@r###"
     WITH table_0 AS (
@@ -4723,7 +4722,6 @@ fn test_into() {
 }
 
 #[test]
-#[ignore]
 fn test_array_01() {
     compile(
         r#"
@@ -4772,7 +4770,6 @@ fn test_array_01() {
 }
 
 #[test]
-#[ignore]
 fn test_array_02() {
     assert_snapshot!(compile(r#"
     [
@@ -5085,7 +5082,6 @@ fn test_conflicting_names_at_split() {
 }
 
 #[test]
-#[ignore]
 fn test_relation_literal_quoting() {
     // issue #3484
     assert_snapshot!(compile(
