@@ -17,8 +17,9 @@ impl Resolver<'_> {
     /// Folds function types, so they are resolved to material types, ready for type checking.
     /// Requires id of the function call node, so it can be used to generic type arguments.
     pub fn resolve_func(&mut self, mut func: Box<Func>) -> Result<Box<Func>> {
-        // prepare generic arguments
         let mut scope = scope::Scope::new();
+
+        // prepare generic arguments
         for generic_param in &func.generic_type_params {
             let bound: Option<Ty> = generic_param
                 .bound
@@ -45,16 +46,16 @@ impl Resolver<'_> {
             .try_collect()?;
         func.return_ty = fold_type_opt(self, func.return_ty)?;
 
-        // prepare params scope
+        // put params into scope
         prepare_scope_of_func(self.scopes.last_mut().unwrap(), &func);
 
         func.body = Box::new(self.fold_expr(*func.body)?);
 
-        // pop params scope
-        let mut scope = self.scopes.pop().unwrap();
-
         // validate that the body has correct type
         self.validate_expr_type(&mut func.body, func.return_ty.as_ref(), &|| None)?;
+
+        // pop the scope
+        let mut scope = self.scopes.pop().unwrap();
 
         // pop generic types
         if !func.generic_type_params.is_empty() {

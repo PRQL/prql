@@ -8,10 +8,19 @@ use super::scope::LookupResult;
 use super::Resolver;
 
 impl Resolver<'_> {
-    pub(super) fn get_ident(&mut self, ident: &Ident, only_types: bool) -> Option<&mut Decl> {
+    pub(super) fn get_ident(&self, ident: &Ident, only_types: bool) -> Option<&Decl> {
         if ident.starts_with_part(NS_LOCAL) {
             assert!(ident.len() == 2);
-            self.scopes.last_mut()?.get(&ident.name, only_types)
+            self.scopes.last()?.get(&ident.name, only_types)
+        } else {
+            self.root_mod.module.get(ident)
+        }
+    }
+
+    pub(super) fn get_ident_mut(&mut self, ident: &Ident, only_types: bool) -> Option<&mut Decl> {
+        if ident.starts_with_part(NS_LOCAL) {
+            assert!(ident.len() == 2);
+            self.scopes.last_mut()?.get_mut(&ident.name, only_types)
         } else {
             self.root_mod.module.get_mut(ident)
         }

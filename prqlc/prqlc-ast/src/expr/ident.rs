@@ -174,10 +174,10 @@ pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), s
 
 pub fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
     fn forbidden_start(c: char) -> bool {
-        !(c.is_ascii_lowercase() || matches!(c, '_' | '$'))
+        !(c.is_ascii() || matches!(c, '_' | '$'))
     }
     fn forbidden_subsequent(c: char) -> bool {
-        !(c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '_'))
+        !(c.is_ascii() || c.is_ascii_digit() || matches!(c, '_'))
     }
     let needs_escape = s.is_empty()
         || s.starts_with(forbidden_start)

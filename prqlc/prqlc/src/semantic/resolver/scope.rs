@@ -1,10 +1,9 @@
 use indexmap::IndexMap;
-use prqlc_ast::error::WithErrorInfo;
-use prqlc_ast::{Ty, TyKind};
 
+use crate::ast::{Ty, TyKind};
 use crate::ir::decl::{Decl, DeclKind};
 use crate::ir::pl;
-use crate::{Error, Result};
+use crate::{Error, Result, WithErrorInfo};
 
 #[derive(Debug)]
 pub(super) struct Scope {
@@ -29,7 +28,18 @@ impl Scope {
         }
     }
 
-    pub fn get(&mut self, name: &str, only_types: bool) -> Option<&mut Decl> {
+    pub fn get(&self, name: &str, only_types: bool) -> Option<&Decl> {
+        if let Some(decl) = self.generics.get(name) {
+            return Some(decl);
+        }
+        if only_types {
+            return None;
+        }
+
+        self.params.get(name)
+    }
+
+    pub fn get_mut(&mut self, name: &str, only_types: bool) -> Option<&mut Decl> {
         if let Some(decl) = self.generics.get_mut(name) {
             return Some(decl);
         }
@@ -113,6 +123,10 @@ fn find_name_in_tuple<'a>(
     name: &'a str,
     include_unpack: bool,
 ) -> Vec<Vec<pl::IndirectionKind>> {
+    // TODO: this function should probably use the general tuple indirection code in tuple.rs
+    //   that's because this one does not handle unpacks correctly and does not infer new tuple columns
+    //   the problem with using that is that we'd need `&mut Resolver` within `&Scope`.
+
     let TyKind::Tuple(fields) = &ty.kind else {
         return vec![];
     };

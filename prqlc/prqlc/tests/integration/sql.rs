@@ -4464,6 +4464,8 @@ fn test_loop_2() {
 #[test]
 #[ignore]
 fn test_params() {
+    // needs to change behavior: `x.a` will infer name `a` only
+
     assert_snapshot!(compile(r#"
     from db.invoices
     select {i = this}

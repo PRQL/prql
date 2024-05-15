@@ -4,7 +4,7 @@ use strum::AsRefStr;
 
 use crate::{GenericTypeParam, Ident, Span};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ty {
     pub kind: TyKind,
 
@@ -136,5 +136,11 @@ impl From<PrimitiveSet> for TyKind {
 impl From<TyFunc> for TyKind {
     fn from(value: TyFunc) -> Self {
         TyKind::Function(Some(value))
+    }
+}
+
+impl PartialEq for Ty {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind && self.name == other.name
     }
 }

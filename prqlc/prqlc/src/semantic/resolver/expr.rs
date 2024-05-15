@@ -1,12 +1,13 @@
 use itertools::Itertools;
 
-use crate::ast::{Ty, TyKind, TyTupleField};
-use crate::codegen::write_ty;
+use crate::ast::{Ty, TyKind};
 use crate::ir::decl::DeclKind;
 use crate::ir::pl::*;
 use crate::semantic::resolver::scope::LookupResult;
 use crate::semantic::{NS_LOCAL, NS_STD, NS_THIS};
 use crate::{Error, Result, Span, WithErrorInfo};
+
+use super::tuple::StepOwned;
 
 impl PlFold for super::Resolver<'_> {
     fn fold_stmts(&mut self, _: Vec<Stmt>) -> Result<Vec<Stmt>> {
@@ -130,13 +131,14 @@ impl PlFold for super::Resolver<'_> {
                 let base = self.fold_expr(*base)?;
 
                 let ty = base.ty.as_ref().unwrap();
-                let (position, ty) = self.resolve_indirection(ty, &field, 0).with_span(*span)?;
+
+                let steps = self.resolve_indirection(ty, &field).with_span(*span)?;
+
+                let expr = self.apply_indirections(base, steps);
                 Expr {
-                    ty,
-                    kind: ExprKind::Indirection {
-                        base: Box::new(base),
-                        field: IndirectionKind::Position(position as i64),
-                    },
+                    id: expr.id,
+                    kind: expr.kind,
+                    ty: expr.ty,
                     ..node
                 }
             }
@@ -265,92 +267,18 @@ impl super::Resolver<'_> {
     /// For example, `base.indirection` where `base` has a tuple type.
     ///
     /// Returns the position of the tuple field within the base tuple.
-    ///
-    /// The the base case, `pos_offset` is 0.
-    /// When resolving [TyTupleField::Unpack], `pos_offset` is the position
-    /// of the unpack in the top-level tuple type.
     pub fn resolve_indirection(
         &mut self,
         base: &Ty,
         indirection: &IndirectionKind,
-        pos_offset: usize,
-    ) -> Result<(usize, Option<Ty>)> {
-        // get base fields
-        let fields = match &base.kind {
-            TyKind::Tuple(fields) => fields,
-
-            // special case: generic type param inference
-            // this happens when `base` has type, for example, `A`, which is a generic type param
-            TyKind::Ident(fq_ident) => {
-                // base is resolved, so idents can only be fully-qualified references
-                // to generic type parameters
-                let generic_decl = self.get_ident(fq_ident, true).unwrap();
-                let candidate_ty = generic_decl.kind.as_generic_param().unwrap();
-
-                return if let Some((candidate_ty, _)) = candidate_ty {
-                    // when we do have a candidate type
-                    let candidate_ty = candidate_ty.clone();
-
-                    // ... try to resolve indirection in the existing candidate
-                    let res = self.resolve_indirection(&candidate_ty, indirection, pos_offset);
-
-                    if res.is_err() && candidate_ty.kind.is_tuple() {
-                        // ... and fallback to inferring a new tuple field when existing indirection fails
-                        Ok(self.infer_tuple_field_of_generic(fq_ident, indirection, pos_offset))
-                    } else {
-                        res
-                    }
-                } else {
-                    // when there is no candidate, infer that it is a tuple
-                    Ok(self.infer_tuple_field_of_generic(fq_ident, indirection, pos_offset))
-                };
-            }
-
-            _ => {
-                return Err(Error::new_simple(format!(
-                    "cannot lookup fields in {} type",
-                    base.kind.as_ref().to_lowercase()
-                )));
-            }
-        };
-
+    ) -> Result<Vec<StepOwned>> {
         match indirection {
-            IndirectionKind::Name(field_name) => {
-                // go trough all of the fields
-                fields
-                    .iter()
-                    .enumerate()
-                    .find_map(|(pos, field)| match field {
-                        // match single fields on their name
-                        TyTupleField::Single(Some(n), f_ty) if n == field_name => {
-                            Some((pos, f_ty.clone()))
-                        }
-                        // recurse into unpacks
-                        TyTupleField::Unpack(Some(unpack_ty)) => {
-                            self.resolve_indirection(unpack_ty, indirection, pos).ok()
-                        }
-                        _ => None,
-                    })
-                    .ok_or_else(|| {
-                        Error::new_simple(format!(
-                            "there is no field `{field_name}` in tuple {}",
-                            write_ty(base)
-                        ))
-                    })
-            }
+            IndirectionKind::Name(name) => self.lookup_name_in_tuple(base, name),
+            IndirectionKind::Position(pos) => {
+                let step = super::tuple::lookup_position_in_tuple(base, *pos as usize)?
+                    .ok_or_else(|| Error::new_simple("Out of bounds"))?;
 
-            IndirectionKind::Position(position) => {
-                let pos = *position as usize;
-
-                let Some(field) = fields.get(pos) else {
-                    return Err(Error::new_simple(format!(
-                        "cannot lookup field `{pos}` in tuple {}, which only has {} fields",
-                        write_ty(base),
-                        fields.len(),
-                    )));
-                };
-                let ty = field.as_single().unwrap().1.clone();
-                Ok((pos + pos_offset, ty))
+                Ok(vec![step])
             }
         }
     }

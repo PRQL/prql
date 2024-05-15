@@ -26,13 +26,12 @@ impl Resolver<'_> {
     /// Contract:
     /// - ident must be fq ident of a generic type param,
     /// - generic candidate either must not exist yet or be a tuple,
-    /// - if it is a tuple, it must already contain the indirection target.
+    /// - if it is a tuple, it must not yet contain the indirection target.
     pub fn infer_tuple_field_of_generic(
         &mut self,
         ident_of_generic: &Ident,
-        indirection: &IndirectionKind,
-        pos_offset: usize,
-    ) -> (usize, Option<Ty>) {
+        indirection: IndirectionKind,
+    ) -> (usize, Ty) {
         // generate the type of inferred field (to be an unknown type - a new generic)
         // (this has to be done early in this function since we borrow self later)
         let ty_of_field = self.init_new_global_generic("F");
@@ -52,27 +51,23 @@ impl Resolver<'_> {
         // create new field(s)
         match indirection {
             IndirectionKind::Name(field_name) => {
-                candidate_fields.push(TyTupleField::Single(
-                    Some(field_name.clone()),
-                    Some(ty.clone()),
-                ));
+                candidate_fields.push(TyTupleField::Single(Some(field_name), Some(ty.clone())));
 
                 let pos_within_candidate = candidate_fields.len() - 1;
-                (pos_offset + pos_within_candidate, Some(ty))
+                (pos_within_candidate, ty)
             }
             IndirectionKind::Position(pos) => {
-                let pos = *pos as usize;
-                let pos_within_candidate = pos - pos_offset;
+                let pos = pos as usize;
 
                 // fill-in padding fields
-                for _ in 0..(pos_within_candidate - candidate_fields.len()) {
+                for _ in 0..(pos - candidate_fields.len()) {
                     // TODO: these should all be generics
                     candidate_fields.push(TyTupleField::Single(None, None));
                 }
 
                 // push the actual field
                 candidate_fields.push(TyTupleField::Single(None, Some(ty.clone())));
-                (pos, Some(ty))
+                (pos, ty)
             }
         }
     }
@@ -92,7 +87,7 @@ impl Resolver<'_> {
 
         log::debug!("inferring that {ident_of_generic:?} is {}", write_ty(&ty));
 
-        let Some(decl) = self.get_ident(ident_of_generic, true) else {
+        let Some(decl) = self.get_ident_mut(ident_of_generic, true) else {
             return Err(Error::new_assert("type not found"));
         };
         let DeclKind::GenericParam(inferred_type) = &mut decl.kind else {

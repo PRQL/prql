@@ -9,6 +9,7 @@ mod scope;
 mod static_eval;
 mod stmt;
 mod types;
+mod tuple;
 
 pub use types::ty_tuple_exclusion_mask;
 

@@ -214,7 +214,7 @@ let _eq = func a -> internal _eq
 let _is_null = func a -> a == null
 
 ## Misc
-let from_text = input<text> `noresolve.format`:csv -> internal from_text
+let from_text = func <R: {}> input<text> `noresolve.format`:csv -> <[R]> internal from_text
 
 ## Text functions
 module text {
