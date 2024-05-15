@@ -8,7 +8,7 @@ The PRQL compiler currently uses these techniques to compile
 the `std`, `date`, `text`, and `math` modules into the language.
 
 However, at this time (Spring 2024), the `module` facility does not work
-within a PRQL query iteself.
+within a PRQL query itself.
 That is, a `module` statement in a query cannot import files
 from the local file system.
 ```
@@ -124,9 +124,9 @@ let album_titles = my_playlists
 ## File importing
 
 ```admonish warning
-The examples below do **not** work. 
+The examples below do **not** work.
 At this time (Spring 2024), the `module` facility does not work
-within a PRQL query iteself.
+within a PRQL query itself.
 That is, a `module` statement in a query cannot import files
 from the local file system.
 ```
@@ -280,9 +280,9 @@ module project {
 ## Example
 
 ```admonish warning
-The examples below do **not** work. 
+The examples below do **not** work.
 At this time (Spring 2024), the `module` facility does not work
-within a PRQL query iteself.
+within a PRQL query itself.
 That is, a `module` statement in a query cannot import files
 from the local file system.
 ```
