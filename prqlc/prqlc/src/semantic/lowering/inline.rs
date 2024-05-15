@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use prqlc_ast::error::WithErrorInfo;
 
-use crate::ir::decl::RootModule;
+use crate::ir::decl::{DeclKind, RootModule};
 use crate::ir::pl::*;
 use crate::semantic::NS_LOCAL;
 use crate::{Error, Result};
@@ -18,9 +18,22 @@ impl<'a> Inliner<'a> {
     }
 
     fn lookup_expr(&self, fq_ident: &Ident) -> Option<&Expr> {
-        let decl = self.root_mod.module.get(fq_ident)?;
-        let expr_decl = decl.kind.as_expr()?;
-        Some(expr_decl)
+        let mut ident = fq_ident;
+        loop {
+            let decl = self.root_mod.module.get(ident)?;
+
+            match &decl.kind {
+                DeclKind::Expr(expr) => {
+                    if let ExprKind::Ident(i) = &expr.kind {
+                        ident = i;
+                    } else {
+                        break Some(expr);
+                    }
+                }
+                DeclKind::Import(i) => ident = i,
+                _ => break None,
+            }
+        }
     }
 
     fn lookup_func(&self, ident: &Expr) -> Option<(Ident, &Func)> {
@@ -55,13 +68,16 @@ impl<'a> PlFold for Inliner<'a> {
             }
             ExprKind::Ident(fq_ident) => {
                 if let Some(expr) = self.lookup_expr(&fq_ident) {
-                    if let ExprKind::Internal(internal) = &expr.kind {
-                        ExprKind::RqOperator {
+                    match &expr.kind {
+                        ExprKind::Internal(internal) => ExprKind::RqOperator {
                             name: internal.clone(),
                             args: vec![],
+                        },
+                        ExprKind::Param(key) if !expr.ty.as_ref().unwrap().is_relation() => {
+                            ExprKind::Param(key.clone())
                         }
-                    } else {
-                        ExprKind::Ident(fq_ident)
+                        ExprKind::Literal(lit) => ExprKind::Literal(lit.clone()),
+                        _ => ExprKind::Ident(fq_ident),
                     }
                 } else {
                     ExprKind::Ident(fq_ident)

@@ -1028,12 +1028,6 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
             .map(|e| e.kind.as_literal().and_then(|l| l.as_integer()))
     }
 
-    fn bound_display(bound: Option<Option<&i64>>) -> String {
-        bound
-            .map(|x| x.map(|l| l.to_string()).unwrap_or_else(|| "?".to_string()))
-            .unwrap_or_default()
-    }
-
     let start = bound_as_int(&range.start);
     let end = bound_as_int(&range.end);
 
@@ -1050,13 +1044,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
     };
 
     if !start_ok || !end_ok {
-        let range_display = format!("{}..{}", bound_display(start), bound_display(end));
-        Err(Error::new(Reason::Expected {
-            who: Some("take".to_string()),
-            expected: "a positive int range".to_string(),
-            found: range_display,
-        })
-        .with_span(span))
+        Err(Error::new_simple("take expected a positive int range").with_span(span))
     } else {
         Ok(())
     }

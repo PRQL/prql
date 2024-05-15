@@ -304,9 +304,8 @@ fn test_precedence_01() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: forbid references to fields of current tuple
 fn test_precedence_02() {
-    // needs to change behavior: don't allow references to previous assignments in tuples
     //   temp_c cannot be referred to from assignment to temp_f
     //   this implies that db.x contains a column temp_c too.
 
@@ -351,7 +350,7 @@ fn test_precedence_03() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: forbid references to fields of current tuple
 fn test_precedence_04() {
     assert_snapshot!((compile(r###"
     from db.comparisons
@@ -942,8 +941,7 @@ fn test_rn_ids_are_unique() {
 }
 
 #[test]
-#[ignore]
-fn test_quoting() {
+fn test_quoting_01() {
     // GH-#822
     assert_snapshot!((compile(r###"
     prql target:sql.postgres
@@ -968,7 +966,10 @@ fn test_quoting() {
       "UPPER"
       JOIN "some_schema.tablename" ON "UPPER".id = "some_schema.tablename".id
     "###);
+}
 
+#[test]
+fn test_quoting_02() {
     // GH-1493
     let query = r###"
     from db.`dir/*.parquet`
@@ -979,7 +980,11 @@ fn test_quoting() {
     FROM
       "dir/*.parquet"
     "###);
+}
 
+#[test]
+#[ignore] // change behavior: table names don't make it into tuples
+fn test_quoting_03() {
     // GH-#852
     assert_snapshot!((compile(r###"
     prql target:sql.bigquery
@@ -996,7 +1001,10 @@ fn test_quoting() {
       JOIN `db.schema.table2` ON `db.schema.table`.id = `db.schema.table2`.id
       JOIN `db.schema.t-able` AS c ON `db.schema.table`.id = c.id
     "###);
+}
 
+#[test]
+fn test_quoting_04() {
     assert_snapshot!((compile(r###"
     from db.table
     select `first name`
@@ -1006,7 +1014,10 @@ fn test_quoting() {
     FROM
       "table"
     "###);
+}
 
+#[test]
+fn test_quoting_05() {
     assert_snapshot!((compile(r###"
         from db.Assessment
         select {as = this}
@@ -1019,7 +1030,6 @@ fn test_quoting() {
 }
 
 #[test]
-#[ignore]
 fn test_sorts_01() {
     assert_snapshot!((compile(r###"
     from db.invoices
@@ -1043,24 +1053,16 @@ fn test_sorts_01() {
     select {renamed = somefield}
     "#
     ).unwrap()), @r###"
-    WITH table_0 AS (
-      SELECT
-        'something' AS renamed,
-        'something' AS _expr_0
-      FROM
-        x
-    )
     SELECT
-      renamed
+      'something' AS renamed
     FROM
-      table_0
+      x
     ORDER BY
-      _expr_0
+      renamed
     "###);
 }
 
 #[test]
-#[ignore]
 fn test_sorts_02() {
     // issue #3129
 
@@ -1094,7 +1096,11 @@ fn test_sorts_02() {
     ORDER BY
       "index"
     "###);
+}
 
+#[test]
+#[ignore] // change behavior: table names don't make it into tuples
+fn test_sorts_03() {
     // TODO: this is invalid SQL: a._expr_0 does not exist
     assert_snapshot!((compile(r#"
     from db.a
@@ -1683,8 +1689,8 @@ fn test_window_single_item_range() {
     "###);
 }
 
-#[test] // refs to fields of current tuple
-#[ignore]
+#[test]
+#[ignore] // change behavior: forbid references to fields of current tuple
 fn test_name_resolving() {
     let query = r###"
     from db.numbers
@@ -1701,7 +1707,7 @@ fn test_name_resolving() {
 }
 
 #[test]
-#[ignore] // refs to fields of current tuple
+#[ignore] // change behavior: forbid references to fields of current tuple
 fn test_strings() {
     let query = r#"
     from db.empty_table_to_do
@@ -1949,13 +1955,12 @@ fn test_take_07() {
        │
      3 │     take 0..1
        │     ────┬────
-       │         ╰────── take expected a positive int range, but found 0..1
+       │         ╰────── take expected a positive int range
     ───╯
     "###);
 }
 
 #[test]
-#[ignore]
 fn test_take_08() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -1966,7 +1971,7 @@ fn test_take_08() {
        │
      3 │     take (-1..)
        │     ─────┬─────
-       │          ╰─────── take expected a positive int range, but found -1..
+       │          ╰─────── take expected a positive int range
     ───╯
     "###);
 }
@@ -1983,24 +1988,23 @@ fn test_take_09() {
        │
      4 │     take 5..5.6
        │     ─────┬─────
-       │          ╰─────── take expected a positive int range, but found 5..?
+       │          ╰─────── take expected a positive int range
     ───╯
     "###);
 }
 
 #[test]
-#[ignore]
 fn test_take_10() {
     assert_snapshot!((compile(r###"
     from db.employees
     take (-1)
     "###).unwrap_err()), @r###"
     Error:
-       ╭─[:3:5]
+       ╭─[:3:11]
        │
      3 │     take (-1)
-       │     ────┬────
-       │         ╰────── take expected a positive int range, but found ..-1
+       │           ─┬
+       │            ╰── `take` expected int or range, but found `(std.neg ...)`
     ───╯
     "###);
 }
@@ -2523,8 +2527,8 @@ fn test_f_string() {
 
 #[test]
 #[ignore]
-fn test_sql_of_ast_1() {
-    let query = r#"
+fn test_sql_of_ast_01() {
+    assert_snapshot!(compile(r#"
     from db.employees
     filter country == "USA"
     group {title, country} (
@@ -2532,11 +2536,7 @@ fn test_sql_of_ast_1() {
     )
     sort title
     take 20
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
-        @r###"
+    "#).unwrap(), @r###"
     SELECT
       title,
       country,
@@ -2557,7 +2557,22 @@ fn test_sql_of_ast_1() {
 }
 
 #[test]
-// Confirm that a bare s-string in a table definition works as expected.
+fn test_sql_of_ast_02() {
+    assert_snapshot!(compile(r#"
+    from db.employees
+    aggregate sum_salary = s"sum({salary})"
+    filter sum_salary > 100
+    "#).unwrap(), @r###"
+    SELECT
+      sum(salary) AS sum_salary
+    FROM
+      employees
+    HAVING
+      sum(salary) > 100
+    "###);
+}
+
+#[test]
 #[ignore]
 fn test_bare_s_string() {
     let query = r#"
@@ -2588,15 +2603,16 @@ fn test_bare_s_string() {
       table_0
     "###
     );
+}
 
+#[test]
+#[ignore]
+fn test_bare_s_string_01() {
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
-    let query = r#"
+    assert_snapshot!(compile(r#"
     let a = s"select insensitive from rude"
     module.a
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2610,15 +2626,16 @@ fn test_bare_s_string() {
       table_0
     "###
     );
+}
 
+#[test]
+#[ignore]
+fn test_bare_s_string_02() {
     // Check a mixture of cases for good measure.
-    let query = r#"
+    assert_snapshot!(compile(r#"
     let a = s"sElEcT insensitive from rude"
     module.a
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
+    "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
@@ -2632,9 +2649,13 @@ fn test_bare_s_string() {
       table_0
     "###
     );
+}
 
+#[test]
+#[ignore]
+fn test_bare_s_string_03() {
     // Check SELECT\n.
-    let query = r#"
+    assert_snapshot!(compile(r#"
     let a = s"
     SELECT
       foo
@@ -2642,10 +2663,7 @@ fn test_bare_s_string() {
       bar"
 
     module.a
-    "#;
-
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql,
+    "#).unwrap(),
       @r###"
     WITH table_0 AS (
       SELECT
@@ -2658,7 +2676,11 @@ fn test_bare_s_string() {
     FROM
       table_0
     "###);
+}
 
+#[test]
+#[ignore]
+fn test_bare_s_string_04() {
     assert_snapshot!(compile(r#"
     s"SELECTfoo"
     "#).unwrap_err(), @r###"
@@ -2696,25 +2718,6 @@ fn test_table_definition_with_expr_call() {
 }
 
 #[test]
-fn test_sql_of_ast_2() {
-    let query = r#"
-    from db.employees
-    aggregate sum_salary = s"sum({salary})"
-    filter sum_salary > 100
-    "#;
-    let sql = compile(query).unwrap();
-    assert_snapshot!(sql, @r###"
-    SELECT
-      sum(salary) AS sum_salary
-    FROM
-      employees
-    HAVING
-      sum(salary) > 100
-    "###);
-    assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
-}
-
-#[test]
 #[ignore]
 fn test_prql_to_sql_1() {
     assert_snapshot!(compile(r#"
@@ -2723,8 +2726,7 @@ fn test_prql_to_sql_1() {
         count salary,
         sum salary,
     }
-    "#).unwrap(),
-        @r###"
+    "#).unwrap(), @r###"
     SELECT
       COUNT(*),
       COALESCE(SUM(salary), 0)
@@ -2740,8 +2742,7 @@ fn test_prql_to_sql_1() {
             skill_width = count_distinct specialty,
         }
     )
-    "#).unwrap(),
-        @r###"
+    "#).unwrap(), @r###"
     SELECT
       team,
       COUNT(DISTINCT specialty) AS skill_width
@@ -3006,18 +3007,16 @@ fn test_nonatomic_table() {
 }
 
 #[test]
-#[ignore]
-fn test_table_names_between_splits() {
-    let prql = r###"
+#[ignore] // change behavior: table names don't make it into tuples
+fn test_table_names_between_splits_01() {
+    assert_snapshot!(compile(r###"
     from db.employees
     join (db.department | select {d = this}) (==dept_no)
     take 10
     derive emp_no = employees.emp_no
     join (db.salaries | select {s = this}) (==emp_no)
     select {employees.emp_no, d.name, s.salary}
-    "###;
-    let result = compile(prql).unwrap();
-    assert_snapshot!(result, @r###"
+    "###).unwrap(), @r###"
     WITH table_0 AS (
       SELECT
         *
@@ -3047,16 +3046,18 @@ fn test_table_names_between_splits() {
       table_2
       JOIN table_1 ON table_2.emp_no = table_1.emp_no
     "###);
+}
 
-    let prql = r###"
+#[test]
+#[ignore] // change behavior: table names don't make it into tuples
+fn test_table_names_between_splits_02() {
+    assert_snapshot!(compile(r###"
     from db.employees
     select {e = this}
     take 10
     join db.salaries (==emp_no)
     select {e.*, salaries.salary}
-    "###;
-    let result = compile(prql).unwrap();
-    assert_snapshot!(result, @r###"
+    "###).unwrap(), @r###"
     WITH table_0 AS (
       SELECT
         *
@@ -3075,7 +3076,7 @@ fn test_table_names_between_splits() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: table names don't make it into tuples
 fn test_table_alias_01() {
     assert_snapshot!((compile(r###"
     from db.employees
@@ -3100,7 +3101,7 @@ fn test_table_alias_01() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: `x.a` will infer name `a` only
 fn test_table_alias_02() {
     assert_snapshot!((compile(r#"
     from db.employees
@@ -3524,10 +3525,9 @@ fn test_unused_alias() {
 }
 
 #[test]
-#[ignore]
 fn test_table_s_string_01() {
     assert_snapshot!(compile(r#"
-    let main <relation> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
+    let main <[{first_name = text, age = int}]> = s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
@@ -3540,7 +3540,8 @@ fn test_table_s_string_01() {
         age ASC
     )
     SELECT
-      *
+      first_name,
+      age
     FROM
       table_0
     "###
@@ -3675,7 +3676,7 @@ fn test_table_s_string_06() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: table names don't make it into tuples
 fn test_direct_table_references() {
     assert_snapshot!(compile(
         r#"
@@ -3683,7 +3684,7 @@ fn test_direct_table_references() {
     select s"{x}.field"
     "#,
     )
-    .unwrap_err(), @r###"
+    .unwrap(), @r###"
     Error:
        ╭─[:3:15]
        │
@@ -3710,7 +3711,7 @@ fn test_direct_table_references() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: forbid references to fields of current tuple
 fn test_name_shadowing() {
     assert_snapshot!(compile(
         r###"
@@ -4013,9 +4014,8 @@ fn test_exclude_columns_02() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: table names don't make it into tuples
 fn test_exclude_columns_03() {
-    // needs to change behavior: table names don't make it into tuples 
     assert_snapshot!(compile(r#"
     from db.artists
     derive nick = name
@@ -4131,12 +4131,11 @@ fn test_custom_transforms() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: table names don't make it into tuples
 fn test_name_inference() {
     assert_snapshot!(compile(r#"
     from db.albums
     select {artist_id + album_id}
-    # nothing inferred infer
     "#).unwrap(),
         @r###"
     SELECT
@@ -4150,7 +4149,6 @@ fn test_name_inference() {
         r#"
     from db.albums
     select {artist_id}
-    # infer albums.artist_id
     select {albums.artist_id}
     "#,
     )
@@ -4159,7 +4157,6 @@ fn test_name_inference() {
         r#"
     from db.albums
     select {albums.artist_id}
-    # infer albums.artist_id
     select {albums.artist_id}
     "#,
     )
@@ -4460,10 +4457,8 @@ fn test_loop_2() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: `x.a` will infer name `a` only
 fn test_params() {
-    // needs to change behavior: `x.a` will infer name `a` only
-
     assert_snapshot!(compile(r#"
     from db.invoices
     select {i = this}
@@ -4493,21 +4488,17 @@ fn test_params() {
 // for #1969
 #[test]
 fn test_datetime() {
-    let query = &r#"
-        from db.test_table
-        select {date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800}
-        "#;
-
-    assert_snapshot!(
-                compile(query).unwrap(),
-                @r###"SELECT
-  DATE '2022-12-31' AS date,
-  TIME '08:30' AS time,
-  TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
-FROM
-  test_table
-"###
-    )
+    assert_snapshot!(compile(r#"
+    from db.test_table
+    select {date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800}
+    "#).unwrap(), @r###"
+    SELECT
+      DATE '2022-12-31' AS date,
+      TIME '08:30' AS time,
+      TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+    FROM
+      test_table
+    "###);
 }
 
 #[test]
@@ -4638,7 +4629,6 @@ fn test_read_parquet_duckdb() {
 }
 
 #[test]
-#[ignore]
 fn test_excess_columns() {
     // https://github.com/PRQL/prql/issues/2079
     assert_snapshot!(compile(r#"
@@ -4651,7 +4641,7 @@ fn test_excess_columns() {
     WITH table_0 AS (
       SELECT
         title,
-        track_id AS _expr_0
+        track_id
       FROM
         tracks
     )
@@ -4660,7 +4650,7 @@ fn test_excess_columns() {
     FROM
       table_0
     ORDER BY
-      _expr_0
+      track_id
     "###
     );
 }
@@ -4794,7 +4784,7 @@ fn test_array_02() {
 }
 
 #[test]
-#[ignore]
+#[ignore] // change behavior: table names don't make it into tuples
 fn test_double_stars() {
     assert_snapshot!(compile(r#"
     from db.tb1
@@ -5246,7 +5236,6 @@ fn test_table_declarations() {
 }
 
 #[test]
-#[ignore]
 fn test_param_declarations() {
     assert_snapshot!(compile(
         r###"
@@ -5281,7 +5270,6 @@ fn test_relation_aliasing() {
 }
 
 #[test]
-#[ignore]
 fn test_import() {
     assert_snapshot!(compile(
         r###"
@@ -5303,7 +5291,6 @@ fn test_import() {
 }
 
 #[test]
-#[ignore]
 fn test_ordering_declarations() {
     // declarations must be resolved in the correct order:
     // - hello.world
@@ -5334,7 +5321,6 @@ fn test_ordering_declarations() {
 }
 
 #[test]
-#[ignore]
 fn test_local_ref() {
     assert_snapshot!(compile(
         r###"
@@ -5347,11 +5333,9 @@ fn test_local_ref() {
     )
     .unwrap(), @r###"
     SELECT
-      *
+      hello
     FROM
-      h
-    WHERE
-      j = 1 + 1
+      x
     "###);
 }
 
