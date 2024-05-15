@@ -1,9 +1,19 @@
 # Modules
 
-> This is a technical document. For a "how to use" or a TLDR; skip to the
-> [Example](#example) section.
+```admonish warning
+The `module` facility is in discussion.
+This page documents our understanding of the way
+the final PRQL compiler will likely work.
+The PRQL compiler currently uses these techniques to compile
+the `std`, `date`, `text`, and `math` modules into the language.
 
-Design goals:
+However, at this time (Spring 2024), the `module` facility does not work
+within a PRQL query iteself.
+That is, a `module` statement in a query cannot import files
+from the local file system.
+```
+
+Design goals for **modules**:
 
 1. Allow importing declarations from other files.
 
@@ -113,8 +123,13 @@ let album_titles = my_playlists
 
 ## File importing
 
-> This section is under discussion. Current implementation plans do not include
-> `module` declarations, but loading of all files under the compilation path.
+```admonish warning
+The examples below do **not** work. 
+At this time (Spring 2024), the `module` facility does not work
+within a PRQL query iteself.
+That is, a `module` statement in a query cannot import files
+from the local file system.
+```
 
 To include PRQL source code from other files, we can use the following syntax:
 
@@ -241,7 +256,7 @@ connector (i.e. JDBC) where no other files can be loaded.
 
 ## Built-in module structure
 
-> Work In Progress
+> As noted above, this facility is in discussion.
 
 ```
 # root module of every project
@@ -263,6 +278,14 @@ module project {
 ```
 
 ## Example
+
+```admonish warning
+The examples below do **not** work. 
+At this time (Spring 2024), the `module` facility does not work
+within a PRQL query iteself.
+That is, a `module` statement in a query cannot import files
+from the local file system.
+```
 
 This is an example project, where each of code block is a separate file.
 
